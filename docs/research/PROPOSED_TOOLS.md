@@ -1,22 +1,259 @@
-# Tool, skill and MCP inventory
+# Tool, skill, plugin, and MCP inventory
 
-**Status:** DRAFT
+**Status:** VERIFIED CURRENT-SESSION INVENTORY; REOPEN BEFORE EXECUTION
 
-**Authority:** planning and implementation tooling availability/recommendation
+**Authority:** active-availability, permissions, cost, security, and REQUIRED/OPTIONAL classification for requested planning and implementation tooling. The current session manifest and executable probes determine availability; a package found in a cache or an upstream repository does not.
 
-**Related:** [architecture](../engineering/ARCHITECTURE.md), [testing](../quality/TESTING.md)
+**Owned evidence question:** Which requested Codex/tooling capabilities are actually callable in this session, what authority and cost could each carry, and which are required for EONFOLK versus merely helpful?
 
-The inventory will verify status, official source, capability, permissions, cost, security risk, and REQUIRED/OPTIONAL classification for every requested tool. Optional tooling never blocks planning or either implementation gate.
+**Inventory date:** 2026-08-20
 
-| Capability | Status to verify | Required? |
+Provisional source IDs in this report must be verified and remapped into `docs/research/SOURCE_LEDGER.md` by the coordinator.
+
+## Evidence language and availability rules
+
+- **VERIFIED FACT:** supported by the active session manifest, a read-only local executable/auth probe, or an opened primary source.
+- **INFERENCE:** an operational conclusion from those facts and the binding constraints.
+- **PRODUCT HYPOTHESIS:** a proposition that requires actual use evidence.
+- **UNRESOLVED:** missing availability, pricing, permission, authentication, or license evidence.
+
+Status meanings:
+
+- **AVAILABLE:** present in the active skills/tools list or confirmed executable now. Authentication is stated separately.
+- **PARTIAL:** one named surface is active but a related CLI/MCP/package is not.
+- **NOT AVAILABLE:** absent from the active skills/tools list and executable probes. Upstream existence or an install recommendation does not change this.
+- **REQUIRED:** the capability is required for the relevant planning/implementation gate. A particular vendor plugin is required only if no active substitute satisfies that gate.
+- **OPTIONAL:** absence must not block planning or the first slice.
+
+No tool was installed, enabled, authenticated, purchased, or invoked against an external account for this inventory. Read-only probes did not print tokens.
+
+## Executive recommendation
+
+Proceed with the active Browser capability, built-in Image Generation, and authenticated GitHub CLI/skills when their corresponding work is authorized. Add Playwright as a pinned project dependency during implementation because repeatable browser E2E and screenshots are a required capability, even though no `playwright` executable is currently present.
+
+Do not install Codex Game Studio, Build Web Apps, the Cloudflare connector, Promptfoo, shadcn MCP, Motion AI Kit/MCP, or 21st MCP during planning. None is necessary to settle the architecture. Reconsider Game Studio for a later renderer/gameplay implementation pass, Cloudflare only at the hosted-region gate, and Promptfoo only after a real model adapter exists. shadcn guidance is already active; Motion and 21st are default-reject optional accelerators because they add remote/code/provenance surfaces without first-slice necessity.
+
+## Current environment observations
+
+**VERIFIED FACT (TOOL-S01):** the active session lists:
+
+- `browser:control-in-app-browser`, `vercel:agent-browser`, and `vercel:agent-browser-verify` skills;
+- the built-in `image_gen__imagegen` tool and `imagegen` skill;
+- `github:github` and `github:gh-address-comments` skills;
+- `vercel:shadcn` guidance;
+- `sites:sites-building`, which is a Sites-specific builder and is not the named Build Web Apps plugin.
+
+It does not list Codex Game Studio, Build Web Apps, Cloudflare, Promptfoo, a shadcn MCP server, Motion tooling/MCP, or 21st tooling/MCP.
+
+**VERIFIED FACT (TOOL-S02):** read-only executable probes found `gh`, `node`, `pnpm`, `npx`; did not find `wrangler`, `promptfoo`, `playwright`, `agent-browser`, `shadcn`, or `motion-ai`. `gh auth status` confirmed one active GitHub login from the system keyring with `gist`, `read:org`, `read:packages`, `repo`, and `workflow` scopes. This is broad write authority, not evidence that every write is authorized.
+
+## Complete requested inventory
+
+| Requested capability | Active status | Official/current source | Capability | Permissions / external effects | Cost posture | Principal security/provenance risk | Class |
+|---|---|---|---|---|---|---|---|
+| Codex Game Studio | **NOT AVAILABLE** | OpenAI's archived plugin manifest/repository reference [TOOL-S03] | Browser-game architecture, 2D/3D paths, UI, assets, playtesting | Upstream manifest declares Interactive + Write; if installed it can guide/create project files and run game workflows | MIT upstream reference; installation/product access not established | Write-capable plugin, scripts/assets/dependency suggestions; current upstream archive means provenance/version must be re-established | **OPTIONAL** |
+| Build Web Apps | **NOT AVAILABLE** as named plugin; Sites skill is not equivalent | OpenAI upstream manifest/reference [TOOL-S04] | Frontend design/build, generated assets, browser testing, shadcn/payment/database guidance | Upstream manifest declares Interactive + Read + Write; some coordinated skills can use external services | MIT upstream reference; service/provider costs separate | Broad app writes, generated assets, optional payment/database/credential routes, plugin source now not active | **OPTIONAL** |
+| Browser / Playwright | **PARTIAL:** Browser skills AVAILABLE; Playwright CLI/package NOT AVAILABLE | Active manifest [TOOL-S01]; Playwright docs [TOOL-S05] | Navigate/interact/capture screenshots; later deterministic E2E and visual comparison | Browser control can access visible pages and possibly signed-in sessions; Playwright launches browsers and writes test artifacts/screenshots | Active Browser cost not separately exposed; Playwright OSS/local compute, browser downloads | Signed-in session exposure, unintended web actions, screenshot data, hostile pages, flaky visual baselines | **REQUIRED capability** |
+| Image Generation | **AVAILABLE** built-in tool + skill | Active manifest [TOOL-S01]; OpenAI image docs [TOOL-S06] | Generate/edit visual concepts and raster assets | Sends prompt and selected reference images to hosted generation; returns generated image | No separate price/limit exposed by current tool manifest; do not assume unlimited or API-equivalent pricing | Copyright/style/reference provenance, hidden text/errors, unsafe or inconsistent production assets, user-image privacy | **REQUIRED for visual-concept gate; OPTIONAL for systems slice** |
+| GitHub | **AVAILABLE and authenticated** via active skills + `gh` | Active/local probe [TOOL-S01][TOOL-S02]; official CLI [TOOL-S07] | Inspect repos/PRs/issues/CI; branch, commit, push, and review workflows when authorized | Current token scopes include broad repository and workflow authority; local git can write branches/commits | GitHub CLI is MIT/free; account plan, Actions, security features, and storage costs are separate and unverified | Accidental push/merge/comment, secret exposure in logs, broad token scope, untrusted Actions/PR code | **REQUIRED** |
+| Cloudflare connector/plugin | **NOT AVAILABLE**; shown only as a recommended install; `wrangler` absent | Current recommended-plugin manifest [TOOL-S08]; Cloudflare docs for service terms [TOOL-S09] | Potential account/project/deploy/log/Worker resource management; exact connector tools unknown until install | **UNRESOLVED:** inspect install permission screen and callable tool list before connection; deployment mutates public infrastructure | Workers/DO/AI have Free and paid limits; connector cost not separately established | Credential/account access, deployment/state mutation, logs/secrets, denial-of-wallet; installability is not authorization | **OPTIONAL until hosted-region gate** |
+| Promptfoo | **NOT AVAILABLE**; CLI absent | Promptfoo docs/repository [TOOL-S10][TOOL-S11] | Model regression evals, assertions, red-team tests, reports, optional MCP | Local runner and MCP execute with user permissions; can call providers, read fixtures/config, write reports | OSS runner is available upstream; provider calls and Cloud features can cost; no project install exists | Official security model says configs/custom scripts/providers/transforms can execute unsandboxed trusted code; prompts/outputs/secrets can leave through configured providers/cloud | **OPTIONAL after model adapter exists** |
+| shadcn tooling / MCP | **PARTIAL:** active shadcn guidance skill; CLI and MCP NOT AVAILABLE | Active manifest [TOOL-S01]; official shadcn MCP docs [TOOL-S12] | Component composition guidance now; MCP can search/read configured registries and help add component source | MCP/CLI would access registries/network and write copied component/config files; registry code executes in the app once adopted | No project-specific tool charge is established; registry items may have distinct licenses/costs | Remote registry trust, arbitrary copied code/dependencies, style/component soup, item-level license/provenance | **OPTIONAL** |
+| Motion tooling / MCP | **NOT AVAILABLE**; `motion-ai` absent | Motion AI Kit install/docs/terms [TOOL-S13][TOOL-S14] | Current docs search, examples, CSS spring generation, performance audit, transition editor | Hosted MCP can read/search Motion content; audit/profile features may read local source and a running site; installation rewrites agent/MCP config | Core Motion has a free path; AI Kit/premium examples are tied to Motion+ in current docs; exact purchase price was not reliably exposed | Hosted MCP/auth, local code/site inspection, premium-code license/seat terms, unnecessary animation dependency | **OPTIONAL; default reject for V1** |
+| 21st.dev tooling / MCP | **NOT AVAILABLE**; no active skill/MCP/CLI | Official repository and current Terms [TOOL-S15][TOOL-S16] | Remote component/theme/template search, code retrieval, generation, bookmarks/team libraries | Current MCP setup requires a 21st API key and sends requests to a hosted MCP; generated/retrieved code would enter the repo | Paid plans/AI credits exist; exact current plan price/allowance must be reopened | API key, hosted generation/data transfer, remote code/supply-chain risk, marketplace media/metadata restrictions and item-level ownership/license | **OPTIONAL; default reject** |
+
+## Per-tool decisions and gates
+
+### Codex Game Studio
+
+**VERIFIED FACT:** the upstream OpenAI manifest describes Game Studio as an Interactive/Write browser-game plugin, and its skills separate simulation from rendering and include React Three Fiber/Three.js, asset, UI, and playtest paths [TOOL-S03]. The upstream repository page was archived on 2026-08-16, and the plugin is not in this active session.
+
+**INFERENCE:** it is aligned with EONFOLK's eventual game implementation, but absence is not a planning blocker. Do not treat upstream cache/repository files as active instructions. Reopen only when implementation needs renderer/gameplay scaffolding, then install through a current official marketplace if available and inspect the actual version/permissions first.
+
+### Build Web Apps
+
+**VERIFIED FACT:** the upstream OpenAI manifest describes Interactive/Read/Write frontend-building capabilities [TOOL-S04]. It is not active here. The active Sites builder is scoped to Sites projects and does not make the named plugin available.
+
+**INFERENCE:** a skilled implementation agent plus the required Browser/Playwright loop can build the slice without it. Its breadth also invites irrelevant payment/database/provider work. Keep optional.
+
+### Browser and Playwright
+
+**VERIFIED FACT:** Browser-related skills are active, but the ordinary `playwright` and `agent-browser` executables are absent. Playwright supports screenshot comparisons and warns that rendering varies with OS, browser, hardware, settings, and headless state [TOOL-S05].
+
+**INFERENCE:** use the active Browser for authorized exploratory/manual QA. During implementation, add a pinned Playwright test dependency through the project lockfile rather than relying on a global command. Generate visual baselines in one controlled CI environment and still do real M4 Pro/browser/device inspection for canvas/WebGL states.
+
+Required permission discipline:
+
+- bind only to the intended local URL/tab;
+- avoid using unrelated signed-in tabs;
+- do not submit purchases, publish, deploy, or send messages without scope authorization;
+- treat screenshots/traces as potentially sensitive artifacts;
+- pin browsers/package and keep visual thresholds narrow and explained.
+
+### Image Generation
+
+**VERIFIED FACT:** the generation/edit tool and skill are callable in this session [TOOL-S01].
+
+**INFERENCE:** use it for matched visual concepts and isolated raster assets, not for UI text, simulation truth, licenses, or architectural diagrams that are clearer in documents. Record prompt, source references, generation date, edit lineage, intended use, and human approval. Generated appearance is not proof that the experience can be implemented in the time/performance budget.
+
+### GitHub
+
+**VERIFIED FACT:** the official GitHub CLI is installed/authenticated and the GitHub skills are active [TOOL-S01][TOOL-S02][TOOL-S07].
+
+**INFERENCE:** GitHub is required for the requested branch/commit/review process. Use local git for bounded file changes and `gh` only for explicitly authorized remote operations. The broad existing scopes are an upper bound, not a grant to push/open/merge/comment. Before a remote action, resolve repository, branch, visibility, target, and diff.
+
+### Cloudflare
+
+**VERIFIED FACT:** Cloudflare appears in the current recommended-but-not-installed plugin list; there is no active Cloudflare skill/tool and no `wrangler` executable [TOOL-S02][TOOL-S08].
+
+**INFERENCE:** do not install/connect it until the hosted-region gate passes. At that gate, prefer a least-privileged token/account, preview/local test first, explicit resource names, a cost cap, and separate approval for deployment or destructive resource changes. The plugin's exact capability/permissions are **UNRESOLVED** until its current manifest and install dialog are visible.
+
+### Promptfoo
+
+**VERIFIED FACT:** Promptfoo documents CI/eval workflows, but its security policy says configs, scripts, assertions, providers, transforms, hooks, plugins, and local MCP execute with the user's permissions and are not a sandbox [TOOL-S10][TOOL-S11]. It is not active/installed.
+
+**INFERENCE:** ordinary deterministic fixtures should own V1 cognition tests. If a model adapter later exists, pin Promptfoo as a dev dependency, commit only trusted config, disable unnecessary hosted/sharing/telemetry routes, use scoped canary credentials, and never run secret-bearing evals from untrusted fork PRs. Its MCP is unnecessary.
+
+### shadcn tooling/MCP
+
+**VERIFIED FACT:** shadcn guidance is active; the official MCP can connect compatible registries, but no MCP/CLI is active locally [TOOL-S01][TOOL-S12].
+
+**INFERENCE:** use guidance only if chosen UI primitives call for it. EONFOLK must own/restyle copied code and record each component's registry URL, revision, author, license, dependencies, and modifications. Do not add MCP merely to browse fashionable components.
+
+### Motion tooling/MCP
+
+**VERIFIED FACT:** the current Motion AI Kit installer can configure hosted MCP/skills, and official docs tie premium examples/audits to Motion+ while retiring an older token-in-local-command flow [TOOL-S13]. No Motion tooling is active here.
+
+**INFERENCE:** core Motion as a normal library may later be selected independently. The MCP/AI Kit is not needed for the first slice. Animation requirements should first be expressed in CSS/Motion primitives and verified with reduced-motion/performance tests. Reopen only if motion implementation is a measured bottleneck; inspect exact price, seat/license terms, hosted data, and Codex support that day.
+
+### 21st.dev tooling/MCP
+
+**VERIFIED FACT:** the current official repository says the hosted MCP requires an API key and supports search, paid code retrieval, and generation [TOOL-S15]. Current Terms restrict scraping, training, redistribution, and reuse of Marketplace media/structured metadata while leaving underlying component rights with respective authors [TOOL-S16].
+
+**INFERENCE:** this is the worst first-slice trade: credentials, remote code, variable item licenses, provenance work, and strong temptation toward generic component composition. Default reject. If later reconsidered, require a specific named component need, item-level license verification, code review, no preview-media reuse, attribution/link compliance, and explicit key/paid-plan approval.
+
+## Permission and cost tiers
+
+| Tier | Examples | Rule |
 |---|---|---|
-| Codex Game Studio | Not active | Optional |
-| Build Web Apps | Named plugin not active; equivalent web skills present | Optional |
-| Browser / Playwright | Available | Required for visual QA |
-| Image Generation | Available built-in | Required for concepts |
-| GitHub | Available and authenticated | Required |
-| Cloudflare | Connector not active | Optional until server work |
-| Promptfoo | Not installed | Optional when model behavior changes |
-| shadcn tooling/MCP | Guidance skill available; MCP unconfirmed | Optional |
-| Motion tooling/MCP | Dedicated tooling unconfirmed | Optional |
-| 21st.dev tooling/MCP | Not active | Optional, default reject |
+| Local/read-only | local git inspection, active docs/guidance, screenshots of owned localhost | Proceed only within task scope; do not expose secrets |
+| Local/write | git commits, Playwright artifacts, copied components, generated assets | Require implementation authorization and a bounded file target; review diff/provenance |
+| External/read | docs, public GitHub inspection, hosted MCP search | Minimize shared data; treat responses/code as untrusted |
+| External/write/mutate | GitHub push/PR/comment, Cloudflare deploy/resource change, hosted generation account actions | Require explicit task authorization, resolved target, and least privilege |
+| Credential/payment | provider keys, Cloudflare/GitHub OAuth, Motion+/21st plan | Never infer approval; reopen cost/terms and ask before action |
+
+## Ordered tooling workflow
+
+### Gate T0 — planning
+
+Use active web/docs, local git, and GitHub read-only inspection. Do not install optional tools. Deliver source-backed architecture and provenance requirements.
+
+### Gate T1 — first implementation setup
+
+Required deliverables:
+
+- pinned runtime/package manager and lockfile;
+- pinned Playwright dev dependency and browser version;
+- active Browser plus local E2E/screenshot workflow;
+- GitHub branch/CI workflow under existing authorization;
+- dependency license report.
+
+Game Studio/Build Web Apps remain optional. Use only if they are active through a current official source and save more effort than their permission/provenance overhead.
+
+### Gate T2 — visual concept/asset pass
+
+Use built-in Image Generation under a prompt/reference/provenance ledger. Verify generated files visually and in-browser. No generated asset becomes canonical without license/safety/human review.
+
+### Gate T3 — model evaluation
+
+Open only after a real model adapter exists. Start with normal test fixtures. Consider pinned Promptfoo CLI only if it adds reproducible provider/model regression value. Do not add its MCP or Cloud features by default.
+
+### Gate T4 — hosted region
+
+Re-inventory the session. If Cloudflare remains selected, inspect the current official plugin manifest/permissions and actual account; install/connect only with approval. Pin Wrangler in the project, use least-privileged credentials, local/preview test, named resources, cost controls, and a rollback/export plan.
+
+### Gate T5 — optional UI accelerators
+
+shadcn guidance is sufficient initially. Consider Motion AI Kit or 21st MCP only for a concrete unresolved need after item-level license, cost, credential, hosted-data, and code-review gates. Missing optional MCPs never block release.
+
+## Strongest objections
+
+1. **"Official" does not mean active or harmless.** Game Studio/Build Web Apps upstream references exist, but the active session lacks them and the upstream page is archived. Installation/version provenance must be re-established.
+2. **The active GitHub token is broad.** It enables high-impact remote mutations. Capability is not authorization; use least scope and resolve every target.
+3. **Browser automation may touch signed-in state.** A convenient active browser can expose unrelated accounts or submit real actions. Keep QA on owned localhost/test accounts.
+4. **Promptfoo runs trusted code, not sandboxed data.** Untrusted configs/PRs plus credentials are unsafe by its own model [TOOL-S10].
+5. **MCPs increase hidden surface area.** Hosted search/generation can send code/context externally and return unreviewed code. Each server needs permissions, provenance, and data-flow review.
+6. **Component marketplaces can erase visual identity.** shadcn/21st/Motion examples are inputs, not the EONFOLK design language.
+7. **Tool cost is not only subscription price.** Review time, dependency churn, credentials, CI minutes, provider calls, generated asset cleanup, and license tracking matter for a solo builder.
+
+## Rejected options
+
+| Option | Decision | Reason |
+|---|---|---|
+| Treat cached plugin files as AVAILABLE | Reject | Current active manifest is the availability authority |
+| Install every official/recommended plugin now | Reject | Adds permissions/credentials/surface without planning value |
+| Use `npx ...@latest` in committed CI | Reject | Unpinned supply-chain and behavior drift |
+| Use global Playwright as project test contract | Reject | Not installed and not reproducible; pin project dependency |
+| Expose Promptfoo local UI/MCP to a network | Reject | Not a multi-user security boundary [TOOL-S10] |
+| Use 21st preview media/metadata as product assets | Reject | Current terms restrict reuse [TOOL-S16] |
+| Adopt marketplace component code without provenance | Reject | Item ownership/license/dependencies vary |
+| Make Motion+/21st purchase part of first slice | Reject | Nonessential and no spending authorization |
+| Connect Cloudflare during research | Reject | Hosted architecture gate has not passed |
+
+## Unproven assumptions and evidence that reopens this inventory
+
+| Assumption | Status | Reopen evidence |
+|---|---|---|
+| Active Browser skill is sufficient for manual QA | **UNRESOLVED until used** | Invocation failure or inability to inspect the canvas/console safely |
+| Playwright can be added within implementation budget | **INFERENCE** | Dependency/browser install or CI environment proves incompatible |
+| Image Generation has no incremental user-visible charge in this session | **UNRESOLVED** | Current plan/usage UI or official product terms show limits/charges |
+| GitHub current authentication is appropriate | **UNRESOLVED** | Target repo/organization policy or required operation needs narrower/different auth |
+| Official Game Studio/Build Web Apps have a current supported install channel | **UNRESOLVED** | Current marketplace manifest/install UI confirms or denies availability |
+| Cloudflare plugin can be least-privileged | **UNRESOLVED** | Current install permission/tool manifest and token model |
+| Motion AI Kit exact Codex support/price/hosted-data path fits | **UNRESOLVED** | Execution-day docs, terms, install preview, and purchase screen |
+| 21st item licenses can be made reliable enough | **UNRESOLVED** | Named component has clear license/provenance and survives review |
+
+## Implementation implications
+
+- `AGENTS.md`/execution plans should require active-tool re-inventory before each wave; no cache-based availability claims.
+- `quality/VISUAL_QA.md` should require active Browser plus pinned Playwright, stable baselines, screenshot inspection, and real-device review.
+- `quality/TESTING.md` should keep model-free cognition fixtures primary; Promptfoo becomes conditional.
+- `engineering/FRONTEND.md` should record provenance for all copied components and allow shadcn/Motion/marketplace code only by named need.
+- `engineering/SECURITY.md` should list browser signed-in state, GitHub token, MCP servers, provider credentials, generated assets, and dependency install scripts as trust boundaries.
+- `engineering/COST_MODEL.md` should include tool/provider/account costs separately from runtime infrastructure.
+- `docs/exec-plans/*` should mark every external write, credential, purchase, install, and deploy gate explicitly.
+
+## Reopen and execution-day checklist
+
+1. Read the current active skills/tools manifest. Do not infer from filesystem caches.
+2. Probe required executables with `command -v` and record exact versions; do not auto-download via `npx` during the probe.
+3. For any plugin, inspect current publisher, manifest, capabilities, skills, MCP/app configuration, install permissions, authentication, privacy, terms, version, and source repository status.
+4. For any MCP, enumerate its actual `tools/list` and resources after connection; compare with the approved minimum.
+5. Inspect current pricing/plan screens before any paid or quota-bearing use.
+6. Pin packages by lockfile; never put `@latest` in CI. Review install scripts, transitive licenses, advisories, and provenance.
+7. Produce a production dependency license artifact. Reject GPL/AGPL, noncommercial, source-available, or custom terms unless explicitly reviewed/approved.
+8. For copied component/example code, record source URL, publisher/author, exact revision, item license, dependencies, attribution, modifications, and date.
+9. For generated assets, record prompt/reference/edit lineage and intended use; inspect content and metadata.
+10. Recheck GitHub scopes and target before remote writes; recheck Cloudflare resource/account/environment before deploy.
+11. Use scoped test credentials and sanitized fixtures; never expose owner/provider secrets to Browser traces, screenshots, model prompts, reports, commits, or MCP context.
+
+## Source-ledger appendix — proposed rows
+
+| Provisional ID | Claim supported | Primary/local source | Accessed | Type | Confidence | Reopen note |
+|---|---|---|---|---|---|---|
+| TOOL-S01 | Exact active skills/tools availability for this session | Codex session skills/tools manifest supplied to the agent | 2026-08-20 | A, environment | High for this session | Re-list every execution session |
+| TOOL-S02 | `gh` authenticated with stated scopes; `wrangler`, `promptfoo`, `playwright`, `agent-browser`, `shadcn`, `motion-ai` absent from PATH | Read-only local `command -v`, version, and redacted `gh auth status` probes | 2026-08-20 | A, local | High for this worktree/session | Re-probe after environment change |
+| TOOL-S03 | Game Studio upstream manifest/capabilities/license and game skill scope | [OpenAI Game Studio manifest](https://github.com/openai/plugins/blob/main/plugins/game-studio/.codex-plugin/plugin.json), [Game Studio skill](https://github.com/openai/plugins/blob/main/plugins/game-studio/skills/game-studio/SKILL.md) | 2026-08-20 | B, archived upstream reference | High for archived manifest | Does not prove current installability |
+| TOOL-S04 | Build Web Apps upstream scope, capabilities, and MIT manifest | [OpenAI Build Web Apps manifest](https://github.com/openai/plugins/blob/main/plugins/build-web-apps/.codex-plugin/plugin.json) | 2026-08-20 | B, upstream reference | High for referenced manifest | Does not prove active availability |
+| TOOL-S05 | Playwright screenshot comparisons exist and baselines vary by environment | [Playwright visual comparisons](https://playwright.dev/docs/test-snapshots) | 2026-08-20 | B | High | Pin package/browser in execution |
+| TOOL-S06 | OpenAI supports image generation/editing APIs; current Codex built-in is separately evidenced by TOOL-S01 | [OpenAI image generation guide](https://platform.openai.com/docs/guides/image-generation) | 2026-08-20 | A | High for API capability | Built-in tool pricing/limits remain separate |
+| TOOL-S07 | `gh` is GitHub's official MIT CLI for repos/PRs/issues workflows | [GitHub CLI repository](https://github.com/cli/cli) | 2026-08-20 | B | High | Account plan/scopes separate |
+| TOOL-S08 | Cloudflare is recommended but not installed in the current session | Codex recommended-plugins manifest supplied to the agent | 2026-08-20 | A, environment | High for this session | Inspect install dialog/manifest before connection |
+| TOOL-S09 | Cloudflare runtime has Free/Paid usage and cost dimensions | [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) | 2026-08-20 | A | High on access date | Reopen on any execution/deploy day |
+| TOOL-S10 | Promptfoo intentionally executes configured code unsandboxed with user permissions and warns against secrets on untrusted PRs | [Promptfoo security policy](https://github.com/promptfoo/promptfoo/blob/main/SECURITY.md) | 2026-08-20 | B | High | Pin current supported release |
+| TOOL-S11 | Promptfoo documents local/CI eval execution | [Promptfoo CI/CD integration](https://www.promptfoo.dev/docs/integrations/ci-cd/) | 2026-08-20 | B | High | Provider/Cloud costs separate |
+| TOOL-S12 | shadcn provides an MCP server for compatible registries | [shadcn MCP documentation](https://ui.shadcn.com/docs/registry/mcp) | 2026-08-20 | B | High | Registry/item trust remains project responsibility |
+| TOOL-S13 | Motion AI Kit installer configures hosted MCP/skills; current docs describe premium Motion+ access and retired older token flow | [Motion AI Kit install](https://motion.dev/docs/ai-kit-install), [Motion AI Kit](https://motion.dev/docs/studio) | 2026-08-20 | A | Medium-high | Reopen exact Codex path, hosted data, and price |
+| TOOL-S14 | Motion+ terms/pricing distinguish free core and premium assets/license | [Motion terms](https://motion.dev/terms), [Motion pricing](https://motion.dev/pricing) | 2026-08-20 | A | Medium-high | Purchase screen is cost truth |
+| TOOL-S15 | Current 21st MCP uses hosted endpoint/API key and exposes search/generation/code-retrieval tools | [21st MCP official repository](https://github.com/21st-dev/magic-mcp) | 2026-08-20 | B | High on access date | Enumerate actual tools after any approved connection |
+| TOOL-S16 | Current 21st Terms restrict scraping/training/redistribution/media/metadata reuse and state paid plans/AI credits | [21st Terms](https://21st.dev/terms) | 2026-08-20 | A | High on access date | Verify item license and current terms separately |
