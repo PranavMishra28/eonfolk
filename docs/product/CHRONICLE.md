@@ -2,7 +2,7 @@
 
 **Purpose:** define how authoritative events become biography, relationship history, absence return, world history, replay, public explanation, and share artifacts without overstating causality.
 
-**Status:** DECISION PROPOSED — fixed Riverhold fixture is the acceptance oracle
+**Status:** ACCEPTED AFTER RED TEAM — one oracle plus counterfactual branch suite
 
 **Authority boundary:** this file owns factual narrative semantics and the Riverhold presentations. [WORLD_MODEL](../game/WORLD_MODEL.md) owns event truth; [DISTRIBUTION](DISTRIBUTION.md) owns channels; presentation layers may shorten but never invent.
 
@@ -20,9 +20,9 @@ The Chronicle is a deterministic projection of authoritative events. It distingu
 
 Every factual sentence resolves to event IDs and state hashes. A citizen's justification is testimony/provenance, not hidden reasoning or objective truth. Causal parents are typed, not inferred later from narrative proximity.
 
-## Fixed Riverhold evidence chain
+## Riverhold oracle chain
 
-All Chronicle formats use this immutable planning fixture:
+All seven formats below demonstrate one accepted history. It is an oracle for sentence provenance, not an immutable product trajectory:
 
 | Event | Authoritative fact | Causal role used later |
 |---|---|---|
@@ -40,6 +40,18 @@ All Chronicle formats use this immutable planning fixture:
 | RV-012 | Next shortage checkpoint allocates grain using the separated counts; no citizen misses that ration. | Direct effect of the allocation rule at this checkpoint; not proof the law prevented famine generally |
 
 Pre/post hashes and sequence belong to implementation fixtures. This document deliberately makes no unrecorded claim about Toma's intent, Mara's courage, or the law “saving Riverhold.”
+
+## Counterfactual branch suite
+
+Implementation starts from one byte-identical pre-boundary snapshot and records at least three legal histories:
+
+| Branch | Required distinct terminal state | Chronicle distinction |
+|---|---|---|
+| Verify privately | verified reserve belief; Toma trust preserved; no immediate public petition | advice contributed to private verification; no claim of public reform |
+| Accuse now | public statement/audit; Toma trust strained; allegation remains attributed | Mara's statement triggers audit; advice is only contributing input |
+| Abstain/follow plan | no patron input; trust preserved; ledger uncertainty or later shortage remains | no causal credit to player; later outcome is Mara's independent action |
+
+Trust, values, evidence quality, and commitment perturbations must change decisions, and the equivalent fixture must transfer to one non-Mara citizen. Each branch produces its own biography delta, relationship delta, While You Were Away, three-beat replay/card, and evidence disclosure. The current `RV-001…RV-012` chain is the “verify then disclose” regression oracle only.
 
 ## Seven presentations from one chain
 
@@ -59,33 +71,31 @@ Pre/post hashes and sequence belong to implementation fixtures. This document de
 
 “Day 18 — After a public ledger mismatch and audit [RV-003, RV-007, RV-009], Riverhold passed `public-reserve-counts` [RV-010, RV-011]. The rule first governed an allocation at the next shortage checkpoint [RV-012].”
 
-### 15–30-second replay
+### Primary replay/card cut — no more than 20 seconds
 
 | Time | Visual fact | Caption and provenance |
 |---|---|---|
-| 0–2s | public bins vs ledger | “12 units did not match.” [RV-003] |
-| 2–5s | counsel committed | “You advised Mara to expose the shortage.” [RV-004] |
-| 5–9s | Mara walks to Iven; sealed mark | “She did not obey immediately. She verified.” [RV-005, RV-006] |
-| 9–13s | market confrontation | “Mara spoke; Toma's trust broke.” [RV-007, RV-008] |
-| 13–17s | audit sheet | “The grain was a public repair reserve—not a proven theft.” [RV-009] |
-| 17–21s | council rule notice | “The petition triggered a rule vote.” [RV-010, RV-011] |
-| 21–25s | Mara/Toma apart | “The ledger changed. Their relationship has not.” [RV-011, RV-008] |
+| 0–3s | counsel plus Mara/Iven | “You advised. Mara chose to verify first.” [RV-004–RV-006] |
+| 3–12s | market, distance, audit | “Her statement triggered an audit and strained Toma's trust. The grain was a public repair reserve—not proven theft.” [RV-007–RV-009] |
+| 12–20s | rule notice; Mara/Toma apart | “A petition triggered the new ledger rule. The record changed; their relationship has not.” [RV-010, RV-011, RV-008] |
 
-### Share card
+Those are three presentation beats with expandable event evidence. World/Chronicle marks use exactly the same five meanings: direct cause, trigger, contributing condition, temporal predecessor, and attributed allegation; `response-to` may appear in evidence detail but is not causal.
+
+### Story Card
 
 > YOU ADVISED: expose the shortage [RV-004]
 >
-> MARA DID: verified, then spoke [RV-005–RV-007]
+> MARA CHOSE: verify, then speak [RV-005–RV-007]
 >
-> RESULT: public reserve counts became law; Toma's trust broke [RV-008, RV-011]
+> WHAT FOLLOWED: her statement triggered an audit; Toma's trust broke; a petition triggered the rule [RV-007, RV-008, RV-010, RV-011]
 >
 > UNRESOLVED: repair the friendship or enforce the precedent?
 >
-> SEED/EVENT: RIVER-18 / RV-003…RV-011
+> EVIDENCE: expandable event references; seed/version metadata is not consumer headline
 
-### Public event page
+### Future public event page
 
-The canonical URL shows title, exact region/time, three factual beats, current unresolved tension, `ReplayManifest` versions, and expandable evidence. “Patron counsel contributed to Mara's plan” is permitted [RV-004, RV-005]. “The patron exposed corruption” and “Mara saved Riverhold from famine” are prohibited. Allegations display speaker and belief status.
+If later deployment is authorized, the canonical URL shows title, exact region/time, three factual beats, current unresolved tension, versions, and expandable evidence. “Sponsor advice contributed to Mara's plan” is permitted [RV-004, RV-005]. “The sponsor exposed corruption” and “Mara saved Riverhold from famine” are prohibited. Allegations display speaker and belief status. V1 ships **Copy story card**, contains no dead link, and tests comprehension—not acquisition.
 
 ## Factual generation rules
 
@@ -97,7 +107,7 @@ Reject raw event feeds as the return view, omniscient biography, prose-inferred 
 
 ## Reopen evidence
 
-Reopen presentation density if fresh players cannot identify actor, intervention, three beats, and unresolved tension within five seconds; reopen causal taxonomy only if engine contracts cannot encode necessary distinctions without ambiguity. Any factual mismatch blocks Gate B.
+Reopen presentation density if three of five context-free viewers cannot identify actor, independent choice, three beats, and unresolved tension within five seconds, or if they credit the sponsor as direct author of Mara's action/law. Reopen taxonomy only if engine contracts cannot encode the distinctions. Any factual mismatch blocks Gate B.
 
 ## Remaining uncertainty
 
@@ -105,7 +115,7 @@ Reopen presentation density if fresh players cannot identify actor, intervention
 
 ## Resulting implementation behavior
 
-Implement one Riverhold fixture, While You Were Away, manual 15–30-second replay, and one 10–20-second share layout from the same events. Biography, relationship history, world page, and SSR are contracts/deferred. Tests trace every sentence to typed evidence and prohibit unsupported causal words.
+Implement three branch histories, While You Were Away, one manually stepable three-beat/≤20-second replay, and one responsive **Copy story card** from the accepted branch. Biography, relationship history, public page, and SSR are contracts/deferred. Tests trace every sentence and prohibit unsupported causal words.
 
 ## Constraint fit
 

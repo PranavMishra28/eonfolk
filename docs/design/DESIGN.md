@@ -67,7 +67,7 @@ Names, dates, causal types, acceptance/refusal, costs, uncertainty, and actions 
 
 ### First five seconds
 
-Show the bridge, bounded settlement, central well, eight citizens, and at least three readable work silhouettes before any tutorial card. A single plain-language line may orient the player. The sponsored candidate or creation entry point must be obvious through position and registration mark, not a modal takeover.
+Show a useful semantic/static Riverhold shell immediately, then bridge, well, eight citizens, and three readable actions as Pixi loads. Mara is the single authored focal person. The only opening action is **Follow Mara** with **She acts for herself**; there is no candidate, creation, or roster suggestion.
 
 ### Selection
 
@@ -97,6 +97,18 @@ Distinguish:
 - **in-world allegation:** broken speech-edged line, named speaker, and “alleged” label.
 
 No style may make allegation look authoritative. Replay crops must be generated from recorded state/event presentation, not hallucinated scenes.
+
+### Riverhold visual lexicon
+
+| Meaning | World cue | DOM/reduced/mobile equivalent |
+|---|---|---|
+| Water | blue bucket/jug plus well route; drink/gather pose | “fetching water” / “drinking”; static before/after count |
+| Wood | forked-stick bundle plus woodpile route; carry/repair pose | “carrying wood” / “repairing well”; prop icon and count |
+| Exchange | two citizens face each other; item crosses between hands | named pair, item, and ownership before/after |
+| Verify | Mara faces source/artifact; eye-and-tally mark; short pause then changed belief mark | “checking Iven's count”; fact/belief label and receipt |
+| Relationship strain/repair | Mara/Toma orientation and distance change; broken or joined carved edge | named band change, rule/event reference, never color alone |
+
+The same pose, prop, orientation, place, motion, before/after mark, and plain-language label repeat across world, return, Chronicle, semantic view, reduced motion, and mobile. Background cadence may slow during reading, but the authoritative action remains visible.
 
 ## Component character
 
@@ -129,6 +141,7 @@ Reopen the applied grammar if:
 - the selected citizen’s identity and current tension are not legible within 60 seconds;
 - mobile world area falls below 55% before the player deliberately opens a sheet; or
 - payload, meaningful-display, or frame budgets require abandoning the paper/ink effects rather than merely simplifying them.
+- fewer than four of eight Gate B participants recognize Mara across arrival, decision, return, and Chronicle, or fewer than four express concern/curiosity about her outcome rather than only recall facts.
 
 ## Unproven assumptions
 
@@ -139,6 +152,7 @@ Reopen the applied grammar if:
 
 ## Resulting implementation behavior
 
+- Run the four-hour visual feasibility checkpoint before full simulation/persistence integration; five silent observers use the same manifest and a declared three-of-five legibility threshold.
 - Build one world-dominant layout before secondary surfaces.
 - Author all factual text in semantic DOM and keep the canvas reproducible from state.
 - Treat focus, reduced motion, contrast, zoom, and canvas loss as first-class states.

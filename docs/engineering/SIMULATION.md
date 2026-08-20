@@ -1,119 +1,96 @@
-# Simulation
+# Deterministic simulation and protocol
 
-**Purpose:** define authoritative commands/events, deterministic execution, scheduling, causality, and absence advancement.
+**Purpose:** lock the authoritative command/event model, byte-level determinism profile, causal vocabulary, scheduler, and catch-up behavior.
 
-**Status:** ACCEPTED CONTRACT FOR THE FIRST SLICE
+**Status:** ACCEPTED AFTER RED TEAM — implementation has not begun
 
-**Authority boundary:** owns Reality mutation, deterministic ordering, canonical hashing, command/event fields, scheduler semantics, and time advancement. Storage atomicity is owned by [persistence](PERSISTENCE.md); Mind and proposals are owned by [cognition](COGNITION.md).
+**Authority boundary:** this file owns simulation semantics and wire fields. [PERSISTENCE](PERSISTENCE.md) owns durable commit order; [WORLD_MODEL](../game/WORLD_MODEL.md) owns game-state meaning; [CHRONICLE](../product/CHRONICLE.md) owns narration.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [testing](../quality/TESTING.md), [systems evidence](../research/SYSTEMS_RESEARCH.md)
+**Related documents:** [architecture](ARCHITECTURE.md), [cognition](COGNITION.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md)
 
 ## Owned decision
 
-Implement a pure deterministic discrete-event simulation. The reducer is the only writer of Reality. Routine stable intervals are integrated exactly with integer or documented fixed-point arithmetic; meaningful boundaries are scheduled explicitly. Foreground play and catch-up use the same semantic algorithm.
+Reality is a pure deterministic reducer over one region. It accepts revision-checked typed commands, emits an ordered batch of complete domain events, and produces immutable candidate state. Presentation, storage, cognition, wall time, and device state cannot mutate it.
 
-## `WorldCommand`
+## Locked command and event contracts
 
-Every command contains:
+`WorldCommand` contains:
 
-| Field | Required meaning |
+- `schemaVersion`, `commandId`, and `payloadFingerprint`;
+- `expectedRevision`, `principal`, and `regionId`;
+- one closed discriminated-union payload; and
+- an optional provenance reference that cannot grant authority.
+
+`WorldEventEnvelope` contains:
+
+- `schemaVersion`, `engineVersion`, `regionId`, `sequence`, and integer `simulationTime`;
+- one closed typed event payload;
+- `causalParents: { eventId, relation }[]`, where `relation` is only `direct`, `trigger`, or `contributing`;
+- `relatedEvents: { eventId, relation }[]`, where `relation` is only `temporal-predecessor` or `response-to`;
+- typed visibility and provenance;
+- `preStateHash`, `postStateHash`, `eventHash`, and `batchId`.
+
+Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same region; a causal parent must name the rule/mechanism that consumed it.
+
+## Determinism profile `eonfolk-determinism-v1`
+
+This profile is one indivisible protocol decision. Golden vectors cover every row.
+
+| Concern | Locked rule |
 |---|---|
-| `commandId` | globally unique idempotency ID supplied by the principal/application |
-| `expectedRevision` | exact canonical region revision the principal observed |
-| `principal` | typed identity and authority class initiating the command |
-| `regionId` | target region, present even in the one-region slice |
-| `payload` | one member of a closed, versioned discriminated union |
+| Time | Integer simulation seconds, `0..Number.MAX_SAFE_INTEGER`; wall time is input only to a noncanonical catch-up proposal. |
+| Conserved quantities | Non-negative signed 32-bit integers; every add/subtract is checked before mutation. |
+| Scores and fixed point | Signed 32-bit integers; weights use basis points (`10_000 = 1.0`); multiplication checks safe-integer bounds and division truncates toward zero. |
+| Text | Reject unpaired surrogates; normalize accepted human-authored strings to Unicode NFC once at ingress; cap bytes and code points. Canonical state stores the normalized result. |
+| Serialization | RFC 8785 JSON Canonicalization Scheme over the restricted integer-only domain; no `undefined`, `NaN`, infinities, duplicate keys, map/set iteration, locale sorting, or object-identity order [S-DET-001]. |
+| Hash | SHA-256 per FIPS 180-4 [S-DET-002], lowercase hex, with UTF-8 domain separation such as `EONFOLK:STATE:v1\0` or `EONFOLK:EVENT:v1\0`. |
+| PRNG | Versioned `xoshiro128**` using unsigned 32-bit words, `Math.imul`, and explicit rotate-left; implementation and reference vectors live in protocol tests. |
+| PRNG seeding | First 16 bytes of `SHA-256("EONFOLK:PRNG:v1\0" + worldSeed + "\0" + streamId)` interpreted as four little-endian words; replace the forbidden all-zero state with the fixed vector in the golden fixture. |
+| Draw ownership | Stable stream IDs per system/entity/purpose and a persisted draw counter. Adding a cosmetic or unrelated mechanic may not consume another stream. |
+| Stable IDs | Deterministic prefix plus lowercase base32 of `SHA-256(type + worldSeed + creationSequence)`; never use random UUIDs in Reality. |
+| Schedule order | `(simulationTime, priority, actorId, localOrdinal)` ascending, with all fields explicit and tested. |
 
-Application metadata may include received time or UI correlation outside the canonical command. No payload contains code, SQL, HTML, URLs, generic JSON patches, or arbitrary nested actions. Duplicate `commandId` returns the recorded result; stale revision or invalid authority rejects atomically with no event, partial mutation, or PRNG draw.
+`stateHash` hashes the complete canonical region state after an event. `eventHash` hashes the complete envelope excluding only `eventHash` itself. A batch hash chains the prior durable head hash, ordered event hashes, command fingerprint, resulting revision, and fencing token. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
 
-## `WorldEventEnvelope`
+Version `v1` supports one engine/schema version only. Unknown versions fail closed. No upcaster is implemented in the first slice; changing any rule above requires a new profile and explicit migration plan.
 
-Every canonical event contains:
+## Transition lifecycle
 
-| Field | Required meaning |
-|---|---|
-| `eventId` | stable identifier derived without nondeterministic runtime state |
-| `regionId`, `regionSequence` | region identity and gapless ordered sequence |
-| `simulationTime` | integer domain time |
-| `engineVersion`, `schemaVersion` | determinism/engine and envelope/payload schema ownership |
-| `payload` | one member of a closed, versioned event union |
-| `causalParents` | typed edges to prior event IDs: `direct-cause`, `trigger`, `contributing-condition`, or `temporal-predecessor` |
-| `visibility` | typed factual visibility policy, separate from moderation/presentation |
-| `provenance` | command, scheduled boundary, Standard Brain proposal, validated optional adapter, or migration origin plus stable reference |
-| `preStateHash`, `postStateHash` | canonical hashes around the applied event/batch boundary |
-
-An in-world allegation is event content such as `StatementMade`, never a `causalParents` truth. Chronicle copy may not upgrade temporal order or allegation into causality.
-
-## Determinism rules
-
-- Simulation time is an integer value; `Date.now()` is forbidden in Reality.
-- Conserved quantities use integers or documented fixed-point units; unconstrained floats are forbidden.
-- One seeded, versioned PRNG is split into stable streams or draws with stable ownership. `Math.random()` is forbidden.
-- Equal-time work sorts by `(simulationTime, priority, insertionSequence)`; the persisted insertion sequence is monotonic.
-- Locale-dependent sort/format, random UUID generation, renderer timing, and unordered map/set serialization are excluded.
-- Canonical serialization sorts keys and includes Reality, scheduler, PRNG state, engine/schema versions, and last sequence; it excludes projections and prose.
-- Rejected input consumes no state, sequence, scheduled item, or random draw.
-- Replay never calls a Brain or provider; it applies recorded accepted facts.
-
-The scheduler uses a binary heap in memory and a normalized queue in snapshots. Each item names its due time, priority, insertion sequence, type, subject, payload, and stable cancellation ID. Repeating behavior schedules its next meaningful boundary only.
+The pure kernel returns `PreparedTransition`: prior revision/hash; command/fingerprint; accepted or rejected `CommandReceipt` candidate; ordered complete event batch for acceptance; immutable post-state candidate; and expected durable head/batch hashes. It does not publish or install the candidate. [Persistence](PERSISTENCE.md) defines durability and acknowledgment. A rejected command never mutates state but still receives a durable receipt so retries are stable.
 
 ## Catch-up semantics
 
-Gap duration changes yielding and presentation, never authoritative rules:
+Catch-up advances the same scheduler and emits the same boundary events as foreground play. It never invents a second aggregate reducer.
 
-| Gap | Required advancement |
-|---|---|
-| 10 minutes | exact meaningful events; coalesce only presentation |
-| 24 hours | aggregate stable production/consumption intervals but stop at every boundary and shock |
-| 7 days | boundary-to-boundary advancement with daily and salient verified checkpoints; yield to the UI |
-| 90 days | macro-aggregate stable spans; interrupt for death, shortage, ownership change, plan expiry, cross-region message, or any other declared discontinuity |
+- Up to 10 minutes: exact meaningful events; presentation may coalesce repetition.
+- Up to 24 hours: algebraically aggregate stable production spans but stop at plan, resource, relationship, counsel, ownership, or shock boundaries.
+- Up to 7 days: boundary-to-boundary advancement with daily and salient checkpoints.
+- Up to 90 days: macro-aggregate only spans proven equivalent by property tests; interrupt for death, shortage, ownership change, plan expiry, institution change, or cross-region message.
 
-The local slice must expose progress and permit cancellation/resume at committed boundaries for long gaps. If an event or wall-time safety budget is reached, stop safely and continue later. Never drop events, invent history, or switch to a gap-specific approximation. Tests also cover 30-, 90-, and 365-day worlds to detect growth and conservation failure.
+The local product proposes an advance from elapsed wall time, explains the proposed interval, caps one interactive advance at seven days, and requires **Advance Riverhold**. No death or irreversible event happens from wall time before confirmation. Longer gaps are explicit sequential chapters; wall-clock duration is never canonical input.
 
-## Disposable simulation-spike evidence
+## Blocking acceptance
 
-**DIRECTIONAL LOCAL EVIDENCE:** scratch commit `cd5eea0` exercised a toy scheduler, canonical hashes, causality references, repeated runs, and replay:
-
-| Horizon | Events | Tick loop | Discrete | Equivalence | Final hash prefix |
-|---|---:|---:|---:|---|---|
-| 24 hours | 195 | 17.154 ms | 4.682 ms | tick=discrete, repeated run, and replay identical | `4d302c7c075e` |
-| 7 days | 1,344 | 27.899 ms | 10.382 ms | tick=discrete, repeated run, and replay identical | `56b925223fef` |
-
-187/195 and 1,336/1,344 events respectively carried causal parents; initial seed/root events intentionally did not. This proves only that the proposed invariants are implementable in a toy model. It does not establish production event density, 90/365-day performance, correctness of game mechanics, browser responsiveness, or Chronicle truth.
-
-## Blocking kernel acceptance
-
-- Same seed and command sequence yield byte-equivalent canonical serialization and hashes.
-- Replay from genesis and every snapshot converges to the same head.
-- One-shot and arbitrarily chunked catch-up converge.
-- Idempotent duplicates and stale revisions cannot double-apply or partially mutate.
-- Equal-time ordering is stable.
-- Resource, ownership, life-state, visibility, and authorization invariants survive property/model-based tests and bounded fuzzing.
-- 30-, 90-, and 365-day scenarios conserve resources and complete or pause at a declared boundary.
-- Removing every optional model/provider leaves the world progressing.
-
-## Resulting implementation behavior
-
-Eight citizens act from scheduled boundaries rather than empty ticks. Two citizens can exchange or interact through typed commands/events. Every visible consequence can identify authoritative event references. UI animation may smooth movement but cannot alter the final position or time. Leave/return uses the same reducer as foreground play.
+- Golden canonical bytes, hashes, PRNG vectors, stable IDs, rounding, overflow, scheduler ties, and Unicode ingress match in browser and Node.
+- Same seed/commands and snapshot plus half-open event range produce identical state and bytes.
+- Three counsel intents from the same pre-boundary snapshot reach at least three materially different terminal state vectors; no branch label may converge to the same authoritative result.
+- Direct/trigger/contributing edges cite actual consuming rules; temporal and response relations cannot appear as causal parents.
+- 30-, 90-, and 365-day headless fixtures reach the exact requested terminal simulation time, conserve resources, stay within declared event/storage caps, and replay to the same hash. A safe early pause is failure.
+- Provisional target-M4 caps are 3 seconds/25,000 events/8 MB at 30 days, 10 seconds/75,000 events/20 MB at 90 days, and 45 seconds/250,000 events/64 MB at 365 days. Measurements may tighten these; weakening requires an explicit decision and does not change the seven-day interactive cap.
+- The build has no model SDK/runtime dependency, and Standard Brain makes progress with the network disabled.
 
 ## Rejected alternatives
 
-| Alternative | Reason rejected |
-|---|---|
-| Fixed minute/frame tick | Empty work, worse catch-up, and presentation-time coupling |
-| Floating-point conserved economy | Cross-runtime drift and hard-to-audit conservation |
-| Generic JSON patch events | No domain authorization, schema clarity, or causal meaning |
-| Direct Brain/model mutation | Breaks validation, replay, and hidden-fact boundaries |
-| Separate approximate offline simulator | Gap-length-dependent history and replay divergence |
-| Generalized economy in Gate A | Too much surface for three resources, one exchange, and one recipe |
+Tick-everything loops, wall-clock authority, `Date.now()`, `Math.random()`, conserved floats, locale-dependent ordering, random IDs, prose patches, model-authored facts, one generic `cause`, temporal order as cause, and installing worker state before durable commit.
 
-## Unproven assumptions and reopen evidence
+## Reopen evidence
 
-- **UNRESOLVED:** exact piecewise integration remains tractable as relationships and exchange interact. Reopen mechanics if stable spans cannot be split at explicit boundaries.
-- **UNRESOLVED:** event volume remains bounded over 365 days. Reopen snapshot cadence or mechanics if measured growth violates storage/wait budgets.
-- **PRODUCT HYPOTHESIS:** scheduled plans look intentional rather than sparse or robotic. Reopen behavior families after observer evidence, not by adding calls.
-- **UNRESOLVED:** canonical serialization is cross-browser stable. Reopen implementation details if the pinned browser matrix disagrees.
+Reopen the profile only for a demonstrated cross-runtime mismatch, unsafe integer bound, or measured horizon failure after removing nonessential event density. Reopen product catch-up if players cannot understand/consent to the explicit advance; never fix it with silent wall-clock progression.
+
+## Resulting implementation behavior
+
+The first code milestone implements golden vectors and crash barriers before the renderer. One fixture version ships; unsupported data fails closed. Every authoritative decision is replayable without cognition or network access.
 
 ## Constraint fit
 
-The kernel is CPU-only, local, provider-free, and small enough for one builder. The toy spike supports feasibility but cannot expand scope. Three resources, four behavior families, one exchange, and one recipe define the first slice. No training, infrastructure, credentials, or spend is required.
+The profile is CPU-only, provider-free, narrow enough for one builder, and prevents migration/platform work from consuming the 40–60-hour proof. It requires no training, server, account, paid service, proprietary data, or deployment.

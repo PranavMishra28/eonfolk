@@ -2,7 +2,7 @@
 
 **Purpose:** define the product's share object and no-paid evidence path to the first 10, 100, and 1,000 activated users.
 
-**Status:** DECISION PROPOSED — no publication or outreach is authorized by this plan
+**Status:** ACCEPTED AS POST-PROOF HYPOTHESIS — no publication or outreach is authorized
 
 **Authority boundary:** this file owns distribution behavior and gates. [CHRONICLE](CHRONICLE.md) owns factual content; [distribution research](../research/DISTRIBUTION_RESEARCH.md) owns dated channel evidence; implementation/publication requires separate authorization.
 
@@ -10,17 +10,17 @@
 
 ## Owned decision
 
-Distribution is a product test, not a posting calendar. An **activated user** resolves the first consequential intervention. The share object is a factual **Consequence Card** rendered from Chronicle events: recognizable person, human advice, three authoritative causal beats, unresolved tension, and replay seed/event reference.
+Distribution is a product test, not a posting calendar. An **activated user** resolves the first consequential intervention in a playable build. The V1 artifact is a factual **Story Card** rendered from accepted Chronicle events: recognizable person, sponsor advice, Mara's independent choice, three authoritative beats, and unresolved tension.
 
 The slice builds only copyable text, a screenshot-ready layout, and deterministic replay controls already needed for QA. It does not build social APIs, video rendering, accounts, referral rewards, creator dashboards, analytics SDKs, or World Forks.
 
 ## Five-second / 20-second artifact
 
-- **0–2 seconds:** “I told Mara to expose the shortage.” Citizen, conflict, and visible consequence are understandable without product knowledge.
-- **2–12 seconds:** verify reserve → speak at market → ledger rule passes / friendship strains, each from authoritative events.
-- **12–20 seconds:** unresolved choice, “repair the friendship or enforce the precedent?”, plus canonical seed/event URL when a public route later exists.
+- **0–2 seconds:** “I advised Mara to expose the shortage.” Citizen and conflict are understandable without product knowledge.
+- **2–12 seconds:** “Mara chose to verify” → statement triggered audit → audit/rule/relationship consequence, each from authoritative events.
+- **12–20 seconds:** “What followed” plus unresolved relationship; a playable canonical URL appears only if later deployment is authorized.
 
-The artifact fails if a stranger cannot answer who acted, what the player changed, and why to click within five seconds. Model/provider branding is not the headline. No “sentient,” “alive,” or unsupported causal claim.
+The local artifact fails if three of five context-free viewers cannot answer who advised, who independently chose, what followed, and what remains unresolved within five seconds. This tests comprehension only—not click, acquisition, activation, or distribution. Model/provider branding is not the headline. No “sentient,” “alive,” or unsupported causal claim.
 
 ## First 10 / 100 / 1,000
 
@@ -44,7 +44,7 @@ Later eligible events include betrayal, succession, institution longevity, elect
 | TikTok/Reels/Shorts | 9:16, large safe-zone text, same 10–20-second beats | player judgment → citizen response → unresolved result |
 | Hacker News | Direct factual interactive replay plus technical/product account of deterministic events, bounded cognition, and evidence requested | clip secondary; no sign-up, generated comments, vote solicitation, or benchmark hype |
 
-The builder manually captures the running build. A 16:9 desktop composition and 9:16 mobile composition reuse the same event facts; they are not separate authored narratives.
+The builder manually captures the running build. One responsive composition produces 16:9 and 9:16 evidence from the same facts; it is not separate art. V1 calls the action **Copy story card**, includes no dead link or unexplained seed jargon, and hides technical IDs under **Evidence**. A recipient route, CTA, platform-safe crop, and acquisition test are separate post-proof work requiring deployment/publication authority.
 
 ## Model-ecology consequence
 
@@ -64,7 +64,7 @@ If personal Chronicles feel too private, share fixed public challenge seeds inst
 
 ## Resulting implementation behavior
 
-Gate B provides a screenshot-ready Chronicle composition, `Copy Chronicle`, `Copy seed`, replay/reset, and 16:9/9:16 responsive evidence. No posting integration, hosted URL, telemetry vendor, identity system, partnership workflow, or media renderer enters 001.
+Gate B provides a screenshot-ready Chronicle composition, **Copy story card**, deterministic rehearsal/reset for QA, and 16:9/9:16 responsive evidence for all three branches. This is private prototype evidence, not a share/activation claim. No posting integration, hosted URL, telemetry vendor, identity, partnership workflow, or media renderer enters 001.
 
 ## Constraint fit
 

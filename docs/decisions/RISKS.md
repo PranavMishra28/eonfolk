@@ -2,7 +2,7 @@
 
 **Purpose:** Rank the failure modes that can invalidate or materially change the selected product, slice, visual direction, or architecture.
 
-**Status:** INITIAL SYNTHESIS — red-team amendments pending
+**Status:** RECONCILED — implementation evidence pending
 
 **Authority boundary:** This file owns risk priority, mitigation and abandon/change triggers. [Decisions](DECISIONS.md) owns accepted responses; [open questions](OPEN_QUESTIONS.md) owns experiments.
 
@@ -12,7 +12,7 @@
 
 | Rank | Risk | Trigger | Required response |
 |---:|---|---|---|
-| 1 | R-001 Indirect agency feels weak or arbitrary | Players cannot forecast stakes or explain the citizen's interpretation; ugly ECHOHOUSE wins the declared randomized test by at least 20 points | Reopen the product tournament; do not add more simulation |
+| 1 | R-001 Indirect agency feels weak or arbitrary | Matched Gate 0 alternative wins overall/≥20 points on desirability/continue, or real behavior does not beat yoked script | Reopen the product tournament; do not add simulation/model polish |
 | 2 | R-002 Standard Brain people feel like clockwork | Mechanics/visibility pass, but fresh players cannot attribute a meaningful decision to values, beliefs or relationships | Change Mind/decision design; test optional cognition only behind full fallback |
 | 3 | R-003 Chronicle launders trivial mechanics or false causality | The replay is compelling only because of prose, or any factual sentence lacks authoritative evidence | Block Gate B; simplify or replace underlying mechanics/projection |
 | 4 | R-004 Living Woodcut misses legibility, effort or performance | Observer/budget gates fail after one simplification pass or asset work exceeds eight focused hours | Switch to stripped Weathered Atlas before implementation continues |
@@ -27,9 +27,9 @@
 | R-003 | Medium-high | Fatal | Riverhold is a designed fixture, not emergent product evidence. Sentence-to-event trace and five-second stranger reconstruction test first. | Chronicle/systems owner: typed causal parents, allegations, hashes and template-only facts; judge game consequence before presentation polish. | D-004, D-007, D-009 |
 | R-004 | High | Major | R3F spike missed desktop p95 and overflowed mobile; Living Woodcut production is unmeasured [S-SPIKE-002]. First authored Pixi scene decides. | Visual owner: one small atlas, quiet hatching, semantic DOM and fixed degradation order; Weathered Atlas is the fallback. | D-008 |
 | R-005 | Medium-high | Fatal | The plan estimates 52 hours but event sourcing, replay, Chronicle and access can each expand. Maintain hour/cut log from milestone zero. | Coordinator: exclude every non-gate feature, cut optional sound/ambience/secondary systems, and reject infrastructure expansion. | D-002, D-006 |
-| R-006 | Medium | Major | IndexedDB quota, eviction, corruption, multi-tab and restore are untested. Run save/reload/export/import/corrupt-snapshot drills before Gate A. | Persistence owner: single writer, atomic append, verified snapshots, export and explicit recovery UX. | D-006, D-007 |
+| R-006 | Medium | Fatal | IndexedDB commit split, quota, corruption, and stale tabs can lose/fork history. Import is unsafe and excluded. | Persistence owner: prepare then atomic events/head/receipt/fence, install/publish after commit, crash barriers, verified snapshots/export, no import. | D-006, D-007 |
 | R-007 | Medium | Major | 30/90/365-day event volume and catch-up wall time are unknown; seven-day scratch evidence is narrow [S-SPIKE-001]. | Simulation owner: boundary scheduling, batching, checkpoints, storage profiling and safe interruption; macro aggregation only after exact equivalence evidence. | D-007 |
-| R-008 | High | Major | Share and return thresholds are hypotheses; no user has voluntarily returned or shared. Test with first 10 before public infrastructure. | Product/distribution owner: retain abandonment denominator, no paid acquisition, and stop channel work if product comprehension fails. | D-009 |
+| R-008 | High | Major | Story-card comprehension is not distribution; no user has voluntarily returned/shared. | Product owner: label V1 private evidence, retain denominator, require separate deployment/publication and delayed-return tests before distribution claims. | D-009 |
 | R-009 | Low-medium | Major | Exact-name screen cannot find phonetic, class, unregistered or future conflicts [S-NAME-001] [S-NAME-007]. | Coordinator: private codename only; re-run similarity/class search before public use; no domain purchase or clearance claim. | D-010 |
 | R-010 | Medium | Major | A future canonical server introduces moderation, auth, abuse, cost and backup failure absent from the local proof. | Architecture/security owner: do not implement until both gates pass; revalidate provider features/prices and threat model with explicit approval. | D-006, D-010 |
 

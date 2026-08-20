@@ -2,7 +2,7 @@
 
 **Purpose:** define canon, region bounds, local-first semantics, mature entry, stagnation, and later private forks.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED FOR LOCAL PROOF; PUBLIC CANON REMAINS HYPOTHESIS
 
 **Authority boundary:** this file owns product topology. [WORLD_MODEL](../game/WORLD_MODEL.md) owns simulation ontology; [PROGRESSION](PROGRESSION.md) owns continuity; engineering authorities own persistence adapters.
 
@@ -53,7 +53,7 @@ Reopen one-region canon if concurrency/operations measurements make it unsafe, n
 
 ## Resulting implementation behavior
 
-The slice builds one hand-authored settlement layout, one deterministic seed, local event/snapshot persistence, controlled catch-up, and replay. It defines server replacement boundaries but includes no Cloudflare adapter, account, network protocol, deployment, public write, multiple region, or fork.
+The slice builds one hand-authored settlement, deterministic seeds, local event/snapshot persistence, explicit user-confirmed catch-up, and replay. It defines reusable domain contracts—not a drop-in server replacement—and includes no Cloudflare adapter, account, network protocol, deployment, public write, multiple region, or fork.
 
 ## Constraint fit
 

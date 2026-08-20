@@ -2,7 +2,7 @@
 
 **Purpose:** define the minimum ontology, invariants, visibility, provenance, and causal semantics that make simulation and Chronicle trustworthy.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED AFTER RED TEAM
 
 **Authority boundary:** this file owns game-state meaning, not TypeScript shapes. Engineering contracts own wire/storage form; [CHRONICLE](../product/CHRONICLE.md) owns narration.
 
@@ -31,16 +31,16 @@ Reality facts are authoritative state. A belief records proposition, confidence 
 
 Visibility values at minimum are public, participant-private, citizen-private, patron-visible-through-covenant, moderator-only, and implementation-only. Moderation state is separate from canonical fact. The Standard Brain receives only the focal citizen's allowed slice.
 
-## Causal parent types
+## Causal and related-event types
 
-Each material event can name typed parents: `direct`, `trigger`, `contributing`, and `response-to`. `temporal predecessor` is presentation metadata, not a stored causal assertion unless useful. Allegation references are beliefs/messages, not causal truth. Validators ensure referenced parents precede the event in-region and are visible for the asserted mechanism.
+Each material event can name causal parents only as `direct`, `trigger`, or `contributing`. Noncausal relations live in a separate `relatedEvents` field as `temporal-predecessor` or `response-to`. Allegations are typed statement/belief content, never relation types or causal truth. Validators require every referenced event to precede the child in-region and every causal edge to name the consuming rule/mechanism. This vocabulary is canonical across simulation, Chronicle, UI, and tests.
 
 ## State authority boundaries
 
 - Cognition proposes; it never mutates Reality.
 - Application authorizes and validates against expected revision.
 - Simulation applies one atomic transition and emits events/pre-post hashes.
-- Persistence appends accepted envelopes then snapshots at policy boundaries.
+- Persistence durably commits accepted envelopes, the head, receipt, and fencing token before Application installs/publishes the candidate; snapshots follow independently.
 - Presentation reads state/events and cannot create facts.
 
 ## Rejected alternatives
@@ -57,7 +57,7 @@ Reopen ontology if Riverhold requires a fact that cannot be expressed without pr
 
 ## Resulting implementation behavior
 
-Build only types needed by eight citizens and Riverhold. Record eligibility and winning factors for Standard Brain actions, but expose short public justification rather than hidden scoring detail. Replay and Chronicle trace back to accepted events.
+Build only types needed by eight citizens and Riverhold. Record actual eligibility, integer winning terms, and reason codes in a typed decision receipt; render a short authored justification as attributed testimony. Replay and Chronicle trace only to accepted events.
 
 ## Constraint fit
 

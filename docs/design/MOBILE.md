@@ -16,20 +16,21 @@ The 390 × 844 R3F spike showed controls overflowing and a panel dominating the 
 
 ## Initial portrait composition
 
-At first arrival:
+At first arrival, useful semantic/static content paints before Pixi:
 
-- world: top 55–70%, including well, bridge/entry vector, sponsored citizen, and at least one visible interaction;
+- world: top 55–70%, including well, bridge/entry vector, Mara, and one visible interaction;
+- Mara's name/action appears by two seconds and **Follow Mara** is usable by three seconds without layout shift;
 - orientation/action rail: compact semantic region that does not cover citizens;
 - no open identity card, log, stats grid, or permanent relationship panel; and
 - safe-area insets applied without shrinking touch targets.
 
-When the player selects a citizen, a bottom sheet may rest at roughly 35–45% height. It has three states:
+When the player follows/opens Mara, the first peek is no taller than 35% of usable viewport. A deliberate Inspect may become the single reading surface. It has three states:
 
-- **peek:** name, current action, current tension, and expand handle/button;
+- **peek:** name, current action, current tension, autonomy line, local-save notice, and one primary action; no scroll;
 - **inspect:** identity, Standing Plan, relationships, visible facts;
 - **decide:** one counsel flow with cost and interpretation warning.
 
-Only one state is open. The sheet is dismissible without losing selection and can be operated without dragging.
+Only one state is open. Inspect owns one natural vertical scroll and a sticky 44 px Close control; Decide has sticky Back/Continue. There is no nested scroll. Browser Back closes one sheet level before leaving, and close/back retain Mara selection and scroll state.
 
 Chronicle opens as a deliberate reading surface with a small present-world thumbnail/return action. Each beat fits independently; horizontal carousels are not required. A 9:16 share version reflows the same three authoritative beats and never relies on cropped 16:9 text.
 
@@ -51,7 +52,7 @@ The disposable R3F spike (`4bdef56`) measured 291.39 KB gzip initial JavaScript,
 ## Touch and keyboard behavior
 
 - Primary touch targets are at least 44 × 44 CSS px and separated enough to avoid accidental counsel confirmation.
-- World selection supports tap but never requires pixel-perfect contact with the sprite; use a generous invisible hit area and named fallback list.
+- World selection supports tap but never requires pixel-perfect contact. Pointer-down freezes target ordering; top visible target wins, and overlapping hit regions open a named chooser rather than selecting an unseen citizen. A labeled **People** control is always available.
 - Pan/zoom is optional. No important citizen, fact, counsel, or replay control is reachable only by gesture.
 - Bottom sheets provide explicit open/close buttons and do not require drag handles.
 - The entire mobile flow remains keyboard-operable for switch devices and external keyboards.
@@ -89,8 +90,8 @@ At no stage may names, current action, counsel choices, decision outcome, causal
 The first slice is local-first. Mobile design assumes no account and no server sync.
 
 - Cache only application-owned, noncredential assets needed for a repeat visit if implementation scope permits.
-- Communicate local-only persistence plainly; do not imply cross-device continuity.
-- Catch-up starts from the last valid local snapshot and stops presentation at salient boundaries.
+- Show **Progress stays on this device** in Mara's first peek and again before advice, with **Export save**. Do not imply cross-device continuity or restore/import support.
+- Catch-up starts from the last valid local snapshot only after **Advance Riverhold** confirmation and stops at salient boundaries.
 - If storage fails, keep the current session usable and disclose that leave/return cannot be guaranteed.
 - Do not request notification, location, contacts, camera, microphone, or background permissions.
 
@@ -110,12 +111,14 @@ Capture at 1728 × 1117, 1366 × 768, and 390 × 844:
 For mobile, also record:
 
 - no horizontal document overflow;
-- no control covered by safe area or bottom sheet;
+- no control covered by safe area or bottom sheet; world remains at least 55% through peek;
 - 200% text zoom/reflow where applicable;
 - touch-target measurements;
 - p95 frame time with eight and twelve rendered citizens;
 - meaningful-world timing from a cold start under realistic network/CPU conditions; and
-- an actual mid-tier mobile device result before claiming Gate A or Gate B mobile performance.
+- an actual mid-tier mobile device result before claiming mobile performance;
+- clustered-target chooser, browser Back, single-scroll ownership, and 100%/200% text journeys; and
+- five silent-observer results: 4/5 find Follow Mara, 3/5 identify Mara/three actions/interaction, and 4/5 explain the local-device limit.
 
 ## Rejected alternatives
 

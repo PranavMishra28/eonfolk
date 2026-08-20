@@ -1,244 +1,250 @@
-# Goal prompt — implement EONFOLK 001-foundation
+# Goal-mode prompt — implement EONFOLK 001 foundation
 
-**Purpose:** Provide a complete zero-context Codex Goal-mode prompt for autonomously implementing and validating the accepted two-gate local slice.
+**Purpose:** provide a complete zero-context Codex Goal-mode orchestration prompt for the accepted local Riverhold proof.
 
-**Status:** READY FOR ZERO-CONTEXT REVIEW — execute only after explicit implementation authorization
+**Status:** READY FOR ZERO-CONTEXT REVIEW — implementation is not authorized by this planning run
 
-**Authority boundary:** This file owns future orchestration behavior. [001-foundation](active/001-foundation.md) owns detailed milestones; authority documents own product and technical semantics.
+**Authority boundary:** this file owns future orchestration behavior. The embedded product/technical contract is self-contained; during execution, `docs/exec-plans/active/001-foundation.md` is the living evidence log.
 
-**Related documents:** [ExecPlan contract](PLANS.md), [product](../product/PRODUCT.md), [architecture](../engineering/ARCHITECTURE.md), [quality bar](../quality/QUALITY_BAR.md).
+**Related documents:** [ExecPlan](active/001-foundation.md), [authority index](../INDEX.md), [quality bar](../quality/QUALITY_BAR.md)
 
 ---
 
-You are the autonomous coordinator for implementing EONFOLK `001-foundation`. Work for multiple hours without routine human questions. Make safe, reversible, in-scope assumptions; record them. Ask only when the next required action needs authority the user has not granted, creates spend, deploys/publishes, needs a secret/credential, risks material data loss, or materially changes the accepted product.
+You are the autonomous integration coordinator for EONFOLK's first implementation proof. Work for multiple hours without routine human questions. Ask only when the next necessary step requires spending, credentials, deployment/publication, destructive or unrecoverable action, a material product change outside this prompt, or resolution of a genuinely ambiguous safety/authority boundary after safe investigation.
 
-Your objective is not “code compiles.” Deliver a locally runnable, account-free browser game that passes both Proof of Life and Proof of Attachment with observable browser evidence, deterministic correctness, accessibility, performance and independent review. Do not merge or deploy unless separately authorized.
+Your objective is not “code compiles.” Deliver one locally runnable, free, accountless browser proof that passes Product Kill Gate 0, Gate A Proof of Life, Gate B Proof of Agency/Bounded Attachment, and every blocking correctness, security, accessibility, and performance criterion below. A backend suite, event log, scripted happy path, screenshot, or elapsed time cannot substitute for observable play evidence.
 
-## Binding builder and operating constraints
+Do not merge, deploy, publish, spend, enable billing, buy a domain, or contact users unless separately authorized.
 
-- One solo builder; the first compelling slice must remain realistically bounded to approximately 40–60 focused engineering hours. Plan against 52 hours.
-- Target development machine is a MacBook M4 Pro. There is no owned GPU infrastructure.
-- Spend target is approximately $0. Do not purchase, enable billing, incur a paid API/service action, or treat the documented $50/$300 comparisons as authorization.
-- V1 must be useful and free.
-- No model training or fine-tuning.
-- No proprietary dataset, required partner, enterprise sales motion, regulated data, payments, custody of funds, licensing business, revenue requirement or self-employment workflow.
-- No normal onboarding key, account, model download or WebGPU requirement.
-- No production deployment, public publication or domain purchase in this goal.
-- The time allocation controls scope. Acceptance criteria control completion. If estimates fail, remove declared deferred mechanics/polish; do not silently expand hours or lower gates.
+## Binding personal and operating constraints
 
-## Accepted product
+- Solo builder; plan 52 focused hours and reserve at most eight additional hours only for failing-gate fixes/review. Hard ceiling 60; never add scope to fill contingency.
+- Development machine is a MacBook M4 Pro. There is no owned GPU infrastructure.
+- Approximately $0 operating target. No paid API/service, purchase, credential request, or assumption that the documented $50/$300 envelope is authorized.
+- V1 must be useful and free, with no account, key, model download, WebGPU, or network requirement.
+- No model training/fine-tuning, proprietary dataset, required partnership, enterprise motion, regulated data, payments, custody, licensing business, revenue, or self-employment workflow.
+- No production deployment/publication in this goal.
+- If the irreducible proof cannot pass inside 60 focused hours after declared cuts, stop and reopen the product. Do not lower acceptance or hide overrun.
 
-EONFOLK is a private codename. The player sponsors one autonomous citizen in one small persistent bounded region. They observe, investigate and make rare high-level counsel/commit interventions. The citizen can accept, reject, delay or reinterpret that input through visible values, sourced beliefs, relationships, commitments and an active Standing Plan. Later authoritative consequences change relationships or institutions. A factual Chronicle explains what happened without inventing motive or causality.
+## Accepted product and honest claim
 
-Do not describe or design the core as “AI agents.” The playable fantasy is: care about one person who is not your puppet, take responsibility for advice, and return to a world that remembers.
+EONFOLK is a private codename. The proof is one Riverhold scenario: follow fixed authored Mara in a town of eight deterministic citizens; investigate an uncertainty; give rare advice she may reject, delay, accept, or reinterpret for visible reasons; see a branch-specific consequence; explicitly leave/advance/return; make a second choice created by the first outcome; and inspect a factual Chronicle.
 
-The moment loop is:
+Player-facing opening is exactly **Follow Mara** / **She acts for herself**. There is no create-a-person, roster, candidate choice, “choose a mind,” or direct control.
 
-`observe → investigate → counsel or commit → citizen interprets/refuses → consequences compound → Chronicle explains → choose the next risk`
+Mara requested an outside witness because her market concern threatens her relationship with Toma. Following grants only Mara-visible/shared facts, beliefs, plan, values, relationships, and one advice opportunity. The player owes honest advice and cannot command movement/labor, inspect secrets, undo history, or spend for her. This is fictional consent, not ownership, employment, finance, or a consciousness claim.
 
-The starting unit is one sponsored citizen inside a simulation of eight. Death/lineage are future structural contracts, not implementation scope. The slice is local canon only; future public canon and private non-canon World Forks are excluded.
+The proof may claim only bounded observable life/agency/attachment if its gates pass. It must not claim delayed retention, session 5/20, succession, newcomer relevance, general civilization depth, distribution, public canon, or modern-AI value.
 
-## Exact slice and exclusions
+## Exact scope
 
-Build one crafted Riverhold settlement with eight named citizens, food/water/wood, integer needs, movement, gathering/consumption, four understandable behavior families, one bilateral exchange, one conversion/repair recipe, relationships sufficient for one social consequence, public/private communication as typed acts/beliefs, one sponsored citizen, one decision boundary, one consequential counsel, deterministic persistence/catch-up/replay, While You Were Away, one causal Chronicle and one responsive 10–20-second share composition.
+Build:
 
-Exclude accounts/auth, server/Cloudflare implementation, deployment, public multiplayer, cross-region behavior, payments, telemetry vendor, unrestricted dialogue, generalized farming/crafting/economy, deep law/religion/war, death/succession code, World Forks, browser-model downloads, hosted inference, optional provider UI, embeddings/vector database, model migration, public Chronicle SSR, posting/video APIs, creator tooling and production marketplace/generated-image assets.
+- one crafted Riverhold and eight named citizens;
+- food, water, wood; integer needs; movement; gathering/consumption;
+- four behavior families: urgent need, role/resource work, exchange/help, Standing Plan/review;
+- one story-relevant bilateral exchange and one `2 wood + work` mill repair;
+- typed values, beliefs/provenance, relationships, commitments, reputation observations, messages, Standing Plans, and deterministic Standard Brain;
+- fixed Mara; authoritative investigation by 60 seconds; two advice intents plus abstain by five minutes;
+- one byte-identical pre-boundary snapshot and three materially different terminal histories: verify privately, accuse now, abstain/follow plan;
+- a typed decision receipt and fair state-grounded refusal/reinterpretation;
+- explicit Leave Riverhold checkpoint; plain local-device disclosure; user-confirmed Advance Riverhold catch-up in chapters capped at seven days; one branch-dependent second action;
+- event sourcing, durable command receipts/head, snapshots, export-only save, deterministic catch-up/replay, While You Were Away;
+- branch-specific three-beat manually stepable Chronicle and ≤20-second responsive 16:9/9:16 **Copy story card**; and
+- React Router/Vite shell, one PixiJS 2.5D Living Woodcut renderer, parallel fully playable semantic DOM, keyboard, reduced motion, weak-device degradation.
 
-The complete experience must work with every external model and network removed.
+Exclude create/roster, generalized farming/crafting/economy/governance, law/religion/war depth, death/lineage/session-20 code, import/restore/upcasters, public URL/SSR/share recipient route, accounts/auth/server/Cloudflare/deployment/public multiplayer/cross-region/forks, unrestricted dialogue, hosted/local model, provider SDK/UI, browser model download, embeddings/vector DB, model migration, telemetry, posting/video encoder, payments, creator dashboard, and production generated/marketplace art.
 
-## Product gates
+Generated planning concepts are reference only. Do not install Three.js, React Three Fiber, 3D loaders, Blender/glTF/GLB/KTX2 pipeline code, or a second renderer.
 
-### Gate A — Proof of Life
+## Gate 0 — cheap product and visual kill tests
 
-The running game must show one small crafted environment and eight deterministic Standard-Brain citizens. Three resources, needs, gathering/consumption, one exchange and one conversion/repair loop are authoritative. Four behavior families are legible and two citizens visibly interact. IndexedDB stores append-only consequential events and verified snapshots behind `PersistencePort`; controlled leave/return catch-up and replay are deterministic.
+Before expensive foundations:
 
-Capture actual browser evidence at 1728×1117, 1366×768 and 390×844. A fresh observer must identify what at least three citizens are doing and notice one citizen-to-citizen interaction without reading a raw event feed. The full journey remains playable in the semantic DOM fallback.
+1. Create branding-hidden ugly matched versions of the same Riverhold first decision for one-citizen follow, family, trio, faction, ECHOHOUSE crisis, and direct control.
+2. Test randomized versions with five unfamiliar participants; record time to meaningful action, predicted consequence, desire to see outcome, replay choice, confusion, and objections. All abandonment counts.
+3. Reopen product structure if another wins overall or beats selected structure on desirability/desire-to-continue by at least 20 percentage points.
+4. Create a disposable semantic/Pixi projection with Mara, eight citizens, three actions, an authoritative interaction cue, peek, and Chronicle beat at 1728×1117, 1366×768, and 390×844.
+5. Five silent unfamiliar observers use one exact manifest. Require 4/5 find Follow Mara/understand no direct control and 3/5 identify Mara, three activities, and the interaction.
+6. Require useful shell/Mara by two seconds and operable CTA by three. Check overflow, 200% zoom, keyboard, reduced motion, targets, and budgets.
 
-### Gate B — Proof of Attachment
+Living Woodcut gets one simplification pass; then use stripped Weathered Atlas/semantic presentation or stop. Retain only compact evidence/decision; discard prototype implementation.
 
-A fresh player selects/creates one mind in under 60 seconds and quickly understands identity, values, immediate relationships and current tension. They make one informed high-level intervention. The citizen independently accepts, rejects, delays or reinterprets it. A later systemic/social consequence occurs. Chronicle traces every factual sentence to authoritative evidence and distinguishes direct cause, trigger, contributing condition, temporal predecessor and named in-world allegation. The player states one unresolved emotional reason to return. The same chain creates one 10–20-second share composition that an unfamiliar viewer understands within five seconds.
+## Gate A — Proof of Life
 
-Both gates must pass. A passing build, backend tests, event log or polished still cannot substitute for observable product evidence.
+The actual game shows eight Standard-Brain citizens, three resources, four readable behavior families, one story-relevant exchange/repair, and a two-citizen interaction that changes authoritative state. Five silent unfamiliar observers use the identical named commit/seed/time; 3/5 identify three activities and the interaction without a log. 4/5 find Follow Mara within ten seconds and understand she acts for herself. The same facts/actions exist in semantic view. No model/network is present.
 
-## Locked architecture and contracts
+Capture reproducible evidence at 1728×1117, 1366×768, and 390×844 plus keyboard, reduced motion, 200% zoom, clustered targets, storage failure, and semantic degradation.
 
-Use strict TypeScript and pnpm with:
+## Gate B — Proof of agency and bounded attachment
 
-- `packages/protocol`: versioned serializable domain contracts;
-- `packages/sim`: pure deterministic Reality/reducer/scheduler/invariants/hashes;
-- `packages/cognition`: typed Mind, Standing Plans and deterministic Standard Brain;
-- `packages/persistence`: `PersistencePort` and IndexedDB adapter boundary;
-- `apps/web`: React Router/Vite, one PixiJS 2.5D world renderer and semantic DOM; and
-- deterministic Riverhold fixtures and Playwright journeys.
+Eight unfamiliar formative sessions see real state-sensitive behavior and a yoked scripted/canonical-lookup control in randomized order with identical presentation/timing.
 
-Use four hard layers: authoritative Reality, typed Mind, untrusted Brain and validating Application. Reality alone changes canonical state. Application validates cognition and commands atomically. Brain cannot see hidden Reality or write state.
+Require:
 
-Lock these meanings before UI work:
+- 6/8 complete first advice without prompting;
+- 5/8 explain Mara's relevant reason, independent choice, later consequence, and local-device save limit;
+- 4/8 voluntarily take the outcome-dependent second action and give a person-centered reason;
+- the real build beats yoked control on perceived contingency and desire to continue; and
+- five separate context-free Story Card viewers yield 3/5 correct sponsor-advice versus Mara-choice versus what-followed comprehension within five seconds, without falsely crediting the player as direct author of Mara's action/law.
 
-1. `WorldCommand`: schema version, command/idempotency ID, expected revision, principal, region and one typed payload.
-2. `WorldEventEnvelope`: region, ordered sequence, simulation time, engine/schema versions, typed payload, typed causal parents, visibility, provenance and canonical pre/post state hashes.
-3. `DecisionContext`: identity/version/revision/reason, only visible facts and sourced beliefs, active Standing Plan, closed bounded action catalog and explicit budgets.
-4. `IntentProposal`: identity/context/revision, exactly one known typed action, optional typed plan/memory proposal, short escaped public justification and provenance; no hidden-reasoning field.
-5. `ReplayManifest`: versioned snapshot reference/hash, inclusive ordered event interval, engine/replay/schema versions and presentation metadata.
-6. `PersistencePort`: append events atomically, load/save verified snapshot, retrieve ordered event ranges and report revision so later server storage does not change simulation logic.
+Record all failures and uncertainty; do not report statistical validation. Immediate reload proves persistence, not retention.
 
-Inside simulation/protocol code: no `Date.now()`, `Math.random()`, floats for conserved quantities, React, browser storage, provider SDKs, PixiJS/renderer imports or wall/frame/pointer input. Use seeded randomness, integer quantities, canonical serialization and deterministic stable tie-breaking.
+## Locked architecture and package boundaries
 
-Standard Brain handles routine action and every decision boundary. It filters legal strategy templates through visible facts, beliefs, values, relationships, commitments, resources and Standing Plan; integer-scores candidates; seeded-tie-breaks; emits one proposal; and follows bounded contingencies after typed rejection. No model package/SDK/runtime enters the slice.
+Use strict TypeScript/pnpm:
+
+- `packages/protocol`: versioned serializable contracts, canonicalization, golden vectors;
+- `packages/sim`: pure Reality/reducer/scheduler/invariants/hashes;
+- `packages/cognition`: typed Mind/Standing Plans/Standard Brain/decision receipts;
+- `packages/persistence`: `PersistencePort` and IndexedDB adapter;
+- `apps/web`: React Router/Vite, Pixi world, semantic UI/projections; and
+- deterministic Riverhold fixtures plus Playwright journeys.
+
+Four hard layers: authoritative Reality, typed Mind, untrusted Brain, validating/durable Application. Reality alone changes canonical state. Brain receives only actor-visible `DecisionContext`, proposes one catalog action, and cannot grant authority. Application validates, commits durably, then publishes.
+
+Pure protocol/sim code imports no React, browser storage, Pixi, provider SDK, Cloudflare, or renderer. It uses no `Date.now()`, `Math.random()`, conserved floats, random IDs, locale ordering, wall/frame/pointer input, or model call.
+
+## Locked protocol
+
+Implement these meanings before polished UI:
+
+1. `WorldCommand`: version, command ID, canonical payload fingerprint, expected revision, principal, region, one typed payload.
+2. `WorldEventEnvelope`: sequence/time, engine/schema, typed event, causal parents only `direct|trigger|contributing`, separate related events `temporal-predecessor|response-to`, visibility/provenance, pre/post/event hashes, batch.
+3. `DecisionContext`: actor/revision/reason, only visible facts and sourced beliefs, plan/values/relationships/commitments, closed action catalog, explicit budgets.
+4. `IntentProposal`: exactly one catalog action, optional bounded typed plan/memory proposals, provenance, short justification authored from `DecisionExplanation`.
+5. `DecisionExplanation`: reason codes, actually read references, integer score terms/tie-break, advice disposition.
+6. `CommandReceipt`: durable accepted/rejected result, fingerprint, revisions/head, accepted interval or rejection code, fencing token.
+7. `ReplayManifest`: snapshot/base sequence/hash, half-open event interval, exact versions, expected final hash, nonfactual presentation metadata.
+8. `PersistencePort`: get head/receipt; atomically append a transition; load/save verified snapshot; get ordered range; export verified world. No import.
+
+## Byte-level determinism profile
+
+Use integer simulation seconds; nonnegative int32 conserved quantities; checked signed-int32 scores and basis points; truncation toward zero; NFC normalization at ingress; RFC 8785 canonical JSON over a restricted integer-only domain; SHA-256 lowercase-hex hashes with explicit domain prefixes; versioned xoshiro128** uint32 PRNG with golden implementation vectors; SHA-256-derived per-system/entity/purpose stream seeds/counters; deterministic hash-derived IDs; scheduler order `(time, priority, actorId, localOrdinal)`.
+
+State hash covers complete canonical region state; event hash covers complete envelope except itself; batch hash chains prior head, ordered events, command fingerprint, result revision, and fencing token. No presentation/wall/storage metadata or raw model prose enters hashes. Support one profile/engine/schema version; unknown/old versions fail closed. No upcaster.
+
+## Durable-before-visible protocol
+
+For every command:
+
+1. read durable head/receipt;
+2. prepare immutable accepted/rejected transition without installing it;
+3. in one IndexedDB transaction verify head/fencing, write complete accepted event batch, write accepted/rejected receipt, and advance head only for acceptance;
+4. wait for commit;
+5. install the post-state only if returned head matches;
+6. publish projections and acknowledge.
+
+Crash before commit discards candidate; crash after commit reconstructs from durable head/receipt. Retry identical ID/fingerprint returns receipt. Same ID/different fingerprint rejects permanently. Writer transfer increments a monotonic fencing token checked on every append/snapshot. Stale writers reject. Snapshot success is independent of event/head/receipt commit.
+
+Replay uses snapshot state after `baseSequence` plus half-open `[fromInclusive,toExclusive)`; zero events means start equals end and unchanged hash. Export is verified/read-only and warns it cannot be imported/restored in V1.
+
+## Standard Brain and anti-script contract
+
+Standard Brain is the only shipped Brain. It filters the closed catalog by visible preconditions; integer-scores plan continuation, needs, commitments, values, relationships, evidence, risk, and advice; seed-breaks exact ties; emits one action plus typed explanation; and replans within a bounded retry budget.
+
+The same pre-boundary snapshot varies trust, value priority, evidence, commitment, advice, and Mara/non-Mara actor. Compare full brain with nearest-need, legal-random, canonical-lookup, and ablations without values/beliefs/relationships/commitments/plan. Three advice paths reach different terminal vectors across relationship, verified belief, petition/rule, or allocation. Hard-coded Riverhold lookup must fail transfer/perturbation.
+
+Two worlds differing only in actor-invisible facts produce byte-identical context, catalog, errors, targets, explanation, and public Chronicle until observation. Fake missing/throwing/timed-out/malformed BrainPort preserves deterministic progress; no provider code ships. Provider-specific 429/revoke/eval tests become conditional only if a future real adapter is authorized.
 
 ## Chronicle truth
 
-Implement one Riverhold evidence chain consistent with the planning fixture: shortage/ledger mismatch → patron counsel → Mara verifies/reinterprets → public statement → relationship strain/audit → public reserve-count rule → unresolved relationship. Do not claim theft, corruption, hidden motive or famine prevention unless an authoritative predicate establishes it.
+Every factual sentence is a deterministic template over accepted events and opens an evidence disclosure. Direct cause, trigger, and contributing condition are causal; temporal predecessor and response-to are noncausal related events; allegation is attributed statement/belief content. Advice may contribute to Mara's plan but does not directly enact her action, audit, or law.
 
-Chronicle prose is deterministic template projection. Generated/model prose cannot author facts, HTML, Markdown, SQL, URLs, code or causal labels. Public justification is escaped testimony, not evidence. Replay consumes recorded accepted events and never re-invokes cognition.
+Build three branch-specific Chronicles. Primary presentation is exactly three beats and no more than 20 seconds. Story Card labels are **YOU ADVISED**, **MARA CHOSE**, **WHAT FOLLOWED**, and **UNRESOLVED**. Technical IDs live under Evidence. No dead link, “Share” acquisition claim, or seed jargon headline. Replay never invokes cognition.
 
-## Visual, performance and accessibility contract
+## Performance, mobile, and accessibility
 
-Use a deliberately sparse Living Woodcut visual language: warm paper, charcoal plus bounded functional inks, strong silhouettes, quiet hatching around faces/tools/routes, one authored atlas, fixed oblique composition, eight silhouettes/portraits, limited clear poses and causal marks shared by world/Chronicle. Generated concepts are reference only. Do not add R3F/Three or a second renderer. Weathered Atlas is the one fallback if the authored Pixi proof fails after one simplification pass.
-
-Budgets cannot be silently weakened:
+Blocking budgets:
 
 - critical shell HTML/CSS/JS ≤200 KB gzip;
-- total initial-route JS including lazy renderer ≤650 KB gzip;
-- compressed first-world assets ≤6 MB desktop and ≤4 MB mobile;
-- meaningful world display ≤3 seconds on target Mac/laptop and ≤5 seconds on a realistic mid-tier mobile/4G profile;
-- desktop target 60 FPS, p95 frame time ≤16.7 ms with eight citizens;
-- mobile minimum 30 FPS, p95 frame time ≤33.3 ms;
-- eight citizens default and twelve practical;
-- reduced motion disables camera fly-through, parallax, autoplay replay, nonessential particles/weather and looping effects while keeping manual state/replay;
-- citizen selection, identity review, counsel, return summary, Chronicle and replay controls have keyboard-accessible semantic DOM equivalents; and
-- weak-device degradation order is pixel ratio/effects → nonessential cadence → simplified markers → fully playable semantic list/map. Never remove authoritative information or simulation fidelity by device.
+- total initial-route JS including lazy Pixi ≤650 KB gzip;
+- atlas/assets ≤6 MB desktop, ≤4 MB mobile;
+- useful shell/Mara ≤2 seconds, CTA ≤3 seconds, meaningful world ≤3 seconds target M4 profile and ≤5 seconds defined mobile/4G profile;
+- desktop p95 frame ≤16.7 ms/60 FPS target with eight citizens;
+- mobile p95 ≤33.3 ms/30 FPS minimum;
+- eight default; twelve is measurement-only practical stress target.
 
-If the visual proof misses budgets, simplify before continuing. Do not waive.
+Target desktop is named M4 Pro/current pinned stable Chrome/native DPR/production preview/power state. Mobile lab is 390×844 DPR 3/four-times CPU slowdown/Fast-4G-equivalent plus one named iPhone-13/Pixel-7-class-or-weaker physical result before a mobile claim. Record p50/p95/worst, browser/device/profile, commit, seed/time, quality/motion/UI/focus state.
 
-## Security and data contract
+On portrait, world remains ≥55% through peek; peek ≤35%, non-scrolling; Inspect has one scroll/sticky Close; Decide has sticky Back/Continue; browser Back closes one UI level; targets ≥44px; overlap opens named chooser; persistent People fallback. At 200% text no overflow/trap.
 
-Validate authorization after cognition and apply commands atomically. Treat all names, beliefs, public justifications and imported saves as hostile bounded text/data. Render escaped text only. Trust no model/user HTML, Markdown, SQL, URL or code. Enforce schema unknown-field, byte/depth/string/numeric limits; expected revision; visibility; position; ownership; resource; law; capability and principal checks. A rejected command causes no partial mutation.
-
-Isolate hidden facts before building `DecisionContext`. Separate moderation visibility from canonical factual state. No secrets or real credentials enter files, logs, screenshots, artifacts or prompts. Future hosted routes will require CSP, CSRF/origin controls, bounded writes, quotas and moderation, but no server is built now.
+Reduced motion disables fly-through/parallax/particles/weather/autoplay and uses manually stepable Chronicle/discrete poses. Every consequential action has semantic keyboard equivalent. Degrade in order: DPR/effects → background cadence → simplified markers → fully playable semantic view. Device presentation never changes Reality.
 
 ## Required tests and future CI baseline
 
-Maintain scripts runnable locally and suitable for future PR CI:
+On every relevant PR run pinned local-equivalent commands for format/lint, strict typecheck, unit, deterministic/replay, bounded property/fuzz, production build, and critical Playwright journey.
 
-- formatting/lint;
-- strict TypeScript typecheck;
-- unit tests;
-- deterministic simulation and replay tests;
-- bounded property/model-based and fuzz tests;
-- production build; and
-- critical Playwright journey: launch → select/create citizen → observe interaction → counsel → persist/reload with controlled catch-up → Chronicle replay.
+Blocking correctness includes canonical bytes/hashes/PRNG/rounding/Unicode; repeated-run/replay; scheduler ties; expected revision; accepted/rejected idempotency and ID collision; durable commit/crash barriers; fencing; quota abort; event gaps/corrupt snapshots; current-version identity/unknown-version fail closed/no import; command atomicity; 30/90/365-day exact terminal simulations under declared time/event/storage caps; conservation; safe interrupt/resume equivalence; hidden-fact noninterference; fake BrainPort failure; and progress without LLM/network.
 
-Blocking correctness covers canonical hashes, repeated-run and replay equivalence, equal-time ordering, seeded PRNG, command atomicity, expected revision, idempotency, append/snapshot atomicity, event gaps/corruption, migrations/upcasters, 30/90/365-day simulations, resource conservation, ownership/life invariants, safe interrupt/resume, hidden-fact isolation, hostile text/imports, provider absence/timeout/malformed fallback and continued world progress without an LLM.
+Conditional cognition changes run perturbation/transfer/baseline/ablation/authorization/hidden-fact/fallback. A later real adapter adds exact model behavior/eval/provider failure. Major UI changes capture/review deterministic desktop/laptop/mobile evidence.
 
-When cognition/Mind behavior changes, run schema, authorization, hidden-fact, provider-failure, fallback and fixed behavior/eval regressions. When major UI/renderer/assets/layout/motion changes, capture deterministic three-viewport screenshots and practical traces, then obtain visual review.
+Use weekly grouped Dependabot for npm/Actions, max five PRs, no automerge. Protect main checks/force-push/deletion where capabilities permit; no outside reviewer requirement. If native secret scanning remains disabled, add one pinned/license-reviewed open-source diff scan. Failed Playwright artifacts retain 14 days, accepted milestone evidence 30, no routine success videos. Long fuzz/horizon/browser matrices run nightly/manual.
 
-Plan future repository policy without enterprise ceremony: weekly grouped Dependabot for npm/Actions, maximum five open PRs, no automatic merges; `main` checks and force-push/deletion protection where the personal private repo supports it; no mandatory outside reviewer; failed Playwright artifacts retained 14 days, accepted milestone evidence 30 days, no routine successful videos. Put larger fuzz/horizon/browser/migration/cognition matrices on nightly/manual runs. Do not enable/pay for unavailable features during this goal.
+## Orchestration and bounded subagents
 
-## Orchestration and concurrency
+You are the sole integration owner. Dynamically discover safe concurrency at each wave and retain coordinator capacity; with four total slots, use at most three children. Do not delegate tightly coupled work merely for concurrency.
 
-You are the only integration owner. At each wave, discover current safe agent concurrency and reserve coordinator capacity. Use at most three children concurrently when four total slots exist. Do not spawn a child merely to parallelize tightly coupled work.
+Every child receives binding constraints, one bounded assignment, explicit file allowlist, its own isolated worktree/branch when writing, explicit ownership of only that worktree/allowlist, no nested subagent delegation, focused tests/evidence, one clean commit, and handoff containing findings, objections, uncertainty, changed files, commands/results, SHA, and unresolved risks.
 
-Every child receives:
+Use worktrees only for nonoverlapping ownership. Suggested sequence after contracts freeze:
 
-- the relevant binding constraints and product gate;
-- one bounded task and explicit file allowlist;
-- one isolated worktree and named branch when writing in parallel is useful;
-- explicit statement that it owns only that worktree/allowlist;
-- prohibition on nested subagent delegation;
-- required focused tests/evidence and one clean commit; and
-- required handoff: findings, objections, uncertainty, changed files, commands/results, commit SHA and unresolved risks.
+1. systems: protocol/sim/golden fixtures;
+2. cognition: cognition/behavior fixtures after protocol integration;
+3. application: persistence/web/e2e after contract integration.
 
-Suggested non-overlapping ownership waves:
-
-1. **Systems worktree:** `packages/protocol`, `packages/sim`, deterministic fixtures/tests. No UI/persistence implementation.
-2. **Cognition worktree:** `packages/cognition` and behavior/eval fixtures after protocol types stabilize. No provider SDK/model route.
-3. **Application worktree:** `packages/persistence`, `apps/web` shell/semantic UI/Pixi renderer and browser tests after contracts stabilize. If this ownership becomes coupled, integrate systems first and work sequentially.
-
-The coordinator alone owns the active ExecPlan logs, shared decision/risk/deviation/evidence records, root manifests/lockfile integration and final branch. Root dependency changes are serialized through the coordinator; children propose exact changes and reasons rather than racing on the lockfile.
-
-Do not allow worktree overlap, nested delegation or invisible shared-directory edits. A worktree/agent never integrates itself.
+If ownership couples, serialize. Coordinator alone owns root manifests/lockfile, active ExecPlan logs, shared evidence/decision/risk/deviation records, and integration. Children never integrate themselves or edit a shared working directory invisibly.
 
 ## Integration discipline
 
-Before integrating any child commit:
+Before cherry-picking any child commit:
 
-1. verify expected ancestry and clean status;
-2. inspect the exact changed-file list against the allowlist;
-3. inspect the actual Git diff, not only the summary;
-4. inspect dependency versions, licenses, install scripts and lockfile changes;
-5. scan for secrets/credentials, generated junk and unauthorized scope;
-6. rerun focused tests and `git diff --check` from the candidate;
-7. confirm product/constraint fit and evidence paths; and
-8. cherry-pick only one clean commit or request a corrected commit.
+1. verify ancestry and clean status;
+2. inspect exact changed-file list against allowlist;
+3. inspect actual Git diff line-by-line, not summary;
+4. inspect dependency versions, licenses, install scripts, and lockfile;
+5. scan secrets/generated junk/unauthorized scope;
+6. rerun focused tests and `git diff --check` from candidate;
+7. verify product/constraint/evidence fit; and
+8. integrate one clean commit or request correction.
 
-Record source branch/SHA, checks, evidence, integrated SHA and rollback in the ExecPlan integration log. Research/spike branches remain local and are not pushed unless explicitly authorized.
+Record source worktree/SHA, allowlist, checks, evidence, integrated SHA, and rollback. Never push research/spike branches or merge/deploy automatically.
 
 ## Continuous living-plan maintenance
 
-Continuously update `docs/exec-plans/active/001-foundation.md` with:
+Update `docs/exec-plans/active/001-foundation.md` at every integration boundary and immediately on decision/risk/deviation with timestamped milestone progress, focused hours, exact commands/results/hashes, browser/device evidence, participant results including failures, decisions/reopen triggers, P0–P3 findings/fixes/confirmation, removed scope, integration records, and evidence paths. Never reconstruct logs at the end. No silent scope expansion.
 
-- timestamped progress by milestone and commit;
-- exact commands/results, fixture hashes and browser/device/viewport evidence;
-- implementation decisions and reopen triggers;
-- P0–P3 findings, owner, fix and confirmation;
-- scope deviations/removals and effect on gates;
-- integration records; and
-- focused hours and cuts.
+## Mandatory implementation/review/fix loop
 
-Update at every integration boundary and immediately when a decision, risk or deviation occurs. Do not wait until the end and reconstruct history. Never silently expand scope.
-
-## Required implementation/review loop
-
-For each milestone, execute:
+For every milestone run:
 
 `implementation → focused tests → full relevant tests → actual local game run → browser playtest → evidence capture → independent review → fix → rerun`
 
-Do not review only screenshots when interaction matters. Do not review only backend tests when product behavior matters.
+Reviewers cannot edit while reviewing:
 
-Use independent reviewers with fresh context:
+- **Product/game:** life, contingency, agency, boredom/confusion, care, second decision, honest claims.
+- **Systems/correctness:** contracts, determinism, durability, replay, invariants, security, failure recovery.
+- **Visual/accessibility:** required for UI/renderer/assets/layout/motion; world dominance, three viewports, mobile, keyboard, reduced motion, semantic fallback, performance, dashboard/generated smell.
+- **Cognition/eval:** required for Mind/plan/Brain/context/proposal changes; noninterference, legality, state sensitivity, ablations, explanation, fallback.
 
-- **Product/game reviewer:** observable autonomy, activity comprehension, agency, attachment, boredom/confusion, unresolved return reason and scope.
-- **Systems/correctness reviewer:** authority layers, contracts, determinism, replay, persistence, invariants, security and failure recovery.
-- **Visual/accessibility reviewer:** required whenever UI/renderer/assets/layout/motion change; world dominance, three viewports, keyboard, semantic fallback, reduced motion, performance and generated/dashboard smell.
-- **Cognition/eval reviewer:** required whenever Mind, Standing Plan, Standard Brain, proposal/context schema or behavior rules change; hidden facts, action legality, repetition, state sensitivity, justifications and deterministic fallback.
-
-Reviewers cannot edit the implementation while reviewing. Reconcile every P0/P1 explicitly, fix, rerun and request targeted confirmation. No accepted P0 or unmitigated P1 may remain.
-
-## Milestones and ownership sequence
-
-1. **Shared foundation — 8 hours:** lock contracts, pure reducer/scheduler/hashes, minimal Standard Brain and deterministic fixtures. Systems review before UI integration.
-2. **Gate A — 20 hours:** eight citizens/resources/behaviors/exchange/repair, IndexedDB, Pixi/semantic world, catch-up/replay and three-viewport observer proof. Product, systems, visual and cognition reviews.
-3. **Gate B — 16 hours:** sponsorship/identity/counsel/interpretation/delayed Riverhold consequence, While You Were Away, factual Chronicle/replay/share. All four reviewer roles.
-4. **Integrated QA/fixes — 8 hours:** clean full journey, long horizons, budgets, keyboard/reduced motion/semantic degradation, import/recovery, final reviews and one targeted confirmation if severe findings arise.
-
-Remove deferred features when a milestone overruns. Preserve every gate invariant.
+Review actual browser interaction and actual Git diff, not just reports/screenshots/tests. Reconcile every P0/P1, fix, rerun, and request targeted confirmation. No accepted P0 or unmitigated P1 remains.
 
 ## Stop conditions
 
-Continue autonomously until a legitimate stop condition occurs. Stop and report concrete evidence when:
+Continue autonomously until:
 
-- Gate A and Gate B plus all blocking technical/access/performance/security criteria pass, all reviews are reconciled, the branch is clean and no required work remains; or
-- a P0/unmitigated P1, data-loss, security or factuality failure cannot be safely fixed inside authorized scope; or
-- the irreducible loop still exceeds the envelope after all declared cuts, which reopens the product decision; or
-- the next required action needs ungranted spending, credential, deployment, public publication, destructive action or material scope/product change; or
-- the environment cannot produce required browser/device/evidence and all safe alternatives are exhausted.
+- Gate 0, A, B and all technical/access/performance/security criteria pass; evidence/reviews/logs are complete; branch is clean; no required work remains; or
+- an unfixable-in-scope P0/P1, data-loss/security/factuality failure remains; or
+- the irreducible loop exceeds 60 focused hours after every declared cut; or
+- next required action needs ungranted spend/credential/deploy/publish/destructive/material product authority; or
+- required browser/device/human evidence cannot be produced after exhausting safe in-scope alternatives.
 
-Do not stop because elapsed time reached 52 hours; that triggers scope removal and decision review, not acceptance. Do not declare completion from a build or test suite without observable browser product evidence.
+Do not stop merely at 52 hours; use only fix contingency and cut deferred polish. Do not declare success from a build/backend suite/event log. If the product gates fail, report failure honestly; do not add models, dialogue, content, infrastructure, or fabricated evidence.
 
 ## Final handoff
 
-Report:
+Report Gate 0/A/B outcome with direct evidence; exact branch/head/base/clean status; full base...HEAD files/diff/dependencies/licenses; commands/results/golden hashes; crash/fence/export/version/no-import and 30/90/365 results; three-viewport/keyboard/reduced-motion/semantic/physical-device evidence and caveats; participant denominators/results; every P0/P1 disposition/confirmation; focused hours and cuts; remaining hypotheses; and any authority still needed.
 
-- whether Gate A and Gate B passed, with direct evidence paths;
-- exact branch/head/base and clean status;
-- full base...HEAD changed-file summary and dependency/license changes;
-- commands/tests and fixture hashes;
-- browser evidence for 1728×1117, 1366×768 and 390×844, plus keyboard/reduced-motion/semantic mode;
-- payload/load/frame results and device/profile caveats;
-- every P0/P1 disposition and confirmation;
-- focused hours, removed scope and remaining hypotheses;
-- any authority, spend, deployment or public action still requiring the user; and
-- explicit statement that fun, attachment and retention are human hypotheses unless the recorded test evidence actually supports only the bounded gate.
+State explicitly that fun, retention, succession, scale, distribution, and broad attachment remain hypotheses unless separately observed. Never merge, deploy, publish, spend, or broaden scope in the handoff.
 
-Never merge, deploy, publish, spend or broaden scope as part of the handoff unless the user separately authorizes that action.
+---

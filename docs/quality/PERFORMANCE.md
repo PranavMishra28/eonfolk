@@ -18,11 +18,13 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 |---|---:|
 | Critical shell HTML/CSS/JavaScript | **<=200 KB gzip** |
 | Total initial-route JavaScript, including lazy world renderer | **<=650 KB gzip** |
-| Compressed first-world 3D assets | **<=6 MB desktop; <=4 MB mobile** |
+| Compressed first-world 2.5D atlas/assets | **<=6 MB desktop; <=4 MB mobile** |
 | Meaningful world display on target M4 Pro/laptop profile | **<=3 seconds** |
 | Meaningful world display on realistic mid-tier mobile/4G profile | **<=5 seconds** |
 
-“Meaningful world display” means the shell and world/fallback identify the settlement and sponsored citizen and accept a useful selection; it is not a blank canvas, spinner, or decorative splash. Measure cold and warm runs separately and disclose caching.
+The stricter staged requirement is: useful semantic/static shell with Mara by **2 seconds**, operable **Follow Mara** by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. “Meaningful” identifies Riverhold/Mara, shows a useful action and at least one activity; it is not a spinner. Measure cold/warm separately and disclose caching.
+
+The target desktop profile is the builder's M4 Pro on the pinned stable Chrome with clean production preview, native DPR, no devtools, and named power state. The provisional mobile laboratory profile is 390×844, DPR 3, four-times CPU slowdown and Fast-4G-equivalent network in the pinned browser; final mobile claims also require one named physical iPhone 13/Pixel 7-class-or-weaker device. Emulation alone is labeled emulation.
 
 ## Frame and population budgets
 
@@ -30,22 +32,22 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 |---|---|
 | Desktop/laptop | 60 FPS target; p95 frame time **<=16.7 ms** with eight citizens |
 | Mobile | 30 FPS minimum; p95 frame time **<=33.3 ms** with eight citizens |
-| Population | eight by default; twelve remains practical and legible; larger rendered populations out of scope |
+| Population | eight by default; twelve remains practical and legible in a measurement-only stress fixture; larger populations out of scope |
 
 Record p50/p95/worst frame time, long tasks, memory, dropped frames, worker advancement latency, and catch-up time with the browser version, viewport, device/profile, pixel ratio, quality tier, seed, and build commit. Avoid claiming physical-device performance from emulation alone.
 
 ## Disposable rendering evidence
 
-**DIRECTIONAL LOCAL EVIDENCE:** R3F scratch `4bdef56` measured 291.39 KB gzip JavaScript, about 0.92–1.0 seconds local load, p95 17.1 ms at desktop/laptop viewports, and 17.3 ms at mobile, with twelve citizens and a representative scene/overlay.
+**DIRECTIONAL LOCAL EVIDENCE:** rejected R3F scratch `4bdef56` measured 291.39 KB gzip JavaScript, about 0.92–1.0 seconds local load, p95 17.1 ms at desktop/laptop viewports, and 17.3 ms at mobile, with twelve citizens and a representative scene/overlay. It exposed the risk; it does not authorize R3F.
 
 Interpretation:
 
-- the renderer candidate can fit inside the **650 KB** total-JS ceiling in a toy build;
+- a toy world renderer can fit inside the **650 KB** total-JS ceiling;
 - the spike did not isolate a **<=200 KB** critical shell, so that budget is unproven;
 - local load does not establish 4G or production-asset display time;
 - **17.1 ms fails** the desktop p95 budget by 0.4 ms and requires simplification/remeasurement;
 - 17.3 ms is directionally inside the mobile frame gate, but the emulated profile and mobile overflow prevent a pass;
-- no production simulation, Chronicle, full UI, texture payload, thermal soak, or physical mid-tier mobile was measured.
+- no Pixi implementation, production simulation, Chronicle, full UI, atlas payload, thermal soak, or physical mid-tier mobile was measured.
 
 The scratch result is feasibility evidence, not permission to reserve all remaining bundle/frame budget.
 
@@ -78,7 +80,7 @@ Controls expose names, roles, states, focus, and live status without relying on 
 
 Apply and test in this order:
 
-1. reduce device pixel ratio, shadows, weather, post-effects, and texture/mesh detail;
+1. reduce device pixel ratio, shadows, weather, filters, and texture detail;
 2. reduce nonessential animation cadence while keeping state changes legible;
 3. switch distant/secondary citizens and props to simplified markers;
 4. offer a fully playable semantic list/map view.
@@ -93,7 +95,7 @@ Do not remove citizens, facts, interaction results, counsel, Chronicle, or repla
 
 ## Resulting implementation behavior
 
-The semantic shell arrives first, the renderer is lazy but inside the route ceiling, and eight citizens remain readable. Quality tiers reduce decoration before information or agency. A device that cannot sustain the canvas still receives the complete local game through the semantic world view.
+The semantic shell arrives first, the Pixi renderer is lazy but inside the route ceiling, and eight citizens remain readable. Quality tiers reduce decoration before information or agency. A device that cannot sustain canvas receives the complete local game through semantic view.
 
 ## Rejected alternatives
 
@@ -108,8 +110,8 @@ The semantic shell arrives first, the renderer is lazy but inside the route ceil
 
 ## Unproven assumptions and reopen evidence
 
-- **UNRESOLVED:** the selected art assets fit 6/4 MB without losing the intended language. Reopen asset style/quantity after real GLB/KTX2 output.
-- **UNRESOLVED:** a full R3F application can recover the 0.4 ms desktop p95 gap. Failure changes renderer/art scope, not the gate.
+- **UNRESOLVED:** the selected atlas fits 6/4 MB without losing the intended language. Reopen asset style/quantity after real optimized atlas output.
+- **UNRESOLVED:** the selected Pixi application passes the early feasibility and full-load budgets. Failure changes art density or uses the semantic/Weathered Atlas fallback, not R3F.
 - **UNRESOLVED:** a physical mid-tier mobile meets display/frame/thermal targets. Reopen quality tiers after measured device evidence.
 - **UNRESOLVED:** the semantic fallback preserves world dominance and attachment. Reopen layout after fresh accessibility/player review.
 - **UNRESOLVED:** 90/365-day catch-up fits a humane wait. Set exact catch-up wall-time and event budgets only from the implementation benchmark.

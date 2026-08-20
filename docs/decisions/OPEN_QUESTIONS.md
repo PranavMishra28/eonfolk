@@ -2,7 +2,7 @@
 
 **Purpose:** Make the smallest evidence-producing experiment, current default and reopen consequence explicit for every material unknown.
 
-**Status:** INITIAL SYNTHESIS — assumptions remain unvalidated by players
+**Status:** RECONCILED — assumptions remain unvalidated by actual players
 
 **Authority boundary:** This file owns experiment questions and required evidence. [Decisions](DECISIONS.md) owns the current choice; [risks](RISKS.md) owns severity.
 
@@ -12,7 +12,7 @@
 
 | Rank | ID | Assumption | Fastest falsification |
 |---:|---|---|---|
-| 1 | Q-001 | One sponsored citizen creates care without direct control | Five fresh Gate B sessions with recall, attribution and unresolved-return questions |
+| 1 | Q-001 | Following one citizen creates care without direct control | Eight unfamiliar randomized real-versus-scripted sessions with voluntary second action |
 | 2 | Q-002 | Rejectable/delayed counsel feels consequential rather than arbitrary | Show forecasts before counsel; test later interpretation and counterfactual understanding |
 | 3 | Q-003 | A deterministic Standard Brain can appear intentional for eight citizens | Blinded action/justification review after mechanics and visibility pass |
 | 4 | Q-004 | Factual Chronicle can be both trustworthy and emotionally compelling | Sentence trace plus five-second stranger comprehension and next-risk test |
@@ -24,8 +24,8 @@
 
 - **Why it matters:** This is the emotional premise and starting-unit decision.
 - **Current default:** One citizen is the responsibility lens; eight citizens remain authoritative actors.
-- **Fastest falsification:** Five fresh 10–15-minute sessions. After play, ask who the citizen is, what they wanted, what relationship changed, what the player feels responsible for and what they want to learn next. Count abandonment.
-- **Evidence required:** At least three of five recall identity/value/tension and at least one fresh player can explain the decision chain and volunteer an unresolved return reason. This is a proof threshold, not retention validation.
+- **Fastest falsification:** Eight unfamiliar sessions compare the real state-sensitive loop with a randomized yoked script. Ask identity, reason, independent choice, responsibility and voluntarily offered next action. Count abandonment.
+- **Evidence required:** Quality Bar's 6/8 completion, 5/8 explanation and 4/8 person-centered second-action thresholds; real beats script on contingency/continue. This is formative bounded evidence, not retention validation.
 - **Decision reopened:** D-001 and D-003; compare identical family/trio variants before adding features.
 
 ### Q-002 — Does refusal preserve autonomy without destroying agency?
@@ -40,24 +40,24 @@
 
 - **Why it matters:** It is the complete $0/no-model game, not a fallback veneer.
 - **Current default:** Integer-scored templates filtered by facts, beliefs, values, relationships, commitments, resources and Standing Plan, with seeded tie-breaking.
-- **Fastest falsification:** Run fixed and varied seeds, hide implementation labels, and ask reviewers to connect actions to declared mental/social state. Include counterfactual state changes that should change the action.
-- **Evidence required:** Correct hidden-fact isolation, material action changes from relevant Mind differences, bounded repetition, coherent public justification and continued progress after every optional-provider failure.
+- **Fastest falsification:** Perturb trust/value/evidence/commitment/advice, transfer to non-Mara, and compare nearest-need/legal-random/canonical-lookup plus field ablations.
+- **Evidence required:** Noninterference, three terminal vectors, actual typed decision terms, transfer, bounded repetition, and progress after fake BrainPort failure with no provider installed.
 - **Decision reopened:** D-005; first improve Mind/action space, then permit one optional bounded-model experiment only if the full deterministic experience remains compelling.
 
 ### Q-004 — Does Chronicle create return value without laundering the game?
 
 - **Why it matters:** The product depends on causal memory, but a polished log can overclaim or make trivial mechanics seem deep.
 - **Current default:** Typed factual projection with direct/trigger/contributing/predecessor/allegation categories from Riverhold events.
-- **Fastest falsification:** Give unfamiliar viewers the 10–20-second artifact, then ask actor, player input, three beats, uncertainty and unresolved tension; separately audit every sentence to event IDs/hashes.
-- **Evidence required:** No unsupported factual sentence; three of five strangers understand the consequence within five seconds; at least one wants to inspect/replay the unresolved relationship rather than only admire presentation.
+- **Fastest falsification:** Give five unfamiliar viewers the three-beat/≤20-second Story Card, ask who advised, who chose, what followed and what remains; audit every sentence.
+- **Evidence required:** No unsupported sentence; 3/5 understand within five seconds and do not assign the player direct causal credit; player-loop evidence, not card polish, creates next action.
 - **Decision reopened:** D-004 and D-009; change mechanics before adding prose if the causal chain is trivial.
 
 ### Q-005 — Is Living Woodcut feasible and legible?
 
 - **Why it matters:** The direction wins on distinctiveness and Chronicle integration but risks small-character readability, coldness and authoring cost.
 - **Current default:** Sparse PixiJS 2.5D, one atlas, eight silhouettes/portraits, limited poses and semantic DOM.
-- **Fastest falsification:** Build one authored non-production proof; measure payload/display/frame budgets at 8 and 12 citizens; show a silent 30-second capture at laptop/mobile sizes to five strangers.
-- **Evidence required:** Three of five name three activities and one interaction; selected emotion/occupation is understood; budgets pass after at most one simplification pass; bounded assets take no more than eight focused hours.
+- **Fastest falsification:** In the first four implementation hours, build semantic/Pixi projection; measure three viewports, eight citizens and 12-citizen stress; five silent observers.
+- **Evidence required:** 3/5 name three activities/interaction; 4/5 find Follow Mara/understand autonomy; budgets and mobile containment pass after at most one simplification.
 - **Decision reopened:** D-008; switch to stripped Weathered Atlas if it fails.
 
 ### Q-006 — Does succession feel like continuity rather than reset?
@@ -79,7 +79,7 @@
 ### Q-008 — Will anyone return or share voluntarily?
 
 - **Why it matters:** Distribution and return claims are hypotheses, not reach plans.
-- **Current default:** High-touch first 10; factual Consequence Card; no paid acquisition or posting integration.
+- **Current default:** Finish the private factual Story Card/comprehension proof; high-touch first 10 and public distribution require later playable-publication authority; no paid acquisition or posting integration.
 - **Fastest falsification:** Observe first 10 with no reminder in the voluntary-return/share measurement; keep abandonment in the denominator.
 - **Evidence required:** Thresholds in [distribution](../product/DISTRIBUTION.md), including at least one unaffiliated share that activates a user before scaling beyond 100.
 - **Decision reopened:** D-009; stop channel work and revisit product pull/message.
@@ -88,8 +88,8 @@
 
 - **Why it matters:** Losing the one citizen/history would destroy trust.
 - **Current default:** Single-writer IndexedDB adapter, atomic append/snapshot, verified replay and export/recovery path.
-- **Fastest falsification:** Quota, refresh/crash, corrupt snapshot, event gap, multi-tab, export/import and browser eviction drills.
-- **Evidence required:** No partial authoritative mutation; deterministic recovery to the last committed state; clear user-visible failure/recovery behavior.
+- **Fastest falsification:** Crash injection around every prepare/commit/install/publish barrier; quota abort, corrupt snapshot, gap, idempotency collision, stale fencing/dual-tab, verified export, and no-import-route checks.
+- **Evidence required:** No visible-undurable/partial/double mutation; deterministic recovery to durable head; clear local-device/export limitation. Import remains deferred.
 - **Decision reopened:** D-006 and D-007; a server is not automatically the answer.
 
 ### Q-010 — What long-horizon catch-up representation remains exact enough?

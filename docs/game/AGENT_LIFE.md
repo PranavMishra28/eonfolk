@@ -2,7 +2,7 @@
 
 **Purpose:** define what makes a citizen autonomous, legible, bounded, and continuous without relying on an external model.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED FOR FIRST SLICE; DEATH/SUCCESSION DEFERRED
 
 **Authority boundary:** this file owns citizen state and life semantics. [WORLD_MODEL](WORLD_MODEL.md) owns truth/visibility; cognition engineering owns proposal interfaces; [PROGRESSION](../product/PROGRESSION.md) owns player-facing continuity.
 
@@ -17,9 +17,9 @@ Every citizen has: stable identity; 2–3 ranked values; bounded needs; relation
 1. A typed boundary occurs: need threshold, plan blocked/complete/expired, message, relationship shock, sponsor counsel, or scenario decision.
 2. `DecisionContext` includes only visible facts/beliefs, active Standing Plan, legal action catalog, and budgets.
 3. Standard Brain scores plan-continuation, self-maintenance, commitments, values, and social effects with seeded tie-breaking.
-4. Optional future cognition may propose exactly one known typed action plus short public justification.
+4. Standard Brain emits exactly one known typed action plus a typed `DecisionExplanation`; authored copy renders the public justification.
 5. Application validates authorization, knowledge, location, resources, life state, and revision.
-6. Accepted action changes Reality and records public eligibility/winning factors. Failure falls back to Standard Brain.
+6. Accepted action changes Reality and records actual eligibility/winning factors. A future optional adapter failure falls back to Standard Brain.
 
 The citizen may accept, reject, delay, or reinterpret counsel. Reinterpretation must map to a legal intent and have a visible state-grounded reason. “Because the AI decided” is prohibited.
 
@@ -31,9 +31,9 @@ A plan contains goal type, target IDs, ordered bounded steps, commitment/source,
 
 The slice stores directional familiarity/trust/strain bands and last material interaction. Public/private messages carry proposition and source visibility; generated presentation is optional and noncanonical. Relationship changes require declared rules such as public accusation, fulfilled exchange, shared work, or broken commitment. Repetitive small talk creates no mechanical depth.
 
-## Life, death, and succession
+## Deferred life, death, and succession hypothesis
 
-Death is a later boundary with typed direct cause/conditions and no wall-clock surprise. It freezes action, completes an obituary projection, releases roles/ownership by explicit rules, and asks for covenant continuation. An eligible successor is a descendant or socially linked person, not a cloned mind. They inherit facts through artifacts/testimony and obligations through institutions, not private memories.
+Death is not implemented or promised by the first proof. A later click/paper test must compare successor, witness-only, and episodic closure before coding. If retained, death has typed cause/conditions, no wall-clock surprise, and no cloned memory; succession must create a meaningful decision rather than relabel a reset.
 
 ## Model-ecology policy
 
@@ -53,7 +53,7 @@ Reopen Standard-Brain-only slice only after it passes technically but blinded te
 
 ## Resulting implementation behavior
 
-Implement eight authored citizens, one focal Mara, four behavior families, bounded beliefs/relationships/plans, Standard Brain, one counsel interpretation, and deterministic fallback/replay. Defer model adapters, birth, aging, death, lineage, open speech, and generalized memory.
+Implement eight authored citizens, fixed focal Mara, four behavior families, bounded beliefs/relationships/plans, Standard Brain, three counterfactual counsel histories, state perturbation/transfer fixtures, and deterministic replay. Defer model adapters, birth, aging, death, lineage, open speech, and generalized memory.
 
 ## Constraint fit
 

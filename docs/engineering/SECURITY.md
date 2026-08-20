@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Everything outside the reducer's typed domain state is untrusted: user text, citizen prose, model output, imported worlds, renderer input, URLs, browser storage, dependency scripts, MCP/plugin output, GitHub/Cloudflare credentials, and future public commands. Cognition is followed by typed authorization and one atomic validation/reducer path.
+Everything outside typed domain state is untrusted: user text, citizen prose, future model output/imports, renderer input, URLs, browser storage, dependency scripts, MCP/plugin output, credentials, and future public commands. Cognition is followed by typed authorization and one durable-before-visible validation/commit path.
 
 The local first slice collects no account, real name, contact, precise location, payment, regulated data, private chat, or provider credential. Citizens are fictional. There are no public canonical writes.
 
@@ -33,7 +33,7 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 - If formatted Chronicle text is later needed, build it from authored component templates and typed values; never render provider Markdown directly.
 - Enforce byte, code-point, depth, array, numeric, enum, and identifier bounds before domain validation.
 - Unknown fields fail closed.
-- `publicJustification` and in-world allegations are nonauthoritative text tied to provenance.
+- `publicJustification` is rendered from a typed decision receipt in V1; it and in-world allegations remain nonauthoritative attributed text.
 - Prompt/model context contains only visible facts and sourced beliefs selected before inference. Hostile names, memories, counsel, and retrieved prose cannot expand the action catalog or request tools.
 - There are no generic browser/network/file/database tools in cognition.
 - Optional raw provider traces are redacted, opt-in developer artifacts with bounded retention; they are excluded from canonical export.
@@ -42,7 +42,7 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 
 - Use a restrictive CSP compatible with the chosen local assets; do not add `unsafe-eval` for libraries without explicit security review.
 - Bundle production assets; no runtime third-party scripts, analytics, remote component registries, or model endpoints in V1.
-- Validate import MIME, size, manifest, schema, versions, sequences, and hashes in isolation before creating a world.
+- V1 has no import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
 - Treat IndexedDB as mutable/corruptible input on load; verify snapshots and replay head.
 - Use one writer lease and test forced-close recovery; never silently last-write-wins.
 - Keep important actions in semantic DOM with explicit confirmation only where consequence warrants it.
@@ -76,10 +76,10 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 ## Required abuse/security tests
 
 - stale revision, duplicate ID, invalid actor, dead actor, impossible target, hidden fact, unauthorized resource, and partial-batch rejection;
-- hostile HTML/Markdown/URL/code in names, memories, counsel, import, provider output, and Chronicle values;
+- hostile HTML/Markdown/URL/code in names, memories, counsel, future import/provider output, and Chronicle values;
 - oversized/deep/unknown-field inputs and corrupt snapshot/event intervals;
-- model timeout, malformed output, injection attempt, 429, credential revoke, and provider absence with continued Standard Brain progress;
-- dual-tab writer, crash during append/snapshot, replay gap/hash mismatch, and import rollback;
+- missing/throwing/timed-out/malformed fake BrainPort with continued Standard Brain progress; provider-specific 429/revoke tests only when a real adapter exists;
+- dual-tab stale fencing, crash at every commit/publish barrier, replay gap/hash mismatch, quota abort, and proof that import is absent;
 - future-only: CSRF/origin, session fixation, public-write quotas, alarm duplication, moderation visibility, secret redaction, and denial-of-wallet.
 
 ## Resulting implementation behavior
@@ -106,7 +106,7 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 ## Unproven assumptions and reopen evidence
 
 - **UNRESOLVED:** exact CSP needs of the selected renderer and dev/build tooling. Reopen only from a documented blocked resource; do not silently weaken it.
-- **UNRESOLVED:** browser export/import threat surface is acceptable. Reopen after fuzzed parser and rollback evidence.
+- **UNRESOLVED:** browser export remains useful without restore in V1. Import threat surface opens only under a separately reviewed design.
 - **UNRESOLVED:** GitHub private-repository secret scanning, push protection, rulesets, and branch protections available to this personal account. The coordinator must probe and record actual responses.
 - **UNRESOLVED:** future public moderation can remain separate without leaking restricted text through replay/share endpoints. Reopen during hosted threat modeling.
 - **UNRESOLVED:** any optional provider's data/retention terms fit the exact prompt inventory. Reopen on the day of adapter work.

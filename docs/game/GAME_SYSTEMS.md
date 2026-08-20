@@ -2,7 +2,7 @@
 
 **Purpose:** define the smallest set of rules that produces visible life and one consequential social story, while separating primitives, composed systems, and unproven emergence.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED AFTER RED TEAM — scenario-scoped proof only
 
 **Authority boundary:** this file owns player-facing mechanics and scope. [WORLD_MODEL](WORLD_MODEL.md) owns facts/invariants; [HUMAN_LOOP](../product/HUMAN_LOOP.md) owns player verbs; engineering authorities own implementation.
 
@@ -16,8 +16,8 @@ Gate A uses exactly these visible systems:
 - movement among a crafted settlement, water, wood, and food sites;
 - three conserved resources: food, water, wood;
 - gathering and consumption;
-- one bilateral exchange (specific goods, two parties, immediate settlement);
-- one simple conversion/repair recipe (`2 wood + work → repair well fixture`), not a crafting graph;
+- one bilateral exchange tied to Riverhold's repair pressure (Iven transfers wood; Toma transfers food rations; both ownership changes settle atomically);
+- one simple scenario conversion (`2 wood + work → repair mill fixture`), not a crafting graph;
 - public/private communication as typed messages;
 - relationships, sourced beliefs, reputation markers, and Standing Plans sufficient for Riverhold;
 - one sponsor/counsel boundary and Chronicle chain in Gate B.
@@ -34,7 +34,7 @@ Raw event volume, random dialogue, or a rare combination is not evidence of emer
 
 ## Proof scenario
 
-Riverhold begins with the spring boundary, a ledger mismatch, a sealed repair reserve, and Mara/Toma's close relationship. Routine systems make citizens visibly live; one decision boundary lets counsel affect Mara's Standing Plan; investigation, public communication, relationship rules, and a minimal petition fixture produce the Chronicle. The rule-change outcome is scenario-scoped, not a generalized political simulator.
+Riverhold begins with the spring boundary, a food-ledger mismatch, a sealed worker-ration reserve tied to mill repair, and Mara/Toma's close relationship. Routine systems make citizens visibly live; Mara's investigation changes an authoritative belief. Two advice intents plus abstain branch from the same snapshot into at least three terminal relationship/belief/petition/resource vectors. The petition/rule outcome is one scenario rule, not generalized politics.
 
 ## Information design
 
@@ -46,7 +46,7 @@ Reject generalized farming, recipes/tech tree, order book, currency, labor marke
 
 ## Reopen evidence
 
-Add a system only if Gate A cannot show understandable autonomy or Gate B cannot produce the accepted Riverhold consequence with the existing primitives. Remove a system if observers cannot notice or explain its effect, or if 52-hour progress makes Gate evidence shallow.
+Add a system only if Gate A cannot show understandable autonomy or Gate B cannot produce three counterfactual Riverhold consequences with the existing primitives. Remove a system if observers cannot notice/explain it. Exchange and repair must feed the same pressure/characters; they are cut before becoming generic systems.
 
 ## Remaining uncertainty
 

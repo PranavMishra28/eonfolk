@@ -2,7 +2,7 @@
 
 **Purpose:** define what accumulates across sessions, a citizen life, succession, and eras without turning EONFOLK into a content or number treadmill.
 
-**Status:** DECISION PROPOSED — first-slice implementation is intentionally narrower
+**Status:** LONG-HORIZON PRODUCT HYPOTHESIS — not a V1 claim
 
 **Authority boundary:** this file owns progression meaning and continuity. [AGENT_LIFE](../game/AGENT_LIFE.md) owns citizen state; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [HUMAN_LOOP](HUMAN_LOOP.md) owns session timing.
 
@@ -15,16 +15,16 @@ Progression is **richer context and changed obligations**, not patron level, idl
 | Horizon | New depth | Explicitly not progression |
 |---|---|---|
 | Session 1 | recognize one person; cause/allow one consequence | tutorial rewards, skill tree |
-| Session 5 | predict an interpretation; repair/regret a remembered act | more clicks, faster gathering |
-| Session 20 | use relationships, precedents, roles, artifacts, and era history to evaluate a new risk | generalized economy or content grind |
+| Session 5 hypothesis | predict an interpretation; repair/regret a remembered act | more clicks, faster gathering |
+| Session 20 hypothesis | use relationships, precedents, roles, artifacts, and era history to evaluate a new risk | generalized economy or content grind |
 | Month two hypothesis | mature institutions constrain strategies; newcomers can challenge inherited assumptions; one controlled shock counters equilibrium | infinite scale, daily obligation |
 | Death | choose witness/successor; inherit obligations and social consequences; preserve obituary and unfinished plan | reset, paid life, random replacement |
 
-## Death and succession contract
+## Deferred death and succession contract
 
 Death never occurs during the first session or because the app was closed. A forewarned boundary records direct cause, contributing conditions, last Standing Plan, relationships, offices, possessions, reputation, and covenant status. The next active decision is whether to sponsor an eligible descendant/associate, remain an unbound witness, or defer once. Successor access is not genetic omniscience: inherited items/obligations are facts; memories require testimony/artifacts.
 
-The patron covenant survives as a history-bearing social contract, not magical control. A successor may refuse it. The dead citizen remains addressable through Chronicle, relationships, artifacts, and institutional precedents.
+The sponsor history may survive as a social record, not magical control. A successor may refuse it. This needs a paper/click comparison before any implementation or player-facing promise; current documentation is not evidence that care transfers.
 
 ## Inactive sponsor and stopping
 
@@ -50,7 +50,7 @@ Reopen if players remember system growth but not people; succession tests feel l
 
 ## Resulting implementation behavior
 
-The slice persists relationship deltas, belief provenance, one Standing Plan, reputation markers, and one artifact/ownership trail because Gate B needs them. It documents but does not implement death, lineage, month-two shocks, offices, or a mature shared-world entrant.
+The slice persists relationship deltas, belief provenance, one Standing Plan, and branch-specific precedent because Gate B needs them. It implements only the first outcome-dependent return choice. It does not claim or implement session 5/20, death, lineage, month-two shocks, offices, or mature-world entry.
 
 ## Constraint fit
 

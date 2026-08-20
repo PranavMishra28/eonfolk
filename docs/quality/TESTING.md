@@ -22,18 +22,20 @@ Run, in order where fail-fast saves time:
 4. deterministic simulation and replay tests;
 5. property/model-based smoke tests and bounded fuzzing;
 6. production build;
-7. critical Playwright journey: first launch -> create/select citizen -> observe interaction -> counsel -> persist/reload with controlled catch-up -> Chronicle replay.
+7. critical Playwright journey: first launch -> Follow Mara -> state-changing investigation -> observe interaction -> advise/abstain -> branch consequence -> leave/reload/confirm catch-up -> Chronicle -> outcome-dependent second action.
 
 All commands are pinned in the implementation repository and runnable locally. CI cannot use `@latest` or an unpinned global Playwright. Test fixtures specify seed, engine/schema versions, browser, expected hashes, and time budget.
 
 ## Conditional checks
 
-When cognition, Mind schemas, proposal validators, prompts, providers, or models change, run:
+When cognition, Mind schemas, proposal validators, or Standard Brain change, run:
 
 - proposal schema and unknown-field bounds;
 - authorization, stale revision, hidden-fact, injection, and partial-mutation fixtures;
-- provider timeout/429/revoke/malformed/absence and deterministic fallback;
-- fixed behavior/eval regressions per exact adapter/model/runtime/prompt version.
+- missing/throwing/timed-out/malformed fake `BrainPort` and deterministic fallback;
+- perturbation, transfer, baseline, ablation, hidden-fact noninterference, and fixed behavior regressions.
+
+If a real provider/model adapter is later added, additionally run provider timeout/429/revoke/malformed/absence and exact adapter/model/runtime/prompt regressions. No provider-specific route is required in V1.
 
 When a major UI, renderer, asset, layout, motion, or design-token change occurs, capture deterministic desktop, laptop, and mobile screenshots, inspect them, and retain failing traces where practical. Screenshot pixel comparison is a diagnostic, not the sole visual reviewer.
 
@@ -44,12 +46,13 @@ When a major UI, renderer, asset, layout, motion, or design-token change occurs,
 | Protocol/schema | round-trip, unknown/version failure, byte/depth/range bounds |
 | Reducer/unit | one event transition, no partial mutation, invariant checks |
 | Determinism | repeated seed/commands, canonical bytes/hash, PRNG and equal-time ordering |
-| Replay/persistence | genesis/snapshot convergence, event gaps, corrupt hash, append atomicity, idempotency, migration/upcaster fixtures |
+| Replay/persistence | half-open range/genesis/snapshot convergence, zero-event range, event gaps, corrupt hash, durable-before-visible crash barriers, accepted/rejected receipts, ID collision, quota abort, stale fencing |
 | Property/model/fuzz | random legal/illegal command sequences preserve resources, ownership, life, visibility, and revision rules |
-| Long horizon | 30/90/365-day worlds; resource conservation, bounded events/storage, safe interrupt/resume, no LLM |
-| Browser journey | account-free onboarding, citizen creation, interaction, counsel, save/reload/catch-up, Chronicle/replay |
+| Version policy | current version identity load; unknown/old version fails closed without mutation; no V1 upcaster/import route |
+| Long horizon | 30/90/365-day worlds reach exact target under declared caps; conservation, bounded events/storage, interrupt/resume equivalence, no LLM |
+| Browser journey | account-free Follow Mara, investigation, interaction, three advice branches, leave/confirmed catch-up, Chronicle/replay, second action |
 | Accessibility | keyboard-only path, semantic names/states, focus, reduced motion, text equivalents, fallback view |
-| Security | hostile text/imports, hidden facts, duplicate/stale writes, provider failure, secret absence |
+| Security | hostile text/oversize data, hidden-fact noninterference, duplicate/stale/fenced writes, fake BrainPort failure, secret absence, import route absent |
 
 Snapshot replay is exercised from every persisted snapshot in golden scenarios. Chunk boundaries vary. The test oracle never calls a model or depends on current date/locale/network.
 
@@ -59,10 +62,10 @@ Keep PR CI short enough for a solo loop. Use small seed sets and bounded fuzzing
 
 - larger fuzz/model-based seed corpus;
 - 30/90/365-day matrix and event/storage profiling;
-- migration rehearsal from every supported fixture version;
+- current/unknown version policy and future migration rehearsal only if an upcaster is later added;
 - extended browser/device/browser matrix;
 - capped cognition suite with any real optional provider;
-- dependency/license/security scan and restore/export drill;
+- dependency/license/security scan and non-destructive export drill;
 - repeated performance profiles to identify variance.
 
 A nightly failure blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR.

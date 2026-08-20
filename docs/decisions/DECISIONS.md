@@ -2,7 +2,7 @@
 
 **Purpose:** Record the accepted product, game, design, technical, quality, and operating choices and reconcile severe review findings.
 
-**Status:** INITIAL SYNTHESIS — dispositions are provisional until frozen-state red teams complete
+**Status:** RECONCILED AFTER FOUR FROZEN RED TEAMS AND FIVE PLAYER PERSPECTIVES
 
 **Authority boundary:** This file owns acceptance and review disposition. Linked authority documents own detailed behavior and contracts; the [source ledger](../research/SOURCE_LEDGER.md) owns provenance.
 
@@ -12,20 +12,20 @@
 
 | Rank | ID | Decision | Why now |
 |---:|---|---|---|
-| 1 | D-001 | Sponsor one autonomous citizen in one bounded persistent region | Best robust balance of attachment, depth, reversibility and proof feasibility |
-| 2 | D-002 | Prove life and attachment in one approximately 52-hour local slice | Makes the product thesis falsifiable before infrastructure |
+| 1 | D-001 | Follow one authored autonomous citizen in one bounded local proof | Best robust hypothesis, now subject to a matched Gate 0 kill test |
+| 2 | D-002 | Prove life, contingency and bounded attachment in 52 planned hours plus ≤8 fix hours | Makes the product thesis falsifiable before platform work |
 | 3 | D-003 | Use rare, informed, rejectable counsel—not unit control or chat—as the core verb | Preserves personhood while giving the player consequential agency |
 | 4 | D-004 | Make Chronicle a typed factual projection, never model-written causal prose | Return value and trust depend on inspectable truth |
 | 5 | D-005 | Make the deterministic Standard Brain the complete V1 cognition path | Free, fast, replayable, device-inclusive operation is binding |
 | 6 | D-006 | Run V1 locally in a Web Worker with IndexedDB behind `PersistencePort` | Fits solo/$0 constraints while preserving a later region-server seam |
 | 7 | D-007 | Lock commands, events, cognition, replay and persistence contracts before UI work | Prevents presentation or models from becoming authority |
 | 8 | D-008 | Use a sparse Living Woodcut language with one PixiJS 2.5D renderer | Strongest distinctiveness/Chronicle fit within the asset and performance ceiling |
-| 9 | D-009 | Treat the factual Consequence Card/replay as a product system | Distribution tests the actual consequence rather than AI novelty |
+| 9 | D-009 | Treat the factual Story Card/replay as private comprehension evidence in V1 | No public route exists, so distribution remains post-proof |
 | 10 | D-010 | Keep V1 free, account-free, model-free and noncommercial | Avoids spend, operations and business scope before fun is proven |
 
 ## D-001 — Bounded-region citizen sponsorship
 
-**Decision.** Use tournament structure H: one sponsored citizen is the player's responsibility lens inside one small persistent canonical region. Relationships, artifacts, reputation, institutions, lineage and the patron covenant can outlive that citizen. Private World Forks are future non-canon snapshots and cannot alter canon.
+**Decision.** Retain tournament structure H provisionally: fixed authored Mara is the player's responsibility lens inside one small local region. Player-facing entry is **Follow Mara / She acts for herself**; it creates a limited sponsor relationship, not a creator/roster or ownership claim. Long-lived public canon, lineage and forks are future hypotheses.
 
 **Evidence.** H scored 4.33 and won the base rubric and four declared sensitivity sets. One citizen beat family, trio and faction in the identical Riverhold scenario. The blind ECHOHOUSE challenger exposed a valid drama/concentration risk but did not beat H overall and required model/content assumptions incompatible with V1 [S-PLAYER-003] [S-PLAYER-004] [S-COMP-001] [S-COMP-002].
 
@@ -37,11 +37,11 @@
 
 **Constraint fit.** One town and one responsibility lens fit a solo M4 workflow and require no service, model, proprietary dataset, partner, revenue or spend.
 
-**Reopen trigger.** Reopen if a randomized ugly ECHOHOUSE proof beats H by at least 20 percentage points on both immediate replay choice and correct causal explanation, or identical family/trio tests attach materially better than one citizen.
+**Reopen trigger.** Before foundations, randomized branding-hidden matched versions of one-citizen, family, trio, faction, ECHOHOUSE and direct control use the same scenario. Reopen if another wins overall or desirability/desire-to-continue by at least 20 percentage points.
 
 ## D-002 — Two-gate, approximately 52-hour proof
 
-**Decision.** Allocate eight hours to shared deterministic foundations, 20 to Proof of Life, 16 to Proof of Attachment, and eight to browser/access/performance fixes. Time constrains scope; acceptance criteria determine completion.
+**Decision.** Plan 52 hours: 4 product/visual kill gates, 8 deterministic durable kernel, 8 ugly counterfactual loop, 12 Proof of Life, 12 Proof of Agency/Attachment, 8 integrated QA. Reserve at most eight additional hours only for gate fixes/review; hard ceiling 60.
 
 **Evidence.** Research isolates the smallest legible system at eight citizens, three resources, four behavior families, one exchange, one conversion/repair, one social consequence and one causal story. Scratch simulation replayed 24-hour and seven-day runs deterministically; the renderer spike exposed specific mobile and p95 risks [S-SPIKE-001] [S-SPIKE-002].
 
@@ -73,9 +73,9 @@
 
 ## D-004 — Chronicle factuality and causal taxonomy
 
-**Decision.** Chronicle is a deterministic projection of authoritative events. It distinguishes direct cause, trigger, contributing condition, temporal predecessor and named in-world allegation. Every factual sentence resolves to event IDs and hashes.
+**Decision.** Chronicle is a deterministic projection of authoritative events. Causal edges are direct/trigger/contributing; temporal-predecessor/response-to are separate noncausal relations; allegation is attributed content. Every sentence resolves to events/hashes. RV-001–012 is one oracle, while three advice histories must diverge materially and produce separate Chronicles.
 
-**Evidence.** The fixed Riverhold chain RV-001–RV-012 demonstrates biography, relationship history, While You Were Away, world history, replay, share card and public-event forms from one evidence set. The source and engineering research both reject post-hoc narrative inference.
+**Evidence.** Riverhold oracle RV-001–RV-012 demonstrates biography, relationship history, While You Were Away, world history, replay, Story Card and future public-event forms from one evidence set. Counterfactual branch requirements prevent that oracle from becoming the only trajectory. Research rejects post-hoc narrative inference.
 
 **Rejected alternatives.** Raw logs as the return experience, model-written facts, causal “because” from temporal order, omniscient motives, unmarked allegations and unsimulated counterfactuals.
 
@@ -113,7 +113,7 @@
 
 **Remaining uncertainty.** IndexedDB durability/eviction, multi-tab behavior, long-horizon growth and later region coordination remain unmeasured.
 
-**Resulting behavior.** V1 saves, reloads, catches up and replays offline. Simulation logic cannot import browser/server/provider/render code. A server adapter can later replace storage semantics without changing Reality.
+**Resulting behavior.** V1 saves, reloads, confirms catch-up, exports, and replays offline. Simulation logic cannot import browser/server/provider/render code. A future server can reuse domain contracts but needs new auth/outbox/alarm/backup/moderation/import design; it is not a drop-in adapter.
 
 **Constraint fit.** Eliminates deployment, account, ops and recurring cost from the proof while preserving a reversible boundary.
 
@@ -121,7 +121,7 @@
 
 ## D-007 — Deterministic authority contracts
 
-**Decision.** Lock `WorldCommand`, `WorldEventEnvelope`, `DecisionContext`, `IntentProposal`, `ReplayManifest` and `PersistencePort` at field level. Reality alone changes canonical state; conserved quantities are integers; time/randomness are injected and seeded.
+**Decision.** Lock `WorldCommand`, `WorldEventEnvelope`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules. Prepare immutable transitions, atomically commit events/head/receipt/fencing, then install/publish. V1 is export-only and one schema version.
 
 **Evidence.** The simulation spike produced identical repeated and replay hashes for 24-hour and seven-day runs with typed causal parents [S-SPIKE-001]. Architecture/cognition/security research converges on a validation boundary rather than trusting generated intent.
 
@@ -153,7 +153,7 @@
 
 ## D-009 — Consequence-led distribution
 
-**Decision.** The share object is a factual 10–20 second Consequence Card/replay: consequence in 0–2 seconds, three authoritative beats through 12 seconds, unresolved tension and a seed/event reference. Build screenshot/copy layouts only; public routes and posting integrations are deferred.
+**Decision.** The V1 object is a factual three-beat/≤20-second **Story Card** labeled YOU ADVISED → MARA CHOSE → WHAT FOLLOWED → UNRESOLVED. It is private comprehension evidence with responsive 16:9/9:16 composition, no dead link or seed headline. Public recipient routes and distribution claims are deferred.
 
 **Evidence.** Competitor and distribution research shows AI-agent novelty is occupied and community behavior is channel-specific [S-COMP-001] [S-DIST-001] [S-DIST-002]. The same Riverhold evidence chain can serve QA, return and sharing.
 
@@ -185,10 +185,60 @@
 
 ## Review reconciliation
 
-Frozen-state P0/P1 findings will be recorded here with one of three dispositions:
+The frozen-state findings are accepted as historical critiques unless explicitly partial/rejected below. “ACCEPT — MITIGATED” means the finding is valid and the revised authority removes or blocks it; it does not mean a live P0 is tolerated. Every fix is blocking in the revised ExecPlan/Quality Bar.
 
-| Finding | Severity | Disposition | Evidence and reasoning | Affected authorities | Required change and verification |
-|---|---|---|---|---|---|
-| Initial synthesis has not yet received frozen-state findings | — | — | Review wave begins from the SHA recorded in `PLAN.md` | Review files | Replace this row after all four independent reviews finish |
+| Finding | Severity | Disposition | Evidence/reasoning and required verification | Affected authorities |
+|---|---|---|---|---|
+| PR-001 | P1 | ACCEPT — MITIGATED | Gate B now uses 8 sessions, yoked control, voluntary second action and person-centered threshold; recall alone cannot pass. | PRODUCT, QUALITY_BAR, EVALS |
+| PR-002 | P1 | ACCEPT — MITIGATED | Shell/CTA/investigate/advice deadlines are 2s/3s/60s/5m; ugly loop exists by planned hour 20. | PRODUCT, HUMAN_LOOP, 001 |
+| PR-003 | P1 | ACCEPT — MITIGATED | Same snapshot must reach three terminal vectors; perturb/transfer/baseline tests reject fixed lookup. | HUMAN_LOOP, CHRONICLE, COGNITION |
+| PR-004 | P1 | ACCEPT — MITIGATED | Explicit leave/advance/return ends in one branch-legal state-changing second decision. | HUMAN_LOOP, 001 |
+| PR-005 | P1 | ACCEPT — MITIGATED | Mara requested a witness; access, one obligation and control limits are explicit; onboarding says Follow Mara. | PRODUCT, INTERACTION |
+| PR-006 | P1 | ACCEPT — MITIGATED | Matched branding-hidden Gate 0 tests H against family/trio/faction/ECHOHOUSE/direct control. | PRODUCT, QUALITY_BAR |
+| PR-007 | P1 | ACCEPT — MITIGATED | Reordered 4/8/8/12/12/8 plan proves product before polish; ≤8 fix contingency and cut order are explicit. | 001, RISKS |
+| PR-008 | P1 | ACCEPT — MITIGATED | V1 is Copy story card/comprehension only; public activation/distribution is not claimed. | DISTRIBUTION, CHRONICLE |
+| GR-001 | P1 | ACCEPT — MITIGATED | RV chain is one oracle; three branch histories and different state hashes are blocking. | CHRONICLE, SIMULATION |
+| GR-002 | P1 | ACCEPT — MITIGATED | State-changing investigate occurs by 60s and advice by 5m. | HUMAN_LOOP, INTERACTION |
+| GR-003 | P1 | ACCEPT — MITIGATED | Gate A interaction changes Reality; Gate B anti-script/baseline/ablation matrix tests personality fields. | GAME_SYSTEMS, EVALS |
+| GR-004 | P1 | ACCEPT — MITIGATED | UI previews relevant reasons/stakes and receipt cites decisive visible terms; random refusal alone prohibited. | HUMAN_LOOP, COGNITION |
+| GR-005 | P1 | ACCEPT — MITIGATED | Outcome-dependent second choice ships; session-5/20 language is explicitly post-V1 hypothesis. | HUMAN_LOOP, PROGRESSION |
+| GR-006 | P1 | PARTIALLY ACCEPT — MITIGATED BY DEFERRAL | Succession is not claimed/shipped; paper/click test must precede later design. Implementing it now would violate scope. | PROGRESSION, AGENT_LIFE |
+| GR-007 | P1 | ACCEPT — MITIGATED | Leave checkpoint, proposed interval, user-confirmed Advance, seven-day chapter cap, and no silent death are locked. | HUMAN_LOOP, SIMULATION |
+| GR-008 | P1 | ACCEPT — MITIGATED | Gate 0 repeats matched starting-unit comparison rather than trusting paper scores. | PRODUCT, QUALITY_BAR |
+| GR-009 | P1 | ACCEPT — MITIGATED | Five-observer Gate A and eight-session Gate B replace handpicked single success. | QUALITY_BAR, VISUAL_QA |
+| ER-001 | P0 | ACCEPT — MITIGATED | Prepare → atomic events/head/receipt/fence → install → publish; crash injection at every barrier is blocking. | PERSISTENCE, SIMULATION, 001 |
+| ER-002 | P0 | ACCEPT — MITIGATED | V1 is export-only; no import/replacement/upcaster route; unknown versions fail closed without mutation. | PERSISTENCE, SECURITY, TESTING |
+| ER-003 | P1 | ACCEPT — MITIGATED | Exact integer/rounding/text/JCS/SHA-256/xoshiro/stream/ID/hash boundaries and golden vectors are frozen. | SIMULATION |
+| ER-004 | P1 | ACCEPT — MITIGATED | Durable accepted/rejected receipt and same-ID/different-fingerprint collision are atomic with head/events. | PERSISTENCE |
+| ER-005 | P1 | ACCEPT — MITIGATED | Snapshot-after-base plus half-open range/zero-event case; one version; gaps/unknown versions fail. | PERSISTENCE, TESTING |
+| ER-006 | P1 | ACCEPT — MITIGATED | One canonical causal enum; temporal/response separate; allegation is typed content. | SIMULATION, WORLD_MODEL, CHRONICLE |
+| ER-007 | P1 | ACCEPT — MITIGATED | Noninterference covers context/catalog/errors/targets/explanations/public projection. | COGNITION, EVALS, SECURITY |
+| ER-008 | P1 | ACCEPT — MITIGATED | Monotonic writer fencing token is checked on append/snapshot; stale-tab transfer test blocks. | PERSISTENCE |
+| ER-009 | P1 | ACCEPT — MITIGATED | Product/visual kill gates and ugly loop precede full world; 52 planned + ≤8 fixes, hard 60. | 001 |
+| ER-010 | P1 | PARTIALLY ACCEPT — MITIGATED | No fictional provider-specific path. A fake BrainPort tests generic absence/failure because the requested no-model fallback remains binding; 429/revoke become conditional later. | COGNITION, TESTING |
+| ER-011 | P1 | ACCEPT — MITIGATED | 30/90/365 must reach exact terminal time under explicit time/event/storage caps; named desktop/mobile profiles. | SIMULATION, PERFORMANCE |
+| ER-012 | P1 | ACCEPT — MITIGATED | FRONTEND selects Pixi-only 2.5D atlas and forbids Three/R3F/3D pipeline. | FRONTEND, PERFORMANCE |
+| ER-013 | P1 | ACCEPT — MITIGATED | Typed DecisionExplanation supplies reason codes/references/terms; authored justification is testimony, not fact. | COGNITION, AGENT_LIFE |
+| DR-001 | P1 | ACCEPT — MITIGATED | Renderer authority now unambiguously Pixi/atlas; all R3F language is historical rejected-spike evidence. | FRONTEND, PERFORMANCE |
+| DR-002 | P1 | ACCEPT — MITIGATED | Single orientation → Follow Mara → peek → inspect/investigate → decide state machine. | INTERACTION, MOBILE |
+| DR-003 | P1 | ACCEPT — MITIGATED | Four-hour visual checkpoint occurs before full sim/persistence integration. | FRONTEND, 001 |
+| DR-004 | P1 | ACCEPT — MITIGATED | Exact five-observer manifest and 3/5, 4/5 thresholds replace singular observer. | VISUAL_QA, QUALITY_BAR |
+| DR-005 | P1 | ACCEPT — MITIGATED | Asset list cut to two portraits, modular bodies, story props/marks; all production steps count in budget. | FRONTEND, DESIGN |
+| DR-006 | P1 | ACCEPT — MITIGATED | One primary three-beat ≤20s Chronicle/card and canonical five visual meanings. | CHRONICLE, DESIGN |
+| DR-007 | P1 | ACCEPT — MITIGATED | Water/wood/exchange/verify/relationship lexicon specifies pose/prop/place/motion/before-after/DOM. | DESIGN |
+| DR-008 | P1 | ACCEPT — MITIGATED | Gate B measures cross-surface Mara recognition, concern and voluntary next action, not recall alone. | DESIGN, QUALITY_BAR |
+| PP-001 | P0 | ACCEPT — MITIGATED | Three branches, perturb/transfer/baseline/ablation and randomized real-versus-yoked sessions block scripted agency. | PRODUCT, EVALS |
+| PP-002 | P0 | PARTIALLY ACCEPT — MITIGATED BY HONEST SCOPE | Recipient route is not authorized; V1 is private Copy story card with no distribution/click claim. | DISTRIBUTION, CHRONICLE |
+| PP-003 | P0 | ACCEPT — MITIGATED | Single Riverhold proof label; session 5/20, succession, newcomer and retention claims removed from V1. | PRODUCT, PROGRESSION |
+| PP-004 | P1 | ACCEPT — MITIGATED | Fixed Follow Mara/autonomy copy replaces create/choose/sponsor ambiguity. | PRODUCT, INTERACTION |
+| PP-005 | P1 | ACCEPT — MITIGATED | Two-second shell, three-second CTA, 60-second investigation, five-minute advice. | HUMAN_LOOP, PERFORMANCE |
+| PP-006 | P1 | ACCEPT — MITIGATED | Authoritative interaction and anti-script matrix test state-sensitive people. | GAME_SYSTEMS, EVALS |
+| PP-007 | P1 | ACCEPT — MITIGATED | Reproducible leave/advance manifest and second decision are in Gate B. | HUMAN_LOOP, 001 |
+| PP-008 | P1 | ACCEPT — MITIGATED | Mobile world/peek/scroll/back/chooser/People/zoom rules and tests are explicit. | MOBILE, FRONTEND |
+| PP-009 | P1 | ACCEPT — MITIGATED | Local-device notice appears in first peek and before advice; storage failure precedes commitment; export is honest. | MOBILE, PERSISTENCE |
+| PP-010 | P1 | ACCEPT — MITIGATED | Card says advised/chose/what followed and tests false causal credit. | CHRONICLE, DISTRIBUTION |
+| PP-011 | P1 | ACCEPT — MITIGATED | Eight sessions, cross-surface identity, concern, voluntary second action, yoked control; reload is not retention. | QUALITY_BAR, EVALS |
+| PP-012 | P1 | PARTIALLY ACCEPT — MITIGATED WITHOUT EXPANSION | Decision boundary is stable/readable with one-line stakes for screen sharing; no chat integration/dashboard. | INTERACTION, 001 |
+| PP-013 | P1 | ACCEPT — MITIGATED | One consistent eight-session formative script precedes audience/channel cohorts. | QUALITY_BAR, DISTRIBUTION |
 
-No P0 may be accepted. A P1 is mitigated only when the affected authority and verification gate are explicit.
+All historical P0s have scope or test mitigations; none remains accepted as a live condition. Final review must confirm these changes in the actual authorities.

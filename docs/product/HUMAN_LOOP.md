@@ -1,70 +1,73 @@
 # Human loop and intervention contracts
 
-**Purpose:** define what the player perceives and does from moment to lifetime, including the exact first-session and return timing.
+**Purpose:** define what the player perceives and does from arrival through the first outcome-dependent return.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED AFTER RED TEAM — long-horizon loops remain hypotheses
 
-**Authority boundary:** this file owns human verbs, decision boundaries, timing, and session closure. [PRODUCT](PRODUCT.md) owns the promise; [GAME_SYSTEMS](../game/GAME_SYSTEMS.md) owns rule primitives; [CHRONICLE](CHRONICLE.md) owns factual explanation.
+**Authority boundary:** this file owns player verbs, timing, decision boundaries, stopping, and return action. [PRODUCT](PRODUCT.md) owns the promise; [GAME_SYSTEMS](../game/GAME_SYSTEMS.md) owns mechanics; [CHRONICLE](CHRONICLE.md) owns factual explanation.
 
-**Related documents:** [player evidence](../research/PLAYER_RESEARCH.md), [tournament](../research/GAME_DESIGN_RESEARCH.md), [agent life](../game/AGENT_LIFE.md), [progression](PROGRESSION.md)
+**Related documents:** [interaction](../design/INTERACTION.md), [progression](PROGRESSION.md), [agent life](../game/AGENT_LIFE.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md)
 
 ## Owned decision
 
-The moment loop is **observe → investigate → counsel or commit → citizen interprets/refuses → consequences compound → Chronicle explains → choose the next risk**. Advice is scarce by situation, not by purchasable energy. World time advances at discrete meaningful boundaries and stops at a safe checkpoint on exit.
+The first-proof loop is **observe → follow Mara → investigate → advise or abstain → Mara interprets → consequence → leave/advance/return → Chronicle explains → choose the next bounded risk**. Advice is scarce by situation, not currency. Gathering and care are citizen behaviors, not player chores.
 
 ## Retained verb contracts
 
-| Verb | Trigger and information | Cost | Interpretation/refusal | Authoritative effect and delay | Counterplay | Chronicle trace |
+| Verb | Trigger/information | Cost | Interpretation/refusal | Authoritative effect/delay | Counterplay | Chronicle trace |
 |---|---|---|---|---|---|---|
-| Observe | Any time; visible state, public acts, identity/tension summaries | Attention only | None | Changes no world fact | Filter by citizen/place; semantic list equivalent | Not an event unless player bookmarks |
-| Investigate | A tension exposes a factual uncertainty; preview names source/place | One bounded attention opportunity and simulation time | Witness may refuse; evidence may be incomplete | Adds a sourced belief or observation, never omniscience; resolves in seconds/minutes | Ask another source, inspect artifact, accept unknown | source, visibility, fact/belief distinction, event IDs |
-| Counsel | Citizen reaches a typed decision boundary; show known stakes and 2–3 materially distinct intents plus abstain | One covenant intervention for that boundary; no currency | Accept, reject, delay, or reinterpret for displayed value/belief/relationship | Updates the citizen's Standing Plan/belief only if interpreted; systemic consequence is delayed | Citizen can reconsider; others react; player can repair later, not undo history | advice, interpretation, chosen action, eligibility causes, later effect |
-| Commit | A citizen plan needs sponsor standing or one bounded patron resource | Explicit named stake that cannot be reused | Citizen may reject the attached expectation or use support differently within declared bounds | Resource/standing transfer is immediate and authoritative; use is autonomous | Withdraw before commitment; later renegotiate; social actors contest | transfer, promise terms, recipient plan, subsequent use |
-| Abstain | At any decision boundary after stakes are known | Foregoes influence; time advances | Citizen acts without sponsor input | Records deliberate non-intervention; no invented causal credit | Player may act at a later boundary | abstention and subsequent independent action kept separate |
-| Release/choose successor | Covenant transition, sponsor choice, or death aftermath | Ends privileged access to that citizen | Citizen/successor can decline covenant | Rebinds covenant at a safe boundary; cannot erase history | Remain witness; choose eligible successor; delay once | release, acceptance, inherited obligations, preserved lineage links |
+| Observe | Visible world and semantic projection | Attention | None | No world mutation | People/place filters | Bookmark only if explicit |
+| Follow Mara | One authored opening; identity, autonomy, relationship, tension, local-save disclosure | Accept limited access/obligation | Mara has already requested a witness in fixture | Creates sponsor covenant; no control grant | Leave relationship at stable boundary | Covenant event and visible terms |
+| Investigate | Named uncertainty; source/place and possible incompleteness shown | One bounded opportunity plus simulation time | Witness may decline; evidence may remain partial | Adds only an observed fact or sourced belief | Inspect another authorized source or accept unknown | source, visibility, fact/belief/allegation IDs |
+| Advise | Typed boundary with two distinct intents plus abstain and one-line stakes | One advice opportunity for that boundary | Accept, reject, delay, reinterpret for displayed reasons | Changes plan/action only after Mara decides; later effect is separate | Outcome-dependent second decision; history cannot be undone | advice, receipt, action, causal/related edges |
+| Abstain | Same boundary after stakes known | Forego influence | Mara chooses independently | Records non-intervention; no player causal credit | Later response remains available if legal | abstention separate from subsequent action |
+| Leave/advance | Stable checkpoint | Player selects proposed interval up to seven days | Citizens use Standard Brain | Durable checkpoint, explicit confirmed catch-up, stop at salient boundary | Cancel advance; repeat chapters; no penalty | interval/manifest and event range |
+| Respond on return | Changed tableau and factual summary | One bounded second choice | Mara/others can still refuse where relevant | Repairs, upholds, investigates, or observes based on branch | No reset; options depend on actual prior outcome | new command/receipt and prior-event references |
 
-Remove verbs whose only result is activity: move a citizen, queue jobs, repeatedly feed/heal, spam chat, set hourly schedules, collect idle rewards, or click a Chronicle entry merely to clear it. Gathering and consumption are citizen behaviors, not routine player chores.
+Remove direct movement, job queues, repeated feeding/healing, chat spam, schedules, idle rewards, notification clearing, and verbs whose options converge to the same state.
 
-## Time contract
+## First-session and return timing
 
-| Time | Player-visible outcome |
+| Time | Observable outcome |
 |---|---|
-| 0–5 seconds | World dominates the screen; Mara is marked by name, desire (“earn a council voice”), and tension (“trusts Toma; suspects his count”). “The town lives by its own plans” states the autonomy promise. |
-| 5–30 seconds | Three citizens' actions are legible through movement/task silhouettes; two interact; player can select Mara by world or semantic list. No lore gate. |
-| 30 seconds–3 minutes | Identity, values, immediate relationships, and tension fit one panel. Player watches autonomy, investigates one clue, and learns evidence can be public fact, sourced belief, or allegation. |
-| 3–10 minutes | A decision boundary opens; player forecasts counsel stakes, commits/abstains, sees interpretation and independent action, then one delayed relationship/resource/institution consequence. Chronicle explains three authoritative beats. |
-| Session end | World stops at a stable checkpoint. Player sees Mara's current Standing Plan, one unresolved question, and what can advance on bounded return. Close has no penalty, streak, or emergency. |
-| Day return | Changed tableau first, then a 10-second While You Were Away summary. Choose repair, investigation, escalation, or observe. |
-| Week return | One relationship/institution consequence has compounded at checkpoints; summary compresses stable production and stops at shocks. |
-| Session 5 | Player recognizes how Mara interprets counsel, owns one regret/repair, and sees another citizen or artifact remember it. |
-| Session 20 | Choice meaning comes from relationships, precedents, offices, lineage, and era—not larger numbers or more frequent commands. |
+| 0–2 seconds | Useful semantic/static Riverhold shell: Mara, present action, suspicion, and autonomy line. |
+| By 3 seconds | **Follow Mara** is operable even if Pixi is still loading. |
+| By 10 seconds | Most fresh participants can state whom they followed and that she acts for herself. |
+| By 30 seconds | Three activities and one interaction are legible; **Check why Mara doubts the count** is visible. |
+| By 45–60 seconds | Mara performs one authoritative state-changing investigation; player knows next action. |
+| By 5 minutes | Advice boundary opens with two materially distinct intents plus abstain; spectator-readable stable pause is allowed. |
+| Before session end | Mara interprets, acts, and a branch-specific consequence changes relationship/resource/institution state; three-beat Chronicle appears. |
+| Exit | Explicit **Leave Riverhold at checkpoint**; show local-device storage and proposed return behavior. |
+| Return | Changed world first. Player chooses **Advance Riverhold** before catch-up, sees three-beat While You Were Away, then receives one branch-legal second decision. |
 
-## Session and lifetime arcs
+## Riverhold counterfactual contract
 
-**Session:** orient in changed tableau → recognize focal tension → gather one missing fact → choose one risk → witness response → leave at unresolved stable boundary. A session may end after observation; the game never demands counsel to remain “efficient.”
+From the same pre-boundary snapshot:
 
-**Citizen lifetime:** meet an unfinished person → build a model of values and distortions → share responsibility for consequences → watch roles/relationships change → face a bounded irreversible decision → memorialize death/release → choose the covenant's next relationship. Death creates a successor decision, not a reset or monetized replacement.
+- **Verify privately:** Mara seeks Iven, corrects evidence before speaking; trust can be preserved while the ledger rule is delayed.
+- **Accuse now:** Mara speaks from mismatch belief; audit happens quickly, Toma trust strains, and allegation status remains explicit.
+- **Abstain/protect relationship:** Mara follows her existing plan; immediate trust is preserved, but shortage/ledger uncertainty and later accountability remain.
 
-## Decision-boundary requirements
+Values, trust, evidence, commitment, and advice are perturbed in tests. Branches must reach at least three different terminal vectors across relationship band, verified-belief state, petition/rule state, and resource allocation. The fixed `RV-*` chain is one oracle, not the only possible history.
 
-A counsel prompt exists only when at least two legal actions lead to materially distinct forecasted stakes, the citizen has enough visible reasons to interpret, the result is not already determined, and delay will make a later consequence observable. The Standard Brain chooses without a model. The application shows a short public justification derived from typed state, never hidden reasoning.
+The return decision is conditioned: repair is available only after strain; uphold/implement is available only after a rule outcome; investigate is available while uncertainty remains; observe is always allowed. At least one choice causes a later typed effect. Do not promise a return action that is only copy.
+
+## Fair refusal contract
+
+Before confirmation, UI shows Mara's relevant known reasons, uncertainty, and forecasted stakes—not outcome probabilities or secrets. After decision, the typed receipt names disposition and decisive visible terms. Random tie-breaking may select between equal legal actions but cannot be the sole explanation for rejecting counsel. A player can predict plausible response without knowing the exact result.
+
+## Stopping, death, and longer horizons
+
+Closing has no punishment, streak, emergency, or silent death. Catch-up uses an explicit proposed interval and deterministic checkpoint. Death/succession, session 5, session 20, month two, and mature-world newcomers are post-V1 hypotheses. Death continuity receives a paper/click test before it becomes implementation or marketing copy.
 
 ## Rejected alternatives
 
-Reject continuous chat, command queues, daily chores, direct possession, invisible random refusal, irreversible first-session death, punitive wall-clock decay, and “return to read a log.” Reject advice menus whose options collapse to the same state.
+Continuous chat, command queues, daily chores, direct possession, random refusal, irreversible first-session death, punitive wall-clock decay, “return to read a log,” ambiguous create/select/follow, and advice menus that converge.
 
 ## Reopen evidence
 
-Reopen if most fresh players cannot forecast difference between counsel options, cannot explain why the citizen responded, or request routine control after understanding autonomy. Test direct control and trio/family only through the identical Riverhold scenario before broadening verbs.
-
-## Remaining uncertainty
-
-**PRODUCT HYPOTHESIS:** a single decision in ten minutes feels active enough. **UNRESOLVED:** how much refusal is tolerable. **UNRESOLVED:** whether factual explanations reduce mystery. Measure comprehension, frustration, and anticipation separately.
-
-## Resulting implementation behavior
-
-Gate B implements Observe, one bounded Investigate, Counsel, and Abstain. Commit and succession are documented contracts but deferred. Every consequential action has a keyboard/semantic DOM path. Reduced motion preserves manual Chronicle stepping and response legibility.
+Reopen timing if fewer than four of five find/follow Mara by ten seconds or understand the first investigation by 60. Reopen advice if participants cannot forecast differences or explain response. Reopen the loop if the second decision does not create a person-centered reason to continue.
 
 ## Constraint fit
 
-Four proof verbs and one conflict fit the 52-hour envelope, need no model or server, and avoid content/moderation costs. No monetization, training, proprietary corpus, identity, partnership, or regulated information enters the loop.
+One authored person, one early investigation, three first decisions, and one conditioned response are the smallest honest agency test. They need no model/server/content system and fit the 52-hour planned scope without payments, training, proprietary data, accounts, or partnerships.

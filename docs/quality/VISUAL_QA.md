@@ -18,21 +18,21 @@ For a named commit, seed, browser version, and clean local build:
 
 1. launch with no account/key/model/download;
 2. inspect first 5 and 30 seconds before reading instructions;
-3. create/select the sponsored citizen within 60 seconds;
+3. find **Follow Mara** within 10 seconds and state that she acts for herself;
 4. identify three citizen activities and one interaction;
-5. inspect identity, values, relationships, and tension;
-6. give one consequential counsel action by pointer and keyboard;
+5. inspect identity, value, relationship, tension, local-device notice, and complete state-changing investigation by 60 seconds;
+6. give one of two advice intents or abstain by pointer and keyboard;
 7. observe acceptance, rejection, delay, or reinterpretation and a later consequence;
-8. persist/reload, run controlled catch-up, and inspect While You Were Away;
+8. explicitly leave, reload, confirm **Advance Riverhold**, inspect While You Were Away, and take the outcome-dependent second action;
 9. step the Chronicle/replay and compare its facts/causal wording with authoritative events;
-10. inspect the 10–20 second share artifact for five-second comprehension;
+10. inspect the ≤20-second three-beat **Copy story card** for five-second comprehension without a dead link;
 11. repeat consequential controls with reduced motion and semantic list/map fallback.
 
-At each viewport capture arrival, active world/citizen selection, counsel/tension, absence return/Chronicle, and one weak-device/fallback state. Screenshots must not rely on transient random animation: freeze simulation seed/time and presentation motion/camera where practical.
+At each viewport capture arrival, Follow/peek, authoritative interaction, advice/tension, branch consequence, absence return/Chronicle/second action, and one weak-device/fallback state. Each manifest includes commit, seed, simulation time, viewport, DPR, physical/emulated device, browser/profile, quality tier, motion mode, UI/focus state, expected action/result, and participant result. Freeze presentation where practical.
 
 ## Reviewer questions
 
-### Gate A observer
+### Gate A observers
 
 Without a raw feed or developer narration:
 
@@ -41,15 +41,16 @@ Without a raw feed or developer narration:
 - Does the settlement dominate the screen, or does UI chrome feel like a dashboard?
 - Can the same facts/actions be found when canvas interaction is unavailable?
 
-Failure on the first two is a Gate A P1, even if automation locates DOM nodes.
+Five silent unfamiliar observers use the identical manifest; at least three identify the three actions and authoritative interaction. At least four find Follow Mara/understand no direct control. Failure is P1 even if automation locates DOM nodes.
 
-### Gate B observer
+### Gate B participants
 
-- Who is the sponsored citizen, what do they value, and what tension matters now?
+- Who is Mara, what does she value, and what tension matters now?
 - What did the player ask, how did the citizen interpret it, and what happened later?
 - Which causal claims are direct/trigger/contributing versus merely earlier or alleged?
-- What unresolved question creates a reason to return?
-- Can an unfamiliar viewer understand the share consequence within five seconds?
+- Which second action is available because of the first outcome, and do you want to take it?
+- Does concern/warmth follow Mara across world, portrait, consequence, return, and Chronicle—not just factual recall?
+- Can an unfamiliar viewer distinguish advice, Mara's choice, and what followed within five seconds?
 
 Vague answers reopen product/Chronicle presentation; a screenshot cannot pass them.
 
@@ -67,7 +68,7 @@ Vague answers reopen product/Chronicle presentation; a screenshot cannot pass th
 
 ## Rendering-spike finding
 
-Disposable R3F spike `4bdef56` exposed a mobile overflow at 390×844 despite acceptable local load and mobile frame-time direction. This is a useful failure, not a waived defect. The implementation must reproduce the mobile viewport early, fix containment/information hierarchy, and capture keyboard/semantic fallback. Desktop p95 was also 17.1 ms, slightly outside the target, so visual QA pairs screenshots with performance traces.
+Rejected R3F spike `4bdef56` exposed mobile overflow at 390×844 and desktop p95 17.1 ms. It is risk evidence, not renderer evidence. Pixi must pass the four-hour feasibility checkpoint before full sim/persistence integration: five silent observers, three-of-five world legibility, four-of-five Follow/autonomy, mobile containment, keyboard/semantic/reduced motion, and budgets.
 
 ## Fix and rerun loop
 

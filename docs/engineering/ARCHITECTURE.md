@@ -55,9 +55,9 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 | `WorldCommand` | [Simulation](SIMULATION.md) | Idempotent, revision-checked input to Reality |
 | `WorldEventEnvelope` | [Simulation](SIMULATION.md) | Ordered and hash-linked canonical fact |
 | `DecisionContext` | [Cognition](COGNITION.md) | Bounded, visibility-filtered input to any Brain |
-| `IntentProposal` | [Cognition](COGNITION.md) | One untrusted typed action proposal |
+| `IntentProposal` / `DecisionExplanation` | [Cognition](COGNITION.md) | One untrusted typed action plus grounded decision receipt |
 | `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
-| `PersistencePort` | [Persistence](PERSISTENCE.md) | Replaceable local/server storage seam |
+| `PersistencePort` / `CommandReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe local commit, replay, and idempotency boundary |
 
 Provider names and browser APIs never appear in these domain contracts. `regionId` appears now even though the slice has one local region.
 
@@ -74,7 +74,7 @@ Only after Proof of Life and Proof of Attachment pass may a hosted design be imp
 - React Router/Vite remains the client and public Chronicle/share routes become server-rendered.
 - A Cloudflare Worker owns HTTP/orchestration.
 - One SQLite-backed `RegionDO` is the single writer for each bounded region, starting with one.
-- `RegionDO` implements the same persistence semantics through a server adapter; simulation logic does not change.
+- A `RegionDO` can reuse simulation/event/receipt semantics, but server persistence is a new adapter and security design—not a drop-in replacement for IndexedDB.
 - Cross-region work uses idempotent inbox/outbox messages and accepts delayed settlement; no global synchronous transaction is assumed.
 - Append-only events, verified snapshots, a seeded scheduler, and idempotent alarms/commands remain authoritative.
 
@@ -85,7 +85,7 @@ This is a migration option, not an approved deployment. Cloudflare pricing, acco
 - The world runs, saves, reloads, catches up, and replays with every external model and server adapter absent.
 - Canonical state changes enter through one typed validation/reducer path.
 - Presentation can be discarded and rebuilt from canonical data.
-- IndexedDB can later be replaced by a region adapter without changing domain logic or the visible event history.
+- Pure domain logic can later be reused by a region adapter; authentication, outbox/alarm, backup, moderation, and history-import semantics must be designed separately.
 - Engine, schema, cognition, PRNG, and replay versions travel with saved history.
 
 ## Rejected alternatives

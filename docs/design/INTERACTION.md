@@ -10,25 +10,25 @@
 
 ## Owned decision
 
-Use a world-first interaction model with three deliberate modes—**observe**, **inspect**, and **decide/replay**—rather than omnipresent panels. All consequential actions exist in semantic DOM and remain usable without precision pointing, animation, sound, or WebGL/canvas visibility.
+Use one explicit state machine—**orientation → Follow Mara → peek → inspect/investigate → decide → consequence → leave/return → replay/respond**—rather than omnipresent panels. All consequential actions exist in semantic DOM and remain usable without precision pointing, animation, sound, or canvas visibility.
 
 The player never directly puppets movement or routine labor. They gather enough information to issue one high-level counsel, then observe acceptance, refusal, delay, or reinterpretation.
 
 ## Interaction contract
 
-### Observe
+### Observe and follow
 
 Default state. The world fills the view, citizens act, and no card blocks the settlement.
 
 Available actions:
 
 - cycle citizen focus;
-- open the sponsored citizen;
+- activate **Follow Mara**;
 - inspect a salient world change;
 - open the return summary when present; and
 - enter Chronicle.
 
-The cursor, focus ring, and touch target must identify selectable citizens and event marks without permanently outlining everything.
+The cursor, focus ring, and touch target identify selectable citizens and event marks without permanently outlining everything. Other citizens sit under **People**; no create/select-a-mind path exists.
 
 ### Inspect
 
@@ -36,7 +36,7 @@ Opens a compact identity lens while preserving world context.
 
 The lens shows, in order:
 
-1. name and portrait;
+1. name, portrait, **She acts for herself**, and **Progress stays on this device**;
 2. current action in plain language;
 3. immediate need or tension;
 4. current Standing Plan;
@@ -47,14 +47,14 @@ Beliefs are labeled as that citizen’s belief, not as world truth. Hidden facts
 
 ### Decide
 
-Counsel is a short, staged commitment:
+Advice is a short, staged commitment at a stable, spectator-readable boundary:
 
-1. choose one typed counsel from the bounded catalog;
+1. choose one of two typed intents or abstain;
 2. review known information, cost, and possible interpretations;
 3. confirm once; and
 4. return to the world to observe the citizen’s independent decision boundary.
 
-The confirmation does not promise compliance. It says explicitly that the citizen may accept, refuse, delay, or reinterpret. Once authoritative, the command cannot be silently edited; any undo during development is a debug reset outside the player contract.
+The confirmation does not promise compliance. It shows Mara's relevant visible reasons and says she may accept, refuse, delay, or reinterpret. The result shows a typed reason receipt. Once authoritative, the command cannot be edited; any rehearsal reset is a labeled noncanonical developer control.
 
 ### Replay
 
@@ -99,19 +99,19 @@ No consequential action depends on hover, drag, double-click, long press, pinch,
 
 ### First 5 seconds
 
-World, bridge, well, citizens, and motion. One concise orientation line. No terms wall, model choice, account prompt, dashboard tour, or modal tutorial.
+Mara, current action, suspicion, autonomy line, and usable **Follow Mara** appear in the semantic/static shell while the world streams. No terms wall, model choice, account prompt, dashboard tour, or modal tutorial.
 
 ### First 30 seconds
 
-The player can focus a citizen and read a plain-language action. At least one pair visibly interacts. A short prompt invites choosing the person whose tension is most interesting, not optimizing stats.
+The player follows Mara, reads a plain action, sees one pair interact, and finds **Check why Mara doubts the count**. Other citizens remain inspectable but are not alternative sponsor candidates.
 
-### By 3 minutes
+### By 45–60 seconds
 
-The sponsored citizen’s identity, values, current plan, two relationships, and one tension are legible. Investigation reveals facts relevant to one bounded counsel.
+Mara performs an authoritative state-changing investigation and identity, one value, current plan, Toma relationship, and tension are legible.
 
-### By 10 minutes
+### By 5 minutes and return
 
-The player has given one informed counsel, seen the citizen independently interpret it, and observed or anticipated a delayed systemic consequence. The session ends on an unresolved tension with a return affordance, not a checklist of routine chores.
+The player reaches advice, then sees interpretation and a branch-specific consequence. **Leave Riverhold at checkpoint** records a deterministic return manifest. On reload, changed world appears before the summary; the player confirms **Advance Riverhold** and receives one branch-dependent next action.
 
 ## Chronicle evidence behavior
 
@@ -128,7 +128,7 @@ The player-facing surface uses clear prose first. Identifiers and hashes may app
 
 - Stale command: explain what changed, return to inspection, preserve the player’s uncommitted text-free selection where safe.
 - Invalid command: show the violated world rule in plain language; do not send it to cognition or partially apply it.
-- Persistence unavailable: keep the current session playable, state that return progress cannot be guaranteed, and offer retry/export only if implemented within scope.
+- Persistence unavailable: keep the current session playable, state before advice that return cannot be guaranteed, and offer retry/export. Export is read-only; no import exists.
 - Catch-up boundary: stop at death, shortage, ownership change, Standing Plan expiry, or other player-relevant shock and invite review.
 - Canvas unavailable: switch to the semantic list/map view with identical counsel and Chronicle functions.
 
@@ -145,7 +145,7 @@ The player-facing surface uses clear prose first. Identifiers and hashes may app
 
 Reopen if:
 
-- fresh observers cannot find the sponsored citizen or a meaningful inspect action in 30 seconds;
+- four of five fresh observers cannot find **Follow Mara** in ten seconds or an investigation by 45 seconds;
 - keyboard-only players cannot complete sponsor → inspect → counsel → return → Chronicle without a trap;
 - the staged counsel flow takes more than three focused actions after the player has chosen a verb;
 - the semantic alternative omits any fact or action needed to make the same consequential choice; or
@@ -154,7 +154,7 @@ Reopen if:
 ## Unproven assumptions
 
 - Three modes are discoverable without tutorial ceremony.
-- A bounded counsel catalog still feels expressive.
+- Two intents plus abstain and the outcome-dependent return action still feel expressive.
 - Players tolerate waiting for delayed consequence when the tension is legible.
 - Evidence disclosures increase trust without turning play into audit work.
 

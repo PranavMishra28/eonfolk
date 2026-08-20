@@ -1,124 +1,102 @@
-# Persistence and replay
+# Local persistence and replay
 
-**Purpose:** define local storage, append/snapshot atomicity, replay provenance, migrations, and the future server adapter seam.
+**Purpose:** lock crash-safe browser durability, command receipts, single-writer fencing, snapshots, export, and replay interval semantics.
 
-**Status:** ACCEPTED FOR LOCAL-FIRST SLICE; HOSTED ADAPTER DEFERRED
+**Status:** ACCEPTED AFTER RED TEAM — export-only first slice
 
-**Authority boundary:** owns `PersistencePort`, `ReplayManifest`, IndexedDB layout, single-writer behavior, snapshot/replay/migration semantics, and durability UX. Event meaning and hashes are owned by [simulation](SIMULATION.md).
+**Authority boundary:** this file owns `PersistencePort`, `CommandReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [simulation](SIMULATION.md), [security](SECURITY.md), [testing](../quality/TESTING.md), [systems evidence](../research/SYSTEMS_RESEARCH.md)
+**Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/active/001-foundation.md)
 
 ## Owned decision
 
-Event-source only the canonical civilization aggregate. The first slice stores an append-only consequential event stream and rebuildable verified snapshots in IndexedDB. Settings, cached projections, rendering state, and optional noncanonical provider traces are ordinary records and never replay truth.
+The first slice keeps one local world in IndexedDB. A transition becomes visible only after its events, durable head, command receipt, and current fencing token commit in one transaction. The slice can export a verified bundle but cannot import, replace, merge, migrate, or promote a world.
 
-One browser tab holds the writer lease. Other tabs are read-only or explicitly request a lease transfer. Multi-writer conflict resolution is out of scope. A visible export/import path is required because browser storage is not a backup guarantee.
+## Locked port
 
-## `PersistencePort`
-
-The domain-facing port exposes only the operations needed to preserve and replay authoritative history:
+The TypeScript surface may refine names but preserves these operations:
 
 ```ts
 interface PersistencePort {
-  appendEvents(request: AppendEventsRequest): Promise<AppendResult>;
-  loadSnapshot(request: LoadSnapshotRequest): Promise<VerifiedSnapshot | null>;
+  getHead(regionId: RegionId): Promise<DurableHead>;
+  getCommandReceipt(regionId: RegionId, commandId: CommandId): Promise<CommandReceipt | null>;
+  appendEvents(request: CommitTransitionRequest): Promise<CommitTransitionResult>;
+  loadSnapshot(ref: SnapshotRef): Promise<VerifiedSnapshot>;
   saveSnapshot(request: SaveSnapshotRequest): Promise<SnapshotRef>;
   getEventRange(request: EventRangeRequest): Promise<readonly WorldEventEnvelope[]>;
+  exportWorld(regionId: RegionId): Promise<VerifiedExport>;
 }
 ```
 
-The exact TypeScript may vary, but semantics do not:
+`appendEvents` is stronger than a raw append. Its request includes prior revision/head hash, command/fingerprint, receipt candidate, ordered event batch, post hash/revision, and monotonic fencing token. The adapter verifies the batch hash and commits atomically.
 
-- `appendEvents` takes world/region, expected head revision/hash, idempotency context, and one ordered nonempty batch. It atomically writes the batch and advances the head or writes nothing.
-- `loadSnapshot` selects a compatible verified snapshot at or before a requested sequence.
-- `saveSnapshot` writes bytes plus versions/hash first, verifies them, and only then publishes the reference. Snapshots are rebuildable and may be created after the event transaction.
-- `getEventRange` returns a complete ordered inclusive/exclusive interval and fails on gaps or duplicate sequences.
+## Durable `CommandReceipt`
 
-Browser, Cloudflare, SQL, filesystem, and provider types cannot cross this interface.
+Every syntactically valid command ID gets exactly one durable result, accepted or rejected:
 
-## IndexedDB adapter
+- region, command ID, schema version, canonical payload fingerprint, and principal;
+- observed expected/actual revision;
+- outcome code and accepted event interval or typed rejection code;
+- resulting revision/head hash for acceptance, unchanged head for rejection; and
+- created simulation boundary and fencing token.
 
-The local adapter uses four stores:
+A retry with identical ID/fingerprint returns the receipt without re-evaluation. The same ID with a different fingerprint is `IDEMPOTENCY_COLLISION`; it emits no event and changes no state. A rejected command remains rejected after later world changes and reload.
 
-| Store | Canonical role |
-|---|---|
-| `worlds` | manifest, current revision/hash, writer lease, selected snapshot reference |
-| `events` | compound `(worldId, regionId, regionSequence)` key; time/type/entity indexes are conveniences |
-| `snapshots` | immutable bytes, covered event sequence, versions, PRNG/scheduler state, canonical hash |
-| `noncanonical_artifacts` | optional redacted provider traces or cached presentation; excluded from normal replay/export by default |
+## Commit-before-publish protocol
 
-The accepted event batch and head advancement share one read-write transaction. If the transaction aborts, neither becomes visible. Snapshot failure cannot invalidate committed events. Import validates MIME/size, manifest, versions, schema, sequence continuity, and hashes in scratch storage before replacing or creating any world.
+For each command the worker/application must:
 
-## `ReplayManifest`
+1. read the durable head and matching receipt, if any;
+2. prepare an immutable transition/result without changing live state;
+3. call `appendEvents`, which in one read-write transaction verifies prior head/fencing, inserts the complete event batch, writes the accepted/rejected receipt, and advances the head only for acceptance;
+4. wait for transaction completion;
+5. install the prepared post-state only when the returned durable head matches; and
+6. publish projections and acknowledge the command.
 
-Every export, snapshot replay, Chronicle replay, or public replay reference contains:
+If commit fails or the tab crashes before step 4, the candidate is discarded and never appears accepted. If it crashes after step 4 but before publish, startup reconstructs from the durable head and returns the existing receipt. If publication fails, retry publication without reapplying Reality. Crash-injection tests cover every barrier.
 
-| Field | Required meaning |
-|---|---|
-| `manifestVersion` | version of this contract |
-| `worldId`, `regionId` | source identity |
-| `snapshotRef` | immutable versioned snapshot identifier, sequence, content hash, and schema versions |
-| `eventInterval` | ordered start/end region sequences required after the snapshot |
-| `engineVersion`, `replayVersion` | deterministic engine and replay implementation versions |
-| `worldSchemaVersion`, `eventSchemaVersions`, `prngVersion` | state/event/randomness decoding owners |
-| `presentationMetadata` | title, selected subjects, camera/beats, locale, content warnings; explicitly noncanonical |
-| `expectedHeadHash` | final canonical state hash after applying the interval |
+## IndexedDB layout and fencing
 
-Presentation metadata may choose how to show facts but cannot supply facts or causality.
+Stores are `worlds`, `events`, `commandReceipts`, `snapshots`, and `exports`. Event keys are `(regionId, sequence)`; receipt keys are `(regionId, commandId)`.
 
-## Replay and migration
+One active writer owns a monotonically increasing `fencingToken` stored in the world head. Lease transfer increments it transactionally. Every append and snapshot validates it. A suspended old tab with a stale token is rejected even if its wall-clock lease looks valid. Other tabs are read-only; automatic multi-tab takeover is excluded.
 
-1. Validate the manifest and snapshot bytes/hash.
-2. Load genesis or the latest compatible verified snapshot.
-3. Retrieve the exact event interval and reject gaps, duplicates, or unknown required types.
-4. Upcast immutable old event payloads into the current in-memory type.
-5. Apply through the versioned reducer without invoking cognition.
-6. Restore and check scheduler and PRNG state.
-7. Compare the resulting head hash with the manifest/world head.
+Snapshots are rebuildable caches. A snapshot contains state after `baseSequence`, exact profile/engine/schema versions, canonical bytes/hash, creation head hash, and event-count metadata. Durable event/receipt/head commit never depends on snapshot success.
 
-Events are never rewritten. Read-time upcasters have golden fixtures. Snapshot migration creates a new snapshot and a recorded migration event/marker while preserving the old stream and export. Engine-major migration requires full replay rehearsal and hash/equivalence policy approval; a hosted region stays pinned until it passes.
+## Replay interval and manifest
 
-## Catch-up durability
+`ReplayManifest` contains version, region/seed, snapshot reference/hash with `baseSequence`, half-open event interval `[fromSequenceInclusive, toSequenceExclusive)`, engine/schema/determinism/replay versions, expected final hash, and presentation metadata that cannot supply facts.
 
-Catch-up commits ordered batches at deterministic boundaries. UI-yield chunk size cannot change event content or hashes. Interruption resumes from the last committed head and idempotently replays any submitted-but-unacknowledged command. A 90/365-day run may pause on an event/time safety budget; it cannot publish a future head before all prior events are durable.
+The normal interval starts at `baseSequence + 1`. For zero events, start equals end and replay returns the snapshot hash unchanged. Ranges reject gaps, duplicates, wrong region/first sequence, or an end beyond the durable head. Only the current engine/schema/profile is supported; unknown versions fail closed.
 
-The factual While You Were Away projection is rebuilt from committed events. It may group routine items for presentation but cannot replace, delete, or infer canonical facts.
+## Export-only recovery
 
-## Future `RegionDO` adapter
+**Export save** writes a bounded versioned bundle with manifest, current snapshot, complete required event/receipt suffix, checksums, and plain warnings: progress is local to this device; export is a backup artifact; this version cannot restore/import it yet. Export creation is read-only and cannot pause or rewrite the world.
 
-After both product gates and a separate deployment/cost approval, a SQLite-backed region authority may implement the same semantics. One region is one writer/transaction boundary. Commands and alarms are idempotent. An alarm merely wakes the region to process the earliest due scheduled item; it does not define simulation time. Cross-region messages use ordered idempotent inbox/outbox events.
+Import, replacement, merge, old-schema migration, and local-to-public promotion are deferred. There is no hostile-import surface in `001-foundation`; tests verify no import route exists and an unknown-version world fails without modification.
 
-This adapter is excluded from `001-foundation`. Migration from local world to public canon is not implied; private local history may remain private or require an explicit, reviewed import policy later.
+## Future server option
 
-## Resulting implementation behavior
+A region server may later reuse pure simulation contracts, event envelopes, receipts, and replay fixtures. It is not a drop-in browser-port implementation: authentication, authorization, transactional outbox/alarm semantics, backup/restore, quotas, moderation, and public-canon import policy require separate design after both product gates.
 
-- Reload resumes the same world and verifies its head.
-- A duplicate counsel command cannot apply twice.
-- Catch-up can be interrupted and resumed without changing outcomes.
-- A corrupted snapshot falls back to earlier verified history rather than silently accepting it.
-- A user can export a self-contained replay/backup before investing further.
-- Optional provider traces can be deleted without damaging Reality or Chronicle facts.
+## Blocking acceptance
+
+- Crash injection before/after prepare, commit request, IndexedDB completion, worker install, projection publish, and acknowledgment never produces visible-undurable or double-applied state.
+- Accepted and rejected retry receipts survive reload; same-ID/different-payload collision is stable.
+- Stale revision, stale fencing, partial batch, duplicate sequence, batch-hash mismatch, quota abort, corrupt snapshot, and event gap cause no partial mutation.
+- Genesis replay and every verified snapshot plus half-open range reach identical canonical bytes/hash.
+- Dual-tab fixture proves stale writer rejection after transfer.
+- Local-save disclosure appears before counsel; blocked storage is disclosed before investment.
+- Export is verified and non-destructive; no import or replace capability is reachable.
 
 ## Rejected alternatives
 
-| Alternative | Reason rejected |
-|---|---|
-| Snapshot-only save file | Cannot support factual causal replay, idempotency audit, or migrations reliably |
-| Event-source settings/UI caches | Complexity without product truth value |
-| LocalStorage | No suitable transactional structured event/snapshot boundary |
-| Cloud database in Gate A/B | Adds auth, network, cost, deployment, and failure modes before attachment proof |
-| Silent last-write-wins across tabs | Can fork or corrupt canonical local history |
-| Rewrite events during migration | Destroys provenance and makes prior replays unverifiable |
-| Persist raw model output as fact | Untrusted prose is not canonical evidence |
+Worker-first publication, best-effort receipt caches, unfenced wall-clock leases, snapshot-only authority, auto-import, destructive replacement, in-place event migration, and a claimed drop-in server adapter.
 
-## Unproven assumptions and reopen evidence
+## Reopen evidence
 
-- **UNRESOLVED:** IndexedDB quota and eviction are adequate on the supported browser matrix. Reopen after quota, persistence-request, eviction, and recovery drills.
-- **UNRESOLVED:** explicit export is understandable and used before loss. Reopen the backup UX after player tests.
-- **UNRESOLVED:** one-writer lease recovery is reliable across crashes. Reopen after forced-close and dual-tab tests.
-- **UNRESOLVED:** event volume/snapshot bytes remain within budgets at 30/90/365 days. Reopen cadence and mechanics from measurements.
-- **UNRESOLVED:** the future region adapter preserves semantics. It requires contract tests against both adapters before any hosted migration.
+Reopen snapshot cadence from measured 30/90/365-day bytes. Reopen restore/import only with side-by-side validation and explicit user selection. Reopen server persistence only after both product gates.
 
 ## Constraint fit
 
-IndexedDB requires no account, server, credential, spend, or operations. Selective event sourcing serves Chronicle/replay without a service fleet. The four-operation port is small enough for a solo slice and keeps later hosting reversible. Export reduces—but does not eliminate—local durability risk.
+One adapter, one writer, one current version, and export-only recovery protect history without consuming the slice on migration or distributed systems. The plan stays local, free, accountless, provider-free, and deploys nothing.

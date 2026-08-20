@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** INITIAL SYNTHESIS — freeze candidate for adversarial review
+**Status:** RECONCILED AUTHORITY MAP — final QA pending
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
@@ -35,7 +35,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Sole authority |
 |---|---|
 | Promise, audience, selected structure, starting unit, differentiation | [PRODUCT.md](product/PRODUCT.md) |
-| Human verbs, first 5 seconds through session 20, intervention and return | [HUMAN_LOOP.md](product/HUMAN_LOOP.md) |
+| Human verbs, first seconds, intervention, explicit return and second action | [HUMAN_LOOP.md](product/HUMAN_LOOP.md) |
 | Lifetime, death, succession, inactive sponsor and long-term depth | [PROGRESSION.md](product/PROGRESSION.md) |
 | Region topology, newcomer entry, stagnation, canon and private forks | [WORLD_STRUCTURE.md](product/WORLD_STRUCTURE.md) |
 | Causal truth, Riverhold fixture, return summary, replay and share facts | [CHRONICLE.md](product/CHRONICLE.md) |
@@ -69,7 +69,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Layers, packages, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
 | UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
 | Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
-| IndexedDB, `PersistencePort`, snapshots, replay and migrations | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
+| IndexedDB, durable receipts/fencing, snapshots, replay, export and version policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
 | Mind, Standard Brain, bounded proposals and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
@@ -103,11 +103,11 @@ Each concern has one authority. Research records evidence; reviews record object
 | Review purpose | Retained artifact |
 |---|---|
 | Blind alternative and hostile thesis challenge | [ZERO_ANCHOR_CHALLENGE.md](reviews/ZERO_ANCHOR_CHALLENGE.md) |
-| Product desirability and scope red team | `reviews/PRODUCT_RED_TEAM.md` after frozen review |
-| Game loop, attachment and progression red team | `reviews/GAME_RED_TEAM.md` after frozen review |
-| Architecture, correctness, security and cost red team | `reviews/ENGINEERING_RED_TEAM.md` after frozen review |
-| Visual direction, access and solo asset-burden red team | `reviews/DESIGN_RED_TEAM.md` after frozen review |
-| Five hostile player-perspective walkthroughs | `reviews/PLAYER_PERSPECTIVES.md` after frozen review |
+| Product desirability and scope red team | [PRODUCT_RED_TEAM.md](reviews/PRODUCT_RED_TEAM.md) |
+| Game loop, attachment and progression red team | [GAME_RED_TEAM.md](reviews/GAME_RED_TEAM.md) |
+| Architecture, correctness, security and cost red team | [ENGINEERING_RED_TEAM.md](reviews/ENGINEERING_RED_TEAM.md) |
+| Visual direction, access and solo asset-burden red team | [DESIGN_RED_TEAM.md](reviews/DESIGN_RED_TEAM.md) |
+| Five hostile player-perspective walkthroughs | [PLAYER_PERSPECTIVES.md](reviews/PLAYER_PERSPECTIVES.md) |
 | Final cross-discipline review | `reviews/FINAL_RED_TEAM.md` after reconciliation |
 | Twelve readiness answers and final exit evidence | `reviews/FINAL_READINESS.md` after final review |
 

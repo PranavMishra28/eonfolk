@@ -1,89 +1,70 @@
-# Frontend and renderer
+# Frontend, renderer, and asset pipeline
 
-**Purpose:** define the future browser stack, renderer decision rule, UI boundary, and asset path.
+**Purpose:** lock one implementable presentation stack and its boundary from authoritative simulation.
 
-**Status:** PROVISIONAL STACK ACCEPTED; FINAL RENDERER DEPENDS ON THE SELECTED ART DIRECTION AND A PASSING SPIKE
+**Status:** ACCEPTED AFTER RED TEAM — PixiJS 2.5D only
 
-**Authority boundary:** owns browser application technology, renderer exclusivity, UI libraries, route rendering, asset pipeline, and component provenance. Visual language is owned by future `docs/design/DESIGN.md`; numerical budgets are owned by [performance](../quality/PERFORMANCE.md).
+**Authority boundary:** this file owns renderer/UI libraries, projection boundary, asset pipeline, and first visual feasibility checkpoint. [DESIGN](../design/DESIGN.md) owns visual language; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [performance](../quality/PERFORMANCE.md), [visual QA](../quality/VISUAL_QA.md), [security](SECURITY.md), future `docs/research/DESIGN_RESEARCH.md`, [tool inventory](../research/PROPOSED_TOOLS.md)
+**Related documents:** [interaction](../design/INTERACTION.md), [mobile](../design/MOBILE.md), [visual QA](../quality/VISUAL_QA.md), [rendering research](../research/DESIGN_RESEARCH.md)
 
 ## Owned decision
 
-Use React Router with Vite, custom semantic DOM UI styled with Tailwind, Base UI primitives where they save accessibility work, Phosphor icons, and Motion only for bounded interface transitions that pass reduced-motion and frame-time gates. Do not adopt a shadcn-default visual identity, component-marketplace code, GSAP, or Storybook for the first slice.
+Use React Router/Vite for the shell, one PixiJS renderer for the Living Woodcut world, and parallel semantic DOM for every fact and consequential action. Do not install or import React Three Fiber, Three.js, WebGL model loaders, Blender/glTF/GLB/KTX2 pipeline code, or a second renderer.
 
-Use exactly one world renderer:
+## Projection boundary
 
-- **React Three Fiber/WebGL2** is the provisional choice for a genuinely three-dimensional diorama.
-- **PixiJS** replaces it before implementation if the selected direction is inherently 2.5D or if a simplified R3F scene cannot meet the budget.
-- Never ship or scaffold both renderers.
+Reality emits immutable presentation projections. Pixi and DOM render the same versioned projection; neither reads mutable simulation objects or feeds wall time, frame time, camera, focus, pointer, or quality level back into Reality. Renderer crash or semantic-mode switch cannot alter canonical state.
 
-The visual-direction authority chooses whether depth is essential; the implementation spike proves whether the matching renderer meets the performance and mobile gates. Renderer loyalty cannot waive a budget.
+The semantic view is fully playable: eight named citizens/actions, interaction pair, visible resources/places, Mara identity/tension/relationships/beliefs/plan, counsel options, interpretation receipt, catch-up confirmation, Chronicle beats, evidence details, and replay controls.
 
-## Rendering-spike evidence
+## First four-hour feasibility checkpoint
 
-**DIRECTIONAL LOCAL EVIDENCE:** disposable rendering spike `4bdef56` built a representative R3F/Vite scene with twelve citizens, instanced props, houses, shadows, fog, and a DOM overlay. It measured:
+Before full simulation or persistence integration, build a disposable presentation fixture with:
 
-- initial JavaScript: **291.39 KB gzip**;
-- observed load: approximately **0.92–1.0 seconds** in the controlled local profiles;
-- p95 frame time: **17.1 ms** at the desktop and laptop viewports and **17.3 ms** at the mobile viewport;
-- a **mobile overflow defect**.
+- a useful static/semantic Riverhold shell by two seconds and operable **Follow Mara** by three seconds;
+- eight citizens, three distinct actions, Mara/Toma, one interaction, one selected/peek state, and one Chronicle beat;
+- the same authored projection at 1728×1117, 1366×768, and 390×844;
+- reduced-motion and semantic modes; and
+- measured payload, frame, overflow, 200% zoom, keyboard, and hit-target behavior.
 
-This is not product proof. It did not use production assets, a complete application, representative 4G delivery, a range of physical mobile devices, or full simulation/catch-up load. It supports keeping R3F as a candidate because payload and mobile frame time were within provisional ceilings. It does **not** pass the 16.7 ms desktop p95 gate, and overflow blocks mobile acceptance. The implementation renderer must simplify shadows, pixel ratio, effects, geometry, or art direction and then remeasure.
+Five silent unfamiliar observers review the named commit/seed/time. At least three of five identify Mara, three activities, and the interaction without a log; at least four of five find **Follow Mara** within ten seconds and understand “she acts for herself.” A miss triggers one simplification pass, then stripped Weathered Atlas or stop before expensive integration. It cannot be waived later by polish.
 
-## Application/rendering boundary
+## UI/component policy
 
-- The client-only renderer reads an immutable or double-buffered presentation projection from the simulation worker.
-- It may interpolate movement for appearance but cannot commit positions, resource changes, relationships, or time.
-- Selection, counsel, Chronicle navigation, replay controls, and every consequential action also exist in semantic DOM.
-- Important labels and state are text outside WebGL. Canvas hit testing is an enhancement, never the only control.
-- Renderer loss or a weak-device mode leaves a fully playable list/map view.
+Use custom DOM UI with Tailwind, Base UI primitives where needed, Phosphor icons, and Motion only if measured. Avoid shadcn-default identity, GSAP, Storybook, component-marketplace code, 21st.dev items, and copied registry components without item-level license/source review. No dependency is required merely because planning considered it.
 
-The first slice is local-only. After the hosted gate, public Chronicle/share routes are server-rendered for fast, accessible, linkable content; the live world renderer remains client-only. SSR must not attempt to reproduce WebGL.
+Arrival is one state machine: `orientation → Follow Mara → peek → inspect → investigate → decide`. The first CTA is **Follow Mara** with **She acts for herself**. Other citizens remain inspectable under **People**; there is no create, roster, candidate, mind picker, or ambiguous sponsorship step.
 
-## UI and component policy
+## Authored asset pipeline and ceiling
 
-- Build a small authored UI vocabulary: buttons, disclosure, tabs, dialog/sheet, tooltip, meter, timeline step, and toast/status.
-- Use Base UI only for named primitives with clear accessibility benefit.
-- Treat Tailwind as a styling mechanism, not a design system.
-- Use Motion only for state transitions that are hard to express clearly in CSS. Reduced motion disables or replaces them.
-- shadcn guidance may inform composition, but copied registry code requires an exact item need, source URL, revision, author, item license, dependencies, modifications, and visual restyling.
-- 21st.dev and component marketplaces are rejected for V1 unless a named blocker survives review and item-level terms are approved.
-- No marketplace or generated component may introduce provider SDKs, analytics, auth, payments, or remote fonts silently.
+Use source SVG/PNG/Krita/Affinity files → texture atlas + metadata → optimized PNG/WebP/AVIF as supported → Pixi sprites/meshes. Generated concepts are references only.
 
-## Asset pipeline
+First-slice authored inventory is capped at:
 
-Production art follows authored Blender -> glTF/GLB -> optimized meshes/instancing -> KTX2 textures. Concept-generation images are composition and language references only; they are not textures, final citizens, or a production asset pipeline.
+- Mara and Toma: two large portrait treatments;
+- six secondary small identity marks;
+- one modular body system with five action silhouettes/pose overlays;
+- bridge, well, granary/market, water, wood, food, exchange, verify, and repair props/marks;
+- five causal/relation marks shared by world and Chronicle; and
+- one paper ground, bounded ink palette, focus/selection treatment, and responsive card layout.
 
-Each shipped asset records source/author, license, revision/hash, optimization settings, compressed bytes, and intended use. The first slice uses a tiny authored set, shared materials, instancing, and a fixed camera envelope. Runtime-downloaded marketplace assets are out of scope.
+No ambience-only illustration, cinematic panel, share-only art, 3D model, unique full portrait for all eight, or production reuse of generated pixels. Source creation, export, optimization, provenance, integration, and correction count against one art budget.
 
-## Resulting implementation behavior
+## Mobile interaction rules
 
-- The shell and semantic controls appear before the renderer is ready.
-- A loading or renderer error still exposes identity, counsel, return summary, and Chronicle controls.
-- The canvas never contains the sole copy of a fact or action.
-- Weak devices degrade in the order defined by [performance](../quality/PERFORMANCE.md), ending in the semantic view rather than a blocked experience.
-- Public-share SSR and a hosted region remain later adapters, not first-slice work.
+The world stays at least 55% of usable portrait viewport until deliberate full Inspect. First tap opens a non-scrolling peek no taller than 35%, with name, one action, one tension, local-save notice, and one primary action. Inspect owns one natural scroll with sticky Close; Decide is separate with sticky Back/Continue. Browser Back closes one UI level before navigation.
+
+Canvas targets are at least 44 CSS px but never resolve overlap silently: pointer-down freezes target ordering; the top visible target wins or a named chooser opens. A persistent **People** control is fallback. At 200% text zoom there is no horizontal overflow, nested scroll, hidden confirmation, or unexpected page exit.
 
 ## Rejected alternatives
 
-| Alternative | Reason rejected |
-|---|---|
-| Mix R3F and PixiJS | Doubles rendering knowledge, bundles, testing, and asset paths for one builder |
-| Canvas-only UI | Fails semantic access, keyboard operation, text extraction, and graceful degradation |
-| DOM dashboard as the dominant world | Undermines the world-dominant product promise |
-| Generated images as production assets | Inconsistent provenance, perspective, animation, and implementation feasibility |
-| Heavy post-processing and cinematic camera system | Consumes payload/frame budget and conflicts with reduced motion |
-| Storybook in the first 52 hours | Separate harness and maintenance without enough component breadth to justify it |
-| Unreviewed component marketplaces | License, dependency, remote-code, and generic-identity risk |
+R3F/Three, mixed renderers, a 3D asset pipeline, canvas-only actions, permanent dashboard, portrait-cropped desktop layout, production generated images, and a component marketplace as visual identity.
 
-## Unproven assumptions and reopen evidence
+## Reopen evidence
 
-- **UNRESOLVED:** the selected art direction needs true 3D. A 2.5D design decision switches to PixiJS before dependencies land.
-- **UNRESOLVED:** a simplified R3F scene can reach desktop p95 <=16.7 ms under full application load. Failure triggers PixiJS or art simplification, not a waiver.
-- **UNRESOLVED:** Base UI and Tailwind save more time than a smaller custom CSS set. Reopen if installation/bundle/license work exceeds the primitive value.
-- **UNRESOLVED:** SSR public Chronicle routes are worth their hosted complexity. Reopen only after sharing/return evidence and the server gate.
+Reopen Living Woodcut only if the early checkpoint misses legibility or budgets after one simplification pass. Reopen Pixi only for measured platform failure; fallback is simpler atlas/semantic presentation, not R3F.
 
 ## Constraint fit
 
-The stack is mainstream for one TypeScript builder and reuses one language across protocol, sim, and UI. The first route works locally and free, uses no account or credential, and targets eight citizens. The one-renderer rule and tiny asset vocabulary protect the 40–60-hour ceiling. No generated asset, hosted UI service, paid component, or runtime download is required.
+One 2.5D atlas pipeline is materially smaller than 3D for a solo 52-hour plan, runs on the M4 and ordinary mobile hardware, costs $0, and needs no production asset license, GPU service, account, model, or deployment.

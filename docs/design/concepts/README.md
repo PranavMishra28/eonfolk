@@ -1,6 +1,6 @@
 # Visual concept provenance
 
-**Purpose:** Record the prompt contract, generation provenance, and review limits for the fifteen EONFOLK planning concepts.
+**Purpose:** Record the normalized prompt contract, generation provenance, and review limits for the fifteen EONFOLK planning concepts.
 
 **Status:** REVIEW SET — generated 2026-08-20; no concept is a production asset or style commitment until the independent visual review is reconciled.
 
@@ -8,9 +8,9 @@
 
 **Related documents:** [Design](../DESIGN.md), [mobile](../MOBILE.md), [visual QA](../../quality/VISUAL_QA.md), [source ledger](../../research/SOURCE_LEDGER.md).
 
-## Generation contract
+## Normalized prompt record
 
-All images were generated with the built-in Codex Image Generation tool (`gpt-imagegen`, tool-reported software agent `gpt-image`, version `2.0`) without reference images. Prompts prohibited logos, readable UI text, photorealism, science-fiction technology, and production-asset use. Desktop frames requested 16:9; mobile frames requested 9:16 at a 390 × 844 composition target. The generated originals remain in the tool-managed provenance directory; these copies are the review set.
+All images were generated with the built-in Codex Image Generation tool (`gpt-imagegen`, tool-reported software agent `gpt-image`, version `2.0`) without reference images. The durable prompt record is the normalized world + direction + scene + avoid contract below; the byte-for-byte tool invocation text was not retained and is not claimed. That is a provenance limitation, so no concept can become a production input. Desktop frames requested 16:9; mobile frames requested 9:16 at a 390 × 844 composition target. The generated originals remain in the tool-managed provenance directory; these copies are the review set.
 
 Every scene reused this world brief: a bounded medieval-fantasy Riverhold with a central well, timber houses, market, woodpile, farm edge, eight distinct ordinary adult citizens, world-dominant composition, and legible intimate stakes.
 
@@ -27,6 +27,8 @@ Scene clauses:
 - **Crisis:** stormy dusk, shortage, barricaded well, sponsored citizen and carpenter oppose one another at a public assembly; diverted channel and broken promise make the stakes legible.
 - **Chronicle:** return after absence, rationed well reopened, relationship changed, water council formed; exactly three large causal beats and distinct notation for direct cause, contribution, and allegation.
 - **Mobile:** portrait composition with the living world above, one identity card and three causal beats below; large targets, no dashboard tiles or horizontal overflow.
+
+The normalized prompt for an artifact is exactly the world brief plus its direction clause plus its scene clause, followed by: “Planning concept only. No logo, readable UI text, photorealism, science-fiction technology, or production-asset use.” This makes the intended comparison reproducible; it does not retroactively establish byte-for-byte invocation provenance.
 
 ## Artifact ledger
 

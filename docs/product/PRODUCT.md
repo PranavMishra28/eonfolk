@@ -1,91 +1,75 @@
 # EONFOLK product definition
 
-**Purpose:** define the consumer promise, audience, selected structure, product gates, and first-slice boundary.
+**Purpose:** define the consumer promise, audience, selected structure, falsification gates, and first-slice boundary.
 
-**Status:** DECISION PROPOSED — implementation-ready after coordinator reconciliation
+**Status:** ACCEPTED AFTER RED TEAM — still a product hypothesis until observed play
 
-**Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns interaction timing; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; `001-foundation.md` will own implementation scope.
+**Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/active/001-foundation.md) owns implementation scope.
 
-**Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [player evidence](../research/PLAYER_RESEARCH.md), [competitors](../research/COMPETITORS.md), [Chronicle](CHRONICLE.md), [distribution](DISTRIBUTION.md)
+**Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [player evidence](../research/PLAYER_RESEARCH.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md), [Chronicle](CHRONICLE.md), [distribution](DISTRIBUTION.md)
 
 ## Owned decision
 
-**Product sentence:** EONFOLK is a social world game where you sponsor one autonomous citizen, offer rare consequential counsel they may reinterpret or refuse, and return to see—and factually understand—how their relationships and town changed.
+**Product sentence:** Follow one independent citizen in a town that remembers; offer rare advice she can reject or reinterpret, then return to see what she changed and what your advice contributed to.
 
-The selected structure is one bounded region, one sponsored citizen as the human anchor, eight citizens in the proof, and continuity through covenant, lineage, institutions, artifacts, and reputation. The first proof is a local save that behaves as its own canon. A public canonical region and private snapshot forks are later, separate decisions.
+The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. The first proof is explicitly **one Riverhold scenario**, not a general civilization, shared world, creator platform, or retention claim.
 
-The desired emotion is **responsible curiosity**: “I care what this person chooses, I can affect their situation, and I cannot reduce them to my unit.” The human is a patron/witness, not a mayor, chatbot operator, or omnipotent god.
+The desired emotion is responsible curiosity: “I care what Mara chooses, I affected her situation, and she is not my unit.” The human is a limited sponsor, not mayor, owner, chatbot operator, or god. Player-facing onboarding uses one action—**Follow Mara**—with the plain promise **She acts for herself**.
 
-## Audience and anti-audience
+## Sponsor relationship
 
-Primary tests span colony-story readers, god-game observers, life-sim caregivers, AI-world-curious players, and systems skeptics. The shared requirement is a desire for stories produced by understandable rules, not tolerance for setup.
+Mara has asked for an outside witness because her market concern could damage a close relationship. Following her grants access only to facts she observes, beliefs she shares, her stated values/plan, and one bounded advice opportunity at a named boundary. The player owes honest advice and cannot command movement, schedule labor, inspect secrets, undo history, or spend on Mara's behalf. Mara may refuse, delay, or reinterpret counsel for visible reasons.
 
-EONFOLK is not initially for players seeking direct tactical control, unrestricted role-play chat, competitive MMO progression, a model benchmark, a creator economy, or a background productivity agent.
+This is fictional consent within the scenario, not ownership, employment, finance, or a claim about conscious software.
 
 ## First-session contract
 
-Within ten minutes a new player will:
+Within 60 seconds the player recognizes Mara, her suspicion, one relationship, one autonomous investigation, and the next available action. By five minutes they can reach a genuine counsel boundary after inspecting relevant evidence. The session then must show:
 
-1. recognize one citizen, desire, relationship, and current tension;
-2. observe at least one autonomous action and one social interaction;
-3. investigate enough visible facts to forecast a choice;
-4. counsel or abstain at one genuine decision boundary;
-5. see acceptance, delay, refusal, or reinterpretation;
-6. witness one later state-grounded consequence; and
-7. read a three-beat factual Chronicle while a visible unresolved tension remains in the world.
+1. two counsel intents plus abstain with materially different forecast stakes;
+2. Mara's state-grounded interpretation and typed decision receipt;
+3. a delayed relationship/resource/institution consequence;
+4. a factual three-beat Chronicle; and
+5. after explicit leave/advance/return, one second bounded decision whose options depend on the first outcome.
 
-A raw event feed, generated dialogue, loading-success screen, or technically valid replay cannot substitute for this observable contract.
+The second decision may be repair the relationship, uphold the new rule, investigate further, or abstain; only outcome-legal options appear. A raw log, fixed cutscene, pretty simulation, green build, or favorable handpicked player cannot substitute.
 
-## Two evidence gates
+## Evidence gates
 
-- **Gate A — Proof of Life:** a fresh observer can identify what at least three of eight citizens are doing and notice two citizens interact without reading a raw log. Simulation, persistence, catch-up, and replay work with no model.
-- **Gate B — Proof of Attachment:** a fresh player creates/selects a focal mind in under 60 seconds, understands identity and tension, makes one high-level intervention, sees an independent interpretation and later consequence, understands the causal chain, and leaves with an unresolved reason to return. The chain also yields a comprehensible 10–20-second artifact.
+### Gate 0 — Product kill gate
 
-Both gates must pass. A passing build or test suite is necessary and insufficient.
+Before foundations consume the implementation budget, use ugly matched prototypes of the same Riverhold scenario for one-citizen follow, family, trio, faction, ECHOHOUSE crisis, and direct control. Five unfamiliar participants receive randomized/branded-hidden versions. Continue only if the selected structure is not materially worse on first meaningful action, predicted consequence, desire to see the outcome, and willingness to replay. If another structure wins overall or beats desirability/return intent by at least 20 percentage points, reopen D-001.
 
-## Why return, without making the Chronicle the game
+### Gate A — Proof of Life
 
-The return surface opens on Mara and a visibly changed market: a boarded granary, a strained friendship, a gathering crowd, or a new council notice. The Chronicle answers “what changed and why”; the playable tableau asks “what will she risk next?” The player returns to decide whether to repair, escalate, investigate, commit standing, or trust the citizen—not to clear notifications.
+Five silent unfamiliar observers inspect the same named commit/seed/time. At least three of five identify three citizen activities and the authoritative two-citizen interaction without a log; all failures and abandonment count. The interaction must change Reality, not only play animation. The world runs, saves, catches up, and replays without any model or network.
 
-## Behavioral difference from SEED and adjacent agent worlds
+### Gate B — Proof of Agency and bounded attachment
 
-EONFOLK is explainable without “AI agents”: **care for one independent person in a town that remembers consequences.**
+Eight unfamiliar formative sessions compare the real state-sensitive build with a yoked scripted/canonical-lookup control in randomized order. At least six of eight complete the first counsel without prompting; at least five explain Mara's relevant reason, independent response, later consequence, and the local-save limit; at least four voluntarily choose the outcome-dependent second action and state a person-centered reason. The real build must beat the scripted control on perceived contingency and desire to continue; report counts and uncertainty, not a statistical-generalization claim.
 
-It differs at behavior level by:
+These gates support only a bounded prototype claim. Delayed voluntary return, session-5/20 depth, death continuity, newcomer relevance, fun, and retention remain unproven until separate human evidence exists.
 
-1. one sponsor relationship rather than schedules for multiple owned workers;
-2. bounded checkpoint catch-up rather than real-time need decay or emergency obligation;
-3. rare advice with credible refusal rather than routine production management;
-4. event-grounded causal history rather than dialogue or agent logs as the primary explanation;
-5. a free local-first proof with no key/model requirement rather than a paid shared economy or operator API.
+## Why the current proof is not SEED or AI Town
 
-Competitor research shows SEED already occupies persistent shared society, autonomous characters, offline progression, economy, governance, and death [S-PLAYER-008] [S-COMP-002]. “Persistent AI society” is therefore neither an empty category nor a differentiator.
+The behavior-level hypothesis is one limited relationship, rare rejectable advice, explicit counterfactual consequences, and event-grounded causal return—not worker scheduling, unrestricted chat, background agent logs, or a shared economy. SEED already covers persistent shared society, autonomous characters, offline progression, economy, governance, and death [S-PLAYER-008] [S-COMP-002]. EONFOLK must win the matched Gate 0 comparison; documentation alone does not establish differentiation.
 
-## Model-ecology product rule
+## Model-ecology rule
 
-The Standard Brain owns complete routine behavior. Optional local/hosted models may later propose one legal action only at decision boundaries. Provider/model/version stays provenance, never a character class, leaderboard, onboarding choice, or primary share headline. Removing all external models must leave the entire promise above intact. Model migration is a later cognition-migration event, not first-slice scope.
+Standard Brain owns complete routine and boundary behavior. Removing all external models leaves the whole proof intact. A future bounded model may broaden expression or semantic interpretation, not authoritative mechanics; provider/model/version remains provenance, never onboarding, status, identity, or share headline. V1 makes no “modern AI” value claim.
 
 ## Rejected alternatives
 
-- Direct possession: clearer control, but eliminates shared agency.
-- Family/trio/faction start: more breadth, weaker one-person responsibility and higher UI/system cost.
-- Settlement god-game: encourages activity generation and micromanagement.
-- Shared always-on civilization: compelling future hypothesis, fatal first-slice operations mismatch.
-- ECHOHOUSE: sharper crisis pacing, but disposable world continuity, authored-content burden, and foundational model inference lose the same rubric.
-- “Chat with anyone”: generated language does not guarantee behavior, causality, or care [S-PLAYER-010].
+Direct possession, a family/trio/faction start, routine colony management, always-on shared civilization, unrestricted chat, model-branded citizens, server-first architecture, and an immutable Riverhold trajectory. They remain comparison controls, not hidden backup scope.
 
 ## Reopen evidence
 
-Reopen the structure if randomized ugly prototypes show ECHOHOUSE materially wins both causal comprehension and immediate replay; most informed testers prefer direct control; one-citizen tests fail attachment while an identical family/trio test passes; or Standard Brain behavior cannot produce a coherent independent choice within the scope.
-
-## Remaining uncertainty
-
-**PRODUCT HYPOTHESIS:** people will interpret bounded refusal as personhood rather than randomness. **PRODUCT HYPOTHESIS:** one delayed consequence is enough to motivate return. **UNRESOLVED:** whether succession preserves care. These are human-test questions, not documentation claims.
+Reopen the structure if Gate 0 selects another frame, three legal counsel paths converge materially, Standard Brain loses to canonical lookup, participants read refusal as random, the real loop does not beat yoked scripted control, or the second decision does not increase desire to continue.
 
 ## Resulting implementation behavior
 
-Implement one crafted settlement, eight citizens, three resources, four legible behavior families, one exchange, one repair/conversion, relationships sufficient for one social consequence, one sponsor, and one Riverhold chain. Exclude server, accounts, deployment, multiplayer, payments, unrestricted dialogue, browser-model download, generalized economy, governance depth, religion/war, and World Fork implementation.
+Implement one fixed authored Mara—no creator, roster, or fake choice—plus three counterfactual Riverhold histories and one outcome-dependent return decision. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, generalized economy/governance, death/lineage, and models.
 
 ## Constraint fit
 
-This boundary targets 52 focused hours on the M4 Pro, uses $0 local capabilities and no external inference, remains free/useful, and requires no training, proprietary data, regulated data, payment/revenue work, partnership, or enterprise motion. If 52-hour estimates fail, cut deferred mechanics; do not dilute Gate A/B or expand time silently.
+The decision moves product falsification into the first four hours and the ugly playable counterfactual loop into the first twelve. It targets 52 planned hours plus at most eight fix-contingency hours, runs on the M4 for $0, and requires no training, proprietary data, regulated data, partner, revenue, payment, account, or deployment.

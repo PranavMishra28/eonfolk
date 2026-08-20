@@ -69,11 +69,11 @@ The complete authored set should fit within:
 - one settlement ground and water treatment;
 - three building silhouettes plus the well and bridge;
 - three resource icons/props;
-- eight citizen silhouettes and eight portrait vignettes;
-- four behavior-family pose pairs;
+- one modular body system with five action silhouette/pose overlays, plus six secondary identity marks;
+- two large portrait treatments: Mara and Toma;
 - one bilateral-exchange composition;
 - one conversion/repair composition;
-- one selection mark, one relationship edge, and four causal-edge treatments;
+- one selection mark and five shared relation meanings: direct, trigger, contributing, temporal-before, and allegation; response-to appears only in evidence detail;
 - one paper texture family and a bounded set of hatch masks; and
 - no more than four environmental ambience marks at once.
 
