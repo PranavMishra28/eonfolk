@@ -61,7 +61,7 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 | `CognitiveDecisionRecord` / `DecisionTraceProjection` | [Cognition](COGNITION.md) | Raw citizen-private audit trace plus viewer-authorized disclosure |
 | `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
 | `ExperimentManifest` | [Persistence](PERSISTENCE.md) | Immutable run/seed/version/cognition/intervention/parent identity |
-| `PersistencePort` / `CommandReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe world/decision commit, replay, and idempotency boundary |
+| `PersistencePort` / `CommandReceipt` / `CatchUpOperationReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe world/decision/catch-up commit, replay, and idempotency boundary |
 
 Provider names and browser APIs never appear in authoritative world contracts. Optional provider/model/version/artifact values appear only as nullable provenance inside cognitive/experiment records. `regionId` and `runId` appear now even though the slice has one local run/region.
 
@@ -71,7 +71,7 @@ Provider names and browser APIs never appear in authoritative world contracts. O
 - **Cognitive/Decision Ledger:** append-only bounded consequential-decision records; audit/explanation input, never reducer authority.
 - **Experiment Manifest:** immutable identity/configuration for the run; version/provenance input, never a mutable world event stream.
 
-The stores share typed IDs and atomic transition boundaries but not authority. Canonical replay consumes manifest + snapshot + world events only. A future Observatory can query authorized projections of all three; the first slice has no dashboard, query service, fork UI, dataset pipeline, or model-comparison surface.
+The stores share typed IDs and atomic transition boundaries but not authority. Canonical replay consumes only the manifest, snapshot, and accepted Canonical World Ledger interval of batch headers plus events. A future Observatory can query authorized projections of all three; the first slice has no dashboard, query service, fork UI, dataset pipeline, or model-comparison surface.
 
 ## First-slice scope fit
 

@@ -73,7 +73,9 @@ Repository remained private with default `main`. Actions are enabled with all ac
 
 The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3dddb401`** (`docs: freeze initial product foundation synthesis`). All four discipline reviews and five persona walkthroughs targeted that identical commit without earlier review output. The four review files were integrated only after all completed. Their historical verdict was NOT READY; reconciliation accepts and mitigates the P0/P1 findings in `DECISIONS.md`.
 
-## Final planning QA — 2026-08-20
+## Pre-amendment planning QA — 2026-08-20 (historical)
+
+The following evidence passed for the original planning handoff at `9ed4d28`; it is not current amendment QA and cannot establish current readiness.
 
 `git diff --check` passed. Markdown lint reported 60 files and zero issues. Offline link/anchor validation checked 1,036 links (264 unique) with zero errors. The source audit found 128 unique dated ledger rows, all 128 referenced and no missing source IDs. Every retained Markdown artifact is nonempty and named in `INDEX.md`; `AGENTS.md` is 46 lines. Placeholder and credential-pattern scans were empty. The only worktree is the repository root. The contradiction table in `FINAL_READINESS.md` agrees on product, loop, starting unit, long horizon, distribution, model ecology, renderer, persistence, causality, hours, budgets, CI and security.
 
@@ -83,7 +85,7 @@ The tracked tree contains no production TypeScript/JavaScript/WASM, application 
 
 GitHub re-verification found `PranavMishra28/eonfolk` private with default branch `main`. Exactly one PR exists: draft [#1, Plan: Eonfolk product and technical foundation](https://github.com/PranavMishra28/eonfolk/pull/1), base `main`, head `plan/000-product-foundation`, state OPEN and unmerged. Research, review and spike branches remain local only.
 
-## Exit evidence
+## Pre-amendment exit evidence (historical)
 
 - [x] Private repository, `main` and planning branch verified.
 - [x] Authority map, source ledger, Top 10 decisions, Top 5 assumptions and Top 5 change triggers drafted.
@@ -105,4 +107,4 @@ GitHub re-verification found `PranavMishra28/eonfolk` private with default branc
 - [x] Fifteen clean scratch/research/review worktrees removed with local branch SHAs retained in this plan.
 - [x] Planning branch pushed and exactly one draft PR opened; no merge.
 
-`READY FOR GOAL MODE` means ready to implement and falsify the slice. It does not claim that fun, attachment, refusal tolerance or session-20 retention have been validated with humans.
+The original `READY FOR GOAL MODE` declaration is superseded. Current readiness remains suspended until the civilization-amendment review, exact current Goal-blob confirmation, fresh QA, push, and draft-PR update all pass.

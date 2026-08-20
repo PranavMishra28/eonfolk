@@ -102,7 +102,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 ## Required exit checks
 
 - [x] Hard personal/build constraints affect scope, architecture, and stop conditions.
-- [x] `IMPLEMENTATION_GOAL_PROMPT.md` exists and is self-contained; a fresh full audit plus the final corrective targeted confirmation passed its exact final contract.
+- [ ] `IMPLEMENTATION_GOAL_PROMPT.md` exists and is self-contained; the amended exact blob still requires final targeted confirmation.
 - [x] Tool/plugin/MCP inventory contains every requested capability and field.
 - [x] CI/CD contract covers required/conditional/security/branch/update/retention behavior and actual private-repo probes.
 - [x] Initial performance/accessibility budgets incorporate the failed R3F spike and require a new early Pixi measurement.
@@ -111,9 +111,9 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 - [x] Top decisions, assumptions, and abandon/change triggers are present.
 - [x] Four frozen red teams and five hostile perspectives are reconciled.
 - [x] Final independent cross-discipline review findings were fixed and the one targeted confirmation passed.
-- [x] Goal prompt passes an immutable fresh full review/fix cycle and final targeted confirmation with no residual P0/P1.
-- [x] Final Markdown/link/source/contradiction/secret/license/code/Git QA passes.
-- [x] Branch is pushed and exactly one draft PR exists; draft [#1](https://github.com/PranavMishra28/eonfolk/pull/1) is open and unmerged.
+- [ ] Amended Goal prompt passes an immutable fresh full review/fix cycle and final targeted confirmation with no residual P0/P1.
+- [ ] Fresh amendment Markdown/link/source/contradiction/secret/license/code/Git QA passes.
+- [ ] Amended branch is pushed and exactly one draft PR exists; draft [#1](https://github.com/PranavMishra28/eonfolk/pull/1) remains open and unmerged.
 - [ ] Civilization amendment authorities and revised Goal prompt pass fresh independent review and final QA.
 
 `READY FOR GOAL MODE` is suspended until the amendment review/QA check passes. Readiness will still mean the experiment is implementation-ready, not that the product or research thesis is true.

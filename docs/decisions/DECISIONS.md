@@ -81,7 +81,7 @@
 
 **Remaining uncertainty.** Strictly qualified fact text may feel cold, and Chronicle polish could disguise a trivial simulation.
 
-**Resulting behavior.** Templates consume only declared predicates; replay uses snapshot + accepted event interval and never invokes cognition; original proposals remain audit evidence; public justifications remain testimony. Any factual mismatch is P0.
+**Resulting behavior.** Templates consume only declared predicates; replay uses the snapshot plus exact accepted Canonical World Ledger interval of batch headers and events and never invokes cognition; original proposals remain audit evidence; public justifications remain testimony. Any factual mismatch is P0.
 
 **Constraint fit.** One projection pipeline serves return, replay, QA and sharing without hosted inference or a second content pipeline.
 
@@ -121,7 +121,7 @@
 
 ## D-007 — Deterministic authority contracts
 
-**Decision.** Lock run-scoped `WorldCommand`, `WorldEventEnvelope`, `WorldBatchHeader`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, filtered `DecisionTraceProjection`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Keep Canonical World Ledger, Cognitive/Decision Ledger, and Experiment Manifest distinct. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules and explicit domains for manifest/context/catalog/proposal/decision hashes. Atomically create genesis; prepare immutable transitions; atomically commit batch/events/head/receipt/fencing/raw decision provenance; then install/publish. Fencing is not canonical hash input. V1 is one schema version with no backup/export/import.
+**Decision.** Lock run-scoped `WorldCommand`, `WorldEventEnvelope`, `WorldBatchHeader`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, filtered `DecisionTraceProjection`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest` and `PersistencePort`. Keep Canonical World Ledger, Cognitive/Decision Ledger, and Experiment Manifest distinct. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules and explicit domains for manifest/context/catalog/proposal/decision hashes. Atomically create genesis; prepare immutable transitions; atomically commit batch/events/head/receipt/fencing/raw decision provenance; then install/publish. Fencing is not canonical hash input. V1 is one schema version with no backup/export/import.
 
 **Evidence.** The simulation spike produced identical repeated and replay hashes for 24-hour and seven-day runs with typed causal parents [S-SPIKE-001]. Architecture/cognition/security research converges on a validation boundary rather than trusting generated intent.
 
@@ -223,6 +223,19 @@ The first fresh amendment, Goal-prompt, and systems reviews found no P0 and four
 | PSR-011 | P2 | ACCEPT — MITIGATED | The manifest names configured intervention-protocol IDs; executed intervention/command IDs live in receipts/events. | PERSISTENCE, OBSERVATORY, Goal prompt |
 | PSR-012 | P2 | ACCEPT — MITIGATED | Persisted decision records round-trip as separate audit evidence; canonical replay neither regenerates nor consumes cognition records. | COGNITION, PERSISTENCE |
 | PSR-013 | P2 | ACCEPT — MITIGATED | `creationSequence` is one global per-run counter and assigns consecutive values in typed payload order. | SIMULATION, Goal prompt |
+| CAA-001 | P1 | ACCEPT — MITIGATED | Product authority now uses six participants, all Williams rows, unique rank plus 4/6 floors, comparative reopen, and diagnostic-only Replay. | PRODUCT, QUALITY_BAR, 001, Goal prompt |
+| CAA-002 | P1 | ACCEPT — MITIGATED | Quality Bar and ExecPlan now start Gate B clocks only on the same complete advice-ready and changed-return frames as the Goal prompt. | QUALITY_BAR, 001, Goal prompt |
+| CAA-003 | P1 | ACCEPT — MITIGATED | Gate B administration explicitly records four comprehension slots, conditional `SecondActionWhy`/null, then Contingency and Continue. | QUALITY_BAR, 001, Goal prompt |
+| CAA-004 | P2 | ACCEPT — MITIGATED | Original QA/exit checks are explicitly historical; amended readiness remains unchecked until fresh confirmation and QA. | PLAN, FINAL_READINESS |
+| ACF-001 | P1 | ACCEPT — MITIGATED | The golden event now carries its required originating command ID; event and dependent batch hashes were independently regenerated, and accepted provenance must match batch/receipt references. | SIMULATION, Goal prompt, TESTING |
+| ACF-002 | P2 | ACCEPT — MITIGATED | Observatory now names accepted batch headers plus events and requires state/world-head replay. | OBSERVATORY |
+| ACF-003 | P2 | ACCEPT — MITIGATED | Raw decision lookup/store keys now include run, region, and decision ID. | PERSISTENCE |
+| ZG-001 | P1 | ACCEPT — MITIGATED | All four Gate B/Gate A option PRNG digest/draw/order sentinels now use the only permitted V2 tuple/domain and were independently reproduced. | Goal prompt, SOURCE_LEDGER |
+| ZG-002 | P1 | ACCEPT — MITIGATED | Every invocation requires a higher-authority operator-supplied approved prompt blob; repo/checkpoint values can verify but never create that approval. | Goal prompt, FINAL_READINESS |
+| ZG-003 | P1 | ACCEPT — MITIGATED | Non-final event post-states retain prior revision; only the final post-state increments. A full alternative two-event state/event/batch vector closes the bytes. | SIMULATION, PERSISTENCE, Goal prompt |
+| ZG-004 | P2 | ACCEPT — MITIGATED | Closed `CatchUpOperationReceipt`, idempotent begin, and exact-next atomic child/progress commit now define crash resume. | PERSISTENCE, 001, Goal prompt |
+| ZG-005 | P2 | ACCEPT — MITIGATED | Goal status now states the external-blob approval precondition without requiring a post-confirmation self-edit. | Goal prompt |
+| ZG-006 | P2 | ACCEPT — MITIGATED | Gate 0 reserves 165 operator minutes, leaving 75 minutes for T01+T03 low work inside M0's four-hour target. | Goal prompt, 001 |
 
 ## Review reconciliation
 

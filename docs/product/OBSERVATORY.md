@@ -16,7 +16,7 @@ The defensible research object is **behavior and institutional emergence in popu
 
 ## Three distinct data forms
 
-1. **Canonical World Ledger:** ordered authoritative state-changing `WorldEventEnvelope` records. Only this ledger changes Reality.
+1. **Canonical World Ledger:** ordered authoritative accepted `WorldBatchHeader` plus state-changing `WorldEventEnvelope` records. Only accepted events change Reality; stored headers make the canonical world-head chain replayable.
 2. **Cognitive/Decision Ledger:** bounded raw citizen-private audit records of what a citizen observed, knew, believed, remembered, planned, was offered, proposed, and had accepted/rejected at consequential decision boundaries. These records explain agent inputs/actions but are not world truth merely because a citizen believed or proposed them; any viewer receives a separately authorized field-filtered projection.
 3. **Experiment Manifest:** immutable run identity: world seed; engine/schema/determinism/replay/cognition versions; cognition configuration; optional provider/model/version/artifact metadata; configured intervention-protocol IDs; canonical/fork/experiment kind; and parent run/snapshot references. Executed intervention IDs live in receipts/events.
 
@@ -32,7 +32,7 @@ The optional-model segment is explicitly absent/null under Standard Brain. Recor
 
 ## Reproducibility rule
 
-Canonical replay means applying the recorded accepted event interval to its verified snapshot under the named versions and reproducing the exact state hash. It never means rerunning cognition. A model call may be nondeterministic or unavailable; preserve the original structured proposal and accepted/rejected result instead.
+Canonical replay means applying the recorded accepted batch-header/event interval to its verified snapshot under the named versions and reproducing exact state and world-head hashes. It never means rerunning cognition. A model call may be nondeterministic or unavailable; preserve the original structured proposal and accepted/rejected result instead.
 
 Future experiments use repeated independent manifests/runs, declare interventions and parent snapshot, and report outcome distributions and uncertainty. A counterfactual is factual only about the simulated fork itself; it is never retroactive canon or an unsimulated alternate history.
 

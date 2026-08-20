@@ -4,7 +4,7 @@
 
 **Status:** ACCEPTED AFTER RED TEAM — no backup/import surface in the first slice
 
-**Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
+**Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
 **Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/active/001-foundation.md)
 
@@ -22,9 +22,12 @@ interface PersistencePort {
   commitGenesis(request: CommitGenesisRequest): Promise<CommitGenesisResult>;
   getHead(runId: RunId, regionId: RegionId): Promise<DurableHead>;
   getCommandReceipt(runId: RunId, regionId: RegionId, commandId: CommandId): Promise<CommandReceipt | null>;
-  getDecisionRecord(runId: RunId, decisionId: DecisionId): Promise<CognitiveDecisionRecord | null>;
+  getDecisionRecord(runId: RunId, regionId: RegionId, decisionId: DecisionId): Promise<CognitiveDecisionRecord | null>;
+  getCatchUpOperationReceipt(runId: RunId, regionId: RegionId, operationId: OperationId): Promise<CatchUpOperationReceipt | null>;
   appendEvents(request: CommitTransitionRequest): Promise<CommitTransitionResult>;
   appendRejectedDecision(request: CommitRejectedDecisionRequest): Promise<void>;
+  beginCatchUpOperation(request: BeginCatchUpOperationRequest): Promise<CatchUpOperationReceipt>;
+  commitCatchUpChapter(request: CommitCatchUpChapterRequest): Promise<CatchUpOperationReceipt>;
   loadSnapshot(ref: SnapshotRef): Promise<VerifiedSnapshot>;
   saveSnapshot(request: SaveSnapshotRequest): Promise<SnapshotRef>;
   getBatchRange(request: BatchRangeRequest): Promise<readonly WorldBatchHeader[]>;
@@ -36,7 +39,7 @@ Every operation and reference is explicitly run/region scoped and verifies those
 
 `getDecisionRecord` is a package-internal audit operation, not an Application/UI/Brain capability. Production consumer code receives only the authorized `DecisionTraceProjection` defined by [COGNITION](COGNITION.md); the raw getter is exercised by bounded audit/corruption tests and has no patron/public route.
 
-`appendEvents` is stronger than a raw append. Its request includes run/region; prior revision/state/world-head hashes; command/fingerprint; receipt candidate; one `WorldBatchHeader`; ordered 1–32-event batch; post hash/revision; monotonic fencing token; and optional finalized `CognitiveDecisionRecord`. The adapter requires the manifest/genesis, verifies every run/region/version/hash/batch/decision/command/event reference, and commits atomically. `appendRejectedDecision` is idempotent and exists only when proposal/schema validation failed before a `WorldCommand` could exist; it requires the canonical `decisionRecordHash`, returns the prior exact record on identical retry, rejects same decision ID/different hash as `DECISION_ID_COLLISION`, and cannot update world head, batch/event stores, snapshots, or receipts.
+`appendEvents` is stronger than a raw append. Its request includes run/region; prior revision/state/world-head hashes; command/fingerprint; receipt candidate; one `WorldBatchHeader`; ordered 1–32-event batch; post hash/revision; monotonic fencing token; and optional finalized `CognitiveDecisionRecord`. The adapter requires the manifest/genesis, verifies every run/region/version/hash/batch/decision/command/event reference, requires every non-final event post-state to retain the prior revision and only the final post-state to use prior revision + 1, and commits atomically. `appendRejectedDecision` is idempotent and exists only when proposal/schema validation failed before a `WorldCommand` could exist; it requires the canonical `decisionRecordHash`, returns the prior exact record on identical retry, rejects same decision ID/different hash as `DECISION_ID_COLLISION`, and cannot update world head, batch/event stores, snapshots, or receipts.
 
 ## Durable `CommandReceipt`
 
@@ -63,11 +66,13 @@ For each command the worker/application must:
 
 If commit fails or the tab crashes before step 4, the candidate is discarded and never appears accepted. If it crashes after step 4 but before publish, startup reconstructs from the durable head and returns the existing receipt. If publication fails, retry publication without reapplying Reality. Crash-injection tests cover every barrier.
 
-A confirmed catch-up uses one run/region-scoped `CatchUpOperationReceipt` containing operation/confirmation command IDs, requested interval, preflight plan hash, total deterministic chapters, next chapter, status, and initial/current/final state and world-head hashes. Preflight rejection writes only a rejected confirmation receipt. After acceptance, each 1–32-event child command and the progress update commit atomically; retry resumes at `nextChapter`, and same operation ID with a different plan hash is a collision. The final summary publishes only after `complete`. This makes chapter commits durable and idempotent without pretending that a 50,000-event operation is one atomic event batch.
+A confirmed catch-up uses one closed run/region-scoped `CatchUpOperationReceipt` with exactly: literal schema version `eonfolk-catch-up-receipt-v1`; run/region, operation and confirmation IDs; SafeU64 `fromSimulationTime <= toSimulationTime`; 64-hex preflight `planHash`; SafeU64 `totalChapters` and `nextChapter`; status `in-progress|complete|rejected`; initial/current revision, state hash and world-head hash; nullable final revision/state/world-head hashes; and nullable typed rejection code. Rejected requires `totalChapters=nextChapter=0`, current=initial, every final field null, and a non-null rejection. In-progress requires `1 <= totalChapters <= 50000`, `0 <= nextChapter < totalChapters`, and null final/rejection fields. Complete requires `1 <= totalChapters=nextChapter <= 50000`, final=current, and null rejection. No extra field or status combination validates.
+
+`beginCatchUpOperation` atomically writes exactly one rejected receipt on preflight failure or one `in-progress` receipt after successful preflight, without a domain event or world-head change. Same operation ID/plan hash returns the existing receipt; a different plan hash is `CATCH_UP_ID_COLLISION`. `commitCatchUpChapter` requires status `in-progress`, exact plan hash, fencing token, and `chapterOrdinal == nextChapter`; in one transaction it commits that child command's 1–32-event batch/header/receipt/optional decision plus the new world head and increments `nextChapter`. The last chapter also sets `complete` and its final hashes. Exact retry returns the already committed child receipt/progress; a stale/different chapter cannot mutate. Startup resumes at `nextChapter`, and the final summary publishes only after `complete`. This makes chapter commits durable and idempotent without pretending that a 50,000-event operation is one atomic event batch.
 
 ## IndexedDB layout and fencing
 
-Stores are `experimentManifests`, `worlds`, `batches`, `events`, `decisionRecords`, `commandReceipts`, `catchUpOperations`, and `snapshots`. Head keys are `(runId,regionId)`; batch keys `(runId,regionId,resultRevision)`; event keys `(runId,regionId,sequence)`; decision keys `(runId,decisionId)`; receipt keys `(runId,regionId,commandId)`; snapshot keys include run/region. Batch headers plus events are the Canonical World Ledger. Decision records remain separate and cannot participate in state reduction merely because they exist.
+Stores are `experimentManifests`, `worlds`, `batches`, `events`, `decisionRecords`, `commandReceipts`, `catchUpOperations`, and `snapshots`. Head keys are `(runId,regionId)`; batch keys `(runId,regionId,resultRevision)`; event keys `(runId,regionId,sequence)`; decision keys `(runId,regionId,decisionId)`; receipt keys `(runId,regionId,commandId)`; snapshot keys include run/region. Batch headers plus events are the Canonical World Ledger. Decision records remain separate and cannot participate in state reduction merely because they exist.
 
 One active writer owns a monotonically increasing `fencingToken` stored as CAS metadata beside the world head. Lease transfer increments it transactionally but never changes canonical state hash or world-head hash. Every append and snapshot validates it. A suspended old tab with a stale token is rejected even if its wall-clock lease looks valid. Other tabs are read-only; automatic multi-tab takeover is excluded.
 

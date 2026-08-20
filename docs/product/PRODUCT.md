@@ -61,7 +61,7 @@ The second decision may be repair the relationship, uphold the new rule, investi
 
 ### Gate 0 — Product kill gate
 
-Before foundations consume the implementation budget, use ugly matched prototypes of the same Riverhold scenario for one-citizen follow, family, trio, faction, ECHOHOUSE crisis, and direct control. Five unfamiliar participants receive randomized/branded-hidden versions. Continue only if the selected structure is not materially worse on first meaningful action, predicted consequence, desire to see the outcome, and willingness to replay. If another structure wins overall or beats desirability/return intent by at least 20 percentage points, reopen D-001.
+Before foundations consume the implementation budget, use ugly matched prototypes of the same Riverhold scenario for one-citizen follow, family, trio, faction, ECHOHOUSE crisis, and direct control. Six unfamiliar participants each see all six branding-hidden versions under the complete six-row Williams order frozen in the Goal prompt. Continue only if one-citizen Riverhold has the unique lowest within-person rank sum, at least 4/6 Yes on both Desirable and Continue, and no alternative exceeds it by at least two true responses on either binary. Replay is recorded only as diagnostic evidence and never enters the pass floor. Any tie, absolute-floor miss, skipped/invalid presentation, or comparative lead reopens D-001.
 
 ### Gate A — Proof of Life
 

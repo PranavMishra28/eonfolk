@@ -101,7 +101,7 @@ If later deployment is authorized, the canonical URL shows title, exact region/t
 
 ## Factual generation rules
 
-Templates select only declared predicates. Names and short public justifications are escaped text. No model may write fact text, HTML, Markdown, URLs, causality, or canonical summaries. Unknown remains unknown. Coalescing may say “gathered 8 wood across four stable events” only when all four event ranges and conservation checks support it. Replay recomputes hashes from the preserved snapshot and accepted event interval; it never calls cognition or assumes a model can reproduce its original proposal.
+Templates select only declared predicates. Names and short public justifications are escaped text. No model may write fact text, HTML, Markdown, URLs, causality, or canonical summaries. Unknown remains unknown. Coalescing may say “gathered 8 wood across four stable events” only when all four event ranges and conservation checks support it. Replay recomputes state and world-head hashes from the preserved snapshot and exact accepted Canonical World Ledger interval of batch headers plus events; it never calls cognition or assumes a model can reproduce its original proposal.
 
 ## Rejected alternatives
 
