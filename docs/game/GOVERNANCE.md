@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-The slice includes one **scenario-scoped council rule transition**, not a governance engine. Riverhold has a council identifier, a storekeeper role, a fixed petition threshold, a fixed vote fixture, and `public-reserve-counts` before/after state. Mara cannot directly legislate; her verified public act and endorsements trigger an authorized vote whose recorded result changes future ledger display/allocation input.
+The slice includes one grandfathered **scenario-scoped council rule transition**, not a government or governance engine. RV-010–RV-012 predate the civilization amendment and remain fixed authored fixture data: one council identifier, an already-authored storekeeper role, one fixed petition threshold, one fixed vote result, one fixed validator, and `public-reserve-counts` before/after state. The implementation cannot create an institution, member, office, petition procedure, vote procedure, rule, jurisdiction, or authority; it can only validate and apply this closed transition. Mara cannot directly legislate; her verified public act and endorsements satisfy the authored fixture whose recorded result changes future ledger display/allocation input.
 
 This supplies institutional memory: a personal relationship cost can coexist with a public rule consequence. It does not claim elections, constitutions, ideology, enforcement, crime, justice, diplomacy, religion, or war.
 
@@ -18,7 +18,7 @@ This supplies institutional memory: a personal relationship cost can coexist wit
 
 Any generalized `Institution` primitive must be a composition of shared typed concepts: institution ID/kind; membership and roles; charter/versioned rules; jurisdiction and territorial claims; eligibility; decision procedure; treasury/assets; commitments; scoped authority grants; external agreements; succession; enforcement capability; appeal/change procedure; and event-grounded legitimacy/history. The same primitives should support later companies, councils, parties, armies, religions, unions, treaties, and other organizations without unrelated hard-coded mini-games.
 
-This is a compatibility constraint, not first-slice scope. Riverhold implements only the fixed council/rule IDs and transitions needed by the oracle; it does not implement a generic institution schema, organization creation, territorial map, treasury, treaty, succession, enforcement simulation, or organization UI. A model may later propose typed actions or bounded charter language, but never interpret authority or write law directly. Public writes are bounded and moderated separately from factual state.
+This is a compatibility constraint, not first-slice scope. Riverhold stores only the fixed council/rule IDs and closed transition needed by the oracle; it does not implement a generic government/institution schema, organization creation, membership/role mutation, petition/vote system, rule authoring, territorial map, treasury, treaty, succession, enforcement simulation, or organization UI. A model may later propose typed actions or bounded charter language, but never interpret authority or write law directly. Public writes are bounded and moderated separately from factual state.
 
 ## Power and newcomer rule
 

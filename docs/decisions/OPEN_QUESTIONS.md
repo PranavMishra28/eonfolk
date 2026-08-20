@@ -25,7 +25,7 @@
 - **Why it matters:** This is the emotional premise and starting-unit decision.
 - **Current default:** One citizen is the responsibility lens; eight citizens remain authoritative actors.
 - **Fastest falsification:** Eight unfamiliar sessions compare the real state-sensitive loop with a randomized yoked script. Ask identity, reason, independent choice, responsibility and voluntarily offered next action. Count abandonment.
-- **Evidence required:** Quality Bar's 6/8 completion, 5/8 explanation and 4/8 person-centered second-action thresholds; real beats script on contingency/continue. This is formative bounded evidence, not retention validation.
+- **Evidence required:** Quality Bar's 6/8 completion, 5/8 explanation and 4/8 within-60-second action plus exact branch-related-reason-token thresholds; real beats script on contingency/continue. This is formative bounded evidence, not retention validation.
 - **Decision reopened:** D-001 and D-003; compare identical family/trio variants before adding features.
 
 ### Q-002 — Does refusal preserve autonomy without destroying agency?
@@ -87,9 +87,9 @@
 ### Q-009 — Is local persistence durable enough for free V1?
 
 - **Why it matters:** Losing the one citizen/history would destroy trust.
-- **Current default:** Single-writer IndexedDB adapter, atomic append/snapshot, verified replay and export/recovery path.
-- **Fastest falsification:** Crash injection around every prepare/commit/install/publish barrier; quota abort, corrupt snapshot, gap, idempotency collision, stale fencing/dual-tab, verified export, and no-import-route checks.
-- **Evidence required:** No visible-undurable/partial/double mutation; deterministic recovery to durable head; clear local-device/export limitation. Import remains deferred.
+- **Current default:** Single-writer IndexedDB adapter, atomic run genesis, run-scoped batch/event/decision append, verified state/world-head replay, and no backup/export/restore/import path.
+- **Fastest falsification:** Crash injection around genesis and every prepare/commit/install/publish/catch-up-chapter barrier; quota abort, corrupt snapshot, batch/event gap, run/idempotency collision, stale fencing/dual-tab, and no-backup/export/import-route checks.
+- **Evidence required:** No visible-undurable/partial/double mutation; deterministic recovery to durable state/world head; fencing leaves canonical hashes unchanged; clear browser-local/no-backup limitation.
 - **Decision reopened:** D-006 and D-007; a server is not automatically the answer.
 
 ### Q-010 — What long-horizon catch-up representation remains exact enough?
@@ -103,7 +103,7 @@
 ### Q-011 — Does Observatory provenance enable valid inquiry without weakening the game?
 
 - **Why it matters:** The future research surface is defensible only if records are complete, privacy-safe, and useful while the consumer World remains primary.
-- **Current default:** Preserve three distinct local data forms and bounded consequential-decision traces; ship no dashboard, dataset, fork executor, or research claim.
-- **Fastest falsification:** After both product gates, give one frozen export plus schema to independent systems/research reviewers and ask them to reconstruct sampled decision/event chains and specify a repeated-run study without privileged hidden data.
+- **Current default:** Preserve three distinct local data forms, bounded raw consequential-decision traces, and filtered viewer projections; ship no dashboard, dataset, backup/export, fork executor, or research claim.
+- **Fastest falsification:** After both product gates and a separately reviewed export design, give one frozen authorized dataset plus schema to independent systems/research reviewers and ask them to reconstruct sampled decision/event chains and specify a repeated-run study without privileged hidden data.
 - **Evidence required:** Every sampled chain closes; privacy projections remain enforceable; the proposed study uses independent manifests/outcome distributions and does not claim human prediction. Failure removes/revises Observatory before adding infrastructure.
 - **Decision reopened:** D-001 and D-007; never weaken World/Chronicle factuality or expand Gate A/B to rescue research positioning.

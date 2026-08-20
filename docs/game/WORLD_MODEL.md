@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Reality consists of versioned region state and ordered accepted events. Minimum entity kinds are region, place, citizen, relationship, resource stack, artifact, message/claim, observation, private knowledge, belief, bounded memory, Standing Plan, sponsor covenant, and scenario-scoped institution/rule. Stable typed IDs—not names—link them.
+Reality consists of versioned run-scoped region state and ordered accepted batch headers/events. Minimum entity kinds are region, place, citizen, relationship, resource stack, artifact, message/claim, observation, private knowledge, belief, bounded memory, Standing Plan, sponsor covenant, and scenario-scoped institution/rule. Stable typed IDs—not names—link them inside an explicit `runId`.
 
 | Concern | Rule |
 |---|---|
@@ -18,7 +18,8 @@ Reality consists of versioned region state and ordered accepted events. Minimum 
 | Quantity | non-negative integers for conserved goods; no floats |
 | Randomness | explicit seed/stream in accepted transition |
 | Revision | command validates expected region revision atomically |
-| Sequence | one monotonic region event sequence; no gaps/duplicates after commit |
+| Identity | every world-scoped command, event, receipt, head, snapshot, range, and decision carries `runId` plus `regionId` and matches the immutable manifest |
+| Sequence | one monotonic run/region event sequence; no gaps/duplicates after commit |
 | Ownership | every conserved stack has exactly one location/owner classification |
 | Life | dead citizens cannot act; death is a boundary, not slice content |
 | Knowledge | a citizen acts only on their authorized observations, private knowledge, sourced beliefs, and bounded memories in `DecisionContext` |
@@ -37,7 +38,7 @@ Reality facts are authoritative state. The other epistemic forms are distinct:
 | `MemoryRecord` | a bounded retained reference to observations, knowledge, beliefs, messages, plans, or prior decisions; it cannot create new fact or authority |
 | `MessageClaim` | a speaker's attributed proposition communicated to recipients; receipt may update belief but never proves the proposition |
 
-A `BeliefChanged` or `MemoryRecorded` world event is authoritative only about the citizen's mind state, not about the proposition's truth. A private message can cause a belief but does not make its content true. A public allegation is an event containing speaker and proposition. UI, Brain context, Chronicle, and later Observatory never collapse these categories or silently promote one to another.
+A `BeliefChanged` or `MemoryRecorded` world event is authoritative only about the citizen's mind state, not about the proposition's truth. A private message can cause a belief but does not make its content true. Observing a message means observing that the communication act occurred, never directly observing its proposition. A public allegation is an event containing speaker and proposition. UI, Brain context, Chronicle, and later Observatory never collapse these categories or silently promote one to another.
 
 Visibility values at minimum are public, participant-private, citizen-private, patron-visible-through-covenant, moderator-only, and implementation-only. Moderation state is separate from canonical fact. The Standard Brain receives only the focal citizen's allowed slice.
 
@@ -56,9 +57,9 @@ Viewer kinds are `public`, `citizen(citizenId)`, `participant(principalId)`, `mo
 | `moderator(R)` / `moderation` | allow | deny | deny | deny | roles contain `R` | deny |
 | `implementation(T)` / `implementation-diagnostic` in nonproduction | allow | allow | allow | allow | allow | test-run ID is `T` |
 
-`chronicle-public` admits only `public`. `export-owner` is a verified, explicit, spoiler-warning machine export by the local owning participant and includes all canonical records required to reproduce the world, but excludes separate moderator data and implementation-only records; it is never reused as a UI/Brain/Chronicle projection. Covenant revocation removes future patron access. A typed `ObservedRecord` copied to participant-private while the grant was active remains that participant's observation; revocation never rewrites history.
+`chronicle-public` admits only `public`. `export-owner` reserves a possible future, separately reviewed, spoiler-bearing owner export purpose; V1 has no caller or export route for it. If later implemented, it cannot be reused as a UI/Brain/Chronicle projection. Covenant revocation removes future patron access. A typed `ObservedRecord` copied to participant-private while the grant was active remains that participant's observation; revocation never rewrites history.
 
-A public child event with a private parent may be projected only from its own public payload. Public/private projections omit the unreadable parent edge, ID, count, withheld-evidence sentinel, and timing distinction; no factual Chronicle sentence may cite it until a typed public disclosure/observation event exists. Catalog generation and target enumeration run after this policy. Hidden, nonexistent, and no-longer-readable targets return the same `ACTION_UNAVAILABLE` code, public wording, payload shape, ordering behavior, and deterministic timing class; explanation and Chronicle cannot reveal which case occurred.
+A public child event with a private parent may be projected only from its own public payload. Public/private projections omit the unreadable parent edge, ID, count, withheld-evidence sentinel, and timing distinction; no factual Chronicle sentence may cite it until a typed public disclosure/observation event exists. Raw state/event/batch/decision hashes commit protected preimages and are implementation-diagnostic only unless a viewer can read the complete preimage; patron/public evidence never exposes them. Catalog generation and target enumeration run after this policy. Hidden, nonexistent, and no-longer-readable targets return the same `ACTION_UNAVAILABLE` code, public wording, payload shape, ordering behavior, and deterministic timing class; explanation and Chronicle cannot reveal which case occurred.
 
 Every unlisted viewer/purpose pair denies. Commit this normative table as static test-oracle data and implement `canRead` separately; exhaustive fixtures are generated from the table, not from the production function. Fixtures cover grant/revoke boundaries, private-parent/public-child cases, and the typed disclosure that changes permission.
 

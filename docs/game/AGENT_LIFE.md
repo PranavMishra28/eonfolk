@@ -19,7 +19,7 @@ Every citizen has: stable identity; 2–3 ranked values; bounded needs; relation
 3. Standard Brain scores plan-continuation, self-maintenance, commitments, values, and social effects with seeded tie-breaking.
 4. Standard Brain emits exactly one known typed action plus a typed `DecisionExplanation`; authored copy renders the public justification.
 5. Application validates authorization, knowledge, location, resources, life state, and revision.
-6. Application records the proposal and validator result in the bounded Cognitive/Decision Ledger; an accepted action changes Reality and links its event provenance to that decision ID. A future optional adapter failure falls back to Standard Brain.
+6. Application records the proposal and validator result in the bounded Cognitive/Decision Ledger; an accepted action changes Reality and links its event provenance to that decision ID. A rejected proposal uses the boundary's deterministic fallback/no-op and may schedule a later replan boundary, never a second Brain invocation in V1. A future optional adapter failure falls back to Standard Brain.
 
 The citizen may accept, reject, delay, or reinterpret counsel. Reinterpretation must map to a legal intent and have a visible state-grounded reason. “Because the AI decided” is prohibited.
 
@@ -31,7 +31,7 @@ An observation, knowledge record, belief, memory, message claim, and plan are ne
 
 ## Relationship and communication
 
-The slice stores directional familiarity/trust/strain bands and last material interaction. Public/private messages carry speaker, proposition, recipients, provenance, and source visibility; receiving one creates a claim/observation, never automatic world knowledge. Generated presentation is optional and noncanonical. Relationship changes require declared rules such as public accusation, fulfilled exchange, shared work, or broken commitment. Repetitive small talk creates no mechanical depth.
+The slice stores directional familiarity/trust/strain bands and last material interaction. Public/private messages carry speaker, proposition, recipients, provenance, and source visibility; receiving one creates a claim plus an observation that the communication act occurred, never an observation or automatic knowledge of the proposition. Generated presentation is optional and noncanonical. Relationship changes require declared rules such as public accusation, fulfilled exchange, shared work, or broken commitment. Repetitive small talk creates no mechanical depth.
 
 ## Deferred life, death, and succession hypothesis
 

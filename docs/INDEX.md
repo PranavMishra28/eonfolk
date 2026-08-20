@@ -70,8 +70,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Layers, packages, three-ledger authority, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
 | UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
 | Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
-| IndexedDB world/decision stores, Experiment Manifest, durable receipts/fencing, snapshots, replay, export and version policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
-| Mind, Standard Brain, bounded proposals, cognitive decision records and model ecology | [COGNITION.md](engineering/COGNITION.md) |
+| IndexedDB world/decision stores, Experiment Manifest, atomic genesis, durable receipts/fencing, snapshots, replay, and version/no-backup policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
+| Mind, Standard Brain, bounded proposals, raw decision records, viewer-safe trace projections and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
 

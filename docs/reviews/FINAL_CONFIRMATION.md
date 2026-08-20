@@ -28,7 +28,7 @@
 
 ## FR-001 — deterministic protocol
 
-An independent Node implementation used only the prose in [SIMULATION](../engineering/SIMULATION.md#determinism-profile-eonfolk-determinism-v1).
+An independent Node implementation used only the then-current SIMULATION v1 prose; the [current v2 profile](../engineering/SIMULATION.md#determinism-profile-eonfolk-determinism-v2) supersedes that historical vector.
 
 - `tuple("EONFOLK:ID:v1", ["citizen", 32 zero bytes, u64be(1)])` hashed to `3a532c46a6d4aa15f22b66b995935073a2c89978e66fa80d86f2a8c02bae6c7c`, producing `citizen_hjjsyrvg2svbl4rlm24zle2qoormrgly4zx2qdmg6kumak5onr6a`. The digest suffix is exactly 52 lowercase unpadded RFC 4648 base32 characters.
 - `tuple("EONFOLK:BATCH-ID:v1", ["riverhold", u64be(0), "cmd-1"])` hashed to `bd11b5e3e8e471fabe6b8dcf4d71e1950f4e904c2a702c53cbee66ccfe77fc22`, producing `batch_xui3ly7i4ry7vptlrxhu24pbsuhu5ecmfjycyu6l5ztmz7tx7qra`.

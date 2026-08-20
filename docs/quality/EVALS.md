@@ -16,7 +16,7 @@ First prove that behavior is state-sensitive, transferable, legible, and more co
 
 The same pre-boundary scenario varies one factor at a time: trust high/low, caution/public-duty value priority, mismatch-only/verified evidence, prior commitment present/absent, two advice intents/abstain, and Mara/non-Mara actor. Add plan continuation/blockage, urgent need, exchange, impossible action, private fact, stale revision, hostile text, and absent/throwing/malformed fake BrainPort.
 
-Every fixture records authorized observation/private-knowledge/belief/memory/claim IDs, plan, relationships/commitments, action catalog, integer terms, legal set, expected invariant set, allowed outcomes, cognitive decision record, command receipt, and final state vector. It never embeds a canonical action lookup as the oracle.
+Every fixture records run/region; authorized observation/private-knowledge/belief/memory/claim IDs; plan; relationships/commitments; action catalog; integer terms; legal set; expected invariant set; allowed outcomes; raw hashed cognitive decision record; at least one viewer-scoped filtered trace projection; command receipt; and final state/world-head vector. It never embeds a canonical action lookup as the oracle.
 
 ## Baselines and ablations
 
@@ -37,9 +37,9 @@ The Riverhold logic transfers to one non-Mara fixture. Three advice paths must d
 - Public justification is authored from the typed receipt, bounded, escaped, attributed, and cannot introduce a Chronicle fact.
 - Noninterference worlds produce byte-identical actor-visible outputs until observation.
 - Fake BrainPort absence/throw/timeout/malformed output preserves progress; replay never invokes cognition.
-- Every consequential boundary preserves a closed state/context/plan/proposal/validation/receipt/event trace with no hidden reasoning field.
+- Every consequential boundary preserves a closed hashed raw state/context/plan/proposal/validation/receipt/event trace with no hidden reasoning field; raw records never reach partial viewers and filtered projections reauthorize every reference.
 - A message remains an attributed claim until a typed observation/disclosure establishes knowledge; belief confidence or memory cannot grant truth/authority.
-- Canonical replay with BrainPort disabled reproduces the state hash and the original structured proposal remains byte-verifiable.
+- Canonical replay with BrainPort disabled reproduces state and world-head hashes from batch headers/events; the original structured proposal remains byte-verifiable in separate raw audit.
 - Canonical lookup cannot pass perturbation/transfer tests.
 
 ## Human rubric and yoked control
@@ -48,7 +48,7 @@ The frozen Gate B instrument in [QUALITY_BAR](QUALITY_BAR.md#gate-b--proof-of-ag
 
 The machine evaluator additionally asks what Mara knew, which typed value/plan/relationship term won, what advice contributed, why she chose, what changed, and whether another legal option can produce a different state. Groundedness, value/plan fit, social consequence, legibility, authorization, and contingency are receipt/event assertions; human concern and desire are never inferred from logs.
 
-The attachment signal is person-centered anticipation or concern plus voluntary second action, not factual recall, “interesting,” or praise for technology. A refresh immediately after catch-up tests persistence, not retention. Retention requires a separately scheduled voluntary return.
+The bounded attachment signal is initiation of the branch-dependent second action within 60 seconds plus exactly one of `mara-toma-concern`, `curiosity`, `obligation`, or `anticipated-relationship-consequence`; factual recall, “interesting,” reward-seeking, or technology praise does not pass. A refresh immediately after catch-up tests persistence, not retention. Retention requires a separately scheduled voluntary return.
 
 ## Later optional-model gate
 

@@ -105,7 +105,7 @@
 
 ## D-006 — Local-first architecture with a server seam
 
-**Decision.** Use strict TypeScript/pnpm; pure protocol/simulation/cognition packages; React Router/Vite; one simulation Web Worker; browser IndexedDB through `PersistencePort`; and one application layer. IndexedDB keeps distinct world-event and cognitive-decision stores plus one immutable experiment manifest. Cloudflare Worker plus one SQLite-backed `RegionDO` per region remains a post-gate target, not V1 scope.
+**Decision.** Use strict TypeScript/pnpm; pure protocol/simulation/cognition packages; React Router/Vite; one simulation Web Worker; browser IndexedDB through `PersistencePort`; and one application layer. IndexedDB atomically creates one run and keeps distinct batch/event and raw cognitive-decision stores plus one immutable experiment manifest. Cloudflare Worker plus one SQLite-backed `RegionDO` per region remains a post-gate target, not V1 scope.
 
 **Evidence.** The disposable deterministic spike established a viable reducer/scheduler/replay shape [S-SPIKE-001]. Current Durable Objects capabilities/prices are dated planning evidence and must be revalidated [S-SYS-08] [S-SYS-09].
 
@@ -113,7 +113,7 @@
 
 **Remaining uncertainty.** IndexedDB durability/eviction, multi-tab behavior, long-horizon growth and later region coordination remain unmeasured.
 
-**Resulting behavior.** V1 saves, reloads, confirms catch-up, exports, and replays offline. Simulation logic cannot import browser/server/provider/render code. A future server can reuse domain contracts but needs new auth/outbox/alarm/backup/moderation/import design; it is not a drop-in adapter.
+**Resulting behavior.** V1 saves, reloads, confirms resumable catch-up, and replays offline. It explicitly cannot back up/export/restore/import. Simulation logic cannot import browser/server/provider/render code. A future server can reuse domain contracts but needs new auth/outbox/alarm/backup/moderation/import design; it is not a drop-in adapter.
 
 **Constraint fit.** Eliminates deployment, account, ops and recurring cost from the proof while preserving a reversible boundary.
 
@@ -121,7 +121,7 @@
 
 ## D-007 — Deterministic authority contracts
 
-**Decision.** Lock `WorldCommand`, `WorldEventEnvelope`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Keep Canonical World Ledger, Cognitive/Decision Ledger, and Experiment Manifest distinct. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules. Prepare immutable transitions, atomically commit events/head/receipt/fencing/decision provenance, then install/publish. V1 is export-only and one schema version.
+**Decision.** Lock run-scoped `WorldCommand`, `WorldEventEnvelope`, `WorldBatchHeader`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, filtered `DecisionTraceProjection`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Keep Canonical World Ledger, Cognitive/Decision Ledger, and Experiment Manifest distinct. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules and explicit domains for manifest/context/catalog/proposal/decision hashes. Atomically create genesis; prepare immutable transitions; atomically commit batch/events/head/receipt/fencing/raw decision provenance; then install/publish. Fencing is not canonical hash input. V1 is one schema version with no backup/export/import.
 
 **Evidence.** The simulation spike produced identical repeated and replay hashes for 24-hour and seven-day runs with typed causal parents [S-SPIKE-001]. Architecture/cognition/security research converges on a validation boundary rather than trusting generated intent.
 
@@ -129,7 +129,7 @@
 
 **Remaining uncertainty.** Migration/upcaster policy, canonical serialization across releases and 30/90/365-day event volume need implementation proof.
 
-**Resulting behavior.** Commands carry idempotency and expected revision; events carry sequence, simulation time, versions, typed causal parents, visibility, provenance and hashes; consequential decisions connect state/context/plan/proposal/validation/receipt/events without hidden reasoning; replay uses ordered recorded facts with cognition disabled.
+**Resulting behavior.** Commands/events/heads/receipts/snapshots/ranges/decisions carry run plus region; causal edges carry consuming mechanisms; stored batch headers let cognition-free replay reproduce state and world-head hashes. Consequential raw decision records connect state/context/plan/proposal/validation/receipt/events without hidden reasoning, while viewer-safe trace projections reauthorize each field. Catch-up is preflighted then durably chaptered.
 
 **Constraint fit.** A small explicit kernel reduces solo debugging and makes no-model, offline, later-server and Chronicle behavior share one source of truth.
 
@@ -161,7 +161,7 @@
 
 **Remaining uncertainty.** Organic conversion, creator interest and voluntary sharing are unproven.
 
-**Resulting behavior.** First 10 are observed high-touch invitations; first 100 require a free direct page and evidence; first 1,000 require intrinsic pull. The slice only supports copyable text/seed and responsive 16:9/9:16 compositions.
+**Resulting behavior.** First 10 are observed high-touch invitations; first 100 require a free direct page and evidence; first 1,000 require intrinsic pull. The slice only supports copyable Story Card text and responsive 16:9/9:16 compositions; deterministic fixture identity remains internal evidence rather than a public seed headline.
 
 **Constraint fit.** Reuses product evidence, requires no spend or service, and adds no business operation to V1.
 
@@ -188,15 +188,41 @@
 | ID | Binding direction | Accepted implementation consequence | Scope guard |
 |---|---|---|---|
 | CA-001 | Maximum strategy, causal boundaries | Typed Reality actions may compose into unforeseen strategies; prose/models never write state or gain arbitrary tools/network/code | No new Gate A/B mechanic |
-| CA-002 | Preserve private information | World facts, observations, private knowledge, beliefs, confidence/provenance, memories, and message claims remain distinct | Small fixed records only |
-| CA-003 | Research traceability | `CognitiveDecisionRecord` closes state → context → plan → proposal → validation → receipt → event IDs | Consequential boundaries only |
-| CA-004 | Three data forms | Separate world-event store, decision store, and immutable `ExperimentManifest` | No query/dashboard service |
-| CA-005 | Replay is not model reproduction | Canonical replay consumes snapshot + accepted events; original proposal is audit evidence | No model adapter/runtime |
-| CA-006 | Future institution kernel | Preserve composition concepts for membership/roles/rules/assets/authority/claims/agreements/succession/enforcement | Implement only fixed Riverhold rule |
+| CA-002 | Preserve private information | World facts, observations, private knowledge, beliefs, confidence/provenance, memories, and message claims remain distinct; raw audit records never reach partial viewers | Small records plus one shared filtered projector |
+| CA-003 | Research traceability | hashed raw `CognitiveDecisionRecord` closes state → context → plan → proposal → validation → receipt → event IDs; `DecisionTraceProjection` discloses safely | Consequential boundaries only |
+| CA-004 | Three data forms | Separate run-scoped batch/event store, raw decision store, and immutable `ExperimentManifest` | No query/dashboard service |
+| CA-005 | Replay is not model reproduction | Canonical replay consumes manifest + snapshot + accepted batch/event ledger and reproduces state/world head; original proposal is separate audit evidence | No model adapter/runtime |
+| CA-006 | Future institution kernel | Preserve composition concepts for membership/roles/rules/assets/authority/claims/agreements/succession/enforcement | Only grandfathered fixed Riverhold data/validator; no government system |
 | CA-007 | Human roles | Preserve Stranger/Follower/Patron/Historian/Experimenter/Creator compatibility | Implement only Mara follow/counsel/history path |
 | CA-008 | Canon and counterfactuals | Future forks name canonical parent snapshot/run and never write back | No fork execution/import/UI |
 | CA-009 | Research positioning | Study agent behavior/institution emergence in grounded simulated environments; never claim human-society prediction | No dataset/publication/benchmark claim |
-| CA-010 | Proof scope unchanged | Keep Gate 0/A/B, 52 planned + ≤8 fix hours, and explicit exclusions | Provenance reuses existing receipts/events |
+| CA-010 | Proof scope unchanged | Keep Gate 0/A/B, 52 planned + ≤8 fix hours, and explicit exclusions | Explicit 2-hour provenance delta is funded by removing 2-hour backup/export work |
+
+## Civilization-amendment review reconciliation
+
+The first fresh amendment, Goal-prompt, and systems reviews found no P0 and fourteen P1 contract defects. Every P1 is accepted and corrected below before the confirmation target is frozen; P2 notes are also closed so they cannot become implementation forks.
+
+| Finding | Severity | Disposition | Evidence/reasoning and required verification | Affected authorities |
+|---|---|---|---|---|
+| CAR-001 | P1 | ACCEPT — MITIGATED | Raw `CognitiveDecisionRecord` is internal audit data; a separately authorized `DecisionTraceProjection` rechecks every reference. Hidden-fact byte equality applies only to actor/viewer-visible projections. | COGNITION, CHRONICLE, OBSERVATORY, SECURITY |
+| CAR-002 | P1 | ACCEPT — MITIGATED | Initial and resumed execution bind the exact current Goal-prompt Git blob through `orchestrationPromptBlob`; the predecessor prompt copy is explicitly non-authoritative. | Goal prompt |
+| CAR-003 | P1 | ACCEPT — MITIGATED | The two-hour provenance/run/genesis delta replaces two hours of removed backup/export work; task totals and Gate A/B mechanics remain 40/52/65 and unchanged. | 001, Goal prompt, PERSISTENCE |
+| CAR-004 | P1 | ACCEPT — MITIGATED | Readiness stays candidate until the amended commit receives fresh confirmation and current QA replaces the pre-amendment evidence. | PLAN, FINAL_READINESS, Goal prompt |
+| ZCR-001 | P1 | ACCEPT — MITIGATED | ExecPlan and Goal now share the external-inbox, content-addressed human-evidence destination, and append-only import-ledger authority. | 001, Goal prompt |
+| ZCR-002 | P1 | ACCEPT — MITIGATED | Gate B uses the same 60-second action and exact four allowed reason tokens in both authorities. | 001, Goal prompt, FINAL_READINESS |
+| PSR-001 | P1 | ACCEPT — MITIGATED | `runId` plus region scopes every world command/event/context/decision/head/receipt/snapshot/range/key and is checked against the immutable manifest. | WORLD_MODEL, SIMULATION, COGNITION, PERSISTENCE, 001, Goal prompt |
+| PSR-002 | P1 | ACCEPT — MITIGATED | Idempotent `commitGenesis` atomically creates manifest, genesis snapshot/head/fence, and empty ledgers; crashes leave all or none. | PERSISTENCE, TESTING, 001, Goal prompt |
+| PSR-003 | P1 | ACCEPT — MITIGATED | Fencing is CAS metadata only. Stored canonical `WorldBatchHeader` records make the world-head chain cognition-free and replayable. V2 vectors are independently reproduced. | SIMULATION, PERSISTENCE, TESTING, Goal prompt |
+| PSR-004 | P1 | ACCEPT — MITIGATED | Framed JCS domains now lock manifest/context/catalog/proposal/raw-decision preimages; exact proposal bytes and collision-safe record hashes are stored. | SIMULATION, COGNITION, PERSISTENCE, Goal prompt |
+| PSR-005 | P1 | ACCEPT — MITIGATED | Every causal-parent edge now carries a versioned `mechanismId`; temporal/response relations remain separate. | SIMULATION, WORLD_MODEL, CHRONICLE |
+| PSR-006 | P1 | ACCEPT — MITIGATED | Accepted commands contain 1–32 state-chained events and one revision advance; catch-up preflights globally, then commits resumable idempotent child chapters. | SIMULATION, PERSISTENCE, TESTING, Goal prompt |
+| PSR-007 | P1 | ACCEPT — MITIGATED | Raw whole-state/event/batch hashes are diagnostic unless the entire preimage is readable; Chronicle cites authorized event/payload projections and may use only a nonauthoritative projection digest. | WORLD_MODEL, CHRONICLE, SECURITY, Goal prompt |
+| PSR-008 | P1 | ACCEPT — MITIGATED | RV-010–RV-012 is grandfathered as authored data plus one fixed validator; generalized government/institution code remains excluded. | GOVERNANCE, 001, Goal prompt |
+| PSR-009 | P2 | ACCEPT — MITIGATED | Proposal rejection uses one deterministic fallback/no-op and zero Brain retries; any replan occurs only at a later named boundary. | COGNITION, Goal prompt |
+| PSR-010 | P2 | ACCEPT — MITIGATED | Message observation means the communication act occurred, never that its proposition is observed or true. | AGENT_LIFE, WORLD_MODEL, Goal prompt |
+| PSR-011 | P2 | ACCEPT — MITIGATED | The manifest names configured intervention-protocol IDs; executed intervention/command IDs live in receipts/events. | PERSISTENCE, OBSERVATORY, Goal prompt |
+| PSR-012 | P2 | ACCEPT — MITIGATED | Persisted decision records round-trip as separate audit evidence; canonical replay neither regenerates nor consumes cognition records. | COGNITION, PERSISTENCE |
+| PSR-013 | P2 | ACCEPT — MITIGATED | `creationSequence` is one global per-run counter and assigns consecutive values in typed payload order. | SIMULATION, Goal prompt |
 
 ## Review reconciliation
 
@@ -204,7 +230,7 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 
 | Finding | Severity | Disposition | Evidence/reasoning and required verification | Affected authorities |
 |---|---|---|---|---|
-| PR-001 | P1 | ACCEPT — MITIGATED | Gate B now uses 8 sessions, yoked control, voluntary second action and person-centered threshold; recall alone cannot pass. | PRODUCT, QUALITY_BAR, EVALS |
+| PR-001 | P1 | ACCEPT — MITIGATED | Gate B now uses 8 sessions, yoked control, a within-60-second second action and one of four exact branch-related reason tokens; recall alone cannot pass. | PRODUCT, QUALITY_BAR, EVALS |
 | PR-002 | P1 | ACCEPT — MITIGATED | Shell/CTA/investigate/advice deadlines are 2s/3s/60s/5m; ugly loop exists by planned hour 20. | PRODUCT, HUMAN_LOOP, 001 |
 | PR-003 | P1 | ACCEPT — MITIGATED | Same snapshot must reach three terminal vectors; perturb/transfer/baseline tests reject fixed lookup. | HUMAN_LOOP, CHRONICLE, COGNITION |
 | PR-004 | P1 | ACCEPT — MITIGATED | Explicit leave/advance/return ends in one branch-legal state-changing second decision. | HUMAN_LOOP, 001 |
@@ -222,7 +248,7 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | GR-008 | P1 | ACCEPT — MITIGATED | Gate 0 repeats matched starting-unit comparison rather than trusting paper scores. | PRODUCT, QUALITY_BAR |
 | GR-009 | P1 | ACCEPT — MITIGATED | Five-observer Gate A and eight-session Gate B replace handpicked single success. | QUALITY_BAR, VISUAL_QA |
 | ER-001 | P0 | ACCEPT — MITIGATED | Prepare → atomic events/head/receipt/fence → install → publish; crash injection at every barrier is blocking. | PERSISTENCE, SIMULATION, 001 |
-| ER-002 | P0 | ACCEPT — MITIGATED | V1 is export-only; no import/replacement/upcaster route; unknown versions fail closed without mutation. | PERSISTENCE, SECURITY, TESTING |
+| ER-002 | P0 | ACCEPT — MITIGATED | V1 now has no backup/export/import/replacement/upcaster route; unknown versions fail closed without mutation. This is stricter than the historical export-only fix. | PERSISTENCE, SECURITY, TESTING |
 | ER-003 | P1 | ACCEPT — MITIGATED | Exact integer/rounding/text/JCS/SHA-256/xoshiro/stream/ID/hash boundaries and golden vectors are frozen. | SIMULATION |
 | ER-004 | P1 | ACCEPT — MITIGATED | Durable accepted/rejected receipt and same-ID/different-fingerprint collision are atomic with head/events. | PERSISTENCE |
 | ER-005 | P1 | ACCEPT — MITIGATED | Snapshot-after-base plus half-open range/zero-event case; one version; gaps/unknown versions fail. | PERSISTENCE, TESTING |
@@ -250,7 +276,7 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | PP-006 | P1 | ACCEPT — MITIGATED | Authoritative interaction and anti-script matrix test state-sensitive people. | GAME_SYSTEMS, EVALS |
 | PP-007 | P1 | ACCEPT — MITIGATED | Reproducible leave/advance manifest and second decision are in Gate B. | HUMAN_LOOP, 001 |
 | PP-008 | P1 | ACCEPT — MITIGATED | Mobile world/peek/scroll/back/chooser/People/zoom rules and tests are explicit. | MOBILE, FRONTEND |
-| PP-009 | P1 | ACCEPT — MITIGATED | Local-device notice appears in first peek and before advice; storage failure precedes commitment; export is honest. | MOBILE, PERSISTENCE |
+| PP-009 | P1 | ACCEPT — MITIGATED | Local-device notice appears in first peek and before advice; storage failure precedes commitment; the absence of backup/export is explicit. | MOBILE, PERSISTENCE |
 | PP-010 | P1 | ACCEPT — MITIGATED | Card says advised/chose/what followed and tests false causal credit. | CHRONICLE, DISTRIBUTION |
 | PP-011 | P1 | ACCEPT — MITIGATED | Eight sessions, cross-surface identity, concern, voluntary second action, yoked control; reload is not retention. | QUALITY_BAR, EVALS |
 | PP-012 | P1 | PARTIALLY ACCEPT — MITIGATED WITHOUT EXPANSION | Decision boundary is stable/readable with one-line stakes for screen sharing; no chat integration/dashboard. | INTERACTION, 001 |
@@ -328,7 +354,7 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | Z8-010 | P1 | ACCEPT — MITIGATED | Milestone amounts are targets; one exact 28,800-second fix/confirmation pool, reservations and ceiling rules make hours 53–60 reachable only for fixes. | 001, Goal prompt |
 | Z8-011 | P1 | ACCEPT — MITIGATED | Every canonical install uses `--ignore-scripts` and committed pnpm configuration; frozen lifecycle metadata remains review evidence. | Goal prompt, DEPENDENCY_COHORT |
 | Z8-012 | P1 | ACCEPT — MITIGATED | Payloads use literal bytes; timing fixes warmup/order, nearest-rank p50/p95 and absolute pair differences. | PERFORMANCE, Goal prompt |
-| Z8-013 | P1 | ACCEPT — MITIGATED | One finite numeric table bounds commands, text, contexts, plans, retries, batches, snapshots, catch-up, storage, export and horizon runs. | Goal prompt, SECURITY |
+| Z8-013 | P1 | ACCEPT — MITIGATED | One finite numeric table bounds commands, text, contexts, plans, retries, batches, snapshots, catch-up, storage and horizon runs; backup/export/import routes are absent. | Goal prompt, SECURITY |
 | Z8-014 | P1 | ACCEPT — MITIGATED | JSON counters use safe nonnegative integers through `Number.MAX_SAFE_INTEGER`; conserved values/scores/counts have exact signed/unsigned ranges and fail on overflow. | Goal prompt, SIMULATION |
 | Z9-001 | P1 | ACCEPT — MITIGATED | Every import target records exact predecessor and target bytes/hashes and permits atomic rename-over-predecessor plus idempotent completion. | Goal prompt |
 | Z9-002 | P1 | ACCEPT — MITIGATED | A validated import lock atomically renames to a deterministic cleanup tombstone whose exact deletion suffixes are resumable. | Goal prompt |

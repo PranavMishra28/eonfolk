@@ -10,15 +10,15 @@
 
 ## Owned decision
 
-Observatory is a future surface over the same grounded world and provenance used by the consumer game. It may inspect actor-visible decision context, replay accepted decisions, compare independent runs, and create controlled non-canonical forks from versioned snapshots. It never grants world authority, edits canon, exposes secrets to an unauthorized viewer, or turns generated prose into fact.
+Observatory is a future surface over the same grounded world and provenance used by the consumer game. It may inspect viewer-authorized `DecisionTraceProjection` records, replay accepted decisions, compare independent runs, and create controlled non-canonical forks from versioned snapshots. Raw citizen-private audit records are never a default research surface. Observatory never grants world authority, edits canon, exposes secrets to an unauthorized viewer, or turns generated prose into fact.
 
 The defensible research object is **behavior and institutional emergence in populations of autonomous AI agents inside persistent, grounded, reproducible simulated environments**. EONFOLK does not simulate, represent, or predict human society. A single run, dramatic anecdote, Chronicle card, or model response is not evidence of a distribution.
 
 ## Three distinct data forms
 
 1. **Canonical World Ledger:** ordered authoritative state-changing `WorldEventEnvelope` records. Only this ledger changes Reality.
-2. **Cognitive/Decision Ledger:** bounded records of what a citizen observed, knew, believed, remembered, planned, was offered, proposed, and had accepted/rejected at consequential decision boundaries. These records explain agent inputs/actions but are not world truth merely because a citizen believed or proposed them.
-3. **Experiment Manifest:** immutable run identity: world seed; engine/schema/determinism/replay/cognition versions; cognition configuration; optional provider/model/version/artifact metadata; intervention IDs; canonical/fork/experiment kind; and parent run/snapshot references.
+2. **Cognitive/Decision Ledger:** bounded raw citizen-private audit records of what a citizen observed, knew, believed, remembered, planned, was offered, proposed, and had accepted/rejected at consequential decision boundaries. These records explain agent inputs/actions but are not world truth merely because a citizen believed or proposed them; any viewer receives a separately authorized field-filtered projection.
+3. **Experiment Manifest:** immutable run identity: world seed; engine/schema/determinism/replay/cognition versions; cognition configuration; optional provider/model/version/artifact metadata; configured intervention-protocol IDs; canonical/fork/experiment kind; and parent run/snapshot references. Executed intervention IDs live in receipts/events.
 
 The first slice preserves all three as machine-auditable local data. It does not expose a research dashboard, publish a dataset, implement experiment orchestration, or support fork execution/import.
 
@@ -50,7 +50,7 @@ Reopen the Observatory direction if preserving bounded provenance materially bre
 
 ## Resulting implementation behavior
 
-The first implementation stores one immutable local-run manifest and bounded cognitive decision records at the already-required consequential boundaries. Chronicle/evidence links may reveal authorized structured provenance, but no Observatory navigation or analysis UI exists. Future forks and experiments reuse canonical snapshots/events rather than creating disconnected scenario authority.
+The first implementation stores one immutable local-run manifest and bounded raw cognitive decision records at the already-required consequential boundaries, plus a shared projector that can produce only authorized structured provenance for Chronicle/evidence. No Observatory navigation or analysis UI exists. Future forks and experiments reuse canonical snapshots/events rather than creating disconnected scenario authority.
 
 ## Constraint fit
 

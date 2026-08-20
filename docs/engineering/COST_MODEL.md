@@ -57,11 +57,11 @@ Neuron/compute-unit providers use their measured unit instead. Record eligible b
 
 | Ceiling | Permitted planning assumption | Excluded claim |
 |---|---|---|
-| **~$0 default** | Complete local game, exports, Standard Brain; optional developer-only existing tools under their present authorization | Public uptime, hosted inference, backups, abuse resistance, or unlimited CI |
+| **~$0 default** | Complete browser-local proof and Standard Brain; no backup/export/import; optional developer-only existing tools under their present authorization | Public uptime, hosted inference, backups, abuse resistance, or unlimited CI |
 | **$50 comparison** | A tightly capped small hosted/cognition canary with platform base, observability, and contingency separated | Sustainable 1,000-user world, continuous calls, or spending approval |
 | **$300 comparison** | A measured small public experiment with separate infra, inference, moderation/observability, and contingency caps | Mass concurrency, profit, SLA, or permission to deploy |
 
-If measured worst-case usage cannot fit the approved envelope with margin, optional work fails closed: disable model calls, reject costly writes, reduce fanout, and preserve read/export/replay. Never silently exceed the cap.
+If measured worst-case usage cannot fit the approved envelope with margin, optional work fails closed: disable model calls, reject costly writes, reduce fanout, and preserve local read/replay. Never silently exceed the cap.
 
 ## First-slice cost ledger
 
@@ -85,7 +85,7 @@ Before any future hosted spend:
 - model p50/p95/worst-case without free quota in the production column;
 - name every resource and credential;
 - configure platform alerts/limits where available plus application daily request/write/inference caps;
-- provide a global kill switch and a read/export/replay degradation path;
+- provide a global kill switch and a local read/replay degradation path; any future export needs its own reviewed design;
 - obtain explicit approval for the exact ceiling and action.
 
 No agent may interpret an envelope as authority to purchase or deploy.

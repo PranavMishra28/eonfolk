@@ -18,7 +18,7 @@ The Chronicle is a deterministic projection of authoritative events. It distingu
 - **Temporal predecessor:** it happened earlier; no causal claim is supported.
 - **In-world allegation:** a named speaker/belief claims a relation not established by Reality.
 
-Every factual sentence resolves to Canonical World Ledger event IDs and state hashes. An authorized evidence disclosure may link a consequential event to its Cognitive/Decision Ledger record and Experiment Manifest, but a belief, memory, proposal, validator rejection, or citizen justification never becomes world truth through that link. A citizen's justification is testimony/provenance, not hidden reasoning or objective truth. Causal parents are typed, not inferred later from narrative proximity.
+Every factual sentence resolves internally to Canonical World Ledger events and their verified state/world-head chain. Viewer evidence exposes only authorized event IDs and typed payload projections. Whole-state, event, batch, manifest, and raw decision-record hashes are withheld from patron/public surfaces because their preimages may commit hidden facts; an optional digest over the authorized projection is explicitly nonauthoritative. An authorized evidence disclosure may link a consequential event to a filtered `DecisionTraceProjection` and safe Experiment Manifest fields, but never to the raw cognitive record. A belief, memory, proposal, validator rejection, or citizen justification never becomes world truth through that link. A citizen's justification is testimony/provenance, not hidden reasoning or objective truth. Causal parents are typed with consuming mechanisms, not inferred later from narrative proximity.
 
 ## Riverhold oracle chain
 
@@ -39,7 +39,7 @@ All seven formats below demonstrate one accepted history. It is an oracle for se
 | RV-011 | Council passes `public-reserve-counts`; future ledgers must separate open stock and sealed reserve. | Direct institutional outcome of valid vote; RV-010 trigger, RV-009 evidence condition |
 | RV-012 | Next shortage checkpoint allocates grain using the separated counts; no citizen misses that ration. | Direct effect of the allocation rule at this checkpoint; not proof the law prevented famine generally |
 
-Pre/post hashes and sequence belong to implementation fixtures. This document deliberately makes no unrecorded claim about Toma's intent, Mara's courage, or the law “saving Riverhold.”
+Pre/post hashes, world-head hashes, and sequence belong to private implementation fixtures. Public/patron presentation uses only authorized projections. This document deliberately makes no unrecorded claim about Toma's intent, Mara's courage, or the law “saving Riverhold.”
 
 ## Counterfactual branch suite
 

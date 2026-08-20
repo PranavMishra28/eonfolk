@@ -66,7 +66,7 @@ Continuous chat, command queues, daily chores, direct possession, random refusal
 
 ## Reopen evidence
 
-Reopen timing if fewer than four of five find/follow Mara by ten seconds or understand the first investigation by 60. Reopen advice if participants cannot forecast differences or explain response. Reopen the loop if the second decision does not create a person-centered reason to continue.
+Reopen timing if fewer than four of five find/follow Mara by ten seconds or understand the first investigation by 60. Reopen advice if participants cannot forecast differences or explain response. Reopen the loop if fewer than four of eight initiate the second decision within 60 seconds and select one of `mara-toma-concern`, `curiosity`, `obligation`, or `anticipated-relationship-consequence`.
 
 ## Constraint fit
 

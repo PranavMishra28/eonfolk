@@ -55,10 +55,10 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 | Contract | Authority | Architectural role |
 |---|---|---|
 | `WorldCommand` | [Simulation](SIMULATION.md) | Idempotent, revision-checked input to Reality |
-| `WorldEventEnvelope` | [Simulation](SIMULATION.md) | Ordered and hash-linked canonical fact |
+| `WorldEventEnvelope` / `WorldBatchHeader` | [Simulation](SIMULATION.md) | Run-scoped ordered events and replayable canonical world-head chain |
 | `DecisionContext` | [Cognition](COGNITION.md) | Bounded, visibility-filtered input to any Brain |
 | `IntentProposal` / `DecisionExplanation` | [Cognition](COGNITION.md) | One untrusted typed action plus grounded decision receipt |
-| `CognitiveDecisionRecord` | [Cognition](COGNITION.md) | Bounded noncanonical state/context/plan/proposal/validation/event trace |
+| `CognitiveDecisionRecord` / `DecisionTraceProjection` | [Cognition](COGNITION.md) | Raw citizen-private audit trace plus viewer-authorized disclosure |
 | `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
 | `ExperimentManifest` | [Persistence](PERSISTENCE.md) | Immutable run/seed/version/cognition/intervention/parent identity |
 | `PersistencePort` / `CommandReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe world/decision commit, replay, and idempotency boundary |
@@ -67,7 +67,7 @@ Provider names and browser APIs never appear in authoritative world contracts. O
 
 ## Three-ledger data architecture
 
-- **Canonical World Ledger:** accepted `WorldEventEnvelope` records and canonical head; reducer input and only source of world-state change.
+- **Canonical World Ledger:** accepted `WorldBatchHeader` plus `WorldEventEnvelope` records and canonical world head, all run/region scoped; reducer input and only source of world-state change.
 - **Cognitive/Decision Ledger:** append-only bounded consequential-decision records; audit/explanation input, never reducer authority.
 - **Experiment Manifest:** immutable identity/configuration for the run; version/provenance input, never a mutable world event stream.
 
@@ -100,7 +100,7 @@ This is a migration option, not an approved deployment. Cloudflare pricing, acco
 - Pure domain logic can later be reused by a region adapter; authentication, outbox/alarm, backup, moderation, and history-import semantics must be designed separately.
 - Engine, schema, cognition, PRNG, and replay versions travel with saved history.
 - World truth remains distinct from each citizen's observations, private knowledge, beliefs, memories, plans, and communicated claims.
-- Original structured proposals and validator outcomes survive for audit; canonical replay never depends on reproducing cognition.
+- Original structured proposals and validator outcomes survive in raw citizen-private audit records; public/patron consumers receive filtered trace projections, and canonical replay never depends on reproducing cognition.
 - Future institutions can compose shared membership/role/rule/asset/authority/agreement/succession/enforcement concepts without shipping those systems in Gate A/B.
 
 ## Rejected alternatives
@@ -119,7 +119,7 @@ This is a migration option, not an approved deployment. Cloudflare pricing, acco
 
 - **PRODUCT HYPOTHESIS:** eight deterministic citizens can produce attachment. Reopen the architecture only if mechanics and Mind quality pass but player evidence isolates cognition/runtime limits.
 - **UNRESOLVED:** a single Web Worker is sufficient under full renderer load. Reopen package/runtime partitioning if measured p95 worker latency or main-thread contention misses [performance budgets](../quality/PERFORMANCE.md).
-- **UNRESOLVED:** IndexedDB plus export is adequate for V1 durability. Reopen if quota, eviction, multi-tab, or recovery drills fail.
+- **UNRESOLVED:** IndexedDB without backup/restore is adequate for the bounded proof. Reopen after Gate A/B or sooner if quota, eviction, multi-tab, or genesis/recovery drills fail.
 - **UNRESOLVED:** region is the later coordination atom. Reopen if measured cross-region invariants require frequent synchronous transactions.
 - **UNRESOLVED:** Cloudflare remains the best later host. Reopen on current price, account capability, operational, backup, or security evidence before implementation.
 

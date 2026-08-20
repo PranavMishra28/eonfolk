@@ -1,8 +1,8 @@
 # Local persistence and replay
 
-**Purpose:** lock crash-safe browser durability, canonical/cognitive ledger separation, experiment identity, command receipts, single-writer fencing, snapshots, export, and replay interval semantics.
+**Purpose:** lock crash-safe browser durability, run-scoped canonical/cognitive ledger separation, experiment identity, genesis, command receipts, single-writer fencing, snapshots, and replay interval semantics.
 
-**Status:** ACCEPTED AFTER RED TEAM — export-only first slice
+**Status:** ACCEPTED AFTER RED TEAM — no backup/import surface in the first slice
 
 **Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. A transition becomes visible only after its events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The slice can export a verified bundle but cannot import, replace, fork, merge, migrate, or promote a world.
+The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The slice cannot back up, export, import, replace, fork, merge, migrate, or promote a world; that honest limitation is disclosed before commitment.
 
 ## Locked port
 
@@ -19,25 +19,30 @@ The TypeScript surface may refine names but preserves these operations:
 ```ts
 interface PersistencePort {
   getExperimentManifest(runId: RunId): Promise<ExperimentManifest>;
-  getHead(regionId: RegionId): Promise<DurableHead>;
-  getCommandReceipt(regionId: RegionId, commandId: CommandId): Promise<CommandReceipt | null>;
-  getDecisionRecord(decisionId: DecisionId): Promise<CognitiveDecisionRecord | null>;
+  commitGenesis(request: CommitGenesisRequest): Promise<CommitGenesisResult>;
+  getHead(runId: RunId, regionId: RegionId): Promise<DurableHead>;
+  getCommandReceipt(runId: RunId, regionId: RegionId, commandId: CommandId): Promise<CommandReceipt | null>;
+  getDecisionRecord(runId: RunId, decisionId: DecisionId): Promise<CognitiveDecisionRecord | null>;
   appendEvents(request: CommitTransitionRequest): Promise<CommitTransitionResult>;
   appendRejectedDecision(request: CommitRejectedDecisionRequest): Promise<void>;
   loadSnapshot(ref: SnapshotRef): Promise<VerifiedSnapshot>;
   saveSnapshot(request: SaveSnapshotRequest): Promise<SnapshotRef>;
+  getBatchRange(request: BatchRangeRequest): Promise<readonly WorldBatchHeader[]>;
   getEventRange(request: EventRangeRequest): Promise<readonly WorldEventEnvelope[]>;
-  exportWorld(regionId: RegionId): Promise<VerifiedExport>;
 }
 ```
 
-`appendEvents` is stronger than a raw append. Its request includes prior revision/head hash, command/fingerprint, receipt candidate, ordered event batch, post hash/revision, monotonic fencing token, and optional finalized `CognitiveDecisionRecord`. The adapter verifies the batch hash and decision/command/event references and commits atomically. `appendRejectedDecision` is idempotent and exists only when proposal/schema validation failed before a `WorldCommand` could exist; it cannot update world head, event stores, snapshots, or receipts.
+Every operation and reference is explicitly run/region scoped and verifies those values against the immutable manifest. `commitGenesis` accepts one already-hashed manifest, verified genesis snapshot, initial state hash, genesis world-head hash, and initial fencing token. In one idempotent transaction it creates the manifest, snapshot, head/fence, and empty batch/event/decision/receipt stores. Exact same-run/same-manifest retry returns the existing result; same run ID with different bytes/hash is `RUN_ID_COLLISION`. A crash at any barrier leaves either no run or the complete verified genesis—never a manifest without a matching head/snapshot.
+
+`getDecisionRecord` is a package-internal audit operation, not an Application/UI/Brain capability. Production consumer code receives only the authorized `DecisionTraceProjection` defined by [COGNITION](COGNITION.md); the raw getter is exercised by bounded audit/corruption tests and has no patron/public route.
+
+`appendEvents` is stronger than a raw append. Its request includes run/region; prior revision/state/world-head hashes; command/fingerprint; receipt candidate; one `WorldBatchHeader`; ordered 1–32-event batch; post hash/revision; monotonic fencing token; and optional finalized `CognitiveDecisionRecord`. The adapter requires the manifest/genesis, verifies every run/region/version/hash/batch/decision/command/event reference, and commits atomically. `appendRejectedDecision` is idempotent and exists only when proposal/schema validation failed before a `WorldCommand` could exist; it requires the canonical `decisionRecordHash`, returns the prior exact record on identical retry, rejects same decision ID/different hash as `DECISION_ID_COLLISION`, and cannot update world head, batch/event stores, snapshots, or receipts.
 
 ## Durable `CommandReceipt`
 
 Every syntactically valid command ID gets exactly one durable result, accepted or rejected:
 
-- region, command ID, schema version, canonical payload fingerprint, and principal;
+- run, region, command ID, schema version, canonical payload fingerprint, and principal;
 - observed expected/actual revision;
 - outcome code and accepted event interval or typed rejection code;
 - resulting revision/head hash for acceptance, unchanged head for rejection; and
@@ -51,40 +56,40 @@ For each command the worker/application must:
 
 1. read the durable head and matching receipt, if any;
 2. prepare an immutable transition/result without changing live state;
-3. call `appendEvents`, which in one read-write transaction verifies prior head/fencing and decision references, inserts the complete event batch, writes the accepted/rejected receipt and associated consequential-decision record, and advances the head only for acceptance;
+3. call `appendEvents`, which in one read-write transaction verifies manifest/run/region, prior state/world head, fencing and decision references; inserts the complete batch header and event batch; writes the accepted/rejected receipt and associated consequential-decision record; and advances revision/state/world head only for acceptance;
 4. wait for transaction completion;
 5. install the prepared post-state only when the returned durable head matches; and
 6. publish projections and acknowledge the command.
 
 If commit fails or the tab crashes before step 4, the candidate is discarded and never appears accepted. If it crashes after step 4 but before publish, startup reconstructs from the durable head and returns the existing receipt. If publication fails, retry publication without reapplying Reality. Crash-injection tests cover every barrier.
 
+A confirmed catch-up uses one run/region-scoped `CatchUpOperationReceipt` containing operation/confirmation command IDs, requested interval, preflight plan hash, total deterministic chapters, next chapter, status, and initial/current/final state and world-head hashes. Preflight rejection writes only a rejected confirmation receipt. After acceptance, each 1–32-event child command and the progress update commit atomically; retry resumes at `nextChapter`, and same operation ID with a different plan hash is a collision. The final summary publishes only after `complete`. This makes chapter commits durable and idempotent without pretending that a 50,000-event operation is one atomic event batch.
+
 ## IndexedDB layout and fencing
 
-Stores are `experimentManifests`, `worlds`, `events`, `decisionRecords`, `commandReceipts`, `snapshots`, and `exports`. Event keys are `(regionId, sequence)`; decision keys are `(runId, decisionId)`; receipt keys are `(regionId, commandId)`. Events are the Canonical World Ledger. Decision records remain separate and cannot participate in state reduction merely because they exist.
+Stores are `experimentManifests`, `worlds`, `batches`, `events`, `decisionRecords`, `commandReceipts`, `catchUpOperations`, and `snapshots`. Head keys are `(runId,regionId)`; batch keys `(runId,regionId,resultRevision)`; event keys `(runId,regionId,sequence)`; decision keys `(runId,decisionId)`; receipt keys `(runId,regionId,commandId)`; snapshot keys include run/region. Batch headers plus events are the Canonical World Ledger. Decision records remain separate and cannot participate in state reduction merely because they exist.
 
-One active writer owns a monotonically increasing `fencingToken` stored in the world head. Lease transfer increments it transactionally. Every append and snapshot validates it. A suspended old tab with a stale token is rejected even if its wall-clock lease looks valid. Other tabs are read-only; automatic multi-tab takeover is excluded.
+One active writer owns a monotonically increasing `fencingToken` stored as CAS metadata beside the world head. Lease transfer increments it transactionally but never changes canonical state hash or world-head hash. Every append and snapshot validates it. A suspended old tab with a stale token is rejected even if its wall-clock lease looks valid. Other tabs are read-only; automatic multi-tab takeover is excluded.
 
-Snapshots are rebuildable caches. A snapshot contains state after applying every accepted event with `sequence <= baseSequence`, exact profile/engine/schema versions, canonical bytes/hash, creation head hash, and event-count metadata. Sequence 1 is the first domain event; the genesis snapshot has `baseSequence=0` and no domain event. Durable event/receipt/head commit never depends on snapshot success.
+Snapshots are rebuildable caches. A snapshot contains run/region, state after applying every accepted event with `sequence <= baseSequence`, exact profile/engine/schema versions, canonical bytes/state hash, base world-head hash, creation head hash, and event-count metadata. Sequence 1 is the first domain event; the genesis snapshot has `baseSequence=0` and no domain event. Durable batch/event/receipt/head commit never depends on later snapshot success.
 
 ## Immutable `ExperimentManifest`
 
-Each run has exactly one canonical manifest created before its first domain event. It contains manifest version; stable run/region IDs; run kind; world seed; initial snapshot reference/hash; engine, schema, determinism, replay, and cognition versions; bounded cognition configuration; Standard-Brain version; optional provider/model/version/prompt/schema/artifact hashes; ordered intervention IDs; parent run/snapshot references; and the manifest hash.
+Each run has exactly one canonical manifest created with genesis before its first domain event. It contains manifest version; stable run/region IDs; run kind; world seed; initial snapshot reference/hash; engine, schema, determinism, replay, and cognition versions; bounded cognition configuration; Standard-Brain version; optional provider/model/version/prompt/schema/artifact hashes; ordered configured intervention-protocol IDs; parent run/snapshot references; and the manifest hash. `manifestHash` uses the framed JCS domain over the complete object without that field; mutation-and-rehash is not accepted after genesis. Actually executed intervention command IDs live in receipts/events, not the immutable configured list.
 
-For `001-foundation`, run kind is exactly `canonical-local-proof`; all optional provider/model fields and parent references are null; intervention IDs are the bounded patron counsel/advance commands actually configured. Any attempt to create a fork/experiment kind, change the manifest after sequence 0, or attach a parent is rejected. Future non-canonical runs require a new versioned design and visibly distinct run ID/ledger; they never append to the parent canon.
+For `001-foundation`, run kind is exactly `canonical-local-proof`; all optional provider/model fields and parent references are null; configured intervention-protocol IDs name the bounded patron counsel/advance action families. Actual executed command/intervention IDs are append-only receipt/event provenance. Any attempt to create a fork/experiment kind, change the manifest after genesis, or attach a parent is rejected. Future non-canonical runs require a new versioned design and visibly distinct run ID/ledger; they never append to the parent canon.
 
 ## Replay interval and manifest
 
-`ReplayManifest` contains version, run/region/seed, Experiment Manifest hash, snapshot reference/hash with `baseSequence`, half-open event interval `[fromSequenceInclusive, toSequenceExclusive)`, engine/schema/determinism/replay versions, expected final hash, and presentation metadata that cannot supply facts.
+`ReplayManifest` contains version, run/region/seed, Experiment Manifest hash, snapshot reference/hash with `baseSequence` and base world-head hash, half-open event interval `[fromSequenceInclusive, toSequenceExclusive)`, covering batch-header range, engine/schema/determinism/replay versions, expected final state hash/world-head hash, and presentation metadata that cannot supply facts.
 
 Require `fromSequenceInclusive=baseSequence+1` and `toSequenceExclusive=finalSequence+1`; apply exactly `from <= sequence < to`. For zero events `finalSequence=baseSequence`, so start=end=`baseSequence+1` and replay returns the snapshot hash unchanged. Ranges reject gaps, duplicates, wrong region/first sequence, or an end beyond the durable head. Only the current engine/schema/profile is supported; unknown versions fail closed.
 
-Canonical replay reads only the verified Experiment Manifest, snapshot, and accepted Canonical World Ledger interval. It never reruns a Standard Brain or model and never derives events from a Cognitive/Decision Ledger record. The preserved original proposal/validator/receipt chain is audit evidence; model-output reproducibility is explicitly outside the replay guarantee.
+Canonical replay reads only the verified Experiment Manifest, snapshot, and accepted Canonical World Ledger interval of batch headers plus events. It verifies run/region/version bindings, event state-hash chains, batch hashes and the world-head chain, reaching both expected final hashes. It never reruns a Standard Brain or model and never derives events from a Cognitive/Decision Ledger record. The preserved original proposal/validator/receipt chain is audit evidence; model-output reproducibility is explicitly outside the replay guarantee.
 
-## Export-only recovery
+## Backup and recovery boundary
 
-**Export save** writes a bounded versioned bundle with Experiment Manifest, current snapshot, complete required event/receipt suffix, bounded decision records, checksums, and plain warnings: progress is local to this device; export is a backup artifact; this version cannot restore/import it yet. Export creation is read-only and cannot pause or rewrite the world.
-
-Import, replacement, merge, old-schema migration, and local-to-public promotion are deferred. There is no hostile-import surface in `001-foundation`; tests verify no import route exists and an unknown-version world fails without modification.
+Backup/export, import, restore, replacement, merge, old-schema migration, and local-to-public promotion are deferred. The UI plainly says the proof is saved only in this browser and cannot yet be backed up or restored. Tests verify that no export/import/replace route exists and an unknown-version world fails without modification. This cut funds the amendment's provenance/privacy work without changing either product gate.
 
 ## Future server option
 
@@ -95,22 +100,24 @@ A region server may later reuse pure simulation contracts, event envelopes, rece
 - Crash injection before/after prepare, commit request, IndexedDB completion, worker install, projection publish, and acknowledgment never produces visible-undurable or double-applied state.
 - Accepted and rejected retry receipts survive reload; same-ID/different-payload collision is stable.
 - Stale revision, stale fencing, partial batch, duplicate sequence, batch-hash mismatch, quota abort, corrupt snapshot, and event gap cause no partial mutation.
-- Genesis replay and every verified snapshot plus half-open range reach identical canonical bytes/hash.
+- Genesis crash injection produces either no run or a complete manifest/snapshot/head/empty-ledger unit; mismatched same-ID genesis cannot alter it.
+- Genesis replay and every verified snapshot plus half-open batch/event range reach identical canonical bytes, state hash, and world-head hash.
+- Every run/region/version binding and compound key matches the immutable manifest; a fork-like run cannot collide with or append to its parent.
 - Every cognition-originated accepted event cites a stored decision ID whose context/proposal/validation/receipt/event chain verifies; rejected decision records cannot advance canonical head.
 - Experiment Manifest is immutable after genesis, binds all replay versions/configuration, and rejects first-slice fork/parent/model fields.
-- Canonical replay succeeds with cognition unavailable and never calls BrainPort; original structured proposals remain byte-verifiable audit records.
+- Canonical replay succeeds with cognition unavailable and never calls BrainPort; original structured proposal bytes and hashed raw decision records remain byte-verifiable audit records.
 - Dual-tab fixture proves stale writer rejection after transfer.
 - Local-save disclosure appears before counsel; blocked storage is disclosed before investment.
-- Export is verified and non-destructive; no import or replace capability is reachable.
+- No backup/export/import/replace capability is reachable; local-only disclosure appears before counsel.
 
 ## Rejected alternatives
 
-Worker-first publication, best-effort receipt/decision caches, a mixed world/cognition ledger, unfenced wall-clock leases, snapshot-only authority, model rerun as replay, auto-import, destructive replacement, in-place event migration, first-slice fork creation, and a claimed drop-in server adapter.
+Worker-first publication, best-effort receipt/decision caches, non-atomic genesis, region-only keys, a mixed world/cognition ledger, fencing inside canonical hashes, receipts as the only batch-chain source, unfenced wall-clock leases, snapshot-only authority, model rerun as replay, premature backup/export/import, destructive replacement, in-place event migration, first-slice fork creation, and a claimed drop-in server adapter.
 
 ## Reopen evidence
 
-Reopen snapshot cadence from measured 30/90/365-day bytes. Reopen restore/import only with side-by-side validation and explicit user selection. Reopen server persistence only after both product gates.
+Reopen snapshot cadence from measured 30/90/365-day bytes. Reopen backup/export/restore/import only with side-by-side validation and explicit user selection. Reopen server persistence only after both product gates.
 
 ## Constraint fit
 
-One adapter, one writer, one current version, one small manifest, bounded consequential-decision records, and export-only recovery protect history/provenance without consuming the slice on a dashboard, fork engine, migration, or distributed system. The plan stays local, free, accountless, provider-free, and deploys nothing.
+One adapter, one writer, one current version, one small manifest, bounded consequential-decision records, and no backup/import surface protect history/provenance without consuming the slice on a dashboard, fork engine, migration, or distributed system. The plan stays local, free, accountless, provider-free, and deploys nothing.

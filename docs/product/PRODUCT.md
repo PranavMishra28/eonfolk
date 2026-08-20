@@ -69,7 +69,7 @@ Five silent unfamiliar observers inspect the same named commit/seed/time. At lea
 
 ### Gate B — Proof of Agency and bounded attachment
 
-Eight unfamiliar formative sessions compare the real state-sensitive build with a yoked scripted/canonical-lookup control in randomized order. At least six of eight complete the first counsel without prompting; at least five explain Mara's relevant reason, independent response, later consequence, and the local-save limit; at least four voluntarily choose the outcome-dependent second action and state a person-centered reason. The real build must beat the scripted control on perceived contingency and desire to continue; report counts and uncertainty, not a statistical-generalization claim.
+Eight unfamiliar formative sessions compare the real state-sensitive build with a yoked scripted/canonical-lookup control in randomized order. At least six of eight complete the first counsel without prompting; at least five explain Mara's relevant reason, independent response, later consequence, and the local-save limit; at least four initiate the outcome-dependent second action within 60 seconds and select exactly one of `mara-toma-concern`, `curiosity`, `obligation`, or `anticipated-relationship-consequence`. The real build must beat the scripted control on perceived contingency and desire to continue; report counts and uncertainty, not a statistical-generalization claim.
 
 These gates support only a bounded prototype claim. Delayed voluntary return, session-5/20 depth, death continuity, newcomer relevance, fun, and retention remain unproven until separate human evidence exists.
 

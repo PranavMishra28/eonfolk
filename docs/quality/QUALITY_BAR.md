@@ -48,14 +48,14 @@ This permits only “bounded agency/attachment proof passed.” Delayed voluntar
 
 - Byte-level determinism profile, golden hashes/PRNG/rounding/Unicode, repeated run, replay, snapshot range, and three divergent counsel terminal vectors pass.
 - Durable-before-visible commit, accepted/rejected receipts, ID collision, crash barriers, atomicity, quota abort, stale fencing, corrupt snapshot, and dual-tab transfer pass.
-- Export succeeds non-destructively; no import/replacement route exists; same/unknown schema policy tests pass.
+- No backup/export/import/replacement route exists; same/unknown schema policy tests pass; the local-only/no-backup limitation appears before counsel.
 - Resource/ownership/life/visibility invariants survive property tests and bounded fuzzing.
 - 30/90/365-day worlds reach exact terminal time under declared caps, conserve, and replay; an early pause is failure.
 - Hidden-fact noninterference covers context, catalog, errors, targets, explanation, and Chronicle.
 - Standard Brain passes perturbation/transfer/baseline/ablation tests; fake absent/throwing/malformed BrainPort cannot stop the world. No provider dependency exists.
 - Production build, critical browser journey, all numerical budgets, keyboard/reduced motion/semantic paths, and three viewports pass.
 - No server, deployment, account, payment, import, required model/download, or public multiplayer path ships.
-- A deny-by-default headed Chromium run plus independent Playwright route log and Chromium netlog permits only one declared local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; the build contains no credential, telemetry, provider SDK, dynamic-code execution, or untrusted active HTML/Markdown/URL rendering, and enforces tested bounds on commands, text, storage, catch-up, and exports.
+- A deny-by-default headed Chromium run plus independent Playwright route log and Chromium netlog permits only one declared local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; the build contains no credential, telemetry, provider SDK, dynamic-code execution, untrusted active HTML/Markdown/URL rendering, or backup/export/import route, and enforces tested bounds on commands, text, raw/filtered provenance, storage, and catch-up.
 - Corrupt/oversize snapshots, event gaps, stale fences, unknown versions, invalid commands, and quota failures fail closed without durable-head advance. The exact production dependency tree has no unresolved high/critical advisory; scanner/advisory source, access date, findings, and confirmed-false-positive rationale are recorded.
 
 ## Evidence package

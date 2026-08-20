@@ -10,31 +10,31 @@
 
 ## Owned decision
 
-Reality is a pure deterministic reducer over one region. It accepts revision-checked typed commands, emits an ordered batch of complete domain events, and produces immutable candidate state. Presentation, storage, cognition, wall time, and device state cannot mutate it.
+Reality is a pure deterministic reducer over one run-scoped region. It accepts revision-checked typed commands, emits an ordered batch of complete domain events plus a canonical batch header, and produces immutable candidate state. Presentation, storage, cognition, wall time, fencing, and device state cannot mutate it.
 
 ## Locked command and event contracts
 
 `WorldCommand` contains:
 
 - `schemaVersion`, `commandId`, and `payloadFingerprint`;
-- `expectedRevision`, `principal`, and `regionId`;
+- `expectedRevision`, `principal`, `runId`, and `regionId`;
 - one closed discriminated-union payload; and
 - an optional provenance reference that cannot grant authority.
 
 `WorldEventEnvelope` contains:
 
-- `schemaVersion`, `engineVersion`, stable `eventId`, `regionId`, `sequence`, and integer `simulationTime`;
+- `schemaVersion`, `engineVersion`, stable run-scoped `eventId`, `runId`, `regionId`, `sequence`, and integer `simulationTime`;
 - one closed typed event payload;
-- `causalParents: { eventId, relation }[]`, where `relation` is only `direct`, `trigger`, or `contributing`;
+- `causalParents: { eventId, relation, mechanismId }[]`, where `relation` is only `direct`, `trigger`, or `contributing`, and `mechanismId` names the versioned consuming rule;
 - `relatedEvents: { eventId, relation }[]`, where `relation` is only `temporal-predecessor` or `response-to`;
 - typed visibility and provenance, including command/intervention IDs and optional preallocated `decisionId`/`proposalId` for cognition-originated actions;
-- `preStateHash`, `postStateHash`, `eventHash`, and `batchId`. `batchId` is a stable identifier derived from region, prior revision, and command ID before hashing; it is not the batch hash.
+- `preStateHash`, `postStateHash`, `eventHash`, and `batchId`. `batchId` is a stable identifier derived from run, region, prior revision, and command ID before hashing; it is not the batch hash.
 
-Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same region; a causal parent must name the rule/mechanism that consumed it.
+Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same run and region; every causal edge carries the exact rule/mechanism that consumed it. Event and causal-parent IDs are unique only inside their enclosing `runId`; comparisons across runs use an explicit `(runId,eventId)` pair outside canonical causality.
 
 The world event proves only that a typed transition occurred. Its optional `decisionId` links to noncanonical cognitive provenance; it does not make the linked belief, memory, justification, or proposal true. Every consequential accepted proposal has one preallocated decision ID, one durable command receipt, and an accepted event interval. Downstream history traces through event-to-event causal parents, never by mutating the earlier decision record.
 
-## Determinism profile `eonfolk-determinism-v1`
+## Determinism profile `eonfolk-determinism-v2`
 
 This profile is one indivisible protocol decision. Golden vectors cover every row.
 
@@ -54,18 +54,20 @@ This profile is one indivisible protocol decision. Golden vectors cover every ro
 
 ### Canonical tuple and hash grammar
 
-`tuple(tag, fields)` is byte concatenation of ASCII `EONFOLK-TUPLE-v1`, one zero byte, then the tag and every field as `u32be(byteLength) || bytes`. Field order and type are fixed by each schema: NFC strings are UTF-8; counters/revisions are unsigned 64-bit big-endian; counts are unsigned 32-bit big-endian; a hash/seed is its raw fixed-length bytes, never its display hex. The length prefix includes zero-length fields and is rejected above `2^32-1`; there are no implicit separators, coercions, or optional omitted fields.
+`tuple(tag, fields)` is byte concatenation of ASCII `EONFOLK-TUPLE-v2`, one zero byte, then the tag and every field as `u32be(byteLength) || bytes`. Field order and type are fixed by each schema: NFC strings are UTF-8; counters/revisions are unsigned 64-bit big-endian; counts are unsigned 32-bit big-endian; a hash/seed is its raw fixed-length bytes, never its display hex. The length prefix includes zero-length fields and is rejected above `2^32-1`; there are no implicit separators, coercions, or optional omitted fields.
 
-- `stateHash = SHA-256(tuple("EONFOLK:STATE:v1", [JCS(canonicalRegionState)]))`.
-- `payloadFingerprint = SHA-256(tuple("EONFOLK:COMMAND-PAYLOAD:v1", [JCS(typedCommandPayload)]))`; command acceptance recomputes rather than trusts it.
-- `batchId = "batch_" + base32(SHA-256(tuple("EONFOLK:BATCH-ID:v1", [regionId, priorRevision, commandId])))`.
-- After `batchId`, pre/post hashes, and sequence are fixed, `eventHash = SHA-256(tuple("EONFOLK:EVENT:v1", [JCS(completeEnvelopeWithoutEventHash)]))`.
-- After every event hash exists, `batchHash = SHA-256(tuple("EONFOLK:BATCH-HASH:v1", [priorHeadHash, eventCount, orderedEventHashes..., payloadFingerprint, resultRevision, fencingToken]))`; it is stored only in durable head/receipt.
-- `stableId = type + "_" + base32(SHA-256(tuple("EONFOLK:ID:v1", [type, worldSeed32, creationSequence])))`, where `type` matches `[a-z][a-z0-9-]{0,31}`, `worldSeed32` is exactly 32 bytes, and base32 uses alphabet `abcdefghijklmnopqrstuvwxyz234567`, full 32-byte digest, no `=` padding (52 characters).
-- PRNG state digest is `SHA-256(tuple("EONFOLK:PRNG-SEED:v1", [worldSeed32, system, entityId, purpose]))`; `streamId` is exactly those three framed strings, not a joined string.
-- Genesis `priorHeadHash` is `SHA-256(tuple("EONFOLK:GENESIS-HEAD:v1", []))`; every later head is the prior transition's `batchHash`.
+- `stateHash = SHA-256(tuple("EONFOLK:STATE:v2", [JCS(canonicalRunRegionState)]))`; the canonical state includes `runId` and `regionId`.
+- `payloadFingerprint = SHA-256(tuple("EONFOLK:COMMAND-PAYLOAD:v2", [JCS(typedCommandPayload)]))`; command acceptance recomputes rather than trusts it.
+- `batchId = "batch_" + base32(SHA-256(tuple("EONFOLK:BATCH-ID:v2", [runId, regionId, priorRevision, commandId])))`.
+- After `batchId`, pre/post hashes, and sequence are fixed, `eventHash = SHA-256(tuple("EONFOLK:EVENT:v2", [JCS(completeEnvelopeWithoutEventHash)]))`.
+- After every event hash exists, `batchHash = SHA-256(tuple("EONFOLK:BATCH-HASH:v2", [runId, regionId, batchId, priorWorldHeadHash, firstSequence, eventCount, orderedEventHashes..., payloadFingerprint, resultRevision, finalStateHash]))`. Fencing never enters it.
+- `manifestHash = SHA-256(tuple("EONFOLK:EXPERIMENT-MANIFEST:v1", [JCS(manifestWithoutManifestHash)]))`.
+- `contextHash`, `catalogHash`, `proposalHash`, and `decisionRecordHash` use the analogous domains `EONFOLK:DECISION-CONTEXT:v1`, `EONFOLK:ACTION-CATALOG:v1`, `EONFOLK:INTENT-PROPOSAL:v1`, and `EONFOLK:DECISION-RECORD:v1`, each over one JCS field containing the complete typed object without its own hash field. The exact proposal canonical bytes are stored beside `proposalHash`.
+- `stableId = type + "_" + base32(SHA-256(tuple("EONFOLK:ID:v2", [type, worldSeed32, creationSequence])))`, where `type` matches `[a-z][a-z0-9-]{0,31}`, `worldSeed32` is exactly 32 bytes, and base32 uses alphabet `abcdefghijklmnopqrstuvwxyz234567`, full 32-byte digest, no `=` padding (52 characters). IDs are interpreted inside their enclosing run. `creationSequence` is one global per-run canonical counter; a transition creating several entities assigns consecutive values in typed payload order, never one shared boundary value.
+- PRNG state digest is `SHA-256(tuple("EONFOLK:PRNG-SEED:v2", [worldSeed32, system, entityId, purpose]))`; `streamId` is exactly those three framed strings, not a joined string.
+- Genesis `priorWorldHeadHash` is `SHA-256(tuple("EONFOLK:GENESIS-HEAD:v2", [runId, regionId, manifestHash, initialStateHash]))`; every later world head is the prior transition's `batchHash`.
 
-The order is acyclic: preallocated decision/proposal/command IDs → command fields → `batchId` → complete envelopes → ordered `eventHash` values → `batchHash`/durable head → finalized cognitive record references. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, hidden reasoning, or raw model text outside the preserved bounded structured proposal.
+Each accepted command also stores one `WorldBatchHeader`: schema/run/region/batch IDs, prior world-head hash, first sequence/count, ordered event hashes, payload fingerprint, result revision, final state hash, and batch hash. Headers plus events are the replayable Canonical World Ledger; receipts duplicate references for idempotency but are not the only hash-chain source. The order is acyclic: preallocated decision/proposal/command IDs → command fields → `batchId` → complete envelopes → ordered `eventHash` values → batch header/hash/world head → finalized cognitive record references. Fencing remains persistence CAS metadata only. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, hidden reasoning, or raw model text outside the preserved bounded structured proposal.
 
 ### Exact `xoshiro128**` transition
 
@@ -73,33 +75,35 @@ Let state be `[s0,s1,s2,s3]` unsigned 32-bit words. One draw returns `u32(imul(r
 
 ### Independent reference vectors
 
-These values were independently reproduced with Node `crypto` and Ruby `Digest::SHA256`; production code cannot generate its own expected values [S-DET-003]. Inputs are raw `worldSeed32 = 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f`, state 0 `{"regionId":"riverhold","revision":0,"simulationTime":0}`, state 1 with revision/time `1`, payload `{"kind":"Observe","targetId":"citizen_mara"}`, region `riverhold`, prior revision `0`, command `cmd_fixture_0001`, result revision/fence `1`, and the complete event JCS shown by decoding its preimage. Each line is `name preimageHex -> sha256`.
+These values were independently reproduced with Node `crypto` and Ruby `Digest::SHA256`; production code cannot generate its own expected values [S-DET-003]. Inputs are raw `worldSeed32 = 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f`, run `run_fixture_0001`, region `riverhold`, state 0 `{"regionId":"riverhold","revision":0,"runId":"run_fixture_0001","simulationTime":0}`, state 1 with revision/time `1`, payload `{"kind":"Observe","targetId":"citizen_mara"}`, prior revision `0`, command `cmd_fixture_0001`, result revision `1`, and a synthetic all-zero raw manifest hash used only by the genesis framing fixture. The complete event JCS is shown by decoding its preimage. Each line is `name preimageHex -> sha256`.
 
 ```text
-state0 454f4e464f4c4b2d5455504c452d76310000000010454f4e464f4c4b3a53544154453a7631000000387b22726567696f6e4964223a227269766572686f6c64222c227265766973696f6e223a302c2273696d756c6174696f6e54696d65223a307d -> c1978e6ff763e61ece8b938df637202517530503bc6150325b427efa5f87e872
-state1 454f4e464f4c4b2d5455504c452d76310000000010454f4e464f4c4b3a53544154453a7631000000387b22726567696f6e4964223a227269766572686f6c64222c227265766973696f6e223a312c2273696d756c6174696f6e54696d65223a317d -> 8bb47e167faae03a63844d3ae9dfff570c55c86151a3cf08bd8e3689343ce719
-payload 454f4e464f4c4b2d5455504c452d7631000000001a454f4e464f4c4b3a434f4d4d414e442d5041594c4f41443a76310000002c7b226b696e64223a224f627365727665222c227461726765744964223a22636974697a656e5f6d617261227d -> b3e71ee858a55bf1497093f89f889edb39d9d3c5b66736908c81b2792af3fbe7
-batch-id 454f4e464f4c4b2d5455504c452d76310000000013454f4e464f4c4b3a42415443482d49443a7631000000097269766572686f6c6400000008000000000000000000000010636d645f666978747572655f30303031 -> 7c12f8552849764be6e6b5a63a8c807aa1abfabd718be3750c0226176a8ad5b5
-event 454f4e464f4c4b2d5455504c452d76310000000010454f4e464f4c4b3a4556454e543a7631000002527b2262617463684964223a2262617463685f70716a7071766a696a663365787a78677777746476646561706b7132783676356f6766366735696d616974626f32756b32773271222c2263617573616c506172656e7473223a5b5d2c22656e67696e6556657273696f6e223a2231222c226576656e744964223a226576656e745f666978747572655f30303031222c226576656e745061796c6f6164223a7b226b696e64223a224f62736572766564222c226f627365727665724964223a22636974697a656e5f6d617261222c227461726765744964223a226772616e617279227d2c22706f7374537461746548617368223a2238626234376531363766616165303361363338343464336165396466666635373063353563383631353161336366303862643865333638393334336365373139222c22707265537461746548617368223a2263313937386536666637363365363165636538623933386466363337323032353137353330353033626336313530333235623432376566613566383765383732222c2270726f76656e616e6365223a7b226b696e64223a2273696d756c6174696f6e227d2c22726567696f6e4964223a227269766572686f6c64222c2272656c617465644576656e7473223a5b5d2c22736368656d6156657273696f6e223a2231222c2273657175656e6365223a312c2273696d756c6174696f6e54696d65223a312c227669736962696c697479223a7b226b696e64223a22636974697a656e2d70726976617465222c227375626a656374436974697a656e4964223a22636974697a656e5f6d617261227d7d -> 8116281cdc9fde1adfe111f97242f63c6c4467d0ae7c94192a94394f04bfc217
-genesis 454f4e464f4c4b2d5455504c452d76310000000017454f4e464f4c4b3a47454e455349532d484541443a7631 -> 1c47866ad1dfbdcc227e1df52b1757cb5cf81ca595636dee662bc61b73b2960b
-batch-hash 454f4e464f4c4b2d5455504c452d76310000000015454f4e464f4c4b3a42415443482d484153483a7631000000201c47866ad1dfbdcc227e1df52b1757cb5cf81ca595636dee662bc61b73b2960b0000000400000001000000208116281cdc9fde1adfe111f97242f63c6c4467d0ae7c94192a94394f04bfc21700000020b3e71ee858a55bf1497093f89f889edb39d9d3c5b66736908c81b2792af3fbe7000000080000000000000001000000080000000000000001 -> 7d7e8a7bfd9c8b6a131a1ef3113f716499f14fa8ade69817b3fb2dd5d90b8fc0
-prng-seed 454f4e464f4c4b2d5455504c452d76310000000014454f4e464f4c4b3a50524e472d534545443a763100000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000005737475647900000006676174652d620000000a61737369676e6d656e74 -> 3c492cf720e74b00a5a6d21b4991b73e2cd5e16ee98ddedfc94a22f122e6d7bb
-stable-id 454f4e464f4c4b2d5455504c452d7631000000000d454f4e464f4c4b3a49443a763100000007636974697a656e00000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000080000000000000001 -> 713181d0aefc704b99bac26dcda834d59f9c021fc874b910aae4a5455b6e1730
+state0 454f4e464f4c4b2d5455504c452d76320000000010454f4e464f4c4b3a53544154453a7632000000537b22726567696f6e4964223a227269766572686f6c64222c227265766973696f6e223a302c2272756e4964223a2272756e5f666978747572655f30303031222c2273696d756c6174696f6e54696d65223a307d -> ee03923beee017d3f6bbaecb8c26fb1b90be065089e34d14f406ebba452003ab
+state1 454f4e464f4c4b2d5455504c452d76320000000010454f4e464f4c4b3a53544154453a7632000000537b22726567696f6e4964223a227269766572686f6c64222c227265766973696f6e223a312c2272756e4964223a2272756e5f666978747572655f30303031222c2273696d756c6174696f6e54696d65223a317d -> 38b5b59666b80577f37be07fd2742050813e0c643e83889fb1e40b7e7fb2e116
+payload 454f4e464f4c4b2d5455504c452d7632000000001a454f4e464f4c4b3a434f4d4d414e442d5041594c4f41443a76320000002c7b226b696e64223a224f627365727665222c227461726765744964223a22636974697a656e5f6d617261227d -> 29326f0ed2d90ae5c25db9db6d19f41075ab16958d745c2ffb314325c367b8df
+batch-id 454f4e464f4c4b2d5455504c452d76320000000013454f4e464f4c4b3a42415443482d49443a76320000001072756e5f666978747572655f30303031000000097269766572686f6c6400000008000000000000000000000010636d645f666978747572655f30303031 -> 5e571c2da097f92be53f8b63870f4bda754d56daa0140c875440c86f444113a0
+event 454f4e464f4c4b2d5455504c452d76320000000010454f4e464f4c4b3a4556454e543a76320000026d7b2262617463684964223a2262617463685f6c7a6c72796c6e6173373473787a6a37726e72796f64326c336a32753276773275616b617a6232756964656736726362636f7161222c2263617573616c506172656e7473223a5b5d2c22656e67696e6556657273696f6e223a2231222c226576656e744964223a226576656e745f666978747572655f30303031222c226576656e745061796c6f6164223a7b226b696e64223a224f62736572766564222c226f627365727665724964223a22636974697a656e5f6d617261222c227461726765744964223a226772616e617279227d2c22706f7374537461746548617368223a2233386235623539363636623830353737663337626530376664323734323035303831336530633634336538333838396662316534306237653766623265313136222c22707265537461746548617368223a2265653033393233626565653031376433663662626165636238633236666231623930626530363530383965333464313466343036656262613435323030336162222c2270726f76656e616e6365223a7b226b696e64223a2273696d756c6174696f6e227d2c22726567696f6e4964223a227269766572686f6c64222c2272656c617465644576656e7473223a5b5d2c2272756e4964223a2272756e5f666978747572655f30303031222c22736368656d6156657273696f6e223a2231222c2273657175656e6365223a312c2273696d756c6174696f6e54696d65223a312c227669736962696c697479223a7b226b696e64223a22636974697a656e2d70726976617465222c227375626a656374436974697a656e4964223a22636974697a656e5f6d617261227d7d -> 39d07998c8b4b6cc88c382bdacd263039c2fab2ab3ff887774abf5f951e5f36c
+genesis 454f4e464f4c4b2d5455504c452d76320000000017454f4e464f4c4b3a47454e455349532d484541443a76320000001072756e5f666978747572655f30303031000000097269766572686f6c6400000020000000000000000000000000000000000000000000000000000000000000000000000020ee03923beee017d3f6bbaecb8c26fb1b90be065089e34d14f406ebba452003ab -> 01b9357332a4012f244688f1a6d2cb5d1ee7b791ff01eb4326c0d6dce496b982
+batch-hash 454f4e464f4c4b2d5455504c452d76320000000015454f4e464f4c4b3a42415443482d484153483a76320000001072756e5f666978747572655f30303031000000097269766572686f6c640000003a62617463685f6c7a6c72796c6e6173373473787a6a37726e72796f64326c336a32753276773275616b617a6232756964656736726362636f71610000002001b9357332a4012f244688f1a6d2cb5d1ee7b791ff01eb4326c0d6dce496b98200000008000000000000000100000004000000010000002039d07998c8b4b6cc88c382bdacd263039c2fab2ab3ff887774abf5f951e5f36c0000002029326f0ed2d90ae5c25db9db6d19f41075ab16958d745c2ffb314325c367b8df0000000800000000000000010000002038b5b59666b80577f37be07fd2742050813e0c643e83889fb1e40b7e7fb2e116 -> 79476d051f64bab655643fb607a140f8048947ae66f35d2689d881689b1cfb22
+prng-seed 454f4e464f4c4b2d5455504c452d76320000000014454f4e464f4c4b3a50524e472d534545443a763200000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000005737475647900000006676174652d620000000a61737369676e6d656e74 -> 0bed568abf8c04ba1b963bcaaaee97ef6f2ef58619f0d27864319cb7308e6582
+stable-id 454f4e464f4c4b2d5455504c452d7632000000000d454f4e464f4c4b3a49443a763200000007636974697a656e00000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000080000000000000001 -> 672b0e7acc32f7e81a11238076c4d6c3c392a0d17df5638d9f05531690c26ada
 ```
 
-Expected displays are `batch_pqjpqvjijf3exzxgwwtdvdeapkq2x6v5ogf6g5imaitbo2uk2w2q` and `citizen_oeyydufo7ryexgn2yjw43kbu2wpzyaq7zb2lsefk4ssukw3oc4ya`; PRNG digest decodes little-endian to `f72c493c,004be720,1bd2a6a5,3eb79149`. Golden tests use a second test-only encoder or platform hashing utility, never the production tuple/hash helper, and include former ambiguous concatenation pairs.
+Expected displays are `batch_lzlrylnas74sxzj7rnryod2l3j2u2vw2uakazb2uideg6rcbcoqa` and `citizen_m4vq46wmgl36qgqreoahnrgwypbzfigrpx2whdm7avjrnegcnlna`; PRNG digest decodes little-endian to `8a56ed0b,ba048cbf,ca3b961b,ef97eeaa`. Golden tests use a second test-only encoder or platform hashing utility, never the production tuple/hash helper, and include former ambiguous concatenation pairs plus every new manifest/context/catalog/proposal/decision-record domain.
 
-Version `v1` supports one engine/schema version only. Unknown versions fail closed. No upcaster is implemented in the first slice; changing any rule above requires a new profile and explicit migration plan.
+The first slice supports one engine/schema version only under determinism profile `eonfolk-determinism-v2`. Unknown versions fail closed. No upcaster is implemented; changing any rule above requires a new profile and explicit migration plan.
 
 ## Transition lifecycle
 
-The pure kernel returns `PreparedTransition`: prior revision/hash; command/fingerprint; accepted or rejected `CommandReceipt` candidate; ordered complete event batch for acceptance; immutable post-state candidate; and expected durable head/batch hashes. It does not publish or install the candidate. [Persistence](PERSISTENCE.md) defines durability and acknowledgment. A rejected command never mutates state but still receives a durable receipt so retries are stable.
+The pure kernel returns `PreparedTransition`: run/region; prior revision/state/world-head hashes; command/fingerprint; accepted or rejected `CommandReceipt` candidate; ordered complete event batch and `WorldBatchHeader` for acceptance; immutable post-state candidate; and expected durable state/world-head hashes. It does not publish or install the candidate. [Persistence](PERSISTENCE.md) defines durability and acknowledgment.
+
+One accepted `WorldCommand` emits **1–32** events. Sequences are contiguous; event 0 pre-state equals the durable pre-state, each later pre-state equals the preceding post-state, and the last post-state equals the prepared candidate. Region revision advances exactly once per accepted command. A rejection or deterministic no-op emits zero events and leaves revision, canonical state, world head, and every PRNG counter unchanged; it still receives a durable rejected receipt so retries are stable. “Accepted empty batch” is invalid.
 
 The kernel accepts only actions expressible by the current typed Reality. The catalog may later expand through reusable affordances, but no model/prose may introduce a new effect, resolver, network/tool capability, or canonical field at runtime. Novel strategies must emerge from compositions of accepted actions and state, not scripted outcome branches.
 
 ## Catch-up semantics
 
-Catch-up advances the same scheduler and emits the same boundary events as foreground play. It never invents a second aggregate reducer.
+Catch-up advances the same scheduler and emits the same boundary events as foreground play. It never invents a second aggregate reducer. A confirmed catch-up is a parent operation, not one oversized `WorldCommand`: preflight the entire requested interval, event/storage ceilings, schedule, and chapter plan before mutation. A preflight failure rejects the whole operation without change. A passing operation records one idempotent `CatchUpOperationReceipt` and then commits deterministic ordered child commands of 1–32 events, each with parent operation ID and chapter ordinal; progress is durable and resumes at the first missing chapter after a crash. Already committed chapters never roll back or reapply. Presentation withholds the final return summary until the operation completes, and accurately reports recovery if interrupted. The 50,000-event limit applies to the whole parent operation, not one batch.
 
 - Up to 10 minutes: exact meaningful events; presentation may coalesce repetition.
 - Up to 24 hours: algebraically aggregate stable production spans but stop at plan, resource, relationship, counsel, ownership, or shock boundaries.
@@ -110,19 +114,21 @@ The local product proposes an advance from elapsed wall time, explains the propo
 
 ## Blocking acceptance
 
-- Golden canonical bytes, hashes, PRNG vectors, stable IDs, rounding, overflow, scheduler ties, and Unicode ingress match in browser and Node.
-- Same seed/commands and snapshot plus its exact half-open event range produce identical state and bytes: snapshot includes events through `baseSequence`; replay requires `from=baseSequence+1`, `to=finalSequence+1`; genesis is base 0/no domain event; zero events has `from=to=baseSequence+1`.
+- Golden canonical bytes, hashes, PRNG vectors, stable IDs, rounding, overflow, scheduler ties, and Unicode ingress match in browser and Node; independent encoders also match manifest/context/catalog/proposal/decision-record hashes.
+- Same seed/commands and snapshot plus its exact half-open Canonical World Ledger range (batch headers and events) produce identical state bytes, state hash, and world-head hash: snapshot includes events through `baseSequence`; replay requires `from=baseSequence+1`, `to=finalSequence+1`; genesis is base 0/no domain event; zero events has `from=to=baseSequence+1`.
+- Every accepted command has 1–32 contiguous, state-hash-chained events and advances revision once; rejected/no-op commands have none and change no canonical/hash/PRNG state.
 - Three counsel intents from the same pre-boundary snapshot reach at least three materially different terminal state vectors; no branch label may converge to the same authoritative result.
-- Direct/trigger/contributing edges cite actual consuming rules; temporal and response relations cannot appear as causal parents.
+- Direct/trigger/contributing edges carry actual versioned `mechanismId` values; temporal and response relations cannot appear as causal parents.
 - Consequential decision IDs resolve to bounded cognitive records and receipts; communication claims/beliefs/memories never pass as world facts without an accepted observation/disclosure transition.
 - Snapshot plus accepted event interval replays exactly with cognition disabled; replay never reruns a model or Standard Brain.
-- 30-, 90-, and 365-day headless fixtures reach the exact requested terminal simulation time, conserve resources, stay within declared event/storage caps, and replay to the same hash. A safe early pause is failure.
+- Catch-up preflight failure is whole-request atomic; successful multi-batch operations survive interruption, resume at the exact next chapter, never duplicate a chapter, and reach the same final state/world-head hashes as uninterrupted execution.
+- 30-, 90-, and 365-day headless fixtures reach the exact requested terminal simulation time, conserve resources, stay within declared event/storage caps, and replay to the same hashes. A safe early pause is failure.
 - Provisional target-M4 caps are 3 seconds/25,000 events/8 MB at 30 days, 10 seconds/75,000 events/20 MB at 90 days, and 45 seconds/250,000 events/64 MB at 365 days. Measurements may tighten these; weakening requires an explicit decision and does not change the seven-day interactive cap.
 - The build has no model SDK/runtime dependency, and Standard Brain makes progress with the network disabled.
 
 ## Rejected alternatives
 
-Tick-everything loops, wall-clock authority, `Date.now()`, `Math.random()`, conserved floats, locale-dependent ordering, random IDs, prose patches, model-authored facts, arbitrary code/network effects, scripted high-order outcomes, one generic `cause`, temporal order as cause, cognition rerun as replay, and installing worker state before durable commit.
+Tick-everything loops, wall-clock authority, `Date.now()`, `Math.random()`, conserved floats, locale-dependent ordering, random IDs, prose patches, model-authored facts, arbitrary code/network effects, scripted high-order outcomes, one generic `cause`, causal edges without mechanisms, temporal order as cause, cognition rerun as replay, fencing in canonical hashes, oversized catch-up commands, and installing worker state before durable commit.
 
 ## Reopen evidence
 

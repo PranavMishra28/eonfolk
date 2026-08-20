@@ -36,7 +36,7 @@ This review used only exact commit **`6850b699221fb5c79f247e03b1b4955c2c96b44b`*
 
 ### FR-001 — The determinism profile is not byte-closed
 
-**Exact location.** [SIMULATION, determinism profile](../engineering/SIMULATION.md#determinism-profile-eonfolk-determinism-v1), especially the PRNG, seeding, stable-ID and hash rules at lines 47–53; the Goal prompt repeats the summary under [Byte-level determinism profile](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md#byte-level-determinism-profile).
+**Exact location.** The historical review targeted the then-current SIMULATION determinism profile; the [current profile](../engineering/SIMULATION.md#determinism-profile-eonfolk-determinism-v2) supersedes it. The Goal prompt repeats the current summary under [Byte-level determinism profile](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md#byte-level-determinism-profile).
 
 **Why material.** The stable-ID preimage is `type + worldSeed + creationSequence` with no length framing or separators. For one type, seed/sequence pairs such as `("1", 23)` and `("12", 3)` have the same concatenated text. The lowercase-base32 alphabet, padding and output length are not selected. PRNG seeding likewise permits delimiter ambiguity unless seed/stream grammars exclude NUL, and the all-zero replacement vector is only promised in a future fixture. `batchId` is present in every event, `eventHash` covers the envelope including `batchId`, and the batch hash consumes event hashes, but `batchId` derivation is absent; treating it as the batch hash would be circular. ER-003 was therefore only partially reconciled. Golden tests cannot resolve an authority gap if the implementer first invents the expected vectors.
 

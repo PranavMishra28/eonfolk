@@ -28,7 +28,7 @@ The factual issue may be resolved while the human one is not: the audit can esta
 
 ### 5. Why care about one citizen?
 
-Mara has a legible public-duty/caution conflict, trusts the person implicated by her evidence, asked for a limited witness, remembers advice, and bears consequences the player cannot absorb or undo. Gate B requires cross-surface recognition, a person-centered reason, and a voluntary second action; factual recall alone does not count.
+Mara has a legible public-duty/caution conflict, trusts the person implicated by her evidence, asked for a limited witness, remembers advice, and bears consequences the player cannot absorb or undo. Gate B requires cross-surface recognition, one exact branch-related reason token, and a voluntary second action; factual recall alone does not count.
 
 ### 6. Why return tomorrow?
 
@@ -56,7 +56,7 @@ That limited indirect advice plus deterministic behavior creates care and respon
 
 ### 12. Which experiment falsifies it fastest?
 
-Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/faction/ECHOHOUSE/direct-control versions of the same decision under a complete balanced Williams schedule. Then, before polish, eight unfamiliar sessions compare the real state-sensitive DOM loop with a yoked canonical script. Reopen if Riverhold loses the unique rank/four-of-six floor, an alternative exceeds it by at least two true responses on desirability/continue, the real loop fails to beat script on contingency/continue, fewer than four of eight take the outcome-dependent second action for an objective person-centered reason token, or branches converge.
+Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/faction/ECHOHOUSE/direct-control versions of the same decision under a complete balanced Williams schedule. Then, before polish, eight unfamiliar sessions compare the real state-sensitive DOM loop with a yoked canonical script. Reopen if Riverhold loses the unique rank/four-of-six floor, an alternative exceeds it by at least two true responses on desirability/continue, the real loop fails to beat script on contingency/continue, fewer than four of eight take the outcome-dependent second action within 60 seconds and select one of `mara-toma-concern`, `curiosity`, `obligation`, or `anticipated-relationship-consequence`, or branches converge.
 
 ## Contradiction audit
 
@@ -69,7 +69,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Distribution | private Story Card comprehension; no public URL/activation claim | [DISTRIBUTION](../product/DISTRIBUTION.md) |
 | Model ecology | complete Standard Brain; no model/provider in V1 | [COGNITION](../engineering/COGNITION.md) |
 | Renderer/assets | PixiJS 2.5D atlas + semantic DOM; no R3F/3D pipeline | [FRONTEND](../engineering/FRONTEND.md) |
-| Persistence | durable-before-visible IndexedDB; receipts/fencing; export-only | [PERSISTENCE](../engineering/PERSISTENCE.md) |
+| Persistence | atomic run genesis; durable-before-visible run-scoped IndexedDB; receipts/fencing; no backup/export/import | [PERSISTENCE](../engineering/PERSISTENCE.md) |
 | Causality | direct/trigger/contributing causal; temporal/response separate; allegation content | [SIMULATION](../engineering/SIMULATION.md) |
 | Scope/hours | 52 planned + ≤8 fix/review, hard 60; Gate 0/A/B | [001-foundation](../exec-plans/active/001-foundation.md) |
 | Budgets/access | explicit payload/time/frame/mobile/semantic/reduced-motion gates | [PERFORMANCE](../quality/PERFORMANCE.md) |
@@ -97,7 +97,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Future Institution kernel | [Governance](../game/GOVERNANCE.md) | names/IDs avoid council-only lock-in | generic institutions/organizations/war |
 | Human roles | [Product](../product/PRODUCT.md) | Follow Mara provides only the narrow patron/history path | Stranger/Follower/Historian/Experimenter/Creator UI |
 | Canon and counterfactuals | [World structure](../product/WORLD_STRUCTURE.md) | one `canonical-local-proof` manifest; no fork route | snapshot-derived noncanonical World Forks |
-| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/active/001-foundation.md) | no human-society claim, dashboard, added mechanics, or added hours | post-gate bounded research |
+| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/active/001-foundation.md) | no human-society claim, dashboard, or added mechanics; the two-hour contract delta replaces two hours of removed export work | post-gate bounded research |
 
 ## Required exit checks
 

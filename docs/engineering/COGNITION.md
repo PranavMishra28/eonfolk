@@ -4,7 +4,7 @@
 
 **Status:** ACCEPTED AFTER RED TEAM — Standard Brain only in the first slice
 
-**Authority boundary:** this file owns `DecisionContext`, `IntentProposal`, `DecisionExplanation`, `CognitiveDecisionRecord`, Standard Brain, and optional-model policy. [SIMULATION](SIMULATION.md) owns authoritative application; [PERSISTENCE](PERSISTENCE.md) owns durable storage; [EVALS](../quality/EVALS.md) owns tests.
+**Authority boundary:** this file owns `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, viewer-safe `DecisionTraceProjection`, Standard Brain, and optional-model policy. [SIMULATION](SIMULATION.md) owns authoritative application; [PERSISTENCE](PERSISTENCE.md) owns durable storage; [EVALS](../quality/EVALS.md) owns tests.
 
 **Related documents:** [agent life](../game/AGENT_LIFE.md), [Observatory](../product/OBSERVATORY.md), [human loop](../product/HUMAN_LOOP.md), [security](SECURITY.md), [model research](../research/MODEL_RESEARCH.md)
 
@@ -16,7 +16,7 @@ Every citizen runs a complete deterministic Standard Brain. Modern-model inferen
 
 The application builds a new immutable context only through `canRead(..., "decision-context", ..., revision)` from [visibility policy `riverhold-visibility-v1`](../game/WORLD_MODEL.md#visibility-policy-riverhold-visibility-v1), containing:
 
-- context ID/version, actor, region, revision, decision reason, and simulation boundary;
+- context ID/version, actor, run, region, revision, decision reason, and simulation boundary;
 - only authorized observation, private-knowledge, sourced-belief, bounded-memory, and message-claim references, each with provenance/confidence where applicable;
 - values, relationships, commitments, reputation observations, and active Standing Plan visible to that actor;
 - closed typed action catalog with public preconditions/stakes;
@@ -35,19 +35,26 @@ The rendered justification is attributed testimony, not proof. Chronicle factual
 
 ## `CognitiveDecisionRecord`
 
-The Cognitive/Decision Ledger stores one bounded append-only record for every consequential decision boundary and every attempted proposal at that boundary. It is provenance, not canonical Reality. Each record contains:
+The Cognitive/Decision Ledger stores one bounded append-only raw audit record for every consequential decision boundary and every attempted proposal at that boundary. It is provenance, not canonical Reality or a viewer projection. Each raw record is labeled `citizen-private-audit` and names its subject citizen, but that sensitivity label is not a runtime audience grant: the raw getter is persistence-internal and available only to nonproduction implementation diagnostics or a future separately authorized spoiler-bearing owner-export implementation. Citizens, Brains, patrons, public UI, Chronicle, and Observatory never receive the raw record directly; authorized consumers use `DecisionTraceProjection`. Each record contains:
 
-- record/schema version; stable `decisionId`, `decisionBoundaryId`, actor, region, revision, integer simulation time, and pre-state hash;
+- record/schema version; stable `decisionId`, `decisionBoundaryId`, actor, run, region, revision, integer simulation time, and whole canonical pre-state hash;
 - exact decision reason and active Standing Plan ID/version;
 - ordered IDs for observations, private knowledge, beliefs, memories, message claims, relationships, values, commitments, and reputation records actually supplied to/read by cognition;
 - `DecisionContext` hash, action-catalog hash/version, budgets, and cognition configuration/version;
 - cognition kind `standard-brain|model`, with provider/model/version/prompt-template/schema/artifact hashes nullable and **all null for Standard Brain**;
-- exact structured proposal/proposal hash and `DecisionExplanation`, or typed missing/timeout/malformed failure code;
+- exact structured proposal canonical bytes/proposal hash and `DecisionExplanation`, or typed missing/timeout/malformed failure code;
 - validator stage/outcome/reason, proposed command ID when one exists, durable receipt reference when one exists, and accepted event interval/event IDs when accepted;
-- short explicit EONFOLK rationale/template ID, visibility, and provenance; and
+- short explicit EONFOLK rationale/template ID, subject/sensitivity, and provenance;
+- `decisionRecordHash` over the complete record without that field; and
 - no chain-of-thought, scratchpad, hidden token stream, transcript dump, or inferred private reasoning.
 
 The `decisionId` exists before proposal generation, so cognition-originated accepted events can cite it without a hash cycle. Later downstream consequences trace through typed event causal parents; the past decision record is never rewritten to append descendants. Rejected/malformed proposals remain auditable but do not become world facts.
+
+## `DecisionTraceProjection`
+
+Any consumer-facing or research-facing trace is a new immutable projection keyed by decision ID, viewer, purpose, `atRevision`, visibility-policy version, and projection schema. The projector re-runs `canRead` independently for every referenced observation, knowledge, belief, memory, claim, relationship, value, commitment, receipt, and event. It includes only authorized typed fields and public explanation terms; it always omits the raw whole-state hash, raw record hash, provider artifacts, and every unreadable ID, count, ordering position, sentinel, or timing clue. It may include an explicitly nonauthoritative digest of its own canonical projected bytes for cache/equality checks.
+
+Hidden/missing/revoked references follow the same constant-work policy as target lookup. Worlds differing only in viewer-invisible facts must produce byte-identical `DecisionContext`, proposal/explanation through the actor-visible boundary, `DecisionTraceProjection`, and Chronicle projection until a typed disclosure changes permission. The internal raw decision record is expected to differ when its whole-state hash or protected audit bindings differ and is not part of that viewer-level noninterference claim.
 
 For the first slice, consequential means Mara's counsel boundary, its branch-dependent return decision, the fixed transferred decision fixture, and any citizen decision whose accepted action supplies Gate A/B evidence. Routine gather/move/consume plan steps do not each create a cognitive record; their accepted world events and Standing Plan reference are sufficient.
 
@@ -60,9 +67,9 @@ At a decision boundary it:
 3. applies counsel as one bounded term, never an override;
 4. uses the actor/purpose PRNG stream only for exact ties;
 5. emits one intent and typed explanation; and
-6. replans within a fixed retry budget after typed rejection.
+6. records a typed rejection and uses the single authored deterministic fallback/no-op allowed by the current boundary; V1 never invokes Brain twice at one boundary.
 
-Routine ticks follow the active Standing Plan. Replan only on named boundaries: precondition failure, completion/expiry/impossibility, important offer/loss/relationship rupture, material resource shock, sponsor counsel, or scheduled review.
+Routine ticks follow the active Standing Plan. A rejection may schedule a later named replan boundary, but it is not an immediate Brain retry. Replan only on named boundaries: precondition failure, completion/expiry/impossibility, important offer/loss/relationship rupture, material resource shock, sponsor counsel, or scheduled review.
 
 Counsel is fair only when UI previews relevant visible reasons and distinct stakes. Acceptance/refusal/reinterpretation must change action/plan and cite at least one decisive term. Seed-only refusal without a reason is prohibited.
 
@@ -82,11 +89,11 @@ V1 tests missing/throwing/timed-out/malformed proposal handling with a fake `Bra
 
 ## Blocking acceptance
 
-- Hidden-fact noninterference passes for context, catalog, errors, targets, explanation, and Chronicle projection.
+- Hidden-fact noninterference passes for context, catalog, errors, targets, explanation, filtered decision-trace projection, and Chronicle projection; raw audit records are excluded.
 - Every intent names one offered action; stale revision, unavailable action, oversized proposal, and unknown field reject atomically.
-- Decision receipts reproduce byte-for-byte on replay and expose actual decisive terms.
+- Persisted decision records round-trip byte-for-byte and are retrieved for separate audit; canonical replay does not regenerate them.
 - Every consequential record closes the state/context/plan/proposal/validation/receipt/event ID chain; malformed or rejected proposals cannot create canonical events.
-- Worlds differing only in hidden facts produce byte-identical authorized cognitive records through the proposal boundary.
+- Worlds differing only in hidden facts produce byte-identical actor-visible contexts/proposals/explanations and viewer-authorized decision-trace projections through the proposal boundary.
 - Replay reaches the same canonical hash with cognition disabled and the original accepted proposal remains retrievable for audit.
 - Counsel options plus abstain are materially distinct; rejection/reinterpretation is state-grounded and fair.
 - Baseline/ablation/transfer fixtures reject canonical lookup and one-seed theater.

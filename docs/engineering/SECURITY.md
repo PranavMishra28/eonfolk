@@ -18,7 +18,7 @@ The local first slice collects no account, real name, contact, precise location,
 
 For every local or future command:
 
-- require a closed typed payload, idempotency ID, expected revision, principal, and region;
+- require a closed typed payload, idempotency ID, expected revision, principal, run, and region, all matching the immutable manifest;
 - authenticate the principal when a future server exists, then authorize the concrete action after cognition;
 - validate existence, life/capability, knowledge/visibility, location, ownership, resources, law, limits, and schema bounds;
 - apply atomically or reject without state, sequence, PRNG, inventory, or partial-side-effect change;
@@ -36,19 +36,19 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 - `publicJustification` is rendered from a typed decision receipt in V1; it and in-world allegations remain nonauthoritative attributed text.
 - Prompt/model context contains only authorized observation/private-knowledge/belief/memory/claim records selected before inference. Communication is a claim, not truth. Hostile names, memories, counsel, and retrieved prose cannot expand the action catalog or request tools.
 - There are no generic browser/network/file/database tools in cognition.
-- Preserve only bounded structured proposal/model provenance required by `CognitiveDecisionRecord`; never capture hidden chain-of-thought/token streams. Optional raw provider traces are redacted, opt-in developer artifacts with bounded retention and excluded from canonical export.
+- Preserve only bounded structured proposal/model provenance required by the raw citizen-private `CognitiveDecisionRecord`; never capture hidden chain-of-thought/token streams. Patron/public/Chronicle/Observatory consumers receive only a viewer/purpose/revision-scoped `DecisionTraceProjection` that reauthorizes every reference and omits raw whole-state/record hashes plus unreadable IDs/counts/sentinels. Optional raw provider traces are redacted, opt-in developer artifacts with bounded retention and excluded from any future export.
 
 ## Browser-local controls
 
 - Use a restrictive CSP compatible with the chosen local assets; do not add `unsafe-eval` for libraries without explicit security review.
 - Bundle production assets; no runtime third-party scripts, analytics, remote component registries, or model endpoints in V1.
 - Canonical acceptance runs headed lockfile-pinned Chromium with deny-by-default host resolution/background networking, service workers blocked, and a route abort outside the one local origin. Independent Playwright route logs plus Chromium netlog must show zero attempted external DNS, HTTP(S), WebSocket/WebTransport, beacon, worker, navigation, prefetch/prerender, or nonproxied UDP egress. Local preview asset requests are allowed and not misreported as zero network activity; physical-device LAN evidence is separate and host-firewall/log constrained.
-- V1 has no import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
+- V1 has no backup/export/import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
 - Treat IndexedDB as mutable/corruptible input on load; verify snapshots and replay head.
 - Keep world events, cognitive decision records, and the immutable Experiment Manifest in distinct stores/authorities; no decision/manifest record may become reducer input.
 - Use one writer lease and test forced-close recovery; never silently last-write-wins.
 - Keep important actions in semantic DOM with explicit confirmation only where consequence warrants it.
-- Never place secrets in browser code, local storage, events, prompts, screenshots, traces, exports, logs, or URLs.
+- Never place secrets in browser code, local storage, events, prompts, screenshots, traces, future exports, logs, or URLs.
 
 ## Future hosted controls
 
@@ -77,13 +77,14 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 
 ## Required abuse/security tests
 
-- stale revision, duplicate ID, invalid actor, dead actor, impossible target, hidden fact, unauthorized resource, and partial-batch rejection;
+- wrong/missing run, stale revision, duplicate ID, invalid actor, dead actor, impossible target, hidden fact, unauthorized resource, and partial-batch rejection;
+- crash at every genesis barrier, same-run/different-manifest collision, and manifest/run/region/version mismatch on every later operation;
 - the shared visibility-policy matrix at grant/revoke boundaries; private-parent/public-child projection; and byte-identical catalog/targets/error/shape/order/timing for hidden, missing, and revoked records until typed disclosure;
 - hostile HTML/Markdown/URL/code in names, memories, counsel, future import/provider output, and Chronicle values;
 - oversized/deep/unknown-field inputs and corrupt manifest/snapshot/event/decision intervals;
-- observation/knowledge/belief/memory/message-claim category confusion, provenance gaps, unauthorized decision-trace projection, and any cognitive/experiment write that advances canonical head;
+- observation/knowledge/belief/memory/message-claim category confusion, provenance gaps, raw decision-record exposure, unauthorized decision-trace projection, whole-state/hash exposure to a partial viewer, and any cognitive/experiment write that advances canonical head;
 - missing/throwing/timed-out/malformed fake BrainPort with continued Standard Brain progress; provider-specific 429/revoke tests only when a real adapter exists;
-- dual-tab stale fencing, crash at every commit/publish barrier, replay gap/hash mismatch, quota abort, and proof that import is absent;
+- dual-tab stale fencing without canonical-head change, crash at every commit/publish/catch-up-chapter barrier, replay gap/state/world-head mismatch, quota abort, and proof that backup/export/import are absent;
 - clean-build route log plus Chromium netlog allows only the declared local preview origin and records no attempted external egress across the named channels;
 - future-only: CSRF/origin, session fixation, public-write quotas, alarm duplication, moderation visibility, secret redaction, and denial-of-wallet.
 
@@ -93,7 +94,7 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 - Hostile text appears as inert bounded text or is discarded.
 - Stale/duplicate/invalid writes cannot partially change Reality.
 - Provider removal and quota failure do not stop the world.
-- Local owner export contains authoritative history plus bounded authorized provenance, but no credential, hidden chain-of-thought, or raw provider trace by default.
+- Raw citizen-private decision records and full-preimage hashes stay off every patron/public surface; filtered trace projections are authorization-testable.
 - Public moderation can hide harmful presentation without falsifying the Chronicle.
 
 ## Rejected alternatives
@@ -113,7 +114,7 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 ## Unproven assumptions and reopen evidence
 
 - **UNRESOLVED:** exact CSP needs of the selected renderer and dev/build tooling. Reopen only from a documented blocked resource; do not silently weaken it.
-- **UNRESOLVED:** browser export remains useful without restore in V1. Import threat surface opens only under a separately reviewed design.
+- **UNRESOLVED:** which backup/export/restore design is worth adding after the proof. Its threat surface opens only under a separately reviewed design.
 - **UNRESOLVED:** GitHub private-repository secret scanning, push protection, rulesets, and branch protections available to this personal account. The coordinator must probe and record actual responses.
 - **UNRESOLVED:** future public moderation can remain separate without leaking restricted text through replay/share endpoints. Reopen during hosted threat modeling.
 - **UNRESOLVED:** any optional provider's data/retention terms fit the exact prompt inventory. Reopen on the day of adapter work.
