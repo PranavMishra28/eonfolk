@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
 
-**Status:** CIVILIZATION AMENDMENT INTEGRATION — FRESH REVIEW AND QA PENDING
+**Status:** READY FOR GOAL MODE — exact amended Goal blob approved; implementation gates remain unrun
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -25,7 +25,7 @@
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
-| 6. Reconciliation, final review, QA and draft PR | Reopened | Original planning run passed; civilization amendment changes authorities/Goal prompt and requires fresh review, QA, and PR update |
+| 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 
 ## Integration history
 
@@ -52,6 +52,10 @@
 | Final bounded fixes | coordinator | `94f3acd` | Determinism, visibility, estimate, Gate 0, Riverhold and source-ledger authorities | Named baseline diff, vectors, source IDs, links and contradictions checked |
 | Targeted final confirmation | `review/final-confirmation` / `e56caf5` | `4e82450` | `FINAL_CONFIRMATION.md` only | Independent confirmation passed FR-001–FR-006 against named commits |
 | Goal-mode prompt hardening and confirmation | coordinator plus zero-context review rounds | `4cf18d7` | `IMPLEMENTATION_GOAL_PROMPT.md`, dependency/browser evidence and Goal review trail | A final fresh full audit found two narrow study ambiguities; both were closed, and the final targeted confirmation passed exact blob `ba01b70` with no P0/P1 |
+| Civilization amendment | coordinator / attached amendment SHA-256 `8f8a692f…` | `d944ac9` | Product/game/engineering/quality/ExecPlan authorities | Exact attachment read; no Gate A/B mechanic, production code, model, server, fork, dashboard or budget expansion |
+| Amended implementation-base reconciliation | coordinator | `e9c356b` | Goal/ExecPlan plus run, provenance, replay, epistemic and evidence contracts | Literal bases/ancestry, task sums, amendment substitution and exact diff inspected before immutable review |
+| Fresh amendment audits and bounded fixes | three fresh reviewers against `e9c356b`; coordinator | `2f4722e` | Gate protocols, provenance vectors, replay headers, V2 study streams, catch-up recovery and readiness evidence | Seven P1 and six P2 accepted and repaired; Node/Ruby vectors, citations, links and actual changed files inspected |
+| Final amended base and confirmation trail | coordinator plus one fresh read-only targeted reviewer against `b2e755c` | `4cd1700` | Exact Goal base binding, amendment review and Goal review trail | Reviewer returned PASS with zero residual/new P0/P1; exact Goal blob `a5e3035`, bytes, hashes, ancestry and all eleven obligations confirmed |
 
 Research branches were not pushed. The coordinator staged explicit paths and integrated only clean commits.
 
@@ -81,6 +85,16 @@ The following evidence passed for the original planning handoff at `9ed4d28`; it
 
 The tracked tree contains no production TypeScript/JavaScript/WASM, application dependency or lock manifest, workflow, deployment configuration, license or credential. The three inert dependency-evidence files and final Goal-prompt blob match their recorded sizes and SHA-256 values.
 
+## Civilization amendment final QA — 2026-08-20
+
+The final immutable execution-contract target is commit `b2e755c37a836ccb1660cfa337561be16e93a178`; its Goal prompt is Git blob `a5e30353d3bee951ff25a85758f9accf22aea30a`, 151,873 bytes / 643 newline-terminated lines, raw SHA-256 `12fbdd2a6975b07d8e5e2c5b75a861cbc355cd20c99e5fa4eea903331433b7ae`. The [civilization amendment review](docs/reviews/CIVILIZATION_AMENDMENT_REVIEW.md) records the first-audit failures, every disposition, and the final fresh PASS with zero P0/P1.
+
+`git diff --check` passed. Markdown lint reported 62 files and zero issues. Offline link/anchor validation checked 1,089 links (268 unique) with zero errors. The source audit found 128 unique dated ledger rows, all 128 referenced and no missing source IDs. Every retained Markdown artifact is nonempty and indexed; `AGENTS.md` is 47 lines. The final tree has 84 tracked files, including 15 selected PNG concepts, and the only worktree is the repository root.
+
+The fourteen published determinism preimages in Simulation and Goal, both displayed IDs, V2 PRNG state, synthetic/operational Gate B assignments, synthetic/operational Gate A option orders, Williams balance, 40/52/65 task sums, 52-hour milestone sum and 60-hour ceiling were independently reproduced. The contradiction scan agrees on Gate protocols, World/Chronicle/Observatory identity, three data forms, typed private epistemics, event provenance, batch-header/event replay, final-only multi-event revision, catch-up recovery, no-model fallback, local persistence, Pixi renderer, budgets, CI and scope.
+
+The tracked tree contains no production source, executable dependency/lock manifest, workflow, deployment configuration, license, credential, unfinished marker or empty retained artifact. GitHub remains private with default `main`; Actions are enabled, rulesets are empty, `main` is unprotected, Dependabot/automated fixes/secret scanning/code scanning remain disabled or unevidenced, and no setting was changed. Exactly one draft PR remains open and unmerged.
+
 ## Draft PR handoff
 
 GitHub re-verification found `PranavMishra28/eonfolk` private with default branch `main`. Exactly one PR exists: draft [#1, Plan: Eonfolk product and technical foundation](https://github.com/PranavMishra28/eonfolk/pull/1), base `main`, head `plan/000-product-foundation`, state OPEN and unmerged. Research, review and spike branches remain local only.
@@ -107,4 +121,19 @@ GitHub re-verification found `PranavMishra28/eonfolk` private with default branc
 - [x] Fifteen clean scratch/research/review worktrees removed with local branch SHAs retained in this plan.
 - [x] Planning branch pushed and exactly one draft PR opened; no merge.
 
-The original `READY FOR GOAL MODE` declaration is superseded. Current readiness remains suspended until the civilization-amendment review, exact current Goal-blob confirmation, fresh QA, push, and draft-PR update all pass.
+At the amendment-integration checkpoint, the original `READY FOR GOAL MODE` declaration was suspended pending fresh review, exact Goal-blob confirmation, QA, push and draft-PR update. The current evidence below supersedes that historical suspension.
+
+## Current exit evidence
+
+- [x] Solo-builder, 40–60-hour, M4 Pro, approximately-$0, free-V1, no-training and no-commercial-operation constraints shape the selected scope.
+- [x] Every retained planning artifact is nonempty, indexed and owned by one authority; top decisions, assumptions and abandon/change triggers are surfaced.
+- [x] Competition, player, distribution, model ecology, naming, tools and visual direction are sourced; the zero-anchor challenger was tested.
+- [x] The local-first two-gate ExecPlan has browser-visible product, correctness, performance, accessibility, security and stop criteria.
+- [x] Tool/plugin/MCP inventory, CI/CD contract, actual GitHub capability probes and measured provisional budgets exist.
+- [x] Fifteen selected concepts have prompt/provenance records; rejected spikes and research worktrees were not merged.
+- [x] Frozen discipline reviews, five player perspectives, full Goal audits, civilization-amendment audits and the one final targeted confirmation are reconciled with no accepted P0 or unmitigated P1.
+- [x] The self-contained Goal prompt's exact approved Git blob is `a5e30353d3bee951ff25a85758f9accf22aea30a`; external higher-authority approval remains mandatory for execution.
+- [x] Fresh Markdown, link, source, contradiction, secret, license, production-code and Git QA passes.
+- [x] The planning branch is pushed; exactly one matching draft PR remains open, private and unmerged.
+
+`READY FOR GOAL MODE` means the contract is ready to implement and falsify, not that fun, attachment, refusal tolerance, delayed return, session-20 depth, or the research thesis has been validated with humans.
