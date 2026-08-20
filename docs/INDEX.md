@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** RECONCILED AUTHORITY MAP — final QA pending
+**Status:** RECONCILED AUTHORITY MAP — final QA passed; draft PR pending
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
@@ -111,6 +111,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Five hostile player-perspective walkthroughs | [PLAYER_PERSPECTIVES.md](reviews/PLAYER_PERSPECTIVES.md) |
 | Final cross-discipline review and frozen findings | [FINAL_RED_TEAM.md](reviews/FINAL_RED_TEAM.md) |
 | Targeted confirmation of final cross-discipline fixes | [FINAL_CONFIRMATION.md](reviews/FINAL_CONFIRMATION.md) |
+| Immutable zero-context Goal-prompt review trail and final confirmation | [GOAL_PROMPT_REVIEW.md](reviews/GOAL_PROMPT_REVIEW.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene

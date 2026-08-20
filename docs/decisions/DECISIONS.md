@@ -2,7 +2,7 @@
 
 **Purpose:** Record the accepted product, game, design, technical, quality, and operating choices and reconcile severe review findings.
 
-**Status:** RECONCILED AFTER FOUR FROZEN RED TEAMS AND FIVE PLAYER PERSPECTIVES
+**Status:** RECONCILED — FROZEN RED TEAMS, PLAYER PERSPECTIVES, AND GOAL-PROMPT CONFIRMATION PASSED
 
 **Authority boundary:** This file owns acceptance and review disposition. Linked authority documents own detailed behavior and contracts; the [source ledger](../research/SOURCE_LEDGER.md) owns provenance.
 
@@ -153,7 +153,7 @@
 
 ## D-009 — Consequence-led distribution
 
-**Decision.** The V1 object is a factual three-beat/≤20-second **Story Card** labeled YOU ADVISED → MARA CHOSE → WHAT FOLLOWED → UNRESOLVED. It is private comprehension evidence with responsive 16:9/9:16 composition, no dead link or seed headline. Public recipient routes and distribution claims are deferred.
+**Decision.** The V1 object is a factual three-beat/≤20-second **Story Card**. Advice branches use YOU ADVISED; abstention uses NO ADVICE / YOU ABSTAINED; every branch then uses MARA CHOSE → WHAT FOLLOWED → UNRESOLVED. It is private comprehension evidence with responsive 16:9/9:16 composition, no dead link or seed headline. Public recipient routes and distribution claims are deferred.
 
 **Evidence.** Competitor and distribution research shows AI-agent novelty is occupied and community behavior is channel-specific [S-COMP-001] [S-DIST-001] [S-DIST-002]. The same Riverhold evidence chain can serve QA, return and sharing.
 
@@ -255,11 +255,11 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | ZC-004 | P1 | ACCEPT — MITIGATED | One build/profile/cache/run/mark/frame/gzip/egress procedure decides every performance budget. | PERFORMANCE, Goal prompt |
 | ZC-005 | P1 | ACCEPT — MITIGATED | Voluntary informed participation, affirmative agreement, no PII/recording and withdrawal rights replace consent-free observation language. | Goal prompt, QUALITY_BAR, 001 |
 | Z2-001 | P1 | ACCEPT — MITIGATED | Stable H/FAM/TRI/FAC/ECH/DIR IDs, six literal rows and H-specific scoring eliminate Gate 0 assignment ambiguity. | Goal prompt, QUALITY_BAR |
-| Z2-002 | P1 | ACCEPT — MITIGATED | Gate B fixes descending rejection-sampled shuffle, missing-rating failure and exact `the player/you` card answer. | Goal prompt, QUALITY_BAR |
+| Z2-002 | P1 | ACCEPT — MITIGATED | Gate B fixes descending rejection-sampled shuffle, missing-rating failure and branch-derived factual Card answers; the operational abstention card records `no-one`, not a fictional adviser. | Goal prompt, QUALITY_BAR |
 | Z2-003 | P1 | ACCEPT — MITIGATED | Every hash domain has a typed field schema plus full independently reproduced preimage/digest/ID vectors; tests use a second encoder. | SIMULATION, Goal prompt |
 | Z2-004 | P1 | ACCEPT — MITIGATED | Full viewer/purpose/label truth table defines subject matching and inclusive-grant/exclusive-revoke semantics; static oracle is separate from production. | WORLD_MODEL, Goal prompt |
 | Z2-005 | P1 | ACCEPT — MITIGATED | Deny-by-default browser flags, route abort/log and Chromium netlog cover attempted DNS and non-HTTP egress; offline journey is required. | SECURITY, PERFORMANCE, Goal prompt |
-| Z2-006 | P1 | ACCEPT — MITIGATED | One headed lockfile-pinned Playwright Chromium executable/revision/hash owns all numerical gates; physical browser is separate evidence. | PERFORMANCE, Goal prompt |
+| Z2-006 | P1 | ACCEPT — MITIGATED | One headed lockfile-pinned Playwright Chromium revision and complete app-bundle manifest own all numerical gates; the 52 KB launcher alone is insufficient, and physical browser evidence stays separate. | PERFORMANCE, Goal prompt |
 | Z2-007 | P1 | ACCEPT — MITIGATED | Goal mode may commit policy/config only; GitHub API/settings/protection/Dependabot/push/PR mutations require separate operator authority. | TESTING, 001, Goal prompt |
 | Z3-001 | P1 | PARTIALLY ACCEPT — PRESENTATION MITIGATED | The asserted 54-hour arithmetic double-counted one row: the 18 accepted expected estimates machine-sum to 52. Replacing the prose list with an ID table, total, row count and mandatory machine-sum removes that review ambiguity without relabeling or cutting work. | 001, Goal prompt |
 | Z3-002 | P1 | ACCEPT — MITIGATED | Resume now requires a clean resume-only checkpoint commit whose `resume.json` names its first parent, avoiding a self-hashing current-HEAD field; any other collision stops for operator direction. | 001, Goal prompt |
@@ -321,5 +321,20 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | Z9-004 | P1 | ACCEPT — MITIGATED | GitHub mutation/settings calls remain prohibited while the named unauthenticated public-advisory GET is expressly allowed. | Goal prompt |
 | Z9-005 | P1 | ACCEPT — MITIGATED | Operator evidence contains raw opaque responses only; exact receipt-derived keys score ordinal presentations before hidden treatment mapping, with no subjective field. | Goal prompt, QUALITY_BAR, 001 |
 | Z9-006 | P1 | ACCEPT — MITIGATED | Gate 0 now uses six people and all six balanced Williams rows; position and first-order predecessor balance are independently checked. | Goal prompt, QUALITY_BAR, 001 |
+| Z10-001 | P1 | ACCEPT — MITIGATED | Every objective prompt has a fixed token/label/cardinality set and a deterministic per-participant order in the manifest, with independently reproduced shuffle sentinels. | Goal prompt, QUALITY_BAR |
+| Z10-002 | P1 | ACCEPT — MITIGATED | Gate 0 fixes all six chooser/authority/continuity treatments; Gate B fixes the exact three-row state-insensitive control and its typed branch vectors before enrollment. | Goal prompt, QUALITY_BAR, 001 |
+| Z10-003 | P1 | ACCEPT — MITIGATED | Closed per-attempt protocol status/invalidation reason preserves raw answers, distinguishes withdrawal, requires valid timers and deterministically fails/noncontributes by gate. | Goal prompt, QUALITY_BAR, 001 |
+| Z10-004 | P1 | ACCEPT — MITIGATED | Story Card reserves exactly 60 T15 minutes before Gate B reserves exactly 240; neither study freezes unless the complete 300-minute allocation exists. | Goal prompt, 001 |
+| Z10-005 | P1 | ACCEPT — MITIGATED | Evidence destination hash and decoded bytes must equal the exact signed inbox source before locking, after normalization and during full-chain validation. | Goal prompt |
+| Z10-006 | P1 | ACCEPT — MITIGATED | A canonical gate-surface oracle binds accepted human evidence to every later integration and final runnable HEAD; mismatches cannot integrate or inherit historical PASS. | Goal prompt, QUALITY_BAR, 001 |
+| Z11-001 | P0 | ACCEPT — MITIGATED | Story Card headings/adviser/direct-cause answers are branch-derived; the operational abstention card says no advice was given, Mara followed her plan and ledger uncertainty remained. | CHRONICLE, Goal prompt, QUALITY_BAR |
+| Z11-002 | P1 | ACCEPT — MITIGATED | Gate 0 builds both disposable surfaces before exposure and imports one combined eleven-record cohort; no partial product evidence or post-exposure instrument change is authorized. | Goal prompt, 001, QUALITY_BAR |
+| Z11-003 | P1 | ACCEPT — MITIGATED | Gate B records use one literal flat key set; both ordinals always freeze every option order, including conditional second-action reason. | Goal prompt |
+| Z11-004 | P1 | ACCEPT — MITIGATED | Every Gate 0 product/observer, Gate A observer, Gate B condition and Story Card attempt now has one exact durable-response terminal event for invalidation. | Goal prompt, QUALITY_BAR |
+| Z11-005 | P1 | ACCEPT — MITIGATED | Full fixed operator caps use one integer global/milestone/open-reservation/protected-high-estimate formula; a smaller coordinator-chosen cap cannot freeze. | Goal prompt, 001 |
+| Z11-006 | P1 | ACCEPT — MITIGATED | Recovery state 6 admits, verifies, renames/fsyncs or removes the exact Recovery-B temp and rejects every other entry. | Goal prompt |
+| Z11-007 | P1 | ACCEPT — MITIGATED | Browser identity covers the complete 326-file/five-symlink app bundle and framework hash, independently reproduced in Node/Ruby; the launcher hash alone cannot pass. | Goal prompt, PERFORMANCE, PROPOSED_TOOLS |
+| Z12-001 | P1 | ACCEPT — MITIGATED | The four-person family comparator selects a unique 2–1–1 plurality; a 2–2 split uses Mara's member of the tied pair and only an exact Mara score tie reaches fixed action order. | Goal prompt, QUALITY_BAR |
+| Z12-002 | P1 | ACCEPT — MITIGATED | Every manifest stores the lowercase 64-hex seed; option-order PRNG seeding consumes exactly its decoded 32 bytes, with Story Card bound to `cardSeed`. | Goal prompt |
 
-All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final zero-context Goal-prompt review must also confirm Z2 through Z9 before readiness.
+All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`. A fresh full Goal-prompt audit found Z12-001/002 against the prior blob; the final corrective confirmation passed exact commit `4cf18d7ed0f40009551df63be356e59b7aeeda6e`, blob `ba01b70c244dbf5f1b0f4bdacd86b473f8172cba`, with no residual or new P0/P1. The immutable trail is in [GOAL_PROMPT_REVIEW](../reviews/GOAL_PROMPT_REVIEW.md).

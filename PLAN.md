@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
 
-**Status:** PRODUCT/TECHNICAL REVIEWS RECONCILED; GOAL-PROMPT CONFIRMATION AND FINAL HANDOFF IN PROGRESS
+**Status:** REVIEWS, GOAL PROMPT, AND FINAL QA PASSED; DRAFT PR IN PROGRESS
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -25,7 +25,7 @@
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
-| 6. Reconciliation, final review, QA and draft PR | In progress | Final cross-discipline confirmation passed; Goal-prompt confirmation, repository QA and PR remain |
+| 6. Reconciliation, final review, QA and draft PR | In progress | Cross-discipline and exact Goal-prompt confirmations plus repository QA passed; PR remains |
 
 ## Integration history
 
@@ -51,7 +51,7 @@
 | Final cross-discipline review | `review/final` / `cb978be` | `337326b` | `FINAL_RED_TEAM.md` only | Review pinned to `6850b699`; five P1 and one P2 findings recorded without edits |
 | Final bounded fixes | coordinator | `94f3acd` | Determinism, visibility, estimate, Gate 0, Riverhold and source-ledger authorities | Named baseline diff, vectors, source IDs, links and contradictions checked |
 | Targeted final confirmation | `review/final-confirmation` / `e56caf5` | `4e82450` | `FINAL_CONFIRMATION.md` only | Independent confirmation passed FR-001–FR-006 against named commits |
-| Goal-mode prompt hardening | coordinator plus zero-context review rounds | `9a2a893` | `IMPLEMENTATION_GOAL_PROMPT.md` and frozen dependency evidence | Nine failing reviews converted into closed execution/evidence/recovery contracts; final fresh review pending |
+| Goal-mode prompt hardening and confirmation | coordinator plus zero-context review rounds | `4cf18d7` | `IMPLEMENTATION_GOAL_PROMPT.md`, dependency/browser evidence and Goal review trail | A final fresh full audit found two narrow study ambiguities; both were closed, and the final targeted confirmation passed exact blob `ba01b70` with no P0/P1 |
 
 Research branches were not pushed. The coordinator staged explicit paths and integrated only clean commits.
 
@@ -73,6 +73,12 @@ Repository remained private with default `main`. Actions are enabled with all ac
 
 The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3dddb401`** (`docs: freeze initial product foundation synthesis`). All four discipline reviews and five persona walkthroughs targeted that identical commit without earlier review output. The four review files were integrated only after all completed. Their historical verdict was NOT READY; reconciliation accepts and mitigates the P0/P1 findings in `DECISIONS.md`.
 
+## Final planning QA — 2026-08-20
+
+`git diff --check` passed. Markdown lint reported 60 files and zero issues. Offline link/anchor validation checked 1,036 links (264 unique) with zero errors. The source audit found 128 unique dated ledger rows, all 128 referenced and no missing source IDs. Every retained Markdown artifact is nonempty and named in `INDEX.md`; `AGENTS.md` is 46 lines. Placeholder and credential-pattern scans were empty. The only worktree is the repository root. The contradiction table in `FINAL_READINESS.md` agrees on product, loop, starting unit, long horizon, distribution, model ecology, renderer, persistence, causality, hours, budgets, CI and security.
+
+The tracked tree contains no production TypeScript/JavaScript/WASM, application dependency or lock manifest, workflow, deployment configuration, license or credential. The three inert dependency-evidence files and final Goal-prompt blob match their recorded sizes and SHA-256 values.
+
 ## Exit evidence
 
 - [x] Private repository, `main` and planning branch verified.
@@ -90,9 +96,9 @@ The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3
 - [x] Four frozen-state reviews and five player perspectives complete.
 - [x] Every P0/P1 mapped to a disposition and affected authorities revised.
 - [x] Final cross-discipline review and one targeted confirmation complete.
-- [ ] Final readiness answers specific/falsifiable and Goal prompt passes zero-context review.
-- [ ] Internal links, source IDs, contradictions, Markdown and Git diff pass final QA.
-- [ ] Scratch worktrees removed with SHAs retained in this plan.
+- [x] Final readiness answers are specific/falsifiable; a fresh full Goal-prompt audit and the final corrective targeted confirmation pass.
+- [x] Internal links, source IDs, contradictions, Markdown and Git diff pass final QA.
+- [x] Fifteen clean scratch/research/review worktrees removed with local branch SHAs retained in this plan.
 - [ ] Planning branch pushed and exactly one draft PR opened; no merge.
 
 `READY FOR GOAL MODE` will mean ready to implement and falsify the slice. It will not claim that fun, attachment, refusal tolerance or session-20 retention have been validated with humans.

@@ -2,7 +2,7 @@
 
 **Purpose:** answer the twelve product-readiness questions concretely and audit the decision-complete exit conditions.
 
-**Status:** CANDIDATE — cross-discipline confirmation passed; Goal-prompt confirmation and repository QA pending
+**Status:** CANDIDATE — cross-discipline, Goal-prompt, and repository QA passed; draft PR pending
 
 **Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/active/001-foundation.md).
 
@@ -40,7 +40,7 @@ The planning hypothesis is that relationships, beliefs, commitments, artifacts, 
 
 ### 8. What exactly gets shared?
 
-In V1, nothing is publicly shared. The player can copy a private responsive Story Card from their accepted branch: **YOU ADVISED → MARA CHOSE → WHAT FOLLOWED → UNRESOLVED**, with evidence details. It has no URL/seed headline and tests five-second causal comprehension only. A playable public recipient route and activation measurement require separate authorization.
+In V1, nothing is publicly shared. The player can copy a private responsive Story Card from their accepted branch: advice branches use **YOU ADVISED**, abstention uses **NO ADVICE / YOU ABSTAINED**, and every branch continues **MARA CHOSE → WHAT FOLLOWED → UNRESOLVED** with evidence details. It has no URL/seed headline and tests five-second causal comprehension only. A playable public recipient route and activation measurement require separate authorization.
 
 ### 9. Why is this not SEED?
 
@@ -87,7 +87,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 ## Required exit checks
 
 - [x] Hard personal/build constraints affect scope, architecture, and stop conditions.
-- [x] `IMPLEMENTATION_GOAL_PROMPT.md` exists and is self-contained; zero-context review still pending.
+- [x] `IMPLEMENTATION_GOAL_PROMPT.md` exists and is self-contained; a fresh full audit plus the final corrective targeted confirmation passed its exact final contract.
 - [x] Tool/plugin/MCP inventory contains every requested capability and field.
 - [x] CI/CD contract covers required/conditional/security/branch/update/retention behavior and actual private-repo probes.
 - [x] Initial performance/accessibility budgets incorporate the failed R3F spike and require a new early Pixi measurement.
@@ -96,8 +96,8 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 - [x] Top decisions, assumptions, and abandon/change triggers are present.
 - [x] Four frozen red teams and five hostile perspectives are reconciled.
 - [x] Final independent cross-discipline review findings were fixed and the one targeted confirmation passed.
-- [ ] Goal prompt passes fresh zero-context review.
-- [ ] Final Markdown/link/source/contradiction/secret/license/code/Git QA passes.
+- [x] Goal prompt passes an immutable fresh full review/fix cycle and final targeted confirmation with no residual P0/P1.
+- [x] Final Markdown/link/source/contradiction/secret/license/code/Git QA passes.
 - [ ] Branch is pushed and exactly one draft PR exists; it is not merged.
 
 `READY FOR GOAL MODE` may be declared only after the remaining unchecked items pass. It means the experiment is implementation-ready, not that the product thesis is true.

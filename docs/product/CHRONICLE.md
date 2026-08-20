@@ -83,6 +83,8 @@ Those are three presentation beats with expandable event evidence. World/Chronic
 
 ### Story Card
 
+Headings are branch-derived. Advice branches use **YOU ADVISED**; abstention uses **NO ADVICE / YOU ABSTAINED**. The example below is the advised Riverhold oracle, not the operational abstention study card.
+
 > YOU ADVISED: expose the shortage [RV-004]
 >
 > MARA CHOSE: verify, then speak [RV-005–RV-007]
@@ -95,7 +97,7 @@ Those are three presentation beats with expandable event evidence. World/Chronic
 
 ### Future public event page
 
-If later deployment is authorized, the canonical URL shows title, exact region/time, three factual beats, current unresolved tension, versions, and expandable evidence. “Sponsor advice contributed to Mara's plan” is permitted [RV-004, RV-005]. “The sponsor exposed corruption” and “Mara saved Riverhold from famine” are prohibited. Allegations display speaker and belief status. V1 ships **Copy story card**, contains no dead link, and tests comprehension—not acquisition.
+If later deployment is authorized, the canonical URL shows title, exact region/time, three factual beats, current unresolved tension, versions, and expandable evidence. “Sponsor advice contributed to Mara's plan” is permitted only when an advice event exists [RV-004, RV-005]. An abstention branch must say no advice was given and name Mara's independently followed plan/outcome. “The sponsor exposed corruption” and “Mara saved Riverhold from famine” are prohibited. Allegations display speaker and belief status. V1 ships **Copy story card**, contains no dead link, and tests comprehension—not acquisition.
 
 ## Factual generation rules
 
