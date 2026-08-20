@@ -74,7 +74,7 @@ The ExecPlan tracks actual incremental cash spend as **$0 unless the owner expli
 - model download/eval time if a later gate opens;
 - operational burden and credential surface.
 
-The [ExecPlan bottom-up work breakdown](../exec-plans/active/001-foundation.md#bottom-up-work-breakdown) maps every blocking criterion to an owner/evidence task and totals 39.5/52/65 low/expected/high productive hours. Focused hours sum coordinator, children, operator setup/facilitation/analysis, and independent review even when parallel; elapsed participant/scheduling wait is separate. Eight hours from expected to the hard 60 ceiling remain fix/review contingency only. A timed four-hour M0 and milestone re-estimates decide whether the expected case remains credible; a high trajectory triggers declared presentation cuts or product reopen, never a shallower gate or spend.
+The [ExecPlan bottom-up work breakdown](../exec-plans/active/001-foundation.md#bottom-up-work-breakdown) maps every blocking criterion to an owner/evidence task and totals 40/52/65 low/expected/high productive hours after the six-person Gate 0 correction. Focused hours sum coordinator, children, operator setup/facilitation/analysis, and independent review even when parallel; elapsed participant/scheduling wait is separate. Eight hours from expected to the hard 60 ceiling remain fix/review contingency only. A timed four-hour M0 and milestone re-estimates decide whether the expected case remains credible; a high trajectory triggers declared presentation cuts or product reopen, never a shallower gate or spend.
 
 ## Approval and stop controls
 
