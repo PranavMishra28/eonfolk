@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** RECONCILED AUTHORITY MAP — final QA passed; draft PR pending
+**Status:** READY FOR GOAL MODE — final QA passed; private draft PR open
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 

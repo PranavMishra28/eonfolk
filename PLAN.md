@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
 
-**Status:** REVIEWS, GOAL PROMPT, AND FINAL QA PASSED; DRAFT PR IN PROGRESS
+**Status:** READY FOR GOAL MODE — DRAFT PR OPEN; DO NOT MERGE
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -25,7 +25,7 @@
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
-| 6. Reconciliation, final review, QA and draft PR | In progress | Cross-discipline and exact Goal-prompt confirmations plus repository QA passed; PR remains |
+| 6. Reconciliation, final review, QA and draft PR | Complete | Cross-discipline and exact Goal-prompt confirmations plus repository QA passed; private draft PR [#1](https://github.com/PranavMishra28/eonfolk/pull/1) is open and unmerged |
 
 ## Integration history
 
@@ -79,6 +79,10 @@ The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3
 
 The tracked tree contains no production TypeScript/JavaScript/WASM, application dependency or lock manifest, workflow, deployment configuration, license or credential. The three inert dependency-evidence files and final Goal-prompt blob match their recorded sizes and SHA-256 values.
 
+## Draft PR handoff
+
+GitHub re-verification found `PranavMishra28/eonfolk` private with default branch `main`. Exactly one PR exists: draft [#1, Plan: Eonfolk product and technical foundation](https://github.com/PranavMishra28/eonfolk/pull/1), base `main`, head `plan/000-product-foundation`, state OPEN and unmerged. Research, review and spike branches remain local only.
+
 ## Exit evidence
 
 - [x] Private repository, `main` and planning branch verified.
@@ -99,6 +103,6 @@ The tracked tree contains no production TypeScript/JavaScript/WASM, application 
 - [x] Final readiness answers are specific/falsifiable; a fresh full Goal-prompt audit and the final corrective targeted confirmation pass.
 - [x] Internal links, source IDs, contradictions, Markdown and Git diff pass final QA.
 - [x] Fifteen clean scratch/research/review worktrees removed with local branch SHAs retained in this plan.
-- [ ] Planning branch pushed and exactly one draft PR opened; no merge.
+- [x] Planning branch pushed and exactly one draft PR opened; no merge.
 
-`READY FOR GOAL MODE` will mean ready to implement and falsify the slice. It will not claim that fun, attachment, refusal tolerance or session-20 retention have been validated with humans.
+`READY FOR GOAL MODE` means ready to implement and falsify the slice. It does not claim that fun, attachment, refusal tolerance or session-20 retention have been validated with humans.

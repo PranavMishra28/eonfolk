@@ -2,7 +2,7 @@
 
 **Purpose:** answer the twelve product-readiness questions concretely and audit the decision-complete exit conditions.
 
-**Status:** CANDIDATE — cross-discipline, Goal-prompt, and repository QA passed; draft PR pending
+**Status:** READY FOR GOAL MODE — all planning exit checks passed; private draft PR open
 
 **Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/active/001-foundation.md).
 
@@ -98,6 +98,6 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 - [x] Final independent cross-discipline review findings were fixed and the one targeted confirmation passed.
 - [x] Goal prompt passes an immutable fresh full review/fix cycle and final targeted confirmation with no residual P0/P1.
 - [x] Final Markdown/link/source/contradiction/secret/license/code/Git QA passes.
-- [ ] Branch is pushed and exactly one draft PR exists; it is not merged.
+- [x] Branch is pushed and exactly one draft PR exists; draft [#1](https://github.com/PranavMishra28/eonfolk/pull/1) is open and unmerged.
 
-`READY FOR GOAL MODE` may be declared only after the remaining unchecked items pass. It means the experiment is implementation-ready, not that the product thesis is true.
+`READY FOR GOAL MODE` is declared. It means the experiment is implementation-ready, not that the product thesis is true.
