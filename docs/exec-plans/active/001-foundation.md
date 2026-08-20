@@ -30,7 +30,7 @@ Acceptance—not elapsed time—ends work. If the irreducible loop cannot pass i
 
 Implementation resolves and records one immutable `PLAN_BASE` from `origin/plan/000-product-foundation`, then creates `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation`. An existing path/branch is resumed only from a clean manifest-only checkpoint commit whose manifest names its first parent as `expectedImplementationHead`; any other collision stops for operator direction. Production code never lands on this planning branch; without separate authority the implementation result remains committed, clean, unmerged, unpushed, and undeployed.
 
-Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. Codex prepares the build, frozen voluntary informed-participation script, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. No PII/recording is collected; eligibility, affirmative agreement, withdrawal, raw responses, and sign-off are operator-attested. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
+Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. The operator writes only the four named JSON files to `/Users/pranav/Documents/ChatGPT/.eonfolk-evidence-inbox/001/`; Codex imports a validated expected file from a clean checkpoint through an evidence-only commit followed by a new manifest-only checkpoint, as specified in the Goal prompt. Codex prepares the build, frozen voluntary informed-participation script, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. No PII/recording is collected; eligibility, affirmative agreement, withdrawal, raw responses, bounded written observation notes, and sign-off are operator-attested. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
 
 ## Hour and scope budget
 
@@ -95,6 +95,8 @@ Create-a-person/roster, generalized economy/farming/crafting/governance, deep la
 
 ## Expected implementation shape
 
+The implementation prompt freezes Node `22.23.1`, pnpm `11.15.1`, and every mandatory direct runtime/dev dependency version [S-TOOL-17] [S-TOOL-18]. The committed lockfile, licenses, integrity, install scripts, and mutual build compatibility are reviewed before M1; no floating or opportunistic substitution is allowed.
+
 ```text
 apps/web/                  React Router/Vite, Pixi world, semantic UI, projections
 packages/protocol/         versioned contracts, canonical bytes, golden vectors
@@ -131,7 +133,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** record exact preview and browser commands; `git diff --check`; three viewports; cold shell timing; overflow/200% zoom/keyboard/reduced motion; no console error.
 
-**Browser/visual evidence:** use [Quality Bar's frozen Gate 0 protocol](../../quality/QUALITY_BAR.md#gate-0--product-kill-gate): all five see all six under the seeded five-row cyclic-Latin schedule; fixed facts/choices/cost/fidelity/90-second decision/45-second consequence/60-second reset; exact binary questions and 1-best/6-worst untied rank. Withdrawal/skip is zero and fails the gate. Lowest summed rank must win without tie and no alternative may lead Riverhold ≥20 points on either binary. A separate five-person silent observer manifest uses the exact Mara/three-activity/both-participants+change/autonomy rubric. Shell by 2 seconds, CTA by 3.
+**Browser/visual evidence:** use [Quality Bar's frozen Gate 0 protocol](../../quality/QUALITY_BAR.md#gate-0--product-kill-gate): all five see all six under the seeded five-row cyclic-Latin schedule; fixed facts/choices/cost/fidelity/90-second decision/45-second consequence/60-second reset; exact binary questions and 1-best/6-worst untied rank. Withdrawal/skip is zero and fails the gate. Riverhold must have the unique lowest summed rank, at least 3/5 Yes on each binary, and no alternative may lead it ≥20 points on either binary; keep, all-zero-floor-fail, and comparative-reopen mocks must agree. A separate five-person silent observer manifest uses the exact Mara/three-activity/both-participants+change/autonomy rubric. Shell by 2 seconds, CTA by 3.
 
 **Performance/security/eval:** no credentials/telemetry. Record the seeded order, raw per-participant binaries/ranks, denominator, summed ranks, and percentage-point comparisons. Living Woodcut gets one simplification pass; then stripped Weathered Atlas or stop.
 

@@ -85,6 +85,8 @@ It does not list Codex Game Studio, Build Web Apps, Cloudflare, Promptfoo, a sha
 
 **INFERENCE:** use the active Browser for authorized exploratory/manual QA. During implementation, add `@playwright/test` **1.62.1** through the project lockfile rather than relying on a global command. Its official package metadata pins Chromium revision **1234**, Chrome for Testing **151.0.7922.34**; acceptance also verifies the installed executable hash [S-TOOL-17]. Generate visual baselines in that controlled browser cohort and still do real M4 Pro/browser/device inspection for canvas/WebGL states.
 
+**VERIFIED FACT (S-TOOL-18):** read-only local/runtime and official npm registry probes froze the complete direct dependency cohort in the Goal prompt, including Node `22.23.1`, pnpm `11.15.1`, and exact UI/build/test package versions. Implementation must still verify lockfile integrity, license, install scripts, and mutual build compatibility; this evidence is not an authorization to install during planning.
+
 Required permission discipline:
 
 - bind only to the intended local URL/tab;
@@ -261,3 +263,4 @@ shadcn guidance is sufficient initially. Consider Motion AI Kit or 21st MCP only
 | S-TOOL-15 | Current 21st MCP uses hosted endpoint/API key and exposes search/generation/code-retrieval tools | [21st MCP official repository](https://github.com/21st-dev/magic-mcp) | 2026-08-20 | B | High on access date | Enumerate actual tools after any approved connection |
 | S-TOOL-16 | Current 21st Terms restrict scraping/training/redistribution/media/metadata reuse and state paid plans/AI credits | [21st Terms](https://21st.dev/terms) | 2026-08-20 | A | High on access date | Verify item license and current terms separately |
 | S-TOOL-17 | Official npm metadata identifies `@playwright/test` 1.62.1 and its registry integrity; matching `playwright-core` pins Chromium revision 1234, Chrome for Testing 151.0.7922.34 | [npm registry metadata](https://registry.npmjs.org/@playwright/test/1.62.1), [official package tarball](https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz) | 2026-08-20 | A, exact package release | High | Reopen only as a recorded browser-cohort migration |
+| S-TOOL-18 | Local Node/pnpm versions and official npm registry metadata returned the exact direct dependency cohort frozen in the Goal prompt | Read-only local version and `npm view <package> version` probes | 2026-08-20 | A, local + official registry | High on access date | Revalidate installability/license/integrity before implementation |
