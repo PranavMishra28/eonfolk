@@ -84,14 +84,23 @@ fieldset label {
 	left: 1rem;
 	top: 1rem;
 	width: min(28rem, calc(100% - 2rem));
-	max-height: 42%;
-	overflow: hidden;
 	padding: 0.75rem;
 	border: 2px solid #24211d;
 	background: rgb(247 237 215 / 92%);
 }
+.gate0-visual[data-quality="living-woodcut"] .gate0-visual__semantic-world {
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
 .semantic-rows ul {
-	columns: 2;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.15rem 1rem;
 	padding-inline-start: 1.2rem;
 }
 .semantic-title {
@@ -124,11 +133,25 @@ nav a {
 		box-shadow: none;
 	}
 	.semantic-rows {
-		max-height: 30%;
-		font-size: 0.8rem;
+		width: calc(100% - 1rem);
+		left: 0.5rem;
+		top: 0.5rem;
+		padding: 0.45rem;
+		font-size: 0.7rem;
+		line-height: 1.15;
+	}
+	.gate0-visual[data-quality="living-woodcut"] .gate0-visual__semantic-world {
+		width: 1px;
+	}
+	.semantic-rows p,
+	.semantic-rows section,
+	.semantic-rows ul,
+	.semantic-rows h1 {
+		margin-block: 0.25rem;
 	}
 	.gate0-visual__peek {
-		max-height: 38dvh;
+		max-height: 33dvh;
+		overflow: auto;
 	}
 }
 @media (prefers-reduced-motion: reduce) {

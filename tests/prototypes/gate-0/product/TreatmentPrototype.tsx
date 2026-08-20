@@ -15,18 +15,20 @@ export interface AdviceChooserProps {
 	readonly selected: ActionId | null;
 	readonly onSelect: (action: ActionId) => void;
 	readonly idPrefix?: string;
+	readonly disabled?: boolean;
 }
 
 export function AdviceChooser({
 	selected,
 	onSelect,
 	idPrefix = "gate-zero-advice",
+	disabled = false,
 }: AdviceChooserProps) {
 	const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
 		onSelect(event.target.value as ActionId);
 
 	return (
-		<fieldset>
+		<fieldset disabled={disabled}>
 			<legend>What advice do you give?</legend>
 			{ACTION_IDS.map((action) => {
 				const inputId = `${idPrefix}-${action}`;
@@ -51,6 +53,7 @@ export function AdviceChooser({
 export interface TreatmentPrototypeProps extends AdviceChooserProps {
 	readonly treatmentId: TreatmentId;
 	readonly onConfirm: () => void;
+	readonly disabled?: boolean;
 }
 
 export function TreatmentPrototype({
@@ -59,12 +62,13 @@ export function TreatmentPrototype({
 	onSelect,
 	onConfirm,
 	idPrefix,
+	disabled = false,
 }: TreatmentPrototypeProps) {
 	const treatment = TREATMENTS[treatmentId];
 	const headingId = `${idPrefix ?? "gate-zero"}-heading`;
 
 	return (
-		<article aria-labelledby={headingId}>
+		<article aria-labelledby={headingId} aria-busy={disabled || undefined}>
 			<header>
 				<p>Market count review</p>
 				<h1 id={headingId}>{treatment.participantFocus}</h1>
@@ -82,6 +86,7 @@ export function TreatmentPrototype({
 			</section>
 
 			<AdviceChooser
+				disabled={disabled}
 				idPrefix={idPrefix}
 				onSelect={onSelect}
 				selected={selected}
@@ -89,7 +94,11 @@ export function TreatmentPrototype({
 			<p>
 				You have {GATE_ZERO_TIMING.decisionWindowMs / 1_000} seconds to decide.
 			</p>
-			<button disabled={selected === null} onClick={onConfirm} type="button">
+			<button
+				disabled={disabled || selected === null}
+				onClick={onConfirm}
+				type="button"
+			>
 				Confirm advice
 			</button>
 		</article>

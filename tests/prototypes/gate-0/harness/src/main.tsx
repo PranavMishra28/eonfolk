@@ -1,5 +1,13 @@
+import "pixi.js/unsafe-eval";
 import { Application, Container, Graphics, Text } from "pixi.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 
 import {
@@ -52,7 +60,6 @@ function attemptInvalid(record: any, key: string, reason: string) {
 }
 
 function useProtocolInvalidation(
-	studyId: string,
 	currentKey: string | null,
 	endpoint: boolean,
 	update: (mutate: (record: any) => void) => void,
@@ -74,7 +81,7 @@ function useProtocolInvalidation(
 			window.removeEventListener("blur", onBlur);
 			window.removeEventListener("pagehide", onPageHide);
 		};
-	}, [currentKey, endpoint, studyId, update]);
+	}, [currentKey, endpoint, update]);
 }
 
 function Consent({ onAgree }: { onAgree: () => void }) {
@@ -102,6 +109,25 @@ function Consent({ onAgree }: { onAgree: () => void }) {
 	);
 }
 
+function StopParticipation({ onStop }: { onStop: () => void }) {
+	return (
+		<button className="stop-study" type="button" onClick={onStop}>
+			Stop participation
+		</button>
+	);
+}
+
+function StudyEnded() {
+	return (
+		<main className="study-card">
+			<h1>Study ended</h1>
+			<p>
+				Your partial anonymous record was retained; no replacement will be made.
+			</p>
+		</main>
+	);
+}
+
 function blankProductRecord(studyId: ProductStudyId) {
 	const rowId = `R${Number(studyId.slice(1)) - 1}`;
 	const assignment = { studyId, cohortRole: "product", rowId };
@@ -109,7 +135,7 @@ function blankProductRecord(studyId: ProductStudyId) {
 		studyId,
 		cohortRole: "product",
 		eligible: true,
-		affirmativeAgreement: true,
+		affirmativeAgreement: false,
 		assignment,
 		protocol: Object.fromEntries(PRESENTATIONS.map((p) => [p, validAttempt()])),
 		taskTimesMs: Object.fromEntries(
@@ -166,6 +192,7 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 	});
 	const [replay, setReplay] = useState<boolean | null>(null);
 	const [rankValues, setRankValues] = useState<Record<string, string>>({});
+	const [surfaceReady, setSurfaceReady] = useState(false);
 	const [consented, setConsented] = useState(
 		() => localStorage.getItem(storageKey(studyId)) !== null,
 	);
@@ -186,15 +213,35 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 	const atBoundary = ordinal >= 6;
 	const endpoint = atBoundary && record.ratings.V1Rank !== null;
 	useProtocolInvalidation(
-		studyId,
-		atBoundary ? "V6" : presentation,
+		consented && (atBoundary || origin.current !== null)
+			? atBoundary
+				? "V6"
+				: presentation
+			: null,
 		endpoint,
 		mutate,
 	);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!consented || atBoundary || !presentation || !treatmentId) return;
-		if (!ACTION_IDS.includes("verify-private") || !row.includes(treatmentId))
+		if (!surfaceReady) {
+			const readyFrame = requestAnimationFrame(() => setSurfaceReady(true));
+			return () => cancelAnimationFrame(readyFrame);
+		}
+		const instrument = document.querySelector<HTMLElement>(
+			"[data-gate0-instrument]",
+		);
+		const enabledChoices = document.querySelectorAll(
+			'.product-shell input[type="radio"]:not(:disabled)',
+		);
+		if (
+			!ACTION_IDS.includes("verify-private") ||
+			!row.includes(treatmentId) ||
+			instrument?.dataset.variant !== treatmentId ||
+			instrument.dataset.assignment !== studyId ||
+			instrument.dataset.ordinal !== String(ordinal) ||
+			enabledChoices.length !== 3
+		)
 			throw new Error("fixture-mismatch");
 		origin.current = performance.now();
 		localStorage.setItem(
@@ -204,7 +251,16 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 		setNow(origin.current);
 		const timer = window.setInterval(() => setNow(performance.now()), 50);
 		return () => window.clearInterval(timer);
-	}, [atBoundary, consented, ordinal, presentation, row, studyId, treatmentId]);
+	}, [
+		atBoundary,
+		consented,
+		ordinal,
+		presentation,
+		row,
+		studyId,
+		surfaceReady,
+		treatmentId,
+	]);
 
 	useEffect(() => {
 		if (
@@ -225,6 +281,8 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 		if (decisionAt === null || !presentation || decisionElapsed < 45_000)
 			return;
 		mutate((value) => {
+			if (performance.now() - decisionAt > 46_000)
+				attemptInvalid(value, presentation, "timer-delivery-overrun");
 			value.choices[`${presentation}Desirable`] ??= immediate.desirable;
 			value.choices[`${presentation}Continue`] ??= immediate.continue;
 			value.textResponses[`${presentation}Prediction`] ??=
@@ -261,6 +319,8 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 			objection: "",
 		});
 		setReplay(null);
+		origin.current = null;
+		setSurfaceReady(false);
 	}, [atBoundary, elapsed >= 225_000, ordinal, presentation]);
 
 	if (!consented)
@@ -268,12 +328,26 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 			<Consent
 				onAgree={() => {
 					const next = blankProductRecord(studyId);
+					next.affirmativeAgreement = true;
 					persist(studyId, next);
 					setRecord(next);
 					setConsented(true);
 				}}
 			/>
 		);
+	const stop = () => {
+		mutate((value) => {
+			value.abandoned = true;
+		});
+		localStorage.removeItem(progressKey(studyId));
+	};
+	if (
+		record.abandoned ||
+		Object.values(record.protocol).some(
+			(attempt: any) => attempt.status === "invalid",
+		)
+	)
+		return <StudyEnded />;
 	if (atBoundary) {
 		const submitRanks = () => {
 			const ranks = PRESENTATIONS.map((p) => Number(rankValues[p]));
@@ -316,6 +390,7 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 						? "Ranking not yet saved."
 						: "Record complete. Ask the operator to continue."}
 				</p>
+				<StopParticipation onStop={stop} />
 			</main>
 		);
 	}
@@ -336,14 +411,24 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 	if (decisionAt === null)
 		return (
 			<main className="product-shell">
+				<span
+					hidden
+					data-gate0-instrument="gate-0-product-ready-v1"
+					data-assignment={studyId}
+					data-fixture-id="gate0-product-v1"
+					data-ordinal={ordinal}
+					data-variant={treatmentId}
+				/>
 				<p className="opaque-position">Version {presentation.slice(1)} of 6</p>
 				<TreatmentPrototype
+					disabled={!surfaceReady}
 					treatmentId={treatmentId}
 					selected={selected}
 					onSelect={setSelected}
 					onConfirm={confirm}
 					idPrefix={`choice-${presentation}`}
 				/>
+				<StopParticipation onStop={stop} />
 			</main>
 		);
 	const chosen = resolveTreatment(
@@ -393,12 +478,14 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 					/>
 				</label>
 				<p>Responses lock when the fixed consequence appears.</p>
+				<StopParticipation onStop={stop} />
 			</main>
 		);
 	if (decisionElapsed < 60_000)
 		return (
 			<main className="product-shell">
 				<TreatmentConsequence vector={chosen} />
+				<StopParticipation onStop={stop} />
 			</main>
 		);
 	if (decisionElapsed < 75_000)
@@ -410,6 +497,7 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 					value={replay}
 					onChange={setReplay}
 				/>
+				<StopParticipation onStop={stop} />
 			</main>
 		);
 	return (
@@ -420,6 +508,7 @@ function ProductRunner({ studyId }: { studyId: ProductStudyId }) {
 					? "Neutral reset"
 					: "Please wait for the next fixed slot."}
 			</p>
+			<StopParticipation onStop={stop} />
 		</main>
 	);
 }
@@ -458,6 +547,10 @@ function YesNo({
 
 function RiverholdScene({ onReady }: { onReady: () => void }) {
 	const host = useRef<HTMLDivElement>(null);
+	const onReadyRef = useRef(onReady);
+	useLayoutEffect(() => {
+		onReadyRef.current = onReady;
+	}, [onReady]);
 	useEffect(() => {
 		if (!host.current) return;
 		let disposed = false;
@@ -504,6 +597,36 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 				app.stage.addChild(world);
 				const layer = new Container();
 				app.stage.addChild(layer);
+				const landmarkStyle = {
+					fill: "#3c3429",
+					fontFamily: "Georgia",
+					fontSize: app.screen.width <= 480 ? 10 : 13,
+					fontWeight: "bold" as const,
+				};
+				const market = new Graphics()
+					.rect(-26, -12, 52, 24)
+					.fill("#b87945")
+					.stroke({ color: "#342c25", width: 2 });
+				market.position.set(app.screen.width * 0.62, app.screen.height * 0.46);
+				layer.addChild(market);
+				const marketLabel = new Text({ text: "Market", style: landmarkStyle });
+				marketLabel.position.set(
+					app.screen.width * 0.62 - 25,
+					app.screen.height * 0.46 - 35,
+				);
+				layer.addChild(marketLabel);
+				const well = new Graphics()
+					.circle(0, 0, 15)
+					.fill("#5e9ca7")
+					.stroke({ color: "#342c25", width: 3 });
+				well.position.set(app.screen.width * 0.25, app.screen.height * 0.59);
+				layer.addChild(well);
+				const wellLabel = new Text({ text: "Well", style: landmarkStyle });
+				wellLabel.position.set(
+					app.screen.width * 0.25 - 16,
+					app.screen.height * 0.59 + 20,
+				);
+				layer.addChild(wellLabel);
 				const commands = createPixiCommands(projection) as any[];
 				const citizens = commands.filter(
 					(value: any) =>
@@ -540,13 +663,13 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 					style: {
 						fill: "#153f4b",
 						fontFamily: "Georgia",
-						fontSize: 15,
+						fontSize: app.screen.width <= 480 ? 11 : 15,
 						fontWeight: "bold",
 					},
 				});
 				exchange.position.set(
-					app.screen.width * 0.59,
-					app.screen.height * 0.51,
+					app.screen.width * (app.screen.width <= 480 ? 0.43 : 0.6),
+					app.screen.height * (app.screen.width <= 480 ? 0.53 : 0.53),
 				);
 				layer.addChild(exchange);
 				for (const command of citizens) {
@@ -557,29 +680,47 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 						.fill(command.name === "Mara" ? "#a97920" : "#38342d");
 					body.position.set(x, y);
 					layer.addChild(body);
+					const prop = new Graphics();
+					if (command.pose === "activity:carry-water")
+						prop.rect(-7, -7, 14, 14).fill("#4f93a6");
+					else if (command.pose === "activity:gather-wood") {
+						prop.rect(-9, -5, 18, 4).fill("#7a4b2b");
+						prop.rect(-7, 2, 18, 4).fill("#7a4b2b");
+					} else {
+						prop.circle(-4, 0, 6).fill("#b8893c");
+						prop.rect(3, -5, 12, 10).fill("#7a4b2b");
+					}
+					prop.position.set(x + 19, y - 9);
+					layer.addChild(prop);
+					const activity =
+						command.pose === "activity:carry-water"
+							? "water"
+							: command.pose === "activity:gather-wood"
+								? "wood"
+								: "trade";
 					const label = new Text({
-						text: command.name,
+						text: `${command.name} · ${activity}`,
 						style: {
 							fill: "#181714",
 							fontFamily: "Georgia",
-							fontSize: 14,
+							fontSize: app.screen.width <= 480 ? 10 : 14,
 							fontWeight: command.name === "Mara" ? "bold" : "normal",
 						},
 					});
-					label.position.set(x - 20, y + 18);
+					label.position.set(x - (app.screen.width <= 480 ? 22 : 28), y + 18);
 					layer.addChild(label);
 				}
 				app.renderer.render(app.stage);
 				requestAnimationFrame(() => {
 					if (host.current) host.current.dataset.ready = "true";
-					onReady();
+					onReadyRef.current();
 				});
 			});
 		return () => {
 			disposed = true;
 			if (initialized) app.destroy(true);
 		};
-	}, [onReady]);
+	}, []);
 	return (
 		<div
 			ref={host}
@@ -600,7 +741,7 @@ function blankObserverRecord(studyId: ObserverStudyId) {
 		studyId,
 		cohortRole: "visual-observer",
 		eligible: true,
-		affirmativeAgreement: true,
+		affirmativeAgreement: false,
 		assignment,
 		protocol: { observer: validAttempt() },
 		taskTimesMs: { followMaraFindMs: null, observationPromptMs: null },
@@ -626,7 +767,7 @@ function ObserverRunner({
 	capture?: boolean;
 }) {
 	const [record, setRecord] = useState<any>(() =>
-		localStorage.getItem(storageKey(studyId))
+		!capture && localStorage.getItem(storageKey(studyId))
 			? JSON.parse(localStorage.getItem(storageKey(studyId))!)
 			: blankObserverRecord(studyId),
 	);
@@ -634,6 +775,10 @@ function ObserverRunner({
 		capture || localStorage.getItem(storageKey(studyId)) !== null,
 	);
 	const [origin, setOrigin] = useState<number | null>(null);
+	const [sceneReady, setSceneReady] = useState(false);
+	const [quality, setQuality] = useState<"living-woodcut" | "semantic-markers">(
+		"living-woodcut",
+	);
 	const [now, setNow] = useState(0);
 	const [done, setDone] = useState(false);
 	const [answers, setAnswers] = useState({
@@ -646,41 +791,81 @@ function ObserverRunner({
 		() => optionOrders.filter((order) => order.studyId === studyId),
 		[studyId],
 	);
+	const handleSceneReady = useCallback(() => setSceneReady(true), []);
 	const mutate = (fn: (value: any) => void) =>
 		setRecord((prior: any) => {
 			const next = structuredClone(prior);
 			fn(next);
-			persist(studyId, next);
+			if (!capture) persist(studyId, next);
 			return next;
 		});
-	useProtocolInvalidation(studyId, "observer", done, mutate);
+	useLayoutEffect(() => {
+		if (!sceneReady || origin !== null) return;
+		const value = performance.now();
+		setOrigin(value);
+		setNow(value);
+	}, [origin, sceneReady]);
+	useProtocolInvalidation(
+		!capture && consented && origin !== null ? "observer" : null,
+		done,
+		mutate,
+	);
 	useEffect(() => {
 		if (origin === null) return;
 		const timer = setInterval(() => setNow(performance.now()), 50);
 		return () => clearInterval(timer);
 	}, [origin]);
 	const elapsed = origin === null ? 0 : now - origin;
+	useLayoutEffect(() => {
+		if (
+			capture ||
+			origin === null ||
+			elapsed < 60_000 ||
+			record.taskTimesMs.observationPromptMs !== null
+		)
+			return;
+		const raw = performance.now() - origin;
+		mutate((value) => {
+			if (raw > 61_000)
+				attemptInvalid(value, "observer", "timer-delivery-overrun");
+			else value.taskTimesMs.observationPromptMs = Math.ceil(Math.max(0, raw));
+		});
+	}, [
+		capture,
+		elapsed >= 60_000,
+		origin,
+		record.taskTimesMs.observationPromptMs,
+	]);
 	useEffect(() => {
 		if (
-			origin !== null &&
-			elapsed > 61_000 &&
-			record.taskTimesMs.observationPromptMs === null
+			capture ||
+			origin === null ||
+			elapsed <= 10_000 ||
+			record.taskTimesMs.followMaraFindMs !== null
 		)
-			mutate((value) =>
-				attemptInvalid(value, "observer", "timer-delivery-overrun"),
-			);
-	}, [elapsed > 61_000]);
+			return;
+		mutate((value) => attemptInvalid(value, "observer", "follow-find-timeout"));
+	}, [capture, elapsed > 10_000, origin, record.taskTimesMs.followMaraFindMs]);
 	if (!consented)
 		return (
 			<Consent
 				onAgree={() => {
 					const next = blankObserverRecord(studyId);
+					next.affirmativeAgreement = true;
 					persist(studyId, next);
 					setRecord(next);
 					setConsented(true);
 				}}
 			/>
 		);
+	const stop = () => {
+		mutate((value) => {
+			value.abandoned = true;
+		});
+		setDone(true);
+	};
+	if (record.abandoned || record.protocol.observer.status === "invalid")
+		return <StudyEnded />;
 	const follow = () => {
 		if (origin === null || record.taskTimesMs.followMaraFindMs !== null) return;
 		const raw = performance.now() - origin;
@@ -702,12 +887,11 @@ function ObserverRunner({
 			answers.activities.length !== 3 ||
 			!answers.interaction ||
 			!answers.autonomy ||
-			elapsed < 60_000 ||
-			elapsed > 61_000
+			record.taskTimesMs.followMaraFindMs === null ||
+			record.taskTimesMs.observationPromptMs === null
 		)
 			return;
 		mutate((value) => {
-			value.taskTimesMs.observationPromptMs = Math.ceil(Math.max(0, elapsed));
 			value.textResponses = {
 				mara: answers.mara,
 				activities: [...answers.activities].sort().join(","),
@@ -718,18 +902,10 @@ function ObserverRunner({
 		setDone(true);
 	};
 	return (
-		<main className="gate0-visual" data-quality="living-woodcut">
+		<main className="gate0-visual" data-quality={quality}>
 			<section className="gate0-visual__world" aria-label="Riverhold world">
-				<RiverholdScene
-					onReady={() => {
-						if (origin === null) {
-							const value = performance.now();
-							setOrigin(value);
-							setNow(value);
-						}
-					}}
-				/>
-				<div className="semantic-rows">
+				<RiverholdScene onReady={handleSceneReady} />
+				<div className="semantic-rows gate0-visual__semantic-world">
 					<div className="semantic-title" aria-hidden="true">
 						Riverhold
 					</div>
@@ -765,6 +941,7 @@ function ObserverRunner({
 					<button
 						type="button"
 						aria-describedby="gate0-follow-note"
+						disabled={origin === null}
 						onClick={follow}
 					>
 						Follow Mara
@@ -772,10 +949,21 @@ function ObserverRunner({
 					<p id="gate0-follow-note">
 						She acts for herself; following does not command movement or work.
 					</p>
-					<button type="button">People</button>
+					<button
+						type="button"
+						onClick={() =>
+							setQuality((value) =>
+								value === "living-woodcut"
+									? "semantic-markers"
+									: "living-woodcut",
+							)
+						}
+					>
+						{quality === "living-woodcut" ? "People" : "World view"}
+					</button>
 				</aside>
 			</section>
-			{!capture && elapsed >= 60_000 && !done && (
+			{!capture && record.taskTimesMs.observationPromptMs !== null && !done && (
 				<section className="observer-form">
 					<h2>Observation prompt</h2>
 					<OptionQuestion
@@ -820,6 +1008,7 @@ function ObserverRunner({
 					Record complete. Ask the operator to continue.
 				</p>
 			)}
+			{!capture && !done && <StopParticipation onStop={stop} />}
 		</main>
 	);
 }
@@ -931,12 +1120,16 @@ function OperatorConsole() {
 		!Number.isNaN(Date.parse(signedAtUtc)) &&
 		new Date(signedAtUtc).toISOString() === signedAtUtc;
 	const minuteTotal = Object.values(minutes).reduce((a, b) => a + b, 0);
+	const validMinutes = Object.values(minutes).every(
+		(value) => Number.isInteger(value) && value >= 0 && value <= 165,
+	);
 	const readyToDownload =
 		complete &&
 		attests &&
 		/^[0-9a-f]{40}$/.test(studyCommit) &&
 		/^[0-9a-f]{64}$/.test(manifestHash) &&
 		validInstant &&
+		validMinutes &&
 		minuteTotal <= 165;
 	const download = () => {
 		if (!readyToDownload) return;

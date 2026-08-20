@@ -95,6 +95,7 @@ export function createPixiCommands(projection) {
 			yPercent: citizen.positionPercent[1],
 			zIndex: 20 + index,
 			pose: citizen.activityId,
+			prop: citizen.prop,
 			label: citizen.activity,
 			focusRing: citizen.id === "citizen:mara" ? "gold-cut-ring" : null,
 			animate: projection.motion === "ambient",
