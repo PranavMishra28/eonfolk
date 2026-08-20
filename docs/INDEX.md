@@ -96,6 +96,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Visual comparison and rendering-spike interpretation | [DESIGN_RESEARCH.md](research/DESIGN_RESEARCH.md) |
 | First-user paths, channels and share behavior | [DISTRIBUTION_RESEARCH.md](research/DISTRIBUTION_RESEARCH.md) |
 | Live tool/skill/plugin/MCP availability and risks | [PROPOSED_TOOLS.md](research/PROPOSED_TOOLS.md) |
+| Exact future direct/transitive dependency graph, integrity, licenses and lifecycle metadata | [DEPENDENCY_COHORT.md](research/DEPENDENCY_COHORT.md) |
 | Bounded codename collision screen | [NAMING_RESEARCH.md](research/NAMING_RESEARCH.md) |
 
 ## Reviews

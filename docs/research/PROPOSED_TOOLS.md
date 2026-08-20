@@ -89,6 +89,8 @@ It does not list Codex Game Studio, Build Web Apps, Cloudflare, Promptfoo, a sha
 
 **VERIFIED FACT (S-TOOL-19):** the exact required headed Chromium 1234 / Chrome for Testing 151.0.7922.34 executable is already present locally; its version output and binary SHA-256 match the Goal-prompt precondition. Goal mode must use that path and stop rather than downloading on mismatch.
 
+**VERIFIED FACT (S-TOOL-20):** the exact direct cohort was resolved with pnpm 11.15.1 to 195 external packages; every lock integrity matched official npm version metadata, and complete license/lifecycle records are frozen in [DEPENDENCY_COHORT.md](DEPENDENCY_COHORT.md). Goal mode validates those bytes rather than resolving a new transitive graph.
+
 Required permission discipline:
 
 - bind only to the intended local URL/tab;
@@ -267,3 +269,4 @@ shadcn guidance is sufficient initially. Consider Motion AI Kit or 21st MCP only
 | S-TOOL-17 | Official npm metadata identifies `@playwright/test` 1.62.1 and its registry integrity; matching `playwright-core` pins Chromium revision 1234, Chrome for Testing 151.0.7922.34 | [npm registry metadata](https://registry.npmjs.org/@playwright/test/1.62.1), [official package tarball](https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz) | 2026-08-20 | A, exact package release | High | Reopen only as a recorded browser-cohort migration |
 | S-TOOL-18 | Local Node/pnpm versions and official npm registry metadata returned the exact direct dependency cohort frozen in the Goal prompt | Read-only local version and `npm view <package> version` probes | 2026-08-20 | A, local + official registry | High on access date | Revalidate installability/license/integrity before implementation |
 | S-TOOL-19 | Local Playwright Chromium revision 1234 / Chrome for Testing 151.0.7922.34 executable matches the frozen path, version and SHA-256 | Read-only local `--version` and `shasum -a 256` | 2026-08-20 | A, local | High for this machine/session | Reverify at invocation; stop instead of downloading on mismatch |
+| S-TOOL-20 | pnpm 11.15.1 produced the frozen 195-package graph; npm version metadata matched lock integrity and supplied complete license/lifecycle records | [Official npm registry](https://registry.npmjs.org/); [frozen evidence](DEPENDENCY_COHORT.md) | 2026-08-20 | A, exact local + official registry | High for exact recorded bytes | Reopen only on approved cohort change, blocking build failure, or advisory |
