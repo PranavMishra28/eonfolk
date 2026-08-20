@@ -254,5 +254,12 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | ZC-003 | P1 | ACCEPT — MITIGATED | Exact eligibility/agreement, frozen manifests, seeds, assignments, scripts, anchors, rubrics and withdrawal handling now precommit every human gate. | Goal prompt, QUALITY_BAR, EVALS |
 | ZC-004 | P1 | ACCEPT — MITIGATED | One build/profile/cache/run/mark/frame/gzip/egress procedure decides every performance budget. | PERFORMANCE, Goal prompt |
 | ZC-005 | P1 | ACCEPT — MITIGATED | Voluntary informed participation, affirmative agreement, no PII/recording and withdrawal rights replace consent-free observation language. | Goal prompt, QUALITY_BAR, 001 |
+| Z2-001 | P1 | ACCEPT — MITIGATED | Stable H/FAM/TRI/FAC/ECH/DIR IDs, six literal rows and H-specific scoring eliminate Gate 0 assignment ambiguity. | Goal prompt, QUALITY_BAR |
+| Z2-002 | P1 | ACCEPT — MITIGATED | Gate B fixes descending rejection-sampled shuffle, missing-rating failure and exact `the player/you` card answer. | Goal prompt, QUALITY_BAR |
+| Z2-003 | P1 | ACCEPT — MITIGATED | Every hash domain has a typed field schema plus full independently reproduced preimage/digest/ID vectors; tests use a second encoder. | SIMULATION, Goal prompt |
+| Z2-004 | P1 | ACCEPT — MITIGATED | Full viewer/purpose/label truth table defines subject matching and inclusive-grant/exclusive-revoke semantics; static oracle is separate from production. | WORLD_MODEL, Goal prompt |
+| Z2-005 | P1 | ACCEPT — MITIGATED | Deny-by-default browser flags, route abort/log and Chromium netlog cover attempted DNS and non-HTTP egress; offline journey is required. | SECURITY, PERFORMANCE, Goal prompt |
+| Z2-006 | P1 | ACCEPT — MITIGATED | One headed lockfile-pinned Playwright Chromium executable/revision/hash owns all numerical gates; physical browser is separate evidence. | PERFORMANCE, Goal prompt |
+| Z2-007 | P1 | ACCEPT — MITIGATED | Goal mode may commit policy/config only; GitHub API/settings/protection/Dependabot/push/PR mutations require separate operator authority. | TESTING, 001, Goal prompt |
 
-All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation must verify FR-001 through FR-005, and a fresh zero-context prompt review must verify ZC-001 through ZC-005 before readiness.
+All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final Goal-prompt pass must verify the later Z2 mitigations before readiness.

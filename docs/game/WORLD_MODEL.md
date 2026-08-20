@@ -33,24 +33,24 @@ Visibility values at minimum are public, participant-private, citizen-private, p
 
 ### Visibility policy `riverhold-visibility-v1`
 
-Authorization is one pure total function: `canRead(viewer, purpose, record, atRevision) -> allow|deny`. Every record carries label, created revision, and the subject IDs required by its label; every projection records policy version and revision. A caller cannot supply roles or subjects not already present in canonical state/application configuration.
+Authorization is one pure total function: `canRead(viewer, purpose, record, atRevision) -> allow|deny`. Deny before `record.createdRevision`. Every record carries label and exact required subjects; every projection records policy version/revision. A caller cannot supply roles/subjects outside canonical state/application configuration. A covenant carries beneficiary citizen, patron principal, inclusive `grantRevision`, and optional exclusive `revokeRevision`; it is active exactly when `grantRevision <= atRevision && (revokeRevision == null || atRevision < revokeRevision)`.
 
 Viewer kinds are `public`, `citizen(citizenId)`, `participant(principalId)`, `moderator(roleId)`, and test-only `implementation(testRunId)`. Purposes are closed: `decision-context`, `semantic-ui`, `patron-view`, `chronicle-private`, `chronicle-public`, `replay-private`, `export-owner`, `moderation`, and `implementation-diagnostic`.
 
-| Label | Required subjects | Allowed viewers/purposes at `atRevision` |
-|---|---|---|
-| `public` | none | Every viewer for every purpose except it grants no moderation/diagnostic role by itself. |
-| `participant-private` | nonempty principal-ID set | Matching `participant` for semantic UI, patron view, private Chronicle/replay, and owner export; never a citizen DecisionContext or public Chronicle. |
-| `citizen-private` | exactly one citizen ID | Matching `citizen` for DecisionContext; owner export and nonproduction diagnostics may contain it; never participant/patron/public presentation. |
-| `patron-visible-through-covenant` | citizen ID plus covenant ID | Matching citizen for DecisionContext; matching participant for semantic/patron/private Chronicle/replay only while that covenant's `grantRevision <= atRevision < revokeRevision` (missing revoke means open); owner export and diagnostics. |
-| `moderator-only` | moderator role set | Matching configured moderator for `moderation` only; no such viewer or record ships in V1. |
-| `implementation-only` | test-run ID | Matching implementation viewer for nonproduction `implementation-diagnostic` only; production builds reject the label at ingress. |
+| Viewer / exact purpose | `public` | `participant-private` | `citizen-private` | `patron-visible-through-covenant` | `moderator-only` | `implementation-only` |
+|---|---|---|---|---|---|---|
+| `citizen(C)` / `decision-context` | allow | deny | subject is `C` | subject citizen is `C` | deny | deny |
+| `participant(P)` / `semantic-ui`, `patron-view`, `chronicle-private`, `replay-private` | allow | subjects contain `P` | deny | covenant patron is `P` and active | deny | deny |
+| `public` / `chronicle-public` | allow | deny | deny | deny | deny | deny |
+| `participant(P)` / `export-owner` | allow iff `P` is local owner | same | same | same | deny | deny |
+| `moderator(R)` / `moderation` | allow | deny | deny | deny | roles contain `R` | deny |
+| `implementation(T)` / `implementation-diagnostic` in nonproduction | allow | allow | allow | allow | allow | test-run ID is `T` |
 
 `chronicle-public` admits only `public`. `export-owner` is a verified, explicit, spoiler-warning machine export by the local owning participant and includes all canonical records required to reproduce the world, but excludes separate moderator data and implementation-only records; it is never reused as a UI/Brain/Chronicle projection. Covenant revocation removes future patron access. A typed `ObservedRecord` copied to participant-private while the grant was active remains that participant's observation; revocation never rewrites history.
 
-A public child event with a private parent may be projected only from its own public payload. Public/private projections omit the unreadable parent edge, ID, count, placeholder, and timing distinction; no factual Chronicle sentence may cite it until a typed public disclosure/observation event exists. Catalog generation and target enumeration run after this policy. Hidden, nonexistent, and no-longer-readable targets return the same `ACTION_UNAVAILABLE` code, public wording, payload shape, ordering behavior, and deterministic timing class; explanation and Chronicle cannot reveal which case occurred.
+A public child event with a private parent may be projected only from its own public payload. Public/private projections omit the unreadable parent edge, ID, count, withheld-evidence sentinel, and timing distinction; no factual Chronicle sentence may cite it until a typed public disclosure/observation event exists. Catalog generation and target enumeration run after this policy. Hidden, nonexistent, and no-longer-readable targets return the same `ACTION_UNAVAILABLE` code, public wording, payload shape, ordering behavior, and deterministic timing class; explanation and Chronicle cannot reveal which case occurred.
 
-The fixture-owned allow/deny matrix enumerates every viewer × purpose × label row, covenant boundaries at grant/revoke revisions, private-parent/public-child cases, and the one typed disclosure that changes permission. Production code and tests consume the same table; tests may not recreate expected policy in a second implementation.
+Every unlisted viewer/purpose pair denies. Commit this normative table as static test-oracle data and implement `canRead` separately; exhaustive fixtures are generated from the table, not from the production function. Fixtures cover grant/revoke boundaries, private-parent/public-child cases, and the typed disclosure that changes permission.
 
 ## Causal and related-event types
 

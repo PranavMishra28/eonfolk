@@ -231,7 +231,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Browser/visual evidence:** final named-commit journey and all states at three viewports; physical mobile caveat/result; keyboard, reduced motion, semantic degradation; final participant tables.
 
-**Performance/security/eval:** all numerical gates pass without waiver. A clean-build HAR permits only one recorded loopback/private-LAN preview origin serving committed assets and records zero DNS/external egress; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
+**Performance/security/eval:** all numerical gates pass without waiver. Deny-by-default headed lockfile-pinned Chromium plus independent route log/netlog permits only one local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
 
 **Rollback:** revert smallest failing integration or remove lowest-priority presentation feature. A product-gate miss returns to owner; deployment/merge is never recovery.
 
@@ -243,7 +243,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 Every relevant PR blocks on format/lint, strict TypeScript, unit, deterministic/replay, bounded property/fuzz, production build, and critical Playwright journey. Cognition changes add noninterference/perturbation/transfer/baseline/ablation/fake-failure suites; a later real model adds exact provider/eval regressions. Major UI changes add deterministic three-viewport evidence and visual review.
 
-Weekly grouped Dependabot for npm/Actions, max five PRs, no automerge. Protect `main` checks/force-push/deletion where the personal private repo allows; no outside reviewer requirement. If native secret scanning remains disabled, add one pinned/license-reviewed open-source diff scan. Failed Playwright artifacts retain 14 days; accepted milestone evidence 30; no routine successful videos. Long fuzz/horizon/browser matrices run nightly/manual. [TESTING](../../quality/TESTING.md) records actual capability probes.
+Commit weekly grouped Dependabot config for npm/Actions, max five PRs/no automerge, and document recommended `main` checks/force-push/deletion protection; no outside reviewer requirement. Enabling Dependabot, calling GitHub, changing settings/protection, pushing, or opening a PR requires separate operator authority. If native secret scanning remains disabled, add one pinned/license-reviewed open-source diff scan. Failed Playwright artifacts retain 14 days; accepted milestone evidence 30; no routine successful videos. Long fuzz/horizon/browser matrices run nightly/manual. [TESTING](../../quality/TESTING.md) records actual capability probes.
 
 ## Living execution logs
 

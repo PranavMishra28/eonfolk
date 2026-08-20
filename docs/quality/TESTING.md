@@ -52,7 +52,7 @@ When a major UI, renderer, asset, layout, motion, or design-token change occurs,
 | Long horizon | 30/90/365-day worlds reach exact target under declared caps; conservation, bounded events/storage, interrupt/resume equivalence, no LLM |
 | Browser journey | account-free Follow Mara, investigation, interaction, three advice branches, leave/confirmed catch-up, Chronicle/replay, second action |
 | Accessibility | keyboard-only path, semantic names/states, focus, reduced motion, text equivalents, fallback view |
-| Security | shared `riverhold-visibility-v1` allow/deny matrix across every viewer/purpose/label/grant/revoke boundary; private-parent/public-child and disclosure metamorphs; identical hidden/missing/revoked catalog/target/error/shape/order/timing; hostile text/oversize data; duplicate/stale/fenced writes; fake BrainPort failure; secret absence; import route absent; local-preview-only HAR with zero external egress |
+| Security | static `riverhold-visibility-v1` oracle versus separate production function across every viewer/purpose/label/grant/revoke boundary; private-parent/disclosure metamorphs; identical hidden/missing/revoked surfaces; hostile text/oversize; duplicate/stale/fenced writes; fake BrainPort; secret/import absence; deny-by-default local preview with independent route log + Chromium netlog and zero attempted external egress |
 
 Snapshot replay is exercised from every persisted snapshot in golden scenarios. Chunk boundaries vary. The test oracle never calls a model or depends on current date/locale/network.
 
@@ -82,6 +82,8 @@ A nightly failure blocks milestone acceptance even if it does not retroactively 
 ## Branch and ruleset strategy
 
 Protect `main` with required blocking checks and prevent force-push/deletion where the personal private-repository/account capabilities permit. Do not require an external reviewer for the solo maintainer. Work through focused branches and PRs, inspect actual diffs, and never merge a red build.
+
+Implementation may commit workflow/Dependabot files and document recommended settings, but does not enable features, call GitHub APIs, change protection/rulesets, push, or open a PR without separate explicit operator authorization. Capability is not mutation authority.
 
 If private rulesets/branch protection are unavailable, record that exact capability result. Enforce the same PR-based workflow, evidence checklist, and local/CI commands as repository policy rather than claiming a protection exists.
 

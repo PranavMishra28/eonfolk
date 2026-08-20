@@ -18,7 +18,7 @@ Before each cohort, freeze and commit build/snapshot, a study seed derived from 
 
 ## Gate 0 — Product kill gate
 
-All five participants see all six branding-hidden ugly versions. Use the six cyclic Latin rows over `[one citizen,family,trio,faction,ECHOHOUSE,direct control]`, omit row `first_u32be(studySeed) mod 6`, and map remaining numeric rows to P01–P05. Hold visible facts, relationship, three choices, information, cost, fidelity, 90-second decision, 45-second consequence, total time, and 60-second neutral reset constant; only relationship/control structure changes. After each ask binary `Would you choose to keep playing this version now?`, binary `Do you want to see what happens after this decision?`, predicted consequence, confusion/objection, and record meaningful-action time/replay choice. Finally rank 1 most to 6 least, no ties. Withdrawal/skip gives zeros and fails Gate 0. Lowest rank sum wins; Riverhold tie/loss or any alternative's ≥20-point lead on either binary reopens. A frozen analyzer has keep/reopen mock fixtures that two reviewers compute identically.
+All five participants see all six branding-hidden ugly versions: `H` selected one-citizen Riverhold, `FAM`, `TRI`, `FAC`, `ECH`, `DIR`. Exact rows are `H FAM TRI FAC ECH DIR`; `FAM TRI FAC ECH DIR H`; `TRI FAC ECH DIR H FAM`; `FAC ECH DIR H FAM TRI`; `ECH DIR H FAM TRI FAC`; `DIR H FAM TRI FAC ECH`. Omit row `first_u32be(studySeed) mod 6`, map remaining rows numerically to P01–P05, and hold visible facts, relationship, three choices, information, cost, fidelity, 90-second decision, 45-second consequence, total time, and 60-second reset constant. After each ask binary `Would you choose to keep playing this version now?`, binary `Do you want to see what happens after this decision?`, predicted consequence, confusion/objection, and record meaningful-action time/replay choice. Finally rank 1 most to 6 least, no ties. Withdrawal/skip gives zeros and fails. Lowest rank sum wins; `H` tie/loss or another ID's ≥20-point lead on either binary reopens. Frozen keep/reopen mocks produce identical reviewer results.
 
 ## Gate A — Proof of Life
 
@@ -26,7 +26,7 @@ The named build shows eight Standard-Brain citizens, three resources, four legib
 
 ## Gate B — Proof of agency and bounded attachment
 
-Eight fresh sessions compare state-sensitive build with advice-keyed canonical lookup using byte-identical snapshot/facts/choices/copy/timing/presentation. Standard-Brain PRNG over the frozen study seed shuffles P01–P08; first four are real-first, four control-first. After each condition/before the other, ask contingency from 1 `fixed/unrelated` to 7 `strongly depended on facts/values/relationships/advice`, and desire to take the next Riverhold action from 1 `not at all` to 7 `very strongly`. The real build includes fixed Mara, state-changing investigation by 60 seconds, two advice intents plus abstain by five minutes, branch-specific interpretation/consequence, explicit leave/advance/return, one outcome-dependent second choice, and a factual three-beat/≤20-second Chronicle/card.
+Eight fresh sessions compare state-sensitive build with advice-keyed canonical lookup using byte-identical snapshot/facts/choices/copy/timing/presentation. Shuffle P01–P08 with the frozen PRNG stream: for `i=7..1`, rejection-draw `u32 < floor(2^32/(i+1))*(i+1)`, set `j=u32 mod(i+1)`, swap; first four are real-first. After each condition/before the other, ask contingency from 1 `fixed/unrelated` to 7 `strongly depended on facts/values/relationships/advice`, and desire to take the next Riverhold action from 1 `not at all` to 7 `very strongly`. Missing rating/withdrawal fails with no imputation/replacement. The real build includes fixed Mara, state-changing investigation by 60 seconds, two advice intents plus abstain by five minutes, branch-specific interpretation/consequence, explicit leave/advance/return, one outcome-dependent second choice, and a factual three-beat/≤20-second Chronicle/card.
 
 Pass requires:
 
@@ -34,7 +34,7 @@ Pass requires:
 - 5/8 correctly answer the branch-rubric prompts for Mara's decisive visible reason, whose choice it was (`hers`), later branch event, and save location (`this local browser/device`);
 - 4/8 initiate the branch-legal second action within 60 seconds without prompting and give a rubric-matched Mara/Toma concern, curiosity, obligation, or anticipated relationship consequence;
 - the real build's eight-person arithmetic mean is strictly higher on both perceived contingency and desire to continue; a tie or reversal on either fails; and
-- 3/5 fresh context-free card viewers, after five seconds, correctly name adviser, Mara's choice, what followed, `advice contributed but did not directly act/change the rule`, and the unresolved tension.
+- 3/5 fresh context-free card viewers, after five seconds, answer `the player/you` as adviser, Mara's fixture choice, what followed, `advice contributed but did not directly act/change the rule`, and the unresolved tension.
 
 This permits only “bounded agency/attachment proof passed.” Delayed voluntary return, session 5/20, succession, newcomer relevance, and retention remain unproven.
 
@@ -49,7 +49,7 @@ This permits only “bounded agency/attachment proof passed.” Delayed voluntar
 - Standard Brain passes perturbation/transfer/baseline/ablation tests; fake absent/throwing/malformed BrainPort cannot stop the world. No provider dependency exists.
 - Production build, critical browser journey, all numerical budgets, keyboard/reduced motion/semantic paths, and three viewports pass.
 - No server, deployment, account, payment, import, required model/download, or public multiplayer path ships.
-- A clean-build HAR/request assertion permits only one declared local preview origin serving committed app assets and records zero DNS/external-egress requests; the build contains no credential, telemetry, provider SDK, dynamic-code execution, or untrusted active HTML/Markdown/URL rendering, and enforces tested bounds on commands, text, storage, catch-up, and exports.
+- A deny-by-default headed Chromium run plus independent Playwright route log and Chromium netlog permits only one declared local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; the build contains no credential, telemetry, provider SDK, dynamic-code execution, or untrusted active HTML/Markdown/URL rendering, and enforces tested bounds on commands, text, storage, catch-up, and exports.
 - Corrupt/oversize snapshots, event gaps, stale fences, unknown versions, invalid commands, and quota failures fail closed without durable-head advance. The exact production dependency tree has no unresolved high/critical advisory; scanner/advisory source, access date, findings, and confirmed-false-positive rationale are recorded.
 
 ## Evidence package

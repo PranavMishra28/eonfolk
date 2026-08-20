@@ -42,7 +42,7 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 
 - Use a restrictive CSP compatible with the chosen local assets; do not add `unsafe-eval` for libraries without explicit security review.
 - Bundle production assets; no runtime third-party scripts, analytics, remote component registries, or model endpoints in V1.
-- Acceptance HAR permits only the one recorded local preview origin (loopback, or a named RFC1918 host used by the physical device) for committed application assets; every DNS lookup or other request is external egress and fails. Local preview requests are not misreported as zero network activity.
+- Canonical acceptance runs headed lockfile-pinned Chromium with deny-by-default host resolution/background networking, service workers blocked, and a route abort outside the one local origin. Independent Playwright route logs plus Chromium netlog must show zero attempted external DNS, HTTP(S), WebSocket/WebTransport, beacon, worker, navigation, prefetch/prerender, or nonproxied UDP egress. Local preview asset requests are allowed and not misreported as zero network activity; physical-device LAN evidence is separate and host-firewall/log constrained.
 - V1 has no import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
 - Treat IndexedDB as mutable/corruptible input on load; verify snapshots and replay head.
 - Use one writer lease and test forced-close recovery; never silently last-write-wins.
@@ -82,7 +82,7 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 - oversized/deep/unknown-field inputs and corrupt snapshot/event intervals;
 - missing/throwing/timed-out/malformed fake BrainPort with continued Standard Brain progress; provider-specific 429/revoke tests only when a real adapter exists;
 - dual-tab stale fencing, crash at every commit/publish barrier, replay gap/hash mismatch, quota abort, and proof that import is absent;
-- clean-build HAR allows only the declared local preview origin and records no DNS/external egress;
+- clean-build route log plus Chromium netlog allows only the declared local preview origin and records no attempted external egress across the named channels;
 - future-only: CSRF/origin, session fixation, public-write quotas, alarm duplication, moderation visibility, secret redaction, and denial-of-wallet.
 
 ## Resulting implementation behavior
