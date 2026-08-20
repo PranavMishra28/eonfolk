@@ -113,6 +113,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Final cross-discipline review and frozen findings | [FINAL_RED_TEAM.md](reviews/FINAL_RED_TEAM.md) |
 | Targeted confirmation of final cross-discipline fixes | [FINAL_CONFIRMATION.md](reviews/FINAL_CONFIRMATION.md) |
 | Immutable zero-context Goal-prompt review trail and final confirmation | [GOAL_PROMPT_REVIEW.md](reviews/GOAL_PROMPT_REVIEW.md) |
+| Civilization amendment audit, dispositions and immutable final confirmation | [CIVILIZATION_AMENDMENT_REVIEW.md](reviews/CIVILIZATION_AMENDMENT_REVIEW.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene

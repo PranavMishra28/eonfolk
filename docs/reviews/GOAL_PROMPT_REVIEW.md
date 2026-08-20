@@ -2,7 +2,7 @@
 
 **Purpose:** Preserve the immutable zero-context and targeted confirmation trail for the self-contained implementation Goal prompt.
 
-**Status:** PASS — exact final blob confirmed with no P0/P1
+**Status:** PASS — exact civilization-amended final blob confirmed with no P0/P1
 
 **Authority boundary:** This file owns review identity, outcome, and closure evidence for the Goal prompt. The [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) owns future execution behavior; [DECISIONS](../decisions/DECISIONS.md) owns finding dispositions.
 
@@ -10,14 +10,16 @@
 
 ## Outcome
 
-Fresh zero-context reviewers repeatedly inspected immutable Git blobs rather than the mutable worktree. Eleven failing rounds exposed concrete execution, evidence, determinism, recovery, labor, browser, and factuality ambiguities; each was reconciled instead of waived. A targeted Z11 check passed, but a separate fresh zero-context full read of that exact blob exposed two remaining study-contract ambiguities. The first corrective targeted check closed the family rule and exposed one seed-representation contradiction; the one-line correction then passed final targeted confirmation with no residual or new P0/P1.
+Fresh zero-context reviewers repeatedly inspected immutable Git blobs rather than the mutable worktree. Eleven failing rounds exposed concrete execution, evidence, determinism, recovery, labor, browser, and factuality ambiguities; each was reconciled instead of waived. A targeted Z11 check passed, but a separate fresh zero-context full read of that exact blob exposed two remaining study-contract ambiguities. The first corrective targeted check closed the family rule and exposed one seed-representation contradiction; the one-line correction then passed pre-amendment targeted confirmation.
+
+The later civilization amendment reopened review. Three fresh audits of immutable commit `e9c356b` found seven distinct P1 and six P2 contract issues. The coordinator accepted and repaired all of them, froze one final target, and used the single permitted targeted confirmation. That reviewer independently read the full amended prompt and relevant authorities, recomputed every requested vector and budget, and returned PASS with no residual or new P0/P1.
 
 The passing artifact is:
 
-- commit `4cf18d7ed0f40009551df63be356e59b7aeeda6e`;
-- Git blob `ba01b70c244dbf5f1b0f4bdacd86b473f8172cba`;
-- 124,204 raw bytes;
-- SHA-256 `78290ace3402647ffc44a2a6967eefa223e8906e9aefe98255aa1e1d5eed90d8`.
+- commit `b2e755c37a836ccb1660cfa337561be16e93a178`;
+- Git blob `a5e30353d3bee951ff25a85758f9accf22aea30a`;
+- 151,873 raw bytes and 643 newline-terminated lines;
+- SHA-256 `12fbdd2a6975b07d8e5e2c5b75a861cbc355cd20c99e5fa4eea903331433b7ae`.
 
 ## Immutable review sequence
 
@@ -38,9 +40,11 @@ The passing artifact is:
 | 13 | `34a355d9aed3c76204a3624f1aa098cc28f32647` | `d48e8f78f2a1edcd3405444ded608ab79299cfe8` | 123,898 | `718e1ffc8ef6fd687cb075d9fce79b1094209d6651491544495e333420a3b9e0` | FAIL | Fresh full audit: family 2–1–1 authority and Story Card seed binding |
 | 14 | `f255d856f6b90ccd30f8aa8559aef9a57ac8db13` | `15344a2792463d31c8df63e4282ce9219534d742` | 124,170 | `d9c3df0931fe0b7ca87ab60a30756b6466da753252eb661cbe4e338df150fcca` | FAIL | Family rule closed; raw-bytes versus hex seed representation remained |
 | 15 | `4cf18d7ed0f40009551df63be356e59b7aeeda6e` | `ba01b70c244dbf5f1b0f4bdacd86b473f8172cba` | 124,204 | `78290ace3402647ffc44a2a6967eefa223e8906e9aefe98255aa1e1d5eed90d8` | **PASS** | Final targeted confirmation; no residual or new P0/P1 |
+| 16 | `e9c356bb0d3e2c2cf6e55b14862aac81473e1e99` | `7cc82a4677aef221c4e7d5ad5fc3191ef2f02a72` | 143,885 | `85cbeee61298489830937e51db974a73cf9db0ee0e44453a41b3a71108204eb4` | FAIL | Amendment Gate contracts, event provenance, V2 study streams, external prompt approval, multi-event revision and catch-up closure |
+| 17 | `b2e755c37a836ccb1660cfa337561be16e93a178` | `a5e30353d3bee951ff25a85758f9accf22aea30a` | 151,873 | `12fbdd2a6975b07d8e5e2c5b75a861cbc355cd20c99e5fa4eea903331433b7ae` | **PASS** | Final civilization-amendment confirmation; zero residual or new P0/P1 |
 
 ## Final independent recomputation
 
-The reviews collectively independently reproduced the operational Story Card branch as `abstain` with scoring tuple `no-one, abstain, world:ledger-uncertainty-remains, no-advice-abstain`; every study/Card seed, assignment, option-order sentinel, tuple/hash/ID vector, Williams row, labor total, milestone/global budget and the 195-license count also matched. The browser-focused confirmation reproduced the complete browser identity: 326 regular files, five symlinks, 372,002,382 regular-file bytes, 62,239 manifest bytes, manifest SHA-256 `25995bc88bf20b6de47b46eb3571b250989846a797c0b8924b8794627b6175fc`, and the 237,813,488-byte framework SHA-256 `269114cf695f1c50b54e0816a1442e41dc468d28672e2dedc2036105fb5a8dbe`.
+The reviews collectively independently reproduced the operational Story Card branch as `abstain` with scoring tuple `no-one, abstain, world:ledger-uncertainty-remains, no-advice-abstain`; every study/Card seed, assignment, option-order sentinel, tuple/hash/ID vector, Williams row, labor total, milestone/global budget and the 195-license count also matched. The amended confirmation additionally reproduced both 14-row Simulation/Goal hash blocks, all four synthetic/operational V2 assignment/option streams, command provenance, the final-only multi-event revision convention, exact Gate timer/response contracts, catch-up status/recovery semantics, and the 165+75-minute M0 allocation. The browser-focused confirmation reproduced the complete browser identity: 326 regular files, five symlinks, 372,002,382 regular-file bytes, 62,239 manifest bytes, manifest SHA-256 `25995bc88bf20b6de47b46eb3571b250989846a797c0b8924b8794627b6175fc`, and the 237,813,488-byte framework SHA-256 `269114cf695f1c50b54e0816a1442e41dc468d28672e2dedc2036105fb5a8dbe`.
 
 This is execution-contract review evidence, not human proof that EONFOLK is fun or attaching. Gate 0/A/B/Card remain future operator-supplied implementation evidence.
