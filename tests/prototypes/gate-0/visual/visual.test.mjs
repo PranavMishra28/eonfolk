@@ -166,7 +166,7 @@ test("observer prompt occurs on first delivered frame from 60,000 through 61,000
 	assert.equal(overrun.invalidationReason, "timer-delivery-overrun");
 });
 
-test("observer endpoint requires both timers, four opaque responses, and durable persistence", () => {
+test("observer endpoint preserves a missed Follow target and requires prompt timing, responses, and persistence", () => {
 	const record = {
 		followMaraFindMs: 8_000,
 		observationPromptMs: 60_001,
@@ -174,6 +174,10 @@ test("observer endpoint requires both timers, four opaque responses, and durable
 		durablyPersisted: true,
 	};
 	assert.equal(isObserverEndpointDurable(record), true);
+	assert.equal(
+		isObserverEndpointDurable({ ...record, followMaraFindMs: null }),
+		true,
+	);
 	assert.equal(
 		isObserverEndpointDurable({ ...record, durablyPersisted: false }),
 		false,
@@ -187,6 +191,10 @@ test("observer endpoint requires both timers, four opaque responses, and durable
 	);
 	assert.equal(
 		isObserverEndpointDurable({ ...record, observationPromptMs: 61_001 }),
+		false,
+	);
+	assert.equal(
+		isObserverEndpointDurable({ ...record, observationPromptMs: null }),
 		false,
 	);
 });

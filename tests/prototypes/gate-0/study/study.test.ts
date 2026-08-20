@@ -252,15 +252,44 @@ describe("closed evidence and analyzer", () => {
 		).toBe("FAIL");
 	});
 
-	test("scores a missing observer timer or response as incomplete", () => {
+	test("retains a Follow Mara miss in the denominator without invalidation", () => {
 		const evidence: any = mockEvidence();
 		evidence.participantRecords[6].taskTimesMs.followMaraFindMs = null;
+		const result = analyzeGate0Evidence(
+			JSON.stringify(evidence),
+			expectation,
+			answerKey,
+		);
+		expect(result.outcome).toBe("PASS");
+		expect(result.criterionResults["records-complete"]).toBe(true);
+		expect(result.criterionResults["observer-autonomy-4of5"]).toBe(true);
+	});
+
+	test("scores a missing prompt delivery timer or response as incomplete", () => {
+		const evidence: any = mockEvidence();
+		evidence.participantRecords[6].taskTimesMs.observationPromptMs = null;
 		evidence.participantRecords[6].textResponses.autonomy = null;
 		const result = analyzeGate0Evidence(
 			JSON.stringify(evidence),
 			expectation,
 			answerKey,
 		);
+		expect(result.outcome).toBe("FAIL");
+		expect(result.criterionResults["records-complete"]).toBe(false);
+	});
+
+	test("imports a terminal invalid product record with null future ranks", () => {
+		const evidence: any = mockEvidence();
+		const record = evidence.participantRecords[0];
+		record.protocol.V1 = {
+			status: "invalid",
+			invalidationReason: "focus-loss",
+		};
+		for (const presentation of PRESENTATIONS)
+			record.ratings[`${presentation}Rank`] = null;
+		const raw = JSON.stringify(evidence);
+		expect(validateGate0Evidence(raw, expectation).ok).toBe(true);
+		const result = analyzeGate0Evidence(raw, expectation, answerKey);
 		expect(result.outcome).toBe("FAIL");
 		expect(result.criterionResults["records-complete"]).toBe(false);
 	});

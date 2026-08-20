@@ -93,10 +93,7 @@ export function analyzeGate0Evidence(
 	for (const observer of observers) {
 		if (observer.abandoned || !validAttempt(observer.protocol.observer))
 			recordsComplete = false;
-		if (
-			observer.taskTimesMs.followMaraFindMs === null ||
-			observer.taskTimesMs.observationPromptMs === null
-		)
+		if (observer.taskTimesMs.observationPromptMs === null)
 			recordsComplete = false;
 		if (
 			[

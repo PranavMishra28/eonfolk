@@ -143,6 +143,80 @@ test("semantic fallback, reduced motion, keyboard, reflow, and capture isolation
 	expect(errors).toEqual([]);
 });
 
+test("390x844 at 200% text remains operable through prompt completion", async ({
+	page,
+}) => {
+	const errors = captureRuntimeErrors(page);
+	await page.clock.install();
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto("/observer/V01");
+	await page.evaluate(() => {
+		document.documentElement.style.fontSize = "200%";
+	});
+	await page.getByRole("button", { name: "I agree" }).click();
+	await expect(page.locator(".gate0-visual__canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+	);
+	const follow = page.getByRole("button", { name: "Follow Mara" });
+	const people = page.getByRole("button", { name: "People" });
+	await follow.focus();
+	await expect(follow).toBeFocused();
+	await follow.press("Enter");
+	await expect(page.getByText("Chronicle", { exact: true })).toBeVisible();
+	await expect(page.locator(".gate0-visual__peek")).toHaveCSS(
+		"overflow-y",
+		"auto",
+	);
+	await people.press("Enter");
+	await expect(
+		page.getByRole("list", {
+			name: "Riverhold citizens and current activities",
+		}),
+	).toBeVisible();
+	await expect(page.getByRole("listitem")).toHaveCount(8);
+	await page.getByRole("button", { name: "World view" }).press("Enter");
+	await expect
+		.poll(() =>
+			page.evaluate(
+				() =>
+					document.documentElement.scrollWidth <=
+					document.documentElement.clientWidth,
+			),
+		)
+		.toBe(true);
+	await page.clock.fastForward(60_050);
+	await expect(
+		page.getByRole("heading", { name: "Observation prompt" }),
+	).toBeVisible();
+	await page.getByLabel("Mara", { exact: true }).check();
+	await page.getByLabel("carrying water", { exact: true }).check();
+	await page.getByLabel("gathering wood", { exact: true }).check();
+	await page.getByLabel("exchanging wood and rations", { exact: true }).check();
+	await page
+		.getByLabel("Iven and Toma exchanged wood and rations", { exact: true })
+		.check();
+	await page
+		.getByLabel("No; she follows her visible Standing Plan and reasons", {
+			exact: true,
+		})
+		.check();
+	await page.getByRole("button", { name: "Save observation" }).click();
+	await expect(page.locator(".study-card[role='status']")).toContainText(
+		"Record complete",
+	);
+	await expect
+		.poll(() =>
+			page.evaluate(
+				() =>
+					document.documentElement.scrollWidth <=
+					document.documentElement.clientWidth,
+			),
+		)
+		.toBe(true);
+	expect(errors).toEqual([]);
+});
+
 test("product treatment starts only on a verified, enabled hidden variant", async ({
 	page,
 }) => {

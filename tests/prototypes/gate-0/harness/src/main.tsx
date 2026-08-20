@@ -571,6 +571,7 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 				initialized = true;
 				if (disposed || !host.current) return app.destroy(true);
 				host.current.append(app.canvas);
+				const isMobile = app.screen.width <= 480;
 				const projection = (createProjection as any)({
 					width: host.current.clientWidth || 1366,
 					height: host.current.clientHeight || 768,
@@ -600,19 +601,22 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 				const landmarkStyle = {
 					fill: "#3c3429",
 					fontFamily: "Georgia",
-					fontSize: app.screen.width <= 480 ? 10 : 13,
+					fontSize: isMobile ? 10 : 13,
 					fontWeight: "bold" as const,
 				};
 				const market = new Graphics()
 					.rect(-26, -12, 52, 24)
 					.fill("#b87945")
 					.stroke({ color: "#342c25", width: 2 });
-				market.position.set(app.screen.width * 0.62, app.screen.height * 0.46);
+				market.position.set(
+					app.screen.width * (isMobile ? 0.59 : 0.62),
+					app.screen.height * (isMobile ? 0.42 : 0.46),
+				);
 				layer.addChild(market);
 				const marketLabel = new Text({ text: "Market", style: landmarkStyle });
 				marketLabel.position.set(
-					app.screen.width * 0.62 - 25,
-					app.screen.height * 0.46 - 35,
+					app.screen.width * (isMobile ? 0.59 : 0.62) - 25,
+					app.screen.height * (isMobile ? 0.42 : 0.46) - 35,
 				);
 				layer.addChild(marketLabel);
 				const well = new Graphics()
@@ -641,6 +645,20 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 						},
 					]),
 				);
+				if (isMobile) {
+					positions.set("citizen:mara", {
+						x: app.screen.width * 0.42,
+						y: app.screen.height * 0.34,
+					});
+					positions.set("citizen:toma", {
+						x: app.screen.width * 0.58,
+						y: app.screen.height * 0.48,
+					});
+					positions.set("citizen:iven", {
+						x: app.screen.width * 0.75,
+						y: app.screen.height * 0.34,
+					});
+				}
 				const drawEdge = (
 					from: string,
 					to: string,
@@ -663,18 +681,18 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 					style: {
 						fill: "#153f4b",
 						fontFamily: "Georgia",
-						fontSize: app.screen.width <= 480 ? 11 : 15,
+						fontSize: isMobile ? 11 : 15,
 						fontWeight: "bold",
 					},
 				});
 				exchange.position.set(
-					app.screen.width * (app.screen.width <= 480 ? 0.43 : 0.6),
-					app.screen.height * (app.screen.width <= 480 ? 0.53 : 0.53),
+					app.screen.width * (isMobile ? 0.52 : 0.6),
+					app.screen.height * (isMobile ? 0.56 : 0.53),
 				);
 				layer.addChild(exchange);
 				for (const command of citizens) {
-					const x = (app.screen.width * command.xPercent) / 100;
-					const y = (app.screen.height * command.yPercent) / 100;
+					const position = positions.get(command.id)!;
+					const { x, y } = position;
 					const body = new Graphics()
 						.circle(0, 0, command.name === "Mara" ? 18 : 14)
 						.fill(command.name === "Mara" ? "#a97920" : "#38342d");
@@ -703,11 +721,17 @@ function RiverholdScene({ onReady }: { onReady: () => void }) {
 						style: {
 							fill: "#181714",
 							fontFamily: "Georgia",
-							fontSize: app.screen.width <= 480 ? 10 : 14,
+							fontSize: isMobile ? 10 : 14,
 							fontWeight: command.name === "Mara" ? "bold" : "normal",
 						},
 					});
-					label.position.set(x - (app.screen.width <= 480 ? 22 : 28), y + 18);
+					const labelAbove =
+						isMobile &&
+						(command.id === "citizen:mara" || command.id === "citizen:iven");
+					label.position.set(
+						x - (isMobile ? 22 : 28),
+						y + (labelAbove ? -34 : 18),
+					);
 					layer.addChild(label);
 				}
 				app.renderer.render(app.stage);
@@ -836,16 +860,6 @@ function ObserverRunner({
 		origin,
 		record.taskTimesMs.observationPromptMs,
 	]);
-	useEffect(() => {
-		if (
-			capture ||
-			origin === null ||
-			elapsed <= 10_000 ||
-			record.taskTimesMs.followMaraFindMs !== null
-		)
-			return;
-		mutate((value) => attemptInvalid(value, "observer", "follow-find-timeout"));
-	}, [capture, elapsed > 10_000, origin, record.taskTimesMs.followMaraFindMs]);
 	if (!consented)
 		return (
 			<Consent
@@ -887,7 +901,6 @@ function ObserverRunner({
 			answers.activities.length !== 3 ||
 			!answers.interaction ||
 			!answers.autonomy ||
-			record.taskTimesMs.followMaraFindMs === null ||
 			record.taskTimesMs.observationPromptMs === null
 		)
 			return;
@@ -938,6 +951,9 @@ function ObserverRunner({
 						Mara
 					</div>
 					<p>Reason: the public ledger and open-bin count differ.</p>
+					<p className="gate0-visual__chronicle">
+						<strong>Chronicle</strong> · Exchange settled
+					</p>
 					<button
 						type="button"
 						aria-describedby="gate0-follow-note"
@@ -1104,7 +1120,6 @@ function OperatorConsole() {
 					.join() === "1,2,3,4,5,6"
 			);
 		return (
-			record.taskTimesMs.followMaraFindMs !== null &&
 			record.taskTimesMs.observationPromptMs !== null &&
 			[
 				record.textResponses.mara,

@@ -111,6 +111,11 @@ fieldset label {
 	font-size: 1.5rem;
 	font-weight: 700;
 }
+.gate0-visual__chronicle {
+	margin-block: 0.5rem;
+	padding-inline-start: 0.55rem;
+	border-inline-start: 4px solid #22647a;
+}
 .observer-form {
 	position: fixed;
 	z-index: 100;

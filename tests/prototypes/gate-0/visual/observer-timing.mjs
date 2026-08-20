@@ -108,11 +108,14 @@ export function invalidateObserver(clock, reason) {
 }
 
 export function isObserverEndpointDurable(record) {
+	const followTimerIsClosed =
+		record?.followMaraFindMs === null ||
+		(Number.isInteger(record?.followMaraFindMs) &&
+			record.followMaraFindMs >= 0 &&
+			record.followMaraFindMs <= 10_000);
 	return (
 		record?.durablyPersisted === true &&
-		Number.isInteger(record.followMaraFindMs) &&
-		record.followMaraFindMs >= 0 &&
-		record.followMaraFindMs <= 10_000 &&
+		followTimerIsClosed &&
 		Number.isInteger(record.observationPromptMs) &&
 		record.observationPromptMs >= 60_000 &&
 		record.observationPromptMs <= 61_000 &&

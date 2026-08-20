@@ -212,7 +212,14 @@ function validateProduct(record: any, errors: string[]) {
 		);
 	}
 	const ranks = PRESENTATIONS.map((p) => record.ratings[`${p}Rank`]);
-	if (!record.abandoned && !equal([...ranks].sort(), [1, 2, 3, 4, 5, 6]))
+	const invalidAttempt = PRESENTATIONS.some(
+		(p) => record.protocol[p]?.status === "invalid",
+	);
+	if (
+		!record.abandoned &&
+		!invalidAttempt &&
+		!equal([...ranks].sort(), [1, 2, 3, 4, 5, 6])
+	)
 		errors.push(`${record.studyId} ranks are not a permutation`);
 }
 
