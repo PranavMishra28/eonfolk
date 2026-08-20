@@ -47,7 +47,7 @@ These six milestones are ordered and non-coalescible; additional runnable checkp
 | **Planned** | **52** | |
 | Fix/review contingency | **0–8** | only failing acceptance criteria; total never exceeds 60 |
 
-`Focused hours` means summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent review; parallel work is added, never discounted. Participant response time and elapsed scheduling waits are recorded separately as elapsed time. Each signed human-evidence import carries setup/facilitation/analysis minutes, counted exactly once by source SHA; preparing through operator-owned channels, facilitating, and processing evidence count. The owner must have the participant and canonical browser-profile path before starting M0; Codex has no recruiting authority and a physical phone is optional diagnostic evidence.
+`Focused hours` means summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent review; parallel work is added, never discounted. The Goal prompt's append-only unique-ID work-segment JSONL is the sole labor authority; each worker measures active monotonic seconds, rounds once, and hands off segments, while imported operator categories become deduplicated synthetic segments. Participant response time and elapsed scheduling waits are separate elapsed time. The owner must have the participant and canonical browser-profile path before starting M0; Codex has no recruiting authority and a physical phone is optional diagnostic evidence.
 
 ### Bottom-up work breakdown
 
