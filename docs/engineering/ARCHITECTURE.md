@@ -1,0 +1,120 @@
+# Architecture
+
+**Purpose:** define the package boundaries, runtime topology, and local-to-hosted migration seam.
+
+**Status:** ACCEPTED FOR THE FIRST IMPLEMENTATION SLICE; HOSTED TOPOLOGY IS DEFERRED
+
+**Authority boundary:** owns architectural layers, package dependencies, local-first execution, and the future region-server boundary. Simulation rules, storage semantics, cognition policy, and rendering details are owned by their linked authorities.
+
+**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/active/001-foundation.md`
+
+## Owned decision
+
+The first slice is a strict TypeScript/pnpm workspace with a pure protocol package, pure deterministic simulation package, provider-neutral cognition package, React Router/Vite browser application, simulation Web Worker, and IndexedDB persistence adapter. There is no server, account, deployment, hosted inference, multiplayer, or cross-region implementation.
+
+The four hard layers are:
+
+1. **Reality:** authoritative state, reducer, scheduler, invariants, and canonical events.
+2. **Mind:** typed beliefs, memories, relationships, goals, commitments, and Standing Plans.
+3. **Brain:** an untrusted producer of one typed intent proposal. The Standard Brain is mandatory.
+4. **Application:** validation, persistence, time driving, projections, renderer, and later networking.
+
+Only Reality may change canonical state. Application validates every command or proposal before an atomic state transition. Mind cannot grant authority. Brain never writes Reality.
+
+## First-slice topology
+
+```text
+React Router/Vite application
+  ├─ semantic DOM controls and Chronicle projections
+  ├─ exactly one world renderer
+  ├─ simulation Web Worker
+  │    ├─ packages/protocol: versioned types only
+  │    ├─ packages/sim: Reality, scheduler, reducer, hashes
+  │    └─ packages/cognition: Mind, Standard Brain, adapter interface
+  └─ IndexedDB PersistencePort adapter
+```
+
+The implementation plan may choose different directory names only if it records the mapping before code begins. The dependency direction remains fixed:
+
+```text
+protocol <- sim
+protocol <- cognition
+protocol <- application adapters/UI
+sim <- application orchestration
+cognition <- application orchestration
+```
+
+`sim` and `protocol` must not import React, browser storage, provider SDKs, Cloudflare bindings, Three.js, PixiJS, or any renderer. `cognition` may depend on protocol types but not provider SDKs in the first slice. The renderer consumes presentation projections and cannot feed frame time, wall time, or pointer state into Reality.
+
+## Contract registry
+
+These interfaces are frozen conceptually before UI work. Their single field-level authorities are:
+
+| Contract | Authority | Architectural role |
+|---|---|---|
+| `WorldCommand` | [Simulation](SIMULATION.md) | Idempotent, revision-checked input to Reality |
+| `WorldEventEnvelope` | [Simulation](SIMULATION.md) | Ordered and hash-linked canonical fact |
+| `DecisionContext` | [Cognition](COGNITION.md) | Bounded, visibility-filtered input to any Brain |
+| `IntentProposal` | [Cognition](COGNITION.md) | One untrusted typed action proposal |
+| `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
+| `PersistencePort` | [Persistence](PERSISTENCE.md) | Replaceable local/server storage seam |
+
+Provider names and browser APIs never appear in these domain contracts. `regionId` appears now even though the slice has one local region.
+
+## First-slice scope fit
+
+The architecture serves exactly one crafted settlement, eight citizens, three resources, four legible behavior families, one bilateral exchange, one conversion/repair recipe, relationships sufficient for one social consequence, one sponsored citizen, and one causal Chronicle story. Generalized economy, content frameworks, distributed coordination, schema registries, analytics pipelines, and plugin systems are excluded.
+
+The roughly 52-hour allocation is a scope ceiling, not evidence of completion. If integration exceeds it, remove deferred mechanics or visual polish. Do not add infrastructure, a framework, or generated boilerplate to preserve an overlarge scope.
+
+## Long-term target after both product gates
+
+Only after Proof of Life and Proof of Attachment pass may a hosted design be implemented:
+
+- React Router/Vite remains the client and public Chronicle/share routes become server-rendered.
+- A Cloudflare Worker owns HTTP/orchestration.
+- One SQLite-backed `RegionDO` is the single writer for each bounded region, starting with one.
+- `RegionDO` implements the same persistence semantics through a server adapter; simulation logic does not change.
+- Cross-region work uses idempotent inbox/outbox messages and accepts delayed settlement; no global synchronous transaction is assumed.
+- Append-only events, verified snapshots, a seeded scheduler, and idempotent alarms/commands remain authoritative.
+
+This is a migration option, not an approved deployment. Cloudflare pricing, account limits, plugin permissions, backups, and alternatives must be revalidated on the execution day. One global Durable Object is rejected.
+
+## Resulting implementation behavior
+
+- The world runs, saves, reloads, catches up, and replays with every external model and server adapter absent.
+- Canonical state changes enter through one typed validation/reducer path.
+- Presentation can be discarded and rebuilt from canonical data.
+- IndexedDB can later be replaced by a region adapter without changing domain logic or the visible event history.
+- Engine, schema, cognition, PRNG, and replay versions travel with saved history.
+
+## Rejected alternatives
+
+| Alternative | Reason rejected |
+|---|---|
+| Server-first or Cloudflare-first slice | Consumes solo-builder hours before attachment is proven and creates cost/deployment obligations |
+| Continuous online simulation | Violates the $0/no-server default; sparse catch-up provides the product behavior |
+| LLM-centric architecture | Breaks zero-inference liveness, replay, and cost constraints |
+| Full CQRS/event sourcing for all application data | Causal history warrants one event-sourced world aggregate, not a service fleet |
+| One global authority object | A future throughput and fault-domain bottleneck |
+| Rust/WASM or custom WebGPU compute now | No measurement shows strict TypeScript is insufficient |
+| Shared mutable state between renderer and simulation | Makes authoritative outcomes dependent on presentation timing |
+
+## Unproven assumptions and reopen evidence
+
+- **PRODUCT HYPOTHESIS:** eight deterministic citizens can produce attachment. Reopen the architecture only if mechanics and Mind quality pass but player evidence isolates cognition/runtime limits.
+- **UNRESOLVED:** a single Web Worker is sufficient under full renderer load. Reopen package/runtime partitioning if measured p95 worker latency or main-thread contention misses [performance budgets](../quality/PERFORMANCE.md).
+- **UNRESOLVED:** IndexedDB plus export is adequate for V1 durability. Reopen if quota, eviction, multi-tab, or recovery drills fail.
+- **UNRESOLVED:** region is the later coordination atom. Reopen if measured cross-region invariants require frequent synchronous transactions.
+- **UNRESOLVED:** Cloudflare remains the best later host. Reopen on current price, account capability, operational, backup, or security evidence before implementation.
+
+## Constraint fit
+
+| Binding constraint | Fit |
+|---|---|
+| Solo builder / 40–60 hours | One local application and three small domain packages; no distributed system |
+| M4 Pro / no owned GPU | CPU-first worker simulation; renderer is measured separately; no training |
+| Approximately $0 / no spend | Browser and IndexedDB are the complete first path; hosted work requires a new gate and approval |
+| Useful, free V1 | No account, key, download, or hosted model is needed |
+| No regulated/proprietary/partner dependency | Fictional local world and authored fixtures only |
+| Future commercial ideas only | No payment, entitlement, licensing, custody, or enterprise boundary exists in V1 |
