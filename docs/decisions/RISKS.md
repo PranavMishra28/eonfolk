@@ -32,6 +32,8 @@
 | R-008 | High | Major | Story-card comprehension is not distribution; no user has voluntarily returned/shared. | Product owner: label V1 private evidence, retain denominator, require separate deployment/publication and delayed-return tests before distribution claims. | D-009 |
 | R-009 | Low-medium | Major | Exact-name screen cannot find phonetic, class, unregistered or future conflicts [S-NAME-001] [S-NAME-007]. | Coordinator: private codename only; re-run similarity/class search before public use; no domain purchase or clearance claim. | D-010 |
 | R-010 | Medium | Major | A future canonical server introduces moderation, auth, abuse, cost and backup failure absent from the local proof. | Architecture/security owner: do not implement until both gates pass; revalidate provider features/prices and threat model with explicit approval. | D-006, D-010 |
+| R-011 | Medium | Major | Research provenance can turn into a second event-sourcing platform and break the 60-hour proof. | Architecture owner: one immutable manifest, bounded consequential-decision records, no dashboard/query/fork/experiment engine; reuse receipt/event transaction. | D-002, D-007 |
+| R-012 | Medium | Fatal | Research framing can distort the consumer game or invite unsupported human-society/emergence claims. | Product owner: World first, Chronicle legibility second, Observatory deferred; report only agent behavior in the named simulated environment and require repeated independent runs for distributions. | D-001, D-004, D-007 |
 
 ## Cross-risk rules
 
@@ -39,4 +41,6 @@
 - Correctness failure cannot be mitigated by hiding raw evidence or writing a better summary.
 - Performance failure removes decoration before citizens, facts, actions or simulation fidelity.
 - Model failure always falls back to Standard Brain; it never pauses Reality.
+- Research instrumentation is cut before consumer truth/attachment, but the minimal decision/run provenance contract cannot be silently collapsed into the world ledger.
+- EONFOLK never claims to simulate or predict human society; one run or Chronicle is anecdote, not a distribution.
 - No accepted P0 or unmitigated P1 may survive readiness.

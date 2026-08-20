@@ -1,6 +1,6 @@
 # Security and trust boundaries
 
-**Purpose:** define authoritative validation, untrusted-text handling, local data safety, future public-write controls, credentials, and moderation separation.
+**Purpose:** define authoritative validation, epistemic/provenance isolation, untrusted-text handling, local data safety, future public-write controls, credentials, and moderation separation.
 
 **Status:** ACCEPTED BASELINE; PUBLIC-SYSTEM CONTROLS DEFERRED WITH THE HOSTED GATE
 
@@ -22,7 +22,7 @@ For every local or future command:
 - authenticate the principal when a future server exists, then authorize the concrete action after cognition;
 - validate existence, life/capability, knowledge/visibility, location, ownership, resources, law, limits, and schema bounds;
 - apply atomically or reject without state, sequence, PRNG, inventory, or partial-side-effect change;
-- persist the accepted result/audit reference before acknowledging success;
+- persist the accepted result and bounded cognitive audit record before acknowledging success;
 - keep replay independent of the original model/provider.
 
 No model, sponsor prose, UI flag, or client-provided role is authority.
@@ -34,9 +34,9 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 - Enforce byte, code-point, depth, array, numeric, enum, and identifier bounds before domain validation.
 - Unknown fields fail closed.
 - `publicJustification` is rendered from a typed decision receipt in V1; it and in-world allegations remain nonauthoritative attributed text.
-- Prompt/model context contains only visible facts and sourced beliefs selected before inference. Hostile names, memories, counsel, and retrieved prose cannot expand the action catalog or request tools.
+- Prompt/model context contains only authorized observation/private-knowledge/belief/memory/claim records selected before inference. Communication is a claim, not truth. Hostile names, memories, counsel, and retrieved prose cannot expand the action catalog or request tools.
 - There are no generic browser/network/file/database tools in cognition.
-- Optional raw provider traces are redacted, opt-in developer artifacts with bounded retention; they are excluded from canonical export.
+- Preserve only bounded structured proposal/model provenance required by `CognitiveDecisionRecord`; never capture hidden chain-of-thought/token streams. Optional raw provider traces are redacted, opt-in developer artifacts with bounded retention and excluded from canonical export.
 
 ## Browser-local controls
 
@@ -45,6 +45,7 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 - Canonical acceptance runs headed lockfile-pinned Chromium with deny-by-default host resolution/background networking, service workers blocked, and a route abort outside the one local origin. Independent Playwright route logs plus Chromium netlog must show zero attempted external DNS, HTTP(S), WebSocket/WebTransport, beacon, worker, navigation, prefetch/prerender, or nonproxied UDP egress. Local preview asset requests are allowed and not misreported as zero network activity; physical-device LAN evidence is separate and host-firewall/log constrained.
 - V1 has no import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
 - Treat IndexedDB as mutable/corruptible input on load; verify snapshots and replay head.
+- Keep world events, cognitive decision records, and the immutable Experiment Manifest in distinct stores/authorities; no decision/manifest record may become reducer input.
 - Use one writer lease and test forced-close recovery; never silently last-write-wins.
 - Keep important actions in semantic DOM with explicit confirmation only where consequence warrants it.
 - Never place secrets in browser code, local storage, events, prompts, screenshots, traces, exports, logs, or URLs.
@@ -79,7 +80,8 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 - stale revision, duplicate ID, invalid actor, dead actor, impossible target, hidden fact, unauthorized resource, and partial-batch rejection;
 - the shared visibility-policy matrix at grant/revoke boundaries; private-parent/public-child projection; and byte-identical catalog/targets/error/shape/order/timing for hidden, missing, and revoked records until typed disclosure;
 - hostile HTML/Markdown/URL/code in names, memories, counsel, future import/provider output, and Chronicle values;
-- oversized/deep/unknown-field inputs and corrupt snapshot/event intervals;
+- oversized/deep/unknown-field inputs and corrupt manifest/snapshot/event/decision intervals;
+- observation/knowledge/belief/memory/message-claim category confusion, provenance gaps, unauthorized decision-trace projection, and any cognitive/experiment write that advances canonical head;
 - missing/throwing/timed-out/malformed fake BrainPort with continued Standard Brain progress; provider-specific 429/revoke tests only when a real adapter exists;
 - dual-tab stale fencing, crash at every commit/publish barrier, replay gap/hash mismatch, quota abort, and proof that import is absent;
 - clean-build route log plus Chromium netlog allows only the declared local preview origin and records no attempted external egress across the named channels;
@@ -91,7 +93,7 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 - Hostile text appears as inert bounded text or is discarded.
 - Stale/duplicate/invalid writes cannot partially change Reality.
 - Provider removal and quota failure do not stop the world.
-- Local export contains authoritative history but no credential or raw provider trace by default.
+- Local owner export contains authoritative history plus bounded authorized provenance, but no credential, hidden chain-of-thought, or raw provider trace by default.
 - Public moderation can hide harmful presentation without falsifying the Chronicle.
 
 ## Rejected alternatives
@@ -104,6 +106,8 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 | Anonymous canonical writes | Abuse, moderation, integrity, and cost exposure |
 | Use prompt instructions as the only isolation | Hostile context can override prose; typed least authority is required |
 | Mix moderation state with canonical facts | Removal would falsify history; preservation could expose harmful text |
+| Mix cognitive/experiment records with canonical world events | A belief, proposal, or configuration could become Reality or leak private information |
+| Give citizens generic code/network/tool execution | Expands autonomy into host/external authority unrelated to simulated Reality |
 | Collect accounts/analytics “for later” | No first-slice need and expands data/security obligations |
 
 ## Unproven assumptions and reopen evidence

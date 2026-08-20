@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Reality consists of versioned region state and ordered accepted events. Minimum entity kinds are region, place, citizen, relationship, resource stack, artifact, message, belief, Standing Plan, sponsor covenant, and scenario-scoped institution/rule. Stable typed IDs—not names—link them.
+Reality consists of versioned region state and ordered accepted events. Minimum entity kinds are region, place, citizen, relationship, resource stack, artifact, message/claim, observation, private knowledge, belief, bounded memory, Standing Plan, sponsor covenant, and scenario-scoped institution/rule. Stable typed IDs—not names—link them.
 
 | Concern | Rule |
 |---|---|
@@ -21,13 +21,23 @@ Reality consists of versioned region state and ordered accepted events. Minimum 
 | Sequence | one monotonic region event sequence; no gaps/duplicates after commit |
 | Ownership | every conserved stack has exactly one location/owner classification |
 | Life | dead citizens cannot act; death is a boundary, not slice content |
-| Knowledge | a citizen acts only on visible facts and sourced beliefs in `DecisionContext` |
-| Provenance | observations/messages/beliefs/actions cite source events and visibility |
+| Knowledge | a citizen acts only on their authorized observations, private knowledge, sourced beliefs, and bounded memories in `DecisionContext` |
+| Provenance | observations/messages/knowledge/beliefs/memories/plans/decisions/actions cite stable source IDs, events, and visibility |
 | Replay | same snapshot, ordered events, engine/schema/replay versions produce the same state hash |
 
 ## Facts, beliefs, allegations, and secrets
 
-Reality facts are authoritative state. A belief records proposition, confidence band, source, acquisition event, last revision, and visibility; it may be false. A private message can cause a belief but does not make its content true. A public allegation is an event containing speaker and proposition. UI and Chronicle never collapse these categories.
+Reality facts are authoritative state. The other epistemic forms are distinct:
+
+| Form | Meaning |
+|---|---|
+| `ObservationRecord` | what one citizen perceived through a typed observation event; it may be partial and is scoped to that observer |
+| `KnowledgeRecord` | a private fact reference established for that citizen by an authorized observation/disclosure rule; the possession/visibility of the record is canonical, not public omniscience |
+| `BeliefRecord` | a proposition with confidence band, source IDs, acquisition/revision events, and visibility; it may be false or conflict with another belief |
+| `MemoryRecord` | a bounded retained reference to observations, knowledge, beliefs, messages, plans, or prior decisions; it cannot create new fact or authority |
+| `MessageClaim` | a speaker's attributed proposition communicated to recipients; receipt may update belief but never proves the proposition |
+
+A `BeliefChanged` or `MemoryRecorded` world event is authoritative only about the citizen's mind state, not about the proposition's truth. A private message can cause a belief but does not make its content true. A public allegation is an event containing speaker and proposition. UI, Brain context, Chronicle, and later Observatory never collapse these categories or silently promote one to another.
 
 Visibility values at minimum are public, participant-private, citizen-private, patron-visible-through-covenant, moderator-only, and implementation-only. Moderation state is separate from canonical fact. The Standard Brain receives only the focal citizen's allowed slice.
 
@@ -52,6 +62,12 @@ A public child event with a private parent may be projected only from its own pu
 
 Every unlisted viewer/purpose pair denies. Commit this normative table as static test-oracle data and implement `canRead` separately; exhaustive fixtures are generated from the table, not from the production function. Fixtures cover grant/revoke boundaries, private-parent/public-child cases, and the typed disclosure that changes permission.
 
+## Strategic freedom within Reality
+
+The long-term rule is: **you may attempt anything expressible through Reality; Reality determines what happens.** A decision context exposes a closed, versioned catalog of typed affordances that the current world state can validate. The catalog may grow after the proof through shared primitives for cooperation, competition, exchange, deception, organization, rulemaking, conflict, treaty, and novel strategy; those outcomes are never selected by a story script or created by prose.
+
+Typed does not mean developers pre-author each historical outcome. It means each attempted action declares inputs/effects that the authoritative rules can accept, reject, partially satisfy, or resolve into consequences. A model may propose only one offered action. Citizens never receive arbitrary code execution, filesystem, network, credential, external-system, or unbounded tool authority in the name of autonomy.
+
 ## Causal and related-event types
 
 Each material event can name causal parents only as `direct`, `trigger`, or `contributing`. Noncausal relations live in a separate `relatedEvents` field as `temporal-predecessor` or `response-to`. Allegations are typed statement/belief content, never relation types or causal truth. Validators require every referenced event to precede the child in-region and every causal edge to name the consuming rule/mechanism. This vocabulary is canonical across simulation, Chronicle, UI, and tests.
@@ -61,16 +77,16 @@ Each material event can name causal parents only as `direct`, `trigger`, or `con
 - Cognition proposes; it never mutates Reality.
 - Application authorizes and validates against expected revision.
 - Simulation applies one atomic transition and emits events/pre-post hashes.
-- Persistence durably commits accepted envelopes, the head, receipt, and fencing token before Application installs/publishes the candidate; snapshots follow independently.
+- Persistence durably commits accepted envelopes, the head, receipt, fencing token, and any consequential-decision record before Application installs/publishes the candidate; snapshots follow independently.
 - Presentation reads state/events and cannot create facts.
 
 ## Rejected alternatives
 
-Reject prose as state, untyped property bags for core rules, mutable event history, model-written memories, global omniscient citizen context, random IDs as simulation randomness, in-place canon edits, and a single “cause” field that conflates trigger/condition/allegation.
+Reject prose as state, untyped property bags for core rules, mutable event history, model-written or unprovenanceable memories, global omniscient citizen context, communication-as-truth, random IDs as simulation randomness, in-place canon edits, arbitrary code/network/tool authority, scripted long-term outcomes, and a single “cause” field that conflates trigger/condition/allegation.
 
 ## Reopen evidence
 
-Reopen ontology if Riverhold requires a fact that cannot be expressed without prose parsing, or invariants make deterministic replay/catch-up impractical. Do not generalize for hypothetical war, religion, markets, or regions.
+Reopen ontology if Riverhold requires a fact that cannot be expressed without prose parsing, epistemic categories leak into one another, or invariants make deterministic replay/catch-up impractical. Preserve generic composition seams, but do not implement types or mechanics solely for hypothetical war, religion, markets, institutions, or regions before the product gates.
 
 ## Remaining uncertainty
 
@@ -78,7 +94,7 @@ Reopen ontology if Riverhold requires a fact that cannot be expressed without pr
 
 ## Resulting implementation behavior
 
-Build only types needed by eight citizens and Riverhold. Record actual eligibility, integer winning terms, and reason codes in a typed decision receipt; render a short authored justification as attributed testimony. Replay and Chronicle trace only to accepted events.
+Build only concrete mechanics needed by eight citizens and Riverhold. Keep observations, private knowledge, beliefs, memories, messages, and world facts as separate typed records even where the fixture is small. Record actual eligibility, integer winning terms, and reason codes in a bounded cognitive decision record; render a short authored justification as attributed testimony. Replay and Chronicle facts trace only to accepted events, with decision records as non-factual provenance.
 
 ## Constraint fit
 

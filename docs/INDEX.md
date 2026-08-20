@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** READY FOR GOAL MODE — final QA passed; private draft PR open
+**Status:** CIVILIZATION AMENDMENT INTEGRATED — fresh review and QA pending
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
@@ -39,6 +39,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Lifetime, death, succession, inactive sponsor and long-term depth | [PROGRESSION.md](product/PROGRESSION.md) |
 | Region topology, newcomer entry, stagnation, canon and private forks | [WORLD_STRUCTURE.md](product/WORLD_STRUCTURE.md) |
 | Causal truth, Riverhold fixture, return summary, replay and share facts | [CHRONICLE.md](product/CHRONICLE.md) |
+| Future Observatory, research claims, three-ledger provenance and experiment semantics | [OBSERVATORY.md](product/OBSERVATORY.md) |
 | First 10/100/1,000 and intrinsic distribution artifact | [DISTRIBUTION.md](product/DISTRIBUTION.md) |
 
 ## Game authorities
@@ -66,11 +67,11 @@ Each concern has one authority. Research records evidence; reviews record object
 
 | Concern | Sole authority |
 |---|---|
-| Layers, packages, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
+| Layers, packages, three-ledger authority, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
 | UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
 | Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
-| IndexedDB, durable receipts/fencing, snapshots, replay, export and version policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
-| Mind, Standard Brain, bounded proposals and model ecology | [COGNITION.md](engineering/COGNITION.md) |
+| IndexedDB world/decision stores, Experiment Manifest, durable receipts/fencing, snapshots, replay, export and version policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
+| Mind, Standard Brain, bounded proposals, cognitive decision records and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
 

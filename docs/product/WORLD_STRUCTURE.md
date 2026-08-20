@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns product topology. [WORLD_MODEL](../game/WORLD_MODEL.md) owns simulation ontology; [PROGRESSION](PROGRESSION.md) owns continuity; engineering authorities own persistence adapters.
 
-**Related documents:** [product](PRODUCT.md), [tournament](../research/GAME_DESIGN_RESEARCH.md), [distribution](DISTRIBUTION.md), [Chronicle](CHRONICLE.md)
+**Related documents:** [product](PRODUCT.md), [Observatory](OBSERVATORY.md), [tournament](../research/GAME_DESIGN_RESEARCH.md), [distribution](DISTRIBUTION.md), [Chronicle](CHRONICLE.md)
 
 ## Owned decision
 
@@ -21,7 +21,7 @@ The 001 proof implements no public shared world. One local save is treated as th
 - Time: seeded simulation time advanced by commands/scheduler and bounded catch-up, never wall-clock authority in the simulation.
 - Canon: append-only accepted events plus versioned snapshots; presentation never changes facts.
 - Crossing: cross-region messages/migration are interruption boundaries in the contract, not slice features.
-- Fork: exact snapshot + event interval + versions + seed; clearly labeled private counterfactual; no canonical merges, resources, reputation, or leaderboard effect.
+- Fork: exact canonical snapshot + event interval + `ExperimentManifest`; clearly labeled private counterfactual; no canonical merges, resources, reputation, or leaderboard effect.
 
 ## Canonical region behavior
 
@@ -37,7 +37,7 @@ Detect equilibrium by meaningful-state changes, not raw event count. If a config
 
 ## Private World Fork policy
 
-Forks answer “what might have happened?” without corrupting “what did happen?” A replay of recorded canon is factual. A fork is counterfactual. Its presentation must show fork origin, command difference, engine/schema versions, and a visible non-canon label. Share artifacts may compare two histories only if both were actually simulated; otherwise alternative outcome is “unknown.” Implementation is deferred past both gates.
+Forks answer “what might have happened?” without corrupting “what did happen?” A replay of recorded canon is factual. A fork is a new run whose immutable manifest names its parent canonical run, parent snapshot, intervention IDs, configuration, and versions. Its presentation must show origin, command/configuration difference, and a visible non-canon label. A fork can never append to, replace, merge into, or silently alter its parent canonical ledger. Share artifacts may compare two histories only if both were actually simulated; otherwise the alternative outcome is “unknown.” Future experiments preferentially start from these versioned canonical snapshots rather than a disconnected menu of mini-games. Implementation is deferred past both gates.
 
 ## Rejected alternatives
 
@@ -53,7 +53,7 @@ Reopen one-region canon if concurrency/operations measurements make it unsafe, n
 
 ## Resulting implementation behavior
 
-The slice builds one hand-authored settlement, deterministic seeds, local event/snapshot persistence, explicit user-confirmed catch-up, and replay. It defines reusable domain contracts—not a drop-in server replacement—and includes no Cloudflare adapter, account, network protocol, deployment, public write, multiple region, or fork.
+The slice builds one hand-authored settlement, deterministic seeds, local event/snapshot persistence, explicit user-confirmed catch-up, replay, and one immutable manifest that identifies the local canonical run. It defines reusable domain contracts—not a drop-in server replacement—and includes no Cloudflare adapter, account, network protocol, deployment, public write, multiple region, fork execution, fork import, or fork UI.
 
 ## Constraint fit
 

@@ -1,16 +1,24 @@
 # EONFOLK product definition
 
-**Purpose:** define the consumer promise, audience, selected structure, falsification gates, and first-slice boundary.
+**Purpose:** define the consumer promise, ultimate product identity, participation roles, selected structure, falsification gates, and first-slice boundary.
 
 **Status:** ACCEPTED AFTER RED TEAM — still a product hypothesis until observed play
 
 **Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/active/001-foundation.md) owns implementation scope.
 
-**Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [player evidence](../research/PLAYER_RESEARCH.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md), [Chronicle](CHRONICLE.md), [distribution](DISTRIBUTION.md)
+**Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [player evidence](../research/PLAYER_RESEARCH.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md), [Chronicle](CHRONICLE.md), [Observatory](OBSERVATORY.md), [distribution](DISTRIBUTION.md)
 
 ## Owned decision
 
 **Product sentence:** Follow one independent citizen in a town that remembers; offer rare advice she can reject or reinterpret, then return to see what she changed and what your advice contributed to.
+
+EONFOLK's long-term identity has three inseparable parts:
+
+- **WORLD:** a consumer persistent civilization in which humans sponsor autonomous minds;
+- **CHRONICLE:** a factual causal-history and replay system that turns simulation complexity into understandable stories and shareable events; and
+- **OBSERVATORY:** a future research surface for inspecting agent behavior, replaying decisions, forking canonical snapshots, running controlled experiments, and comparing model/agent ecologies.
+
+World is the product, Chronicle makes it legible, and Observatory makes bounded reproducible inquiry possible. Observatory is never the onboarding frame or justification for a shallow game. EONFOLK does not claim to simulate or predict human society; its defensible future research object is behavior and institutional emergence among autonomous AI agents inside persistent, grounded, reproducible simulated environments.
 
 The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. The first proof is explicitly **one Riverhold scenario**, not a general civilization, shared world, creator platform, or retention claim.
 
@@ -21,6 +29,21 @@ The desired emotion is responsible curiosity: “I care what Mara chooses, I aff
 Mara has asked for an outside witness because her market concern could damage a close relationship. Following her grants access only to facts she observes, beliefs she shares, her stated values/plan, and one bounded advice opportunity at a named boundary. The player owes honest advice and cannot command movement, schedule labor, inspect secrets, undo history, or spend on Mara's behalf. Mara may refuse, delay, or reinterpret counsel for visible reasons.
 
 This is fictional consent within the scenario, not ownership, employment, finance, or a claim about conscious software.
+
+## Future participation roles
+
+The same world/history must remain compatible with six future roles without implementing six products now:
+
+| Role | Future participation boundary |
+|---|---|
+| Stranger | watch, follow, and replay without configuration |
+| Follower | track specific citizens, organizations, or events |
+| Patron | sponsor and occasionally counsel one autonomous citizen |
+| Historian | inspect factual causal history and evidence |
+| Experimenter | fork a versioned historical snapshot into a visibly non-canonical controlled run |
+| Creator | surface and broadcast compelling factual world events |
+
+The first slice implements only the smallest Stranger/Follower/Patron/Chronicle path around Mara. It adds no role selector, research dashboard, fork UI, creator tool, faction-follow system, or public publication.
 
 ## First-session contract
 
@@ -60,7 +83,7 @@ Standard Brain owns complete routine and boundary behavior. Removing all externa
 
 ## Rejected alternatives
 
-Direct possession, a family/trio/faction start, routine colony management, always-on shared civilization, unrestricted chat, model-branded citizens, server-first architecture, and an immutable Riverhold trajectory. They remain comparison controls, not hidden backup scope.
+Direct possession, a family/trio/faction start, routine colony management, always-on shared civilization, unrestricted chat, model-branded citizens, server-first architecture, an immutable Riverhold trajectory, research-dashboard onboarding, and benchmark-first mechanics. They remain comparison controls or deferred surfaces, not hidden backup scope.
 
 ## Reopen evidence
 
@@ -68,7 +91,7 @@ Reopen the structure if Gate 0 selects another frame, three legal counsel paths 
 
 ## Resulting implementation behavior
 
-Implement one fixed authored Mara—no creator, roster, or fake choice—plus three counterfactual Riverhold histories and one outcome-dependent return decision. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, generalized economy/governance, death/lineage, and models.
+Implement one fixed authored Mara—no creator, roster, or fake choice—plus three counterfactual Riverhold histories and one outcome-dependent return decision. Preserve typed truth, cognitive-decision provenance, and an immutable run manifest underneath that loop. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, generalized economy/governance, death/lineage, models, Observatory UI, World Fork execution, and every additional participation role.
 
 ## Constraint fit
 

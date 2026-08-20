@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns factual narrative semantics and the Riverhold presentations. [WORLD_MODEL](../game/WORLD_MODEL.md) owns event truth; [DISTRIBUTION](DISTRIBUTION.md) owns channels; presentation layers may shorten but never invent.
 
-**Related documents:** [product](PRODUCT.md), [human loop](HUMAN_LOOP.md), [distribution research](../research/DISTRIBUTION_RESEARCH.md), [world model](../game/WORLD_MODEL.md)
+**Related documents:** [product](PRODUCT.md), [Observatory](OBSERVATORY.md), [human loop](HUMAN_LOOP.md), [distribution research](../research/DISTRIBUTION_RESEARCH.md), [world model](../game/WORLD_MODEL.md)
 
 ## Owned decision
 
@@ -18,7 +18,7 @@ The Chronicle is a deterministic projection of authoritative events. It distingu
 - **Temporal predecessor:** it happened earlier; no causal claim is supported.
 - **In-world allegation:** a named speaker/belief claims a relation not established by Reality.
 
-Every factual sentence resolves to event IDs and state hashes. A citizen's justification is testimony/provenance, not hidden reasoning or objective truth. Causal parents are typed, not inferred later from narrative proximity.
+Every factual sentence resolves to Canonical World Ledger event IDs and state hashes. An authorized evidence disclosure may link a consequential event to its Cognitive/Decision Ledger record and Experiment Manifest, but a belief, memory, proposal, validator rejection, or citizen justification never becomes world truth through that link. A citizen's justification is testimony/provenance, not hidden reasoning or objective truth. Causal parents are typed, not inferred later from narrative proximity.
 
 ## Riverhold oracle chain
 
@@ -101,7 +101,7 @@ If later deployment is authorized, the canonical URL shows title, exact region/t
 
 ## Factual generation rules
 
-Templates select only declared predicates. Names and short public justifications are escaped text. No model may write fact text, HTML, Markdown, URLs, causality, or canonical summaries. Unknown remains unknown. Coalescing may say “gathered 8 wood across four stable events” only when all four event ranges and conservation checks support it. Replay recomputes hashes; it never calls cognition.
+Templates select only declared predicates. Names and short public justifications are escaped text. No model may write fact text, HTML, Markdown, URLs, causality, or canonical summaries. Unknown remains unknown. Coalescing may say “gathered 8 wood across four stable events” only when all four event ranges and conservation checks support it. Replay recomputes hashes from the preserved snapshot and accepted event interval; it never calls cognition or assumes a model can reproduce its original proposal.
 
 ## Rejected alternatives
 
@@ -117,7 +117,7 @@ Reopen presentation density if three of five context-free viewers cannot identif
 
 ## Resulting implementation behavior
 
-Implement three branch histories, While You Were Away, one manually stepable three-beat/≤20-second replay, and one responsive **Copy story card** from the accepted branch. Biography, relationship history, public page, and SSR are contracts/deferred. Tests trace every sentence and prohibit unsupported causal words.
+Implement three branch histories, While You Were Away, one manually stepable three-beat/≤20-second replay, and one responsive **Copy story card** from the accepted branch. Biography, relationship history, public page, SSR, and Observatory navigation are contracts/deferred. Tests trace every sentence to accepted events, then verify any authorized decision/run links without using them as factual substitutes.
 
 ## Constraint fit
 

@@ -32,6 +32,8 @@ When cognition, Mind schemas, proposal validators, or Standard Brain change, run
 
 - proposal schema and unknown-field bounds;
 - authorization, stale revision, hidden-fact, injection, and partial-mutation fixtures;
+- observation/knowledge/belief/memory/message-claim separation and provenance closure;
+- cognitive decision record context/plan/proposal/validation/receipt/event link integrity;
 - missing/throwing/timed-out/malformed fake `BrainPort` and deterministic fallback;
 - perturbation, transfer, baseline, ablation, hidden-fact noninterference, and fixed behavior regressions.
 
@@ -43,18 +45,18 @@ When a major UI, renderer, asset, layout, motion, or design-token change occurs,
 
 | Layer | Blocking evidence |
 |---|---|
-| Protocol/schema | round-trip, unknown/version failure, byte/depth/range bounds |
+| Protocol/schema | world/cognitive/experiment record round-trip, unknown/version failure, byte/depth/range bounds |
 | Reducer/unit | one event transition, no partial mutation, invariant checks |
 | Determinism | repeated seed/commands, canonical bytes/hash, PRNG and equal-time ordering |
-| Replay/persistence | half-open range/genesis/snapshot convergence, zero-event range, event gaps, corrupt hash, durable-before-visible crash barriers, accepted/rejected receipts, ID collision, quota abort, stale fencing |
-| Property/model/fuzz | random legal/illegal command sequences preserve resources, ownership, life, visibility, and revision rules |
+| Replay/persistence | half-open range/genesis/snapshot convergence with cognition disabled, zero-event range, event gaps, corrupt hash, durable-before-visible world/decision crash barriers, accepted/rejected receipts, immutable Experiment Manifest, decision trace closure, ID collision, quota abort, stale fencing |
+| Property/model/fuzz | random legal/illegal command sequences preserve resources, ownership, life, visibility, epistemic separation, decision/world-ledger authority, and revision rules |
 | Version policy | current version identity load; unknown/old version fails closed without mutation; no V1 upcaster/import route |
 | Long horizon | 30/90/365-day worlds reach exact target under declared caps; conservation, bounded events/storage, interrupt/resume equivalence, no LLM |
 | Browser journey | account-free Follow Mara, investigation, interaction, three advice branches, leave/confirmed catch-up, Chronicle/replay, second action |
 | Accessibility | keyboard-only path, semantic names/states, focus, reduced motion, text equivalents, fallback view |
 | Security | static `riverhold-visibility-v1` oracle versus separate production function across every viewer/purpose/label/grant/revoke boundary; private-parent/disclosure metamorphs; identical hidden/missing/revoked surfaces plus shared constant-work path and frozen 20-warmup/200-cycle/50 ms/≤5 ms/no-selective-rerun timing analyzer; hostile text/oversize; duplicate/stale/fenced writes; fake BrainPort; secret/import absence; deny-by-default local preview with independent route log + Chromium netlog and zero attempted external egress |
 
-Snapshot replay is exercised from every persisted snapshot in golden scenarios. Chunk boundaries vary. The test oracle never calls a model or depends on current date/locale/network.
+Snapshot replay is exercised from every persisted snapshot in golden scenarios. Chunk boundaries vary. The test oracle never calls a model/Standard Brain or depends on current date/locale/network. It verifies the original structured proposal separately as audit evidence rather than regenerating it.
 
 ## PR versus nightly/manual
 
@@ -66,6 +68,7 @@ Keep PR CI short enough for a solo loop. Use small seed sets and bounded fuzzing
 - extended browser/device/browser matrix;
 - capped cognition suite with any real optional provider;
 - dependency/license/security scan and non-destructive export drill;
+- repeated independent-run/manifest analysis only after a real model or Observatory experiment is authorized;
 - repeated performance profiles to identify variance.
 
 A nightly failure blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR.

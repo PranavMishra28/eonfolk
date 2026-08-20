@@ -6,13 +6,15 @@
 
 **Authority boundary:** this plan owns first-slice milestones, files, commands, evidence, rollbacks, and definition of done. Linked product/engineering/quality documents own semantics; [PLANS](../PLANS.md) owns plan maintenance.
 
-**Related documents:** [product](../../product/PRODUCT.md), [human loop](../../product/HUMAN_LOOP.md), [Chronicle](../../product/CHRONICLE.md), [architecture](../../engineering/ARCHITECTURE.md), [quality bar](../../quality/QUALITY_BAR.md), [Goal prompt](../IMPLEMENTATION_GOAL_PROMPT.md)
+**Related documents:** [product](../../product/PRODUCT.md), [human loop](../../product/HUMAN_LOOP.md), [Chronicle](../../product/CHRONICLE.md), [Observatory](../../product/OBSERVATORY.md), [architecture](../../engineering/ARCHITECTURE.md), [quality bar](../../quality/QUALITY_BAR.md), [Goal prompt](../IMPLEMENTATION_GOAL_PROMPT.md)
 
 ## Product outcome
 
 Deliver one local Riverhold proof. A player follows fixed authored Mara, sees an authoritative investigation within 60 seconds, reaches two advice intents plus abstain by five minutes, watches her independently interpret and act, observes one of at least three branch-specific consequences, explicitly leaves/advances/returns, and makes one second choice enabled by that outcome. A factual three-beat Chronicle and ≤20-second Story Card distinguish sponsor advice, Mara's choice, and what followed.
 
 Both Gate A and Gate B must pass. The honest release label is **single Riverhold proof**. This plan does not validate fun, delayed retention, session 5/20, succession, newcomers, distribution, public canon, or modern-AI value.
+
+The long-term World/Chronicle/Observatory identity changes foundation provenance, not the playable feature list: preserve epistemic separation, bounded consequential-decision traces, and one immutable run manifest inside the existing kernel/loop tasks. Do not build an Observatory surface, fork engine, institution kernel, additional human role, research dataset, or model ecology comparison.
 
 ## Binding constraints
 
@@ -56,11 +58,11 @@ These six milestones are ordered and non-coalescible; additional runnable checkp
 | T01 | Six ugly matched variants, exact study instrument, Williams order, mocked analyzer | Plan base | product implementer | 0.75 / 1 / 1.5 | No content polish; if instrument is not frozen, M0 has not started |
 | T02 | Operator Gate 0 participant/observer facilitation, raw manifest, analysis, product review | T01 | operator + coordinator | 1.5 / 2.25 / 3 | No denominator cut; unavailable evidence blocks before M1 |
 | T03 | Disposable Pixi/semantic projection, three viewports, access/load measurement, visual review | T01 | visual implementer/reviewer | 0.5 / 0.75 / 1.25 | One Living Woodcut simplification, then stripped markers/semantic or stop |
-| T04 | Workspace, schemas, framed bytes, JCS/SHA/PRNG/ID/event/batch golden vectors | Gate 0 | systems implementer | 2.5 / 3 / 3.75 | None; protocol ambiguity stops M1 |
+| T04 | Workspace, world/cognitive/experiment schemas, framed bytes, JCS/SHA/PRNG/ID/event/batch golden vectors | Gate 0 | systems implementer | 2.5 / 3 / 3.75 | None; protocol ambiguity stops M1 |
 | T05 | Pure reducer/scheduler, typed events, invariants, deterministic fixtures | T04 | systems implementer | 1.5 / 2 / 2.5 | No generalized systems |
-| T06 | IndexedDB atomic head/events/receipts/fence/snapshot/export and crash/version/replay failures | T04–T05 | persistence implementer | 2.5 / 3 / 3.75 | Export only; no import/upcaster/server |
+| T06 | IndexedDB separate manifest/events/decision/receipt stores; atomic transition/fence/snapshot/export and crash/version/replay failures | T04–T05 | persistence implementer | 2.5 / 3 / 3.75 | One manifest/bounded traces; no query UI/import/fork/upcaster/server |
 | T07 | Semantic Mara investigate/advice/three branches/leave/advance/second-command loop | T04–T06 | application implementer | 3 / 4 / 5 | Plain DOM, fixed scenario, no extra crisis/dialogue |
-| T08 | Visibility oracle, Standard Brain, receipts, perturbation/transfer/baseline/ablation/noninterference | T04–T07 | cognition implementer | 1.75 / 2.5 / 3.25 | Fixed terms/catalog; no provider/model |
+| T08 | Visibility/epistemic oracle, Standard Brain, bounded decision records, perturbation/transfer/baseline/ablation/noninterference | T04–T07 | cognition implementer | 1.75 / 2.5 / 3.25 | Consequential boundaries only; fixed terms/catalog; no provider/model |
 | T09 | Plain three-beat branch Chronicles, evidence disclosure, focused DOM Playwright | T07–T08 | application implementer | 1 / 1.5 / 2 | Template text only; no public URL/media encoder |
 | T10 | Eight-citizen resource/need/exchange/mill-repair simulation, catch-up, 30/90/365 caps | T04–T09 | systems/game implementer | 4 / 5 / 6 | Exactly three resources/four behavior families/one exchange/repair |
 | T11 | Pixi atlas/projection, identities/cues, semantic parity, weak-device/reduced-motion path | T10 | visual implementer | 3 / 4 / 5 | Cut effects/art polish, then stripped markers; never semantic path |
@@ -75,23 +77,23 @@ These six milestones are ordered and non-coalescible; additional runnable checkp
 
 Acceptance ownership is unique: Gate 0 product/observer outcomes T02/T03; Gate A human outcome T12; Gate B/card outcome T15; canonical bytes/hashes/replay T04; durability/version/export T06; invariants and exact horizons T10; visibility/Standard Brain/fallback T08; UI/performance/accessibility T17; finite security/dependency tree T16. T18 confirms but does not redefine any gate. At each milestone, compare actual summed hours with row/milestone expected and re-estimate all remaining rows. A timed M0 rehearsal must fit four summed hours including evidence processing; otherwise stop before M1 and reopen scope/estimate.
 
-Only permitted cut order: particles/weather/parallax/sound → discretionary art/transition polish → measurement-only 12-citizen presentation stress → stripped Weathered Atlas markers plus semantic view. Never cut Gate 0/A/B, deterministic/durable contracts, security, accessibility, eight default citizens, three resources, divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes/confirmation only.
+Only permitted cut order: particles/weather/parallax/sound → discretionary art/transition polish → measurement-only 12-citizen presentation stress → stripped Weathered Atlas markers plus semantic view. Never cut Gate 0/A/B, deterministic/durable contracts, epistemic separation, bounded consequential-decision/run provenance, security, accessibility, eight default citizens, three resources, divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes/confirmation only.
 
 ## Exact included scope
 
 - One crafted Riverhold, one fixed **Follow Mara** onboarding, eight named citizens.
 - Food/water/wood; integer needs; movement; gathering/consumption; one Riverhold repair exchange; one `2 wood + work` mill repair.
 - Four behavior families: urgent need, role/resource work, exchange/help, Standing Plan/review.
-- Typed beliefs, directional relationship bands, values/commitments, reputation observations, typed messages, Standard Brain.
+- Distinct typed observations, private knowledge, beliefs/confidence/provenance, bounded memories, directional relationship bands, values/commitments, reputation observations, message claims, Standing Plans, and Standard Brain.
 - One pre-boundary snapshot with **verify privately**, **accuse now**, and **abstain/follow plan** histories reaching different terminal state vectors.
-- State-changing investigation by 60 seconds; advice boundary by five minutes; typed decision receipt; branch consequence.
+- State-changing investigation by 60 seconds; advice boundary by five minutes; bounded cognitive record linking state/context/plan/proposal/validation/receipt/events; branch consequence.
 - Explicit leave/checkpoint, local-save disclosure, confirmable catch-up capped at seven-day chapters, branch-dependent second decision.
-- Event sourcing, durable receipts/head, snapshots, export-only save, deterministic replay, While You Were Away, three-beat Chronicle, responsive Story Card.
+- Separate Canonical World and Cognitive/Decision ledgers, one immutable `canonical-local-proof` Experiment Manifest, durable receipts/head, snapshots, export-only save, cognition-free deterministic replay, While You Were Away, three-beat Chronicle, responsive Story Card.
 - Pixi Living Woodcut world, fully playable semantic view, keyboard, reduced motion, weak-device degradation, three viewports.
 
 ## Explicit exclusions
 
-Create-a-person/roster, generalized economy/farming/crafting/governance, deep law/religion/war, death/lineage/session-20 implementation, import/restore/migration upcaster, public URL/SSR/share recipient route, accounts/server/deployment/public multiplayer, World Fork, unrestricted dialogue, hosted/local model, browser download, provider UI, embeddings/vector DB, model migration, social posting/video encoder, telemetry vendor, payments, creator dashboard, and production generated/marketplace art.
+Create-a-person/roster; extra Stranger/Follower/Patron/Historian/Experimenter/Creator UI; generalized economy/farming/crafting/governance; generic Institution/company/army/religion/party/treaty/territory/enforcement/war systems; deep law/religion/war; death/lineage/session-20 implementation; Observatory dashboard/query/dataset/experiment orchestration; import/restore/migration upcaster; public URL/SSR/share recipient route; accounts/server/deployment/public multiplayer; World Fork execution/import/UI; unrestricted dialogue; hosted/local model; browser download; provider UI; embeddings/vector DB; model migration; social posting/video encoder; telemetry vendor; payments; creator dashboard; and production generated/marketplace art.
 
 ## Expected implementation shape
 
@@ -101,8 +103,8 @@ The implementation prompt freezes Node `22.23.1`, pnpm `11.15.1`, every direct r
 apps/web/                  React Router/Vite, Pixi world, semantic UI, projections
 packages/protocol/         versioned contracts, canonical bytes, golden vectors
 packages/sim/              pure Reality, reducer, scheduler, invariants, hashes
-packages/cognition/        Mind, Standing Plans, Standard Brain, decision receipts
-packages/persistence/      PersistencePort and IndexedDB adapter
+packages/cognition/        Mind, Standing Plans, Standard Brain, decision records
+packages/persistence/      PersistencePort, run manifest, separate world/decision stores
 tests/fixtures/riverhold/  snapshot, branches, perturbations, expected hashes
 tests/e2e/                 critical journey and deterministic evidence fixtures
 docs/exec-plans/active/001-foundation.md  living progress/evidence log
@@ -113,13 +115,15 @@ docs/exec-plans/active/001-foundation.md  living progress/evidence log
 ## Locked contracts
 
 - `WorldCommand`: version, command ID, payload fingerprint, expected revision, principal, region, typed payload.
-- `WorldEventEnvelope`: ordered sequence/time, engine/schema, stable event ID, typed payload, causal parents (`direct|trigger|contributing`), separate related events (`temporal-predecessor|response-to`), visibility/provenance, pre/post/event hashes, pre-hash `batchId`; separate post-event `batchHash` lives in durable head/receipt.
-- `DecisionContext`: actor/revision/reason, only records allowed by `riverhold-visibility-v1` for `decision-context`, plan/values/relationships/commitments, closed catalog, budgets.
-- `IntentProposal`: one catalog action, optional typed plan/memory proposals, short justification rendered from typed `DecisionExplanation`, provenance.
+- `WorldEventEnvelope`: ordered sequence/time, engine/schema, stable event ID, typed payload, causal parents (`direct|trigger|contributing`), separate related events (`temporal-predecessor|response-to`), visibility/provenance including command/intervention and optional decision/proposal IDs, pre/post/event hashes, pre-hash `batchId`; separate post-event `batchHash` lives in durable head/receipt.
+- `DecisionContext`: actor/revision/reason, only observation/private-knowledge/belief/memory/claim records allowed by `riverhold-visibility-v1` for `decision-context`, plan/values/relationships/commitments, closed catalog, budgets.
+- `IntentProposal`: stable proposal ID, one catalog action, optional typed plan/memory proposals, short justification rendered from typed `DecisionExplanation`, provenance.
 - `DecisionExplanation`: reason codes, actually read references, integer terms, tie-break, counsel disposition.
+- `CognitiveDecisionRecord`: stable boundary/decision IDs, pre-state/context/catalog/plan and actually read record IDs, Standard-Brain configuration, nullable model provenance, exact structured proposal/failure, validator result, receipt and accepted event interval; no chain-of-thought.
+- `ExperimentManifest`: immutable run/region/seed/initial-snapshot/version/cognition/intervention/parent identity; first slice is `canonical-local-proof`, null model and parent fields.
 - `CommandReceipt`: accepted/rejected stable result, fingerprint, revision/head, interval/rejection code, fencing token.
-- `ReplayManifest`: snapshot/base sequence, half-open event range, exact versions, final hash, nonfactual presentation metadata.
-- `PersistencePort`: head/receipt reads, atomic `appendEvents` transition commit, snapshot load/save, event range, verified export. No import.
+- `ReplayManifest`: run/manifest hash, snapshot/base sequence, half-open event range, exact versions, final hash, nonfactual presentation metadata.
+- `PersistencePort`: manifest/head/receipt/decision reads, atomic `appendEvents` world/decision transition commit, bounded pre-command rejected-decision append, snapshot load/save, event range, verified export. No import/fork.
 
 The exact determinism and commit protocols live in [SIMULATION](../../engineering/SIMULATION.md) and [PERSISTENCE](../../engineering/PERSISTENCE.md); implementation cannot weaken them through naming changes.
 
@@ -147,11 +151,11 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Product outcome:** no accepted action can disappear, double-apply, fork, or become visible before durability.
 
-**Scope/exclusions:** Workspace; contracts; determinism profile; minimal reducer/scheduler; prepared transition; IndexedDB head/events/receipts/snapshots; fenced single writer; export only. No renderer, full game, import/upcaster/server/model.
+**Scope/exclusions:** Workspace; contracts; determinism profile; minimal reducer/scheduler; prepared transition; distinct epistemic record schemas; one immutable `canonical-local-proof` Experiment Manifest; separate IndexedDB world/decision stores; atomic head/events/decision/receipts; fenced single writer; export only. No renderer, full game, Observatory/query UI, fork/experiment runner, generic institution, import/upcaster/server/model.
 
 **Files/packages:** root manifests/config, `packages/protocol`, `packages/sim`, `packages/persistence`, minimal fixtures/tests.
 
-**Commands/tests:** pinned `pnpm format:check`, `lint`, `typecheck`, `test`, `test:sim`, `test:property`, `build`. Golden JCS/SHA/PRNG/ID/rounding/Unicode vectors in browser/Node; atomic expected revision; accepted/rejected idempotency; same-ID/different-payload; crash injection at prepare/request/commit/install/publish/ack; quota abort; event gap; corrupt snapshot; stale fencing; dual-tab transfer; zero-event/half-open replay; current version load/unknown version fail closed.
+**Commands/tests:** pinned `pnpm format:check`, `lint`, `typecheck`, `test`, `test:sim`, `test:property`, `build`. Golden JCS/SHA/PRNG/ID/rounding/Unicode vectors in browser/Node; world/observation/knowledge/belief/memory/claim schema separation; immutable manifest and null model/parent fields; atomic expected revision and world/decision commit; accepted/rejected idempotency; same-ID/different-payload; crash injection at prepare/request/commit/install/publish/ack; quota abort; event/decision gap; corrupt snapshot; stale fencing; dual-tab transfer; zero-event/half-open replay with cognition disabled; original proposal retrieval; current version load/unknown version fail closed.
 
 **Browser/visual evidence:** a minimal semantic harness shows no accepted result before durable acknowledgment and recovers after each injected crash; not Gate A evidence.
 
@@ -161,33 +165,33 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Reviewers:** independent systems/correctness reviewer inspects exact commit ordering, byte profile, and crash tests.
 
-**Done:** clean checkout reproduces golden hashes and every crash barrier; no P0/P1 remains.
+**Done:** clean checkout reproduces golden hashes and every crash barrier; world events alone reduce Reality, the run manifest cannot mutate, rejected cognitive records cannot advance head, replay calls no cognition, and no P0/P1 remains.
 
 ## M2 — Ugly counterfactual loop (8 hours)
 
 **Product outcome:** by planned hour 20, a DOM-first game—not a document—proves that advice can matter without scripting.
 
-**Scope/exclusions:** Fixed Mara; local disclosure; state-changing investigate; two advice intents + abstain; Standard Brain receipt; three terminal vectors; leave/checkpoint; deterministic confirm-catch-up; one branch-dependent second action; plain three-beat Chronicle. No Pixi polish, generalized systems, share art, provider, public route.
+**Scope/exclusions:** Fixed Mara; local disclosure; state-changing investigate; two advice intents + abstain; separate observation/knowledge/belief/memory/claim records; Standard Brain decision record; three terminal vectors; leave/checkpoint; deterministic confirm-catch-up; one branch-dependent second action; plain three-beat Chronicle. No Pixi polish, generalized systems, Observatory UI, experiment/fork, institution kernel, share art, provider, public route.
 
 **Files/packages:** `packages/cognition`, Riverhold fixture/branch/perturbation/transfer tests, semantic `apps/web` flow, focused e2e.
 
-**Commands/tests:** full M1 suite; `pnpm test:eval`; perturb trust/value/evidence/commitment/advice; transfer to non-Mara; compare nearest-need/legal-random/canonical-lookup and field ablations; hidden-fact noninterference; fake BrainPort absence/throw/timeout/malformed; same branch replay; different branches diverge materially.
+**Commands/tests:** full M1 suite; `pnpm test:eval`; perturb trust/value/evidence/commitment/advice; transfer to non-Mara; compare nearest-need/legal-random/canonical-lookup and field ablations; hidden-fact/epistemic noninterference; message-is-claim fixtures; exact state → context → plan → proposal → validation → receipt → event chain; fake BrainPort absence/throw/timeout/malformed; same branch replay without cognition; original proposal preserved; different branches diverge materially.
 
 **Browser/visual evidence:** at all viewports, Follow Mara ≤10s, authoritative investigate ≤60s, advice ≤5m, branch consequence, leave/reload/Advance, second decision, Chronicle. Keyboard and reduced motion work in unstyled DOM.
 
-**Performance/security/eval:** no branch may be a label over converged state; typed receipt names actual terms; no secret leaks through catalog/error/order; no arbitrary prose fact.
+**Performance/security/eval:** no branch may be a label over converged state; typed decision record names actual terms/IDs with no chain-of-thought; no secret leaks through catalog/error/order/trace; a belief/memory/message cannot grant fact/authority; no arbitrary prose fact.
 
 **Rollback:** if the real state-sensitive loop does not beat a yoked script in a small diagnostic review, stop/reopen product before world/polish; do not add dialogue/content.
 
 **Reviewers:** product/game, systems/causality, cognition/eval, and visual/accessibility for the semantic UI change.
 
-**Done:** three reproducible terminal hashes and branch-specific Chronicles exist; one outcome-dependent second command mutates state; reviewers find no P0/P1.
+**Done:** three reproducible terminal hashes and branch-specific Chronicles exist; one outcome-dependent second command mutates state; every consequential trace closes while replay succeeds without cognition; reviewers find no P0/P1.
 
 ## M3 — Gate A: Proof of Life (12 hours)
 
 **Product outcome:** Riverhold reads as eight understandable people acting, not moving marks or a log/dashboard.
 
-**Scope/exclusions:** Full three-resource/need loop, four behavior families, story-relevant exchange/repair, eight identities/plans, authoritative two-citizen interaction, Pixi atlas/semantic view, snapshots/export, controlled catch-up. No new crisis/content/system, sound, server, model.
+**Scope/exclusions:** Full three-resource/need loop, four behavior families, story-relevant exchange/repair, eight identities/plans, authoritative two-citizen interaction, Pixi atlas/semantic view, snapshots/export including bounded provenance, controlled catch-up. No new crisis/content/system, generic institution, Observatory, fork, sound, server, model.
 
 **Files/packages:** extend sim/cognition/persistence/web, authored source atlas/provenance, Riverhold fixtures, `@gate-a` Playwright.
 
@@ -231,11 +235,11 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Files/packages:** only files required by recorded failures plus living ExecPlan logs/evidence; routine large videos stay out of Git.
 
-**Commands/tests:** clean format/lint/typecheck/unit/determinism/replay/property/fuzz/build/critical Playwright/access/performance; crash/fence/export/version/no-import; 30/90/365; network-disabled Standard Brain; dependency/license/secret scan.
+**Commands/tests:** clean format/lint/typecheck/unit/determinism/replay/property/fuzz/build/critical Playwright/access/performance; epistemic/decision/manifest contracts; crash/fence/export/version/no-import/no-fork; 30/90/365; cognition-disabled replay; network-disabled Standard Brain; dependency/license/secret scan.
 
 **Browser/visual evidence:** final named-commit journey and all states at three viewports; keyboard, reduced motion, semantic degradation; final participant tables. Rebuild every passed gate's frozen observable oracle at final runnable HEAD and require exact equality; Gate 0 needs the accepted H/observer projection, while Gate A/B/Card need their complete named surfaces. Include an optional physical-mobile diagnostic result or state `not run—nonblocking`; it never substitutes for the canonical mobile lab.
 
-**Performance/security/eval:** all numerical gates pass without waiver. Deny-by-default headed lockfile-pinned Chromium plus independent route log/netlog permits only one local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
+**Performance/security/eval:** all numerical gates pass without waiver. Deny-by-default headed lockfile-pinned Chromium plus independent route log/netlog permits only one local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; no citizen/model code/network/external-system authority, credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/decision records/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; world/cognitive/experiment authority stays distinct; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
 
 **Rollback:** revert smallest failing integration or remove lowest-priority presentation feature. A product-gate miss returns to owner; deployment/merge is never recovery.
 
@@ -287,4 +291,4 @@ Operator-supplied human manifests have fixed future paths: `docs/exec-plans/evid
 
 ## Final definition of done
 
-Ready only when M0, Gate A, Gate B, technical/access/performance/security criteria, independent reviews, and evidence all pass; every passed human surface reproduces its frozen observable oracle at final runnable HEAD; actual diff/changed files/dependencies are inspected; branch is clean; total focused time is recorded; and the final report distinguishes observed bounded evidence from fun/retention/scale hypotheses. Do not merge, deploy, publish, spend, or broaden scope under this plan.
+Ready only when M0, Gate A, Gate B, technical/access/performance/security criteria, independent reviews, and evidence all pass; every passed human surface reproduces its frozen observable oracle at final runnable HEAD; world truth/epistemic records/decision provenance/run identity remain distinct; canonical replay succeeds without cognition; actual diff/changed files/dependencies are inspected; branch is clean; total focused time is recorded; and the final report distinguishes observed bounded evidence from fun/retention/scale/research hypotheses. Do not merge, deploy, publish, spend, or broaden scope under this plan.

@@ -12,20 +12,20 @@
 
 | Rank | ID | Decision | Why now |
 |---:|---|---|---|
-| 1 | D-001 | Follow one authored autonomous citizen in one bounded local proof | Best robust hypothesis, now subject to a matched Gate 0 kill test |
+| 1 | D-001 | Enter the World through one authored autonomous citizen in one bounded local proof | Best robust consumer hypothesis, now subject to a matched Gate 0 kill test |
 | 2 | D-002 | Prove life, contingency and bounded attachment in 52 planned hours plus ≤8 fix hours | Makes the product thesis falsifiable before platform work |
 | 3 | D-003 | Use rare, informed, rejectable counsel—not unit control or chat—as the core verb | Preserves personhood while giving the player consequential agency |
 | 4 | D-004 | Make Chronicle a typed factual projection, never model-written causal prose | Return value and trust depend on inspectable truth |
 | 5 | D-005 | Make the deterministic Standard Brain the complete V1 cognition path | Free, fast, replayable, device-inclusive operation is binding |
 | 6 | D-006 | Run V1 locally in a Web Worker with IndexedDB behind `PersistencePort` | Fits solo/$0 constraints while preserving a later region-server seam |
-| 7 | D-007 | Lock commands, events, cognition, replay and persistence contracts before UI work | Prevents presentation or models from becoming authority |
+| 7 | D-007 | Lock world, cognitive-decision, experiment, replay and persistence contracts before UI work | Prevents presentation, models, or research tooling from becoming authority |
 | 8 | D-008 | Use a sparse Living Woodcut language with one PixiJS 2.5D renderer | Strongest distinctiveness/Chronicle fit within the asset and performance ceiling |
 | 9 | D-009 | Treat the factual Story Card/replay as private comprehension evidence in V1 | No public route exists, so distribution remains post-proof |
 | 10 | D-010 | Keep V1 free, account-free, model-free and noncommercial | Avoids spend, operations and business scope before fun is proven |
 
 ## D-001 — Bounded-region citizen sponsorship
 
-**Decision.** Retain tournament structure H provisionally: fixed authored Mara is the player's responsibility lens inside one small local region. Player-facing entry is **Follow Mara / She acts for herself**; it creates a limited sponsor relationship, not a creator/roster or ownership claim. Long-lived public canon, lineage and forks are future hypotheses.
+**Decision.** EONFOLK's long-term identity is World (consumer persistent civilization sponsoring autonomous minds), Chronicle (factual causal history/replay), and Observatory (future controlled inspection/fork/experiment surface). Retain tournament structure H provisionally as the smallest consumer entry: fixed authored Mara is the player's responsibility lens inside one small local region. Player-facing entry is **Follow Mara / She acts for herself**; it creates a limited sponsor relationship, not a creator/roster or ownership claim. Long-lived public canon, lineage, additional roles, Observatory UI and forks are future hypotheses.
 
 **Evidence.** H scored 4.33 and won the base rubric and four declared sensitivity sets. One citizen beat family, trio and faction in the identical Riverhold scenario. The blind ECHOHOUSE challenger exposed a valid drama/concentration risk but did not beat H overall and required model/content assumptions incompatible with V1 [S-PLAYER-003] [S-PLAYER-004] [S-COMP-001] [S-COMP-002].
 
@@ -33,7 +33,7 @@
 
 **Remaining uncertainty.** One-person attachment, indirect-agency tolerance, death continuity and session-20 richness are product hypotheses, not human evidence.
 
-**Resulting behavior.** The slice simulates eight people but foregrounds one. It implements one local region/seed and no death, server canon, cross-region traffic or forks. Product work reopens before infrastructure if Gate B fails.
+**Resulting behavior.** The slice simulates eight people but foregrounds one. It implements one local region/seed and no death, server canon, cross-region traffic, fork execution, research dashboard, or extra human-role UI. It preserves bounded provenance underneath the consumer loop. Product work reopens before infrastructure if Gate B fails.
 
 **Constraint fit.** One town and one responsibility lens fit a solo M4 workflow and require no service, model, proprietary dataset, partner, revenue or spend.
 
@@ -73,7 +73,7 @@
 
 ## D-004 — Chronicle factuality and causal taxonomy
 
-**Decision.** Chronicle is a deterministic projection of authoritative events. Causal edges are direct/trigger/contributing; temporal-predecessor/response-to are separate noncausal relations; allegation is attributed content. Every sentence resolves to events/hashes. RV-001–012 is one oracle, while three advice histories must diverge materially and produce separate Chronicles.
+**Decision.** Chronicle is a deterministic projection of the Canonical World Ledger. Causal edges are direct/trigger/contributing; temporal-predecessor/response-to are separate noncausal relations; allegation is attributed content. Every sentence resolves to events/hashes. Authorized evidence may link a decision/experiment record but can never substitute it for world truth. RV-001–012 is one oracle, while three advice histories must diverge materially and produce separate Chronicles.
 
 **Evidence.** Riverhold oracle RV-001–RV-012 demonstrates biography, relationship history, While You Were Away, world history, replay, Story Card and future public-event forms from one evidence set. Counterfactual branch requirements prevent that oracle from becoming the only trajectory. Research rejects post-hoc narrative inference.
 
@@ -81,7 +81,7 @@
 
 **Remaining uncertainty.** Strictly qualified fact text may feel cold, and Chronicle polish could disguise a trivial simulation.
 
-**Resulting behavior.** Templates consume only declared predicates; replay never invokes cognition; public justifications remain testimony. Any factual mismatch is P0.
+**Resulting behavior.** Templates consume only declared predicates; replay uses snapshot + accepted event interval and never invokes cognition; original proposals remain audit evidence; public justifications remain testimony. Any factual mismatch is P0.
 
 **Constraint fit.** One projection pipeline serves return, replay, QA and sharing without hosted inference or a second content pipeline.
 
@@ -89,7 +89,7 @@
 
 ## D-005 — Standard Brain and optional model ecology
 
-**Decision.** A deterministic integer-scored Standard Brain performs all routine and decision-boundary behavior. External/local models are absent from V1 and may later propose one bounded typed action only at decision boundaries. Provider/model/version is provenance, not character identity or marketing.
+**Decision.** A deterministic integer-scored Standard Brain performs all routine and decision-boundary behavior. External/local models are absent from V1 and may later propose one bounded typed action only at decision boundaries. Provider/model/version plus the original structured proposal are provenance, not character identity or marketing; replay never assumes the model can reproduce its output.
 
 **Evidence.** Systems research supports typed memory/plans and bounded action spaces, while browser runtimes impose downloads/device limits [S-SYS-01] [S-SYS-02] [S-MODEL-01] [S-MODEL-05]. The local qwen spike validated schema/authorization/fallback shape but produced 8,064 ms cold latency and poor public copy [S-SPIKE-003].
 
@@ -105,7 +105,7 @@
 
 ## D-006 — Local-first architecture with a server seam
 
-**Decision.** Use strict TypeScript/pnpm; pure protocol/simulation/cognition packages; React Router/Vite; one simulation Web Worker; browser IndexedDB through `PersistencePort`; and one application layer. Cloudflare Worker plus one SQLite-backed `RegionDO` per region remains a post-gate target, not V1 scope.
+**Decision.** Use strict TypeScript/pnpm; pure protocol/simulation/cognition packages; React Router/Vite; one simulation Web Worker; browser IndexedDB through `PersistencePort`; and one application layer. IndexedDB keeps distinct world-event and cognitive-decision stores plus one immutable experiment manifest. Cloudflare Worker plus one SQLite-backed `RegionDO` per region remains a post-gate target, not V1 scope.
 
 **Evidence.** The disposable deterministic spike established a viable reducer/scheduler/replay shape [S-SPIKE-001]. Current Durable Objects capabilities/prices are dated planning evidence and must be revalidated [S-SYS-08] [S-SYS-09].
 
@@ -121,7 +121,7 @@
 
 ## D-007 — Deterministic authority contracts
 
-**Decision.** Lock `WorldCommand`, `WorldEventEnvelope`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules. Prepare immutable transitions, atomically commit events/head/receipt/fencing, then install/publish. V1 is export-only and one schema version.
+**Decision.** Lock `WorldCommand`, `WorldEventEnvelope`, `DecisionContext`, `IntentProposal`, `DecisionExplanation`, `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `ReplayManifest` and `PersistencePort`. Keep Canonical World Ledger, Cognitive/Decision Ledger, and Experiment Manifest distinct. Freeze integer/JCS/SHA-256/PRNG/ID/scheduler rules. Prepare immutable transitions, atomically commit events/head/receipt/fencing/decision provenance, then install/publish. V1 is export-only and one schema version.
 
 **Evidence.** The simulation spike produced identical repeated and replay hashes for 24-hour and seven-day runs with typed causal parents [S-SPIKE-001]. Architecture/cognition/security research converges on a validation boundary rather than trusting generated intent.
 
@@ -129,7 +129,7 @@
 
 **Remaining uncertainty.** Migration/upcaster policy, canonical serialization across releases and 30/90/365-day event volume need implementation proof.
 
-**Resulting behavior.** Commands carry idempotency and expected revision; events carry sequence, simulation time, versions, typed causal parents, visibility, provenance and hashes; replay uses ordered recorded facts.
+**Resulting behavior.** Commands carry idempotency and expected revision; events carry sequence, simulation time, versions, typed causal parents, visibility, provenance and hashes; consequential decisions connect state/context/plan/proposal/validation/receipt/events without hidden reasoning; replay uses ordered recorded facts with cognition disabled.
 
 **Constraint fit.** A small explicit kernel reduces solo debugging and makes no-model, offline, later-server and Chronicle behavior share one source of truth.
 
@@ -182,6 +182,21 @@
 **Constraint fit.** This decision directly implements every binding personal, hardware, cost and business constraint.
 
 **Reopen trigger.** Only reopen commercial/hosted/naming behavior after both product gates, separate evidence and explicit authorization.
+
+## Civilization amendment integration
+
+| ID | Binding direction | Accepted implementation consequence | Scope guard |
+|---|---|---|---|
+| CA-001 | Maximum strategy, causal boundaries | Typed Reality actions may compose into unforeseen strategies; prose/models never write state or gain arbitrary tools/network/code | No new Gate A/B mechanic |
+| CA-002 | Preserve private information | World facts, observations, private knowledge, beliefs, confidence/provenance, memories, and message claims remain distinct | Small fixed records only |
+| CA-003 | Research traceability | `CognitiveDecisionRecord` closes state → context → plan → proposal → validation → receipt → event IDs | Consequential boundaries only |
+| CA-004 | Three data forms | Separate world-event store, decision store, and immutable `ExperimentManifest` | No query/dashboard service |
+| CA-005 | Replay is not model reproduction | Canonical replay consumes snapshot + accepted events; original proposal is audit evidence | No model adapter/runtime |
+| CA-006 | Future institution kernel | Preserve composition concepts for membership/roles/rules/assets/authority/claims/agreements/succession/enforcement | Implement only fixed Riverhold rule |
+| CA-007 | Human roles | Preserve Stranger/Follower/Patron/Historian/Experimenter/Creator compatibility | Implement only Mara follow/counsel/history path |
+| CA-008 | Canon and counterfactuals | Future forks name canonical parent snapshot/run and never write back | No fork execution/import/UI |
+| CA-009 | Research positioning | Study agent behavior/institution emergence in grounded simulated environments; never claim human-society prediction | No dataset/publication/benchmark claim |
+| CA-010 | Proof scope unchanged | Keep Gate 0/A/B, 52 planned + ≤8 fix hours, and explicit exclusions | Provenance reuses existing receipts/events |
 
 ## Review reconciliation
 

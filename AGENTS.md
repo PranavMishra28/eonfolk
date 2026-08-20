@@ -13,6 +13,7 @@ This repository is the system of record for the EONFOLK product-foundation plann
 ## Mission and constraints
 
 - Plan a consumer game about autonomous citizens; do not implement production game code on this branch.
+- Preserve World/Chronicle/Observatory direction without expanding Gate A/B: typed Reality is sole authority; world, cognitive-decision, and experiment data stay distinct; no hidden chain-of-thought.
 - Optimize for a solo builder and a compelling 40–60-hour first implementation slice.
 - Target approximately $0 spend; incur no cost, deploy nothing, and add no credentials without explicit approval.
 - V1 is useful and free. Payments, revenue operations, model training, proprietary datasets, partnerships, regulated data, and enterprise sales are out of scope.

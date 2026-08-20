@@ -6,7 +6,7 @@
 
 **Authority boundary:** owns architectural layers, package dependencies, local-first execution, and the future region-server boundary. Simulation rules, storage semantics, cognition policy, and rendering details are owned by their linked authorities.
 
-**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/active/001-foundation.md`
+**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [Observatory](../product/OBSERVATORY.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/active/001-foundation.md`
 
 ## Owned decision
 
@@ -20,6 +20,8 @@ The four hard layers are:
 4. **Application:** validation, persistence, time driving, projections, renderer, and later networking.
 
 Only Reality may change canonical state. Application validates every command or proposal before an atomic state transition. Mind cannot grant authority. Brain never writes Reality.
+
+This supports the long-term World/Chronicle/Observatory identity without implementing a platform now. World owns persistent grounded behavior, Chronicle projects factual causal history, and Observatory may later inspect the same bounded provenance. The consumer loop remains primary.
 
 ## First-slice topology
 
@@ -56,14 +58,24 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 | `WorldEventEnvelope` | [Simulation](SIMULATION.md) | Ordered and hash-linked canonical fact |
 | `DecisionContext` | [Cognition](COGNITION.md) | Bounded, visibility-filtered input to any Brain |
 | `IntentProposal` / `DecisionExplanation` | [Cognition](COGNITION.md) | One untrusted typed action plus grounded decision receipt |
+| `CognitiveDecisionRecord` | [Cognition](COGNITION.md) | Bounded noncanonical state/context/plan/proposal/validation/event trace |
 | `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
-| `PersistencePort` / `CommandReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe local commit, replay, and idempotency boundary |
+| `ExperimentManifest` | [Persistence](PERSISTENCE.md) | Immutable run/seed/version/cognition/intervention/parent identity |
+| `PersistencePort` / `CommandReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe world/decision commit, replay, and idempotency boundary |
 
-Provider names and browser APIs never appear in these domain contracts. `regionId` appears now even though the slice has one local region.
+Provider names and browser APIs never appear in authoritative world contracts. Optional provider/model/version/artifact values appear only as nullable provenance inside cognitive/experiment records. `regionId` and `runId` appear now even though the slice has one local run/region.
+
+## Three-ledger data architecture
+
+- **Canonical World Ledger:** accepted `WorldEventEnvelope` records and canonical head; reducer input and only source of world-state change.
+- **Cognitive/Decision Ledger:** append-only bounded consequential-decision records; audit/explanation input, never reducer authority.
+- **Experiment Manifest:** immutable identity/configuration for the run; version/provenance input, never a mutable world event stream.
+
+The stores share typed IDs and atomic transition boundaries but not authority. Canonical replay consumes manifest + snapshot + world events only. A future Observatory can query authorized projections of all three; the first slice has no dashboard, query service, fork UI, dataset pipeline, or model-comparison surface.
 
 ## First-slice scope fit
 
-The architecture serves exactly one crafted settlement, eight citizens, three resources, four legible behavior families, one bilateral exchange, one conversion/repair recipe, relationships sufficient for one social consequence, one sponsored citizen, and one causal Chronicle story. Generalized economy, content frameworks, distributed coordination, schema registries, analytics pipelines, and plugin systems are excluded.
+The architecture serves exactly one crafted settlement, eight citizens, three resources, four legible behavior families, one bilateral exchange, one conversion/repair recipe, relationships sufficient for one social consequence, one sponsored citizen, one causal Chronicle story, one immutable run manifest, and bounded provenance for already-required consequential decisions. Generalized economy, institution kernel implementation, Observatory UI, fork execution, experiment orchestration, content frameworks, distributed coordination, analytics/dataset pipelines, and plugin systems are excluded.
 
 The roughly 52-hour allocation is a scope ceiling, not evidence of completion. If integration exceeds it, remove deferred mechanics or visual polish. Do not add infrastructure, a framework, or generated boilerplate to preserve an overlarge scope.
 
@@ -87,6 +99,9 @@ This is a migration option, not an approved deployment. Cloudflare pricing, acco
 - Presentation can be discarded and rebuilt from canonical data.
 - Pure domain logic can later be reused by a region adapter; authentication, outbox/alarm, backup, moderation, and history-import semantics must be designed separately.
 - Engine, schema, cognition, PRNG, and replay versions travel with saved history.
+- World truth remains distinct from each citizen's observations, private knowledge, beliefs, memories, plans, and communicated claims.
+- Original structured proposals and validator outcomes survive for audit; canonical replay never depends on reproducing cognition.
+- Future institutions can compose shared membership/role/rule/asset/authority/agreement/succession/enforcement concepts without shipping those systems in Gate A/B.
 
 ## Rejected alternatives
 

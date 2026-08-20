@@ -16,7 +16,9 @@ This supplies institutional memory: a personal relationship cost can coexist wit
 
 ## Future contract after gates
 
-Any generalized institution must have a charter, jurisdiction, eligibility, offices, decision procedure, resources, versioned rules, enforcement mechanism, appeal/change procedure, and event-grounded legitimacy history. A model may propose language but never interpret authority or write law directly. Public writes are bounded and moderated separately from factual state.
+Any generalized `Institution` primitive must be a composition of shared typed concepts: institution ID/kind; membership and roles; charter/versioned rules; jurisdiction and territorial claims; eligibility; decision procedure; treasury/assets; commitments; scoped authority grants; external agreements; succession; enforcement capability; appeal/change procedure; and event-grounded legitimacy/history. The same primitives should support later companies, councils, parties, armies, religions, unions, treaties, and other organizations without unrelated hard-coded mini-games.
+
+This is a compatibility constraint, not first-slice scope. Riverhold implements only the fixed council/rule IDs and transitions needed by the oracle; it does not implement a generic institution schema, organization creation, territorial map, treasury, treaty, succession, enforcement simulation, or organization UI. A model may later propose typed actions or bounded charter language, but never interpret authority or write law directly. Public writes are bounded and moderated separately from factual state.
 
 ## Power and newcomer rule
 
@@ -24,7 +26,7 @@ Institutions must create roles and contestable decisions rather than permanently
 
 ## Rejected alternatives
 
-Reject generalized voting, constitutional text generation, autonomous legal interpretation, real-money markets/governance, player elections, law/religion/war depth, faction trees, propaganda feeds, and LLM government in 001. Reject calling the fixed Riverhold vote “emergent politics.”
+Reject generalized voting, constitutional text generation, autonomous legal interpretation, real-money markets/governance, player elections, law/religion/war depth, faction trees, bespoke organization mini-games, propaganda feeds, and LLM government in 001. Reject calling the fixed Riverhold vote “emergent politics.”
 
 ## Reopen evidence
 
@@ -36,7 +38,7 @@ Generalize only if Gate B players care about the rule because of the people invo
 
 ## Resulting implementation behavior
 
-Implement only IDs/state/transitions required by RV-010 through RV-012, with tests and Chronicle provenance. No generic ballots, office UI, law editor, moderator console, or public governance.
+Implement only IDs/state/transitions required by RV-010 through RV-012, with tests and Chronicle provenance. Use names/IDs that do not reserve “institution” to governments or bake council-only authority into unrelated primitives. No generic Institution implementation, ballots, office UI, law editor, moderator console, public governance, company, army, religion, political party, treaty, or war.
 
 ## Constraint fit
 

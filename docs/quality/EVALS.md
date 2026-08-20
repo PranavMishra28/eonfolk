@@ -16,7 +16,7 @@ First prove that behavior is state-sensitive, transferable, legible, and more co
 
 The same pre-boundary scenario varies one factor at a time: trust high/low, caution/public-duty value priority, mismatch-only/verified evidence, prior commitment present/absent, two advice intents/abstain, and Mara/non-Mara actor. Add plan continuation/blockage, urgent need, exchange, impossible action, private fact, stale revision, hostile text, and absent/throwing/malformed fake BrainPort.
 
-Every fixture records visible facts/beliefs, plan, relationships/commitments, action catalog, integer terms, legal set, expected invariant set, allowed outcomes, decision receipt, and final state vector. It never embeds a canonical action lookup as the oracle.
+Every fixture records authorized observation/private-knowledge/belief/memory/claim IDs, plan, relationships/commitments, action catalog, integer terms, legal set, expected invariant set, allowed outcomes, cognitive decision record, command receipt, and final state vector. It never embeds a canonical action lookup as the oracle.
 
 ## Baselines and ablations
 
@@ -37,6 +37,9 @@ The Riverhold logic transfers to one non-Mara fixture. Three advice paths must d
 - Public justification is authored from the typed receipt, bounded, escaped, attributed, and cannot introduce a Chronicle fact.
 - Noninterference worlds produce byte-identical actor-visible outputs until observation.
 - Fake BrainPort absence/throw/timeout/malformed output preserves progress; replay never invokes cognition.
+- Every consequential boundary preserves a closed state/context/plan/proposal/validation/receipt/event trace with no hidden reasoning field.
+- A message remains an attributed claim until a typed observation/disclosure establishes knowledge; belief confidence or memory cannot grant truth/authority.
+- Canonical replay with BrainPort disabled reproduces the state hash and the original structured proposal remains byte-verifiable.
 - Canonical lookup cannot pass perturbation/transfer tests.
 
 ## Human rubric and yoked control
@@ -49,11 +52,11 @@ The attachment signal is person-centered anticipation or concern plus voluntary 
 
 ## Later optional-model gate
 
-Only after V1 passes may an exact adapter/model/runtime/prompt/schema/version be compared on at least 100 contexts. It must pass schema, authorization, injection, hidden-fact, timeout/revoke/429/malformed fallback, license/provenance/cost, privacy, latency/memory/heat/frame, and blinded story-value gates. Removing it preserves liveness/replay. Promptfoo remains optional until a real adapter exists.
+Only after V1 passes may an exact adapter/model/runtime/prompt/schema/version be compared on at least 100 contexts. It must pass schema, authorization, injection, hidden-fact, timeout/revoke/429/malformed fallback, license/provenance/cost, privacy, latency/memory/heat/frame, and blinded story-value gates. Removing it preserves liveness/replay. Model-output replay is never promised: repeated independent Experiment Manifests/runs report outcome distributions rather than treating one call/run as reproducible. Promptfoo remains optional until a real adapter exists.
 
 ## Rejected alternatives
 
-One correct social answer, one seed, Riverhold lookup, prose fluency, LLM-judge authority, model brands in onboarding, pooled router score, and immediate reload presented as return intent.
+One correct social answer, one seed/run presented as a distribution, Riverhold lookup, prose fluency, LLM-judge authority, chain-of-thought capture, model brands in onboarding, pooled router score, and immediate reload presented as return intent.
 
 ## Reopen evidence
 

@@ -27,10 +27,12 @@ Reality is a pure deterministic reducer over one region. It accepts revision-che
 - one closed typed event payload;
 - `causalParents: { eventId, relation }[]`, where `relation` is only `direct`, `trigger`, or `contributing`;
 - `relatedEvents: { eventId, relation }[]`, where `relation` is only `temporal-predecessor` or `response-to`;
-- typed visibility and provenance;
+- typed visibility and provenance, including command/intervention IDs and optional preallocated `decisionId`/`proposalId` for cognition-originated actions;
 - `preStateHash`, `postStateHash`, `eventHash`, and `batchId`. `batchId` is a stable identifier derived from region, prior revision, and command ID before hashing; it is not the batch hash.
 
 Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same region; a causal parent must name the rule/mechanism that consumed it.
+
+The world event proves only that a typed transition occurred. Its optional `decisionId` links to noncanonical cognitive provenance; it does not make the linked belief, memory, justification, or proposal true. Every consequential accepted proposal has one preallocated decision ID, one durable command receipt, and an accepted event interval. Downstream history traces through event-to-event causal parents, never by mutating the earlier decision record.
 
 ## Determinism profile `eonfolk-determinism-v1`
 
@@ -63,7 +65,7 @@ This profile is one indivisible protocol decision. Golden vectors cover every ro
 - PRNG state digest is `SHA-256(tuple("EONFOLK:PRNG-SEED:v1", [worldSeed32, system, entityId, purpose]))`; `streamId` is exactly those three framed strings, not a joined string.
 - Genesis `priorHeadHash` is `SHA-256(tuple("EONFOLK:GENESIS-HEAD:v1", []))`; every later head is the prior transition's `batchHash`.
 
-The order is acyclic: command fields → `batchId` → complete envelopes → ordered `eventHash` values → `batchHash`/durable head. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
+The order is acyclic: preallocated decision/proposal/command IDs → command fields → `batchId` → complete envelopes → ordered `eventHash` values → `batchHash`/durable head → finalized cognitive record references. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, hidden reasoning, or raw model text outside the preserved bounded structured proposal.
 
 ### Exact `xoshiro128**` transition
 
@@ -93,6 +95,8 @@ Version `v1` supports one engine/schema version only. Unknown versions fail clos
 
 The pure kernel returns `PreparedTransition`: prior revision/hash; command/fingerprint; accepted or rejected `CommandReceipt` candidate; ordered complete event batch for acceptance; immutable post-state candidate; and expected durable head/batch hashes. It does not publish or install the candidate. [Persistence](PERSISTENCE.md) defines durability and acknowledgment. A rejected command never mutates state but still receives a durable receipt so retries are stable.
 
+The kernel accepts only actions expressible by the current typed Reality. The catalog may later expand through reusable affordances, but no model/prose may introduce a new effect, resolver, network/tool capability, or canonical field at runtime. Novel strategies must emerge from compositions of accepted actions and state, not scripted outcome branches.
+
 ## Catch-up semantics
 
 Catch-up advances the same scheduler and emits the same boundary events as foreground play. It never invents a second aggregate reducer.
@@ -110,13 +114,15 @@ The local product proposes an advance from elapsed wall time, explains the propo
 - Same seed/commands and snapshot plus its exact half-open event range produce identical state and bytes: snapshot includes events through `baseSequence`; replay requires `from=baseSequence+1`, `to=finalSequence+1`; genesis is base 0/no domain event; zero events has `from=to=baseSequence+1`.
 - Three counsel intents from the same pre-boundary snapshot reach at least three materially different terminal state vectors; no branch label may converge to the same authoritative result.
 - Direct/trigger/contributing edges cite actual consuming rules; temporal and response relations cannot appear as causal parents.
+- Consequential decision IDs resolve to bounded cognitive records and receipts; communication claims/beliefs/memories never pass as world facts without an accepted observation/disclosure transition.
+- Snapshot plus accepted event interval replays exactly with cognition disabled; replay never reruns a model or Standard Brain.
 - 30-, 90-, and 365-day headless fixtures reach the exact requested terminal simulation time, conserve resources, stay within declared event/storage caps, and replay to the same hash. A safe early pause is failure.
 - Provisional target-M4 caps are 3 seconds/25,000 events/8 MB at 30 days, 10 seconds/75,000 events/20 MB at 90 days, and 45 seconds/250,000 events/64 MB at 365 days. Measurements may tighten these; weakening requires an explicit decision and does not change the seven-day interactive cap.
 - The build has no model SDK/runtime dependency, and Standard Brain makes progress with the network disabled.
 
 ## Rejected alternatives
 
-Tick-everything loops, wall-clock authority, `Date.now()`, `Math.random()`, conserved floats, locale-dependent ordering, random IDs, prose patches, model-authored facts, one generic `cause`, temporal order as cause, and installing worker state before durable commit.
+Tick-everything loops, wall-clock authority, `Date.now()`, `Math.random()`, conserved floats, locale-dependent ordering, random IDs, prose patches, model-authored facts, arbitrary code/network effects, scripted high-order outcomes, one generic `cause`, temporal order as cause, cognition rerun as replay, and installing worker state before durable commit.
 
 ## Reopen evidence
 

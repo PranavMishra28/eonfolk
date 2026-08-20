@@ -99,3 +99,11 @@
 - **Fastest falsification:** 30/90/365-day deterministic benchmark with conservation, event/storage counts, replay equivalence, interrupt/resume and wall-time profiling.
 - **Evidence required:** Declared caps based on measurements, identical authoritative outcomes across batch sizes and no model call.
 - **Decision reopened:** D-007 and simulation schedule; do not hide divergence through Chronicle coalescing.
+
+### Q-011 — Does Observatory provenance enable valid inquiry without weakening the game?
+
+- **Why it matters:** The future research surface is defensible only if records are complete, privacy-safe, and useful while the consumer World remains primary.
+- **Current default:** Preserve three distinct local data forms and bounded consequential-decision traces; ship no dashboard, dataset, fork executor, or research claim.
+- **Fastest falsification:** After both product gates, give one frozen export plus schema to independent systems/research reviewers and ask them to reconstruct sampled decision/event chains and specify a repeated-run study without privileged hidden data.
+- **Evidence required:** Every sampled chain closes; privacy projections remain enforceable; the proposed study uses independent manifests/outcome distributions and does not claim human prediction. Failure removes/revises Observatory before adding infrastructure.
+- **Decision reopened:** D-001 and D-007; never weaken World/Chronicle factuality or expand Gate A/B to rescue research positioning.

@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
 
-**Status:** READY FOR GOAL MODE — DRAFT PR OPEN; DO NOT MERGE
+**Status:** CIVILIZATION AMENDMENT INTEGRATION — FRESH REVIEW AND QA PENDING
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -25,7 +25,7 @@
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
-| 6. Reconciliation, final review, QA and draft PR | Complete | Cross-discipline and exact Goal-prompt confirmations plus repository QA passed; private draft PR [#1](https://github.com/PranavMishra28/eonfolk/pull/1) is open and unmerged |
+| 6. Reconciliation, final review, QA and draft PR | Reopened | Original planning run passed; civilization amendment changes authorities/Goal prompt and requires fresh review, QA, and PR update |
 
 ## Integration history
 
