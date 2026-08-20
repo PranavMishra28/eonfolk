@@ -2,7 +2,7 @@
 
 **Purpose:** implement the smallest account-free local game that can falsify whether eight deterministic citizens feel alive and whether following Mara creates contingent, consequential care.
 
-**Status:** ACCEPTED EXECPLAN AFTER FROZEN RED TEAMS — implementation has not begun
+**Status:** IN PROGRESS — M0 ARTIFACT BUILT; GATE 0 HUMAN EVIDENCE NOT YET AVAILABLE
 
 **Authority boundary:** this plan owns first-slice milestones, files, commands, evidence, rollbacks, and definition of done. Linked product/engineering/quality documents own semantics; [PLANS](../PLANS.md) owns plan maintenance.
 
@@ -269,24 +269,30 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | Timestamp | Milestone | Commit | Focused hours | Result/next |
 |---|---|---|---:|---|
 | Planning freeze | M0–M5 | planning branch | 0 | implementation not begun |
+| 2026-08-20 | M0 artifact A candidate | pending A | 4,229 seconds (`4229/3600` hours) | Six matched treatments, combined eleven-record study tooling, Pixi/semantic observer surface, exact-browser viewport evidence, Node/Ruby validators, and blank import directories complete. Freeze A/S, then await operator-supplied Gate 0 evidence; M1 remains forbidden. |
 
 ### Decisions and deviations
 
 | ID/time | Decision or deviation | Evidence | Gate effect | Owner/reopen |
 |---|---|---|---|---|
-| none | none yet | — | — | — |
+| DEV-M0-001 / 2026-08-20 | Used pnpm's `--trust-lockfile` only after the committed validator proved the complete implementation lock identical to the frozen 195-package cohort; pnpm's minimum-release-age policy otherwise rejected two same-day pinned packages. Lifecycle scripts remained disabled. | `scripts/validate-dependency-cohort.mjs`; exact frozen hashes; install log | No dependency/version/lock drift; no product effect | Coordinator; reopen on any lock/cohort mismatch |
+| DEV-M0-002 / 2026-08-20 | Allocated 1,800 seconds of the fix/independent-confirmation pool to T03 after the integrated browser found a blocking Pixi lifecycle failure and protocol confirmation remained required. | `docs/exec-plans/evidence/001/contingency-allocations.jsonl` | M0 mapped budget is 16,200 seconds; Gate 0's full 9,900-second operator reservation remains admissible | Coordinator; allocation cannot fund features/polish |
 
 ### Surprises, risks, and findings
 
 | ID/time | Severity | Observation | Action/confirmation |
 |---|---|---|---|
-| none | — | none yet | — |
+| M0-BROWSER-001 / 2026-08-20 | P0 | Initial in-app browser run was blank because React development cleanup destroyed Pixi before initialization. | Removed the disposable harness's StrictMode double mount, made Pixi cleanup initialization-aware, forced one render before the ready frame, then reran exact-browser tests at all viewports. Independent visual confirmation remains required before exposure. |
+| M0-PROTOCOL-001 / 2026-08-20 | P1 | V6 invalidation stopped at the slot boundary before the six-rank permutation was durably persisted. | Separated boundary from closed endpoint, retained V6 invalidation through ranking, persisted/restored the ranking phase, and guarded operator export on terminal collection states and canonical sign-off fields. Independent product confirmation remains required before exposure. |
+| M0-PROTOCOL-002 / 2026-08-20 | P1 | Gate 0 observer null responses/timers were not included in `records-complete`. | Analyzer now marks any missing observer timer or required opaque response incomplete; tests and both artifact validators rerun. Independent product confirmation remains required. |
 
 ### Integration record
 
 | Source worktree/commit | Allowlist/diff inspected | Commands | Integrated commit | Rollback |
 |---|---|---|---|---|
-| none | — | — | — | — |
+| `gate0-visual` / `2d637c1e5e5e98c8dfb6d92520fe8f62202d1671` | Eight files under `tests/prototypes/gate-0/visual/**`; ancestry/status/diff/allowlist/secrets checked | Node 22.23.1 `node --test .../visual.test.mjs` (11/11); `git diff --check` | `6cada08` | Revert `6cada08` before A only |
+| `gate0-product` / `56e90f296807fe33be91e6d57ac1a1f689bf9e0c` | Four files under `tests/prototypes/gate-0/product/**`; ancestry/status/diff/allowlist/secrets checked | Vitest 27/27; strict TypeScript; Biome; `git diff --check` | `79bc3aa` | Revert `79bc3aa` before A only |
+| `gate0-study` / `57536553413423c18d9e0f6c5e5d6c7804252760` | Eight files under `tests/prototypes/gate-0/study/**`; ancestry/status/diff/allowlist/secrets checked | Vitest 8/8; independent Ruby Williams/seed/V2 vectors; `git diff --check` | `8918795` | Revert `8918795` before A only |
 
 ### Evidence index
 
@@ -294,7 +300,9 @@ The operator supplies only `/Users/pranav/Documents/ChatGPT/.eonfolk-evidence-in
 
 | Gate | Commit/manifest | Automated result | Human/browser result |
 |---|---|---|---|
-| M0/A/B | not run | not run | not run |
+| M0 Gate 0 | A/S pending freeze; snapshot `ee5704605c2e494f56ff12acd5389f506e02a39ada8ea3d466587f746899d5a4`; oracle `0390fb35e83d4bc2297a69c4830259d756efc669dfe7a865317a7beaa040cfee` | 36 Vitest + 11 Node + 4 headed Playwright pass; dependency cohort 195; browser cohort 326 files/5 links; Node and Ruby artifact/vector validators pass | Browser paths pass at 1728×1117, 1366×768, 390×844; two consecutive captures were byte-identical and their exact PNG hashes are in the oracle. Human result: not run; no Gate 0 claim. |
+| Gate A | not started | forbidden before Gate 0 PASS | not run |
+| Gate B / Story Card | not started | not run | not run |
 
 ## Final definition of done
 

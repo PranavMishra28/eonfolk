@@ -1,0 +1,272 @@
+[
+	{
+		"studyId": "V01",
+		"presentation": "observer",
+		"questionId": "activities",
+		"tokens": [
+			"activity:exchange-rations",
+			"activity:carry-water",
+			"activity:gather-wood",
+			"activity:count-grain",
+			"activity:repair-mill",
+			"activity:check-ledger",
+			"activity:eat-rations",
+			"activity:rest"
+		]
+	},
+	{
+		"studyId": "V01",
+		"presentation": "observer",
+		"questionId": "autonomy",
+		"tokens": [
+			"can-command|follow-button",
+			"cannot-command|standing-plan",
+			"cannot-command|random-system",
+			"can-command|citizen-card"
+		]
+	},
+	{
+		"studyId": "V01",
+		"presentation": "observer",
+		"questionId": "interaction-change",
+		"tokens": [
+			"interaction:sera,toma|rations-counted",
+			"interaction:iven,mara|reserve-verified",
+			"interaction:mara,toma|trust-strained",
+			"interaction:iven,toma|exchange-settled",
+			"interaction:bela,corin|water-delivered",
+			"interaction:nadi,owen|wood-stored"
+		]
+	},
+	{
+		"studyId": "V01",
+		"presentation": "observer",
+		"questionId": "point-mara",
+		"tokens": [
+			"citizen:toma",
+			"citizen:mara",
+			"citizen:corin",
+			"citizen:nadi",
+			"citizen:iven",
+			"citizen:sera",
+			"citizen:owen",
+			"citizen:bela"
+		]
+	},
+	{
+		"studyId": "V02",
+		"presentation": "observer",
+		"questionId": "activities",
+		"tokens": [
+			"activity:eat-rations",
+			"activity:gather-wood",
+			"activity:rest",
+			"activity:count-grain",
+			"activity:check-ledger",
+			"activity:repair-mill",
+			"activity:exchange-rations",
+			"activity:carry-water"
+		]
+	},
+	{
+		"studyId": "V02",
+		"presentation": "observer",
+		"questionId": "autonomy",
+		"tokens": [
+			"cannot-command|standing-plan",
+			"cannot-command|random-system",
+			"can-command|follow-button",
+			"can-command|citizen-card"
+		]
+	},
+	{
+		"studyId": "V02",
+		"presentation": "observer",
+		"questionId": "interaction-change",
+		"tokens": [
+			"interaction:iven,toma|exchange-settled",
+			"interaction:bela,corin|water-delivered",
+			"interaction:iven,mara|reserve-verified",
+			"interaction:mara,toma|trust-strained",
+			"interaction:sera,toma|rations-counted",
+			"interaction:nadi,owen|wood-stored"
+		]
+	},
+	{
+		"studyId": "V02",
+		"presentation": "observer",
+		"questionId": "point-mara",
+		"tokens": [
+			"citizen:toma",
+			"citizen:corin",
+			"citizen:bela",
+			"citizen:mara",
+			"citizen:sera",
+			"citizen:nadi",
+			"citizen:owen",
+			"citizen:iven"
+		]
+	},
+	{
+		"studyId": "V03",
+		"presentation": "observer",
+		"questionId": "activities",
+		"tokens": [
+			"activity:rest",
+			"activity:check-ledger",
+			"activity:repair-mill",
+			"activity:count-grain",
+			"activity:exchange-rations",
+			"activity:carry-water",
+			"activity:gather-wood",
+			"activity:eat-rations"
+		]
+	},
+	{
+		"studyId": "V03",
+		"presentation": "observer",
+		"questionId": "autonomy",
+		"tokens": [
+			"cannot-command|standing-plan",
+			"cannot-command|random-system",
+			"can-command|follow-button",
+			"can-command|citizen-card"
+		]
+	},
+	{
+		"studyId": "V03",
+		"presentation": "observer",
+		"questionId": "interaction-change",
+		"tokens": [
+			"interaction:iven,toma|exchange-settled",
+			"interaction:iven,mara|reserve-verified",
+			"interaction:nadi,owen|wood-stored",
+			"interaction:sera,toma|rations-counted",
+			"interaction:bela,corin|water-delivered",
+			"interaction:mara,toma|trust-strained"
+		]
+	},
+	{
+		"studyId": "V03",
+		"presentation": "observer",
+		"questionId": "point-mara",
+		"tokens": [
+			"citizen:owen",
+			"citizen:mara",
+			"citizen:nadi",
+			"citizen:sera",
+			"citizen:corin",
+			"citizen:bela",
+			"citizen:toma",
+			"citizen:iven"
+		]
+	},
+	{
+		"studyId": "V04",
+		"presentation": "observer",
+		"questionId": "activities",
+		"tokens": [
+			"activity:check-ledger",
+			"activity:eat-rations",
+			"activity:count-grain",
+			"activity:exchange-rations",
+			"activity:gather-wood",
+			"activity:repair-mill",
+			"activity:rest",
+			"activity:carry-water"
+		]
+	},
+	{
+		"studyId": "V04",
+		"presentation": "observer",
+		"questionId": "autonomy",
+		"tokens": [
+			"can-command|follow-button",
+			"cannot-command|random-system",
+			"cannot-command|standing-plan",
+			"can-command|citizen-card"
+		]
+	},
+	{
+		"studyId": "V04",
+		"presentation": "observer",
+		"questionId": "interaction-change",
+		"tokens": [
+			"interaction:sera,toma|rations-counted",
+			"interaction:iven,toma|exchange-settled",
+			"interaction:bela,corin|water-delivered",
+			"interaction:nadi,owen|wood-stored",
+			"interaction:mara,toma|trust-strained",
+			"interaction:iven,mara|reserve-verified"
+		]
+	},
+	{
+		"studyId": "V04",
+		"presentation": "observer",
+		"questionId": "point-mara",
+		"tokens": [
+			"citizen:owen",
+			"citizen:toma",
+			"citizen:nadi",
+			"citizen:corin",
+			"citizen:bela",
+			"citizen:iven",
+			"citizen:sera",
+			"citizen:mara"
+		]
+	},
+	{
+		"studyId": "V05",
+		"presentation": "observer",
+		"questionId": "activities",
+		"tokens": [
+			"activity:count-grain",
+			"activity:eat-rations",
+			"activity:carry-water",
+			"activity:gather-wood",
+			"activity:repair-mill",
+			"activity:exchange-rations",
+			"activity:rest",
+			"activity:check-ledger"
+		]
+	},
+	{
+		"studyId": "V05",
+		"presentation": "observer",
+		"questionId": "autonomy",
+		"tokens": [
+			"cannot-command|random-system",
+			"can-command|follow-button",
+			"can-command|citizen-card",
+			"cannot-command|standing-plan"
+		]
+	},
+	{
+		"studyId": "V05",
+		"presentation": "observer",
+		"questionId": "interaction-change",
+		"tokens": [
+			"interaction:iven,toma|exchange-settled",
+			"interaction:sera,toma|rations-counted",
+			"interaction:mara,toma|trust-strained",
+			"interaction:nadi,owen|wood-stored",
+			"interaction:bela,corin|water-delivered",
+			"interaction:iven,mara|reserve-verified"
+		]
+	},
+	{
+		"studyId": "V05",
+		"presentation": "observer",
+		"questionId": "point-mara",
+		"tokens": [
+			"citizen:corin",
+			"citizen:owen",
+			"citizen:toma",
+			"citizen:nadi",
+			"citizen:sera",
+			"citizen:iven",
+			"citizen:bela",
+			"citizen:mara"
+		]
+	}
+]

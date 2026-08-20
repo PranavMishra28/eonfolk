@@ -1,0 +1,142 @@
+:root {
+	color: #24211d;
+	background: #eee2c7;
+	font-family: ui-serif, Georgia, serif;
+	font-synthesis: none;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	min-width: 320px;
+	min-height: 100vh;
+}
+button,
+input,
+textarea {
+	font: inherit;
+}
+button {
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0.65rem 1rem;
+	border: 2px solid #24211d;
+	background: #f7edd7;
+	color: #24211d;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+	outline: 4px double #8c651b;
+	outline-offset: 3px;
+}
+.study-card,
+.product-shell {
+	width: min(46rem, calc(100% - 2rem));
+	margin: 2rem auto;
+	padding: clamp(1rem, 3vw, 2rem);
+	border: 2px solid #24211d;
+	background: #f7edd7;
+	box-shadow: 0.4rem 0.4rem 0 rgb(36 33 29 / 20%);
+}
+.study-card label,
+fieldset label {
+	display: block;
+	margin-block: 0.75rem;
+}
+.study-card input:not([type="radio"]):not([type="checkbox"]),
+.study-card textarea {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	margin-top: 0.3rem;
+}
+.study-card textarea {
+	min-height: 7rem;
+}
+.button-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+.opaque-position {
+	text-align: end;
+}
+.neutral {
+	display: grid;
+	min-height: 100dvh;
+	place-content: center;
+	text-align: center;
+	background: #d9d1c2;
+}
+.neutral div {
+	width: 8rem;
+	height: 8rem;
+	margin: auto;
+	border: 3px solid #4d4941;
+	background: #bbb2a2;
+}
+.semantic-rows {
+	position: absolute;
+	z-index: 3;
+	left: 1rem;
+	top: 1rem;
+	width: min(28rem, calc(100% - 2rem));
+	max-height: 42%;
+	overflow: hidden;
+	padding: 0.75rem;
+	border: 2px solid #24211d;
+	background: rgb(247 237 215 / 92%);
+}
+.semantic-rows ul {
+	columns: 2;
+	padding-inline-start: 1.2rem;
+}
+.semantic-title {
+	font-size: 2rem;
+	font-weight: 700;
+}
+.peek-title {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+.observer-form {
+	position: fixed;
+	z-index: 100;
+	inset: 1rem;
+	overflow: auto;
+	padding: 1rem;
+	border: 3px solid #24211d;
+	background: #f7edd7;
+}
+nav a {
+	display: inline-block;
+	margin: 0.3rem;
+	padding: 0.5rem;
+}
+@media (max-width: 480px) {
+	.study-card,
+	.product-shell {
+		width: calc(100% - 1rem);
+		margin: 0.5rem auto;
+		box-shadow: none;
+	}
+	.semantic-rows {
+		max-height: 30%;
+		font-size: 0.8rem;
+	}
+	.gate0-visual__peek {
+		max-height: 38dvh;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		scroll-behavior: auto !important;
+		transition: none !important;
+	}
+}
