@@ -1,14 +1,18 @@
 # Tool, skill, plugin, and MCP inventory
 
-**Status:** VERIFIED CURRENT-SESSION INVENTORY; REOPEN BEFORE EXECUTION
+**Purpose:** Record live availability, official source, capability, permissions, cost, security risk and required/optional status for every requested tool surface.
 
-**Authority:** active-availability, permissions, cost, security, and REQUIRED/OPTIONAL classification for requested planning and implementation tooling. The current session manifest and executable probes determine availability; a package found in a cache or an upstream repository does not.
+**Status:** VERIFIED CURRENT-SESSION INVENTORY — 2026-08-20; reopen before execution
+
+**Authority boundary:** This file owns active-availability, permissions, cost, security and REQUIRED/OPTIONAL classification. The current session manifest and executable probes determine availability; a package found in a cache or an upstream repository does not.
+
+**Related documents:** [source ledger](SOURCE_LEDGER.md), [architecture](../engineering/ARCHITECTURE.md), [testing](../quality/TESTING.md), [cost model](../engineering/COST_MODEL.md).
 
 **Owned evidence question:** Which requested Codex/tooling capabilities are actually callable in this session, what authority and cost could each carry, and which are required for EONFOLK versus merely helpful?
 
 **Inventory date:** 2026-08-20
 
-Provisional source IDs in this report must be verified and remapped into `docs/research/SOURCE_LEDGER.md` by the coordinator.
+The coordinator verified and copied the `S-TOOL-*` and `S-SPIKE-*` rows into [SOURCE_LEDGER.md](SOURCE_LEDGER.md); the appendix preserves the detailed local evidence handoff.
 
 ## Evidence language and availability rules
 
@@ -20,12 +24,11 @@ Provisional source IDs in this report must be verified and remapped into `docs/r
 Status meanings:
 
 - **AVAILABLE:** present in the active skills/tools list or confirmed executable now. Authentication is stated separately.
-- **PARTIAL:** one named surface is active but a related CLI/MCP/package is not.
 - **NOT AVAILABLE:** absent from the active skills/tools list and executable probes. Upstream existence or an install recommendation does not change this.
 - **REQUIRED:** the capability is required for the relevant planning/implementation gate. A particular vendor plugin is required only if no active substitute satisfies that gate.
 - **OPTIONAL:** absence must not block planning or the first slice.
 
-No tool was installed, enabled, authenticated, purchased, or invoked against an external account for this inventory. Read-only probes did not print tokens.
+No optional tool was installed, connected or purchased. Existing Browser, Image Generation and authenticated GitHub capabilities were used only within the authorized planning run. Read-only probes did not print tokens.
 
 ## Executive recommendation
 
@@ -58,7 +61,7 @@ It does not list Codex Game Studio, Build Web Apps, Cloudflare, Promptfoo, a sha
 | GitHub | **AVAILABLE and authenticated** via active skills + `gh` | Active/local probe [S-TOOL-01][S-TOOL-02]; official CLI [S-TOOL-07] | Inspect repos/PRs/issues/CI; branch, commit, push, and review workflows when authorized | Current token scopes include broad repository and workflow authority; local git can write branches/commits | GitHub CLI is MIT/free; account plan, Actions, security features, and storage costs are separate and unverified | Accidental push/merge/comment, secret exposure in logs, broad token scope, untrusted Actions/PR code | **REQUIRED** |
 | Cloudflare connector/plugin | **NOT AVAILABLE**; shown only as a recommended install; `wrangler` absent | Current recommended-plugin manifest [S-TOOL-08]; Cloudflare docs for service terms [S-TOOL-09] | Potential account/project/deploy/log/Worker resource management; exact connector tools unknown until install | **UNRESOLVED:** inspect install permission screen and callable tool list before connection; deployment mutates public infrastructure | Workers/DO/AI have Free and paid limits; connector cost not separately established | Credential/account access, deployment/state mutation, logs/secrets, denial-of-wallet; installability is not authorization | **OPTIONAL until hosted-region gate** |
 | Promptfoo | **NOT AVAILABLE**; CLI absent | Promptfoo docs/repository [S-TOOL-10][S-TOOL-11] | Model regression evals, assertions, red-team tests, reports, optional MCP | Local runner and MCP execute with user permissions; can call providers, read fixtures/config, write reports | OSS runner is available upstream; provider calls and Cloud features can cost; no project install exists | Official security model says configs/custom scripts/providers/transforms can execute unsandboxed trusted code; prompts/outputs/secrets can leave through configured providers/cloud | **OPTIONAL after model adapter exists** |
-| shadcn tooling / MCP | **PARTIAL:** active shadcn guidance skill; CLI and MCP NOT AVAILABLE | Active manifest [S-TOOL-01]; official shadcn MCP docs [S-TOOL-12] | Component composition guidance now; MCP can search/read configured registries and help add component source | MCP/CLI would access registries/network and write copied component/config files; registry code executes in the app once adopted | No project-specific tool charge is established; registry items may have distinct licenses/costs | Remote registry trust, arbitrary copied code/dependencies, style/component soup, item-level license/provenance | **OPTIONAL** |
+| shadcn tooling / MCP | **AVAILABLE** as an active guidance skill; dedicated CLI/MCP **NOT AVAILABLE** | Active manifest [S-TOOL-01]; official shadcn MCP docs [S-TOOL-12] | Component composition guidance now; MCP can search/read configured registries and help add component source | MCP/CLI would access registries/network and write copied component/config files; registry code executes in the app once adopted | No project-specific tool charge is established; registry items may have distinct licenses/costs | Remote registry trust, arbitrary copied code/dependencies, style/component soup, item-level license/provenance | **OPTIONAL** |
 | Motion tooling / MCP | **NOT AVAILABLE**; `motion-ai` absent | Motion AI Kit install/docs/terms [S-TOOL-13][S-TOOL-14] | Current docs search, examples, CSS spring generation, performance audit, transition editor | Hosted MCP can read/search Motion content; audit/profile features may read local source and a running site; installation rewrites agent/MCP config | Core Motion has a free path; AI Kit/premium examples are tied to Motion+ in current docs; exact purchase price was not reliably exposed | Hosted MCP/auth, local code/site inspection, premium-code license/seat terms, unnecessary animation dependency | **OPTIONAL; default reject for V1** |
 | 21st.dev tooling / MCP | **NOT AVAILABLE**; no active skill/MCP/CLI | Official repository and current Terms [S-TOOL-15][S-TOOL-16] | Remote component/theme/template search, code retrieval, generation, bookmarks/team libraries | Current MCP setup requires a 21st API key and sends requests to a hosted MCP; generated/retrieved code would enter the repo | Paid plans/AI credits exist; exact current plan price/allowance must be reopened | API key, hosted generation/data transfer, remote code/supply-chain risk, marketplace media/metadata restrictions and item-level ownership/license | **OPTIONAL; default reject** |
 
@@ -237,7 +240,7 @@ shadcn guidance is sufficient initially. Consider Motion AI Kit or 21st MCP only
 10. Recheck GitHub scopes and target before remote writes; recheck Cloudflare resource/account/environment before deploy.
 11. Use scoped test credentials and sanitized fixtures; never expose owner/provider secrets to Browser traces, screenshots, model prompts, reports, commits, or MCP context.
 
-## Source-ledger appendix — proposed rows
+## Source-ledger appendix — canonical rows
 
 | Provisional ID | Claim supported | Primary/local source | Accessed | Type | Confidence | Reopen note |
 |---|---|---|---|---|---|---|

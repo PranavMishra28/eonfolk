@@ -1,14 +1,18 @@
 # Model research: zero-cost ecology, browser inference, providers, and evaluation
 
+**Purpose:** Evaluate every requested model route against zero-inference liveness, device, cost, privacy, provenance and solo-operation constraints.
+
 **Status:** RESEARCH COMPLETE FOR SYNTHESIS
 
-**Authority:** evidence and recommendation inputs for Standard Brain/model ecology, browser-local inference, provider adapters, costs, licenses, failure behavior, and evaluation. `docs/engineering/COGNITION.md`, `docs/engineering/COST_MODEL.md`, and `docs/quality/EVALS.md` own final decisions.
+**Authority boundary:** This file owns evidence inputs for model ecology, costs, licenses and failures. [Cognition](../engineering/COGNITION.md), [cost](../engineering/COST_MODEL.md) and [evals](../quality/EVALS.md) own decisions.
+
+**Related documents:** [systems research](SYSTEMS_RESEARCH.md), [source ledger](SOURCE_LEDGER.md), [architecture](../engineering/ARCHITECTURE.md).
 
 **Owned evidence question:** Which model ecology, if any, can enrich EONFOLK without becoming a key, cost, availability, determinism, privacy, or solo-builder dependency—and which explicit A–H options should be accepted, deferred, or rejected?
 
 **Access date for external sources:** 2026-08-20
 
-Provisional source IDs in this report must be verified and remapped into `docs/research/SOURCE_LEDGER.md` by the coordinator.
+The coordinator verified and consolidated the report's `S-MODEL-*` rows in [SOURCE_LEDGER.md](SOURCE_LEDGER.md).
 
 ## Evidence language
 

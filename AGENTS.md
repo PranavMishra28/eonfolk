@@ -1,5 +1,13 @@
 # EONFOLK planning control
 
+**Purpose:** Control planning-only agent behavior and the future implementation handoff.
+
+**Status:** ACTIVE REPOSITORY INSTRUCTIONS
+
+**Authority boundary:** This file owns agent process; [docs/INDEX.md](docs/INDEX.md) owns content authority.
+
+**Related documents:** [PLAN.md](PLAN.md), [ExecPlan contract](docs/exec-plans/PLANS.md), [source ledger](docs/research/SOURCE_LEDGER.md).
+
 This repository is the system of record for the EONFOLK product-foundation planning run.
 
 ## Mission and constraints
@@ -33,6 +41,6 @@ Every authority document states the decision it owns, evidence that would reopen
 
 - `git diff --check`
 - verify internal Markdown links and source IDs
-- search for unexplained `TODO`, `TBD`, `FIXME`, and unsupported “current” claims
+- search for unfinished-work markers, placeholders, and unsupported “current” claims
 - verify the planning branch contains no production application, license, credentials, or deployment artifacts
 - do not declare readiness until `PLAN.md` links every exit criterion to concrete evidence

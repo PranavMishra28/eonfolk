@@ -1,12 +1,14 @@
 # No-paid distribution research
 
+**Purpose:** Record no-paid acquisition evidence, current channel constraints and falsifiable first-10/100/1,000 tests.
+
 **Status:** RESEARCH SNAPSHOT — evidence accessed 2026-08-20
 
-**Authority:** evidence and test design for distributing a free EONFOLK first slice without paid acquisition; channel use remains subordinate to product and implementation authorities
+**Authority boundary:** This file owns distribution evidence and test design; channel behavior is owned by product and implementation authorities.
 
 **Owned evidence question:** What exact, no-paid path can test whether a small autonomous-citizen game earns its first 10, 100, and 1,000 activated users, and which intrinsic game artifacts can communicate the value in 10–20 seconds?
 
-**Related:** [authority index](../INDEX.md), [competitor research](COMPETITORS.md), [player research](PLAYER_RESEARCH.md), [source ledger](SOURCE_LEDGER.md)
+**Related documents:** [authority index](../INDEX.md), [competitor research](COMPETITORS.md), [player research](PLAYER_RESEARCH.md), [source ledger](SOURCE_LEDGER.md).
 
 ## Executive conclusion
 

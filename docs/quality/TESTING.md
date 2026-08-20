@@ -96,6 +96,25 @@ Use the GitHub UI or scoped `gh api` reads for `repos/PranavMishra28/eonfolk`, i
 
 If native secret scanning is unavailable, add one lightweight open-source secret scan during implementation only after its exact license, provenance, install behavior, baseline handling, and pinned version are reviewed. It must scan committed/PR changes without printing secrets.
 
+### Actual private-repository probe — 2026-08-20
+
+Read-only `gh api` requests against `PranavMishra28/eonfolk` produced this access-date state. “Disabled” is not upgraded to “unavailable” without an account-plan/settings check, and no setting was changed during planning.
+
+| Capability | Observed API result | Planning consequence |
+|---|---|---|
+| Repository/privacy/default branch | Private; default branch `main` | Required baseline verified |
+| Actions permissions | 200; enabled, all actions allowed, SHA pinning not required | Future CI is possible; pin actions explicitly and revisit allowed-actions scope during implementation |
+| Repository rulesets | 200 with an empty list | API is accessible; no ruleset is configured. Probe an actual proposed ruleset before claiming enforcement |
+| `main` branch protection | 404 `Branch not protected` | No protection exists today; future implementation must configure where allowed or document policy-only enforcement |
+| Dependabot alerts | 403 with `Dependabot alerts are disabled` | Disabled; weekly version-update configuration and alerts require an implementation-time capability/settings check |
+| Automated security fixes | 200; `enabled: false`, `paused: false` | Disabled; no automatic merge is desired, and security-update enablement remains a later explicit configuration |
+| Secret scanning | 404 with `Secret scanning is disabled on this repository` | No native scanning protection may be claimed; recheck settings/plan, then use a reviewed pinned open-source CI scan if still unavailable/disabled |
+| Push protection | No separate enabled state exposed; secret scanning is disabled and `security_and_analysis` was absent | Treat as not evidenced/disabled for planning; do not claim protection |
+| Code scanning default setup | 403 with `Code scanning is not enabled` | Disabled; not required for the slice, and any later setup must be intentionally scoped |
+| Private vulnerability reporting / advisories probe | 404; no enabled configuration established | Do not rely on it for V1 |
+
+These observations satisfy the planning probe, not the future configuration. Re-run immediately before implementing repository policy because account features and API behavior can change.
+
 ## Artifact retention
 
 - Failed Playwright screenshots, traces, and videos: **14 days**.

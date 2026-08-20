@@ -1,74 +1,127 @@
 # EONFOLK authority index
 
-**Status:** DRAFT
+**Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Authority:** canonical document ownership and reviewer read order
+**Status:** INITIAL SYNTHESIS — freeze candidate for adversarial review
 
-**Related:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md)
+**Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-Each concern has one authority. Research documents contain evidence; authority documents own decisions.
+**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [first ExecPlan](exec-plans/active/001-foundation.md).
 
-## Product
+Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
-| Concern | Authority |
+## Default six-file read order
+
+1. **This index.**
+2. [Product](product/PRODUCT.md).
+3. [Human loop](product/HUMAN_LOOP.md).
+4. [Distribution](product/DISTRIBUTION.md).
+5. [Architecture](engineering/ARCHITECTURE.md).
+6. [001-foundation ExecPlan](exec-plans/active/001-foundation.md).
+
+## Coordinator-owned shared authorities
+
+| Concern | Sole authority |
 |---|---|
-| Product definition, audience, structure, first-session promise | `product/PRODUCT.md` |
-| Human verbs, timed onboarding, intervention and return loop | `product/HUMAN_LOOP.md` |
-| Lifetime, lineage, institution, era and session-20 progression | `product/PROGRESSION.md` |
-| Canonical region, mature-world entry, stagnation and World Forks | `product/WORLD_STRUCTURE.md` |
-| Factual causal history, absence summary, replay and share object | `product/CHRONICLE.md` |
-| First 10/100/1,000 users and intrinsic distribution mechanics | `product/DISTRIBUTION.md` |
+| Planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](../PLAN.md) |
+| This ownership map and retained-artifact inventory | `INDEX.md` |
+| External and measured claim provenance | [SOURCE_LEDGER.md](research/SOURCE_LEDGER.md) |
+| Accepted decisions and review reconciliation | [DECISIONS.md](decisions/DECISIONS.md) |
+| Ranked risks and abandon/change triggers | [RISKS.md](decisions/RISKS.md) |
+| Unproven assumptions and fastest falsification | [OPEN_QUESTIONS.md](decisions/OPEN_QUESTIONS.md) |
 
-## Game and design
+## Product authorities
 
-| Concern | Authority |
+| Concern | Sole authority |
 |---|---|
-| Player-facing mechanics and primitive/system/emergence boundary | `game/GAME_SYSTEMS.md` |
-| Authoritative ontology, invariants and event semantics | `game/WORLD_MODEL.md` |
-| Citizen needs, beliefs, relationships, plans, death and succession | `game/AGENT_LIFE.md` |
-| Institutional power, law, offices, conflict and governance | `game/GOVERNANCE.md` |
-| Resources, ownership, production, exchange and contracts | `game/ECONOMY.md` |
-| Selected visual language and constraint fit | `design/DESIGN.md` |
-| Three candidate art directions and comparison | `design/ART_DIRECTIONS.md` |
-| Desktop interaction, information hierarchy and accessibility | `design/INTERACTION.md` |
-| Motion, sound, weather and reduced-motion behavior | `design/MOTION_SOUND.md` |
-| Mobile layout, controls, performance tiers and semantic fallback | `design/MOBILE.md` |
+| Promise, audience, selected structure, starting unit, differentiation | [PRODUCT.md](product/PRODUCT.md) |
+| Human verbs, first 5 seconds through session 20, intervention and return | [HUMAN_LOOP.md](product/HUMAN_LOOP.md) |
+| Lifetime, death, succession, inactive sponsor and long-term depth | [PROGRESSION.md](product/PROGRESSION.md) |
+| Region topology, newcomer entry, stagnation, canon and private forks | [WORLD_STRUCTURE.md](product/WORLD_STRUCTURE.md) |
+| Causal truth, Riverhold fixture, return summary, replay and share facts | [CHRONICLE.md](product/CHRONICLE.md) |
+| First 10/100/1,000 and intrinsic distribution artifact | [DISTRIBUTION.md](product/DISTRIBUTION.md) |
 
-## Engineering and quality
+## Game authorities
 
-| Concern | Authority |
+| Concern | Sole authority |
 |---|---|
-| Package boundaries, local-first slice and future region server | `engineering/ARCHITECTURE.md` |
-| Renderer/UI stack, SSR routes and asset pipeline | `engineering/FRONTEND.md` |
-| Determinism, scheduling, commands and state transitions | `engineering/SIMULATION.md` |
-| IndexedDB adapter, event/snapshot provenance and migrations | `engineering/PERSISTENCE.md` |
-| Standard Brain, model ecology and bounded proposals | `engineering/COGNITION.md` |
-| $0/$50/$300 scenarios and sustainable unit economics | `engineering/COST_MODEL.md` |
-| Trust boundaries, moderation, abuse prevention and credentials | `engineering/SECURITY.md` |
-| Product and technical release bar | `quality/QUALITY_BAR.md` |
-| Unit/property/replay/browser/CI contract | `quality/TESTING.md` |
-| Cognition and behavior evaluation | `quality/EVALS.md` |
-| Screenshot, interaction and mismatch review loop | `quality/VISUAL_QA.md` |
-| Payload, frame-time, scale and accessibility budgets | `quality/PERFORMANCE.md` |
+| Retained mechanics and primitive/system/emergence boundary | [GAME_SYSTEMS.md](game/GAME_SYSTEMS.md) |
+| Authoritative ontology, invariants and event semantics | [WORLD_MODEL.md](game/WORLD_MODEL.md) |
+| Needs, beliefs, relationships, plans, death and succession | [AGENT_LIFE.md](game/AGENT_LIFE.md) |
+| Institutional power, law, offices and conflict | [GOVERNANCE.md](game/GOVERNANCE.md) |
+| Resources, ownership, production, exchange and contracts | [ECONOMY.md](game/ECONOMY.md) |
 
-## Evidence, decisions, reviews and execution
+## Design authorities
 
-| Concern | Authority |
+| Concern | Sole authority |
 |---|---|
-| Competitor facts and player evidence | `research/COMPETITORS.md`, `research/PLAYER_RESEARCH.md` |
-| Game/system/model/design/distribution/tool evidence | respective files under `research/` |
-| Claim/source/access-date ledger | `research/SOURCE_LEDGER.md` |
-| Selected decisions and red-team reconciliation | `decisions/DECISIONS.md` |
-| Ranked risks and abandon/change triggers | `decisions/RISKS.md` |
-| Unproven assumptions and reopen gates | `decisions/OPEN_QUESTIONS.md` |
-| Independent reviews and final readiness | files under `reviews/` |
-| Executable-plan standard, first slice and Goal prompt | files under `exec-plans/` |
+| Visual hierarchy and Living Woodcut grammar | [DESIGN.md](design/DESIGN.md) |
+| Direction selection, runner-up, rejection and asset pipeline | [ART_DIRECTIONS.md](design/ART_DIRECTIONS.md) |
+| Desktop interaction, information behavior and semantic alternatives | [INTERACTION.md](design/INTERACTION.md) |
+| Motion, sound and reduced-motion behavior | [MOTION_SOUND.md](design/MOTION_SOUND.md) |
+| Narrow-screen composition and degradation | [MOBILE.md](design/MOBILE.md) |
+| Reviewable concepts, prompts, output identifiers and hashes | [concept provenance](design/concepts/README.md) |
 
-## Six-file human read order
+## Engineering authorities
 
-1. `product/PRODUCT.md`
-2. `product/HUMAN_LOOP.md`
-3. `product/DISTRIBUTION.md`
-4. `engineering/ARCHITECTURE.md`
-5. `decisions/DECISIONS.md`
-6. `exec-plans/active/001-foundation.md`
+| Concern | Sole authority |
+|---|---|
+| Layers, packages, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
+| UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
+| Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
+| IndexedDB, `PersistencePort`, snapshots, replay and migrations | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
+| Mind, Standard Brain, bounded proposals and model ecology | [COGNITION.md](engineering/COGNITION.md) |
+| $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
+| Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
+
+## Quality authorities
+
+| Concern | Sole authority |
+|---|---|
+| Cross-discipline acceptance and severity definitions | [QUALITY_BAR.md](quality/QUALITY_BAR.md) |
+| Tests, CI, Dependabot, GitHub controls and artifact retention | [TESTING.md](quality/TESTING.md) |
+| Standard-Brain and later optional-model evaluation | [EVALS.md](quality/EVALS.md) |
+| Browser screenshots, observer tests and visual mismatch handling | [VISUAL_QA.md](quality/VISUAL_QA.md) |
+| Payload, frame, scale, device and accessibility budgets | [PERFORMANCE.md](quality/PERFORMANCE.md) |
+
+## Research evidence
+
+| Evidence set | Retained artifact |
+|---|---|
+| Named competitors and adjacent substitutes | [COMPETITORS.md](research/COMPETITORS.md) |
+| Review/community/player behavior evidence | [PLAYER_RESEARCH.md](research/PLAYER_RESEARCH.md) |
+| Structures A–H, challenger comparison and scenario tournament | [GAME_DESIGN_RESEARCH.md](research/GAME_DESIGN_RESEARCH.md) |
+| Simulation, persistence, cognition and infrastructure evidence | [SYSTEMS_RESEARCH.md](research/SYSTEMS_RESEARCH.md) |
+| Model routes, local/hosted constraints and provenance | [MODEL_RESEARCH.md](research/MODEL_RESEARCH.md) |
+| Visual comparison and rendering-spike interpretation | [DESIGN_RESEARCH.md](research/DESIGN_RESEARCH.md) |
+| First-user paths, channels and share behavior | [DISTRIBUTION_RESEARCH.md](research/DISTRIBUTION_RESEARCH.md) |
+| Live tool/skill/plugin/MCP availability and risks | [PROPOSED_TOOLS.md](research/PROPOSED_TOOLS.md) |
+| Bounded codename collision screen | [NAMING_RESEARCH.md](research/NAMING_RESEARCH.md) |
+
+## Reviews
+
+| Review purpose | Retained artifact |
+|---|---|
+| Blind alternative and hostile thesis challenge | [ZERO_ANCHOR_CHALLENGE.md](reviews/ZERO_ANCHOR_CHALLENGE.md) |
+| Product desirability and scope red team | `reviews/PRODUCT_RED_TEAM.md` after frozen review |
+| Game loop, attachment and progression red team | `reviews/GAME_RED_TEAM.md` after frozen review |
+| Architecture, correctness, security and cost red team | `reviews/ENGINEERING_RED_TEAM.md` after frozen review |
+| Visual direction, access and solo asset-burden red team | `reviews/DESIGN_RED_TEAM.md` after frozen review |
+| Five hostile player-perspective walkthroughs | `reviews/PLAYER_PERSPECTIVES.md` after frozen review |
+| Final cross-discipline review | `reviews/FINAL_RED_TEAM.md` after reconciliation |
+| Twelve readiness answers and final exit evidence | `reviews/FINAL_READINESS.md` after final review |
+
+## Execution and repository hygiene
+
+| Concern | Retained artifact |
+|---|---|
+| ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
+| Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/active/001-foundation.md) |
+| Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
+| Completed-plan retention path | `exec-plans/completed/.gitkeep` |
+| Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
+| Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
+| Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
+| Markdown lint configuration | `../.markdownlint-cli2.jsonc` |
+
+No license, workflow, package manifest, application package, production dependency, credential, deployment artifact, or generated production asset belongs in this planning branch.

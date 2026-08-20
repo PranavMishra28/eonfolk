@@ -1,12 +1,14 @@
 # Player attachment and return evidence
 
+**Purpose:** Record evidence and failure modes for attachment, shared agency, responsibility, return and non-coercive persistence.
+
 **Status:** RESEARCH SNAPSHOT — evidence accessed 2026-08-20
 
-**Authority:** external player-motivation evidence, observed failure modes, attachment hypotheses, and falsification measures; the human loop and progression authorities own product decisions
+**Authority boundary:** This file owns external player-motivation evidence and falsification measures; [human loop](../product/HUMAN_LOOP.md) and [progression](../product/PROGRESSION.md) own decisions.
 
 **Owned evidence question:** What makes a consumer care about an autonomous citizen, understand their own influence, and choose to return without coercive timers, paid stakes, or an always-on social obligation?
 
-**Related:** [authority index](../INDEX.md), [competitor research](COMPETITORS.md), [distribution research](DISTRIBUTION_RESEARCH.md), [source ledger](SOURCE_LEDGER.md)
+**Related documents:** [authority index](../INDEX.md), [competitor research](COMPETITORS.md), [distribution research](DISTRIBUTION_RESEARCH.md), [source ledger](SOURCE_LEDGER.md).
 
 ## Conclusion
 

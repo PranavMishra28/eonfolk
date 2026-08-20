@@ -1,14 +1,18 @@
 # Systems research: simulation, persistence, cognition, scale, cost, and security
 
+**Purpose:** Establish the smallest deterministic local-first architecture and credible post-gate region-server path.
+
 **Status:** RESEARCH COMPLETE FOR SYNTHESIS
 
-**Authority:** evidence and recommendation inputs for simulation, persistence, absence, cognition boundaries, scale, cost, and security. The corresponding `docs/engineering/*` documents own final decisions.
+**Authority boundary:** This file owns systems evidence and recommendation inputs; the corresponding [engineering authorities](../INDEX.md#engineering-authorities) own decisions.
+
+**Related documents:** [model research](MODEL_RESEARCH.md), [source ledger](SOURCE_LEDGER.md), [architecture](../engineering/ARCHITECTURE.md), [simulation](../engineering/SIMULATION.md).
 
 **Owned evidence question:** What is the smallest deterministic, local-first civilization architecture that can deliver a compelling 40–60-hour slice for one builder, remain fully useful with no model or key, and preserve a credible path to persistent public regions without committing to premature infrastructure?
 
 **Access date for external sources:** 2026-08-20
 
-Provisional source IDs in this report must be verified and remapped into `docs/research/SOURCE_LEDGER.md` by the coordinator.
+The coordinator verified and consolidated the report's `S-SYS-*` rows in [SOURCE_LEDGER.md](SOURCE_LEDGER.md).
 
 ## Evidence language
 

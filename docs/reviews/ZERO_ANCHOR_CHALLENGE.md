@@ -1,5 +1,13 @@
 # Zero-anchor product challenge: keep the people, throw away the world
 
+**Purpose:** Challenge the persistent-civilization thesis from a fresh constraint-only brief and propose the strongest replacement.
+
+**Status:** COMPLETE — independent blind challenge, 2026-08-20
+
+**Authority boundary:** This file owns the challenger argument and ECHOHOUSE proposal; the tournament and [decisions](../decisions/DECISIONS.md) own comparison and acceptance.
+
+**Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [product](../product/PRODUCT.md), [risks](../decisions/RISKS.md).
+
 **Review date:** 2026-08-20
 
 **Decision under challenge:** whether the strongest 40–60-hour first browser slice is one persistent civilization
@@ -244,7 +252,7 @@ Explicitly absent: map, walking, economy, crafting, accounts, multiplayer, serve
 
 These are decision thresholds for a tiny directional test, not statistically powered claims.
 
-**Technical gates on the MacBook M4 Pro**
+#### Technical gates on the MacBook M4 Pro
 
 - cached start to first autonomous act: p50 ≤ 10 seconds across ten starts;
 - uncached navigation to first act: ≤ 120 seconds on the recorded test connection;
@@ -253,7 +261,7 @@ These are decision thresholds for a tiny directional test, not statistically pow
 - impossible state mutations: zero, because only the deterministic resolver can mutate state;
 - browser memory crash/device loss: zero in five complete back-to-back sessions.
 
-**Experience gates with eight fresh observed players**
+#### Experience gates with eight fresh observed players
 
 - at least 6/8 finish without facilitator rescue;
 - at least 5/8 correctly point to one state change their whisper caused;
@@ -379,9 +387,9 @@ The strategic phrase is **persistent people, disposable worlds**. The technical 
 
 If no, a larger civilization will hide the failure rather than fix it.
 
-## Proposed source-ledger rows
+## Source-ledger rows
 
-The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; this review did not inspect or edit a shared ledger. Every source below was opened on 2026-08-20.
+The coordinator retained these `S-ZA-*` identifiers in the canonical ledger after review. Every source below was opened on 2026-08-20.
 
 ### S-ZA-01
 
@@ -389,7 +397,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Joon Sung Park et al.; submitted 2023-04-07, revised 2023-08-06
 - **Type:** primary research paper
 - **Material support:** 25-agent small-town instantiation; natural-language memory/reflection/planning; emergent party coordination; ablation contribution to believability
-- **Full URL:** https://arxiv.org/abs/2304.03442
+- **Full URL:** [source](https://arxiv.org/abs/2304.03442)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-02
@@ -398,7 +406,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Xuhui Zhou et al.; submitted 2023-10-18
 - **Type:** primary research paper
 - **Material support:** difficult social-goal performance gap; secret leakage; norm violations; weaker strategic persistence than humans in the reported study
-- **Full URL:** https://arxiv.org/abs/2310.11667
+- **Full URL:** [source](https://arxiv.org/abs/2310.11667)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-03
@@ -407,7 +415,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Hitesh Goel and Hao Zhu; submitted 2025-06-14
 - **Type:** primary research paper
 - **Material support:** declining believability/goal performance across episodes; advanced memory remains below human performance on history-dependent cases; identity/goal-confusion failures
-- **Full URL:** https://arxiv.org/abs/2506.12666
+- **Full URL:** [source](https://arxiv.org/abs/2506.12666)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-04
@@ -416,7 +424,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Charlie F. Ruan et al.; submitted 2024-12-20
 - **Type:** primary systems paper
 - **Material support:** entirely in-browser inference; WebGPU/WebAssembly architecture; OpenAI-style application interface; reported performance evaluation
-- **Full URL:** https://arxiv.org/abs/2412.15803
+- **Full URL:** [source](https://arxiv.org/abs/2412.15803)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-05
@@ -425,7 +433,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Publisher/date:** MLC AI; repository state opened 2026-08-20
 - **Type:** official implementation documentation
 - **Material support:** no-server in-browser inference; WebGPU; structured JSON generation; seeding; model-family support
-- **Full URL:** https://github.com/mlc-ai/web-llm
+- **Full URL:** [source](https://github.com/mlc-ai/web-llm)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-06
@@ -434,7 +442,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Publisher/date:** Qwen Team; model released 2024 (card state opened 2026-08-20)
 - **Type:** official model documentation; publisher capability claims
 - **Material support:** 1.54B parameter count; Apache-2.0 label; publisher claims concerning structured output and role-play conditioning
-- **Full URL:** https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
+- **Full URL:** [source](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-07
@@ -443,7 +451,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Publisher/date:** MDN Web Docs; last modified 2026-05-05
 - **Type:** web-platform reference
 - **Material support:** WebGPU purpose, secure-context requirement, and “Limited availability” status
-- **Full URL:** https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API
+- **Full URL:** [source](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-08
@@ -452,7 +460,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Publisher/date:** a16z Infrastructure; repository state opened 2026-08-20
 - **Type:** official project documentation
 - **Material support:** AI Town's virtual-town framing; characters living/chatting/socializing; shared simulation state; local and provider inference options
-- **Full URL:** https://github.com/a16z-infra/ai-town
+- **Full URL:** [source](https://github.com/a16z-infra/ai-town)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-09
@@ -461,7 +469,7 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Altera.AL et al.; submitted 2024-10-31
 - **Type:** primary research paper
 - **Material support:** simulations of 10 to 1,000+ agents in Minecraft societies; roles, rules, and cultural/religious transmission reported by authors
-- **Full URL:** https://arxiv.org/abs/2411.00114
+- **Full URL:** [source](https://arxiv.org/abs/2411.00114)
 - **Accessed:** 2026-08-20
 
 ### S-ZA-10
@@ -470,5 +478,5 @@ The `S-ZA-*` identifiers are namespaced proposals for coordinator assignment; th
 - **Authors/date:** Deepak Akkil et al.; submitted 2026-06-06
 - **Type:** primary research paper
 - **Material support:** continuously running shared spatial multi-agent world; persistent memory; governance; 15-day cross-vendor study
-- **Full URL:** https://arxiv.org/abs/2606.08367
+- **Full URL:** [source](https://arxiv.org/abs/2606.08367)
 - **Accessed:** 2026-08-20
