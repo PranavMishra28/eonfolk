@@ -24,7 +24,7 @@
 | 2. Independent research and zero-anchor challenge | Complete | Competition/player/distribution, systems/model/tools, ECHOHOUSE challenge |
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
-| 5. Frozen discipline and player-perspective reviews | In progress | All independent reviews target immutable SHA `4f47eae261ad4011b5126bef0a17cfc5332af7f4` |
+| 5. Frozen discipline and player-perspective reviews | In progress | All independent reviews target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | In progress | ExecPlan, Goal prompt and coordinator authorities drafted; review findings remain to reconcile |
 
 ## Integration history
@@ -62,7 +62,7 @@ Repository remained private with default `main`. Actions are enabled with all ac
 
 ## Frozen review state
 
-The initial synthesis is frozen at full SHA **`4f47eae261ad4011b5126bef0a17cfc5332af7f4`** (`docs: freeze initial product foundation synthesis`). All four discipline/player reviews target that identical commit and receive no earlier review output. Review files are integrated only after all four reports are complete.
+The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3dddb401`** (`docs: freeze initial product foundation synthesis`). All four discipline/player reviews target that identical commit and receive no earlier review output. Review files are integrated only after all four reports are complete.
 
 ## Exit evidence
 
