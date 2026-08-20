@@ -2,7 +2,7 @@
 
 **Purpose:** provide a complete zero-context Codex Goal-mode orchestration prompt for the accepted local Riverhold proof.
 
-**Status:** READY FOR ZERO-CONTEXT REVIEW — implementation is not authorized by this planning run
+**Status:** CANDIDATE FOR FINAL ZERO-CONTEXT REVIEW — implementation is not authorized by this planning run
 
 **Authority boundary:** this file owns future orchestration behavior. The embedded product/technical contract is self-contained; during execution, `docs/exec-plans/active/001-foundation.md` is the living evidence log.
 
@@ -215,7 +215,7 @@ Blocking budgets:
 - mobile p95 ≤33.3 ms/30 FPS minimum;
 - eight default; twelve is measurement-only practical stress target.
 
-The only blocking browser binary is the headed (`headless:false`) Chromium executable installed by the exact `@playwright/test` version pinned in the committed lockfile; freeze and record package version, Chromium revision, executable path, and executable SHA-256 before M0 human evidence, then never update it within a cohort. Target desktop is the named M4 Pro/native DPR/production preview/power state. Mobile lab uses that same binary at 390×844 DPR 3/four-times CPU slowdown/exact shaping below. A named iPhone-13/Pixel-7-class-or-weaker run is separately labeled physical evidence, not a substitute for canonical numerical gates. Record p50/p95/worst, browser/device/profile, commit, seed/time, quality/motion/UI/focus state.
+The only blocking browser runtime is `@playwright/test` **1.62.1** with its bundled headed (`headless:false`) Chromium revision **1234**, Chrome for Testing **151.0.7922.34**. Commit that exact package in the lockfile; the official registry integrity for `@playwright/test@1.62.1` is `sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==` [S-TOOL-17]. After installation, record and verify the resolved package version/integrity, Chromium revision/version, executable path, and executable SHA-256 before M0 human evidence; never update any of them within a cohort. Target desktop is the named M4 Pro/native DPR/production preview/power state. Mobile lab uses that same binary at 390×844 DPR 3/four-times CPU slowdown/exact shaping below. A named iPhone-13/Pixel-7-class-or-weaker run is separately labeled physical evidence, not a substitute for canonical numerical gates. Record p50/p95/worst, browser/device/profile, commit, seed/time, quality/motion/UI/focus state.
 
 On portrait, world remains ≥55% through peek; peek ≤35%, non-scrolling; Inspect has one scroll/sticky Close; Decide has sticky Back/Continue; browser Back closes one UI level; targets ≥44px; overlap opens named chooser; persistent People fallback. At 200% text no overflow/trap.
 
