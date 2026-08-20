@@ -60,21 +60,21 @@ These option letters are defined here for stable use in later planning.
 
 ### 1.2 Option B — WebLLM
 
-**VERIFIED FACT:** WebLLM runs LLM inference in the browser, requires a WebGPU-compatible browser, supports Web Workers, and exposes an OpenAI-like API [MODEL-S01][MODEL-S02]. Its repository is Apache-2.0 [MODEL-S03]. Its current prebuilt configuration calls itself the source of truth for compatible prebuilt libraries and declares device memory requirements per model [MODEL-S04].
+**VERIFIED FACT:** WebLLM runs LLM inference in the browser, requires a WebGPU-compatible browser, supports Web Workers, and exposes an OpenAI-like API [S-MODEL-01][S-MODEL-02]. Its repository is Apache-2.0 [S-MODEL-03]. Its current prebuilt configuration calls itself the source of truth for compatible prebuilt libraries and declares device memory requirements per model [S-MODEL-04].
 
-One current example is Llama 3.2 1B Instruct q4f16 with 4,096 context and a declared 879.04 MB VRAM requirement [MODEL-S04]. That number is runtime VRAM metadata, not download size, total browser memory, first-token latency, quality, or a guarantee that 3D rendering remains smooth.
+One current example is Llama 3.2 1B Instruct q4f16 with 4,096 context and a declared 879.04 MB VRAM requirement [S-MODEL-04]. That number is runtime VRAM metadata, not download size, total browser memory, first-token latency, quality, or a guarantee that 3D rendering remains smooth.
 
 **INFERENCE:** B is the most direct browser chat-generation spike, but only after the core slice. Run it in a dedicated worker; load after explicit opt-in; keep the world renderer usable before, during, and after download; cap context/output; cancel on navigation; release resources when disabled.
 
 ### 1.3 Option C — Transformers.js
 
-**VERIFIED FACT:** Transformers.js runs pretrained models directly in the browser and documents WebGPU acceleration via `device: "webgpu"`; the repository is Apache-2.0 [MODEL-S05][MODEL-S06].
+**VERIFIED FACT:** Transformers.js runs pretrained models directly in the browser and documents WebGPU acceleration via `device: "webgpu"`; the repository is Apache-2.0 [S-MODEL-05][S-MODEL-06].
 
 **INFERENCE:** C may be preferable for smaller classification, embedding, or summarization helpers and for a model already supported in its ONNX ecosystem. It is not automatically a better free-form proposal generator. Do not install B and C together "for flexibility"; select one only after a model/runtime spike measures artifact size, load time, first/subsequent token latency, memory, heat, frame-time interference, structured-output rate, and fallback.
 
 ### 1.4 Option D — user-authorized OpenRouter
 
-**VERIFIED FACT:** OpenRouter documents a PKCE OAuth flow using an S256 challenge and an exchange for a user-controlled key [MODEL-S07]. Its FAQ says free models are limited to 50 requests/day without a qualifying credit purchase, or 1,000/day after at least $10 of purchased credits, and are usually unsuitable for production [MODEL-S08].
+**VERIFIED FACT:** OpenRouter documents a PKCE OAuth flow using an S256 challenge and an exchange for a user-controlled key [S-MODEL-07]. Its FAQ says free models are limited to 50 requests/day without a qualifying credit purchase, or 1,000/day after at least $10 of purchased credits, and are usually unsuitable for production [S-MODEL-08].
 
 **INFERENCE:** D is the best later hosted route for optional user-funded enrichment because it avoids an owner-wide key and makes spend a user choice. It still adds account friction, token custody, XSS exposure, provider/model variability, and moderation/privacy work. PKCE is not permission to make it onboarding.
 
@@ -86,23 +86,23 @@ Use short-lived/in-memory storage where practical, least credit/limit scope, exp
 
 ### 1.6 Option F — direct Gemini, Groq, or Hugging Face
 
-**VERIFIED FACT:** Gemini has a Free Tier for certain models, while its pricing page states Free Tier content may be used to improve products; actual active rate limits are viewed in AI Studio and vary by project/model/tier [MODEL-S09][MODEL-S10].
+**VERIFIED FACT:** Gemini has a Free Tier for certain models, while its pricing page states Free Tier content may be used to improve products; actual active rate limits are viewed in AI Studio and vary by project/model/tier [S-MODEL-09][S-MODEL-10].
 
-**VERIFIED FACT:** Groq publishes a high-level Free-plan limit table but says exact current organization limits are in the account limits page; 429 responses include rate-limit information [MODEL-S11].
+**VERIFIED FACT:** Groq publishes a high-level Free-plan limit table but says exact current organization limits are in the account limits page; 429 responses include rate-limit information [S-MODEL-11].
 
-**VERIFIED FACT:** Hugging Face Inference Providers currently gives Free users $0.10 monthly routed credits, explicitly subject to change; further usage requires credits/purchase [MODEL-S12].
+**VERIFIED FACT:** Hugging Face Inference Providers currently gives Free users $0.10 monthly routed credits, explicitly subject to change; further usage requires credits/purchase [S-MODEL-12].
 
 **INFERENCE:** F is a development and evaluation pool, not a production failover mesh. Supporting three direct adapters multiplies schemas, credentials, privacy policies, model-deprecation handling, and tests. Choose at most one direct provider only if it beats D/E/G on a measured product need.
 
 ### 1.7 Option G — Workers AI
 
-**VERIFIED FACT:** Workers AI currently includes 10,000 neurons/day at no charge, resets daily, fails further operations on Free after the allocation, and charges $0.011 per 1,000 neurons above the allocation on Workers Paid [MODEL-S13].
+**VERIFIED FACT:** Workers AI currently includes 10,000 neurons/day at no charge, resets daily, fails further operations on Free after the allocation, and charges $0.011 per 1,000 neurons above the allocation on Workers Paid [S-MODEL-13].
 
 **INFERENCE:** G co-locates inference with a later Cloudflare application and keeps the owner secret out of the client. It still requires hosted infrastructure, owner billing posture, model availability checks, and neuron measurement. It must use an application cap below the platform ceiling and fall back before a player notices provider failure.
 
 ### 1.8 Option H — self-hosted open weights
 
-**VERIFIED FACT:** Qwen3's official repository documents open-weight sizes including 0.6B and 1.7B, support for local runtimes such as llama.cpp/MLX, and Apache-2.0 licensing [MODEL-S14].
+**VERIFIED FACT:** Qwen3's official repository documents open-weight sizes including 0.6B and 1.7B, support for local runtimes such as llama.cpp/MLX, and Apache-2.0 licensing [S-MODEL-14].
 
 **INFERENCE:** H is credible for local M4 Pro evaluation and reproducible offline fixtures. It is not credible public V1 infrastructure because the project owns no GPU service and has no authorization for one. Running a local developer server also does not help visitors when the owner's laptop is closed.
 
@@ -110,7 +110,7 @@ Use short-lived/in-memory storage where practical, least credit/limit scope, exp
 
 ### 2.1 Hard capability boundary
 
-**VERIFIED FACT:** MDN still marks WebGPU as limited availability, secure-context-only, and unavailable in some widely used browsers [MODEL-S15].
+**VERIFIED FACT:** MDN still marks WebGPU as limited availability, secure-context-only, and unavailable in some widely used browsers [S-MODEL-15].
 
 Therefore:
 
@@ -143,9 +143,9 @@ The runtime library license and the model-weight license are separate approvals.
 
 | Family | Verified license posture | Candidate role | Recommendation |
 |---|---|---|---|
-| Qwen3 0.6B/1.7B | Official repo says Apache-2.0 [MODEL-S14] | Small local proposal/presentation experiment if a selected browser runtime has a verified artifact | Best license posture; runtime/quality still unproven |
-| Llama 3.2 1B | Custom Llama 3.2 Community License with attribution/use/redistribution terms [MODEL-S16] | Current WebLLM prebuilt low-resource candidate | Use only after legal/provenance checklist; not "MIT because WebLLM is Apache" |
-| Gemma | Custom terms require notices and downstream restrictions for distribution [MODEL-S17] | Small/open-weight comparison if materially superior | Default reject for V1 to reduce obligations |
+| Qwen3 0.6B/1.7B | Official repo says Apache-2.0 [S-MODEL-14] | Small local proposal/presentation experiment if a selected browser runtime has a verified artifact | Best license posture; runtime/quality still unproven |
+| Llama 3.2 1B | Custom Llama 3.2 Community License with attribution/use/redistribution terms [S-MODEL-16] | Current WebLLM prebuilt low-resource candidate | Use only after legal/provenance checklist; not "MIT because WebLLM is Apache" |
+| Gemma | Custom terms require notices and downstream restrictions for distribution [S-MODEL-17] | Small/open-weight comparison if materially superior | Default reject for V1 to reduce obligations |
 
 **UNRESOLVED:** Qwen3's official weights being Apache-2.0 does not prove a supported, audited, correctly quantized browser artifact exists in the selected runtime. Execution must pin the exact model repository revision, quantization artifact, compiler/runtime revision, hashes, license files, and redistribution chain.
 
@@ -311,7 +311,7 @@ Deliverable: measured E/F/G comparison, sustainable paid-rate model, abuse caps,
 4. **Optional downloads are still onboarding/product debt.** A near-gigabyte runtime memory declaration and unknown artifact size can be unacceptable even at $0 owner cost.
 5. **User OAuth shifts rather than removes friction and risk.** Accounts, token custody, user credit, provider terms, and model variability remain.
 6. **A failover mesh can silently change characters.** Automatic model substitution harms continuity. Pin model/version within an experiment and fall back to A, not a random model.
-7. **Free hosted quotas invite false economics.** OpenRouter explicitly says its free routes are not usually production-suitable [MODEL-S08]; HF free credits are $0.10/month [MODEL-S12].
+7. **Free hosted quotas invite false economics.** OpenRouter explicitly says its free routes are not usually production-suitable [S-MODEL-08]; HF free credits are $0.10/month [S-MODEL-12].
 8. **Custom model licenses can contaminate distribution assumptions.** Runtime Apache/MIT status does not grant weight redistribution rights.
 
 ## 9. Rejected options
@@ -369,20 +369,20 @@ Before any later execution:
 
 | Provisional ID | Claim supported | Primary source | Accessed | Type | Confidence | Reopen note |
 |---|---|---|---|---|---|---|
-| MODEL-S01 | WebLLM requires a WebGPU-compatible browser | [WebLLM getting started](https://webllm.mlc.ai/docs/user/get_started.html) | 2026-08-20 | B | High | Reopen per release/browser matrix |
-| MODEL-S02 | WebLLM supports browser inference, Web Workers, and OpenAI-like API | [WebLLM repository](https://github.com/mlc-ai/web-llm) | 2026-08-20 | B | High | Pin exact release before use |
-| MODEL-S03 | WebLLM is Apache-2.0 | [WebLLM repository license](https://github.com/mlc-ai/web-llm) | 2026-08-20 | B | High | Runtime license only, not weights |
-| MODEL-S04 | WebLLM prebuilt config is compatibility source and declares Llama 3.2 1B q4f16 at 879.04 MB VRAM/4,096 context | [WebLLM current config](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts) | 2026-08-20 | B | High on accessed revision | Pin commit; benchmark actual artifact/device |
-| MODEL-S05 | Transformers.js runs models in-browser and supports WebGPU acceleration | [Transformers.js documentation](https://huggingface.co/docs/transformers.js/main/index) | 2026-08-20 | B | High | Verify selected task/model/runtime |
-| MODEL-S06 | Transformers.js repository is Apache-2.0 | [Transformers.js repository](https://github.com/huggingface/transformers.js/) | 2026-08-20 | B | High | Runtime license only |
-| MODEL-S07 | OpenRouter documents OAuth PKCE with S256 and user-controlled key exchange | [OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth) | 2026-08-20 | A | High | Reopen security/redirect/token docs before implementation |
-| MODEL-S08 | OpenRouter free models have 50 requests/day, or 1,000/day after at least $10 purchased credits, and are usually not production-suitable | [OpenRouter FAQ](https://openrouter.ai/docs/faq) | 2026-08-20 | A | High on access date | Reopen limits/fees/model availability |
-| MODEL-S09 | Gemini Free Tier exists for certain models and Free content may improve products | [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) | 2026-08-20 | A | High on access date | Reopen model/region/data terms |
-| MODEL-S10 | Gemini limits vary and active project limits are shown in AI Studio | [Gemini rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) | 2026-08-20 | A | High | Account dashboard is execution truth |
-| MODEL-S11 | Groq publishes high-level limits, exact org limits live in account settings, and 429/headers report exhaustion | [Groq rate limits](https://console.groq.com/docs/rate-limits) | 2026-08-20 | A | High | Reopen account/model page before use |
-| MODEL-S12 | Hugging Face Free users receive $0.10/month inference-provider credits, subject to change | [HF Inference Providers pricing](https://huggingface.co/docs/inference-providers/en/pricing) | 2026-08-20 | A | High on access date | Reopen provider/model route and billing |
-| MODEL-S13 | Workers AI provides 10,000 neurons/day free, hard-fails Free overage, and charges $0.011/1,000 neurons on Paid above allocation | [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) | 2026-08-20 | A | High on access date | Measure selected model neurons and reopen pricing |
-| MODEL-S14 | Qwen3 offers 0.6B/1.7B+ open weights, local runtime guidance, and Apache-2.0 licensing | [Qwen3 official repository](https://github.com/QwenLM/Qwen3) | 2026-08-20 | B | High | Exact artifact/quantization license still required |
-| MODEL-S15 | WebGPU is limited-availability and secure-context-only | [MDN WebGPU API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) | 2026-08-20 | A/B reference | High | Reopen target-browser support |
-| MODEL-S16 | Llama 3.2 weights use a custom Community License with attribution/use/redistribution terms | [Meta Llama 3.2 license](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE) | 2026-08-20 | B | High | Legal review exact selected artifact |
-| MODEL-S17 | Gemma terms impose notices and downstream restrictions for distribution | [Gemma Terms of Use](https://ai.google.dev/gemma/terms) | 2026-08-20 | A | High | Exact Gemma generation/license may differ; reopen |
+| S-MODEL-01 | WebLLM requires a WebGPU-compatible browser | [WebLLM getting started](https://webllm.mlc.ai/docs/user/get_started.html) | 2026-08-20 | B | High | Reopen per release/browser matrix |
+| S-MODEL-02 | WebLLM supports browser inference, Web Workers, and OpenAI-like API | [WebLLM repository](https://github.com/mlc-ai/web-llm) | 2026-08-20 | B | High | Pin exact release before use |
+| S-MODEL-03 | WebLLM is Apache-2.0 | [WebLLM repository license](https://github.com/mlc-ai/web-llm) | 2026-08-20 | B | High | Runtime license only, not weights |
+| S-MODEL-04 | WebLLM prebuilt config is compatibility source and declares Llama 3.2 1B q4f16 at 879.04 MB VRAM/4,096 context | [WebLLM current config](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts) | 2026-08-20 | B | High on accessed revision | Pin commit; benchmark actual artifact/device |
+| S-MODEL-05 | Transformers.js runs models in-browser and supports WebGPU acceleration | [Transformers.js documentation](https://huggingface.co/docs/transformers.js/main/index) | 2026-08-20 | B | High | Verify selected task/model/runtime |
+| S-MODEL-06 | Transformers.js repository is Apache-2.0 | [Transformers.js repository](https://github.com/huggingface/transformers.js/) | 2026-08-20 | B | High | Runtime license only |
+| S-MODEL-07 | OpenRouter documents OAuth PKCE with S256 and user-controlled key exchange | [OpenRouter OAuth PKCE](https://openrouter.ai/docs/guides/overview/auth/oauth) | 2026-08-20 | A | High | Reopen security/redirect/token docs before implementation |
+| S-MODEL-08 | OpenRouter free models have 50 requests/day, or 1,000/day after at least $10 purchased credits, and are usually not production-suitable | [OpenRouter FAQ](https://openrouter.ai/docs/faq) | 2026-08-20 | A | High on access date | Reopen limits/fees/model availability |
+| S-MODEL-09 | Gemini Free Tier exists for certain models and Free content may improve products | [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) | 2026-08-20 | A | High on access date | Reopen model/region/data terms |
+| S-MODEL-10 | Gemini limits vary and active project limits are shown in AI Studio | [Gemini rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) | 2026-08-20 | A | High | Account dashboard is execution truth |
+| S-MODEL-11 | Groq publishes high-level limits, exact org limits live in account settings, and 429/headers report exhaustion | [Groq rate limits](https://console.groq.com/docs/rate-limits) | 2026-08-20 | A | High | Reopen account/model page before use |
+| S-MODEL-12 | Hugging Face Free users receive $0.10/month inference-provider credits, subject to change | [HF Inference Providers pricing](https://huggingface.co/docs/inference-providers/en/pricing) | 2026-08-20 | A | High on access date | Reopen provider/model route and billing |
+| S-MODEL-13 | Workers AI provides 10,000 neurons/day free, hard-fails Free overage, and charges $0.011/1,000 neurons on Paid above allocation | [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) | 2026-08-20 | A | High on access date | Measure selected model neurons and reopen pricing |
+| S-MODEL-14 | Qwen3 offers 0.6B/1.7B+ open weights, local runtime guidance, and Apache-2.0 licensing | [Qwen3 official repository](https://github.com/QwenLM/Qwen3) | 2026-08-20 | B | High | Exact artifact/quantization license still required |
+| S-MODEL-15 | WebGPU is limited-availability and secure-context-only | [MDN WebGPU API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) | 2026-08-20 | A/B reference | High | Reopen target-browser support |
+| S-MODEL-16 | Llama 3.2 weights use a custom Community License with attribution/use/redistribution terms | [Meta Llama 3.2 license](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE) | 2026-08-20 | B | High | Legal review exact selected artifact |
+| S-MODEL-17 | Gemma terms impose notices and downstream restrictions for distribution | [Gemma Terms of Use](https://ai.google.dev/gemma/terms) | 2026-08-20 | A | High | Exact Gemma generation/license may differ; reopen |

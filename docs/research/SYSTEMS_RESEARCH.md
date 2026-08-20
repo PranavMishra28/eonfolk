@@ -71,7 +71,7 @@ The reducer alone changes Reality. Commands and proposals can be rejected withou
 
 **INFERENCE:** EONFOLK's interesting changes are sparse: a shift starts, stock is exhausted, a debt is due, a vote closes, a promise is broken, a relationship threshold is crossed. A fixed minute-by-minute or frame-by-frame tick would manufacture work that has no player-facing consequence. A priority queue ordered by the next meaningful boundary advances directly to the next consequential time.
 
-The product must not equate "always alive" with "always consuming compute." Cloudflare states that inactive Durable Objects incur no duration charge and provides alarms to wake an object later; this supports, but does not require, the same sparse-event design for a future hosted region [SYS-S08][SYS-S09].
+The product must not equate "always alive" with "always consuming compute." Cloudflare states that inactive Durable Objects incur no duration charge and provides alarms to wake an object later; this supports, but does not require, the same sparse-event design for a future hosted region [S-SYS-08][S-SYS-09].
 
 ### 2.2 Determinism contract
 
@@ -126,13 +126,13 @@ The kernel gate fails unless all of these pass:
 - resource, ownership, life-state, authorization, and conservation invariants hold under long random command sequences;
 - the world reaches a target time with every Brain adapter removed.
 
-Property/model-based tests are a good fit for commands and invariants; fast-check documents model-based command testing, but the exact library decision belongs in the testing authority [SYS-S07].
+Property/model-based tests are a good fit for commands and invariants; fast-check documents model-based command testing, but the exact library decision belongs in the testing authority [S-SYS-07].
 
 ## 3. Mind, Standing Plans, beliefs, and bounded proposals
 
 ### 3.1 Evidence boundary
 
-**VERIFIED FACT:** Generative Agents reports a 25-agent sandbox and an ablation in which observation, planning, and reflection contributed to judged believability [SYS-S01]. CoALA proposes modular memory, structured action spaces, and a generalized decision loop [SYS-S02]. DeepMind's Concordia grounds natural-language action through a Game Master/environment but requires an LLM API [SYS-S03].
+**VERIFIED FACT:** Generative Agents reports a 25-agent sandbox and an ablation in which observation, planning, and reflection contributed to judged believability [S-SYS-01]. CoALA proposes modular memory, structured action spaces, and a generalized decision loop [S-SYS-02]. DeepMind's Concordia grounds natural-language action through a Game Master/environment but requires an LLM API [S-SYS-03].
 
 **INFERENCE:** these sources justify explicit memory, planning, and grounded action boundaries. They do not prove continuous LLM calls, natural-language world state, a vector database, or Concordia's framework is appropriate for a 40–60-hour consumer-game slice.
 
@@ -224,13 +224,13 @@ A rationale is untrusted presentation text. It cannot change outcome or become a
 
 ### 4.1 Selective event sourcing
 
-**VERIFIED FACT:** Microsoft's current pattern guide describes append-only event streams, reconstruction by replay, snapshots as rebuildable optimizations, immutable event/versioning complications, and the substantial complexity cost of event sourcing. It explicitly says most systems do not need the pattern everywhere [SYS-S04].
+**VERIFIED FACT:** Microsoft's current pattern guide describes append-only event streams, reconstruction by replay, snapshots as rebuildable optimizations, immutable event/versioning complications, and the substantial complexity cost of event sourcing. It explicitly says most systems do not need the pattern everywhere [S-SYS-04].
 
 **INFERENCE:** event-source only the canonical civilization aggregate because causal history, replay, absence summaries, and migration are core product requirements. Use ordinary records for settings, cached presentation projections, asset manifests, and analytics preferences. Do not add Kafka, CQRS services, or a purpose-built event database.
 
 ### 4.2 Local-first storage
 
-**VERIFIED FACT:** IndexedDB is transactional, asynchronous, stores significant structured data, is available in Web Workers, and is designed for offline-capable browser applications [SYS-S05]. Browser quota and eviction behavior varies, so storage is not an unconditional durability guarantee [SYS-S06].
+**VERIFIED FACT:** IndexedDB is transactional, asynchronous, stores significant structured data, is available in Web Workers, and is designed for offline-capable browser applications [S-SYS-05]. Browser quota and eviction behavior varies, so storage is not an unconditional durability guarantee [S-SYS-06].
 
 **INFERENCE:** the first adapter needs four stores:
 
@@ -287,11 +287,11 @@ The factual absence summary may group emitted events, but grouping cannot mutate
 
 ### 5.1 Cloudflare fit, after the local gate
 
-**VERIFIED FACT:** SQLite-backed Durable Objects offer private transactional storage and Cloudflare recommends them for new Durable Object classes [SYS-S10]. An individual Durable Object is single-threaded with a soft workload-dependent limit around 1,000 requests/second; Cloudflare's current design guidance says to model an object around the logical atom of coordination and explicitly rejects one global singleton [SYS-S11][SYS-S12].
+**VERIFIED FACT:** SQLite-backed Durable Objects offer private transactional storage and Cloudflare recommends them for new Durable Object classes [S-SYS-10]. An individual Durable Object is single-threaded with a soft workload-dependent limit around 1,000 requests/second; Cloudflare's current design guidance says to model an object around the logical atom of coordination and explicitly rejects one global singleton [S-SYS-11][S-SYS-12].
 
 **INFERENCE:** a later `RegionDO` can be the one writer for a settlement/region. V1 can contain one region, but every entity/event/command ID includes `regionId`. Cross-region interactions use idempotent inbox/outbox events and accept delayed settlement. There are no global synchronous transactions.
 
-**VERIFIED FACT:** each Durable Object can schedule one alarm at a time; alarms are at-least-once and use bounded automatic retries. Cloudflare recommends storing many scheduled items and pointing the one alarm at the next one [SYS-S09].
+**VERIFIED FACT:** each Durable Object can schedule one alarm at a time; alarms are at-least-once and use bounded automatic retries. Cloudflare recommends storing many scheduled items and pointing the one alarm at the next one [S-SYS-09].
 
 **INFERENCE:** persist a future-event priority queue, set the one alarm to its earliest due time, and make alarm processing idempotent by event/command ID. The alarm is a wake signal, not authoritative simulation time.
 
@@ -315,15 +315,15 @@ Promotion from cold to hot cannot invent a biography. Preserve identity, househo
 | 1,000 | Separate region writer from read/fanout objects; snapshot plus cursor-based deltas; backpressure | Load test and recovery rehearsal |
 | 10,000 | Regional/sharded fanout, cached public projections, admission control, abuse controls | Dedicated architecture review; no cost promise |
 
-**VERIFIED FACT:** Cloudflare's Hibernation WebSocket API keeps connections while allowing the object to leave memory, and its current guidance recommends batching logical messages to reduce overhead [SYS-S13]. Published connection ceilings are not practical-capacity guarantees; CPU, memory, and message mix can lower them.
+**VERIFIED FACT:** Cloudflare's Hibernation WebSocket API keeps connections while allowing the object to leave memory, and its current guidance recommends batching logical messages to reduce overhead [S-SYS-13]. Published connection ceilings are not practical-capacity guarantees; CPU, memory, and message mix can lower them.
 
 ## 6. Cost envelopes
 
 ### 6.1 Current source facts
 
-**VERIFIED FACT:** Workers Free currently allows 100,000 Worker requests/day with a 10 ms CPU limit per invocation. Workers Paid has a $5/month account minimum, 10 million requests/month included, then $0.30/million, and 30 million CPU-ms included, then $0.02/million CPU-ms. Static asset requests are free/unlimited under the documented model [SYS-S14].
+**VERIFIED FACT:** Workers Free currently allows 100,000 Worker requests/day with a 10 ms CPU limit per invocation. Workers Paid has a $5/month account minimum, 10 million requests/month included, then $0.30/million, and 30 million CPU-ms included, then $0.02/million CPU-ms. Static asset requests are free/unlimited under the documented model [S-SYS-14].
 
-**VERIFIED FACT:** Durable Objects Free currently includes 100,000 requests/day and 13,000 GB-s/day; limits hard-fail when exceeded. Paid includes 1 million requests/month then $0.15/million and 400,000 GB-s/month then $12.50/million GB-s. SQLite rows/storage have separate limits/rates. Cloudflare warns that its DO examples exclude the Worker request that calls the object [SYS-S15].
+**VERIFIED FACT:** Durable Objects Free currently includes 100,000 requests/day and 13,000 GB-s/day; limits hard-fail when exceeded. Paid includes 1 million requests/month then $0.15/million and 400,000 GB-s/month then $12.50/million GB-s. SQLite rows/storage have separate limits/rates. Cloudflare warns that its DO examples exclude the Worker request that calls the object [S-SYS-15].
 
 ### 6.2 Cost formula
 
@@ -347,7 +347,7 @@ No deployment is authorized. Before any public experiment, the owner must set pl
 
 ### 7.1 Model output and user text
 
-**VERIFIED FACT:** OWASP identifies prompt injection, improper output handling, excessive agency, and unbounded/resource consumption as material LLM-application risks. Its guidance emphasizes least functionality/permissions, downstream authorization, output validation, and resource/spend limits [SYS-S16][SYS-S17][SYS-S18].
+**VERIFIED FACT:** OWASP identifies prompt injection, improper output handling, excessive agency, and unbounded/resource consumption as material LLM-application risks. Its guidance emphasizes least functionality/permissions, downstream authorization, output validation, and resource/spend limits [S-SYS-16][S-SYS-17][S-SYS-18].
 
 **INFERENCE:** all citizen/user/model prose is hostile data. It is never evaluated or interpolated as HTML, Markdown with raw HTML, SQL, JavaScript, shell, URL, file path, or permission expression. Render escaped text; allow only bounded typed proposal fields; authorize every action in the reducer.
 
@@ -363,7 +363,7 @@ For a later public experiment:
 - per-IP, per-account, per-world, and global cost quotas fail closed;
 - canonical facts and public presentation visibility are separate, so moderation can hide abusive prose without falsifying the event stream;
 - no provider or owner secret reaches browser code, prompts, events, replay bundles, logs, or model context;
-- Cloudflare documents encrypted secret bindings for a later Worker, but adopting them still requires explicit credential approval [SYS-S19].
+- Cloudflare documents encrypted secret bindings for a later Worker, but adopting them still requires explicit credential approval [S-SYS-19].
 
 ### 7.3 Data minimization
 
@@ -440,11 +440,11 @@ Open only after repeated return/attachment evidence requires a shared world. Del
 
 ## 9. Strongest objections
 
-1. **Event sourcing can consume the slice.** Microsoft's own guidance calls out its complexity [SYS-S04]. Mitigation: use one event stream and snapshots for the civilization only; no broker, projections service, or CQRS fleet.
+1. **Event sourcing can consume the slice.** Microsoft's own guidance calls out its complexity [S-SYS-04]. Mitigation: use one event stream and snapshots for the civilization only; no broker, projections service, or CQRS fleet.
 2. **The Standard Brain may look shallow.** Deterministic utility can become repetitive. Mitigation: visible commitments, partial beliefs, Standing Plans, seeded variety, and personality-weighted strategy templates; falsify through play, not model spend.
 3. **Exact long-gap aggregation may be hard for coupled markets and relationships.** If closed-form updates cross unknown discontinuities, they can diverge. Mitigation: schedule threshold/milestone events and make aggregation functions small and property-tested.
-4. **IndexedDB is not a backup.** Quotas/eviction differ by browser [SYS-S06]. Mitigation: explicit export/import and visible backup state before a user invests deeply.
-5. **One RegionDO still serializes a hot settlement.** Cloudflare's single-object throughput is workload-dependent [SYS-S11]. Mitigation: keep region IDs and split coordination/read fanout later; do not claim 10,000-human capacity.
+4. **IndexedDB is not a backup.** Quotas/eviction differ by browser [S-SYS-06]. Mitigation: explicit export/import and visible backup state before a user invests deeply.
+5. **One RegionDO still serializes a hot settlement.** Cloudflare's single-object throughput is workload-dependent [S-SYS-11]. Mitigation: keep region IDs and split coordination/read fanout later; do not claim 10,000-human capacity.
 6. **A causal event log can imply false causality.** Sequence is not cause. Mitigation: explicit causation/correlation edges and cautious narrative language.
 7. **Cost can be attacked.** Free limits hard-fail and paid usage can be induced. Mitigation: deterministic fallback, quotas, caching, backpressure, spend caps/alerts, and read-only degradation.
 
@@ -459,7 +459,7 @@ Open only after repeated return/attachment evidence requires a shared world. Del
 | Vector database | Reject until measured need | More infrastructure than eight-agent typed recall requires |
 | Full event sourcing for all app data | Reject | Complexity without causal/replay value |
 | Kafka/NATS/Redis/Temporal/Kubernetes | Reject | No first-slice product value and unsuitable for one local writer |
-| One global Durable Object | Reject | Cloudflare explicitly warns it becomes a bottleneck [SYS-S12] |
+| One global Durable Object | Reject | Cloudflare explicitly warns it becomes a bottleneck [S-SYS-12] |
 | Full fidelity for 10,000 citizens | Reject as planning fiction | No measured event density, memory, storage, or player need |
 | Anonymous canonical public writes | Reject | Abuse, moderation, and denial-of-wallet risk |
 | Rust/WASM rewrite or custom WebGPU compute | Reject | No benchmark proves TypeScript is insufficient |
@@ -505,22 +505,22 @@ A later execution run must re-open Cloudflare pricing/limits/alarms/SQLite/secre
 
 | Provisional ID | Claim supported | Primary source | Accessed | Type | Confidence | Reopen note |
 |---|---|---|---|---|---|---|
-| SYS-S01 | Generative Agents used memory/reflection/planning and reports an ablation contribution to believability in a 25-agent sandbox | [Generative Agents paper](https://arxiv.org/abs/2304.03442) | 2026-08-20 | A, paper by authors | High for paper claim | Reopen for replication/generalization evidence |
-| SYS-S02 | CoALA proposes modular memory, structured action space, and generalized decision process | [CoALA paper](https://arxiv.org/abs/2309.02427) | 2026-08-20 | A, paper by authors | High | Framework is descriptive, not a game prescription |
-| SYS-S03 | Concordia grounds entity actions through environment/GM components and requires an LLM API | [DeepMind Concordia repository](https://github.com/google-deepmind/concordia) | 2026-08-20 | B | High | Reopen if a no-LLM mode appears |
-| SYS-S04 | Event sourcing provides replay/audit, snapshots are optimizations, and the pattern has substantial complexity/tradeoffs | [Microsoft Event Sourcing pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing) | 2026-08-20 | A | High | Reopen if source guidance materially changes |
-| SYS-S05 | IndexedDB is asynchronous, transactional structured browser storage available to workers | [MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) | 2026-08-20 | A/B reference | High | Confirm target-browser behavior in execution |
-| SYS-S06 | Browser storage quota and eviction behavior varies | [MDN storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) | 2026-08-20 | A/B reference | High | Reopen per supported browser release |
-| SYS-S07 | fast-check documents model-based command testing | [fast-check model-based testing](https://fast-check.dev/docs/advanced/model-based-testing/) | 2026-08-20 | B | High | Verify package version/license before install |
-| SYS-S08 | Inactive/hibernated Durable Objects avoid duration charge under documented conditions | [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) | 2026-08-20 | A | High | Reopen on deployment day |
-| SYS-S09 | A Durable Object has one alarm; alarms are at-least-once with retries; many events should be stored behind the next alarm | [Durable Objects alarms](https://developers.cloudflare.com/durable-objects/api/alarms/) | 2026-08-20 | A | High | Reopen on platform version change |
-| SYS-S10 | SQLite-backed Durable Object storage is the recommended backend for new classes | [Durable Object SQLite API](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/) | 2026-08-20 | A | High | Validate transactions/PITR/account tier later |
-| SYS-S11 | Individual Durable Objects are single-threaded with workload-dependent throughput/soft limits | [Durable Objects FAQ](https://developers.cloudflare.com/durable-objects/reference/faq/) | 2026-08-20 | A | High for documented soft limit | Benchmark actual workload |
-| SYS-S12 | Cloudflare advises one object per coordination atom and rejects one global singleton | [Rules of Durable Objects](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/) | 2026-08-20 | A | High | Reopen with region contention evidence |
-| SYS-S13 | Hibernation keeps WebSockets while objects sleep; batching reduces message overhead | [Durable Object WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/) | 2026-08-20 | A | High | Practical connection capacity needs load tests |
-| SYS-S14 | Current Workers Free/Paid request, CPU, minimum-price, and static-asset terms | [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) | 2026-08-20 | A | High on access date | Must reopen on execution/deployment day |
-| SYS-S15 | Current DO Free/Paid compute/storage pricing and Free hard-failure behavior | [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) | 2026-08-20 | A | High on access date | Docs contain storage-limit nuances; use lower bound until dashboard confirms |
-| SYS-S16 | OWASP lists prompt injection, insecure/improper output handling, excessive agency, and consumption risks | [OWASP LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/) | 2026-08-20 | A | High | Reopen for canonical 2026 final mapping |
-| SYS-S17 | Excessive-agency mitigations include minimal functionality/permissions and downstream authorization | [OWASP Excessive Agency](https://owasp.org/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html) | 2026-08-20 | A | High | None |
-| SYS-S18 | Unrestricted resource consumption includes cloud-cost attacks and calls for quotas/spend controls | [OWASP API4:2023](https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/) | 2026-08-20 | A | High | Map to current release during security review |
-| SYS-S19 | Workers secrets are encrypted bindings for API keys/auth tokens | [Cloudflare Workers secrets](https://developers.cloudflare.com/workers/configuration/secrets/) | 2026-08-20 | A | High | Confirm actual credential workflow before use |
+| S-SYS-01 | Generative Agents used memory/reflection/planning and reports an ablation contribution to believability in a 25-agent sandbox | [Generative Agents paper](https://arxiv.org/abs/2304.03442) | 2026-08-20 | A, paper by authors | High for paper claim | Reopen for replication/generalization evidence |
+| S-SYS-02 | CoALA proposes modular memory, structured action space, and generalized decision process | [CoALA paper](https://arxiv.org/abs/2309.02427) | 2026-08-20 | A, paper by authors | High | Framework is descriptive, not a game prescription |
+| S-SYS-03 | Concordia grounds entity actions through environment/GM components and requires an LLM API | [DeepMind Concordia repository](https://github.com/google-deepmind/concordia) | 2026-08-20 | B | High | Reopen if a no-LLM mode appears |
+| S-SYS-04 | Event sourcing provides replay/audit, snapshots are optimizations, and the pattern has substantial complexity/tradeoffs | [Microsoft Event Sourcing pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing) | 2026-08-20 | A | High | Reopen if source guidance materially changes |
+| S-SYS-05 | IndexedDB is asynchronous, transactional structured browser storage available to workers | [MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) | 2026-08-20 | A/B reference | High | Confirm target-browser behavior in execution |
+| S-SYS-06 | Browser storage quota and eviction behavior varies | [MDN storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) | 2026-08-20 | A/B reference | High | Reopen per supported browser release |
+| S-SYS-07 | fast-check documents model-based command testing | [fast-check model-based testing](https://fast-check.dev/docs/advanced/model-based-testing/) | 2026-08-20 | B | High | Verify package version/license before install |
+| S-SYS-08 | Inactive/hibernated Durable Objects avoid duration charge under documented conditions | [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) | 2026-08-20 | A | High | Reopen on deployment day |
+| S-SYS-09 | A Durable Object has one alarm; alarms are at-least-once with retries; many events should be stored behind the next alarm | [Durable Objects alarms](https://developers.cloudflare.com/durable-objects/api/alarms/) | 2026-08-20 | A | High | Reopen on platform version change |
+| S-SYS-10 | SQLite-backed Durable Object storage is the recommended backend for new classes | [Durable Object SQLite API](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/) | 2026-08-20 | A | High | Validate transactions/PITR/account tier later |
+| S-SYS-11 | Individual Durable Objects are single-threaded with workload-dependent throughput/soft limits | [Durable Objects FAQ](https://developers.cloudflare.com/durable-objects/reference/faq/) | 2026-08-20 | A | High for documented soft limit | Benchmark actual workload |
+| S-SYS-12 | Cloudflare advises one object per coordination atom and rejects one global singleton | [Rules of Durable Objects](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/) | 2026-08-20 | A | High | Reopen with region contention evidence |
+| S-SYS-13 | Hibernation keeps WebSockets while objects sleep; batching reduces message overhead | [Durable Object WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/) | 2026-08-20 | A | High | Practical connection capacity needs load tests |
+| S-SYS-14 | Current Workers Free/Paid request, CPU, minimum-price, and static-asset terms | [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) | 2026-08-20 | A | High on access date | Must reopen on execution/deployment day |
+| S-SYS-15 | Current DO Free/Paid compute/storage pricing and Free hard-failure behavior | [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) | 2026-08-20 | A | High on access date | Docs contain storage-limit nuances; use lower bound until dashboard confirms |
+| S-SYS-16 | OWASP lists prompt injection, insecure/improper output handling, excessive agency, and consumption risks | [OWASP LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/) | 2026-08-20 | A | High | Reopen for canonical 2026 final mapping |
+| S-SYS-17 | Excessive-agency mitigations include minimal functionality/permissions and downstream authorization | [OWASP Excessive Agency](https://owasp.org/www-project-top-10-for-large-language-model-applications/2_0_vulns/LLM06_ExcessiveAgency.html) | 2026-08-20 | A | High | None |
+| S-SYS-18 | Unrestricted resource consumption includes cloud-cost attacks and calls for quotas/spend controls | [OWASP API4:2023](https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/) | 2026-08-20 | A | High | Map to current release during security review |
+| S-SYS-19 | Workers secrets are encrypted bindings for API keys/auth tokens | [Cloudflare Workers secrets](https://developers.cloudflare.com/workers/configuration/secrets/) | 2026-08-20 | A | High | Confirm actual credential workflow before use |
