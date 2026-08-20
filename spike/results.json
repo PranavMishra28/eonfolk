@@ -1,0 +1,32 @@
+[
+  {
+    "profile": "desktop",
+    "viewport": "1728x1117@1x",
+    "meaningfulWorldMs": 978.25,
+    "medianFrameMs": 16.7,
+    "p95FrameMs": 17.1,
+    "maxFrameMs": 66.7,
+    "semanticButtons": 9,
+    "note": "One favicon 404; no application or WebGL error."
+  },
+  {
+    "profile": "laptop",
+    "viewport": "1366x768@1x",
+    "meaningfulWorldMs": 995.65,
+    "medianFrameMs": 16.7,
+    "p95FrameMs": 17.1,
+    "maxFrameMs": 66.7,
+    "semanticButtons": 9,
+    "note": "No captured console or page errors."
+  },
+  {
+    "profile": "mobile",
+    "viewport": "390x844@2x",
+    "meaningfulWorldMs": 915.2,
+    "medianFrameMs": 16.7,
+    "p95FrameMs": 17.3,
+    "maxFrameMs": 50,
+    "semanticButtons": 9,
+    "note": "No captured console or page errors; layout is usable but citizen controls overflow and the identity panel dominates the lower viewport."
+  }
+]
