@@ -1,1 +1,2 @@
 {"allocationId":"a7accc694f41fa7d7da873daf96216bf9946cc4335f3791310c8e1a1ed50a11e","evidenceRef":"finding:M0-INTEGRATED-BROWSER-PROTOCOL-REVIEW","findingId":"M0-INTEGRATED-BROWSER-PROTOCOL-REVIEW","purpose":"independent-confirmation","schemaVersion":"eonfolk-contingency-v1","seconds":1800,"taskId":"T03"}
+{"allocationId":"c4f243ba75c7b685583ca7603ee96686f7bb12827e16bfe36d6ead0f1ad0f27e","evidenceRef":"findings:M0-REVIEW-REPAIR-002","findingId":"M0-REVIEW-REPAIR-002","purpose":"blocking-fix","schemaVersion":"eonfolk-contingency-v1","seconds":3600,"taskId":"T03"}
