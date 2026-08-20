@@ -28,11 +28,13 @@ Acceptance—not elapsed time—ends work. If the irreducible loop cannot pass i
 
 ## Repository and human-evidence authority
 
-Implementation resolves and records one immutable `PLAN_BASE` from `origin/plan/000-product-foundation`, then creates `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation`. Production code never lands on this planning branch; without separate authority the implementation result remains committed, clean, unmerged, unpushed, and undeployed.
+Implementation resolves and records one immutable `PLAN_BASE` from `origin/plan/000-product-foundation`, then creates `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation`. An existing path/branch is resumed only from a clean manifest-only checkpoint commit whose manifest names its first parent as `expectedImplementationHead`; any other collision stops for operator direction. Production code never lands on this planning branch; without separate authority the implementation result remains committed, clean, unmerged, unpushed, and undeployed.
 
 Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. Codex prepares the build, frozen voluntary informed-participation script, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. No PII/recording is collected; eligibility, affirmative agreement, withdrawal, raw responses, and sign-off are operator-attested. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
 
 ## Hour and scope budget
+
+These six milestones are ordered and non-coalescible; additional runnable checkpoints may be inserted.
 
 | Milestone | Planned hours | Nonnegotiable outcome |
 |---|---:|---|
@@ -175,7 +177,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Rollback:** if the real state-sensitive loop does not beat a yoked script in a small diagnostic review, stop/reopen product before world/polish; do not add dialogue/content.
 
-**Reviewers:** product/game, systems/causality, cognition/eval.
+**Reviewers:** product/game, systems/causality, cognition/eval, and visual/accessibility for the semantic UI change.
 
 **Done:** three reproducible terminal hashes and branch-specific Chronicles exist; one outcome-dependent second command mutates state; reviewers find no P0/P1.
 
@@ -189,7 +191,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** full PR baseline; resource/ownership/need/action/movement/exchange/repair invariants; 24h/7d foreground/catch-up equivalence; 30/90/365 exact-horizon runs under [simulation caps](../../engineering/SIMULATION.md); `pnpm exec playwright test --grep @gate-a`; payload/frame/load measurement.
 
-**Browser/visual evidence:** named manifests at 1728×1117, 1366×768, 390×844 for arrival, Mara, three activities, authoritative interaction, reload, semantic mode, keyboard, reduced motion, 200% zoom, clustered targets. Five silent unfamiliar observers; declared 3/5 and 4/5 thresholds from Quality Bar.
+**Browser/visual evidence:** named manifests at 1728×1117, 1366×768, 390×844 for arrival, Mara, three activities, authoritative interaction, reload, semantic mode, keyboard, reduced motion, 200% zoom, clustered targets. All five silent unfamiliar observers use one frozen Gate A application commit, seed, and simulation-time fixture; only the Gate 0 questions/rubric are reused. Apply the declared 3/5 and 4/5 thresholds from Quality Bar.
 
 **Performance/security/eval:** shell ≤200 KB gzip; route JS ≤650 KB; assets ≤6 MB desktop/4 MB mobile; shell/Mara ≤2s, CTA ≤3s, meaningful world ≤3s target desktop/≤5s mobile profile; desktop p95 ≤16.7 ms, mobile ≤33.3; eight default, twelve measurement-only practical. No canvas-only fact/action.
 
@@ -209,7 +211,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** full PR baseline, `@gate-b`, sentence-to-event/provenance audit, causal/related/allegation vocabulary, card copy, replay without cognition, full noninterference, all branch hashes, second-action eligibility/effect.
 
-**Browser/visual evidence:** full journey at three viewports plus [Quality Bar's exact Gate B instrument](../../quality/QUALITY_BAR.md#gate-b--proof-of-agency-and-bounded-attachment): eight fresh sessions, frozen study seed/manifest, exact four/four order, byte-identical conditions, anchored contingency/continue questions, reason/choice/consequence/save rubric, and unprompted 60-second second action. Require 6/8, 5/8, 4/8 and strictly higher eight-person real mean on both scales; ties fail. Five fresh card viewers use the exact five-question/five-second rubric; require 3/5. Record all failures/withdrawal.
+**Browser/visual evidence:** full journey at three viewports plus [Quality Bar's exact Gate B instrument](../../quality/QUALITY_BAR.md#gate-b--proof-of-agency-and-bounded-attachment): eight fresh sessions, frozen study seed/manifest, exact four/four order, byte-identical conditions, anchored contingency/continue questions, reason/choice/consequence/save rubric, and unprompted 60-second second action. Advice time begins when Follow Mara is enabled; second-action time begins when the changed return/action are enabled; prompts and ratings occur after each condition before the other. The 6/8, 5/8, and 4/8 thresholds score the real condition only and are independent participant subsets; both conditions supply the strictly compared eight-person means. Five fresh card viewers see the one branch deterministically selected and committed by the Goal prompt before exposure, then use the exact five-question/five-second rubric; require 3/5. Record all failures/withdrawal.
 
 **Performance/security/eval:** Gate A budgets remain passing. Escaped template text only; evidence disclosure resolves each sentence. Mara is recognizable across world/portrait/return/Chronicle and at least 4/8 express person-centered concern/curiosity.
 

@@ -2,7 +2,7 @@
 
 **Purpose:** provide a complete zero-context Codex Goal-mode orchestration prompt for the accepted local Riverhold proof.
 
-**Status:** CANDIDATE FOR FINAL ZERO-CONTEXT REVIEW — implementation is not authorized by this planning run
+**Status:** READY FOR FUTURE OPERATOR-AUTHORIZED EXECUTION. Presence in the planning repository is not implementation authority; an operator's future invocation of these exact bytes as the Goal prompt authorizes only the local actions and stops stated below.
 
 **Authority boundary:** this file owns future orchestration behavior. The embedded product/technical contract is self-contained; during execution, `docs/exec-plans/active/001-foundation.md` is the living evidence log.
 
@@ -18,7 +18,7 @@ Do not merge, deploy, publish, spend, enable billing, buy a domain, or contact u
 
 ## Repository outcome and human-evidence mode
 
-Begin from the exact commit resolved once from `origin/plan/000-product-foundation`; record that immutable SHA as `PLAN_BASE` before editing. Before creating anything, read-only inspect `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` and `codex/eonfolk-001-foundation`. Never delete, reset, switch, or reuse an existing path/branch automatically. Resume only when a committed `docs/exec-plans/evidence/001/resume.json` names that path/branch, same `PLAN_BASE`, current head, and clean state; otherwise stop for operator direction. If neither exists, create that worktree/branch from `PLAN_BASE`. Never put production code on the planning branch. Child commits may be cherry-picked into this implementation branch after inspection; “unmerged” means the implementation branch is not merged into the planning branch, `main`, or any remote target. Finish with it committed, clean, unpushed, and undeployed unless the operator separately authorizes one of those actions.
+Begin from the exact commit resolved once from `origin/plan/000-product-foundation`; record that immutable SHA as `PLAN_BASE` before editing. Before creating anything, read-only inspect `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` and `codex/eonfolk-001-foundation`. Never delete, reset, switch, or reuse an existing path/branch automatically. Resume only from a clean **manifest-only checkpoint commit** at current `HEAD`: `docs/exec-plans/evidence/001/resume.json` must name the path/branch and same `PLAN_BASE`, and its `expectedImplementationHead` must equal the checkpoint commit's first parent. Before any voluntary pause, first commit all integrated work, then create that manifest-only checkpoint commit and stop clean. If an existing path/branch does not satisfy this exact non-circular test, stop for operator direction. If neither exists, create that worktree/branch from `PLAN_BASE`. Never put production code on the planning branch. Child commits may be cherry-picked into this implementation branch after inspection; “unmerged” means the implementation branch is not merged into the planning branch, `main`, or any remote target. Finish with it committed, clean, unpushed, and undeployed unless the operator separately authorizes one of those actions.
 
 An authorized human operator—not Codex—supplies unfamiliar participants for Gate 0, Gate A, and Gate B and places signed-off, anonymized results at `docs/exec-plans/evidence/001/gate-0-human.json`, `gate-a-human.json`, `gate-b-human.json`, and `story-card-human.json`. Each names the commit, seed, script, assignments, raw responses, abandonment, and operator sign-off. Codex may prepare local builds, frozen scripts, counterbalancing, a voluntary informed-participation script, and blank manifests; it must not recruit, contact, impersonate, or fabricate participants, and planning personas are not human evidence. M1 is the first production milestone: creation or integration of durable protocol/simulation packages. If Gate 0 human evidence is unavailable, finish the disposable harness and automated checks, then stop before any M1/production package or application code with `BLOCKED—HUMAN EVIDENCE REQUIRED`. After Gate 0 passes, continue all safe non-human work while later human sessions are pending, but never mark Gate A/B passed or claim readiness without operator-supplied manifests.
 
@@ -34,7 +34,31 @@ An authorized human operator—not Codex—supplies unfamiliar participants for 
 
 The only permitted cut ladder is: (1) particles, weather, parallax, and sound; (2) discretionary art and transition polish; (3) the measurement-only twelve-citizen presentation stress target; (4) replace Living Woodcut rendering with stripped Weathered Atlas markers and the semantic view. Never cut Gate 0/A/B, deterministic or durable contracts, security, accessibility, eight default citizens, three resources, the divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes and confirmation only, never features.
 
-Focused hours are summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent reviews; parallel work is added, not discounted. Participant response time and scheduling waits are separate elapsed time, while operator logistics/evidence processing count. Precommit and continuously update this bottom-up estimate (low/expected/high hours): Gate 0 variants/instrument `0.75/1.25/1.75`; Gate 0 operator sessions/analysis `1/1.75/2.5`; render kill spike/review `0.5/1/1.5`; byte contracts/vectors `2.5/3/3.75`; reducer/scheduler `1.5/2/2.5`; IndexedDB durability/failures `2.5/3/3.75`; semantic Mara loop `3/4/5`; visibility/Brain/evals `1.75/2.5/3.25`; plain Chronicle/e2e `1/1.5/2`; eight-citizen systems/horizons `4/5/6`; Pixi/access/degradation `3/4/5`; Gate A evidence/reviews `2/3/4`; final branches/WYA/card `4/5/6`; yoked study harness `1.5/2/2.5`; Gate B/card sessions/reviews `4/5/6`; correctness/security/CI drill `2.5/3/3.5`; final device/performance/access package `1.5/2/2.5`; final diff review/fix/rerun/handoff `2.5/3/3.5`. Totals are `39.5/52/65`; expected preserves eight hours to the hard ceiling, while a high trajectory requires declared cuts/reopen rather than overrun. Gate ownership is unique in the same order: product/visual kill; bytes/replay; durability/version/export; visibility/Brain; invariants/horizons; Gate A; Gate B/card; security/dependencies; performance/access. Re-estimate remaining rows after each runnable milestone. M0, including evidence processing, must fit four summed hours or work stops before production foundations.
+Focused hours are summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent reviews; parallel work is added, not discounted. Participant response time and scheduling waits are separate elapsed time, while operator logistics/evidence processing count. Precommit and continuously update this exact bottom-up estimate:
+
+| ID | Blocking task | Low / expected / high hours |
+|---|---|---:|
+| T01 | Gate 0 variants/instrument | 0.75 / 1.25 / 1.75 |
+| T02 | Gate 0 operator sessions/analysis | 1 / 1.75 / 2.5 |
+| T03 | Render kill spike/review | 0.5 / 1 / 1.5 |
+| T04 | Byte contracts/vectors | 2.5 / 3 / 3.75 |
+| T05 | Reducer/scheduler | 1.5 / 2 / 2.5 |
+| T06 | IndexedDB durability/failures | 2.5 / 3 / 3.75 |
+| T07 | Semantic Mara loop | 3 / 4 / 5 |
+| T08 | Visibility/Brain/evals | 1.75 / 2.5 / 3.25 |
+| T09 | Plain Chronicle/e2e | 1 / 1.5 / 2 |
+| T10 | Eight-citizen systems/horizons | 4 / 5 / 6 |
+| T11 | Pixi/access/degradation | 3 / 4 / 5 |
+| T12 | Gate A evidence/reviews | 2 / 3 / 4 |
+| T13 | Final branches/WYA/card | 4 / 5 / 6 |
+| T14 | Yoked study harness | 1.5 / 2 / 2.5 |
+| T15 | Gate B/card sessions/reviews | 4 / 5 / 6 |
+| T16 | Correctness/security/CI drill | 2.5 / 3 / 3.5 |
+| T17 | Final device/performance/access package | 1.5 / 2 / 2.5 |
+| T18 | Final diff review/fix/rerun/handoff | 2.5 / 3 / 3.5 |
+| **Total** | **18 tasks** | **39.5 / 52 / 65** |
+
+Machine-sum all 18 rows before work and after each change; any mismatch blocks work. Expected preserves eight hours to the hard ceiling, while a high trajectory requires declared cuts/reopen rather than overrun. Gate ownership is unique in task order: product/visual kill; bytes/replay; durability/version/export; visibility/Brain; invariants/horizons; Gate A; Gate B/card; security/dependencies; performance/access. Re-estimate remaining rows after each runnable milestone. M0, including evidence processing, must fit four summed hours or work stops before production foundations.
 
 ## Accepted product and honest claim
 
@@ -85,21 +109,25 @@ Living Woodcut gets one simplification pass; then use stripped Weathered Atlas/s
 
 ## Gate A — Proof of Life
 
-The actual game shows eight Standard-Brain citizens, three resources, four readable behavior families, one story-relevant exchange/repair, and a two-citizen interaction that changes authoritative state. A fresh five-person cohort uses the identical named commit/seed/time and the exact Gate 0 observer instrument: at second 60, point to Mara; name three citizen activities; identify both interaction participants and the authoritative change; separately time Follow Mara and ask whether the player can command her movement/work and why. Require 3/5 to pass the full activity+interaction rubric and 4/5 to find Follow Mara within ten seconds plus answer no with a self-direction reason. No log, narration, prompting, or replacement participant. The same facts/actions exist in semantic view. No model or external-egress path is present.
+The actual game shows eight Standard-Brain citizens, three resources, four readable behavior families, one story-relevant exchange/repair, and a two-citizen interaction that changes authoritative state. All five fresh Gate A participants use one frozen **Gate A application commit**, one Gate A seed, and one simulation-time fixture; “same” means identical across Gate A participants, never the discarded Gate 0 prototype. Reuse only the exact Gate 0 observer questions and scoring rubric: at second 60, point to Mara; name three citizen activities; identify both interaction participants and the authoritative change; separately time Follow Mara and ask whether the player can command her movement/work and why. Require 3/5 to pass the full activity+interaction rubric and 4/5 to find Follow Mara within ten seconds plus answer no with a self-direction reason. No log, narration, prompting, or replacement participant. The same facts/actions exist in semantic view. No model or external-egress path is present.
 
 Capture reproducible evidence at 1728×1117, 1366×768, and 390×844 plus keyboard, reduced motion, 200% zoom, clustered targets, storage failure, and semantic degradation.
 
 ## Gate B — Proof of agency and bounded attachment
 
-Eight fresh unfamiliar formative sessions see real state-sensitive behavior and a yoked scripted/canonical-lookup control with byte-identical starting snapshot, visible facts, choices, copy, consequence timing, and presentation; only the state-sensitive chooser versus precommitted advice-keyed canonical lookup differs. Assign exactly four real-first/four control-first. Use `studySeed` as `worldSeed32` with stream `(system="study",entityId=gateId,purpose="assignment")`; for Fisher–Yates iterate `i=7..1`, set `m=i+1`, `limit=floor(2^32/m)*m`, draw until `u32 < limit`, set `j=u32 mod m`, and swap positions `i,j` in `[P01..P08]`; first four shuffled IDs are real-first. After each condition/before the other, ask exactly: `Contingency: How much did Mara's choice and the outcome depend on the visible facts, her values/relationships, and your advice?` from 1 `not at all; it seemed fixed or unrelated` to 7 `strongly; changing those inputs could change it`; and `Continue: How much do you want to take the next Riverhold action now?` from 1 `not at all` to 7 `very strongly`. Missing either rating or withdrawal automatically fails Gate B; never impute or replace.
+Eight fresh unfamiliar formative sessions see real state-sensitive behavior and a yoked scripted/canonical-lookup control with byte-identical starting snapshot, visible facts, choices, copy, consequence timing, and presentation; only the state-sensitive chooser versus precommitted advice-keyed canonical lookup differs. Assign exactly four real-first/four control-first. Use `studySeed` as `worldSeed32` with stream `(system="study",entityId=gateId,purpose="assignment")`; for Fisher–Yates iterate `i=7..1`, set `m=i+1`, `limit=floor(2^32/m)*m`, draw until `u32 < limit`, set `j=u32 mod m`, and swap positions `i,j` in `[P01..P08]`; first four shuffled IDs are real-first.
+
+For **each** condition, start the five-minute advice clock at the first painted frame where Follow Mara is enabled and focusable. After advice confirmation (or timeout), run the frozen leave/advance/return sequence. Start the 60-second second-action clock at the first painted frame where the changed return world and its branch-legal action are both visible and the action is enabled/focusable. After that action or timeout, and before showing the other condition, ask the four frozen comprehension prompts in the listed order and then ask exactly: `Contingency: How much did Mara's choice and the outcome depend on the visible facts, her values/relationships, and your advice?` from 1 `not at all; it seemed fixed or unrelated` to 7 `strongly; changing those inputs could change it`; and `Continue: How much do you want to take the next Riverhold action now?` from 1 `not at all` to 7 `very strongly`. Missing either rating in either condition or withdrawal automatically fails Gate B; never impute or replace.
 
 Require:
 
-- 6/8 select one advice/abstain option and confirm it within five minutes with no spoken/visual cue beyond the frozen UI;
-- 5/8 answer all four frozen prompts correctly: `What visible reason mattered most to Mara?`, `Was her choice yours or hers?`, `What later authoritative change followed?`, and `Where is this save kept?`; the fixture rubric requires the branch's decisive receipt term, `hers`, the branch event, and `this local browser/device`;
-- 4/8, after the changed return world appears, initiate the branch-legal second action within 60 seconds without prompting and answer `Why take that action?`; the frozen rubric requires a Mara/Toma concern, curiosity, obligation, or anticipated relationship consequence rather than reward/technology praise;
+- on the **real state-sensitive condition only**, 6/8 select one advice/abstain option and confirm it within that condition's five-minute clock with no spoken/visual cue beyond the frozen UI;
+- on the **real condition only**, 5/8 answer all four prompts asked immediately after that condition correctly: `What visible reason mattered most to Mara?`, `Was her choice yours or hers?`, `What later authoritative change followed?`, and `Where is this save kept?`; the fixture rubric requires the branch's decisive receipt term, `hers`, the branch event, and `this local browser/device`;
+- on the **real condition only**, 4/8 initiate its branch-legal second action within that condition's 60-second clock without prompting and answer `Why take that action?`; the frozen rubric requires a Mara/Toma concern, curiosity, obligation, or anticipated relationship consequence rather than reward/technology praise;
 - the real build's eight-person arithmetic mean is strictly higher than the control mean on both perceived contingency and desire to continue; either tie or reversal fails; and
-- five separate fresh context-free Story Card viewers see only the card for five seconds, then answer exactly: `Who advised? What did Mara choose? What followed? Did the advice directly make Mara act or change the rule? What remains unresolved?` At least 3/5 answer `the player/you` for adviser, the fixture's Mara choice, the branch consequence, `no—advice only contributed`, and the card's unresolved tension.
+- five separate fresh context-free Story Card viewers see only the deterministically selected card for five seconds, then answer exactly: `Who advised? What did Mara choose? What followed? Did the advice directly make Mara act or change the rule? What remains unresolved?` Derive `cardSeed = SHA-256(UTF8("EONFOLK-STORY-CARD-v1\n" + PLAN_BASE + "\n" + gateId))`; read successive big-endian `u32` words, rejecting `u32 >= floor(2^32/3)*3`, and select `[verify-private, accuse-now, abstain]` at `u32 mod 3`. Commit the chosen branch/card before viewer exposure. At least 3/5 answer `the player/you` for adviser, that selected branch's Mara choice, its consequence, `no—advice only contributed`, and its unresolved tension.
+
+The 6/8, 5/8, and 4/8 thresholds are three independent counts across the same eight participants' **real-condition** records; the same participants need not comprise all three passing subsets. Record the control-condition counterparts as diagnostic evidence, but they do not satisfy those three thresholds.
 
 Record all failures and uncertainty; do not report statistical validation. Immediate reload proves persistence, not retention.
 
@@ -280,7 +308,18 @@ Update `docs/exec-plans/active/001-foundation.md` at every integration boundary 
 
 ## Mandatory implementation/review/fix loop
 
-A milestone is a vertically runnable integration checkpoint with its named player outcome, not a package or child commit. For every milestone, run:
+A milestone is a vertically runnable integration checkpoint with its named player outcome, not a package or child commit. These six checkpoints are minimum, ordered, non-coalescible milestones; additional ones are allowed:
+
+| Milestone | Required integrated outcome | Independent reviewer roles before close |
+|---|---|---|
+| M0 | Disposable product/visual kill harness and signed Gate 0 evidence | Product/game; visual/accessibility |
+| M1 | Deterministic durable kernel with golden/crash/replay evidence | Systems/correctness |
+| M2 | Runnable semantic Mara investigate/advice/divergence/return loop | Product/game; systems/correctness; cognition/eval; visual/accessibility |
+| M3 | Eight-citizen rendered world, persistence/catch-up, signed Gate A evidence | Product/game; systems/correctness; visual/accessibility |
+| M4 | Three integrated outcomes, Chronicle/card, yoked study, signed Gate B/card evidence | Product/game; systems/correctness; cognition/eval; visual/accessibility |
+| M5 | Full security/performance/access/CI rehearsal and final named-diff package | Product/game; systems/correctness; cognition/eval; visual/accessibility |
+
+For every milestone, run:
 
 `implementation → focused tests → full relevant tests → actual local game run → browser playtest → evidence capture → independent review → fix → rerun`
 
