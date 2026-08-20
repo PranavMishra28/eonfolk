@@ -1,0 +1,37 @@
+{
+  "recordedAt": "2026-08-20T07:15:55.402Z",
+  "model": "qwen3-coder:30b",
+  "modelProvenance": "existing local Ollama model; no network inference or new download",
+  "contextHash": "45fc31db3d5d1562cb235340db5a45b0ec7191287fdcef86493e4538d76e8878",
+  "deterministicFallback": {
+    "action": "help_mara",
+    "target": "mara",
+    "publicJustification": "I will address the most urgent visible commitment within today's effort."
+  },
+  "fallbackValidation": { "accepted": true, "reason": "validated" },
+  "firstModelRun": {
+    "proposal": {
+      "action": "help_mara",
+      "target": "mara",
+      "publicJustification": "Mara asked for help repairing the east well and keeps promises, so assisting her fulfills both the immediate request and"
+    },
+    "elapsedMs": 8064.49,
+    "promptEvalCount": 175,
+    "evalCount": 52,
+    "validation": { "accepted": true, "reason": "validated" },
+    "staleValidation": { "accepted": false, "reason": "stale_revision" }
+  },
+  "replannedModelRun": {
+    "proposal": {
+      "action": "speak_to_ioren",
+      "target": "ioren",
+      "publicJustification": "Mara asked for help repairing the east well and Ioren is waiting at the market, so communicating with Ioren will help协调和"
+    },
+    "elapsedMs": 854.88,
+    "promptEvalCount": 168,
+    "evalCount": 58,
+    "validation": { "accepted": true, "reason": "validated" }
+  },
+  "modelError": null,
+  "interpretation": "Schema and authorization passed, but both public justifications failed player-facing copy quality: one was incomplete and one ended in unintended Chinese text. Optional cognition therefore requires bounded presentation sanitization or deterministic authoring and cannot be foundational."
+}
