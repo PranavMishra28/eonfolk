@@ -110,6 +110,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Visual direction, access and solo asset-burden red team | [DESIGN_RED_TEAM.md](reviews/DESIGN_RED_TEAM.md) |
 | Five hostile player-perspective walkthroughs | [PLAYER_PERSPECTIVES.md](reviews/PLAYER_PERSPECTIVES.md) |
 | Final cross-discipline review and frozen findings | [FINAL_RED_TEAM.md](reviews/FINAL_RED_TEAM.md) |
+| Targeted confirmation of final cross-discipline fixes | [FINAL_CONFIRMATION.md](reviews/FINAL_CONFIRMATION.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene

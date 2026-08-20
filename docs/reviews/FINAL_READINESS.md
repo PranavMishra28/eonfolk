@@ -2,7 +2,7 @@
 
 **Purpose:** answer the twelve product-readiness questions concretely and audit the decision-complete exit conditions.
 
-**Status:** CANDIDATE — awaiting final independent cross-discipline review and repository QA
+**Status:** CANDIDATE — cross-discipline confirmation passed; Goal-prompt confirmation and repository QA pending
 
 **Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/active/001-foundation.md).
 
@@ -56,7 +56,7 @@ That limited indirect advice plus deterministic behavior creates care and respon
 
 ### 12. Which experiment falsifies it fastest?
 
-Gate 0 first: five unfamiliar participants compare randomized ugly one-citizen/family/trio/faction/ECHOHOUSE/direct-control versions of the same decision. Then, before polish, eight unfamiliar sessions compare the real state-sensitive DOM loop with a yoked canonical script. Reopen if an alternative wins overall/≥20 points on desirability/continue, the real loop fails to beat script on contingency/continue, fewer than four of eight take the outcome-dependent second action for a person-centered reason, or branches converge.
+Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/faction/ECHOHOUSE/direct-control versions of the same decision under a complete balanced Williams schedule. Then, before polish, eight unfamiliar sessions compare the real state-sensitive DOM loop with a yoked canonical script. Reopen if Riverhold loses the unique rank/four-of-six floor, an alternative exceeds it by at least two true responses on desirability/continue, the real loop fails to beat script on contingency/continue, fewer than four of eight take the outcome-dependent second action for an objective person-centered reason token, or branches converge.
 
 ## Contradiction audit
 
@@ -95,7 +95,7 @@ Gate 0 first: five unfamiliar participants compare randomized ugly one-citizen/f
 - [x] Distribution and model ecology alter V1 scope rather than remain prose appendices.
 - [x] Top decisions, assumptions, and abandon/change triggers are present.
 - [x] Four frozen red teams and five hostile perspectives are reconciled.
-- [ ] Final independent cross-discipline reviewer finds no P0/P1, or targeted confirmation closes the one allowed fix pass.
+- [x] Final independent cross-discipline review findings were fixed and the one targeted confirmation passed.
 - [ ] Goal prompt passes fresh zero-context review.
 - [ ] Final Markdown/link/source/contradiction/secret/license/code/Git QA passes.
 - [ ] Branch is pushed and exactly one draft PR exists; it is not merged.

@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
 
-**Status:** FROZEN REVIEWS COMPLETE; RECONCILIATION UNDER FINAL QA
+**Status:** PRODUCT/TECHNICAL REVIEWS RECONCILED; GOAL-PROMPT CONFIRMATION AND FINAL HANDOFF IN PROGRESS
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -25,7 +25,7 @@
 | 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
-| 6. Reconciliation, final review, QA and draft PR | In progress | P0/P1 mapping and revised authorities complete; final independent review/QA/PR remain |
+| 6. Reconciliation, final review, QA and draft PR | In progress | Final cross-discipline confirmation passed; Goal-prompt confirmation, repository QA and PR remain |
 
 ## Integration history
 
@@ -47,6 +47,11 @@
 | Game frozen red team | `review/game` / `3cb33e8e` | `0bb14aa` | `GAME_RED_TEAM.md` only | Frozen parent, one-file diff and checks inspected after all four completed |
 | Engineering frozen red team | `review/engineering` / `6e3695a1` | `698c268` | `ENGINEERING_RED_TEAM.md` only | Frozen parent, one-file diff and checks inspected after all four completed |
 | Design frozen red team | `review/design` / `1934bd18` | `b51f7fc` | `DESIGN_RED_TEAM.md` only | Frozen parent, one-file diff and checks inspected after all four completed |
+| Authority reconciliation | coordinator | `6850b69` | Shared decisions/product/game/design/engineering/quality/ExecPlan authorities | Every frozen P0/P1 mapped, actual diff and contradiction matrix inspected |
+| Final cross-discipline review | `review/final` / `cb978be` | `337326b` | `FINAL_RED_TEAM.md` only | Review pinned to `6850b699`; five P1 and one P2 findings recorded without edits |
+| Final bounded fixes | coordinator | `94f3acd` | Determinism, visibility, estimate, Gate 0, Riverhold and source-ledger authorities | Named baseline diff, vectors, source IDs, links and contradictions checked |
+| Targeted final confirmation | `review/final-confirmation` / `e56caf5` | `4e82450` | `FINAL_CONFIRMATION.md` only | Independent confirmation passed FR-001–FR-006 against named commits |
+| Goal-mode prompt hardening | coordinator plus zero-context review rounds | `9a2a893` | `IMPLEMENTATION_GOAL_PROMPT.md` and frozen dependency evidence | Nine failing reviews converted into closed execution/evidence/recovery contracts; final fresh review pending |
 
 Research branches were not pushed. The coordinator staged explicit paths and integrated only clean commits.
 
@@ -84,7 +89,7 @@ The initial synthesis is frozen at full SHA **`4f47eae8fe785f3994e053d01c184e9e3
 - [x] Self-contained implementation Goal prompt revised after red team.
 - [x] Four frozen-state reviews and five player perspectives complete.
 - [x] Every P0/P1 mapped to a disposition and affected authorities revised.
-- [ ] Final cross-discipline review and any single targeted confirmation complete.
+- [x] Final cross-discipline review and one targeted confirmation complete.
 - [ ] Final readiness answers specific/falsifiable and Goal prompt passes zero-context review.
 - [ ] Internal links, source IDs, contradictions, Markdown and Git diff pass final QA.
 - [ ] Scratch worktrees removed with SHAs retained in this plan.
