@@ -59,7 +59,7 @@ It differs at behavior level by:
 4. event-grounded causal history rather than dialogue or agent logs as the primary explanation;
 5. a free local-first proof with no key/model requirement rather than a paid shared economy or operator API.
 
-Competitor research shows SEED already occupies persistent shared society, autonomous characters, offline progression, economy, governance, and death [S-GAME-003] [S-GAME-005]. “Persistent AI society” is therefore neither an empty category nor a differentiator.
+Competitor research shows SEED already occupies persistent shared society, autonomous characters, offline progression, economy, governance, and death [S-PLAYER-008] [S-COMP-002]. “Persistent AI society” is therefore neither an empty category nor a differentiator.
 
 ## Model-ecology product rule
 
@@ -72,7 +72,7 @@ The Standard Brain owns complete routine behavior. Optional local/hosted models 
 - Settlement god-game: encourages activity generation and micromanagement.
 - Shared always-on civilization: compelling future hypothesis, fatal first-slice operations mismatch.
 - ECHOHOUSE: sharper crisis pacing, but disposable world continuity, authored-content burden, and foundational model inference lose the same rubric.
-- “Chat with anyone”: generated language does not guarantee behavior, causality, or care [S-GAME-004].
+- “Chat with anyone”: generated language does not guarantee behavior, causality, or care [S-PLAYER-010].
 
 ## Reopen evidence
 

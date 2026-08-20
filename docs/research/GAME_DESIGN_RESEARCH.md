@@ -143,18 +143,18 @@ Starting with one sponsored citizen is a camera and responsibility decision, not
 
 The winning structure deliberately proves only a local single-save semantic canon. It uses no accounts, deployment, hosted inference, training, proprietary data, regulated data, payments, partners, or enterprise motion. The first slice spends implementation complexity on one visible citizen decision, causal state, persistence, and return—not on governance depth, economic breadth, lineage simulation, public canon, or private forks.
 
-## Proposed source-ledger rows
+## Verified source-ledger mappings
 
-The coordinator should verify and remap these existing research IDs rather than duplicate claims:
+The coordinator verified the underlying pages on 2026-08-20 and mapped these claims to existing canonical ledger rows rather than duplicating them:
 
-| Proposed ID | Claim consumed here | Direct source | Accessed | Class | Confidence | Consumer |
+| Ledger ID | Claim consumed here | Direct source | Accessed | Class | Confidence | Consumer |
 |---|---|---|---|---|---|---|
-| S-GAME-001 | Different forecasted story states increased reported agency in an n=88 experiment | [Cardona-Rivera et al., AIIDE 2014](https://ojs.aaai.org/index.php/AIIDE/article/view/12716) | 2026-08-20 | C | High for study; Medium for transfer | GAME_DESIGN_RESEARCH, HUMAN_LOOP |
-| S-GAME-002 | Choice meaningfulness was associated with moral, social, and consequential characteristics | [Iten et al., CHI 2018](https://edoc.unibas.ch/entities/publication/c0880d6c-7f2a-4a68-ac0d-7e3127770f38) | 2026-08-20 | C | High for study | GAME_DESIGN_RESEARCH, HUMAN_LOOP |
-| S-GAME-003 | One month-long SEED account documents shared-society attraction and schedule/absence/loss anxiety | [TechRadar, 2026-08-15](https://www.techradar.com/gaming/pc-gaming/i-think-seed-is-the-dawn-of-a-new-age-for-mmos-after-spending-one-month-building-a-metropolis-with-strangers-this-imperfect-yet-addictive-life-sim-feels-like-the-next-big-thing) | 2026-08-20 | C | Medium; one reviewer | GAME_DESIGN_RESEARCH, PRODUCT |
-| S-GAME-004 | Generated-agent dialogue can remain personality-readable yet repetitive and incoherent | [PC Gamer, 2026-07-24](https://www.pcgamer.com/games/sim/mmo-life-sim-seeds-ai-powered-avatars-prove-once-again-that-nothing-shatters-immersion-quicker-than-crappy-chatbot-dialogue/) | 2026-08-20 | C | Medium; one reviewer | PRODUCT, AGENT_LIFE |
-| S-GAME-005 | SEED officially describes semi-autonomous lives, markets, contracts, governance, progression, and finite-life structures | [SEED terms, updated 2026-07-21](https://seed.game/legal/terms-of-use) | 2026-08-20 | A | High | PRODUCT, WORLD_STRUCTURE |
-| S-GAME-006 | Generative Agents found observation, planning, and reflection contributed to perceived believability in its evaluated sandbox | [Park et al., UIST 2023](https://dl.acm.org/doi/10.1145/3586183.3606763) | 2026-08-20 | C | High for paper; Low for consumer retention | AGENT_LIFE |
+| S-PLAYER-003 | Different forecasted story states increased reported agency in an n=88 experiment | [Cardona-Rivera et al., AIIDE 2014](https://ojs.aaai.org/index.php/AIIDE/article/view/12716) | 2026-08-20 | C | High for study; Medium for transfer | GAME_DESIGN_RESEARCH, HUMAN_LOOP |
+| S-PLAYER-004 | Choice meaningfulness was associated with moral, social, and consequential characteristics | [Iten et al., CHI 2018](https://edoc.unibas.ch/entities/publication/c0880d6c-7f2a-4a68-ac0d-7e3127770f38) | 2026-08-20 | C | High for study | GAME_DESIGN_RESEARCH, HUMAN_LOOP |
+| S-PLAYER-008 | One month-long SEED account documents shared-society attraction and schedule/absence/loss anxiety | [TechRadar, 2026-08-15](https://www.techradar.com/gaming/pc-gaming/i-think-seed-is-the-dawn-of-a-new-age-for-mmos-after-spending-one-month-building-a-metropolis-with-strangers-this-imperfect-yet-addictive-life-sim-feels-like-the-next-big-thing) | 2026-08-20 | C | Medium; one reviewer | GAME_DESIGN_RESEARCH, PRODUCT |
+| S-PLAYER-010 | Generated-agent dialogue can remain personality-readable yet repetitive and incoherent | [PC Gamer, 2026-07-24](https://www.pcgamer.com/games/sim/mmo-life-sim-seeds-ai-powered-avatars-prove-once-again-that-nothing-shatters-immersion-quicker-than-crappy-chatbot-dialogue/) | 2026-08-20 | C | Medium; one reviewer | PRODUCT, AGENT_LIFE |
+| S-COMP-002 | SEED officially describes semi-autonomous lives, markets, contracts, governance, progression, and finite-life structures | [SEED terms, updated 2026-07-21](https://seed.game/legal/terms-of-use) | 2026-08-20 | A | High | PRODUCT, WORLD_STRUCTURE |
+| S-SYS-01 | Generative Agents found observation, planning, and reflection contributed to perceived believability in its evaluated sandbox | [Park et al., UIST 2023](https://arxiv.org/abs/2304.03442) | 2026-08-20 | A | High for paper; Low for consumer retention | AGENT_LIFE |
 
 ## Handoff
 
