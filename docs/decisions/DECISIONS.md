@@ -293,5 +293,13 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | Z6-008 | P1 | ACCEPT — MITIGATED | Goal invocation requires the exact already-installed Chromium path/version/SHA and stops rather than downloading on mismatch. | PERFORMANCE, PROPOSED_TOOLS, Goal prompt |
 | Z6-009 | P1 | ACCEPT — MITIGATED | Navigation timing origin, visibility timing seed/order/warmup/analyzer, raw retention and changed-commit-only reruns make performance/security results reproducible. | COGNITION, PERFORMANCE, TESTING, Goal prompt |
 | Z6-010 | P2 | ACCEPT — MITIGATED | Human text/file byte budgets, test-only synthetic PLAN_BASE label, `gzip -9 -n`, and an explicit transitive license allow/block policy close the bounded review caveats. | PERFORMANCE, Goal prompt |
+| Z7-001 | P1 | ACCEPT — MITIGATED | The import mutex now resolves through the linked worktree's absolute Git path and uses exact no-follow/exclusive, fsynced lock bytes. | Goal prompt |
+| Z7-002 | P1 | ACCEPT — MITIGATED | Every reachable import/analysis/living-plan/resume/checkpoint partial state has an exact byte/parent/diff recovery rule; the final stale lock is removed only after chain validation. | Goal prompt |
+| Z7-003 | P1 | ACCEPT — MITIGATED | Canonical per-gate script/question/anchor JSON and exact criterion-key/scoring semantics close the study/analyzer bytes. | Goal prompt |
+| Z7-004 | P1 | ACCEPT — MITIGATED | Raw double clock comparisons, ceiling conversion, first-frame ranges and timer-overrun failures make integer evidence deterministic. | QUALITY_BAR, Goal prompt |
+| Z7-005 | P1 | ACCEPT — MITIGATED | Observation notes are explicitly nullable and unavailable abandoned values remain schema-valid failures/zeroes. | Goal prompt |
+| Z7-006 | P1 | ACCEPT — MITIGATED | All six milestone ceilings and the Gate 0/A/B/card-to-task map now control every operator segment and manifest cap. | 001, Goal prompt |
+| Z7-007 | P1 | ACCEPT — MITIGATED | The prompt embeds immutable plan base `f0ec6a1e34a74d117de84c094286ec703ca7f15f`, requires its local ancestry/object and authorizes no fetch. | Goal prompt |
+| Z7-008 | P1 | ACCEPT — MITIGATED | Exact inert planning evidence freezes all 195 transitive versions, integrities, licenses and lifecycle scripts; implementation validates graph equality before installation. | DEPENDENCY_COHORT, Goal prompt, SOURCE_LEDGER |
 
-All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final Goal-prompt pass must verify the later Z2/Z3/Z4/Z5/Z6 mitigations before readiness.
+All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final zero-context Goal-prompt pass must verify the later Z2/Z3/Z4/Z5/Z6/Z7 mitigations before readiness.

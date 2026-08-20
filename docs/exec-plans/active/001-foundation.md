@@ -95,7 +95,7 @@ Create-a-person/roster, generalized economy/farming/crafting/governance, deep la
 
 ## Expected implementation shape
 
-The implementation prompt freezes Node `22.23.1`, pnpm `11.15.1`, and every mandatory direct runtime/dev dependency version [S-TOOL-17] [S-TOOL-18]. The committed lockfile, licenses, integrity, install scripts, and mutual build compatibility are reviewed before M1; no floating or opportunistic substitution is allowed.
+The implementation prompt freezes Node `22.23.1`, pnpm `11.15.1`, every direct runtime/dev dependency, and an inert planning record of all 195 transitive versions, integrities, licenses, and lifecycle scripts [S-TOOL-17] [S-TOOL-18] [S-TOOL-20]. Goal mode validates the complete graph against [DEPENDENCY_COHORT.md](../../research/DEPENDENCY_COHORT.md) before M1; no live resolution, floating version, opportunistic substitution, or lifecycle script is allowed.
 
 ```text
 apps/web/                  React Router/Vite, Pixi world, semantic UI, projections
