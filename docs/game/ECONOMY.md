@@ -2,7 +2,7 @@
 
 **Purpose:** define the smallest material economy needed for understandable autonomous behavior and one social consequence.
 
-**Status:** DECISION PROPOSED
+**Status:** ACCEPTED FOR THE SCENARIO-SCOPED FIRST PROOF
 
 **Authority boundary:** this file owns resource and exchange semantics. [WORLD_MODEL](WORLD_MODEL.md) owns invariants; [GAME_SYSTEMS](GAME_SYSTEMS.md) owns visible scope; engineering simulation owns algorithms.
 
@@ -15,9 +15,9 @@ The 001 economy is deliberately not generalized:
 - conserved integer quantities: food, water, wood;
 - citizen and settlement storage locations with explicit ownership/custody;
 - gathering from seeded sites, need-driven consumption, and bounded stable production during catch-up;
-- one atomic bilateral exchange of known goods between present parties;
-- one recipe: two wood plus a work action repairs the well fixture;
-- a 12-food public repair reserve whose sealed/open classification drives Riverhold's ledger mismatch.
+- one atomic Riverhold exchange: Iven transfers repair wood while Toma transfers food rations, both between present parties;
+- one recipe: two wood plus a work action repairs the mill fixture;
+- a 12-food public worker-ration reserve for that repair whose sealed/open classification drives Riverhold's ledger mismatch.
 
 No currency is required. A trade is valid only when both parties own/custody the offered stacks, both accept in the same expected revision, quantities remain nonnegative, and all transfers append atomically or none do.
 

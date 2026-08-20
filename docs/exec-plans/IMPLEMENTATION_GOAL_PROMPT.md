@@ -16,15 +16,23 @@ Your objective is not “code compiles.” Deliver one locally runnable, free, a
 
 Do not merge, deploy, publish, spend, enable billing, buy a domain, or contact users unless separately authorized.
 
+## Repository outcome and human-evidence mode
+
+Begin from the exact commit resolved once from `origin/plan/000-product-foundation`; record that immutable SHA as `PLAN_BASE` before editing. Create `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation` from `PLAN_BASE`. Never put production code on the planning branch. Finish with that implementation branch committed, clean, unmerged, unpushed, and undeployed unless the operator separately authorizes one of those actions.
+
+An authorized human operator—not Codex—supplies unfamiliar participants for Gate 0, Gate A, and Gate B and places signed-off, anonymized results at `docs/exec-plans/evidence/001/gate-0-human.json`, `gate-a-human.json`, `gate-b-human.json`, and `story-card-human.json`. Each names the commit, seed, script, assignments, raw responses, abandonment, and operator sign-off. Codex may prepare local builds, scripts, counterbalancing, consent-free observation instructions, and blank manifests; it must not recruit, contact, impersonate, or fabricate participants, and planning personas are not human evidence. If Gate 0 human evidence is unavailable, finish the disposable harness and automated checks, then stop before M1 with `BLOCKED—HUMAN EVIDENCE REQUIRED`. After Gate 0 passes, continue all safe non-human work while later human sessions are pending, but never mark Gate A/B passed or claim readiness without operator-supplied manifests.
+
 ## Binding personal and operating constraints
 
 - Solo builder; plan 52 focused hours and reserve at most eight additional hours only for failing-gate fixes/review. Hard ceiling 60; never add scope to fill contingency.
 - Development machine is a MacBook M4 Pro. There is no owned GPU infrastructure.
 - Approximately $0 operating target. No paid API/service, purchase, credential request, or assumption that the documented $50/$300 envelope is authorized.
-- V1 must be useful and free, with no account, key, model download, WebGPU, or network requirement.
+- V1 must be useful and free, with no account, key, model download, WebGPU, or runtime network requirement after installation. Development may retrieve only exact, pinned, reviewed free dependencies; the game and acceptance runs make zero network requests.
 - No model training/fine-tuning, proprietary dataset, required partnership, enterprise motion, regulated data, payments, custody, licensing business, revenue, or self-employment workflow.
 - No production deployment/publication in this goal.
 - If the irreducible proof cannot pass inside 60 focused hours after declared cuts, stop and reopen the product. Do not lower acceptance or hide overrun.
+
+The only permitted cut ladder is: (1) particles, weather, parallax, and sound; (2) discretionary art and transition polish; (3) the measurement-only twelve-citizen presentation stress target; (4) replace Living Woodcut rendering with stripped Weathered Atlas markers and the semantic view. Never cut Gate 0/A/B, deterministic or durable contracts, security, accessibility, eight default citizens, three resources, the divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes and confirmation only, never features.
 
 ## Accepted product and honest claim
 
@@ -62,8 +70,8 @@ Generated planning concepts are reference only. Do not install Three.js, React T
 Before expensive foundations:
 
 1. Create branding-hidden ugly matched versions of the same Riverhold first decision for one-citizen follow, family, trio, faction, ECHOHOUSE crisis, and direct control.
-2. Test randomized versions with five unfamiliar participants; record time to meaningful action, predicted consequence, desire to see outcome, replay choice, confusion, and objections. All abandonment counts.
-3. Reopen product structure if another wins overall or beats selected structure on desirability/desire-to-continue by at least 20 percentage points.
+2. Test randomized versions with five unfamiliar participants. After every version each participant records binary `desirable` and binary `want to continue`, then ranks all six within-person with no ties. Also record time to meaningful action, predicted consequence, replay choice, confusion, objections, and abandonment; all abandonment is a zero on both binaries and remains in the denominator.
+3. Sum within-person ranks; the lowest total wins overall. Reopen product structure if Riverhold does not have the lowest total, ties another total, or any alternative leads Riverhold by at least 20 percentage points (one of five participants) on either binary measure. Do not proceed on qualitative preference alone.
 4. Create a disposable semantic/Pixi projection with Mara, eight citizens, three actions, an authoritative interaction cue, peek, and Chronicle beat at 1728×1117, 1366×768, and 390×844.
 5. Five silent unfamiliar observers use one exact manifest. Require 4/5 find Follow Mara/understand no direct control and 3/5 identify Mara, three activities, and the interaction.
 6. Require useful shell/Mara by two seconds and operable CTA by three. Check overflow, 200% zoom, keyboard, reduced motion, targets, and budgets.
@@ -78,14 +86,14 @@ Capture reproducible evidence at 1728×1117, 1366×768, and 390×844 plus keyboa
 
 ## Gate B — Proof of agency and bounded attachment
 
-Eight unfamiliar formative sessions see real state-sensitive behavior and a yoked scripted/canonical-lookup control in randomized order with identical presentation/timing.
+Eight unfamiliar formative sessions see real state-sensitive behavior and a yoked scripted/canonical-lookup control with identical presentation/timing. Counterbalance exactly four real-first and four control-first assignments using the recorded seeded assignment list. After each condition, each participant scores perceived contingency and desire to continue on labeled integer 1–7 scales before seeing the other condition.
 
 Require:
 
 - 6/8 complete first advice without prompting;
 - 5/8 explain Mara's relevant reason, independent choice, later consequence, and local-device save limit;
 - 4/8 voluntarily take the outcome-dependent second action and give a person-centered reason;
-- the real build beats yoked control on perceived contingency and desire to continue; and
+- the real build's eight-person arithmetic mean is strictly higher than the control mean on both perceived contingency and desire to continue; either tie or reversal fails; and
 - five separate context-free Story Card viewers yield 3/5 correct sponsor-advice versus Mara-choice versus what-followed comprehension within five seconds, without falsely crediting the player as direct author of Mara's action/law.
 
 Record all failures and uncertainty; do not report statistical validation. Immediate reload proves persistence, not retention.
@@ -122,7 +130,7 @@ Implement these meanings before polished UI:
 
 Use integer simulation seconds; nonnegative int32 conserved quantities; checked signed-int32 scores and basis points; truncation toward zero; NFC normalization at ingress; RFC 8785 canonical JSON over a restricted integer-only domain; SHA-256 lowercase-hex hashes with explicit domain prefixes; versioned xoshiro128** uint32 PRNG with golden implementation vectors; SHA-256-derived per-system/entity/purpose stream seeds/counters; deterministic hash-derived IDs; scheduler order `(time, priority, actorId, localOrdinal)`.
 
-State hash covers complete canonical region state; event hash covers complete envelope except itself; batch hash chains prior head, ordered events, command fingerprint, result revision, and fencing token. No presentation/wall/storage metadata or raw model prose enters hashes. Support one profile/engine/schema version; unknown/old versions fail closed. No upcaster.
+State hash covers complete canonical region state; event hash covers complete envelope except itself. `batchId` is a pre-hash stable ID from region/prior revision/command ID; separate `batchHash` lives in durable head/receipt and chains prior head, ordered events, command fingerprint, result revision, and fencing token. No presentation/wall/storage metadata or raw model prose enters hashes. Support one profile/engine/schema version; unknown/old versions fail closed. No upcaster.
 
 ## Durable-before-visible protocol
 
@@ -171,6 +179,10 @@ On portrait, world remains ≥55% through peek; peek ≤35%, non-scrolling; Insp
 
 Reduced motion disables fly-through/parallax/particles/weather/autoplay and uses manually stepable Chronicle/discrete poses. Every consequential action has semantic keyboard equivalent. Degrade in order: DPR/effects → background cadence → simplified markers → fully playable semantic view. Device presentation never changes Reality.
 
+## Finite blocking security gate
+
+Pass only when a recorded clean-build run shows zero runtime network requests; no credential, telemetry, provider SDK, dynamic-code execution, or untrusted active HTML/Markdown/URL rendering; commands, text, storage growth, catch-up, and exports have explicit tested bounds; and corrupt/oversize snapshots, event gaps, stale fencing, unknown versions, invalid commands, and quota failure all fail closed without advancing durable head. The exact production dependency tree has no unresolved high/critical advisory. Record scanner/advisory source and access date, every finding, and the rationale for any confirmed false positive. This finite list—not an open-ended demand for “secure enough”—is the blocking slice security gate.
+
 ## Required tests and future CI baseline
 
 On every relevant PR run pinned local-equivalent commands for format/lint, strict typecheck, unit, deterministic/replay, bounded property/fuzz, production build, and critical Playwright journey.
@@ -216,18 +228,18 @@ Update `docs/exec-plans/active/001-foundation.md` at every integration boundary 
 
 ## Mandatory implementation/review/fix loop
 
-For every milestone run:
+For every milestone run. A milestone is a vertically runnable integration checkpoint with its named player outcome, not a package or child commit:
 
 `implementation → focused tests → full relevant tests → actual local game run → browser playtest → evidence capture → independent review → fix → rerun`
 
-Reviewers cannot edit while reviewing:
+Child commits may integrate while a milestone remains open, but they never close it. Close only after the integrated branch completes the actual game run, browser evidence, independent review, fixes, and rerun. Reviewers cannot edit while reviewing:
 
 - **Product/game:** life, contingency, agency, boredom/confusion, care, second decision, honest claims.
 - **Systems/correctness:** contracts, determinism, durability, replay, invariants, security, failure recovery.
 - **Visual/accessibility:** required for UI/renderer/assets/layout/motion; world dominance, three viewports, mobile, keyboard, reduced motion, semantic fallback, performance, dashboard/generated smell.
 - **Cognition/eval:** required for Mind/plan/Brain/context/proposal changes; noninterference, legality, state sensitivity, ablations, explanation, fallback.
 
-Review actual browser interaction and actual Git diff, not just reports/screenshots/tests. Reconcile every P0/P1, fix, rerun, and request targeted confirmation. No accepted P0 or unmitigated P1 remains.
+An independent reviewer did not author or edit the reviewed diff. Give each reviewer a named immutable `base...HEAD` and read-only review assignment. The implementation author reconciles and fixes findings after review; the same reviewer role then confirms the targeted fix against the new named range. Review actual browser interaction and actual Git diff, not just reports/screenshots/tests. Reconcile every P0/P1, fix, rerun, and request targeted confirmation. No accepted P0 or unmitigated P1 remains.
 
 ## Stop conditions
 

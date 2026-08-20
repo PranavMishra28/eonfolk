@@ -74,7 +74,7 @@ The ExecPlan tracks actual incremental cash spend as **$0 unless the owner expli
 - model download/eval time if a later gate opens;
 - operational burden and credential surface.
 
-The 52-hour budget allocates 8 hours foundation/contracts, 20 Gate A, 16 Gate B, and 8 browser/performance/accessibility/fixes. If evidence shows overrun, cut deferred mechanics or presentation scope. Do not justify a shallower gate or unapproved spend.
+The 52 planned hours allocate 4 to product/visual kill gates, 8 deterministic durability, 8 ugly counterfactual loop, 12 Gate A, 12 Gate B, and 8 integrated QA. Up to eight additional hours are fix/review contingency only; hard ceiling 60. If evidence shows overrun, cut declared deferred presentation scope or reopen the product—never justify a shallower gate or spend.
 
 ## Approval and stop controls
 

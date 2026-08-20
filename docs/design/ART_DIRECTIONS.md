@@ -66,16 +66,13 @@ The first slice does not require Blender, glTF, bones, dynamic lights, post-proc
 
 The complete authored set should fit within:
 
-- one settlement ground and water treatment;
-- three building silhouettes plus the well and bridge;
-- three resource icons/props;
-- one modular body system with five action silhouette/pose overlays, plus six secondary identity marks;
+- one settlement/paper ground, bridge, well, granary/market, and mill-repair silhouette set;
+- food, water, wood, exchange, verify, and repair props/marks;
+- one modular body system with five action overlays, plus six secondary identity marks;
 - two large portrait treatments: Mara and Toma;
-- one bilateral-exchange composition;
-- one conversion/repair composition;
-- one selection mark and five shared relation meanings: direct, trigger, contributing, temporal-before, and allegation; response-to appears only in evidence detail;
-- one paper texture family and a bounded set of hatch masks; and
-- no more than four environmental ambience marks at once.
+- one selection mark, one relationship edge, and five shared relation meanings: direct, trigger, contributing, temporal-before, and allegation; response-to appears only in evidence detail;
+- one bounded ink/hatch treatment and one responsive card composition; and
+- no ambience-only illustration, cinematic panel, share-only art, or unique full portrait for all eight.
 
 Adding an asset requires removing or deferring one of comparable effort unless it is necessary to pass Gate A or Gate B.
 

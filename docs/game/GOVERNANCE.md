@@ -2,7 +2,7 @@
 
 **Purpose:** define the minimum civic consequence in Riverhold and the boundary before deeper governance becomes justified.
 
-**Status:** DECISION PROPOSED — scenario-scoped proof only
+**Status:** ACCEPTED FOR ONE SCENARIO RULE — generalized governance deferred
 
 **Authority boundary:** this file owns offices, rules, collective decisions, and conflicts as product systems. [WORLD_MODEL](WORLD_MODEL.md) owns facts; [CHRONICLE](../product/CHRONICLE.md) owns narration; 001 excludes generalized governance.
 

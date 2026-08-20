@@ -24,6 +24,48 @@ No runnable game existed. “Would click/return/share” below is a hostile pred
 | 45-second mobile visitor | Yes if CTA clear | No under frozen timing | No | Maybe private card | Mara verifies instead of obeying |
 | Creator/streamer | Guided demo only | Dead air risk | No session-depth claim | One clip, no recipient path | Audit clears theft while rule/friendship change |
 
+## Walkthrough traces
+
+### Nontechnical stranger
+
+- **Landing / 5 seconds:** attractive but unclear whether to create, choose, or wait; sponsor/patron/covenant language implied money or lore.
+- **30 seconds / entry:** moving people were not yet a reason to care; fixed Mara needed one plain action and autonomy line.
+- **Interaction / advice:** wanted two clearly different choices plus abstain, plain evidence, and a humane receipt when Mara refused/reinterpreted.
+- **End / return:** a cliffhanger without a playable next response felt manipulative; silent time advance and local-only storage weakened trust.
+- **Chronicle / card / replay:** factual beats were the strongest feature if evidence was expandable and technical IDs hidden; would not send a dead link/seed.
+
+### Systemic-game player
+
+- **Landing / 5 seconds:** colony signals implied resource control that the product later denied.
+- **30 seconds / entry:** one focal citizen could work, but the tournament had not used equal interactive controls.
+- **Interaction / advice:** one seed and one low-cost advice looked solver-dominant/scripted; routine needs made clockwork, not personality.
+- **End / return:** wanted a second counterplay decision with an actual stake; one reload was not session depth.
+- **Chronicle / card / replay:** causality was useful only if different decisions produced different state vectors and stories.
+
+### AI-native skeptic
+
+- **Landing / 5 seconds:** “autonomous” was an unsupported marketing claim until behavior beat a canonical script.
+- **30 seconds / entry:** fixed Mara was more honest than “create a mind”; first interaction had to mutate authoritative state.
+- **Interaction / advice:** demanded trust/value/evidence/commitment perturbations, transfer to another citizen, baselines, ablations, and typed decision receipts.
+- **End / return:** immediate reload proved storage, not voluntary return or attachment.
+- **Chronicle / card / replay:** causal homecoming was the honest hook; V1 had no modern-AI-specific value and should say so.
+
+### 45-second mobile visitor
+
+- **Landing / 5 seconds:** loading plus eight tiny figures could consume the promise; Mara/CTA needed semantic paint before Pixi.
+- **30 seconds / entry:** panel takeover, overlapping targets, and create/sponsor ambiguity predicted abandonment.
+- **Interaction / advice:** distinctive independent behavior arrived too late; wanted a state-changing investigate by second 45.
+- **End / return:** local-device limitation needed disclosure before investment, not after counsel.
+- **Chronicle / card / replay:** 9:16 card could work if it showed advice/choice/consequence without a dead link or seed jargon.
+
+### Creator/streamer
+
+- **Landing / 5 seconds:** too many visual facts competed under stream compression; no recipient landing route existed.
+- **30 seconds / entry:** no framing cue identified the important pair; fixed Mara contradicted create/select language.
+- **Interaction / advice:** three-to-ten-minute delay created dead air; stable readable advice options could support ordinary chat without integration.
+- **End / return:** creator needed a manifest-reproducible leave/advance reveal and a real next action.
+- **Chronicle / card / replay:** one 20-second audit/friendship clip was strong, but one immutable spoiler, false causal card labels, and no recipient route were not a creator loop.
+
 ## P0 findings against the frozen state
 
 ### PP-001 — P0 — A single favorable scripted trajectory cannot prove agency or attachment

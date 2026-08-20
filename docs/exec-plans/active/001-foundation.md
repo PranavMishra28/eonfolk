@@ -19,12 +19,18 @@ Both Gate A and Gate B must pass. The honest release label is **single Riverhold
 - Solo builder; 52 planned focused hours and at most eight contingency hours for fixes/review, never new scope. Hard ceiling 60.
 - MacBook M4 Pro, no owned GPU, no training/fine-tuning, no proprietary dataset.
 - Approximately $0; no purchase, billing, credential request, deployment, public publication, domain, or paid service without explicit approval.
-- Free/useful/accountless V1; no revenue, payment, custody, licensing business, regulated data, partnership, enterprise motion, required model/key/download/WebGPU.
+- Free/useful/accountless V1; no revenue, payment, custody, licensing business, regulated data, partnership, enterprise motion, required model/key/download/WebGPU. Acceptance runs make zero runtime network requests after exact pinned free development dependencies are installed.
 - Local-only Web Worker + IndexedDB; no server/auth/multiplayer/Cloudflare/cross-region/fork implementation.
 - Deterministic Standard Brain only. No provider SDK/model path.
 - React Router/Vite + one PixiJS 2.5D renderer + parallel semantic DOM. No Three/R3F/3D pipeline/dual renderer.
 
 Acceptance—not elapsed time—ends work. If the irreducible loop cannot pass inside 60 hours after declared cuts, stop and reopen the product; do not ship a shallow substitute.
+
+## Repository and human-evidence authority
+
+Implementation resolves and records one immutable `PLAN_BASE` from `origin/plan/000-product-foundation`, then creates `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation`. Production code never lands on this planning branch; without separate authority the implementation result remains committed, clean, unmerged, unpushed, and undeployed.
+
+Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. Codex prepares the build, scripts, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
 
 ## Hour and scope budget
 
@@ -39,7 +45,7 @@ Acceptance—not elapsed time—ends work. If the irreducible loop cannot pass i
 | **Planned** | **52** | |
 | Fix/review contingency | **0–8** | only failing acceptance criteria; total never exceeds 60 |
 
-Cut order: sound → weather/particles/ambience → decorative hatching/transitions → secondary poses/portraits → 12-citizen stress presentation → nonessential inspect filters → capture conveniences. Keep eight citizens, three resources, story-relevant exchange/repair, authoritative interaction, three divergent advice histories, durable commit/replay, second return choice, Chronicle truth, semantic path, and three viewports.
+Only permitted cut order: particles/weather/parallax/sound → discretionary art/transition polish → measurement-only 12-citizen presentation stress → stripped Weathered Atlas markers plus semantic view. Never cut Gate 0/A/B, deterministic/durable contracts, security, accessibility, eight default citizens, three resources, divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes/confirmation only.
 
 ## Exact included scope
 
@@ -95,9 +101,9 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** record exact preview and browser commands; `git diff --check`; three viewports; cold shell timing; overflow/200% zoom/keyboard/reduced motion; no console error.
 
-**Browser/visual evidence:** five unfamiliar randomized product walkthroughs. Five silent visual observers on one manifest. 4/5 find Follow Mara/understand autonomy; 3/5 identify Mara, three activities, interaction. Shell by 2 seconds, CTA by 3.
+**Browser/visual evidence:** five unfamiliar randomized product walkthroughs. After each version, each person records binary `desirable`, binary `want to continue`, and an untied within-person rank across all six; abandonment is zero on both binaries. Lowest summed rank wins. Any tie with Riverhold, another overall winner, or an alternative lead of at least 20 percentage points on either binary reopens the structure. Five silent visual observers use one manifest. 4/5 find Follow Mara/understand autonomy; 3/5 identify Mara, three activities, interaction. Shell by 2 seconds, CTA by 3.
 
-**Performance/security/eval:** no credentials/telemetry. Product structure reopens if another version wins overall or desirability/continue by ≥20 percentage points. Living Woodcut gets one simplification pass; then stripped Weathered Atlas or stop.
+**Performance/security/eval:** no credentials/telemetry. Record the seeded order, raw per-participant binaries/ranks, denominator, summed ranks, and percentage-point comparisons. Living Woodcut gets one simplification pass; then stripped Weathered Atlas or stop.
 
 **Rollback:** delete disposable implementation; retain result table, manifest, screenshots, commit SHA, and decision only.
 
@@ -175,7 +181,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** full PR baseline, `@gate-b`, sentence-to-event/provenance audit, causal/related/allegation vocabulary, card copy, replay without cognition, full noninterference, all branch hashes, second-action eligibility/effect.
 
-**Browser/visual evidence:** full journey at three viewports plus 8 unfamiliar randomized real-versus-yoked sessions. Require Quality Bar's 6/8, 5/8, 4/8 thresholds. Five separate card viewers; require 3/5 correct comprehension/no false direct credit. Record all failures/abandonment.
+**Browser/visual evidence:** full journey at three viewports plus eight unfamiliar real-versus-yoked sessions: seeded counterbalancing is exactly four real-first/four control-first. After each condition and before the other, each participant scores perceived contingency and desire to continue on labeled integer 1–7 scales. Require Quality Bar's 6/8, 5/8, 4/8 thresholds and a strictly higher eight-person real mean on both scales; ties fail. Five separate card viewers require 3/5 correct comprehension/no false direct credit. Record all failures/abandonment.
 
 **Performance/security/eval:** Gate A budgets remain passing. Escaped template text only; evidence disclosure resolves each sentence. Mara is recognizable across world/portrait/return/Chronicle and at least 4/8 express person-centered concern/curiosity.
 
@@ -197,7 +203,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Browser/visual evidence:** final named-commit journey and all states at three viewports; physical mobile caveat/result; keyboard, reduced motion, semantic degradation; final participant tables.
 
-**Performance/security/eval:** all numerical gates pass without waiver; no secrets/credentials/production code path beyond authorized slice; exact diff/dependencies/licenses inspected.
+**Performance/security/eval:** all numerical gates pass without waiver. A clean build records zero runtime requests; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
 
 **Rollback:** revert smallest failing integration or remove lowest-priority presentation feature. A product-gate miss returns to owner; deployment/merge is never recovery.
 
@@ -240,6 +246,8 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | none | — | — | — | — |
 
 ### Evidence index
+
+Operator-supplied human manifests have fixed future paths: `docs/exec-plans/evidence/001/gate-0-human.json`, `gate-a-human.json`, `gate-b-human.json`, and `story-card-human.json`. Each is anonymized, names the tested commit/seed/script, contains all assignments/raw responses/abandonment, and records operator sign-off; absence means the corresponding gate is not passed.
 
 | Gate | Commit/manifest | Automated result | Human/browser result |
 |---|---|---|---|

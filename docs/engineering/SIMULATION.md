@@ -28,7 +28,7 @@ Reality is a pure deterministic reducer over one region. It accepts revision-che
 - `causalParents: { eventId, relation }[]`, where `relation` is only `direct`, `trigger`, or `contributing`;
 - `relatedEvents: { eventId, relation }[]`, where `relation` is only `temporal-predecessor` or `response-to`;
 - typed visibility and provenance;
-- `preStateHash`, `postStateHash`, `eventHash`, and `batchId`.
+- `preStateHash`, `postStateHash`, `eventHash`, and `batchId`. `batchId` is a stable identifier derived from region, prior revision, and command ID before hashing; it is not the batch hash.
 
 Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same region; a causal parent must name the rule/mechanism that consumed it.
 
@@ -50,7 +50,7 @@ This profile is one indivisible protocol decision. Golden vectors cover every ro
 | Stable IDs | Deterministic prefix plus lowercase base32 of `SHA-256(type + worldSeed + creationSequence)`; never use random UUIDs in Reality. |
 | Schedule order | `(simulationTime, priority, actorId, localOrdinal)` ascending, with all fields explicit and tested. |
 
-`stateHash` hashes the complete canonical region state after an event. `eventHash` hashes the complete envelope excluding only `eventHash` itself. A batch hash chains the prior durable head hash, ordered event hashes, command fingerprint, resulting revision, and fencing token. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
+`stateHash` hashes the complete canonical region state after an event. `eventHash` hashes the complete envelope excluding only `eventHash` itself. A separate `batchHash`, stored in the durable head and receipt rather than inside the envelope, chains the prior head hash, ordered event hashes, command fingerprint, resulting revision, and fencing token. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
 
 Version `v1` supports one engine/schema version only. Unknown versions fail closed. No upcaster is implemented in the first slice; changing any rule above requires a new profile and explicit migration plan.
 

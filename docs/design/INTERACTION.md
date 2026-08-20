@@ -153,7 +153,7 @@ Reopen if:
 
 ## Unproven assumptions
 
-- Three modes are discoverable without tutorial ceremony.
+- The single arrival-to-return state machine is discoverable without tutorial ceremony.
 - Two intents plus abstain and the outcome-dependent return action still feel expressive.
 - Players tolerate waiting for delayed consequence when the tension is legible.
 - Evidence disclosures increase trust without turning play into audit work.
@@ -168,7 +168,7 @@ Reopen if:
 
 ## Constraint fit
 
-- **Solo / 40–60 hours:** Three modes, one counsel flow, one return summary, and one replay avoid a general command system or dialogue interface.
+- **Solo / 40–60 hours:** One state machine, one advice flow, one return decision, and one replay avoid a general command system or dialogue interface.
 - **M4 Pro / no GPU:** DOM-equivalent interaction remains complete if rendering is reduced or unavailable.
 - **Approximately $0:** No account, analytics vendor, hosted model, or paid UI kit is required.
 - **Free V1 / no commercial scope:** The flow has no monetization gate or recurring engagement manipulation.

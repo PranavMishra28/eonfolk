@@ -12,9 +12,11 @@
 
 Completion requires Gate 0, Gate A, Gate B, and every blocking correctness/security/access/performance test. A build, backend suite, scripted Riverhold chain, screenshot, favorable anecdote, or elapsed estimate is not a substitute. All abandonment and confusion stay in the denominator.
 
+Only an authorized human operator can supply the unfamiliar-participant manifests. Codex may prepare builds/scripts and continue non-human work after Gate 0, but cannot recruit, impersonate, fabricate, or substitute planning personas. Without operator-supplied Gate 0 evidence, implementation stops before foundations; without Gate A/B manifests, those gates remain unpassed.
+
 ## Gate 0 — Product kill gate
 
-Five unfamiliar participants receive randomized, branding-hidden, ugly matched versions of the same first decision for one-citizen follow, family, trio, faction, ECHOHOUSE, and direct control. Record time to meaningful action, predicted consequence, desire to see outcome, replay preference, confusion, and objections. Reopen product structure if another version wins overall or beats selected structure on desirability/return intent by at least 20 percentage points. Do not proceed to full foundations on prose preference alone.
+Five unfamiliar participants receive randomized, branding-hidden, ugly matched versions of the same first decision for one-citizen follow, family, trio, faction, ECHOHOUSE, and direct control. After each, each person records binary `desirable` and binary `want to continue`, then assigns untied within-person ranks across all six. Abandonment is zero on both binaries and remains in the denominator. Lowest summed rank wins. Reopen if Riverhold does not win outright, ties another summed rank, or any alternative leads it by at least 20 percentage points (one of five) on either binary. Also record time to meaningful action, predicted consequence, replay preference, confusion, and objections. Do not proceed to full foundations on prose preference alone.
 
 ## Gate A — Proof of Life
 
@@ -22,14 +24,14 @@ The named build shows eight Standard-Brain citizens, three resources, four legib
 
 ## Gate B — Proof of agency and bounded attachment
 
-Eight unfamiliar formative sessions compare the state-sensitive build with a yoked scripted/canonical-lookup control in randomized order. The real build includes fixed Mara, state-changing investigation by 60 seconds, two advice intents plus abstain by five minutes, branch-specific interpretation/consequence, explicit leave/advance/return, one outcome-dependent second choice, and a factual three-beat/≤20-second Chronicle/card.
+Eight unfamiliar formative sessions compare the state-sensitive build with a yoked scripted/canonical-lookup control in an exact seeded four-real-first/four-control-first assignment. After each condition and before the other, each person scores perceived contingency and desire to continue on labeled integer 1–7 scales. The real build includes fixed Mara, state-changing investigation by 60 seconds, two advice intents plus abstain by five minutes, branch-specific interpretation/consequence, explicit leave/advance/return, one outcome-dependent second choice, and a factual three-beat/≤20-second Chronicle/card.
 
 Pass requires:
 
 - 6/8 complete first advice without prompting;
 - 5/8 explain Mara's relevant reason, independent choice, consequence, and local-device save limit;
 - 4/8 voluntarily take the second outcome-dependent action and give a person-centered reason;
-- real build beats yoked control on perceived contingency and desire to continue; and
+- the real build's eight-person arithmetic mean is strictly higher on both perceived contingency and desire to continue; a tie or reversal on either fails; and
 - 3/5 separate context-free card viewers explain advice versus Mara's choice versus what followed within five seconds and do not assign direct causal credit to the player.
 
 This permits only “bounded agency/attachment proof passed.” Delayed voluntary return, session 5/20, succession, newcomer relevance, and retention remain unproven.
@@ -45,6 +47,8 @@ This permits only “bounded agency/attachment proof passed.” Delayed voluntar
 - Standard Brain passes perturbation/transfer/baseline/ablation tests; fake absent/throwing/malformed BrainPort cannot stop the world. No provider dependency exists.
 - Production build, critical browser journey, all numerical budgets, keyboard/reduced motion/semantic paths, and three viewports pass.
 - No server, deployment, account, payment, import, required model/download, or public multiplayer path ships.
+- A clean build makes zero runtime network requests; contains no credential, telemetry, provider SDK, dynamic-code execution, or untrusted active HTML/Markdown/URL rendering; and enforces tested bounds on commands, text, storage, catch-up, and exports.
+- Corrupt/oversize snapshots, event gaps, stale fences, unknown versions, invalid commands, and quota failures fail closed without durable-head advance. The exact production dependency tree has no unresolved high/critical advisory; scanner/advisory source, access date, findings, and confirmed-false-positive rationale are recorded.
 
 ## Evidence package
 

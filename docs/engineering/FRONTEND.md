@@ -1,10 +1,10 @@
 # Frontend, renderer, and asset pipeline
 
-**Purpose:** lock one implementable presentation stack and its boundary from authoritative simulation.
+**Purpose:** lock one implementable presentation stack, runtime asset delivery, and its boundary from authoritative simulation.
 
 **Status:** ACCEPTED AFTER RED TEAM — PixiJS 2.5D only
 
-**Authority boundary:** this file owns renderer/UI libraries, projection boundary, asset pipeline, and first visual feasibility checkpoint. [DESIGN](../design/DESIGN.md) owns visual language; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
+**Authority boundary:** this file owns renderer/UI libraries, projection boundary, runtime atlas delivery, and first visual feasibility checkpoint. [ART_DIRECTIONS](../design/ART_DIRECTIONS.md) alone owns source-art pipeline and inventory; [DESIGN](../design/DESIGN.md) owns visual language; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
 
 **Related documents:** [interaction](../design/INTERACTION.md), [mobile](../design/MOBILE.md), [visual QA](../quality/VISUAL_QA.md), [rendering research](../research/DESIGN_RESEARCH.md)
 
@@ -36,20 +36,9 @@ Use custom DOM UI with Tailwind, Base UI primitives where needed, Phosphor icons
 
 Arrival is one state machine: `orientation → Follow Mara → peek → inspect → investigate → decide`. The first CTA is **Follow Mara** with **She acts for herself**. Other citizens remain inspectable under **People**; there is no create, roster, candidate, mind picker, or ambiguous sponsorship step.
 
-## Authored asset pipeline and ceiling
+## Runtime atlas delivery
 
-Use source SVG/PNG/Krita/Affinity files → texture atlas + metadata → optimized PNG/WebP/AVIF as supported → Pixi sprites/meshes. Generated concepts are references only.
-
-First-slice authored inventory is capped at:
-
-- Mara and Toma: two large portrait treatments;
-- six secondary small identity marks;
-- one modular body system with five action silhouettes/pose overlays;
-- bridge, well, granary/market, water, wood, food, exchange, verify, and repair props/marks;
-- five causal/relation marks shared by world and Chronicle; and
-- one paper ground, bounded ink palette, focus/selection treatment, and responsive card layout.
-
-No ambience-only illustration, cinematic panel, share-only art, 3D model, unique full portrait for all eight, or production reuse of generated pixels. Source creation, export, optimization, provenance, integration, and correction count against one art budget.
+Implement the exact source-art inventory/pipeline in [Art directions](../design/ART_DIRECTIONS.md) as deterministic atlas metadata plus optimized PNG/WebP/AVIF as supported, then Pixi sprites/meshes. Generated concepts are references only. No runtime 3D model, ambience/share-only illustration, or production generated pixel enters the build. Source creation, export, optimization, provenance, integration, and correction all count against the art budget owned by that authority.
 
 ## Mobile interaction rules
 
