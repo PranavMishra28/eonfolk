@@ -61,13 +61,13 @@ Stores are `worlds`, `events`, `commandReceipts`, `snapshots`, and `exports`. Ev
 
 One active writer owns a monotonically increasing `fencingToken` stored in the world head. Lease transfer increments it transactionally. Every append and snapshot validates it. A suspended old tab with a stale token is rejected even if its wall-clock lease looks valid. Other tabs are read-only; automatic multi-tab takeover is excluded.
 
-Snapshots are rebuildable caches. A snapshot contains state after `baseSequence`, exact profile/engine/schema versions, canonical bytes/hash, creation head hash, and event-count metadata. Durable event/receipt/head commit never depends on snapshot success.
+Snapshots are rebuildable caches. A snapshot contains state after applying every accepted event with `sequence <= baseSequence`, exact profile/engine/schema versions, canonical bytes/hash, creation head hash, and event-count metadata. Sequence 1 is the first domain event; the genesis snapshot has `baseSequence=0` and no domain event. Durable event/receipt/head commit never depends on snapshot success.
 
 ## Replay interval and manifest
 
 `ReplayManifest` contains version, region/seed, snapshot reference/hash with `baseSequence`, half-open event interval `[fromSequenceInclusive, toSequenceExclusive)`, engine/schema/determinism/replay versions, expected final hash, and presentation metadata that cannot supply facts.
 
-The normal interval starts at `baseSequence + 1`. For zero events, start equals end and replay returns the snapshot hash unchanged. Ranges reject gaps, duplicates, wrong region/first sequence, or an end beyond the durable head. Only the current engine/schema/profile is supported; unknown versions fail closed.
+Require `fromSequenceInclusive=baseSequence+1` and `toSequenceExclusive=finalSequence+1`; apply exactly `from <= sequence < to`. For zero events `finalSequence=baseSequence`, so start=end=`baseSequence+1` and replay returns the snapshot hash unchanged. Ranges reject gaps, duplicates, wrong region/first sequence, or an end beyond the durable head. Only the current engine/schema/profile is supported; unknown versions fail closed.
 
 ## Export-only recovery
 

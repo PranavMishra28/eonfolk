@@ -275,5 +275,13 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | Z4-005 | P2 | ACCEPT — MITIGATED | Node, pnpm and the complete mandatory direct dependency cohort are exact; any added dependency needs logged necessity, license/install/integrity review and re-estimation. | 001, Goal prompt, PROPOSED_TOOLS |
 | Z4-006 | P2 | ACCEPT — MITIGATED | Work stops at 60 focused hours or before an action would cross it, not after the ceiling. | Goal prompt |
 | Z4-007 | P2 | ACCEPT — MITIGATED | The evidence schema permits bounded written observation notes exactly as disclosed in the voluntary-participation script. | 001, Goal prompt |
+| Z5-001 | P1 | ACCEPT — MITIGATED | `resume.json` has an exact non-circular schema/phase state machine; cohort imports are deterministic, content-addressed, append-only and ledgered without overwriting failed evidence. | 001, Goal prompt |
+| Z5-002 | P1 | ACCEPT — MITIGATED | Study artifact/manifest commits, JCS manifest hash, outer/participant types, per-cohort maps, null/failure behavior and sign-off are normative and reject extra fields. | QUALITY_BAR, Goal prompt |
+| Z5-003 | P1 | ACCEPT — MITIGATED | Signed setup/facilitation/analysis minutes exclude waits/participant response and count once per imported source SHA toward the 60-hour ceiling. | 001, Goal prompt |
+| Z5-004 | P1 | ACCEPT — MITIGATED | Gate 0 product/visual and Gate A use foreground `performance.now()` from exact ready frames; focus/reload/pause invalidates without restart/replacement. | QUALITY_BAR, Goal prompt |
+| Z5-005 | P1 | ACCEPT — MITIGATED | Snapshots include events through base; replay starts base+1 and ends final+1; genesis/zero-event boundaries are literal. | SIMULATION, PERSISTENCE, Goal prompt |
+| Z5-006 | P1 | ACCEPT — MITIGATED | Hidden/missing/revoked errors share constant work and 50 ms release; 200-per-class round-robin medians/p95 must be pairwise within 5 ms. | COGNITION, TESTING, Goal prompt |
+| Z5-007 | P2 | ACCEPT — MITIGATED | The canonical desktop/mobile lab is blocking; a physical phone is diagnostic, cannot substitute, and device absence does not stop work. | PERFORMANCE, 001, Goal prompt |
+| Z5-008 | P2 | ACCEPT — MITIGATED | Development authority permits unauthenticated read-only exact package/advisory GETs to named official endpoints and still forbids remote mutation/credentials. | Goal prompt |
 
-All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final Goal-prompt pass must verify the later Z2/Z3/Z4 mitigations before readiness.
+All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation passed FR-001 through FR-006 at `94f3acd`; the final Goal-prompt pass must verify the later Z2/Z3/Z4/Z5 mitigations before readiness.

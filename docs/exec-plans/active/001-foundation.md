@@ -47,7 +47,7 @@ These six milestones are ordered and non-coalescible; additional runnable checkp
 | **Planned** | **52** | |
 | Fix/review contingency | **0–8** | only failing acceptance criteria; total never exceeds 60 |
 
-`Focused hours` means summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent review; parallel work is added, never discounted. Participant response time and elapsed scheduling waits are recorded separately as elapsed time, but preparing/recruiting through operator-owned channels, facilitating, and processing evidence count. The owner must have the participant/device path before starting M0; Codex has no recruiting authority.
+`Focused hours` means summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent review; parallel work is added, never discounted. Participant response time and elapsed scheduling waits are recorded separately as elapsed time. Each signed human-evidence import carries setup/facilitation/analysis minutes, counted exactly once by source SHA; preparing through operator-owned channels, facilitating, and processing evidence count. The owner must have the participant and canonical browser-profile path before starting M0; Codex has no recruiting authority and a physical phone is optional diagnostic evidence.
 
 ### Bottom-up work breakdown
 
@@ -69,7 +69,7 @@ These six milestones are ordered and non-coalescible; additional runnable checkp
 | T14 | Yoked control, exact counterbalancing/instruments, seeded assignment, mocked analyzer | T13 | eval implementer | 1.5 / 2 / 2.5 | No model judge/telemetry |
 | T15 | Operator Gate B/card sessions, raw analysis, factuality and discipline reviews/fixes | T14 | operator + coordinator/reviewers | 4 / 5 / 6 | No denominator/scale/strict-mean cut; failure reopens product |
 | T16 | Full correctness/security/dependency/license/CI rehearsal and failure drills | T04–T15 | systems/security reviewer | 2.5 / 3 / 3.5 | No waived P0/P1/high-critical advisory |
-| T17 | Three-viewport/physical-device performance and access acceptance package | T11–T16 | visual/access reviewer | 1.5 / 2 / 2.5 | Apply presentation cut ladder; numeric gates stay fixed |
+| T17 | Three-viewport canonical performance/access package; optional physical diagnostic | T11–T16 | visual/access reviewer | 1.5 / 2 / 2.5 | Apply presentation cut ladder; numeric gates stay fixed; phone absence does not block |
 | T18 | Final named-diff review, targeted fixes/reruns, logs, clean handoff | T16–T17 | coordinator + independent reviewers | 2.5 / 3 / 3.5 | No new mechanics; unresolved P0/P1 means not ready |
 | **Total** | | | | **39.5 / 52 / 65** | Expected leaves eight hours to the hard 60-hour ceiling; high case requires cuts/reopen before overrun |
 
@@ -233,7 +233,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** clean format/lint/typecheck/unit/determinism/replay/property/fuzz/build/critical Playwright/access/performance; crash/fence/export/version/no-import; 30/90/365; network-disabled Standard Brain; dependency/license/secret scan.
 
-**Browser/visual evidence:** final named-commit journey and all states at three viewports; physical mobile caveat/result; keyboard, reduced motion, semantic degradation; final participant tables.
+**Browser/visual evidence:** final named-commit journey and all states at three viewports; keyboard, reduced motion, semantic degradation; final participant tables. Include an optional physical-mobile diagnostic result or state `not run—nonblocking`; it never substitutes for the canonical mobile lab.
 
 **Performance/security/eval:** all numerical gates pass without waiver. Deny-by-default headed lockfile-pinned Chromium plus independent route log/netlog permits only one local preview origin and records zero attempted external DNS/HTTP/WebSocket/WebTransport/beacon/worker/navigation/prefetch/UDP egress; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
 

@@ -23,7 +23,7 @@ The application builds a new immutable context only through `canRead(..., "decis
 - integer budgets for records, bytes, candidates, plan depth, and retries; and
 - no omniscient state, secret targets, implementation metadata, moderation state, hidden scoring, or another citizen's private context.
 
-Noninterference is stronger than redaction: two worlds differing only in facts denied by that versioned oracle produce byte-identical context, catalog, target ordering, validation/rejection code/shape/timing class, decision explanation, semantic/patron/public projection, and public Chronicle until one typed observation/disclosure changes permission. Hidden, missing, and revoked targets all expose `ACTION_UNAVAILABLE`.
+Noninterference is stronger than redaction: two worlds differing only in facts denied by that versioned oracle produce byte-identical context, catalog, target ordering, validation/rejection code/shape/timing class, decision explanation, semantic/patron/public projection, and public Chronicle until one typed observation/disclosure changes permission. Hidden, missing, and revoked targets all expose `ACTION_UNAVAILABLE` through one constant-work/full-catalog/no-early-return response path with a 50 ms minimum release. Under the canonical foreground browser, 200 seeded round-robin requests per class must each be ≥50 ms with pairwise class median and p95 differences ≤5 ms; code-path inspection and this bounded statistic define timing equality.
 
 ## `IntentProposal` and grounded explanation
 

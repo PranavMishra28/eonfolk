@@ -107,7 +107,7 @@ The local product proposes an advance from elapsed wall time, explains the propo
 ## Blocking acceptance
 
 - Golden canonical bytes, hashes, PRNG vectors, stable IDs, rounding, overflow, scheduler ties, and Unicode ingress match in browser and Node.
-- Same seed/commands and snapshot plus half-open event range produce identical state and bytes.
+- Same seed/commands and snapshot plus its exact half-open event range produce identical state and bytes: snapshot includes events through `baseSequence`; replay requires `from=baseSequence+1`, `to=finalSequence+1`; genesis is base 0/no domain event; zero events has `from=to=baseSequence+1`.
 - Three counsel intents from the same pre-boundary snapshot reach at least three materially different terminal state vectors; no branch label may converge to the same authoritative result.
 - Direct/trigger/contributing edges cite actual consuming rules; temporal and response relations cannot appear as causal parents.
 - 30-, 90-, and 365-day headless fixtures reach the exact requested terminal simulation time, conserve resources, stay within declared event/storage caps, and replay to the same hash. A safe early pause is failure.
