@@ -103,7 +103,7 @@ No style may make allegation look authoritative. Replay crops must be generated 
 | Meaning | World cue | DOM/reduced/mobile equivalent |
 |---|---|---|
 | Water | blue bucket/jug plus well route; drink/gather pose | “fetching water” / “drinking”; static before/after count |
-| Wood | forked-stick bundle plus woodpile route; carry/repair pose | “carrying wood” / “repairing well”; prop icon and count |
+| Wood | forked-stick bundle plus woodpile route; carry/repair pose | “carrying wood” / “repairing mill”; prop icon and count |
 | Exchange | two citizens face each other; item crosses between hands | named pair, item, and ownership before/after |
 | Verify | Mara faces source/artifact; eye-and-tally mark; short pause then changed belief mark | “checking Iven's count”; fact/belief label and receipt |
 | Relationship strain/repair | Mara/Toma orientation and distance change; broken or joined carved edge | named band change, rule/event reference, never color alone |

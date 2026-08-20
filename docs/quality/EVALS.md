@@ -41,7 +41,9 @@ The Riverhold logic transfers to one non-Mara fixture. Three advice paths must d
 
 ## Human rubric and yoked control
 
-Eight unfamiliar participants see randomized real versus yoked scripted trajectories with identical presentation/timing. Ask what Mara knew, what mattered to her, what advice did, why she chose, what changed, whether another option could matter, and what they would do next. Score groundedness, value/plan fit, social consequence, legibility, agency, contingency, concern, responsibility, and desire to continue. Report every result and objection; do not claim statistical validation.
+The frozen Gate B instrument in [QUALITY_BAR](QUALITY_BAR.md#gate-b--proof-of-agency-and-bounded-attachment) is authoritative: eight fresh eligible volunteers, exact four/four seeded order, identical presentation/timing, anchored 1–7 contingency/continue questions after each condition, frozen reason/choice/consequence/save rubric, and unprompted 60-second second-action rubric. Instrument/assignment/hash is committed before the first session; enrolled withdrawal stays in the denominator. Report raw anonymous results and every objection; do not claim statistical validation.
+
+The machine evaluator additionally asks what Mara knew, which typed value/plan/relationship term won, what advice contributed, why she chose, what changed, and whether another legal option can produce a different state. Groundedness, value/plan fit, social consequence, legibility, authorization, and contingency are receipt/event assertions; human concern and desire are never inferred from logs.
 
 The attachment signal is person-centered anticipation or concern plus voluntary second action, not factual recall, “interesting,” or praise for technology. A refresh immediately after catch-up tests persistence, not retention. Retention requires a separately scheduled voluntary return.
 

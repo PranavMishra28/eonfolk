@@ -240,5 +240,19 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | PP-011 | P1 | ACCEPT — MITIGATED | Eight sessions, cross-surface identity, concern, voluntary second action, yoked control; reload is not retention. | QUALITY_BAR, EVALS |
 | PP-012 | P1 | PARTIALLY ACCEPT — MITIGATED WITHOUT EXPANSION | Decision boundary is stable/readable with one-line stakes for screen sharing; no chat integration/dashboard. | INTERACTION, 001 |
 | PP-013 | P1 | ACCEPT — MITIGATED | One consistent eight-session formative script precedes audience/channel cohorts. | QUALITY_BAR, DISTRIBUTION |
+| ZG-001 | P0 | ACCEPT — MITIGATED | Operator-only human evidence paths and a stop before production foundations prevent fabricated/recruited evidence while permitting later non-human work. | Goal prompt, 001, QUALITY_BAR |
+| ZG-002 | P1 | ACCEPT — MITIGATED | Goal prompt resolves immutable planning base and exact implementation worktree/branch; production never edits planning. | Goal prompt, 001 |
+| ZG-003 | P1 | ACCEPT — MITIGATED | Gate 0 binary/rank and Gate B anchored/strict-mean algorithms make outcomes mechanical. | Goal prompt, QUALITY_BAR |
+| ZG-004 | P1 | ACCEPT — MITIGATED | Finite security gate enumerates egress, active content, bounds, fail-closed storage, advisories and evidence. | Goal prompt, QUALITY_BAR, SECURITY |
+| FR-001 | P1 | ACCEPT — MITIGATED | Length-framed typed tuples, exact base32, acyclic batch/event order, literal xoshiro transition/state/vector and collision fixtures close the byte profile. | SIMULATION, Goal prompt |
+| FR-002 | P1 | ACCEPT — MITIGATED | `riverhold-visibility-v1` owns the viewer/purpose/label/revision matrix, private-parent behavior, coalesced error surface and typed disclosure. | WORLD_MODEL, COGNITION, SECURITY, TESTING |
+| FR-003 | P1 | ACCEPT — MITIGATED | Eighteen prerequisite/owner/evidence tasks total 39.5/52/65; productive labor sums across agents, eight hours remain contingency, and timed M0 forces re-estimation. | 001, COST_MODEL, Goal prompt |
+| FR-004 | P1 | ACCEPT — MITIGATED | All five see all six under a seeded cyclic-Latin schedule with fixed content/timing, exact questions/rank/tie/abandonment rules and mock analyzer. | QUALITY_BAR, 001, Goal prompt |
+| FR-005 | P1 | ACCEPT — MITIGATED | Mill is the single repair object across resource rule, visual cue, work order, scope and Chronicle; well remains only the water site. | ECONOMY, GAME_SYSTEMS, DESIGN, CHRONICLE, 001 |
+| ZC-001 | P1 | ACCEPT — MITIGATED | Acceptance distinguishes permitted local preview asset requests from forbidden DNS/external egress and records HAR assertions. | Goal prompt, SECURITY, PERFORMANCE |
+| ZC-002 | P1 | ACCEPT — MITIGATED | M1 is defined inline as first production durable protocol/simulation milestone; missing Gate 0 blocks all production packages/apps. | Goal prompt |
+| ZC-003 | P1 | ACCEPT — MITIGATED | Exact eligibility/agreement, frozen manifests, seeds, assignments, scripts, anchors, rubrics and withdrawal handling now precommit every human gate. | Goal prompt, QUALITY_BAR, EVALS |
+| ZC-004 | P1 | ACCEPT — MITIGATED | One build/profile/cache/run/mark/frame/gzip/egress procedure decides every performance budget. | PERFORMANCE, Goal prompt |
+| ZC-005 | P1 | ACCEPT — MITIGATED | Voluntary informed participation, affirmative agreement, no PII/recording and withdrawal rights replace consent-free observation language. | Goal prompt, QUALITY_BAR, 001 |
 
-All historical P0s have scope or test mitigations; none remains accepted as a live condition. Final review must confirm these changes in the actual authorities.
+All P0/P1 findings have an authority-level mitigation; none is accepted as a live condition. The one allowed targeted cross-discipline confirmation must verify FR-001 through FR-005, and a fresh zero-context prompt review must verify ZC-001 through ZC-005 before readiness.

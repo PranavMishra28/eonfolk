@@ -19,7 +19,7 @@ Both Gate A and Gate B must pass. The honest release label is **single Riverhold
 - Solo builder; 52 planned focused hours and at most eight contingency hours for fixes/review, never new scope. Hard ceiling 60.
 - MacBook M4 Pro, no owned GPU, no training/fine-tuning, no proprietary dataset.
 - Approximately $0; no purchase, billing, credential request, deployment, public publication, domain, or paid service without explicit approval.
-- Free/useful/accountless V1; no revenue, payment, custody, licensing business, regulated data, partnership, enterprise motion, required model/key/download/WebGPU. Acceptance runs make zero runtime network requests after exact pinned free development dependencies are installed.
+- Free/useful/accountless V1; no revenue, payment, custody, licensing business, regulated data, partnership, enterprise motion, required model/key/download/WebGPU. Acceptance permits only the recorded local preview origin for committed app assets and fails every DNS/external-egress request.
 - Local-only Web Worker + IndexedDB; no server/auth/multiplayer/Cloudflare/cross-region/fork implementation.
 - Deterministic Standard Brain only. No provider SDK/model path.
 - React Router/Vite + one PixiJS 2.5D renderer + parallel semantic DOM. No Three/R3F/3D pipeline/dual renderer.
@@ -30,7 +30,7 @@ Acceptance—not elapsed time—ends work. If the irreducible loop cannot pass i
 
 Implementation resolves and records one immutable `PLAN_BASE` from `origin/plan/000-product-foundation`, then creates `/Users/pranav/Documents/ChatGPT/.eonfolk-worktrees/implementation` on `codex/eonfolk-001-foundation`. Production code never lands on this planning branch; without separate authority the implementation result remains committed, clean, unmerged, unpushed, and undeployed.
 
-Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. Codex prepares the build, scripts, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
+Only an authorized human operator may supply unfamiliar participants and signed-off anonymized manifests for Gate 0/A/B. Codex prepares the build, frozen voluntary informed-participation script, seeded assignments, and blank manifests but does not recruit, contact, impersonate, or fabricate people. No PII/recording is collected; eligibility, affirmative agreement, withdrawal, raw responses, and sign-off are operator-attested. Planning personas are not human evidence. Missing Gate 0 human evidence stops work before M1; after Gate 0 passes, safe non-human work may continue while later sessions are pending, but Gate A/B and readiness remain unpassed.
 
 ## Hour and scope budget
 
@@ -44,6 +44,34 @@ Only an authorized human operator may supply unfamiliar participants and signed-
 | M5 — Integrated QA/reviews/fixes | 8 | full browser/access/performance/correctness evidence |
 | **Planned** | **52** | |
 | Fix/review contingency | **0–8** | only failing acceptance criteria; total never exceeds 60 |
+
+`Focused hours` means summed productive labor across coordinator, every child, operator setup/facilitation/analysis, and independent review; parallel work is added, never discounted. Participant response time and elapsed scheduling waits are recorded separately as elapsed time, but preparing/recruiting through operator-owned channels, facilitating, and processing evidence count. The owner must have the participant/device path before starting M0; Codex has no recruiting authority.
+
+### Bottom-up work breakdown
+
+| ID | Task and blocking evidence | Prerequisite | Owner role | Low / expected / high hours | Declared cut or failure rule |
+|---|---|---|---|---:|---|
+| T01 | Six ugly matched variants, exact study instrument, seeded order, mocked analyzer | Plan base | product implementer | 0.75 / 1.25 / 1.75 | No content polish; if instrument is not frozen, M0 has not started |
+| T02 | Operator Gate 0 participant/observer facilitation, raw manifest, analysis, product review | T01 | operator + coordinator | 1 / 1.75 / 2.5 | No denominator cut; unavailable evidence blocks before M1 |
+| T03 | Disposable Pixi/semantic projection, three viewports, access/load measurement, visual review | T01 | visual implementer/reviewer | 0.5 / 1 / 1.5 | One Living Woodcut simplification, then stripped markers/semantic or stop |
+| T04 | Workspace, schemas, framed bytes, JCS/SHA/PRNG/ID/event/batch golden vectors | Gate 0 | systems implementer | 2.5 / 3 / 3.75 | None; protocol ambiguity stops M1 |
+| T05 | Pure reducer/scheduler, typed events, invariants, deterministic fixtures | T04 | systems implementer | 1.5 / 2 / 2.5 | No generalized systems |
+| T06 | IndexedDB atomic head/events/receipts/fence/snapshot/export and crash/version/replay failures | T04–T05 | persistence implementer | 2.5 / 3 / 3.75 | Export only; no import/upcaster/server |
+| T07 | Semantic Mara investigate/advice/three branches/leave/advance/second-command loop | T04–T06 | application implementer | 3 / 4 / 5 | Plain DOM, fixed scenario, no extra crisis/dialogue |
+| T08 | Visibility oracle, Standard Brain, receipts, perturbation/transfer/baseline/ablation/noninterference | T04–T07 | cognition implementer | 1.75 / 2.5 / 3.25 | Fixed terms/catalog; no provider/model |
+| T09 | Plain three-beat branch Chronicles, evidence disclosure, focused DOM Playwright | T07–T08 | application implementer | 1 / 1.5 / 2 | Template text only; no public URL/media encoder |
+| T10 | Eight-citizen resource/need/exchange/mill-repair simulation, catch-up, 30/90/365 caps | T04–T09 | systems/game implementer | 4 / 5 / 6 | Exactly three resources/four behavior families/one exchange/repair |
+| T11 | Pixi atlas/projection, identities/cues, semantic parity, weak-device/reduced-motion path | T10 | visual implementer | 3 / 4 / 5 | Cut effects/art polish, then stripped markers; never semantic path |
+| T12 | Gate A browser manifests, operator observers, analysis, four discipline reviews/fixes | T10–T11 | coordinator + operator/reviewers | 2 / 3 / 4 | No threshold/viewport/eight-citizen cut |
+| T13 | Final three consequences, second action, WYA, Chronicle/replay/card integration | Gate A | application/product implementer | 4 / 5 / 6 | Three authored branches only; no share route/session-depth system |
+| T14 | Yoked control, exact counterbalancing/instruments, seeded assignment, mocked analyzer | T13 | eval implementer | 1.5 / 2 / 2.5 | No model judge/telemetry |
+| T15 | Operator Gate B/card sessions, raw analysis, factuality and discipline reviews/fixes | T14 | operator + coordinator/reviewers | 4 / 5 / 6 | No denominator/scale/strict-mean cut; failure reopens product |
+| T16 | Full correctness/security/dependency/license/CI rehearsal and failure drills | T04–T15 | systems/security reviewer | 2.5 / 3 / 3.5 | No waived P0/P1/high-critical advisory |
+| T17 | Three-viewport/physical-device performance and access acceptance package | T11–T16 | visual/access reviewer | 1.5 / 2 / 2.5 | Apply presentation cut ladder; numeric gates stay fixed |
+| T18 | Final named-diff review, targeted fixes/reruns, logs, clean handoff | T16–T17 | coordinator + independent reviewers | 2.5 / 3 / 3.5 | No new mechanics; unresolved P0/P1 means not ready |
+| **Total** | | | | **39.5 / 52 / 65** | Expected leaves eight hours to the hard 60-hour ceiling; high case requires cuts/reopen before overrun |
+
+Acceptance ownership is unique: Gate 0 product/observer outcomes T02/T03; Gate A human outcome T12; Gate B/card outcome T15; canonical bytes/hashes/replay T04; durability/version/export T06; invariants and exact horizons T10; visibility/Standard Brain/fallback T08; UI/performance/accessibility T17; finite security/dependency tree T16. T18 confirms but does not redefine any gate. At each milestone, compare actual summed hours with row/milestone expected and re-estimate all remaining rows. A timed M0 rehearsal must fit four summed hours including evidence processing; otherwise stop before M1 and reopen scope/estimate.
 
 Only permitted cut order: particles/weather/parallax/sound → discretionary art/transition polish → measurement-only 12-citizen presentation stress → stripped Weathered Atlas markers plus semantic view. Never cut Gate 0/A/B, deterministic/durable contracts, security, accessibility, eight default citizens, three resources, divergent advice/return loop, Chronicle truth, or required evidence. Hours 53–60 are fixes/confirmation only.
 
@@ -81,8 +109,8 @@ docs/exec-plans/active/001-foundation.md  living progress/evidence log
 ## Locked contracts
 
 - `WorldCommand`: version, command ID, payload fingerprint, expected revision, principal, region, typed payload.
-- `WorldEventEnvelope`: ordered sequence/time, engine/schema, typed payload, causal parents (`direct|trigger|contributing`), separate related events (`temporal-predecessor|response-to`), visibility/provenance, pre/post/event hashes, batch ID.
-- `DecisionContext`: actor/revision/reason, only visible facts/beliefs, plan/values/relationships/commitments, closed catalog, budgets.
+- `WorldEventEnvelope`: ordered sequence/time, engine/schema, stable event ID, typed payload, causal parents (`direct|trigger|contributing`), separate related events (`temporal-predecessor|response-to`), visibility/provenance, pre/post/event hashes, pre-hash `batchId`; separate post-event `batchHash` lives in durable head/receipt.
+- `DecisionContext`: actor/revision/reason, only records allowed by `riverhold-visibility-v1` for `decision-context`, plan/values/relationships/commitments, closed catalog, budgets.
 - `IntentProposal`: one catalog action, optional typed plan/memory proposals, short justification rendered from typed `DecisionExplanation`, provenance.
 - `DecisionExplanation`: reason codes, actually read references, integer terms, tie-break, counsel disposition.
 - `CommandReceipt`: accepted/rejected stable result, fingerprint, revision/head, interval/rejection code, fencing token.
@@ -101,7 +129,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** record exact preview and browser commands; `git diff --check`; three viewports; cold shell timing; overflow/200% zoom/keyboard/reduced motion; no console error.
 
-**Browser/visual evidence:** five unfamiliar randomized product walkthroughs. After each version, each person records binary `desirable`, binary `want to continue`, and an untied within-person rank across all six; abandonment is zero on both binaries. Lowest summed rank wins. Any tie with Riverhold, another overall winner, or an alternative lead of at least 20 percentage points on either binary reopens the structure. Five silent visual observers use one manifest. 4/5 find Follow Mara/understand autonomy; 3/5 identify Mara, three activities, interaction. Shell by 2 seconds, CTA by 3.
+**Browser/visual evidence:** use [Quality Bar's frozen Gate 0 protocol](../../quality/QUALITY_BAR.md#gate-0--product-kill-gate): all five see all six under the seeded five-row cyclic-Latin schedule; fixed facts/choices/cost/fidelity/90-second decision/45-second consequence/60-second reset; exact binary questions and 1-best/6-worst untied rank. Withdrawal/skip is zero and fails the gate. Lowest summed rank must win without tie and no alternative may lead Riverhold ≥20 points on either binary. A separate five-person silent observer manifest uses the exact Mara/three-activity/both-participants+change/autonomy rubric. Shell by 2 seconds, CTA by 3.
 
 **Performance/security/eval:** no credentials/telemetry. Record the seeded order, raw per-participant binaries/ranks, denominator, summed ranks, and percentage-point comparisons. Living Woodcut gets one simplification pass; then stripped Weathered Atlas or stop.
 
@@ -123,7 +151,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Browser/visual evidence:** a minimal semantic harness shows no accepted result before durable acknowledgment and recovers after each injected crash; not Gate A evidence.
 
-**Performance/security/eval:** hostile text stays escaped/bounded; no network/provider; hashes exclude presentation; transaction failure causes no projection/state mutation.
+**Performance/security/eval:** hostile text stays escaped/bounded; no provider or external egress; hashes exclude presentation; transaction failure causes no projection/state mutation.
 
 **Rollback:** revert unintegrated worktree commit. Do not preserve an incompatible schema “for later.”
 
@@ -169,7 +197,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Reviewers:** five fresh observers plus independent product/game, systems, visual/access, and cognition reviewers.
 
-**Done:** automated gates and human thresholds pass with reproducible manifests; external inference/network absent.
+**Done:** automated gates and human thresholds pass with reproducible manifests; external inference/egress absent.
 
 ## M4 — Gate B: Proof of agency and bounded attachment (12 hours)
 
@@ -181,7 +209,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Commands/tests:** full PR baseline, `@gate-b`, sentence-to-event/provenance audit, causal/related/allegation vocabulary, card copy, replay without cognition, full noninterference, all branch hashes, second-action eligibility/effect.
 
-**Browser/visual evidence:** full journey at three viewports plus eight unfamiliar real-versus-yoked sessions: seeded counterbalancing is exactly four real-first/four control-first. After each condition and before the other, each participant scores perceived contingency and desire to continue on labeled integer 1–7 scales. Require Quality Bar's 6/8, 5/8, 4/8 thresholds and a strictly higher eight-person real mean on both scales; ties fail. Five separate card viewers require 3/5 correct comprehension/no false direct credit. Record all failures/abandonment.
+**Browser/visual evidence:** full journey at three viewports plus [Quality Bar's exact Gate B instrument](../../quality/QUALITY_BAR.md#gate-b--proof-of-agency-and-bounded-attachment): eight fresh sessions, frozen study seed/manifest, exact four/four order, byte-identical conditions, anchored contingency/continue questions, reason/choice/consequence/save rubric, and unprompted 60-second second action. Require 6/8, 5/8, 4/8 and strictly higher eight-person real mean on both scales; ties fail. Five fresh card viewers use the exact five-question/five-second rubric; require 3/5. Record all failures/withdrawal.
 
 **Performance/security/eval:** Gate A budgets remain passing. Escaped template text only; evidence disclosure resolves each sentence. Mara is recognizable across world/portrait/return/Chronicle and at least 4/8 express person-centered concern/curiosity.
 
@@ -203,7 +231,7 @@ The exact determinism and commit protocols live in [SIMULATION](../../engineerin
 
 **Browser/visual evidence:** final named-commit journey and all states at three viewports; physical mobile caveat/result; keyboard, reduced motion, semantic degradation; final participant tables.
 
-**Performance/security/eval:** all numerical gates pass without waiver. A clean build records zero runtime requests; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
+**Performance/security/eval:** all numerical gates pass without waiver. A clean-build HAR permits only one recorded loopback/private-LAN preview origin serving committed assets and records zero DNS/external egress; no credential, telemetry, provider SDK, dynamic code, or untrusted active rendering; bounded commands/text/storage/catch-up/export; corrupt/oversize/gap/stale-fence/unknown-version/quota cases fail closed without head advance; and no unresolved high/critical production-dependency advisory. Record scan source/date/findings/false-positive rationale. Exact diff/dependencies/licenses inspected.
 
 **Rollback:** revert smallest failing integration or remove lowest-priority presentation feature. A product-gate miss returns to owner; deployment/merge is never recovery.
 

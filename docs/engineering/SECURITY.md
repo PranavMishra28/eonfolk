@@ -42,6 +42,7 @@ No model, sponsor prose, UI flag, or client-provided role is authority.
 
 - Use a restrictive CSP compatible with the chosen local assets; do not add `unsafe-eval` for libraries without explicit security review.
 - Bundle production assets; no runtime third-party scripts, analytics, remote component registries, or model endpoints in V1.
+- Acceptance HAR permits only the one recorded local preview origin (loopback, or a named RFC1918 host used by the physical device) for committed application assets; every DNS lookup or other request is external egress and fails. Local preview requests are not misreported as zero network activity.
 - V1 has no import/restore/replacement route. Unknown/old saved versions fail closed without modifying current history. Any later import requires isolated side-by-side validation and a new review before replacement is possible.
 - Treat IndexedDB as mutable/corruptible input on load; verify snapshots and replay head.
 - Use one writer lease and test forced-close recovery; never silently last-write-wins.
@@ -76,10 +77,12 @@ Moderation visibility is independent of canonical factual state. Abusive prose c
 ## Required abuse/security tests
 
 - stale revision, duplicate ID, invalid actor, dead actor, impossible target, hidden fact, unauthorized resource, and partial-batch rejection;
+- the shared visibility-policy matrix at grant/revoke boundaries; private-parent/public-child projection; and byte-identical catalog/targets/error/shape/order/timing for hidden, missing, and revoked records until typed disclosure;
 - hostile HTML/Markdown/URL/code in names, memories, counsel, future import/provider output, and Chronicle values;
 - oversized/deep/unknown-field inputs and corrupt snapshot/event intervals;
 - missing/throwing/timed-out/malformed fake BrainPort with continued Standard Brain progress; provider-specific 429/revoke tests only when a real adapter exists;
 - dual-tab stale fencing, crash at every commit/publish barrier, replay gap/hash mismatch, quota abort, and proof that import is absent;
+- clean-build HAR allows only the declared local preview origin and records no DNS/external egress;
 - future-only: CSRF/origin, session fixation, public-write quotas, alarm duplication, moderation visibility, secret redaction, and denial-of-wallet.
 
 ## Resulting implementation behavior

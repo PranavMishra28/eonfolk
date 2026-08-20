@@ -74,7 +74,7 @@ The ExecPlan tracks actual incremental cash spend as **$0 unless the owner expli
 - model download/eval time if a later gate opens;
 - operational burden and credential surface.
 
-The 52 planned hours allocate 4 to product/visual kill gates, 8 deterministic durability, 8 ugly counterfactual loop, 12 Gate A, 12 Gate B, and 8 integrated QA. Up to eight additional hours are fix/review contingency only; hard ceiling 60. If evidence shows overrun, cut declared deferred presentation scope or reopen the product—never justify a shallower gate or spend.
+The [ExecPlan bottom-up work breakdown](../exec-plans/active/001-foundation.md#bottom-up-work-breakdown) maps every blocking criterion to an owner/evidence task and totals 39.5/52/65 low/expected/high productive hours. Focused hours sum coordinator, children, operator setup/facilitation/analysis, and independent review even when parallel; elapsed participant/scheduling wait is separate. Eight hours from expected to the hard 60 ceiling remain fix/review contingency only. A timed four-hour M0 and milestone re-estimates decide whether the expected case remains credible; a high trajectory triggers declared presentation cuts or product reopen, never a shallower gate or spend.
 
 ## Approval and stop controls
 

@@ -52,7 +52,7 @@ When a major UI, renderer, asset, layout, motion, or design-token change occurs,
 | Long horizon | 30/90/365-day worlds reach exact target under declared caps; conservation, bounded events/storage, interrupt/resume equivalence, no LLM |
 | Browser journey | account-free Follow Mara, investigation, interaction, three advice branches, leave/confirmed catch-up, Chronicle/replay, second action |
 | Accessibility | keyboard-only path, semantic names/states, focus, reduced motion, text equivalents, fallback view |
-| Security | hostile text/oversize data, hidden-fact noninterference, duplicate/stale/fenced writes, fake BrainPort failure, secret absence, import route absent |
+| Security | shared `riverhold-visibility-v1` allow/deny matrix across every viewer/purpose/label/grant/revoke boundary; private-parent/public-child and disclosure metamorphs; identical hidden/missing/revoked catalog/target/error/shape/order/timing; hostile text/oversize data; duplicate/stale/fenced writes; fake BrainPort failure; secret absence; import route absent; local-preview-only HAR with zero external egress |
 
 Snapshot replay is exercised from every persisted snapshot in golden scenarios. Chunk boundaries vary. The test oracle never calls a model or depends on current date/locale/network.
 

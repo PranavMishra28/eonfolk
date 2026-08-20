@@ -31,6 +31,27 @@ Reality facts are authoritative state. A belief records proposition, confidence 
 
 Visibility values at minimum are public, participant-private, citizen-private, patron-visible-through-covenant, moderator-only, and implementation-only. Moderation state is separate from canonical fact. The Standard Brain receives only the focal citizen's allowed slice.
 
+### Visibility policy `riverhold-visibility-v1`
+
+Authorization is one pure total function: `canRead(viewer, purpose, record, atRevision) -> allow|deny`. Every record carries label, created revision, and the subject IDs required by its label; every projection records policy version and revision. A caller cannot supply roles or subjects not already present in canonical state/application configuration.
+
+Viewer kinds are `public`, `citizen(citizenId)`, `participant(principalId)`, `moderator(roleId)`, and test-only `implementation(testRunId)`. Purposes are closed: `decision-context`, `semantic-ui`, `patron-view`, `chronicle-private`, `chronicle-public`, `replay-private`, `export-owner`, `moderation`, and `implementation-diagnostic`.
+
+| Label | Required subjects | Allowed viewers/purposes at `atRevision` |
+|---|---|---|
+| `public` | none | Every viewer for every purpose except it grants no moderation/diagnostic role by itself. |
+| `participant-private` | nonempty principal-ID set | Matching `participant` for semantic UI, patron view, private Chronicle/replay, and owner export; never a citizen DecisionContext or public Chronicle. |
+| `citizen-private` | exactly one citizen ID | Matching `citizen` for DecisionContext; owner export and nonproduction diagnostics may contain it; never participant/patron/public presentation. |
+| `patron-visible-through-covenant` | citizen ID plus covenant ID | Matching citizen for DecisionContext; matching participant for semantic/patron/private Chronicle/replay only while that covenant's `grantRevision <= atRevision < revokeRevision` (missing revoke means open); owner export and diagnostics. |
+| `moderator-only` | moderator role set | Matching configured moderator for `moderation` only; no such viewer or record ships in V1. |
+| `implementation-only` | test-run ID | Matching implementation viewer for nonproduction `implementation-diagnostic` only; production builds reject the label at ingress. |
+
+`chronicle-public` admits only `public`. `export-owner` is a verified, explicit, spoiler-warning machine export by the local owning participant and includes all canonical records required to reproduce the world, but excludes separate moderator data and implementation-only records; it is never reused as a UI/Brain/Chronicle projection. Covenant revocation removes future patron access. A typed `ObservedRecord` copied to participant-private while the grant was active remains that participant's observation; revocation never rewrites history.
+
+A public child event with a private parent may be projected only from its own public payload. Public/private projections omit the unreadable parent edge, ID, count, placeholder, and timing distinction; no factual Chronicle sentence may cite it until a typed public disclosure/observation event exists. Catalog generation and target enumeration run after this policy. Hidden, nonexistent, and no-longer-readable targets return the same `ACTION_UNAVAILABLE` code, public wording, payload shape, ordering behavior, and deterministic timing class; explanation and Chronicle cannot reveal which case occurred.
+
+The fixture-owned allow/deny matrix enumerates every viewer × purpose × label row, covenant boundaries at grant/revoke revisions, private-parent/public-child cases, and the one typed disclosure that changes permission. Production code and tests consume the same table; tests may not recreate expected policy in a second implementation.
+
 ## Causal and related-event types
 
 Each material event can name causal parents only as `direct`, `trigger`, or `contributing`. Noncausal relations live in a separate `relatedEvents` field as `temporal-predecessor` or `response-to`. Allegations are typed statement/belief content, never relation types or causal truth. Validators require every referenced event to precede the child in-region and every causal edge to name the consuming rule/mechanism. This vocabulary is canonical across simulation, Chronicle, UI, and tests.

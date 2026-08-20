@@ -23,7 +23,7 @@ Reality is a pure deterministic reducer over one region. It accepts revision-che
 
 `WorldEventEnvelope` contains:
 
-- `schemaVersion`, `engineVersion`, `regionId`, `sequence`, and integer `simulationTime`;
+- `schemaVersion`, `engineVersion`, stable `eventId`, `regionId`, `sequence`, and integer `simulationTime`;
 - one closed typed event payload;
 - `causalParents: { eventId, relation }[]`, where `relation` is only `direct`, `trigger`, or `contributing`;
 - `relatedEvents: { eventId, relation }[]`, where `relation` is only `temporal-predecessor` or `response-to`;
@@ -43,14 +43,31 @@ This profile is one indivisible protocol decision. Golden vectors cover every ro
 | Scores and fixed point | Signed 32-bit integers; weights use basis points (`10_000 = 1.0`); multiplication checks safe-integer bounds and division truncates toward zero. |
 | Text | Reject unpaired surrogates; normalize accepted human-authored strings to Unicode NFC once at ingress; cap bytes and code points. Canonical state stores the normalized result. |
 | Serialization | RFC 8785 JSON Canonicalization Scheme over the restricted integer-only domain; no `undefined`, `NaN`, infinities, duplicate keys, map/set iteration, locale sorting, or object-identity order [S-DET-001]. |
-| Hash | SHA-256 per FIPS 180-4 [S-DET-002], lowercase hex, with UTF-8 domain separation such as `EONFOLK:STATE:v1\0` or `EONFOLK:EVENT:v1\0`. |
-| PRNG | Versioned `xoshiro128**` using unsigned 32-bit words, `Math.imul`, and explicit rotate-left; implementation and reference vectors live in protocol tests. |
-| PRNG seeding | First 16 bytes of `SHA-256("EONFOLK:PRNG:v1\0" + worldSeed + "\0" + streamId)` interpreted as four little-endian words; replace the forbidden all-zero state with the fixed vector in the golden fixture. |
-| Draw ownership | Stable stream IDs per system/entity/purpose and a persisted draw counter. Adding a cosmetic or unrelated mechanic may not consume another stream. |
-| Stable IDs | Deterministic prefix plus lowercase base32 of `SHA-256(type + worldSeed + creationSequence)`; never use random UUIDs in Reality. |
+| Hash | SHA-256 per FIPS 180-4 [S-DET-002], lowercase 64-character hex, over the framed preimages below. |
+| PRNG | Exact `xoshiro128**` transition below over four unsigned 32-bit words; no library substitution. |
+| PRNG seeding | First 16 digest bytes of the framed PRNG seed tuple below, decoded as four little-endian words; literal all-zero replacement is fixed below. |
+| Draw ownership | Stream ID is the framed tuple `(system, entityId, purpose)`, each an NFC UTF-8 string, plus a persisted unsigned-64 draw counter. Adding a cosmetic or unrelated mechanic may not consume another stream. |
+| Stable IDs | Validated type prefix plus the full lowercase unpadded RFC 4648 base32 SHA-256 digest from the framed ID tuple below; never use random UUIDs in Reality. |
 | Schedule order | `(simulationTime, priority, actorId, localOrdinal)` ascending, with all fields explicit and tested. |
 
-`stateHash` hashes the complete canonical region state after an event. `eventHash` hashes the complete envelope excluding only `eventHash` itself. A separate `batchHash`, stored in the durable head and receipt rather than inside the envelope, chains the prior head hash, ordered event hashes, command fingerprint, resulting revision, and fencing token. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
+### Canonical tuple and hash grammar
+
+`tuple(tag, fields)` is byte concatenation of ASCII `EONFOLK-TUPLE-v1`, one zero byte, then the tag and every field as `u32be(byteLength) || bytes`. Field order and type are fixed by each schema: NFC strings are UTF-8; counters/revisions are unsigned 64-bit big-endian; counts are unsigned 32-bit big-endian; a hash/seed is its raw fixed-length bytes, never its display hex. The length prefix includes zero-length fields and is rejected above `2^32-1`; there are no implicit separators, coercions, or optional omitted fields.
+
+- `stateHash = SHA-256(tuple("EONFOLK:STATE:v1", [JCS(canonicalRegionState)]))`.
+- `payloadFingerprint = SHA-256(tuple("EONFOLK:COMMAND-PAYLOAD:v1", [JCS(typedCommandPayload)]))`; command acceptance recomputes rather than trusts it.
+- `batchId = "batch_" + base32(SHA-256(tuple("EONFOLK:BATCH-ID:v1", [regionId, priorRevision, commandId])))`.
+- After `batchId`, pre/post hashes, and sequence are fixed, `eventHash = SHA-256(tuple("EONFOLK:EVENT:v1", [JCS(completeEnvelopeWithoutEventHash)]))`.
+- After every event hash exists, `batchHash = SHA-256(tuple("EONFOLK:BATCH-HASH:v1", [priorHeadHash, eventCount, orderedEventHashes..., payloadFingerprint, resultRevision, fencingToken]))`; it is stored only in durable head/receipt.
+- `stableId = type + "_" + base32(SHA-256(tuple("EONFOLK:ID:v1", [type, worldSeed32, creationSequence])))`, where `type` matches `[a-z][a-z0-9-]{0,31}`, `worldSeed32` is exactly 32 bytes, and base32 uses alphabet `abcdefghijklmnopqrstuvwxyz234567`, full 32-byte digest, no `=` padding (52 characters).
+- PRNG state digest is `SHA-256(tuple("EONFOLK:PRNG-SEED:v1", [worldSeed32, system, entityId, purpose]))`; `streamId` is exactly those three framed strings, not a joined string.
+- Genesis `priorHeadHash` is `SHA-256(tuple("EONFOLK:GENESIS-HEAD:v1", []))`; every later head is the prior transition's `batchHash`.
+
+The order is acyclic: command fields → `batchId` → complete envelopes → ordered `eventHash` values → `batchHash`/durable head. Hash boundaries never include presentation caches, wall time, IndexedDB metadata, or raw model text.
+
+### Exact `xoshiro128**` transition
+
+Let state be `[s0,s1,s2,s3]` unsigned 32-bit words. One draw returns `u32(imul(rotl32(u32(imul(s1,5)),7),9))`, then applies, in order: `t=u32(s1<<9)`; `s2^=s0`; `s3^=s1`; `s1^=s2`; `s0^=s3`; `s2^=t`; `s3=rotl32(s3,11)`, coercing every result to unsigned 32-bit. If decoded seed state is all zero, replace it with `[0x9e3779b9,0x243f6a88,0xb7e15162,0xdeadbeef]`. That replacement state's first six outputs are `92dcf72a,00544cb2,046d0ff3,7192e3d9,ba2b8389,12be2f0f` as eight-digit lowercase hex. Protocol tests commit tuple hex, digests, IDs, initial states, outputs, and post-draw states; Node and the supported browser must independently reproduce them.
 
 Version `v1` supports one engine/schema version only. Unknown versions fail closed. No upcaster is implemented in the first slice; changing any rule above requires a new profile and explicit migration plan.
 

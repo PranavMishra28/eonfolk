@@ -22,9 +22,17 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 | Meaningful world display on target M4 Pro/laptop profile | **<=3 seconds** |
 | Meaningful world display on realistic mid-tier mobile/4G profile | **<=5 seconds** |
 
-The stricter staged requirement is: useful semantic/static shell with Mara by **2 seconds**, operable **Follow Mara** by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. “Meaningful” identifies Riverhold/Mara, shows a useful action and at least one activity; it is not a spinner. Measure cold/warm separately and disclose caching.
+The stricter staged requirement is: useful semantic/static shell with Mara by **2 seconds**, operable **Follow Mara** by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. “Meaningful” means Mara plus all eight citizen projections, their current activities, an interaction cue, and equivalent semantic rows are painted; it is not a spinner or partial scene.
 
-The target desktop profile is the builder's M4 Pro on the pinned stable Chrome with clean production preview, native DPR, no devtools, and named power state. The provisional mobile laboratory profile is 390×844, DPR 3, four-times CPU slowdown and Fast-4G-equivalent network in the pinned browser; final mobile claims also require one named physical iPhone 13/Pixel 7-class-or-weaker device. Emulation alone is labeled emulation.
+The target desktop profile is the builder's M4 Pro on pinned Playwright Chromium with clean production preview, native DPR, foreground, plugged in, Low Power Mode off, heavy apps closed, and recorded OS/browser versions. The mobile laboratory profile is 390×844, DPR 3, four-times CPU slowdown, 1.6 Mbps down, 750 Kbps up, 150 ms RTT, cache disabled in the same engine; final physical-mobile claims also require one named iPhone 13/Pixel 7-class-or-weaker device and recorded local connection. Emulation alone is labeled emulation.
+
+## Canonical measurement procedure
+
+From a clean checkout run `pnpm install --frozen-lockfile`, `pnpm build`, and `pnpm preview --host 127.0.0.1 --port 4173`; record commit/lockfile, commands, power/device/profile, browser engine/version, seed/state, quality/motion/UI/focus state, and the single preview origin. Five cold repetitions each use a new browser context with HTTP cache, service workers, IndexedDB, and local storage cleared. The maximum of the five load results must pass. Instrument `shell`, `cta`, and `meaningful-world`; at each mark the browser assertion verifies the semantic/projection conditions above. HAR/request inspection permits only the recorded loopback or physical-device RFC1918 preview origin for committed app assets and fails all DNS/external egress.
+
+After warm asset load and five stabilization seconds, collect 30 seconds of foreground `requestAnimationFrame` deltas for arrival, busy-market interaction, and Chronicle overlay. Pool samples and calculate nearest-rank p95 as `sorted[ceil(0.95*n)-1]`; record p50/p95/worst for each state and pooled. Every state and pooled p95 must pass.
+
+Deterministic `gzip -9` counts emitted bytes: critical shell is HTML + CSS + JavaScript reachable before the renderer import; total initial route adds every JavaScript chunk requested through `meaningful-world`; asset payload is transferred compressed app-owned atlas/art/font bytes through that mark. Sourcemaps, preview headers, or browser cache never reduce counts. Cold and warm results are reported separately; only the five cold results decide display gates.
 
 ## Frame and population budgets
 

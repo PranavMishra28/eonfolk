@@ -14,7 +14,7 @@ Every citizen runs a complete deterministic Standard Brain. Modern-model inferen
 
 ## `DecisionContext`
 
-The application builds a new immutable context containing:
+The application builds a new immutable context only through `canRead(..., "decision-context", ..., revision)` from [visibility policy `riverhold-visibility-v1`](../game/WORLD_MODEL.md#visibility-policy-riverhold-visibility-v1), containing:
 
 - context ID/version, actor, region, revision, decision reason, and simulation boundary;
 - only visible fact references and sourced beliefs with provenance/confidence bands;
@@ -23,7 +23,7 @@ The application builds a new immutable context containing:
 - integer budgets for records, bytes, candidates, plan depth, and retries; and
 - no omniscient state, secret targets, implementation metadata, moderation state, hidden scoring, or another citizen's private context.
 
-Noninterference is stronger than redaction: two worlds differing only in facts invisible to the actor produce byte-identical context, catalog, validation/rejection surface, decision explanation, and public Chronicle projection until an authorized observation occurs.
+Noninterference is stronger than redaction: two worlds differing only in facts denied by that versioned oracle produce byte-identical context, catalog, target ordering, validation/rejection code/shape/timing class, decision explanation, semantic/patron/public projection, and public Chronicle until one typed observation/disclosure changes permission. Hidden, missing, and revoked targets all expose `ACTION_UNAVAILABLE`.
 
 ## `IntentProposal` and grounded explanation
 
