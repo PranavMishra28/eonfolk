@@ -21,6 +21,74 @@
 	color: var(--ink);
 }
 
+.feedback-panel {
+	display: grid;
+	grid-template-columns: minmax(14rem, 0.7fr) minmax(18rem, 1.3fr);
+	gap: clamp(1.5rem, 4vw, 4rem);
+	margin: clamp(2rem, 5vw, 5rem) auto;
+	padding: clamp(1.25rem, 3vw, 2.5rem);
+	width: min(92vw, 70rem);
+	border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+	background: color-mix(in srgb, var(--paper) 94%, var(--rust));
+}
+
+.feedback-form,
+.feedback-form label {
+	display: grid;
+	gap: 0.55rem;
+}
+
+.feedback-form {
+	gap: 1rem;
+}
+
+.feedback-form select,
+.feedback-form textarea,
+.feedback-form input[type="file"] {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 0.75rem;
+	border: 1px solid color-mix(in srgb, var(--ink) 34%, transparent);
+	background: var(--paper);
+	color: var(--ink);
+	font: inherit;
+}
+
+.feedback-form textarea {
+	min-height: 7rem;
+	resize: vertical;
+}
+
+.feedback-consent {
+	grid-template-columns: auto 1fr;
+	align-items: start;
+}
+
+.feedback-preview {
+	display: block;
+	max-width: min(100%, 28rem);
+	max-height: 18rem;
+	object-fit: contain;
+	border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+.feedback-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.feedback-status {
+	padding: 0.75rem;
+	background: color-mix(in srgb, var(--moss) 12%, var(--paper));
+}
+
+@media (max-width: 680px) {
+	.feedback-panel {
+		grid-template-columns: 1fr;
+	}
+}
+
 * {
 	box-sizing: border-box;
 }

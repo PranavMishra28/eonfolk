@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import type { Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 let pageErrors: string[] = [];
 const routeLog: Array<{
@@ -143,6 +143,48 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 		page.getByRole("button", {
 			name: "Copy unavailable — select the card text",
 		}),
+	).toBeVisible();
+});
+
+test("feedback stays local, sanitizes its image, requires consent for diagnostics, and can be deleted", async ({
+	page,
+}) => {
+	const panel = page.getByRole("region", { name: "What broke the spell?" });
+	await panel
+		.getByLabel("What happened?")
+		.fill(
+			"The relationship consequence was clear. Contact player@example.com with ghp_abcdefghijklmnopqrstuvwxyz123456",
+		);
+	await panel.getByLabel(/Attach bounded structured diagnostics/i).check();
+	await panel.getByLabel("Optional image").setInputFiles({
+		name: "moment.png",
+		mimeType: "image/png",
+		buffer: Buffer.from(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+			"base64",
+		),
+	});
+	await expect(panel.getByText(/Sanitized to 1×1/i)).toBeVisible();
+	await panel.getByRole("button", { name: "Save feedback locally" }).click();
+	await expect(
+		panel.getByText(
+			/No feedback relay is configured, so nothing was uploaded/i,
+		),
+	).toBeVisible();
+	await expect(
+		panel.getByRole("button", { name: /Delete queued feedback \(1\)/i }),
+	).toBeVisible();
+	const stored = await page.evaluate(() =>
+		localStorage.getItem("eonfolk:founder-alpha-feedback:v1"),
+	);
+	expect(stored).not.toContain("player@example.com");
+	expect(stored).not.toContain("ghp_");
+	expect(stored).not.toContain("prompt");
+	await panel
+		.getByRole("button", { name: /Delete queued feedback \(1\)/i })
+		.click();
+	await expect(
+		panel.getByText(/Deleted all locally queued feedback/i),
 	).toBeVisible();
 });
 

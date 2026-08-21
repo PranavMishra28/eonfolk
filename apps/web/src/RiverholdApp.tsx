@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chronicle } from "./components/Chronicle";
+import { FeedbackPanel } from "./components/FeedbackPanel";
 import { RiverholdWorld } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
@@ -731,6 +732,7 @@ export function RiverholdApp() {
 				projection={projection}
 				onCitizen={(citizenId) => openSheet({ kind: "citizen", citizenId })}
 			/>
+			<FeedbackPanel />
 			<footer>
 				<InkMark />
 				<p>
