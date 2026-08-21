@@ -20,6 +20,12 @@ export interface ControlDecision {
 	readonly control: StandardBrainControlName;
 	readonly actionId: string;
 	readonly nextPrngState: PrngState;
+	readonly selectionReason:
+		| "standing-plan-action"
+		| "no-standing-plan-action-lexicographic-fallback"
+		| "tagged-need-action"
+		| "no-need-action-lexicographic-fallback"
+		| "seeded-legal-draw";
 }
 
 function lexicographic(context: DecisionContext) {
@@ -47,6 +53,7 @@ export function chooseControlAction(input: {
 			control: input.control,
 			actionId: ordered[draw.value % ordered.length]!.actionId,
 			nextPrngState: draw.state,
+			selectionReason: "seeded-legal-draw",
 		});
 	}
 	if (input.control === "canonical-trajectory") {
@@ -57,23 +64,28 @@ export function chooseControlAction(input: {
 			control: input.control,
 			actionId: (plan ?? ordered[0]!).actionId,
 			nextPrngState: input.prngState,
+			selectionReason:
+				plan === undefined
+					? "no-standing-plan-action-lexicographic-fallback"
+					: "standing-plan-action",
 		});
 	}
-	// Deliberately myopic: react to counsel when available, otherwise choose the
-	// lowest-risk legal action. It reads no values, commitments, or hidden facts.
-	const counsel = ordered.find(
-		({ counselAffinity }) => counselAffinity === input.context.counselIntent,
-	);
-	const selected =
-		counsel ??
-		[...ordered].sort(
-			(left, right) =>
-				left.risk - right.risk || (left.actionId < right.actionId ? -1 : 1),
-		)[0]!;
+	// Deliberately myopic: choose the first legal action carrying the closed
+	// typed `need` tag. The catalog contains no need magnitude or distance, so
+	// this control must not invent either signal. A catalog without a need action
+	// falls back to the first legal action in canonical action-id order. It reads
+	// no counsel, risk, values, commitments, relationships, records, or hidden
+	// facts.
+	const needAction = ordered.find(({ tags }) => tags.includes("need"));
+	const selected = needAction ?? ordered[0]!;
 	return Object.freeze({
 		control: input.control,
 		actionId: selected.actionId,
 		nextPrngState: input.prngState,
+		selectionReason:
+			needAction === undefined
+				? "no-need-action-lexicographic-fallback"
+				: "tagged-need-action",
 	});
 }
 
