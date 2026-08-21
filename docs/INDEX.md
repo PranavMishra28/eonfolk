@@ -115,6 +115,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Targeted confirmation of final cross-discipline fixes | [FINAL_CONFIRMATION.md](reviews/FINAL_CONFIRMATION.md) |
 | Immutable zero-context Goal-prompt review trail and final confirmation | [GOAL_PROMPT_REVIEW.md](reviews/GOAL_PROMPT_REVIEW.md) |
 | Civilization amendment audit, dispositions and immutable final confirmation | [CIVILIZATION_AMENDMENT_REVIEW.md](reviews/CIVILIZATION_AMENDMENT_REVIEW.md) |
+| Frozen implementation review, P0/P1 reconciliation and confirmation | [IMPLEMENTATION_FINAL_REVIEW.md](reviews/IMPLEMENTATION_FINAL_REVIEW.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene
@@ -129,6 +130,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
+| Local persistence benchmark evidence and limitations | [persistence evidence](exec-plans/evidence/001/implementation/persistence.json) |
+| Production dependency audit evidence and limitations | [security audit](exec-plans/evidence/001/implementation/security-audit.json) |
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
 | Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |

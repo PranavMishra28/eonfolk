@@ -2,7 +2,7 @@
 
 **Purpose:** implement the smallest account-free local game that can falsify whether eight deterministic citizens feel alive and whether following Mara creates contingent, consequential care.
 
-**Status:** IN PROGRESS — M0 ARTIFACT FROZEN; OPERATOR IMPLEMENTATION OVERRIDE AUTHORIZES M1+
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — REPAIRED AT `bad215a`; HUMAN GATES NOT RUN; TARGETED CONFIRMATION PENDING
 
 **Authority boundary:** this plan owns first-slice milestones, files, commands, evidence, rollbacks, and definition of done. Linked product/engineering/quality documents own semantics; [PLANS](../PLANS.md) owns plan maintenance.
 
@@ -271,6 +271,7 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | Planning freeze | M0–M5 | planning branch | 0 | implementation not begun |
 | 2026-08-20 | M0 artifact A candidate | pending A | 4,229 seconds (`4229/3600` hours) | Six matched treatments, combined eleven-record study tooling, Pixi/semantic observer surface, exact-browser viewport evidence, Node/Ruby validators, and blank import directories complete. Freeze A/S, then await operator-supplied Gate 0 evidence; M1 remains forbidden. |
 | 2026-08-20 | M0 independent review and repair | `88fc1df` → `9408038` → `6d90511` | 8,044 seconds (`8044/3600` hours) | Product and visual reviewers confirmed every named P0/P1 closed. Exact-browser 7/7, unit 49/49, strict TypeScript, build, deterministic screenshots, semantic fallback, 390×844 at 200% text, and zero-egress checks pass. Final snapshot/oracle regenerated; freeze this tree as A, commit S, then stop for operator evidence. |
+| 2026-08-21 | M1–M5 integrated technical candidate | `bad215a` | **UNKNOWN** | Consolidated deterministic runtime, three branches, IndexedDB persistence, Chronicle/Story Card, renderer/semantic UI, CI/security/formal checks, review repairs, and local browser evidence. Contemporaneous M1–M5 work segments were not preserved across the resumed run, so 40–60-hour compliance cannot be claimed from labor evidence. Human Gate 0/A/B/Card remain NOT RUN. |
 
 ### Decisions and deviations
 
@@ -281,6 +282,9 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | DEV-M0-003 / 2026-08-20 | Preserve a nonwithdrawn product record after protocol invalidity with its unavailable future ranks as raw null; exempt that failed record only from structural rank-permutation validation, while the analyzer still makes `records-complete:false` and Gate 0 FAIL. This reconciles the prompt's raw-partial-retention rule with its otherwise-valid permutation rule without fabricating `abandoned:true`. | `6d90511`; targeted product confirmation PASS; Goal lines 81, 83, 207, and 323 | No denominator/replacement relaxation; invalidity remains blocking and raw evidence becomes importable | Coordinator; reopen only if operator authority requires discarding rather than retaining failed raw records |
 | DEV-M0-004 / 2026-08-20 | Treat present `followMaraFindMs:null` as the recorded outcome for a missed ten-second target: keep the observer protocol-valid through the 60–61-second prompt and score only the autonomy criterion false. Do not synthesize an unrecognized invalidation reason or a fabricated late timer. | `6d90511`; product and visual targeted confirmations PASS; Goal lines 83, 207, 296, and 325 | Maintains the fixed 4/5 denominator and exact threshold; no restart/replacement | Coordinator; reopen on a new explicit operator rule that a miss invalidates the full attempt |
 | DEV-M0-005 / 2026-08-20 | Allocated 3,600 additional seconds of the global blocking-fix pool to T03 before final artifact work, after two independent reviews exposed consent/timing/evidence/mobile defects. | `docs/exec-plans/evidence/001/contingency-allocations.jsonl`; work segments | M0 mapped budget is 19,800 seconds; recorded 8,044 plus the 9,900-second Gate 0 operator reservation totals 17,944, leaving 1,856 seconds | Coordinator; allocation cannot fund new features or polish |
+| DEV-M5-001 / 2026-08-21 | Removed the destructive reset rather than add an untested recovery/export system. | `bad215a`; IFR-SS-001 | Local data cannot be erased from the product UI; backup/recovery remains honestly unavailable | Reopen only with a tested confirm/export/recovery contract |
+| DEV-M5-002 / 2026-08-21 | Keep one-day absence as one atomic transition; reserve chapter receipts for later multi-chapter spans. | `bad215a`; catch-up recovery test; persistence chapter tests | Crash/reload cannot double-advance the day; no long-span product claim | Reopen when the UI permits more than one catch-up chapter |
+| DEV-M5-003 / 2026-08-21 | Record M1–M5 focused labor as UNKNOWN. | work-segment ledger contains only M0 records | No fabricated time or 40–60-hour compliance claim | Future work must append contemporaneous segments |
 
 ### Surprises, risks, and findings
 
@@ -309,6 +313,8 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | coordinator integrated harness / `88fc1df280135c817c03592ada79aff02b86ddeb` | Root cohort/config/scripts, Gate 0 harness/e2e, evidence directories and artifacts; exact diff, licenses, CSP, secrets, and network surface inspected | strict TypeScript; 36 Vitest + 11 Node; build; four headed Playwright; Node/Ruby artifact/vector validation | `88fc1df` | Superseded by named repair commits before final A |
 | coordinator review repair / `9408038dd923052277c104ec6e8f49d938965952` | Consent, timing, hidden T0 binding, Pixi lifecycle, fallback/access, CSP and zero-egress repair diff inspected | strict TypeScript; 36 Vitest + 11 Node; build; six headed Playwright; route/netlog zero-egress | `9408038` | Superseded by `6d90511` after targeted findings |
 | coordinator final repair / `6d905116e6155ef5eec74d1bcb840280f87f640b` | Failed-evidence retention, Follow threshold, mobile projection/Chronicle, 200% mobile completion, screenshots and four review segments inspected | strict TypeScript; 38 Vitest + 11 Node; build; seven headed Playwright; deterministic screenshots; route/netlog zero-egress; product + visual targeted confirmation PASS | `6d90511` | Revert only by voiding the unexposed Gate 0 cohort |
+| coordinator implementation integration / `20b6d3b` | All implementation workstream commits and the coordinator runtime bridge; changed files, dependencies, boundaries, tests and browser output inspected | 53 unit + 2 property; IndexedDB reload; build/budgets; 4 Playwright; TLA+ | `20b6d3b` | Revert to preserved pre-implementation tag |
+| frozen implementation review repair / `bad215a512c72e4fa1afa3f1b42673bb65709d19` | Three independent reviews of `b387a6d`; every P0/P1 mapped in `IMPLEMENTATION_FINAL_REVIEW.md`; actual repair diff inspected | `pnpm verify`; 59 unit + 2 property; IndexedDB reload; 4 Playwright; dual zero-egress; audit; TLA+; five-run web and persistence benchmarks | `bad215a` | Revert only the smallest repair; never restore false authority or destructive reset |
 
 ### Evidence index
 
@@ -317,8 +323,8 @@ The operator supplies only `/Users/pranav/Documents/ChatGPT/.eonfolk-evidence-in
 | Gate | Commit/manifest | Automated result | Human/browser result |
 |---|---|---|---|
 | M0 Gate 0 | A/S pending freeze; snapshot `48d7367822ee3a9b7b5e85dd29a6867f6a3e7cd7be63b133a9dfeede79f71f42`; oracle `199db3d5e00c0b2b60498fbca7dc7d0403337950a0002a30943cffc9366639ba` | 38 Vitest + 11 Node + 7 headed Playwright pass; dependency cohort 195; browser cohort 326 files/5 links; Node and Ruby artifact/vector validators pass | Browser paths pass at 1728×1117, 1366×768, and 390×844, including 200% text, semantic fallback, keyboard, prompt completion, and zero external egress. Two consecutive captures were byte-identical and their exact PNG hashes are in the oracle. Human result: not run; no Gate 0 claim. |
-| Gate A | implementation active under operator override | technical/browser evidence pending | human result not run; no measured pass claim |
-| Gate B / Story Card | implementation active under operator override | technical/browser evidence pending | human result not run; no measured pass claim |
+| Gate A | `bad215a`; technical candidate | Deterministic eight-citizen world, four behavior families, exchange/repair, IndexedDB/reload, one-day catch-up, no external inference, three viewports, semantic parity, budgets and zero-egress pass locally | **NOT RUN:** no unfamiliar-observer manifest; no measured Proof-of-Life pass claim |
+| Gate B / Story Card | `bad215a`; technical candidate | Follow Mara, state-changing investigation, two advice intents plus abstain, independent deterministic interpretation, three branch consequences, canonical return response, three-beat Chronicle and Story Card pass automated/browser checks | **NOT RUN:** no participant/card-viewer manifests; no attachment, comprehension, return, or share-conversion claim |
 
 ## Final definition of done
 

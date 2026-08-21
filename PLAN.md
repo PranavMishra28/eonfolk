@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** IMPLEMENTATION IN PROGRESS — operator bootstrap override active; no measured-human pass claimed
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — local verification passed at `bad215a`; confirmation/remote CI pending; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -26,7 +26,7 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
-| 7. Operator-authorized implementation and consolidation | In progress | Private `main` contains preserved planning plus Gate 0 checkpoint; archive/evidence tags pushed; three bounded implementation workstreams active |
+| 7. Operator-authorized implementation and consolidation | Confirmation pending | Local `main` contains preserved planning plus the repaired Riverhold candidate `bad215a`; full local verification passed; human gates remain NOT RUN |
 
 ## Operator implementation override — 2026-08-21
 
@@ -41,6 +41,14 @@ Verified bootstrap state:
 - Annotated tags preserve the planning head, implementation checkpoint, Gate 0 artifact A, study S, and resume checkpoint.
 - Implementation workspace scaffold commit `4fb5f93` pins Node 22.23.1 and pnpm 11.15.1 and rejects x64 Node on macOS.
 - Old PRs and branches remain until the final green `main` proves their heads reachable; cleanup has not run early.
+- Systems, persistence, UI and coordinator work were integrated through `20b6d3b`; three independent reviews froze `b387a6d`, and their P0/P1 repairs are `bad215a`.
+- M1–M5 focused hours are UNKNOWN because contemporaneous segments were not preserved across the resumed run. The 40–60-hour fit therefore remains an unproven scope hypothesis, not an evidence-backed implementation claim.
+
+## Implementation candidate evidence — 2026-08-21
+
+Local `pnpm verify` at `bad215a512c72e4fa1afa3f1b42673bb65709d19` passed runtime/cohort/architecture/docs/format/lint/typecheck; 59 unit tests; two property tests; a real Chromium IndexedDB reload; build and bundle budgets; a zero-advisory production audit; four Chromium journeys; route-log plus Chromium-netlog zero-egress; and the bounded TLA+ model (3,480 generated/350 distinct states, depth 10, five invariants). Five fresh runs per required viewport passed exact local display/frame budgets. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
+
+This evidence does not establish fun, unfamiliar-observer legibility, attachment, delayed return, Story Card comprehension/conversion, physical mobile/4G performance, production scale, or the 40–60-hour labor budget. Gate 0/A/B/Card remain **NOT RUN**.
 
 ## Integration history
 

@@ -1,0 +1,26 @@
+{
+	"schemaVersion": "eonfolk-production-dependency-audit-v1",
+	"auditedAt": "2026-08-21",
+	"commit": "bad215a512c72e4fa1afa3f1b42673bb65709d19",
+	"command": "pnpm 11.15.1 audit --prod --audit-level high --json",
+	"source": "pnpm registry audit endpoint for the committed lockfile",
+	"result": "PASS",
+	"advisories": 0,
+	"vulnerabilities": {
+		"info": 0,
+		"low": 0,
+		"moderate": 0,
+		"high": 0,
+		"critical": 0
+	},
+	"dependencyCounts": {
+		"production": 60,
+		"optional": 53,
+		"total": 113
+	},
+	"falsePositiveRationale": [],
+	"limitations": [
+		"Registry audit coverage is not a source-code proof.",
+		"The separate pinned Gitleaks job scans committed Git history for secret patterns."
+	]
+}

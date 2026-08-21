@@ -1,0 +1,36 @@
+{
+	"schemaVersion": "eonfolk-persistence-benchmark-v1",
+	"measuredAt": "2026-08-21",
+	"commit": "bad215a512c72e4fa1afa3f1b42673bb65709d19",
+	"operatorEvidenceClass": "AUTOMATED TECHNICAL MEASUREMENT",
+	"runtime": {
+		"node": "22.23.1",
+		"host": "MacBook M4 Pro",
+		"browser": "pinned Playwright Chromium 151.0.7922.34"
+	},
+	"workload": {
+		"repetitions": 5,
+		"transitionsPerRepetition": 128,
+		"eventCountByOrdinal": "1 + (ordinal mod 4)",
+		"seed": "eonfolk-persistence-benchmark-v1"
+	},
+	"memory": {
+		"appendMedianMs": 6.315708,
+		"recoveryMedianMs": 0.501458
+	},
+	"indexedDb": {
+		"available": true,
+		"appendMedianMs": 64.300000,
+		"recoveryMedianMs": 11.700000
+	},
+	"sqliteOpfs": {
+		"decision": "DEFER",
+		"measured": false,
+		"reason": "No SQLite dependency is authorized; IndexedDB passes the local slice and preserves the PersistencePort seam."
+	},
+	"limitations": [
+		"This is a local synthetic workload, not field telemetry.",
+		"The benchmark covers 128 bounded transitions, not a multi-year production region.",
+		"Human Gate A and Gate B were not run."
+	]
+}

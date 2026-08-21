@@ -1,7 +1,7 @@
 {
 	"schemaVersion": "eonfolk-implementation-performance-evidence-v1",
 	"measuredAt": "2026-08-21",
-	"commit": "20b6d3b0a9b0082a97d587e9e96aaa2c8b29ef17",
+	"commit": "bad215a512c72e4fa1afa3f1b42673bb65709d19",
 	"operatorEvidenceClass": "AUTOMATED TECHNICAL MEASUREMENT",
 	"humanGateClaim": "NOT RUN — OPERATOR IMPLEMENTATION OVERRIDE",
 	"runtime": {
@@ -11,9 +11,9 @@
 		"profileClass": "local-headless-synthetic"
 	},
 	"bundle": {
-		"criticalShellGzipBytes": 121784,
+		"criticalShellGzipBytes": 122665,
 		"criticalShellBudgetBytes": 204800,
-		"totalJavaScriptGzipBytes": 247947,
+		"totalJavaScriptGzipBytes": 249726,
 		"totalJavaScriptBudgetBytes": 665600,
 		"worldAssetBytes": 0,
 		"mobileWorldAssetBudgetBytes": 4194304
@@ -22,26 +22,32 @@
 		{
 			"name": "desktop",
 			"viewport": "1728x1117",
-			"meaningfulWorldDisplayMs": 504.977084,
-			"p95FrameMs": 10.2,
+			"repetitions": 5,
+			"meaningfulWorldDisplaySamplesMs": [829.543125, 446.995292, 443.688375, 439.307458, 423.379333],
+			"meaningfulWorldDisplayP95Ms": 829.543125,
+			"p95FrameMs": 10.1,
 			"semanticCitizens": 8
 		},
 		{
 			"name": "laptop",
 			"viewport": "1366x768",
-			"meaningfulWorldDisplayMs": 431.4565,
-			"p95FrameMs": 10.3,
+			"repetitions": 5,
+			"meaningfulWorldDisplaySamplesMs": [429.902834, 426.988875, 432.333208, 429.295208, 430.148709],
+			"meaningfulWorldDisplayP95Ms": 432.333208,
+			"p95FrameMs": 10,
 			"semanticCitizens": 8
 		},
 		{
 			"name": "mobile-emulation",
 			"viewport": "390x844",
-			"meaningfulWorldDisplayMs": 266.137625,
-			"p95FrameMs": 10.3,
+			"repetitions": 5,
+			"meaningfulWorldDisplaySamplesMs": [257.767417, 262.91975, 253.715667, 254.825958, 262.526209],
+			"meaningfulWorldDisplayP95Ms": 262.91975,
+			"p95FrameMs": 10,
 			"semanticCitizens": 8
 		}
 	],
-	"implementationResponse": "The initial continuous decorative Pixi ticker missed the desktop p95 frame budget at 25.1 ms. It was removed; rendering now occurs on authoritative projection changes and the repeated benchmark passed at 10.3 ms p95.",
+	"implementationResponse": "The initial continuous decorative Pixi ticker missed the desktop p95 frame budget at 25.1 ms. It was removed; rendering now occurs on authoritative projection changes. Five fresh runs per viewport passed the exact limits without a numeric waiver.",
 	"limitations": [
 		"Mobile is viewport emulation on the target Mac, not a physical mid-tier phone.",
 		"Localhost timing does not represent 4G transfer latency.",
