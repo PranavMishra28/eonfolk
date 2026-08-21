@@ -1,0 +1,13 @@
+{
+	"extends": "../../../tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"../../../packages/cognition/src/**/*.ts",
+		"../../../packages/protocol/src/**/*.ts",
+		"../../../packages/sim/src/**/*.ts",
+		"../../fixtures/riverhold/**/*.ts",
+		"./**/*.ts"
+	]
+}

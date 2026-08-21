@@ -4,9 +4,16 @@ import type {
 	PrngState,
 } from "../../protocol/src/index.js";
 import { standardBrain, validateIntentProposal } from "./standard-brain.js";
+import type { LocalProcessBrainContract } from "./experiment.js";
 
 export interface BrainPort {
 	propose(context: DecisionContext): Promise<unknown>;
+}
+
+/** Contract-only seam. No subprocess, model, download, or network is provided. */
+export interface LocalProcessBrainPort extends BrainPort {
+	readonly kind: "local-process-model";
+	readonly contract: LocalProcessBrainContract;
 }
 
 export type AdapterFailure = "missing" | "timeout" | "malformed" | "throwing";
