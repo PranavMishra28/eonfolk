@@ -16,6 +16,8 @@ Use a dependency-light first-party Flight Recorder and Sentinel. Diagnostics are
 
 Each record has schema version, closed kind, severity, component, session sequence, caller-supplied monotonic time, optional simulation revision/time, outcome code, bounded correlation IDs, and a kind-appropriate allowlisted payload. Arbitrary metadata bags, error objects, URLs, bodies, headers, DOM, private state, prompts, provider streams, hidden reasoning, hash preimages, paths, credentials, and user prose are forbidden.
 
+Every snapshot and observer projection carries one bounded identity block: diagnostic session ID, exact build SHA or explicit `unknown`, package app version, protocol version, experiment ID, run ID, coarse runtime class, coarse viewport class, and current diagnostics mode. Build resolution accepts a valid explicit build environment value or the current Git commit and otherwise fails closed to `unknown`; it never substitutes a timestamp or mutable branch name. Runtime/viewport fields are coarse allowlisted classes, not browser fingerprinting.
+
 The caller selects a typed constructor; only allowlisted primitives are copied and length-bounded; routes lose query/fragment; stack input becomes at most three approved module/function tokens; schema validation happens before the record reaches a ring, freeze, observer, preview, disk, or relay. Regex cleanup is defense in depth, never the primary boundary.
 
 ## Modes and hard budgets
@@ -36,7 +38,7 @@ On an invariant failure Sentinel must: stop the affected command or projection; 
 
 ## Observer and performance projection
 
-The observer is local and read-only. It exposes only health, incident headers, typed trace, bounded session/performance/network summaries, reproduction steps, approved artifact inventory, and run/region/revision/sequence/simulation-time/status world head. It has no arbitrary file, shell, browser-control, network, environment, raw Reality, cognitive record, or mutation surface.
+The observer is local and read-only. It exposes only identity, health, incident headers, typed trace, bounded session/performance/network summaries, reproduction steps, approved artifact inventory, and run/region/revision/sequence/simulation-time/status world head. It has no arbitrary file, shell, browser-control, network, environment, raw Reality, cognitive record, or mutation surface. Browser bridge traces say only what that bridge directly observes: authority response, projected UI/counsel/Chronicle data, and its own local checkpoint write. They never claim an unseen internal canonical commit or publish boundary.
 
 Performance capture uses feature-detected native marks/measures, frame histograms, supported-entry capability, and bounded long-task/event summaries. Absence is explicit. Raw observer objects are frozen/copy-safe so consumers cannot mutate recorder state.
 

@@ -221,6 +221,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — A coordinator-operated production preview completed the full Mara abstention path through return, branch-specific second action, factual Chronicle, Story Card, provenance, and feedback controls with zero console errors/warnings and no non-static network request. This is local technical browser evidence, not an unfamiliar-human Gate 0/A/B/Card result.
 - 2026-08-21 — Clean source-level diagnostics profiling passed every record-call and ring ceiling in OFF/LOCAL/ALPHA. The source harness explicitly does not claim browser-frame, input, display, heap, upload, thermal, or physical-device results; the physical-device record remains `NOT_RUN`.
 - 2026-08-21 — The frozen cognition corpus hash is `cb1713b932e1a848a264ac3fcf7788b42ce281a17306887ebf39e2beeb965596`: Standard Brain returned legal byte-identical output across five repetitions for all 64 contexts, preserved hidden-pair equivalence, and completed 52 scenario goals. Planner disposition is `defer-no-candidate`; no Planner or model runtime ships.
+- 2026-08-21 — Diagnostic identity hardening `377cd62` added session/build/app/protocol/experiment/run/runtime/viewport/mode identity and fail-closed build resolution. Browser traces are limited to observed responses/projections and bridge-owned checkpoints; 124-test FAST, focused tests, build, live observer smoke, and clean source diagnostics benchmark passed.
 
 ## Decision, risk, and deviation log
 
