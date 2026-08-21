@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — first confirmation failed with seven P1s; all seven repairs integrated; clean local DEEP passed; targeted confirmation and remote release lattice pending
+**Status:** ACTIVE — world-presence architecture override is P1/release-blocking; prior clean-DEEP candidate invalidated
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -232,6 +232,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Confirmation follow-up replaced the unverifiable outer `pnpm verify:*:checks` manifest row with runner-owned ordered step lists. PR now records nineteen actual constituent commands/results; DEEP reuses those exact nineteen and appends seven DEEP-only commands. Direct regressions prove prefix identity, unique IDs, per-step timing/status, and fail-fast omission of unexecuted work. The check-only aliases call the same list rather than maintaining a second command sequence.
 - 2026-08-21 — Exact clean PR passed all nineteen rows at `b286da8`. The first integrated DEEP attempt then correctly failed closed only at canonical performance because that second harness retained the obsolete counsel label already repaired in the diagnostics harness. No partial sample is accepted. Both DEEP browser scripts now use the current `Review Mara's choices` phase contract, protected by one direct source regression; the invalidated targeted-review candidate remains tagged as failed-run evidence and received no review verdict.
 - 2026-08-21 — Exact clean DEEP passed all 26 ordered rows at `59edef3c768d9a3fe9409f07d77d49fded4b9554`, with unchanged source/lockfile, production-only `dist`, four admitted DEEP artifacts, and output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. Fifteen fresh-browser canonical journeys kept worst per-state p95 at 10.0 ms or better, meaningful-world display at 2,354 ms or better, and route/netlog external attempts at zero. This is automated local evidence; targeted confirmation, protected remote checks, human gates, physical mobile, screen reader, live providers, and deployment remain pending or `NOT RUN` as applicable.
+- 2026-08-21 — Operator world-presence override SHA-256 `bb1e6a7969d22477ce2ae12bc0fe57c40cd12e139370addf90d3c91dcc9245e1` invalidated `fe7f1d0` as a release candidate despite its exact clean DEEP pass. The interrupted targeted reviewer returned no accepted verdict. Sparse Pixi is now a P1 presentation failure; PlayCanvas architecture evidence, embodied spatial projection, temporal Living World tests, unchanged semantic accessibility, repeated performance, and a fresh independent inhabited/alive YES are required before PR or merge. Reality/cognition/persistence/Chronicle authority and all honest `NOT RUN` boundaries remain unchanged.
 
 ## Decision, risk, and deviation log
 
