@@ -27,6 +27,20 @@ const mutants = [
 		tests: ["tests/unit/diagnostics", "apps/web/src/diagnostics.test.ts"],
 	},
 	{
+		name: "feedback relay bypasses exact Origin authorization",
+		file: "apps/feedback-worker/src/worker.ts",
+		from: "if (origin === null || !settings.allowedOrigins.has(origin))",
+		to: "if (false)",
+		tests: ["tests/unit/feedback-worker/worker.test.ts"],
+	},
+	{
+		name: "feedback relay accepts diagnostics without consent",
+		file: "apps/feedback-worker/src/schema.ts",
+		from: "value.diagnostics !== undefined && value.diagnosticsConsent !== true",
+		to: "false",
+		tests: ["tests/unit/feedback-worker/worker.test.ts"],
+	},
+	{
 		name: "visibility default allows unknown reads",
 		file: "packages/protocol/src/visibility.ts",
 		from: '\n\treturn "deny";\n}',
@@ -101,6 +115,7 @@ execFileSync(
 		"vitest",
 		"run",
 		"tests/unit/diagnostics",
+		"tests/unit/feedback-worker",
 		"tests/unit/systems/visibility.test.ts",
 		"tests/unit/persistence",
 		"tests/unit/systems/properties.test.ts",
