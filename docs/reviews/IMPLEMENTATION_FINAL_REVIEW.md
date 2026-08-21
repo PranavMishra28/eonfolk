@@ -2,7 +2,7 @@
 
 **Purpose:** preserve the hostile review of the first integrated Riverhold implementation, every P0/P1 disposition, the repair evidence, and the final confirmation verdict.
 
-**Status:** FINAL TARGETED CONFIRMATION FAILED AT `32808e1`; ALL THREE P1S REPAIRED; FINAL COMPLETE VERIFY/CI PENDING; NO SECOND CONFIRMATION CLAIMED
+**Status:** FINAL TARGETED CONFIRMATION FAILED AT `32808e1`; ALL THREE P1S REPAIRED; COMPLETE LOCAL VERIFY GREEN; EXACT-HEAD CI PENDING; NO SECOND CONFIRMATION CLAIMED
 
 **Authority boundary:** this file owns implementation-review findings and dispositions. The [ExecPlan](../exec-plans/active/001-foundation.md) owns completion state; engineering and product authorities own the accepted behavior.
 
@@ -72,8 +72,8 @@ Closed portions independently reconfirmed by that reviewer were authority-loadin
 
 ## Automated evidence at repaired candidate
 
-Before the final targeted findings, complete `pnpm verify` passed runtime/cohort/architecture/docs/format/lint/typecheck, 61 unit tests, two property tests, real Chromium IndexedDB reload, the 20/200-cycle timing analyzer, production build/bundle budgets, zero-advisory dependency audit, six Playwright journeys, dual zero-egress oracles, and bounded TLA+. The bounded final repairs now pass 63 unit tests, typecheck/lint/format, eight headed browser journeys with 334 local routes/36,427 netlog events and zero external attempts, production bundle inspection with no compiled crash-hook string, and the final canonical performance lab at `50b2310`. Complete final `pnpm verify`, Gitleaks, and exact-head GitHub CI remain pending. This is automated/local evidence only.
+Complete `pnpm verify` at `4a677a743d4efcdc337c6ffc0c79d63edee69e8f` passed runtime/cohort/architecture/docs/format/lint/typecheck, 63 unit tests, two property tests, real Chromium IndexedDB reload, the 20/200-cycle timing analyzer, production build/bundle budgets, zero-advisory dependency audit, eight headed browser journeys with 334 local routes/36,489 netlog events and zero external attempts, and bounded TLA+ (3,480 generated/350 distinct states, depth 10, five invariants). Gitleaks 8.30.1 scanned all 103 commits and 4.21 MB of history with no leaks. The normal production bundle contains no compile-time crash-hook string, and the final canonical performance lab at `50b2310` is green. Exact-head GitHub CI remains pending. This is automated/local evidence only.
 
 ## Confirmation conclusion
 
-The final targeted confirmation was run exactly once and failed at `32808e1`; it is not rewritten as a PASS. All three reported P1s are accepted and repaired with the exact evidence above. Final readiness still requires complete local verification and green remote CI at the final pushed head; no reviewer verdict substitutes for those checks.
+The final targeted confirmation was run exactly once and failed at `32808e1`; it is not rewritten as a PASS. All three reported P1s are accepted and repaired with the exact evidence above. Complete local verification is green; final readiness still requires green remote CI at the final pushed head, and no reviewer verdict substitutes for that check.

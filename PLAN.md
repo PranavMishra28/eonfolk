@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final targeted-confirmation findings repaired and canonical performance green; final local/remote verification pending; no measured-human pass claimed
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final targeted-confirmation findings repaired; canonical performance and complete local verification green; exact-head remote verification pending; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -26,7 +26,7 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
-| 7. Operator-authorized implementation and consolidation | Final verification pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; checkpoint CI and final canonical 15-run clean-commit performance pass; the one allowed targeted confirmation found three P1s, all repaired with focused unit/browser evidence; final complete local verification and exact-head CI remain; human gates remain NOT RUN |
+| 7. Operator-authorized implementation and consolidation | Exact-head CI and repository cleanup pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; final canonical 15-run clean-commit performance and complete local verification pass; the one allowed targeted confirmation found three P1s and all are repaired; exact-head CI/hardening/archive cleanup remain; human gates remain NOT RUN |
 
 ## Operator implementation override — 2026-08-21
 
@@ -46,7 +46,7 @@ Verified bootstrap state:
 
 ## Implementation candidate evidence — 2026-08-21
 
-Local `pnpm verify` on the final repaired working tree passed runtime/cohort/architecture/docs/format/lint/typecheck; 61 unit tests; two property tests; a real Chromium IndexedDB reload; the fixed 20-warmup/200-cycle timing analyzer; build and bundle budgets; a zero-advisory production audit; six Chromium journeys; 254 routed requests plus 27,707 Chromium-netlog events with zero external attempts; and the bounded TLA+ model (3,480 generated/350 distinct states, depth 10, five invariants).
+Local `pnpm verify` at `4a677a743d4efcdc337c6ffc0c79d63edee69e8f` passed runtime/cohort/architecture/docs/format/lint/typecheck; 63 unit tests; two property tests; a real Chromium IndexedDB reload; the fixed 20-warmup/200-cycle timing analyzer; build and bundle budgets; a zero-advisory production audit; eight Chromium journeys; 334 routed requests plus 36,489 Chromium-netlog events with zero external attempts; and the bounded TLA+ model (3,480 generated/350 distinct states, depth 10, five invariants). Gitleaks 8.30.1 independently scanned all 103 commits and 4.21 MB of history with no leaks.
 
 The final canonical headed performance harness completed 15 full journeys from clean commit `50b231010388d60d0bc2f95900021287ab2c122a`, built and hash-bound its own preview output, forced the browser offline after meaningful display, sampled arrival/busy-market/Chronicle for 30 seconds each, kept every pooled and per-state p95 at 10.0 ms or better, marked meaningful world by 2,250.9 ms in the throttled mobile profile, and recorded zero external route/netlog attempts. Start/end source, lockfile, and dist hashes matched; independent Node/Ruby validators matched the frozen browser cohort; every mark retained painted qualification evidence. macOS stayed in normal power mode and battery moved from 77% to 75%, both inside DEV-M5-004's >=50% boundary without any numerical waiver. [Performance](docs/exec-plans/evidence/001/implementation/performance.json), [bundle](docs/exec-plans/evidence/001/implementation/bundle.json), and [timing](docs/exec-plans/evidence/001/implementation/decision-trace-timing.json) evidence are retained. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
 

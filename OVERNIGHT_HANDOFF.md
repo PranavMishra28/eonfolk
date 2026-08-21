@@ -2,7 +2,7 @@
 
 **Purpose:** Give the operator one practical, evidence-backed summary of the consolidated Riverhold implementation.
 
-**Status:** TECHNICAL CANDIDATE — repaired code `970879a`; clean-commit performance, targeted confirmation, final CI and cleanup pending
+**Status:** TECHNICAL CANDIDATE — all targeted-confirmation findings repaired; clean-commit performance and complete local verification green; exact-head CI, hardening, and archival cleanup pending
 
 **Authority boundary:** This file summarizes implemented reality. Product and technical semantics remain owned by [docs/INDEX.md](docs/INDEX.md); execution evidence remains in the [001 ExecPlan](docs/exec-plans/active/001-foundation.md).
 
@@ -10,7 +10,7 @@
 
 - Repository: private `PranavMishra28/eonfolk`, default branch `main`.
 - Consolidation commit: `cc12d33e3128dd7436103139bd26f2e90044493d`.
-- Repaired implementation code: `970879a22c751a5f35a7582ac11bec2723239659`.
+- Final repaired implementation/evidence base: `4a677a743d4efcdc337c6ffc0c79d63edee69e8f`.
 - Workspace scaffold: `4fb5f938d8e9ef50706901d7909348048c9d4c92`.
 - Human evidence: not run; implementation proceeds only under the recorded **OPERATOR IMPLEMENTATION OVERRIDE**.
 - Deployment/publication/spend: none.
@@ -32,7 +32,7 @@ corepack pnpm runtime:check
 
 ## Verified locally
 
-`pnpm verify` passed on the repaired tree: 61 unit, two property, one real-browser IndexedDB reload, fixed 20-warmup/200-cycle timing analysis, build/budgets, zero known production advisories, six Playwright journeys, 254 allowed local routes/27,707 netlog events/zero external attempts, and 3,480-state bounded formal exploration. Private checkpoint CI passed Verify/Formal/Secret scan at `54fca9e`. A 15-run headed diagnostic passed all numerical performance gates; the finalized harness now records exact source and stable normal-power boundaries, rejects low-power/low-battery/dirty runs, and requires a wholly new clean-commit run. Evidence is in `docs/exec-plans/evidence/001/implementation/`.
+`pnpm verify` passed at `4a677a7`: 63 unit, two property, one real-browser IndexedDB reload, fixed 20-warmup/200-cycle timing analysis, build/budgets, zero known production advisories, eight Playwright journeys, 334 allowed local routes/36,489 netlog events/zero external attempts, and bounded TLA+ exploration of 3,480 generated/350 distinct states at depth 10 with five invariants. Gitleaks 8.30.1 scanned all 103 commits and found no leaks. The final 15-run headed lab passed all numerical performance gates with exact source, lockfile, built-output, browser-cohort, painted-mark, power, and zero-egress bindings. Evidence is in `docs/exec-plans/evidence/001/implementation/`.
 
 ## Honest limits
 
@@ -41,4 +41,4 @@ corepack pnpm runtime:check
 - Mobile is throttled emulation on the M4 Pro; physical mid-tier mobile, production deployment, scale, backup/export/recovery, and server authority are not tested or shipped.
 - No spend, deployment, public release, model provider, credential, or external service was used.
 
-The exact final handoff SHA will be added only after targeted confirmation, evidence commit, push, and green remote CI.
+The exact pushed `main` SHA and final topology will be recorded after GitHub CI, protection probing, tag archival, and branch/worktree cleanup. A commit cannot truthfully contain its own SHA; this file therefore records the last verified technical base while the final delivery reports the exact documentation-only handoff commit.
