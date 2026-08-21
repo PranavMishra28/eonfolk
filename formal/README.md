@@ -21,4 +21,6 @@ JAVA_HOME=/absolute/path/to/jdk \
 node scripts/check-formal.mjs
 ```
 
-If Java or the JAR is unavailable, the script reports `TOOL_UNAVAILABLE` and exits nonzero. CI supplies a checksum-verified TLA+ 1.8.0 JAR and Java 21; tool absence is never a passing formal check.
+The JAR must be supplied explicitly. `scripts/formal-toolchain.mjs` is the repository's single source for the accepted TLA+ version, download URL, and SHA-256. `check-formal.mjs` hashes the JAR and rejects it before starting Java unless the digest matches. It never searches temporary directories or accepts a stale tool implicitly.
+
+If Java or the JAR is unavailable, the script reports `TOOL_UNAVAILABLE` and exits nonzero. An identity mismatch reports `TOOL_IDENTITY_MISMATCH` and exits nonzero before Java runs. CI supplies the same checksum-verified TLA+ 1.8.0 JAR and Java 21; tool absence or substitution is never a passing formal check.

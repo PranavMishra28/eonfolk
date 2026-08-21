@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { resolveBuildSha } from "../../../apps/web/vite.config";
 import { summarizeDurations } from "../../../scripts/benchmark-diagnostics.mjs";
 import {
 	summarizePhysicalObservation,
 	validatePhysicalObservation,
 } from "../../../scripts/record-physical-device-evidence.mjs";
-import { resolveBuildSha } from "../../../apps/web/vite.config";
 
 function observation() {
 	return {

@@ -11,6 +11,8 @@ import {
 } from "../unit/persistence/fixtures.js";
 
 describe("persistence state-machine properties", () => {
+	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
+
 	it("matches a revision/sequence/fence model under appends, retries, and transfers", async () => {
 		await fc.assert(
 			fc.asyncProperty(
@@ -20,7 +22,7 @@ describe("persistence state-machine properties", () => {
 						retry: fc.boolean(),
 						transferFence: fc.boolean(),
 					}),
-					{ minLength: 1, maxLength: 20 },
+					{ minLength: 1, maxLength: deep ? 60 : 20 },
 				),
 				async (steps) => {
 					const persistence = new MemoryPersistence();
@@ -77,7 +79,7 @@ describe("persistence state-machine properties", () => {
 					).toBe(expectedSequence);
 				},
 			),
-			{ numRuns: 50, seed: 0x0e0f01 },
+			{ numRuns: deep ? 500 : 50, seed: 0x0e0f01 },
 		);
 	});
 
@@ -104,7 +106,7 @@ describe("persistence state-machine properties", () => {
 				).rejects.toMatchObject({ code: "IDEMPOTENCY_COLLISION" });
 				expect(await persistence.getHead(RUN_ID, REGION_ID)).toEqual(before);
 			}),
-			{ numRuns: 32, seed: 0x0e0f02 },
+			{ numRuns: deep ? 320 : 32, seed: 0x0e0f02 },
 		);
 	});
 });

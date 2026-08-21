@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "One historical synthetic idempotency UUID in the feedback-provider test"
+condition = "AND"
+paths = ['''^tests/unit/feedback-worker/providers\.test\.ts$''']
+fingerprints = ['''20c4fd8873600879a65ee00540603ac6f0a4741a:tests/unit/feedback-worker/providers.test.ts:generic-api-key:58''']
