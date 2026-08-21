@@ -168,7 +168,7 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 		"Upload: unavailable",
 	);
 	await expect(panel.getByLabel(/Attach recent replay/i)).toBeDisabled();
-	await panel.getByLabel(/Attach bounded structured diagnostics/i).check();
+	await panel.getByLabel(/Include bounded structured diagnostics/i).check();
 	await panel.getByLabel("Optional image").setInputFiles({
 		name: "moment.png",
 		mimeType: "image/png",
