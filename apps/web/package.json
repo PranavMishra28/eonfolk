@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@eonfolk/cognition": "workspace:*",
+		"@eonfolk/diagnostics": "workspace:*",
 		"@eonfolk/persistence": "workspace:*",
 		"@eonfolk/protocol": "workspace:*",
 		"@eonfolk/sim": "workspace:*",

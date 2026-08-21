@@ -33,7 +33,7 @@ function modeAllows(mode: DiagnosticMode, input: DiagnosticInput): boolean {
 }
 
 export class FlightRecorder {
-	readonly #mode: DiagnosticMode;
+	#mode: DiagnosticMode;
 	readonly #now: () => number;
 	readonly #buffer: DiagnosticRingBuffer;
 	#sequence = 0;
@@ -55,6 +55,10 @@ export class FlightRecorder {
 
 	get mode(): DiagnosticMode {
 		return this.#mode;
+	}
+
+	setMode(mode: DiagnosticMode): void {
+		this.#mode = mode;
 	}
 
 	record(input: DiagnosticInput): DiagnosticEvent | null {

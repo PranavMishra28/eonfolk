@@ -48,6 +48,17 @@ describe("Founder Alpha diagnostics", () => {
 			}),
 		).not.toBeNull();
 		expect(recorder.snapshot().events).toHaveLength(1);
+		recorder.setMode("alpha");
+		expect(
+			recorder.record({
+				category: "ui",
+				name: "consent-enabled",
+				severity: "info",
+				outcome: "accepted",
+				scope: { component: "feedback" },
+				fields: { mode: "alpha" },
+			}),
+		).not.toBeNull();
 	});
 
 	it("bounds events and bytes while accounting for eviction", () => {

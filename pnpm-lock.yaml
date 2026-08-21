@@ -75,6 +75,9 @@ importers:
       '@eonfolk/cognition':
         specifier: workspace:*
         version: link:../../packages/cognition
+      '@eonfolk/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
       '@eonfolk/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence

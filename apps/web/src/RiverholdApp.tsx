@@ -3,6 +3,7 @@ import { Chronicle } from "./components/Chronicle";
 import { RiverholdWorld } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
+import { browserDiagnostics } from "./diagnostics";
 import {
 	type ChronicleBeatProjection,
 	type CounselIntent,
@@ -480,7 +481,10 @@ function PhasePanel({
 }
 
 export function RiverholdApp() {
-	const bridge = useMemo(() => createRiverholdRuntimeBridge(), []);
+	const bridge = useMemo(
+		() => createRiverholdRuntimeBridge(undefined, browserDiagnostics),
+		[],
+	);
 	const [projection, setProjection] = useState<RiverholdProjection | null>(
 		null,
 	);
@@ -494,6 +498,18 @@ export function RiverholdApp() {
 	const pendingDispatch = useRef(true);
 	const dialog = useRef<HTMLElement>(null);
 	const dialogInvoker = useRef<HTMLElement | null>(null);
+	const captureFailure = (error: unknown) => {
+		const failure = runtimeFailure(error);
+		void browserDiagnostics
+			.captureRuntimeFailure({
+				code: failure.code ?? "RUNTIME_FAILED",
+				component: "riverhold-app",
+				safeSummary:
+					"Riverhold paused before showing further world state. Your durable local record was not replaced.",
+				protectReality: () => bridge.clear(),
+			})
+			.finally(() => setRuntimeError(failure));
+	};
 
 	useEffect(() => {
 		void bridge
@@ -503,7 +519,7 @@ export function RiverholdApp() {
 				pendingDispatch.current = false;
 				setPending(false);
 			})
-			.catch((error: unknown) => setRuntimeError(runtimeFailure(error)));
+			.catch(captureFailure);
 		return () => bridge.clear();
 	}, [bridge]);
 
@@ -563,13 +579,21 @@ export function RiverholdApp() {
 	}, [sheet]);
 	const dispatch = (intent: RiverholdIntent, delay = false) => {
 		if (pendingDispatch.current) return;
+		browserDiagnostics.record({
+			category: "ui",
+			name: "player-intent",
+			severity: "info",
+			outcome: "started",
+			scope: { component: "riverhold-app" },
+			fields: { operation: intent.kind, phase: projection?.phase ?? "loading" },
+		});
 		pendingDispatch.current = true;
 		setPending(true);
 		const execute = () => {
 			void bridge
 				.dispatch(intent)
 				.then(setProjection)
-				.catch((error: unknown) => setRuntimeError(runtimeFailure(error)))
+				.catch(captureFailure)
 				.finally(() => {
 					pendingDispatch.current = false;
 					setPending(false);

@@ -66,7 +66,12 @@ self.addEventListener("message", (message: MessageEvent<Request>) => {
 				e2eCrashController?.arm(request.testCrashAfterTransition);
 				projection = await runtime.dispatch(request.intent);
 			}
-			self.postMessage({ id: request.id, ok: true, projection });
+			self.postMessage({
+				id: request.id,
+				ok: true,
+				projection,
+				worldHead: runtime?.diagnosticWorldHead(),
+			});
 		} catch (error) {
 			const code =
 				typeof error === "object" &&

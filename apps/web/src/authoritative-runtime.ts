@@ -15,8 +15,8 @@ import type {
 import {
 	bytesFromHex,
 	type CognitiveDecisionRecord,
-	decisionRecordHash,
 	type DecisionContext,
+	decisionRecordHash,
 	type IntentProposal,
 	jcs,
 	proposalHash,
@@ -902,6 +902,19 @@ export class AuthoritativeRiverholdRuntime {
 			}
 		}
 		return this.#project();
+	}
+
+	diagnosticWorldHead() {
+		const state = this.#requireState();
+		const head = this.#requireHead();
+		return Object.freeze({
+			runId: state.runId,
+			regionId: state.regionId,
+			revision: head.revision,
+			sequence: head.lastSequence,
+			simulationTime: state.simulationTime,
+			status: "healthy" as const,
+		});
 	}
 
 	#project(): RiverholdProjection {

@@ -1,3 +1,4 @@
+import type { DiagnosticInput, WorldHeadSummary } from "@eonfolk/diagnostics";
 import type {
 	ChronicleBeatProjection,
 	CounselIntent,
@@ -669,8 +670,14 @@ interface WorkerResponse {
 	readonly id: number;
 	readonly ok: boolean;
 	readonly projection?: RiverholdProjection;
+	readonly worldHead?: WorldHeadSummary;
 	readonly code?: string | null;
 	readonly error?: string;
+}
+
+export interface RuntimeDiagnosticsPort {
+	record(input: DiagnosticInput): void;
+	setWorldHead(summary: WorldHeadSummary): void;
 }
 
 export class RiverholdRuntimeError extends Error {
@@ -687,6 +694,7 @@ export function createRiverholdRuntimeBridge(
 	storage: Storage | null = typeof window === "undefined"
 		? null
 		: window.localStorage,
+	diagnostics?: RuntimeDiagnosticsPort,
 ): RiverholdRuntimeBridge {
 	if (typeof Worker === "undefined") {
 		if (typeof window !== "undefined")
@@ -700,6 +708,14 @@ export function createRiverholdRuntimeBridge(
 	const worker = new Worker(new URL("./runtime.worker.ts", import.meta.url), {
 		type: "module",
 		name: "eonfolk-riverhold-authority",
+	});
+	diagnostics?.record({
+		category: "worker",
+		name: "authority-worker-created",
+		severity: "info",
+		outcome: "started",
+		scope: { component: "runtime-bridge" },
+		fields: { operation: "create" },
 	});
 	let nextRequestId = 1;
 	const pending = new Map<
@@ -719,14 +735,47 @@ export function createRiverholdRuntimeBridge(
 				const detail = message.data.error ?? "worker request failed";
 				const code =
 					typeof message.data.code === "string" ? message.data.code : null;
+				diagnostics?.record({
+					category: "worker",
+					name: "authority-request-failed",
+					severity: "error",
+					outcome: "failed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						code: code ?? "WORKER_REQUEST_FAILED",
+						operation: "request",
+					},
+				});
 				request.reject(new RiverholdRuntimeError(detail, code));
 				return;
 			}
 			projection = message.data.projection;
+			if (message.data.worldHead !== undefined)
+				diagnostics?.setWorldHead(message.data.worldHead);
+			diagnostics?.record({
+				category: "worker",
+				name: "authority-request-complete",
+				severity: "info",
+				outcome: "accepted",
+				scope: { component: "runtime-bridge" },
+				fields: {
+					operation: "request",
+					revision: message.data.worldHead?.revision ?? 0,
+					sequence: message.data.worldHead?.sequence ?? 0,
+				},
+			});
 			request.resolve(projection);
 		},
 	);
 	worker.addEventListener("error", (event) => {
+		diagnostics?.record({
+			category: "worker",
+			name: "authority-worker-crashed",
+			severity: "critical",
+			outcome: "failed",
+			scope: { component: "runtime-bridge" },
+			fields: { code: "WORKER_CRASH", operation: "worker-event" },
+		});
 		for (const request of pending.values())
 			request.reject(
 				new RiverholdRuntimeError(
@@ -746,6 +795,17 @@ export function createRiverholdRuntimeBridge(
 	): Promise<RiverholdProjection> => {
 		const id = nextRequestId++;
 		return new Promise((resolve, reject) => {
+			diagnostics?.record({
+				category: "command",
+				name:
+					message.kind === "initialize"
+						? "initialize-request"
+						: "dispatch-request",
+				severity: "info",
+				outcome: "started",
+				scope: { component: "runtime-bridge" },
+				fields: { operation: message.kind },
+			});
 			pending.set(id, { resolve, reject });
 			let testCrashAfterTransition: 1 | 2 | undefined;
 			if (
