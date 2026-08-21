@@ -1,36 +1,252 @@
 {
   "schemaVersion": "eonfolk-canonical-web-performance-v1",
-  "measuredAt": "2026-08-21T11:20:13.203Z",
+  "measuredAt": "2026-08-21T12:10:45.451Z",
   "canonical": true,
   "runtime": {
     "node": "v22.23.1",
     "host": "darwin 25.6.0 arm64",
-    "chromium": "/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "chromium": {
+      "executablePath": "/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "version": "Google Chrome for Testing 151.0.7922.34",
+      "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+      "cohort": {
+        "revision": 1234,
+        "version": "Google Chrome for Testing 151.0.7922.34",
+        "manifestBytes": 62239,
+        "manifestSha256": "25995bc88bf20b6de47b46eb3571b250989846a797c0b8924b8794627b6175fc",
+        "files": 326,
+        "links": 5,
+        "totalBytes": 372002382,
+        "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+        "frameworkBytes": 237813488,
+        "frameworkSha256": "269114cf695f1c50b54e0816a1442e41dc468d28672e2dedc2036105fb5a8dbe"
+      },
+      "validators": [
+        {
+          "command": "node scripts/validate-browser-cohort.mjs",
+          "output": "browser cohort valid: 326 files, 5 links, 372002382 bytes"
+        },
+        {
+          "command": "ruby scripts/validate-browser-cohort.rb",
+          "output": "browser cohort valid: 326 files, 5 links, 372002382 bytes"
+        }
+      ]
+    },
     "headed": true,
     "previewOrigin": "http://127.0.0.1:4173",
     "power": {
       "start": {
         "source": "Battery Power",
-        "percentage": 82,
+        "percentage": 77,
         "powerMode": 0,
         "accepted": true,
-        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t82%; discharging; 14:33 remaining present: true"
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t77%; discharging; 17:24 remaining present: true"
       },
       "end": {
         "source": "Battery Power",
-        "percentage": 78,
+        "percentage": 75,
         "powerMode": 0,
         "accepted": true,
-        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t78%; discharging; 14:34 remaining present: true"
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t75%; discharging; 18:44 remaining present: true"
       },
       "profileAccepted": true,
       "acceptanceRule": "stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change"
     }
   },
   "source": {
-    "commit": "c44f05c2935cd8e6c5bba783d9275818fa57fbe5",
+    "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
     "workingTreeDirty": false,
-    "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
+    "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6",
+    "start": {
+      "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
+      "workingTreeDirty": false,
+      "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
+    },
+    "end": {
+      "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
+      "workingTreeDirty": false,
+      "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
+    },
+    "stable": true,
+    "commands": [
+      {
+        "command": "pnpm --filter @eonfolk/web build",
+        "exitCode": 0
+      },
+      {
+        "command": "pnpm benchmark:web",
+        "exitCode": 0
+      }
+    ],
+    "builtOutput": {
+      "start": {
+        "root": "/Users/pranav/Documents/ChatGPT/metaverse/apps/web/dist",
+        "files": 15,
+        "totalBytes": 878545,
+        "manifestSha256": "789a8e7d7d6974599162f001b74a312820c0e1e9561337f0dce88246e001cbc2",
+        "entries": [
+          {
+            "path": "assets/CanvasPool-HTPHJNQ-.js",
+            "bytes": 754,
+            "sha256": "efe2415f4df5f8733abeae7325f6b989a0c1c20a5a1eb8ad45409626076fb404"
+          },
+          {
+            "path": "assets/CanvasRenderer-C77OOJ6D.js",
+            "bytes": 87384,
+            "sha256": "becfcc5630d1bf2a760c7045cf01b010e9f058b5fd7bdeeea557be1892d21663"
+          },
+          {
+            "path": "assets/Filter-BJ3mtSdS.js",
+            "bytes": 101619,
+            "sha256": "b39e8cc94c874ec1006cb64944520aacb0db6b2b812e7bc81e0936dd7c92cff2"
+          },
+          {
+            "path": "assets/GpuStencilModesToPixi-DyVGbimo.js",
+            "bytes": 10522,
+            "sha256": "ad0eb34c0020ddc68d9d3b266a07820394f11270cf39b91375d81b3b11ea37ce"
+          },
+          {
+            "path": "assets/RenderTargetSystem-BUiVc8Vb.js",
+            "bytes": 71065,
+            "sha256": "bb3b1b1e89277eccf2d310daf2a46b010f78f3abef1cd2f64b2b31799d22e095"
+          },
+          {
+            "path": "assets/browserAll-nkuFN7FH.js",
+            "bytes": 42600,
+            "sha256": "3a690bb630fe6cfe0e584a333bcee5cc33f8aeb1c11b9ddd49b7a84d53ec6be1"
+          },
+          {
+            "path": "assets/canvasUtils-vi_qCR7u.js",
+            "bytes": 6019,
+            "sha256": "5497c2b0131170341932e369312d255f5af291ed99ac21a2eca3e8636d04afae"
+          },
+          {
+            "path": "assets/getPo2TextureFromSource-BbK029nI.js",
+            "bytes": 25050,
+            "sha256": "e56e110db7cfcfb33446f0137c2992ac00ba1b74d8b0930c2a558c588c2c5750"
+          },
+          {
+            "path": "assets/getTextureBatchBindGroup-xYvVrdG2.js",
+            "bytes": 340,
+            "sha256": "f854c37f0bb9df14e3ca94cc758c54a145f38a171319b48f986c5403a3e4797a"
+          },
+          {
+            "path": "assets/index-BHWpcU31.js",
+            "bytes": 394222,
+            "sha256": "6015bd89e7dd0c8dd31ec2b0e282c2d7753f65b9829412b9aaba4e7cab23bce9"
+          },
+          {
+            "path": "assets/index-D-xfqZML.css",
+            "bytes": 24673,
+            "sha256": "be30df5e9e38e46ad99d15ecfc9ff770d1685bdfb21dae3bb0148c5e43755dda"
+          },
+          {
+            "path": "assets/init-983yLYSG.js",
+            "bytes": 15266,
+            "sha256": "82e5d1eb6b5b1cf1b2316941b081c85c47aa24fa7c02f94897f6e51d12a44031"
+          },
+          {
+            "path": "assets/runtime.worker-ro6S9N5x.js",
+            "bytes": 97152,
+            "sha256": "ba0598317fe74eb1ff6c72a71ee56cb0f3e878fccce2a8b8647a9daeb70bb1fe"
+          },
+          {
+            "path": "assets/webworkerAll-MvhsTX2s.js",
+            "bytes": 73,
+            "sha256": "4b6d834f363c85ca19bfc52be1788a19b8791d452acdab8c3c5c9197d8895881"
+          },
+          {
+            "path": "index.html",
+            "bytes": 1806,
+            "sha256": "8235f80ed2c61526ab7abb0bd7296ea893b065c39fb20a6ddffd06ff2ab1f4d6"
+          }
+        ]
+      },
+      "end": {
+        "root": "/Users/pranav/Documents/ChatGPT/metaverse/apps/web/dist",
+        "files": 15,
+        "totalBytes": 878545,
+        "manifestSha256": "789a8e7d7d6974599162f001b74a312820c0e1e9561337f0dce88246e001cbc2",
+        "entries": [
+          {
+            "path": "assets/CanvasPool-HTPHJNQ-.js",
+            "bytes": 754,
+            "sha256": "efe2415f4df5f8733abeae7325f6b989a0c1c20a5a1eb8ad45409626076fb404"
+          },
+          {
+            "path": "assets/CanvasRenderer-C77OOJ6D.js",
+            "bytes": 87384,
+            "sha256": "becfcc5630d1bf2a760c7045cf01b010e9f058b5fd7bdeeea557be1892d21663"
+          },
+          {
+            "path": "assets/Filter-BJ3mtSdS.js",
+            "bytes": 101619,
+            "sha256": "b39e8cc94c874ec1006cb64944520aacb0db6b2b812e7bc81e0936dd7c92cff2"
+          },
+          {
+            "path": "assets/GpuStencilModesToPixi-DyVGbimo.js",
+            "bytes": 10522,
+            "sha256": "ad0eb34c0020ddc68d9d3b266a07820394f11270cf39b91375d81b3b11ea37ce"
+          },
+          {
+            "path": "assets/RenderTargetSystem-BUiVc8Vb.js",
+            "bytes": 71065,
+            "sha256": "bb3b1b1e89277eccf2d310daf2a46b010f78f3abef1cd2f64b2b31799d22e095"
+          },
+          {
+            "path": "assets/browserAll-nkuFN7FH.js",
+            "bytes": 42600,
+            "sha256": "3a690bb630fe6cfe0e584a333bcee5cc33f8aeb1c11b9ddd49b7a84d53ec6be1"
+          },
+          {
+            "path": "assets/canvasUtils-vi_qCR7u.js",
+            "bytes": 6019,
+            "sha256": "5497c2b0131170341932e369312d255f5af291ed99ac21a2eca3e8636d04afae"
+          },
+          {
+            "path": "assets/getPo2TextureFromSource-BbK029nI.js",
+            "bytes": 25050,
+            "sha256": "e56e110db7cfcfb33446f0137c2992ac00ba1b74d8b0930c2a558c588c2c5750"
+          },
+          {
+            "path": "assets/getTextureBatchBindGroup-xYvVrdG2.js",
+            "bytes": 340,
+            "sha256": "f854c37f0bb9df14e3ca94cc758c54a145f38a171319b48f986c5403a3e4797a"
+          },
+          {
+            "path": "assets/index-BHWpcU31.js",
+            "bytes": 394222,
+            "sha256": "6015bd89e7dd0c8dd31ec2b0e282c2d7753f65b9829412b9aaba4e7cab23bce9"
+          },
+          {
+            "path": "assets/index-D-xfqZML.css",
+            "bytes": 24673,
+            "sha256": "be30df5e9e38e46ad99d15ecfc9ff770d1685bdfb21dae3bb0148c5e43755dda"
+          },
+          {
+            "path": "assets/init-983yLYSG.js",
+            "bytes": 15266,
+            "sha256": "82e5d1eb6b5b1cf1b2316941b081c85c47aa24fa7c02f94897f6e51d12a44031"
+          },
+          {
+            "path": "assets/runtime.worker-ro6S9N5x.js",
+            "bytes": 97152,
+            "sha256": "ba0598317fe74eb1ff6c72a71ee56cb0f3e878fccce2a8b8647a9daeb70bb1fe"
+          },
+          {
+            "path": "assets/webworkerAll-MvhsTX2s.js",
+            "bytes": 73,
+            "sha256": "4b6d834f363c85ca19bfc52be1788a19b8791d452acdab8c3c5c9197d8895881"
+          },
+          {
+            "path": "index.html",
+            "bytes": 1806,
+            "sha256": "8235f80ed2c61526ab7abb0bd7296ea893b065c39fb20a6ddffd06ff2ab1f4d6"
+          }
+        ]
+      },
+      "stable": true
+    }
   },
   "fixture": {
     "run": "canonical-local-proof",
@@ -62,18 +278,39 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 77.89999997615814,
-        "ctaMs": 169.2999999821186,
-        "meaningfulWorldMs": 177.59999999403954
+        "shellMs": 65,
+        "ctaMs": 157.80000001192093,
+        "meaningfulWorldMs": 157.90000000596046
       },
-      "investigationLatencyMs": 308.69662500000413,
-      "catchUpMs": 81.47333300000173,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 308.89166699999623,
+      "catchUpMs": 80.35912500000268,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10.099999999998545,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10.100000000002183,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -81,22 +318,24 @@
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 10.10000000000582,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.39999999999418,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
-        "longTasksMs": [],
-        "usedJsHeapBytes": 9120282
+        "longTasksMs": [
+          51
+        ],
+        "usedJsHeapBytes": 9129548
       }
     },
     {
@@ -107,19 +346,40 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 71.2000000178814,
-        "ctaMs": 146,
-        "meaningfulWorldMs": 154.2000000178814
+        "shellMs": 59.29999998211861,
+        "ctaMs": 133.69999998807907,
+        "meaningfulWorldMs": 133.7999999821186
       },
-      "investigationLatencyMs": 302.54154199999175,
-      "catchUpMs": 81.29012499999953,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 310.90808400002425,
+      "catchUpMs": 80.11229200000525,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
+          "p50Ms": 8.299999999999272,
           "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "worstMs": 10.399999999999636,
           "droppedFrameCount": 0
         },
         {
@@ -134,14 +394,14 @@
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.5,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9127088
+        "usedJsHeapBytes": 9096899
       }
     },
     {
@@ -152,41 +412,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 76.30000001192093,
-        "ctaMs": 143.40000000596046,
-        "meaningfulWorldMs": 151.59999999403954
+        "shellMs": 60.099999994039536,
+        "ctaMs": 133.40000000596046,
+        "meaningfulWorldMs": 133.40000000596046
       },
-      "investigationLatencyMs": 311.4287920000206,
-      "catchUpMs": 78.89812500000698,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 311.4480840000033,
+      "catchUpMs": 81.24937499995576,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999999272,
           "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999998545,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.89999999999418,
+          "worstMs": 10.39999999999418,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9134932
+        "usedJsHeapBytes": 9100628
       }
     },
     {
@@ -197,41 +478,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 72.40000000596046,
-        "ctaMs": 138.5,
-        "meaningfulWorldMs": 148.59999999403954
+        "shellMs": 61.69999998807907,
+        "ctaMs": 135.59999999403954,
+        "meaningfulWorldMs": 135.59999999403954
       },
-      "investigationLatencyMs": 311.41412500001024,
-      "catchUpMs": 81.14962500002002,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 307.38850000000093,
+      "catchUpMs": 79.77962500002468,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.5,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.900000000001455,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.5,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 9.89999999999418,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 9.80000000000291,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9122040
+        "usedJsHeapBytes": 9101270
       }
     },
     {
@@ -242,26 +544,47 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 77.2999999821186,
-        "ctaMs": 143.90000000596046,
-        "meaningfulWorldMs": 152.19999998807907
+        "shellMs": 57.599999994039536,
+        "ctaMs": 132,
+        "meaningfulWorldMs": 132
       },
-      "investigationLatencyMs": 309.5238750000135,
-      "catchUpMs": 78.7683749999851,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 308.06462499999907,
+      "catchUpMs": 79.4455420000013,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.800000000000182,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 9.80000000000291,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -269,14 +592,14 @@
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
+          "p95Ms": 9.89999999999418,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9119116
+        "usedJsHeapBytes": 9125736
       }
     },
     {
@@ -287,41 +610,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 74.19999998807907,
-        "ctaMs": 140.59999999403954,
-        "meaningfulWorldMs": 149
+        "shellMs": 59.599999994039536,
+        "ctaMs": 133.09999999403954,
+        "meaningfulWorldMs": 133.09999999403954
       },
-      "investigationLatencyMs": 124.78916699998081,
-      "catchUpMs": 67.85237500001676,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 126.41395900002681,
+      "catchUpMs": 65.08479200000875,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10.19999999999709,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 10.19999999999709,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9026848
+        "usedJsHeapBytes": 8994505
       }
     },
     {
@@ -332,41 +676,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 69.7000000178814,
-        "ctaMs": 142.40000000596046,
-        "meaningfulWorldMs": 150.80000001192093
+        "shellMs": 60.5,
+        "ctaMs": 133.09999999403954,
+        "meaningfulWorldMs": 133.09999999403954
       },
-      "investigationLatencyMs": 124.36770800000522,
-      "catchUpMs": 68.55249999999069,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 125.27724999992643,
+      "catchUpMs": 67.48954199999571,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
+          "p50Ms": 8.299999999999272,
           "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p50Ms": 8.299999999988358,
+          "p95Ms": 10.099999999991269,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9040361
+        "usedJsHeapBytes": 8999448
       }
     },
     {
@@ -377,41 +742,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 77.2000000178814,
-        "ctaMs": 143.2000000178814,
-        "meaningfulWorldMs": 151.7000000178814
+        "shellMs": 59.5,
+        "ctaMs": 128.5,
+        "meaningfulWorldMs": 128.59999999403954
       },
-      "investigationLatencyMs": 123.10591700009536,
-      "catchUpMs": 78.33245800004806,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 124.36487500008661,
+      "catchUpMs": 65.8119580000639,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
-          "p95Ms": 10,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10.099999999998545,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.400000000008731,
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999995634,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
+          "p95Ms": 9.900000000008731,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9024478
+        "usedJsHeapBytes": 8999061
       }
     },
     {
@@ -422,41 +808,62 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 76.90000000596046,
-        "ctaMs": 142.90000000596046,
-        "meaningfulWorldMs": 151.09999999403954
+        "shellMs": 59,
+        "ctaMs": 127.80000001192093,
+        "meaningfulWorldMs": 128
       },
-      "investigationLatencyMs": 125.02312499994878,
-      "catchUpMs": 67.50762499996927,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 126.23729199997615,
+      "catchUpMs": 67.3308749999851,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
-          "p95Ms": 9.899999999999636,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.599999999998545,
-          "worstMs": 10.30000000000291,
+          "p95Ms": 9.900000000001455,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.60000000000582,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.900000000008731,
+          "worstMs": 10.39999999999418,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9046199
+        "usedJsHeapBytes": 8994939
       }
     },
     {
@@ -467,19 +874,40 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 70.10000002384186,
-        "ctaMs": 136.5,
-        "meaningfulWorldMs": 144.7000000178814
+        "shellMs": 57.5,
+        "ctaMs": 126.7000000178814,
+        "meaningfulWorldMs": 126.80000001192093
       },
-      "investigationLatencyMs": 124.4179170000134,
-      "catchUpMs": 68.0362080000341,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 125.03720800008159,
+      "catchUpMs": 67.4657920000609,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.299999999999272,
-          "p95Ms": 9.799999999999272,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.899999999999636,
+          "worstMs": 10.399999999999636,
           "droppedFrameCount": 0
         },
         {
@@ -492,7 +920,7 @@
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 9.80000000000291,
           "worstMs": 10.400000000008731,
@@ -501,7 +929,7 @@
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9008593
+        "usedJsHeapBytes": 9000265
       }
     },
     {
@@ -512,18 +940,39 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1603.300000011921,
-        "ctaMs": 2259.2000000178814,
-        "meaningfulWorldMs": 2261.300000011921
+        "shellMs": 1578.2000000178814,
+        "ctaMs": 2250.800000011921,
+        "meaningfulWorldMs": 2250.9000000059605
       },
-      "investigationLatencyMs": 127.60224999999627,
-      "catchUpMs": 122.70758400019258,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 143.79837500001304,
+      "catchUpMs": 117.88774999999441,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.899999999997817,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -531,7 +980,147 @@
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          59,
+          84,
+          52
+        ],
+        "usedJsHeapBytes": 8957138
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 2,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1580.0999999940395,
+        "ctaMs": 2249.5,
+        "meaningfulWorldMs": 2249.5999999940395
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 142.43445800011978,
+      "catchUpMs": 128.24679200001992,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          59,
+          81,
+          54
+        ],
+        "usedJsHeapBytes": 8963708
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 3,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1576,
+        "ctaMs": 2242.899999976158,
+        "meaningfulWorldMs": 2242.899999976158
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 138.77766699995846,
+      "catchUpMs": 122.67004200001247,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
           "p95Ms": 9.900000000001455,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -547,108 +1136,10 @@
       "diagnostics": {
         "longTasksMs": [
           60,
-          82,
+          83,
           55
         ],
-        "usedJsHeapBytes": 8980456
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 2,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1596,
-        "ctaMs": 2239.7999999821186,
-        "meaningfulWorldMs": 2243.0999999940395
-      },
-      "investigationLatencyMs": 144.14541699993424,
-      "catchUpMs": 124.2635419999715,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 9.80000000000291,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000008731,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          60,
-          78,
-          51
-        ],
-        "usedJsHeapBytes": 9014802
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 3,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1602.7000000178814,
-        "ctaMs": 2250.5,
-        "meaningfulWorldMs": 2252.2000000178814
-      },
-      "investigationLatencyMs": 142.2880000001751,
-      "catchUpMs": 127.08137499983422,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          61,
-          82,
-          51
-        ],
-        "usedJsHeapBytes": 8978622
+        "usedJsHeapBytes": 8955689
       }
     },
     {
@@ -659,32 +1150,53 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1600.7000000178814,
-        "ctaMs": 2260,
-        "meaningfulWorldMs": 2266.5
+        "shellMs": 1571.9000000059605,
+        "ctaMs": 2250.9000000059605,
+        "meaningfulWorldMs": 2250.9000000059605
       },
-      "investigationLatencyMs": 143.89979199995287,
-      "catchUpMs": 132.85020900005475,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 144.40687499986961,
+      "catchUpMs": 127.20499999984168,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.900000000001455,
           "worstMs": 10.399999999999636,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000001455,
+          "p95Ms": 10,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
@@ -693,11 +1205,10 @@
       ],
       "diagnostics": {
         "longTasksMs": [
-          59,
-          85,
-          58
+          58,
+          84
         ],
-        "usedJsHeapBytes": 8982290
+        "usedJsHeapBytes": 8960428
       }
     },
     {
@@ -708,18 +1219,39 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1601.2999999821186,
-        "ctaMs": 2243.7999999821186,
-        "meaningfulWorldMs": 2249.7999999821186
+        "shellMs": 1563.800000011921,
+        "ctaMs": 2233.5,
+        "meaningfulWorldMs": 2234.2000000178814
       },
-      "investigationLatencyMs": 144.08387500001118,
-      "catchUpMs": 124.7831250000745,
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "investigationLatencyMs": 144.0236670000013,
+      "catchUpMs": 123.59041699999943,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.300000000001091,
-          "p95Ms": 9.899999999997817,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -733,7 +1265,7 @@
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
@@ -742,11 +1274,10 @@
       ],
       "diagnostics": {
         "longTasksMs": [
-          59,
-          83,
-          52
+          60,
+          83
         ],
-        "usedJsHeapBytes": 8985136
+        "usedJsHeapBytes": 8961404
       }
     }
   ],
@@ -756,34 +1287,34 @@
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 18003,
-          "p50Ms": 8.300000000001091,
+          "sampleCount": 18002,
+          "p50Ms": 8.299999999999272,
           "p95Ms": 10,
-          "worstMs": 10.5,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 18000,
+          "sampleCount": 18003,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.5,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 18001,
+          "sampleCount": 18002,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
-          "worstMs": 10.5,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "pooled": {
-        "sampleCount": 54004,
-        "p50Ms": 8.30000000000291,
+        "sampleCount": 54007,
+        "p50Ms": 8.299999999999272,
         "p95Ms": 10,
-        "worstMs": 10.5,
+        "worstMs": 10.400000000008731,
         "droppedFrameCount": 0
       }
     },
@@ -792,34 +1323,34 @@
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 18000,
-          "p50Ms": 8.300000000000182,
+          "sampleCount": 18002,
+          "p50Ms": 8.299999999999272,
           "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 18002,
-          "p50Ms": 8.30000000000291,
+          "p50Ms": 8.299999999995634,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 18001,
+          "sampleCount": 18002,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.900000000008731,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         }
       ],
       "pooled": {
-        "sampleCount": 54003,
-        "p50Ms": 8.30000000000291,
+        "sampleCount": 54006,
+        "p50Ms": 8.299999999999272,
         "p95Ms": 10,
-        "worstMs": 10.400000000008731,
+        "worstMs": 10.5,
         "droppedFrameCount": 0
       }
     },
@@ -828,15 +1359,15 @@
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 18002,
+          "sampleCount": 18003,
           "p50Ms": 8.300000000001091,
-          "p95Ms": 9.900000000001455,
+          "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 18001,
+          "sampleCount": 18002,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
@@ -852,7 +1383,7 @@
         }
       ],
       "pooled": {
-        "sampleCount": 54006,
+        "sampleCount": 54008,
         "p50Ms": 8.30000000000291,
         "p95Ms": 10,
         "worstMs": 10.400000000008731,

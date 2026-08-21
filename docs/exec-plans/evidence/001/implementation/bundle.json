@@ -1,7 +1,7 @@
 {
   "schemaVersion": "eonfolk-bundle-measurement-v1",
-  "criticalShellGzip": 122964,
-  "totalJavaScriptGzip": 250133,
+  "criticalShellGzip": 123027,
+  "totalJavaScriptGzip": 250885,
   "worldAssetRawBytes": 0,
   "limits": {
     "criticalShellGzip": 204800,
@@ -56,14 +56,14 @@
       "gzipBytes": 266
     },
     {
+      "path": "assets/index-BHWpcU31.js",
+      "rawBytes": 394222,
+      "gzipBytes": 115862
+    },
+    {
       "path": "assets/index-D-xfqZML.css",
       "rawBytes": 24673,
       "gzipBytes": 6324
-    },
-    {
-      "path": "assets/index-DtEgZBgQ.js",
-      "rawBytes": 394048,
-      "gzipBytes": 115799
     },
     {
       "path": "assets/init-983yLYSG.js",
@@ -71,9 +71,9 @@
       "gzipBytes": 4740
     },
     {
-      "path": "assets/runtime.worker-DVnl7P3C.js",
-      "rawBytes": 94412,
-      "gzipBytes": 26439
+      "path": "assets/runtime.worker-ro6S9N5x.js",
+      "rawBytes": 97152,
+      "gzipBytes": 27128
     },
     {
       "path": "assets/webworkerAll-MvhsTX2s.js",

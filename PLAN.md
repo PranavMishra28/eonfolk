@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — canonical performance and checkpoint CI pass; final targeted confirmation pending; no measured-human pass claimed
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final targeted-confirmation findings repaired and canonical performance green; final local/remote verification pending; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -26,7 +26,7 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
-| 7. Operator-authorized implementation and consolidation | Confirmation pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; local verification, exact-checkpoint CI, and canonical 15-run clean-commit performance pass; final targeted confirmation remains; human gates remain NOT RUN |
+| 7. Operator-authorized implementation and consolidation | Final verification pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; checkpoint CI and final canonical 15-run clean-commit performance pass; the one allowed targeted confirmation found three P1s, all repaired with focused unit/browser evidence; final complete local verification and exact-head CI remain; human gates remain NOT RUN |
 
 ## Operator implementation override — 2026-08-21
 
@@ -41,14 +41,14 @@ Verified bootstrap state:
 - Annotated tags preserve the planning head, implementation checkpoint, Gate 0 artifact A, study S, and resume checkpoint.
 - Implementation workspace scaffold commit `4fb5f93` pins Node 22.23.1 and pnpm 11.15.1 and rejects x64 Node on macOS.
 - Old PRs and branches remain until the final green `main` proves their heads reachable; cleanup has not run early.
-- Systems, persistence, UI and coordinator work were integrated through `20b6d3b`; three independent reviews froze `b387a6d`, their first repairs are `bad215a`, and a fresh confirmation failure at `1834f1f` produced the final bounded repair now awaiting exact-commit confirmation.
+- Systems, persistence, UI and coordinator work were integrated through `20b6d3b`; three independent reviews froze `b387a6d`, their first repairs are `bad215a`, a fresh confirmation failure at `1834f1f` produced `970879a`, and the one final targeted confirmation at `32808e1` exposed three remaining P1s repaired in `90d999b`/`50b2310`. No second confirmation is claimed.
 - M1–M5 focused hours are UNKNOWN because contemporaneous segments were not preserved across the resumed run. The 40–60-hour fit therefore remains an unproven scope hypothesis, not an evidence-backed implementation claim.
 
 ## Implementation candidate evidence — 2026-08-21
 
 Local `pnpm verify` on the final repaired working tree passed runtime/cohort/architecture/docs/format/lint/typecheck; 61 unit tests; two property tests; a real Chromium IndexedDB reload; the fixed 20-warmup/200-cycle timing analyzer; build and bundle budgets; a zero-advisory production audit; six Chromium journeys; 254 routed requests plus 27,707 Chromium-netlog events with zero external attempts; and the bounded TLA+ model (3,480 generated/350 distinct states, depth 10, five invariants).
 
-The canonical headed performance harness completed 15 full journeys from clean commit `c44f05c2935cd8e6c5bba783d9275818fa57fbe5`, forced the browser offline after meaningful display, sampled arrival/busy-market/Chronicle for 30 seconds each, kept pooled and per-state p95 at 10.1 ms or better, marked meaningful world by 2,266.5 ms in the throttled mobile profile, and recorded zero external route/netlog attempts. Source was clean, the lockfile was fixed, macOS stayed in normal power mode, and the battery moved from 82% to 78%, both inside DEV-M5-004's >=50% acceptance boundary without any numerical waiver. [Performance](docs/exec-plans/evidence/001/implementation/performance.json), [bundle](docs/exec-plans/evidence/001/implementation/bundle.json), and [timing](docs/exec-plans/evidence/001/implementation/decision-trace-timing.json) evidence are retained. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
+The final canonical headed performance harness completed 15 full journeys from clean commit `50b231010388d60d0bc2f95900021287ab2c122a`, built and hash-bound its own preview output, forced the browser offline after meaningful display, sampled arrival/busy-market/Chronicle for 30 seconds each, kept every pooled and per-state p95 at 10.0 ms or better, marked meaningful world by 2,250.9 ms in the throttled mobile profile, and recorded zero external route/netlog attempts. Start/end source, lockfile, and dist hashes matched; independent Node/Ruby validators matched the frozen browser cohort; every mark retained painted qualification evidence. macOS stayed in normal power mode and battery moved from 77% to 75%, both inside DEV-M5-004's >=50% boundary without any numerical waiver. [Performance](docs/exec-plans/evidence/001/implementation/performance.json), [bundle](docs/exec-plans/evidence/001/implementation/bundle.json), and [timing](docs/exec-plans/evidence/001/implementation/decision-trace-timing.json) evidence are retained. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
 
 This evidence does not establish fun, unfamiliar-observer legibility, attachment, delayed return, Story Card comprehension/conversion, physical mobile/4G performance, production scale, or the 40–60-hour labor budget. Gate 0/A/B/Card remain **NOT RUN**.
 
