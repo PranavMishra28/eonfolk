@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,17 @@ import {
 } from "../../../scripts/run-verification-tier.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
+	it("keeps every DEEP browser journey on the current counsel phase contract", () => {
+		for (const script of [
+			"scripts/benchmark-diagnostics-browser.mjs",
+			"scripts/benchmark-web.mjs",
+		]) {
+			const source = readFileSync(resolve(script), "utf8");
+			expect(source).toContain("Review Mara's choices");
+			expect(source).not.toContain("Reach the counsel boundary");
+		}
+	});
+
 	it("uses tier-specific artifact allowlists", () => {
 		const describeArtifacts = (tier: "pr" | "deep") => {
 			const result = spawnSync(

@@ -100,6 +100,7 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | Shared authority synthesis | `7a1ba77`, `d9f7c20`, plus current candidate updates | Every frozen P0/P1 and all seven first-confirmation P1s have an explicit disposition and direct repair evidence; fresh targeted confirmation and final clean lattice remain |
 | First Founder Alpha confirmation | `7cbdcfa` | Fresh reviewer inspected exact tagged `d9f7c20`; zero P0 and seven P1 mechanisms retained before repair |
 | Confirmation repair batch | `d81d971`, `b99530f`, `c518af1`, `e2fb64b`, `9759988`, `8c49759` | Observatory/hostile-storage, control/claim, execution-bound experiment evidence, production-artifact identity, runnable DEEP browser comparison, and per-constituent tier evidence repaired with direct regressions |
+| Integrated release-lattice probe | coordinator at `b286da8` | PR passed all nineteen rows; DEEP failed closed only when canonical performance exposed a second obsolete counsel selector. No partial performance sample or targeted-review verdict was accepted; both DEEP browser scripts now share a tested phase contract. |
 
 ## Disposable spike evidence
 
