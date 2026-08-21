@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** PROVISIONAL BUDGETS ACCEPTED; 15-RUN DIAGNOSTIC PASSES NUMERIC GATES; FINAL CLEAN-COMMIT LAB PENDING
+**Status:** PROVISIONAL BUDGETS ACCEPTED; CANONICAL 15-RUN CLEAN-COMMIT LAB PASSES ALL NUMERICAL AND EGRESS GATES
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -26,7 +26,7 @@ The stricter staged requirement is: a fact-free authority-loading shell by **2 s
 
 The sole blocking browser runtime is `@playwright/test` **1.62.1** driving the preinstalled headed Chromium revision **1234**, Chrome for Testing **151.0.7922.34** [S-TOOL-17] [S-TOOL-19]. Before work and every cohort, its exact local app root, executable path/version/launcher hash, and complete no-follow file/symlink manifest must match the Goal prompt's 326-file/five-symlink/372,002,382-byte frozen identity; both Node and Ruby reproduce the 62,239-byte manifest hash. Configure that `executablePath`, freeze the cohort, and stop rather than download on mismatch. The desktop profile is the builder's M4 Pro with clean production preview, native DPR, foreground, macOS normal power mode (`powermode 0`), and recorded OS/browser/power identity. The source must stay stable for the run: AC is accepted, or battery is accepted at **>=50%** at both boundaries. No numerical budget changes by power source. Mobile lab is 390×844, DPR 3, four-times CPU slowdown, 1.6 Mbps down, 750 Kbps up, 150 ms RTT, cache disabled in that same runtime. Physical iPhone 13/Pixel 7-class-or-weaker evidence is optional diagnostic evidence, never substitutes for numerical gates, and does not block if a device is unavailable.
 
-**Recorded implementation decision DEV-M5-001:** the pre-run Goal prompt preferred AC for repeatability, but the operator's binding overnight acceptance requires measured budgets or a justified corrective action and explicitly discourages routine questions. Normal-mode battery >=50% is an objectively recorded, non-weaker execution profile: it changes no payload/display/frame threshold, and the harness fails source changes, low-power mode, low battery, dirty source, or any numerical miss. Reopen if paired measurements show the accepted battery profile is less demanding or materially more variable than AC.
+**Recorded implementation decision DEV-M5-004:** the pre-run Goal prompt preferred AC for repeatability, but the operator's binding overnight acceptance requires measured budgets or a justified corrective action and explicitly discourages routine questions. Normal-mode battery >=50% is an objectively recorded, non-weaker execution profile: it changes no payload/display/frame threshold, and the harness fails source changes, low-power mode, low battery, dirty source, or any numerical miss. Reopen if paired measurements show the accepted battery profile is less demanding or materially more variable than AC.
 
 ## Canonical measurement procedure
 
@@ -69,14 +69,14 @@ The scratch result is feasibility evidence, not permission to reserve all remain
 
 The headed harness ran five cold contexts for each required profile. Every context disabled cache/service workers, loaded authoritative Worker/IndexedDB state, marked shell/CTA/meaningful world, went network-offline, completed the full arrival → investigation → counsel → return/catch-up → Chronicle journey, and sampled arrival, busy market, and Chronicle for 30 seconds after a 5-second warmup.
 
-- Desktop 1728×1117 DPR 2: meaningful world worst **158.4 ms**; every state/run p95 **10.0 ms**; worst frame **10.5 ms**; zero dropped frames.
-- Laptop 1366×768 DPR 1: meaningful world worst **136.4 ms**; worst state/run p95 **10.1 ms**; worst frame **10.5 ms**; zero dropped frames.
-- Mobile 390×844 DPR 3, 4× CPU, 1.6 Mbps down/750 Kbps up/150 ms RTT: shell worst **1,600.6 ms**, meaningful world worst **2,255.6 ms**, worst state/run p95 **10.1 ms**, worst frame **10.5 ms**, zero dropped frames.
+- Desktop 1728×1117 DPR 2: meaningful world worst **177.6 ms**; pooled p95 **10.0 ms**; worst state p95 **10.1 ms**; worst frame **10.5 ms**; zero dropped frames.
+- Laptop 1366×768 DPR 1: meaningful world worst **151.7 ms**; pooled and worst state p95 **10.0 ms**; worst frame **10.4 ms**; zero dropped frames.
+- Mobile 390×844 DPR 3, 4× CPU, 1.6 Mbps down/750 Kbps up/150 ms RTT: shell worst **1,603.3 ms**, meaningful world worst **2,266.5 ms**, pooled and worst state p95 **10.0 ms**, worst frame **10.4 ms**, zero dropped frames.
 - The route oracle recorded **210** allowed local requests and zero external attempts; the independent Chromium netlog also recorded zero external DNS/host/protocol attempts.
 
 The first earlier smoke exposed a real miss: a decorative continuous Pixi ticker produced **25.1 ms desktop p95**. That loop was removed, and the authoritative projection-driven renderer now passes the numerical gates without a budget waiver. Exact per-run marks, distributions, diagnostics, procedure, browser path, and limitations are in the [performance record](../exec-plans/evidence/001/implementation/performance.json).
 
-The earlier harness did not capture power inside its report and did not emit per-profile pooled summaries, so that first 15-run result remains deliberately classified **DIAGNOSTIC**, not canonical acceptance. The finalized harness records exact commit/dirty state, lockfile hash, OS/architecture, stable accepted power profile, fixture/profile, one-shot next-frame marks, per-state and pooled nearest-rank summaries, and fails any contract mismatch. A wholly new 15-run clean-commit result is required before final readiness.
+This canonical run used clean source `c44f05c2935cd8e6c5bba783d9275818fa57fbe5`, lockfile SHA-256 `2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6`, headed Chrome for Testing 151, and normal power mode. Battery boundaries were 82% and 78%, both accepted under DEV-M5-004. The report records per-run and pooled nearest-rank distributions, long tasks, heap where exposed, investigation latency, catch-up latency, and source/power/network provenance. The earlier 15-run artifact remains superseded diagnostic history; the linked record is the new canonical acceptance artifact.
 
 The mobile profile is canonical emulation on the target M4 Pro, not a physical phone. Physical mid-tier mobile, twelve-citizen stress, thermal behavior, and field percentiles remain unmeasured; none is promoted to a claim.
 

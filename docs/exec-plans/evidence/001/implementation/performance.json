@@ -1,17 +1,44 @@
 {
   "schemaVersion": "eonfolk-canonical-web-performance-v1",
-  "measuredAt": "2026-08-21T10:34:38.712Z",
-  "canonical": false,
-  "evidenceStatus": "DIAGNOSTIC_NUMERIC_PASS_INVALID_FOR_CANONICAL_ACCEPTANCE",
-  "invalidation": {
-    "reason": "The immediate post-run host audit reported Battery Power; the authority requires AC Power and the earlier harness did not record power in the report.",
-    "requiredAction": "Rerun the finalized harness from a clean exact commit while pmset reports AC Power."
-  },
+  "measuredAt": "2026-08-21T11:20:13.203Z",
+  "canonical": true,
   "runtime": {
     "node": "v22.23.1",
+    "host": "darwin 25.6.0 arm64",
     "chromium": "/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
     "headed": true,
-    "previewOrigin": "http://127.0.0.1:4173"
+    "previewOrigin": "http://127.0.0.1:4173",
+    "power": {
+      "start": {
+        "source": "Battery Power",
+        "percentage": 82,
+        "powerMode": 0,
+        "accepted": true,
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t82%; discharging; 14:33 remaining present: true"
+      },
+      "end": {
+        "source": "Battery Power",
+        "percentage": 78,
+        "powerMode": 0,
+        "accepted": true,
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t78%; discharging; 14:34 remaining present: true"
+      },
+      "profileAccepted": true,
+      "acceptanceRule": "stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change"
+    }
+  },
+  "source": {
+    "commit": "c44f05c2935cd8e6c5bba783d9275818fa57fbe5",
+    "workingTreeDirty": false,
+    "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
+  },
+  "fixture": {
+    "run": "canonical-local-proof",
+    "region": "region_riverhold",
+    "citizens": 8,
+    "motion": "no-preference",
+    "quality": "default",
+    "focus": "foreground"
   },
   "procedure": {
     "repetitions": 5,
@@ -35,12 +62,102 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
+        "shellMs": 77.89999997615814,
+        "ctaMs": 169.2999999821186,
+        "meaningfulWorldMs": 177.59999999403954
+      },
+      "investigationLatencyMs": 308.69662500000413,
+      "catchUpMs": 81.47333300000173,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9120282
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 2,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 71.2000000178814,
+        "ctaMs": 146,
+        "meaningfulWorldMs": 154.2000000178814
+      },
+      "investigationLatencyMs": 302.54154199999175,
+      "catchUpMs": 81.29012499999953,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9127088
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 3,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
         "shellMs": 76.30000001192093,
-        "ctaMs": 158.40000000596046,
-        "meaningfulWorldMs": 158.40000000596046
+        "ctaMs": 143.40000000596046,
+        "meaningfulWorldMs": 151.59999999403954
       },
-      "investigationLatencyMs": 300.4746670000022,
-      "catchUpMs": 81.51670799999556,
+      "investigationLatencyMs": 311.4287920000206,
+      "catchUpMs": 78.89812500000698,
       "states": [
         {
           "state": "arrival",
@@ -54,55 +171,8 @@
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 10.099999999998545,
           "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          50
-        ],
-        "usedJsHeapBytes": 9079129
-      }
-    },
-    {
-      "profile": "desktop",
-      "repetition": 2,
-      "viewport": "1728x1117",
-      "deviceScaleFactor": 2,
-      "cpuSlowdown": 1,
-      "network": "unthrottled-local",
-      "marks": {
-        "shellMs": 70.40000000596046,
-        "ctaMs": 140,
-        "meaningfulWorldMs": 140
-      },
-      "investigationLatencyMs": 307.7483340000035,
-      "catchUpMs": 81.73083300000872,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
@@ -116,52 +186,7 @@
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9101857
-      }
-    },
-    {
-      "profile": "desktop",
-      "repetition": 3,
-      "viewport": "1728x1117",
-      "deviceScaleFactor": 2,
-      "cpuSlowdown": 1,
-      "network": "unthrottled-local",
-      "marks": {
-        "shellMs": 71.59999999403954,
-        "ctaMs": 140.30000001192093,
-        "meaningfulWorldMs": 140.30000001192093
-      },
-      "investigationLatencyMs": 309.2302080000227,
-      "catchUpMs": 81.84933400002774,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [],
-        "usedJsHeapBytes": 9097558
+        "usedJsHeapBytes": 9134932
       }
     },
     {
@@ -172,32 +197,32 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 70.7999999821186,
-        "ctaMs": 140.09999999403954,
-        "meaningfulWorldMs": 140.09999999403954
+        "shellMs": 72.40000000596046,
+        "ctaMs": 138.5,
+        "meaningfulWorldMs": 148.59999999403954
       },
-      "investigationLatencyMs": 309.0590000000084,
-      "catchUpMs": 81.25075000000652,
+      "investigationLatencyMs": 311.41412500001024,
+      "catchUpMs": 81.14962500002002,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.5,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
@@ -206,7 +231,7 @@
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9075824
+        "usedJsHeapBytes": 9122040
       }
     },
     {
@@ -217,17 +242,17 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 69.39999997615814,
-        "ctaMs": 139.09999999403954,
-        "meaningfulWorldMs": 139.19999998807907
+        "shellMs": 77.2999999821186,
+        "ctaMs": 143.90000000596046,
+        "meaningfulWorldMs": 152.19999998807907
       },
-      "investigationLatencyMs": 308.6025419999496,
-      "catchUpMs": 82.05187500000466,
+      "investigationLatencyMs": 309.5238750000135,
+      "catchUpMs": 78.7683749999851,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
@@ -237,21 +262,21 @@
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 10.099999999991269,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9102831
+        "usedJsHeapBytes": 9119116
       }
     },
     {
@@ -262,27 +287,27 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 68.39999997615814,
-        "ctaMs": 136.39999997615814,
-        "meaningfulWorldMs": 136.39999997615814
+        "shellMs": 74.19999998807907,
+        "ctaMs": 140.59999999403954,
+        "meaningfulWorldMs": 149
       },
-      "investigationLatencyMs": 125.33158300002106,
-      "catchUpMs": 67.64383299998008,
+      "investigationLatencyMs": 124.78916699998081,
+      "catchUpMs": 67.85237500001676,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
-          "p95Ms": 10,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10.099999999998545,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.5,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
@@ -290,13 +315,13 @@
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
-          "worstMs": 10.5,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8993486
+        "usedJsHeapBytes": 9026848
       }
     },
     {
@@ -307,12 +332,12 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 70.5,
-        "ctaMs": 134.90000000596046,
-        "meaningfulWorldMs": 134.90000000596046
+        "shellMs": 69.7000000178814,
+        "ctaMs": 142.40000000596046,
+        "meaningfulWorldMs": 150.80000001192093
       },
-      "investigationLatencyMs": 124.70799999998417,
-      "catchUpMs": 67.58687500003725,
+      "investigationLatencyMs": 124.36770800000522,
+      "catchUpMs": 68.55249999999069,
       "states": [
         {
           "state": "arrival",
@@ -332,7 +357,7 @@
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
           "p95Ms": 10,
           "worstMs": 10.400000000008731,
@@ -341,7 +366,7 @@
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8999481
+        "usedJsHeapBytes": 9040361
       }
     },
     {
@@ -352,17 +377,17 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 68.5,
-        "ctaMs": 133.40000000596046,
-        "meaningfulWorldMs": 133.40000000596046
+        "shellMs": 77.2000000178814,
+        "ctaMs": 143.2000000178814,
+        "meaningfulWorldMs": 151.7000000178814
       },
-      "investigationLatencyMs": 126.1400830000639,
-      "catchUpMs": 67.77004199998919,
+      "investigationLatencyMs": 123.10591700009536,
+      "catchUpMs": 78.33245800004806,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
+          "p50Ms": 8.300000000000182,
           "p95Ms": 10,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
@@ -371,22 +396,22 @@
           "state": "busy-market",
           "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.5,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.5,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9020009
+        "usedJsHeapBytes": 9024478
       }
     },
     {
@@ -397,41 +422,41 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 71,
-        "ctaMs": 136.09999999403954,
-        "meaningfulWorldMs": 136.09999999403954
+        "shellMs": 76.90000000596046,
+        "ctaMs": 142.90000000596046,
+        "meaningfulWorldMs": 151.09999999403954
       },
-      "investigationLatencyMs": 126.44887500000186,
-      "catchUpMs": 67.35324999992736,
+      "investigationLatencyMs": 125.02312499994878,
+      "catchUpMs": 67.50762499996927,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.300000000000182,
-          "p95Ms": 10,
+          "p95Ms": 9.899999999999636,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.599999999998545,
+          "worstMs": 10.30000000000291,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 9.60000000000582,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9001697
+        "usedJsHeapBytes": 9046199
       }
     },
     {
@@ -442,18 +467,18 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 71.5,
-        "ctaMs": 136.40000000596046,
-        "meaningfulWorldMs": 136.40000000596046
+        "shellMs": 70.10000002384186,
+        "ctaMs": 136.5,
+        "meaningfulWorldMs": 144.7000000178814
       },
-      "investigationLatencyMs": 125.13379200000782,
-      "catchUpMs": 68.42883300001267,
+      "investigationLatencyMs": 124.4179170000134,
+      "catchUpMs": 68.0362080000341,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.300000000000182,
-          "p95Ms": 10,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.799999999999272,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -461,22 +486,22 @@
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.80000000000291,
+          "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 9.80000000000291,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9018938
+        "usedJsHeapBytes": 9008593
       }
     },
     {
@@ -487,116 +512,18 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1597.800000011921,
-        "ctaMs": 2255.5999999940395,
-        "meaningfulWorldMs": 2255.5999999940395
+        "shellMs": 1603.300000011921,
+        "ctaMs": 2259.2000000178814,
+        "meaningfulWorldMs": 2261.300000011921
       },
-      "investigationLatencyMs": 138.12462499993853,
-      "catchUpMs": 138.19174999999814,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          62,
-          87,
-          55
-        ],
-        "usedJsHeapBytes": 8937802
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 2,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1569.800000011921,
-        "ctaMs": 2253.300000011921,
-        "meaningfulWorldMs": 2253.300000011921
-      },
-      "investigationLatencyMs": 146.33358300011605,
-      "catchUpMs": 134.21275000018068,
+      "investigationLatencyMs": 127.60224999999627,
+      "catchUpMs": 122.70758400019258,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          60,
-          84,
-          54
-        ],
-        "usedJsHeapBytes": 8959823
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 3,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1572.5,
-        "ctaMs": 2252.5,
-        "meaningfulWorldMs": 2252.5999999940395
-      },
-      "investigationLatencyMs": 151.06191599997692,
-      "catchUpMs": 141.4746659998782,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 9.899999999997817,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
@@ -604,113 +531,15 @@
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
+          "p95Ms": 9.900000000001455,
           "worstMs": 10.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          61,
-          84,
-          56
-        ],
-        "usedJsHeapBytes": 8949576
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 4,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1597.9000000059605,
-        "ctaMs": 2254.199999988079,
-        "meaningfulWorldMs": 2254.199999988079
-      },
-      "investigationLatencyMs": 146.2220419999212,
-      "catchUpMs": 134.57462499989197,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
           "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [
-          60,
-          84,
-          54
-        ],
-        "usedJsHeapBytes": 8957680
-      }
-    },
-    {
-      "profile": "mobile-emulation",
-      "repetition": 5,
-      "viewport": "390x844",
-      "deviceScaleFactor": 3,
-      "cpuSlowdown": 4,
-      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
-      "marks": {
-        "shellMs": 1600.5999999940395,
-        "ctaMs": 2243.7999999821186,
-        "meaningfulWorldMs": 2243.7999999821186
-      },
-      "investigationLatencyMs": 157.13166700000875,
-      "catchUpMs": 130.89687500009313,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
+          "p95Ms": 9.89999999999418,
           "worstMs": 10.400000000008731,
           "droppedFrameCount": 0
         }
@@ -719,9 +548,315 @@
         "longTasksMs": [
           60,
           82,
-          56
+          55
         ],
-        "usedJsHeapBytes": 8960216
+        "usedJsHeapBytes": 8980456
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 2,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1596,
+        "ctaMs": 2239.7999999821186,
+        "meaningfulWorldMs": 2243.0999999940395
+      },
+      "investigationLatencyMs": 144.14541699993424,
+      "catchUpMs": 124.2635419999715,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.80000000000291,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.900000000008731,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          60,
+          78,
+          51
+        ],
+        "usedJsHeapBytes": 9014802
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 3,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1602.7000000178814,
+        "ctaMs": 2250.5,
+        "meaningfulWorldMs": 2252.2000000178814
+      },
+      "investigationLatencyMs": 142.2880000001751,
+      "catchUpMs": 127.08137499983422,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          61,
+          82,
+          51
+        ],
+        "usedJsHeapBytes": 8978622
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 4,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1600.7000000178814,
+        "ctaMs": 2260,
+        "meaningfulWorldMs": 2266.5
+      },
+      "investigationLatencyMs": 143.89979199995287,
+      "catchUpMs": 132.85020900005475,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.399999999999636,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.900000000001455,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          59,
+          85,
+          58
+        ],
+        "usedJsHeapBytes": 8982290
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 5,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1601.2999999821186,
+        "ctaMs": 2243.7999999821186,
+        "meaningfulWorldMs": 2249.7999999821186
+      },
+      "investigationLatencyMs": 144.08387500001118,
+      "catchUpMs": 124.7831250000745,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.899999999997817,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          59,
+          83,
+          52
+        ],
+        "usedJsHeapBytes": 8985136
+      }
+    }
+  ],
+  "aggregates": [
+    {
+      "profile": "desktop",
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 18003,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 18000,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 18001,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54004,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 10,
+        "worstMs": 10.5,
+        "droppedFrameCount": 0
+      }
+    },
+    {
+      "profile": "laptop",
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 18000,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 18002,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 18001,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54003,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 10,
+        "worstMs": 10.400000000008731,
+        "droppedFrameCount": 0
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 18002,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.900000000001455,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 18001,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 18003,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54006,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 10,
+        "worstMs": 10.400000000008731,
+        "droppedFrameCount": 0
       }
     }
   ],
