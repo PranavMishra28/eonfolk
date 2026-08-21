@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — implementation integrated; final evidence and frozen review pending
+**Status:** FOUNDER ALPHA ACTIVE — frozen-review repairs integrated; targeted confirmation and final release lattice pending
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Frozen-review repair | Start SHA `74a8a7e`; frozen candidate `7319d59` rejected by six independent reviews with one P0 and P1 findings; bounded repairs active; sole branch `feat/002-founder-alpha` |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Targeted confirmation pending | Start SHA `74a8a7e`; frozen candidate `7319d59` rejected by six independent reviews; every P0/P1 now has an accepted bounded repair/removal and direct regression on sole branch `feat/002-founder-alpha` |
 
 ## Operator implementation override — 2026-08-21
 
@@ -93,7 +93,11 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | Local feedback and relay | `cdd2a84`, `c3c1328`, `1809cba`, `b3e4f34`, `c071567`, `e173092`, `20c4fd8` | Queue/expiry/image/consent UI, D1 state machine, provider endpoints/crypto and adversarial tests inspected; coordinator caught and repaired one stale-label E2E failure |
 | Cognition and Observatory | `9b95022`, `c383de1` | Frozen corpus, hidden-fact pairs, manifest hashes, subprocess contract, authorized projection, validator, imports, and tests inspected; Planner correctly deferred |
 | Verification and release | `980645b`, `7234738`, `072265f`, `ee8f3a2`, `279e1c6` | Eight targeted mutants killed, CI path gates/artifacts inspected, source diagnostic budgets passed, physical evidence retained as `NOT_RUN` |
-| Shared authority synthesis | `b4af74d` plus current candidate updates | Decision/risk/question/source claims and constraint fit reconciled by coordinator; final frozen review remains |
+| Frozen six-review record | `e31b6c3`, `35a79a8`, `d3ac5c4`, `3c9573b`, `57ace13`, `ad21815` | Six fresh reviews inspected identical `7319d59`; one P0 and 29 P1 findings were preserved before repair |
+| Systems/CI/privacy repair | `a0c6d03`, `2166d37`, `d3915bc` | Durable-before-visible, replay/version/reference, lease/quota/retention, redaction/storage, full-history secret, exact formal tool, and fail-closed lattice fixes inspected |
+| Cognition/Observatory repair | `b64531f` | Named controls/ablations/transfer, recursive validation, promotion fail-closure, manifest/result split, and authorized artifact projection inspected |
+| Visual/product repair | `2d5f511`, `ab6e420`, `cb535f4` | Mobile/counsel/keyboard/fallback/lexicon/access repairs plus deterministic counsel rejection, six-hour typed consequences, factual Chronicle, exact card times, and production-browser regressions inspected |
+| Shared authority synthesis | `7a1ba77` plus current candidate updates | Every frozen P0/P1 has an explicit disposition and direct evidence; fresh targeted confirmation and final clean lattice remain |
 
 ## Disposable spike evidence
 

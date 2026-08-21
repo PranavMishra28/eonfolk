@@ -6,7 +6,7 @@
 
 **Authority boundary:** this directory records measurements. Numerical budgets remain owned by [Performance](../../../quality/PERFORMANCE.md); diagnostic modes remain owned by [Diagnostics](../../../engineering/DIAGNOSTICS.md).
 
-**Related documents:** [physical-device record](physical-device.json), [Founder Alpha plan](../../active/002-founder-alpha.md), and [testing](../../../quality/TESTING.md).
+**Related documents:** [physical-device record](physical-device.json), [headful 200%-equivalent reflow](headful-zoom.json), [Founder Alpha plan](../../active/002-founder-alpha.md), and [testing](../../../quality/TESTING.md).
 
 ## Diagnostic overhead
 
@@ -36,6 +36,10 @@ pnpm evidence:physical -- \
 ```
 
 The validator rejects dirty source, absent/mismatched build output, public/non-RFC1918 origins, unknown fields, malformed timestamps, fewer than 120 raw samples per state, and numerical misses. A result can say `PASS` only for the manually observed device. It remains labeled “not independently reproduced” and is not pooled with canonical emulation.
+
+## Headful 200%-equivalent reflow
+
+The checked-in [headful record](headful-zoom.json) binds the clean source commit and exact headful Chrome metrics used for a 200%-equivalent reflow. It establishes zero horizontal overflow and presence of the opening action plus all counsel actions under equivalent CSS viewport/DPR metrics. macOS denied browser-UI keystroke automation, so the record does not rename this to direct Chrome UI zoom and does not replace human or assistive-technology testing.
 
 ## Evidence not yet collected
 

@@ -142,7 +142,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
-| Founder Alpha diagnostics benchmark and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md) and [physical-device status](exec-plans/evidence/002/physical-device.json) |
+| Founder Alpha diagnostics, headful zoom-equivalent, and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md), [headful reflow record](exec-plans/evidence/002/headful-zoom.json), and [physical-device status](exec-plans/evidence/002/physical-device.json) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
 | Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
 | Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |

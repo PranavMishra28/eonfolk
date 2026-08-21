@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — implementation integrated; final candidate verification and frozen review pending
+**Status:** ACTIVE — frozen review repairs integrated; targeted confirmation and final release lattice pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -224,6 +224,9 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Diagnostic identity hardening `377cd62` added session/build/app/protocol/experiment/run/runtime/viewport/mode identity and fail-closed build resolution. Browser traces are limited to observed responses/projections and bridge-owned checkpoints; 124-test FAST, focused tests, build, live observer smoke, and clean source diagnostics benchmark passed.
 - 2026-08-21 — Froze exact candidate `7319d59260555ffbe4eb2f4d58beb61d3f8a11ee`, tree `476c381034ab3601746a7e11235fe693d793782c`, under annotated tag `founder-alpha-review-candidate-1`. Six fresh reviewers independently inspected that identical state before any review output was integrated.
 - 2026-08-21 — Frozen verdict is **NOT READY**. Reviewers recorded one P0: the exact protected full-history Gitleaks command rejects a benign synthetic UUID fixture, so CI cannot pass. P1 findings cover durable/idempotent replay correctness, related-event validation, relay leases/quotas/retention, diagnostic redaction/actionability, hostile local storage, mobile entry/accessibility/fallback/world lexicon, player-visible independence/consequences, cognition experiment integrity/authorization, and verification-lattice evidence. All P0/P1 findings are accepted for bounded repair; no readiness claim is permitted before targeted confirmation.
+- 2026-08-21 — Integrated systems `a0c6d03`, CI `2166d37`, privacy/relay `d3915bc`, cognition/Observatory `b64531f`, visual/accessibility `2d5f511`, product consequence `ab6e420`, and integrated browser-alignment `cb535f4` repairs. The shared reconciliation in DECISIONS accepts every frozen P0/P1 with direct regression or fail-closed removal; human and live-provider claims remain `NOT_RUN`.
+- 2026-08-21 — Clean repaired FAST passed at `cb535f4`: runtime/cohort/architecture/docs/format/lint, 12 TypeScript project graphs plus Worker suites, and 152 unit tests across 21 files. Focused production Playwright passed verify and default accuse-rejection journeys after Chronicle copy alignment; the full clean browser matrix remains part of PR/DEEP verification.
+- 2026-08-21 — A separate headful Chrome 151 production run at 200%-equivalent CSS/DPR metrics recorded zero horizontal overflow at arrival and counsel and all three counsel choices. Direct browser-UI keystroke automation was denied by macOS and remains explicitly `NOT_RUN`; the source-bound evidence record does not claim otherwise.
 
 ## Decision, risk, and deviation log
 
@@ -252,10 +255,10 @@ Exact availability and results are recorded below as implementation lands. A nam
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
 | Diagnostics/Sentinel | PASS pending frozen review | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
 | Feedback/observer | PASS pending frozen review | browser-only queue/preview/delete/expiry; relay D1/quota/reconciliation/provider adversarial fixtures through `20c4fd8`; live provider path NOT RUN |
-| Founder Alpha browser matrix | LOCAL PASS pending final rerun | nine headed journeys at the latest PR checkpoint plus coordinator production play; final clean candidate capture remains |
-| Cognition experiments | PASS / Planner deferred | frozen 64-context, five-run Standard-Brain benchmark; experiment manifest and Observatory projection regressions; no model candidate run |
+| Founder Alpha browser matrix | REPAIRED; final full rerun pending | 16 headed journeys now cover mobile CTA, grounded counsel, keyboard/modal, semantic fallback, reduced motion, contrast, branch independence, persistence, Chronicle, Story Card, feedback, and failure paths |
+| Cognition experiments | BOUNDED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; pre-run/result journal split; authorized Observatory artifact; no model/planner candidate run |
 | Performance OFF/LOCAL/ALPHA | SOURCE PASS; browser pending | `pnpm benchmark:diagnostics` passed absolute source ceilings; final canonical browser profile remains |
-| Security/privacy review | NOT RUN | recorded after M6 |
+| Security/privacy review | FROZEN REVIEW COMPLETE; repairs pending confirmation | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability regressions integrated; live relay NOT RUN |
 | Human Gate 0/A/B/Story Card | NOT RUN | no claim permitted |
 
 ## Definition of done

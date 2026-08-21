@@ -265,6 +265,45 @@
 
 **Reopen trigger.** Rebalance tiers when measured CI time or defect escape shows a check is misplaced; never remove a direct invariant falsification without an equal or stronger replacement.
 
+## Founder Alpha frozen-review reconciliation
+
+Six independent reviewers inspected frozen candidate `7319d59260555ffbe4eb2f4d58beb61d3f8a11ee`. The candidate was correctly rejected. Every P0/P1 is accepted below; “closed by removal/deferral” means the unsafe claim or executable surface no longer exists, not that an active release blocker is tolerated. Human comprehension, attachment, screen-reader, physical-device, live-provider, deployment, and model evidence remain `NOT_RUN` and are not converted into technical passes.
+
+| Finding | Severity | Disposition | Repair and direct evidence |
+|---|---|---|---|
+| FA-CI-001 | P0 | ACCEPT — CLOSED | `2166d37` uses an exact path **and** fingerprint Gitleaks exception for the benign fixture; full-history Gitleaks 8.30.1 passes and the adjacent-secret probe still rejects. |
+| FA-CI-002 | P1 | ACCEPT — CLOSED | `2166d37` centralizes the accepted TLC SHA-256 and rejects missing/wrong JAR bytes before Java; the correct artifact still checks 3,480 generated/350 distinct states at depth 10. |
+| FA-CI-003 | P1 | ACCEPT — CLOSED | `2166d37` makes PR include formal checking and DEEP add the distinct 500/320 property profile, persistence, diagnostic-mode comparison, and canonical performance evidence; tier manifests bind source/environment/artifacts. |
+| FA-CI-004 | P1 | ACCEPT — CLOSED | `2166d37` makes IndexedDB unavailability/failure nonzero unless an explicit smoke-only probe is requested; smoke output cannot say PASS. |
+| FA-SYS-001 | P1 | ACCEPT — CLOSED | `d3915bc` makes expired incident takeover atomic with the singleton global D1 lease and preserves live leases; concurrency/expiry fixtures pass. |
+| FA-SYS-002 | P1 | ACCEPT — CLOSED | `d3915bc` implements HMAC-keyed 5/hour and 10/day source quotas, existing fingerprint/global caps, seven-day staging TTL, 30-day cleanup, and fail-closed cleanup. |
+| FA-SYS-003 | P1 | ACCEPT — CLOSED | `a0c6d03` compares the durable commit result with the prepared post-head/receipt and safe-stops stale idempotent divergence before publishing candidate state. |
+| FA-SYS-004 | P1 | ACCEPT — CLOSED | `a0c6d03` validates snapshot, manifest, batch, event, engine, schema, and outer/data agreement before replay or fencing; unsupported versions fail closed. |
+| FA-SYS-005 | P1 | ACCEPT — CLOSED | `a0c6d03` and `ab6e420` require a same-run/region, prior, cognition-originated branch consequence with exact kind/reason; transition, replay, and runtime reject dangling/wrong references. |
+| FA-DP-001 | P1 | ACCEPT — CLOSED | `d3915bc` replaces arbitrary incident summaries with closed outcome/invariant codes before storage or presentation. |
+| FA-DP-002 | P1 | ACCEPT — CLOSED | `d3915bc` shows only a sanitized OFF-mode stop reason plus exact incident ID and exposes the local report path; raw runtime errors are not rendered. |
+| FA-DP-003 | P1 | ACCEPT — CLOSED | `d3915bc` implements seven-day relay staging expiry and 30-day counter/dedup cleanup without deleting a live lease. |
+| FA-DP-004 | P1 | ACCEPT — CLOSED | `d3915bc` derives source buckets through operator-secret HMAC without persisting the raw source and rejects missing source/HMAC capability. |
+| FA-DP-005 | P1 | ACCEPT — CLOSED | `d3915bc` treats browser storage as hostile and enforces schema/date/attachment/diagnostic validation, three reports, seven days, and 4 MiB total before use. |
+| FA-VA-P1-001 | P1 | ACCEPT — CLOSED | `2d5f511` adds a 390×844 bounding regression: Follow Mara intersects the initial viewport while the illustrated world remains at least 55% of usable height. |
+| FA-VA-P1-002 | P1 | ACCEPT — MITIGATED | `2d5f511` enforces 16 px factual/14 px secondary floors and deterministic 200%-equivalent browser reflow. A separate headful Chrome 151 run at 600×434 CSS/4 DPR recorded zero horizontal overflow and all three counsel choices; direct browser-UI shortcut control was OS-denied and remains honestly `NOT_RUN`. |
+| FA-VA-P1-003 | P1 | ACCEPT — CLOSED | `2d5f511` gives counsel a distinct focus ring and implements heading-first modal focus, inert/hidden background, scroll lock, trap, Escape, and invoker restoration with a keyboard-only complete journey. |
+| FA-VA-P1-004 | P1 | ACCEPT — CLOSED | `2d5f511` adds a remembered selectable words view and injected renderer-failure fallback; the complete loop remains playable without canvas. |
+| FA-VA-P1-005 | P1 | ACCEPT — CLOSED | `2d5f511` implements eight differentiated silhouettes, activity props/labels, and an explicit Toma–Iven wood-for-rations interaction plus equivalent semantic rows. |
+| FA-VA-P1-006 | P1 | ACCEPT — CLOSED | `2d5f511` persists manual reduced motion and disables root smooth scrolling and nonessential motion. |
+| FA-VA-P1-007 | P1 | ACCEPT — CLOSED | `2d5f511` raises UNKNOWN badge contrast and directly computes every fact/belief/claim badge at ≥4.5:1. |
+| FA-COG-R-001 | P1 | ACCEPT — CLOSED | `b64531f` adds Standard Brain plus three named controls, five field ablations, terminal decision vectors, three terminal world-vector branch tests, a genuinely Sela-owned transfer fixture, and the unrelated-value negative case. |
+| FA-COG-R-002 | P1 | ACCEPT — CLOSED BY FAIL-CLOSED DEFERRAL | `b64531f` removes self-attested completion claims and makes candidate promotion impossible until a trusted runner freezes context/catalog/oracle bytes and derives terminal results. |
+| FA-COG-R-003 | P1 | ACCEPT — CLOSED BY REMOVAL | `b64531f` removes the executable optional adapter and false timeout path. The remaining Standard proposal validator is recursively closed, byte/depth/count bounded, reference-authorized, template-checked, and hash-checked. |
+| FA-COG-R-004 | P1 | ACCEPT — CLOSED | `b64531f` separates immutable pre-run `ExperimentManifestV2` from hashed append-only `ExperimentResultV2` records in a noncanonical journal with commit-before-result, collision, sequence, retry, and tamper checks. Durable experiment storage remains explicitly deferred. |
+| FA-COG-R-005 | P1 | ACCEPT — CLOSED | `b64531f` accepts only opaque artifacts minted by Chronicle authorization and binds viewer/purpose/revision/policy/source digest plus every authorized event hash; authorities now claim only the implemented local PROV-shaped subset. |
+| FA-PRODUCT-P1-001 | P1 | ACCEPT — CLOSED | Same repair/evidence as FA-VA-P1-001; unfamiliar-human findability remains `NOT_RUN`. |
+| FA-PRODUCT-P1-002 | P1 | ACCEPT — CLOSED | `2d5f511` presents the exact count mismatch, values, plan, Toma relationship, uncertainty, local-save limit, all choices, and stakes in the same counsel frame on mobile and desktop. |
+| FA-PRODUCT-P1-003 | P1 | ACCEPT — CLOSED | `ab6e420` makes default accuse advice deterministically reject: Mara's visible plan, commitment, and trust outweigh counsel without a tie/random draw. Browser evidence in `cb535f4` proves requested advice and chosen action differ. |
+| FA-PRODUCT-P1-004 | P1 | ACCEPT — CLOSED | `ab6e420` inserts a six-hour boundary and typed consequence for every branch: verify changes trust after sourced belief; accuse changes trust/petition after allegation; abstention gains one independent petition endorsement with zero causal parents and temporal-only links. |
+
+The reviewed P2s were also bounded: build/schema-bound fingerprints and capability truth (`d3915bc`), authorized Observatory input and hostile local storage (`b64531f`/`d3915bc`), 44 px targets and ordinary-language/local-feedback copy (`2d5f511`), and exact `00:00`/`00:06`/`00:12` Story Card labels (`ab6e420`). The disposable rehearsal procedure and all human judgments remain operational/human evidence rather than product claims.
+
 ## Civilization amendment integration
 
 | ID | Binding direction | Accepted implementation consequence | Scope guard |
