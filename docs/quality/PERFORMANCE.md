@@ -130,6 +130,8 @@ The canonical OFF/LOCAL/ALPHA ceilings are owned by [Diagnostics](../engineering
 
 OFF may regress p95 frame time by at most 1%; LOCAL and ALPHA by at most 3%. A miss removes or coalesces optional diagnostic detail before any visual/gameplay budget changes. ALPHA serialization/upload work cannot run in animation-critical slices.
 
+The short `pnpm benchmark:diagnostics` workload is a fail-fast source-level check, not that integrated browser measurement. It deterministically applies the same call sequence to OFF, LOCAL, and ALPHA over seven repetitions; binds commit, lockfile, runtime, source hashes, mode/schema/redaction identity, and workload hash; and enforces the **0.5 ms OFF / 1 ms LOCAL** record-call ceilings plus all live ring ceilings. ALPHA uses the stricter LOCAL 1 ms call threshold for this harness because its authoritative budget does not grant a slower record call. Modeled serialization at 60 calls/minute is reported but not called a gate because no bytes/minute authority ceiling exists. Browser frame regression, long tasks, input latency, meaningful display, heap, upload, and physical-device results remain explicitly unsupported or not run. The protocol and current `NOT_RUN` physical record are under [Founder Alpha performance evidence](../exec-plans/evidence/002/README.md).
+
 ## Resulting implementation behavior
 
 The semantic shell arrives first, the Pixi renderer is lazy but inside the route ceiling, and eight citizens remain readable. Quality tiers reduce decoration before information or agency. A device that cannot sustain canvas receives the complete local game through semantic view.

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "eonfolk-physical-device-evidence-v1",
+  "status": "NOT_RUN",
+  "claimBoundary": "No physical-device performance, thermal, touch, accessibility, or network result has been observed.",
+  "source": null,
+  "build": null,
+  "observationTemplate": {
+    "schemaVersion": "eonfolk-physical-device-observation-v1",
+    "runId": null,
+    "buildManifestSha256": null,
+    "device": {
+      "model": null,
+      "os": null,
+      "browser": null,
+      "screenWidth": null,
+      "screenHeight": null,
+      "devicePixelRatio": null
+    },
+    "origin": null,
+    "startedAt": null,
+    "endedAt": null,
+    "meaningfulWorldMs": null,
+    "frameDeltasMs": {
+      "arrival": [],
+      "busy-market": [],
+      "chronicle": []
+    },
+    "journey": {
+      "citizenSelection": null,
+      "identityReview": null,
+      "counsel": null,
+      "returnSummary": null,
+      "chronicleNavigation": null,
+      "replayControls": null,
+      "reducedMotion": null,
+      "semanticFallback": null
+    },
+    "externalRequestCount": null,
+    "thermal": {
+      "support": null,
+      "start": null,
+      "end": null
+    }
+  },
+  "unsupported": {
+    "physicalFrameTiming": "NOT_RUN",
+    "physicalMeaningfulWorld": "NOT_RUN",
+    "thermal": "NOT_RUN",
+    "touchJourney": "NOT_RUN",
+    "independentReproduction": "NOT_RUN"
+  },
+  "protocol": "See README.md in this directory. Generate a source-bound template and validate a manual observation with pnpm evidence:physical; do not edit this record into a claimed result by hand."
+}
