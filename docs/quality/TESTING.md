@@ -12,7 +12,7 @@
 
 Every relevant implementation PR runs a short, blocking baseline. Expensive horizons and matrices run nightly/manual. The repository uses a PR-based solo-maintainer workflow with no automatic merges and no invented enterprise ceremony. `.github/workflows/ci.yml` now implements Verify, Formal model, and Secret scan jobs with actions pinned by commit SHA.
 
-The exact local baseline is `pnpm verify`. At repaired candidate `bad215a`, it passed 59 unit tests, two property tests, a real Chromium IndexedDB reload test, build/bundle checks, production dependency audit, four Playwright journeys, dual zero-egress oracles, and bounded TLC model checking. The [review reconciliation](../reviews/IMPLEMENTATION_FINAL_REVIEW.md) states what this does not prove.
+The exact local baseline is `pnpm verify`. The current repaired candidate adds 61 unit tests, two property tests, a real Chromium IndexedDB reload test, the fixed 20-warmup/200-cycle decision-trace timing analyzer, build/bundle checks, production dependency audit, six Playwright journeys, dual zero-egress oracles, and bounded TLC model checking. The final exact commit and remote jobs remain pending. The [review reconciliation](../reviews/IMPLEMENTATION_FINAL_REVIEW.md) states what this does not prove.
 
 ## Blocking PR baseline
 

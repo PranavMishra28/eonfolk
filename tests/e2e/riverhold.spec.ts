@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
@@ -14,8 +15,7 @@ const routeLogPath = resolve(
 	"../../tmp/riverhold-playwright/route-log.json",
 );
 
-test.beforeEach(async ({ page }) => {
-	pageErrors = [];
+async function installPageOracles(page: Page) {
 	await page.route("**/*", async (route) => {
 		const url = new URL(route.request().url());
 		const action = url.hostname === "127.0.0.1" ? "allow" : "abort";
@@ -32,6 +32,11 @@ test.beforeEach(async ({ page }) => {
 		if (message.type() === "error") pageErrors.push(message.text());
 	});
 	page.on("pageerror", (error) => pageErrors.push(error.message));
+}
+
+test.beforeEach(async ({ page }) => {
+	pageErrors = [];
+	await installPageOracles(page);
 	await page.goto("/");
 	await page.evaluate(() => localStorage.clear());
 	await page.reload();
@@ -196,6 +201,14 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await expect(
 		page.getByRole("button", { name: "Close details" }),
 	).toBeFocused();
+	await page.keyboard.press("Tab");
+	await expect(
+		page.getByRole("button", { name: "Close details" }),
+	).toBeFocused();
+	await page.keyboard.press("Shift+Tab");
+	await expect(
+		page.getByRole("button", { name: "Close details" }),
+	).toBeFocused();
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await expect(maraButton).toBeFocused();
@@ -208,6 +221,83 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await expect(
 		page.getByRole("button", { name: /Mara Vale ledger runner/i }),
 	).toHaveCSS("min-height", "90px");
+});
+
+test("shows no world facts while the authoritative worker is delayed", async ({
+	page,
+}) => {
+	await page.evaluate(() => {
+		localStorage.setItem(
+			"eonfolk:riverhold:checkpoint-v1",
+			JSON.stringify({
+				schemaVersion: "riverhold-checkpoint-v1",
+				branch: "verify-private",
+				phase: "chronicle",
+			}),
+		);
+	});
+	await page.addInitScript(() => {
+		const NativeWorker = window.Worker;
+		window.Worker = class DelayedWorker extends NativeWorker {
+			override addEventListener(
+				type: string,
+				listener: EventListenerOrEventListenerObject,
+				options?: boolean | AddEventListenerOptions,
+			) {
+				if (type !== "message") {
+					super.addEventListener(type, listener, options);
+					return;
+				}
+				const delayed: EventListener = (event) => {
+					window.setTimeout(() => {
+						if (typeof listener === "function") listener.call(this, event);
+						else listener.handleEvent(event);
+					}, 750);
+				};
+				super.addEventListener(type, delayed, options);
+			}
+		} as typeof Worker;
+	});
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(
+		page.getByRole("heading", { name: /Checking Riverhold's durable record/i }),
+	).toBeVisible();
+	await expect(page.getByText(/YOU ADVISED/i)).toHaveCount(0);
+	await expect(
+		page.getByRole("region", { name: /Riverhold Story Card/i }),
+	).toHaveCount(0);
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+	);
+	await expect(
+		page.getByRole("heading", { name: /Follow one life/i }),
+	).toBeVisible();
+});
+
+test("a newer tab fences the older writer and remains authoritative", async ({
+	context,
+	page,
+}) => {
+	const newer = await context.newPage();
+	await installPageOracles(newer);
+	await newer.goto("/");
+	await expect(newer.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+	);
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await expect(
+		page.getByRole("heading", {
+			name: /Riverhold stopped before showing further world state/i,
+		}),
+	).toBeVisible();
+	await expect(page.getByRole("alert")).toContainText(/STALE_FENCE/i);
+	await newer.getByRole("button", { name: /Follow Mara/ }).click();
+	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await expect(newer.getByText("OBSERVED", { exact: true })).toBeVisible();
+	await newer.close();
 });
 
 test("required desktop, laptop, mobile, and 200% text layouts do not overflow", async ({

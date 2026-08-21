@@ -1,57 +1,738 @@
 {
-	"schemaVersion": "eonfolk-implementation-performance-evidence-v1",
-	"measuredAt": "2026-08-21",
-	"commit": "bad215a512c72e4fa1afa3f1b42673bb65709d19",
-	"operatorEvidenceClass": "AUTOMATED TECHNICAL MEASUREMENT",
-	"humanGateClaim": "NOT RUN — OPERATOR IMPLEMENTATION OVERRIDE",
-	"runtime": {
-		"node": "22.23.1",
-		"host": "MacBook M4 Pro",
-		"browser": "pinned Playwright Chromium 151.0.7922.34",
-		"profileClass": "local-headless-synthetic"
-	},
-	"bundle": {
-		"criticalShellGzipBytes": 122665,
-		"criticalShellBudgetBytes": 204800,
-		"totalJavaScriptGzipBytes": 249726,
-		"totalJavaScriptBudgetBytes": 665600,
-		"worldAssetBytes": 0,
-		"mobileWorldAssetBudgetBytes": 4194304
-	},
-	"profiles": [
-		{
-			"name": "desktop",
-			"viewport": "1728x1117",
-			"repetitions": 5,
-			"meaningfulWorldDisplaySamplesMs": [829.543125, 446.995292, 443.688375, 439.307458, 423.379333],
-			"meaningfulWorldDisplayP95Ms": 829.543125,
-			"p95FrameMs": 10.1,
-			"semanticCitizens": 8
-		},
-		{
-			"name": "laptop",
-			"viewport": "1366x768",
-			"repetitions": 5,
-			"meaningfulWorldDisplaySamplesMs": [429.902834, 426.988875, 432.333208, 429.295208, 430.148709],
-			"meaningfulWorldDisplayP95Ms": 432.333208,
-			"p95FrameMs": 10,
-			"semanticCitizens": 8
-		},
-		{
-			"name": "mobile-emulation",
-			"viewport": "390x844",
-			"repetitions": 5,
-			"meaningfulWorldDisplaySamplesMs": [257.767417, 262.91975, 253.715667, 254.825958, 262.526209],
-			"meaningfulWorldDisplayP95Ms": 262.91975,
-			"p95FrameMs": 10,
-			"semanticCitizens": 8
-		}
-	],
-	"implementationResponse": "The initial continuous decorative Pixi ticker missed the desktop p95 frame budget at 25.1 ms. It was removed; rendering now occurs on authoritative projection changes. Five fresh runs per viewport passed the exact limits without a numeric waiver.",
-	"limitations": [
-		"Mobile is viewport emulation on the target Mac, not a physical mid-tier phone.",
-		"Localhost timing does not represent 4G transfer latency.",
-		"Headless requestAnimationFrame is a smoke measurement, not a field percentile.",
-		"The recorded commit is the exact measured implementation tree; the evidence-only follow-up commit changes no runtime input."
-	]
+  "schemaVersion": "eonfolk-canonical-web-performance-v1",
+  "measuredAt": "2026-08-21T10:34:38.712Z",
+  "canonical": false,
+  "evidenceStatus": "DIAGNOSTIC_NUMERIC_PASS_INVALID_FOR_CANONICAL_ACCEPTANCE",
+  "invalidation": {
+    "reason": "The immediate post-run host audit reported Battery Power; the authority requires AC Power and the earlier harness did not record power in the report.",
+    "requiredAction": "Rerun the finalized harness from a clean exact commit while pmset reports AC Power."
+  },
+  "runtime": {
+    "node": "v22.23.1",
+    "chromium": "/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "headed": true,
+    "previewOrigin": "http://127.0.0.1:4173"
+  },
+  "procedure": {
+    "repetitions": 5,
+    "coldContextPerRun": true,
+    "cacheDisabled": true,
+    "serviceWorkersBlocked": true,
+    "stateWarmupMs": 5000,
+    "stateMeasurementMs": 30000,
+    "states": [
+      "arrival",
+      "busy-market",
+      "chronicle"
+    ]
+  },
+  "runs": [
+    {
+      "profile": "desktop",
+      "repetition": 1,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 76.30000001192093,
+        "ctaMs": 158.40000000596046,
+        "meaningfulWorldMs": 158.40000000596046
+      },
+      "investigationLatencyMs": 300.4746670000022,
+      "catchUpMs": 81.51670799999556,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          50
+        ],
+        "usedJsHeapBytes": 9079129
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 2,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 70.40000000596046,
+        "ctaMs": 140,
+        "meaningfulWorldMs": 140
+      },
+      "investigationLatencyMs": 307.7483340000035,
+      "catchUpMs": 81.73083300000872,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9101857
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 3,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 71.59999999403954,
+        "ctaMs": 140.30000001192093,
+        "meaningfulWorldMs": 140.30000001192093
+      },
+      "investigationLatencyMs": 309.2302080000227,
+      "catchUpMs": 81.84933400002774,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9097558
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 4,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 70.7999999821186,
+        "ctaMs": 140.09999999403954,
+        "meaningfulWorldMs": 140.09999999403954
+      },
+      "investigationLatencyMs": 309.0590000000084,
+      "catchUpMs": 81.25075000000652,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9075824
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 5,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 69.39999997615814,
+        "ctaMs": 139.09999999403954,
+        "meaningfulWorldMs": 139.19999998807907
+      },
+      "investigationLatencyMs": 308.6025419999496,
+      "catchUpMs": 82.05187500000466,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9102831
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 1,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 68.39999997615814,
+        "ctaMs": 136.39999997615814,
+        "meaningfulWorldMs": 136.39999997615814
+      },
+      "investigationLatencyMs": 125.33158300002106,
+      "catchUpMs": 67.64383299998008,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 8993486
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 2,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 70.5,
+        "ctaMs": 134.90000000596046,
+        "meaningfulWorldMs": 134.90000000596046
+      },
+      "investigationLatencyMs": 124.70799999998417,
+      "catchUpMs": 67.58687500003725,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 8999481
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 3,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 68.5,
+        "ctaMs": 133.40000000596046,
+        "meaningfulWorldMs": 133.40000000596046
+      },
+      "investigationLatencyMs": 126.1400830000639,
+      "catchUpMs": 67.77004199998919,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9020009
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 4,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 71,
+        "ctaMs": 136.09999999403954,
+        "meaningfulWorldMs": 136.09999999403954
+      },
+      "investigationLatencyMs": 126.44887500000186,
+      "catchUpMs": 67.35324999992736,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9001697
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 5,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 71.5,
+        "ctaMs": 136.40000000596046,
+        "meaningfulWorldMs": 136.40000000596046
+      },
+      "investigationLatencyMs": 125.13379200000782,
+      "catchUpMs": 68.42883300001267,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9018938
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 1,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1597.800000011921,
+        "ctaMs": 2255.5999999940395,
+        "meaningfulWorldMs": 2255.5999999940395
+      },
+      "investigationLatencyMs": 138.12462499993853,
+      "catchUpMs": 138.19174999999814,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          62,
+          87,
+          55
+        ],
+        "usedJsHeapBytes": 8937802
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 2,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1569.800000011921,
+        "ctaMs": 2253.300000011921,
+        "meaningfulWorldMs": 2253.300000011921
+      },
+      "investigationLatencyMs": 146.33358300011605,
+      "catchUpMs": 134.21275000018068,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          60,
+          84,
+          54
+        ],
+        "usedJsHeapBytes": 8959823
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 3,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1572.5,
+        "ctaMs": 2252.5,
+        "meaningfulWorldMs": 2252.5999999940395
+      },
+      "investigationLatencyMs": 151.06191599997692,
+      "catchUpMs": 141.4746659998782,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          61,
+          84,
+          56
+        ],
+        "usedJsHeapBytes": 8949576
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 4,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1597.9000000059605,
+        "ctaMs": 2254.199999988079,
+        "meaningfulWorldMs": 2254.199999988079
+      },
+      "investigationLatencyMs": 146.2220419999212,
+      "catchUpMs": 134.57462499989197,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          60,
+          84,
+          54
+        ],
+        "usedJsHeapBytes": 8957680
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 5,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 1600.5999999940395,
+        "ctaMs": 2243.7999999821186,
+        "meaningfulWorldMs": 2243.7999999821186
+      },
+      "investigationLatencyMs": 157.13166700000875,
+      "catchUpMs": 130.89687500009313,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 10.099999999998545,
+          "worstMs": 10.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 10.099999999991269,
+          "worstMs": 10.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          60,
+          82,
+          56
+        ],
+        "usedJsHeapBytes": 8960216
+      }
+    }
+  ],
+  "networkOracle": {
+    "routeRequestCount": 210,
+    "externalRouteAttempts": [],
+    "externalNetlogAttempts": []
+  },
+  "limitations": [
+    "Mobile is canonical throttled emulation on the target Mac, not a physical phone.",
+    "Memory is reported only when Chromium exposes performance.memory.",
+    "This is a local pre-release measurement, not field telemetry or a human gate."
+  ]
 }

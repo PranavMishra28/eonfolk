@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "eonfolk-decision-trace-timing-v1",
+  "warmupCycles": 20,
+  "measuredCycles": 200,
+  "minimumReleaseMs": 50,
+  "maximumMedianAndP95SpreadMs": 5,
+  "summary": {
+    "hidden-a": {
+      "medianMs": 52.20604199999798,
+      "p95Ms": 52.67254200000025,
+      "minimumMs": 50.30045799999971
+    },
+    "hidden-b": {
+      "medianMs": 52.183334000001196,
+      "p95Ms": 52.39658299999974,
+      "minimumMs": 50.14754200000061
+    },
+    "missing": {
+      "medianMs": 52.20629200000258,
+      "p95Ms": 52.38162499999817,
+      "minimumMs": 50.20245799999975
+    },
+    "revoked": {
+      "medianMs": 52.26587500000096,
+      "p95Ms": 52.47237500000119,
+      "minimumMs": 50.37595799999963
+    }
+  }
+}

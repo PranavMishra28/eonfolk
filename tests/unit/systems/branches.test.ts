@@ -182,4 +182,51 @@ describe("counsel divergence and factual Chronicle", () => {
 			),
 		).toBe(true);
 	});
+
+	it("accepts only one canonical return response", async () => {
+		const result = await branch("verify-reserve");
+		const mara = citizenBySlug(result.postState, "mara");
+		const priorEventId = result.events.at(-1)!.eventId;
+		const firstCommand = await createWorldCommand({
+			commandId: "cmd-return-response-first",
+			expectedRevision: result.postState.revision,
+			principal: {
+				kind: "patron",
+				principalId: "principal_local_patron",
+				beneficiaryCitizenId: mara.citizenId,
+			},
+			runId: result.postState.runId,
+			regionId: result.postState.regionId,
+			payload: {
+				kind: "RespondOnReturn",
+				responseId: "response-first",
+				citizenId: mara.citizenId,
+				action: "publish-verified-count",
+				priorEventId,
+			},
+		});
+		const first = await prepareTransition(
+			result.postState,
+			result.resultingWorldHeadHash,
+			firstCommand,
+		);
+		expect(first.accepted).toBe(true);
+		expect(first.postState.lastReturnResponse?.responseId).toBe(
+			"response-first",
+		);
+		const duplicate = await prepareTransition(
+			first.postState,
+			first.resultingWorldHeadHash,
+			await createWorldCommand({
+				...firstCommand,
+				commandId: "cmd-return-response-second",
+				expectedRevision: first.postState.revision,
+				payload: { ...firstCommand.payload, responseId: "response-second" },
+			}),
+		);
+		expect(duplicate.accepted).toBe(false);
+		expect(duplicate.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(duplicate.postState).toBe(first.postState);
+		expect(duplicate.resultingWorldHeadHash).toBe(first.resultingWorldHeadHash);
+	});
 });

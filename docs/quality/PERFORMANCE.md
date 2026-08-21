@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** PROVISIONAL BUDGETS ACCEPTED; LOCAL IMPLEMENTATION SMOKE PASSES; CANONICAL MOBILE/NETWORK PROCEDURE NOT RUN
+**Status:** PROVISIONAL BUDGETS ACCEPTED; 15-RUN BATTERY DIAGNOSTIC PASSES NUMERIC GATES; CANONICAL AC LAB PENDING
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -22,7 +22,7 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 | Meaningful world display on target M4 Pro/laptop profile | **<=3 seconds** |
 | Meaningful world display on realistic mid-tier mobile/4G profile | **<=5 seconds** |
 
-The stricter staged requirement is: useful semantic/static shell with Mara by **2 seconds**, operable **Follow Mara** by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. “Meaningful” means Mara plus all eight citizen projections, their current activities, an interaction cue, and equivalent semantic rows are painted; it is not a spinner or partial scene.
+The stricter staged requirement is: a fact-free authority-loading shell by **2 seconds**, operable **Follow Mara** after authoritative replay by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. The loading shell must never invent Mara/world facts while Worker/storage authority is unresolved. “Meaningful” means Mara plus all eight citizen projections, their current activities, an interaction cue, and equivalent semantic rows are painted; it is not a spinner or partial scene.
 
 The sole blocking browser runtime is `@playwright/test` **1.62.1** driving the preinstalled headed Chromium revision **1234**, Chrome for Testing **151.0.7922.34** [S-TOOL-17] [S-TOOL-19]. Before work and every cohort, its exact local app root, executable path/version/launcher hash, and complete no-follow file/symlink manifest must match the Goal prompt's 326-file/five-symlink/372,002,382-byte frozen identity; both Node and Ruby reproduce the 62,239-byte manifest hash. Configure that `executablePath`, freeze the cohort, and stop rather than download on mismatch. The desktop profile is the builder's M4 Pro with clean production preview, native DPR, foreground, plugged in, Low Power Mode off, heavy apps closed, and recorded OS/browser identity. Mobile lab is 390×844, DPR 3, four-times CPU slowdown, 1.6 Mbps down, 750 Kbps up, 150 ms RTT, cache disabled in that same runtime. Physical iPhone 13/Pixel 7-class-or-weaker evidence is optional diagnostic evidence, never substitutes for numerical gates, and does not block if a device is unavailable.
 
@@ -61,13 +61,22 @@ Interpretation:
 
 The scratch result is feasibility evidence, not permission to reserve all remaining bundle/frame budget.
 
-## Integrated implementation smoke
+## Integrated implementation evidence
 
-**AUTOMATED TECHNICAL MEASUREMENT — NOT A MEASURED HUMAN PASS:** the reviewed-candidate worktree's production build measured **121,784 bytes gzip** for the classified critical shell, **247,947 bytes gzip** for all emitted JavaScript, and zero external world-asset bytes. A local pinned-headless-Chromium smoke at 1728×1117, 1366×768, and 390×844 painted eight semantic citizens in **505.0 ms**, **431.5 ms**, and **266.1 ms** respectively. After a 60-frame warm-up, the profiles measured **10.2–10.3 ms p95** across 120 `requestAnimationFrame` intervals.
+**AUTOMATED TECHNICAL MEASUREMENT — NOT A MEASURED HUMAN PASS:** the repaired production build measures **122,964 bytes gzip** for the classified critical shell, **250,133 bytes gzip** for all emitted JavaScript, and zero external world-asset bytes. The [bundle record](../exec-plans/evidence/001/implementation/bundle.json) lists every emitted file and fixed limit.
 
-The first measurement exposed a real miss: the decorative continuous Pixi ticker produced **25.1 ms desktop p95**. The implementation removed that nonessential loop and now renders on authoritative projection changes; the repeated smoke passed without weakening a budget. Exact evidence and caveats are in the [implementation performance record](../exec-plans/evidence/001/implementation/performance.json).
+The headed harness ran five cold contexts for each required profile. Every context disabled cache/service workers, loaded authoritative Worker/IndexedDB state, marked shell/CTA/meaningful world, went network-offline, completed the full arrival → investigation → counsel → return/catch-up → Chronicle journey, and sampled arrival, busy market, and Chronicle for 30 seconds after a 5-second warmup.
 
-This is not the canonical five-cold-run, throttled-4G, 30-second-state matrix specified above. It is localhost, headless, and mobile viewport emulation on the M4 Pro. Physical mid-tier mobile, throttled transfer, twelve-citizen stress, thermal behavior, worker-latency percentiles, and the full canonical lab remain explicitly unmeasured.
+- Desktop 1728×1117 DPR 2: meaningful world worst **158.4 ms**; every state/run p95 **10.0 ms**; worst frame **10.5 ms**; zero dropped frames.
+- Laptop 1366×768 DPR 1: meaningful world worst **136.4 ms**; worst state/run p95 **10.1 ms**; worst frame **10.5 ms**; zero dropped frames.
+- Mobile 390×844 DPR 3, 4× CPU, 1.6 Mbps down/750 Kbps up/150 ms RTT: shell worst **1,600.6 ms**, meaningful world worst **2,255.6 ms**, worst state/run p95 **10.1 ms**, worst frame **10.5 ms**, zero dropped frames.
+- The route oracle recorded **210** allowed local requests and zero external attempts; the independent Chromium netlog also recorded zero external DNS/host/protocol attempts.
+
+The first earlier smoke exposed a real miss: a decorative continuous Pixi ticker produced **25.1 ms desktop p95**. That loop was removed, and the authoritative projection-driven renderer now passes the numerical gates without a budget waiver. Exact per-run marks, distributions, diagnostics, procedure, browser path, and limitations are in the [performance record](../exec-plans/evidence/001/implementation/performance.json).
+
+The immediate post-run host audit reported **Battery Power**, while the frozen profile requires AC Power. The earlier harness did not capture host power and did not emit per-profile pooled summaries, so this result is deliberately classified **DIAGNOSTIC**, not canonical acceptance. The finalized harness now records exact commit/dirty state, lockfile hash, OS/architecture, power source, fixture/profile, one-shot next-frame marks, per-state and pooled nearest-rank summaries, and fails unless the tree is clean and `pmset` reports AC Power. A wholly new 15-run AC result is required before final readiness.
+
+The mobile profile is canonical emulation on the target M4 Pro, not a physical phone. Physical mid-tier mobile, twelve-citizen stress, thermal behavior, and field percentiles remain unmeasured; none is promoted to a claim.
 
 ## Reduced motion
 

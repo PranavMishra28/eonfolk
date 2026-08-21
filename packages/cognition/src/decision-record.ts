@@ -94,7 +94,7 @@ export async function createCognitiveDecisionRecord(input: {
 	};
 }
 
-export function projectDecisionTrace(input: {
+export interface DecisionTraceInput {
 	readonly record: CognitiveDecisionRecord;
 	readonly proposal: IntentProposal | null;
 	readonly recordsById: Readonly<
@@ -106,7 +106,18 @@ export function projectDecisionTrace(input: {
 	readonly purpose: ReadPurpose;
 	readonly atRevision: number;
 	readonly visibilityContext: VisibilityContext;
-}): DecisionTraceProjection {
+}
+
+export type DecisionTraceRelease =
+	| {
+			readonly outcome: "allowed";
+			readonly projection: DecisionTraceProjection;
+	  }
+	| { readonly outcome: "denied"; readonly error: "ACTION_UNAVAILABLE" };
+
+export function projectDecisionTrace(
+	input: DecisionTraceInput,
+): DecisionTraceProjection {
 	const visibleRecords = input.record.readRecordIds
 		.map((id) => input.recordsById[id])
 		.filter(
@@ -224,4 +235,30 @@ export function projectDecisionTrace(input: {
 		visibleRelationships,
 		acceptedEventIds: visibleEventIds,
 	};
+}
+
+export async function releaseDecisionTrace(
+	input: DecisionTraceInput,
+	options: { readonly minimumReleaseMs?: number } = {},
+): Promise<DecisionTraceRelease> {
+	const minimumReleaseMs = options.minimumReleaseMs ?? 50;
+	if (!Number.isFinite(minimumReleaseMs) || minimumReleaseMs < 0)
+		throw new Error("minimum release time must be finite and nonnegative");
+	const started = globalThis.performance.now();
+	let release: DecisionTraceRelease;
+	try {
+		release = { outcome: "allowed", projection: projectDecisionTrace(input) };
+	} catch (error) {
+		if (!(error instanceof Error) || error.message !== "ACTION_UNAVAILABLE")
+			throw error;
+		release = { outcome: "denied", error: "ACTION_UNAVAILABLE" };
+	}
+	while (globalThis.performance.now() - started < minimumReleaseMs) {
+		const remaining =
+			minimumReleaseMs - (globalThis.performance.now() - started);
+		await new Promise<void>((resolve) =>
+			setTimeout(resolve, Math.max(1, Math.ceil(remaining))),
+		);
+	}
+	return release;
 }

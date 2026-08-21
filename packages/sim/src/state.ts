@@ -5,6 +5,7 @@ import type {
 	NeedState,
 	PatronCovenant,
 	RelationshipState,
+	ReturnResponseAction,
 	ResourceKind,
 	StandingPlan,
 	ValuePriority,
@@ -58,6 +59,14 @@ export interface CounselState {
 	readonly eventId: string;
 }
 
+export interface ReturnResponseState {
+	readonly responseId: string;
+	readonly citizenId: CitizenId;
+	readonly action: ReturnResponseAction;
+	readonly priorEventId: string;
+	readonly eventId: string;
+}
+
 export interface WorldState {
 	readonly schemaVersion: "riverhold-world-state-v1";
 	readonly runId: string;
@@ -86,6 +95,7 @@ export interface WorldState {
 		| "accuse-publicly"
 		| "follow-plan"
 		| null;
+	readonly lastReturnResponse: ReturnResponseState | null;
 }
 
 export interface GenesisResult {

@@ -547,6 +547,8 @@ function commandEvents(
 			return events;
 		}
 		case "RespondOnReturn":
+			if (state.lastReturnResponse !== null)
+				throw new Error("ACTION_UNAVAILABLE");
 			return [
 				pending(
 					{

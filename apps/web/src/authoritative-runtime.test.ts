@@ -158,6 +158,49 @@ describe("authoritative Riverhold application runtime", () => {
 		expect(headAfterRetry.worldHeadHash).toBe(headAfterCatchUp.worldHeadHash);
 	});
 
+	it("derives committed consequence and Chronicle phases instead of trusting stale UI state", async () => {
+		const persistence = new MemoryPersistence();
+		const first = new AuthoritativeRiverholdRuntime({ persistence });
+		await first.initialize();
+		await reachCounsel(first, "abstain");
+		const afterCounselCrash = new AuthoritativeRiverholdRuntime({
+			persistence,
+			initialPhase: "orientation",
+		});
+		const consequence = await afterCounselCrash.initialize();
+		expect(consequence.phase).toBe("consequence");
+		await expect(
+			afterCounselCrash.dispatch({
+				kind: "offer-counsel",
+				counsel: "accuse-now",
+			}),
+		).rejects.toThrow("requires phase counsel");
+		await afterCounselCrash.dispatch({ kind: "leave-checkpoint" });
+		const returning = new AuthoritativeRiverholdRuntime({
+			persistence,
+			initialPhase: "return-pending",
+		});
+		await returning.initialize();
+		await returning.dispatch({ kind: "confirm-advance" });
+		await returning.dispatch({
+			kind: "take-second-action",
+			actionId: "ask-iven",
+		});
+		const afterResponseCrash = new AuthoritativeRiverholdRuntime({
+			persistence,
+			initialPhase: "return",
+		});
+		const chronicle = await afterResponseCrash.initialize();
+		expect(chronicle.phase).toBe("chronicle");
+		expect(chronicle.storyCard?.heading).toBe("YOU OFFERED NO ADVICE");
+		await expect(
+			afterResponseCrash.dispatch({
+				kind: "take-second-action",
+				actionId: "observe",
+			}),
+		).rejects.toThrow("requires phase return");
+	});
+
 	it("fences an older local writer when a second runtime takes ownership", async () => {
 		const persistence = new MemoryPersistence();
 		const older = new AuthoritativeRiverholdRuntime({ persistence });

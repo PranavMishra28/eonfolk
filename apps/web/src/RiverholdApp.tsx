@@ -385,7 +385,8 @@ function PhasePanel({
 				<button
 					className="primary-action"
 					type="button"
-					onClick={() => window.location.reload()}
+					disabled={pending}
+					onClick={() => onDispatch({ kind: "return-to-checkpoint" })}
 				>
 					Return to Riverhold
 				</button>
@@ -465,7 +466,9 @@ function PhasePanel({
 
 export function RiverholdApp() {
 	const bridge = useMemo(() => createRiverholdRuntimeBridge(), []);
-	const [projection, setProjection] = useState(() => bridge.getProjection());
+	const [projection, setProjection] = useState<RiverholdProjection | null>(
+		null,
+	);
 	const [pending, setPending] = useState(true);
 	const [reducedMotion, setReducedMotion] = useState(
 		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -495,7 +498,7 @@ export function RiverholdApp() {
 
 	useEffect(() => {
 		phaseFocus.current?.focus({ preventScroll: true });
-	}, [projection.phase]);
+	}, [projection?.phase]);
 	useEffect(() => {
 		const close = () => setSheet(null);
 		window.addEventListener("popstate", close);
@@ -570,7 +573,7 @@ export function RiverholdApp() {
 	};
 	const selectedCitizen =
 		sheet?.kind === "citizen"
-			? projection.citizens.find((citizen) => citizen.id === sheet.citizenId)
+			? projection?.citizens.find((citizen) => citizen.id === sheet.citizenId)
 			: null;
 
 	if (runtimeError !== null)
@@ -579,16 +582,36 @@ export function RiverholdApp() {
 				<InkMark />
 				<p className="eyebrow">LOCAL PROOF UNAVAILABLE</p>
 				<h1 id="runtime-failure-title">
-					Riverhold stopped before showing a world.
+					Riverhold stopped before showing further world state.
 				</h1>
 				<p>
 					No world state or Chronicle is being presented as authoritative. This
 					local proof requires a working Web Worker and browser storage.
 				</p>
+				{runtimeError.includes("STALE_FENCE") && (
+					<p role="alert">
+						<strong>Another Riverhold tab took write authority.</strong> This
+						tab was stopped with STALE_FENCE so it cannot overwrite the newer
+						world.
+					</p>
+				)}
 				<details>
 					<summary>Technical detail</summary>
 					<code>{runtimeError}</code>
 				</details>
+			</main>
+		);
+
+	if (projection === null)
+		return (
+			<main className="runtime-loading" aria-labelledby="runtime-loading-title">
+				<InkMark />
+				<p className="eyebrow">OPENING LOCAL AUTHORITY</p>
+				<h1 id="runtime-loading-title">Checking Riverhold's durable record…</h1>
+				<p>
+					No world facts or Chronicle will appear until the local authority has
+					opened and replayed successfully.
+				</p>
 			</main>
 		);
 

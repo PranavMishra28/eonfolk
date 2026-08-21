@@ -390,6 +390,7 @@ export async function createRiverholdGenesis(
 		conservation: { baseline, consumed: { food: 0, water: 0, wood: 0 } },
 		lastCounsel: null,
 		selectedCounselBranch: null,
+		lastReturnResponse: null,
 	};
 	const initialStateHash = await stateHash(state);
 	const manifestWithoutHash = {

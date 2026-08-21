@@ -283,6 +283,10 @@ export function reducePayload(
 		case "ReturnResponseRecorded": {
 			if (!state.citizens[payload.citizenId])
 				throw new Error("ACTION_UNAVAILABLE");
+			state = {
+				...state,
+				lastReturnResponse: { ...payload, eventId: envelope.eventId },
+			};
 			break;
 		}
 		case "BeliefChanged": {

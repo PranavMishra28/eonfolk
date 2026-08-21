@@ -2,7 +2,7 @@
 
 **Purpose:** implement the smallest account-free local game that can falsify whether eight deterministic citizens feel alive and whether following Mara creates contingent, consequential care.
 
-**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — REPAIRED AT `bad215a`; HUMAN GATES NOT RUN; TARGETED CONFIRMATION PENDING
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — FINAL REPAIR VERIFIED LOCALLY; CANONICAL AC PERFORMANCE/CONFIRMATION PENDING; HUMAN GATES NOT RUN
 
 **Authority boundary:** this plan owns first-slice milestones, files, commands, evidence, rollbacks, and definition of done. Linked product/engineering/quality documents own semantics; [PLANS](../PLANS.md) owns plan maintenance.
 
@@ -272,6 +272,7 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | 2026-08-20 | M0 artifact A candidate | pending A | 4,229 seconds (`4229/3600` hours) | Six matched treatments, combined eleven-record study tooling, Pixi/semantic observer surface, exact-browser viewport evidence, Node/Ruby validators, and blank import directories complete. Freeze A/S, then await operator-supplied Gate 0 evidence; M1 remains forbidden. |
 | 2026-08-20 | M0 independent review and repair | `88fc1df` → `9408038` → `6d90511` | 8,044 seconds (`8044/3600` hours) | Product and visual reviewers confirmed every named P0/P1 closed. Exact-browser 7/7, unit 49/49, strict TypeScript, build, deterministic screenshots, semantic fallback, 390×844 at 200% text, and zero-egress checks pass. Final snapshot/oracle regenerated; freeze this tree as A, commit S, then stop for operator evidence. |
 | 2026-08-21 | M1–M5 integrated technical candidate | `bad215a` | **UNKNOWN** | Consolidated deterministic runtime, three branches, IndexedDB persistence, Chronicle/Story Card, renderer/semantic UI, CI/security/formal checks, review repairs, and local browser evidence. Contemporaneous M1–M5 work segments were not preserved across the resumed run, so 40–60-hour compliance cannot be claimed from labor evidence. Human Gate 0/A/B/Card remain NOT RUN. |
+| 2026-08-21 | Final confirmation repair and performance harness | pending final repair commit | **UNKNOWN** | Removed pre-authority rendering, made post-counsel/post-response crash recovery monotonic, made return response single-use, added real two-tab fencing and focus-wrap journeys, added the fixed 20/200-cycle timing analyzer, and passed a 15-run headed battery diagnostic. The finalized harness requires a clean exact commit and AC Power before canonical acceptance. Human Gate 0/A/B/Card remain NOT RUN. |
 
 ### Decisions and deviations
 
@@ -315,6 +316,7 @@ Future Goal mode updates these sections continuously, never reconstructed at the
 | coordinator final repair / `6d905116e6155ef5eec74d1bcb840280f87f640b` | Failed-evidence retention, Follow threshold, mobile projection/Chronicle, 200% mobile completion, screenshots and four review segments inspected | strict TypeScript; 38 Vitest + 11 Node; build; seven headed Playwright; deterministic screenshots; route/netlog zero-egress; product + visual targeted confirmation PASS | `6d90511` | Revert only by voiding the unexposed Gate 0 cohort |
 | coordinator implementation integration / `20b6d3b` | All implementation workstream commits and the coordinator runtime bridge; changed files, dependencies, boundaries, tests and browser output inspected | 53 unit + 2 property; IndexedDB reload; build/budgets; 4 Playwright; TLA+ | `20b6d3b` | Revert to preserved pre-implementation tag |
 | frozen implementation review repair / `bad215a512c72e4fa1afa3f1b42673bb65709d19` | Three independent reviews of `b387a6d`; every P0/P1 mapped in `IMPLEMENTATION_FINAL_REVIEW.md`; actual repair diff inspected | `pnpm verify`; 59 unit + 2 property; IndexedDB reload; 4 Playwright; dual zero-egress; audit; TLA+; five-run web and persistence benchmarks | `bad215a` | Revert only the smallest repair; never restore false authority or destructive reset |
+| first confirmation repair / pending final repair commit | Fresh reviewer FAIL at exact `1834f1f`; every new P0/P1 mapped in `IMPLEMENTATION_FINAL_REVIEW.md`; actual repair diff inspected | `pnpm verify`; 61 unit + 2 property; IndexedDB reload; fixed 20/200 timing analyzer; 6 Playwright; 254 routed requests/27,707 netlog events with zero external attempts; audit; TLA+; 15-run battery diagnostic numerically green; canonical AC rerun pending | pending targeted confirmation | Revert only the smallest repair; never restore pre-authority facts, repeatable canonical phases, or stale-tab writes |
 
 ### Evidence index
 
@@ -323,8 +325,8 @@ The operator supplies only `/Users/pranav/Documents/ChatGPT/.eonfolk-evidence-in
 | Gate | Commit/manifest | Automated result | Human/browser result |
 |---|---|---|---|
 | M0 Gate 0 | A/S pending freeze; snapshot `48d7367822ee3a9b7b5e85dd29a6867f6a3e7cd7be63b133a9dfeede79f71f42`; oracle `199db3d5e00c0b2b60498fbca7dc7d0403337950a0002a30943cffc9366639ba` | 38 Vitest + 11 Node + 7 headed Playwright pass; dependency cohort 195; browser cohort 326 files/5 links; Node and Ruby artifact/vector validators pass | Browser paths pass at 1728×1117, 1366×768, and 390×844, including 200% text, semantic fallback, keyboard, prompt completion, and zero external egress. Two consecutive captures were byte-identical and their exact PNG hashes are in the oracle. Human result: not run; no Gate 0 claim. |
-| Gate A | `bad215a`; technical candidate | Deterministic eight-citizen world, four behavior families, exchange/repair, IndexedDB/reload, one-day catch-up, no external inference, three viewports, semantic parity, budgets and zero-egress pass locally | **NOT RUN:** no unfamiliar-observer manifest; no measured Proof-of-Life pass claim |
-| Gate B / Story Card | `bad215a`; technical candidate | Follow Mara, state-changing investigation, two advice intents plus abstain, independent deterministic interpretation, three branch consequences, canonical return response, three-beat Chronicle and Story Card pass automated/browser checks | **NOT RUN:** no participant/card-viewer manifests; no attachment, comprehension, return, or share-conversion claim |
+| Gate A | final repaired working tree; technical candidate | Deterministic eight-citizen world, four behavior families, exchange/repair, IndexedDB/reload, monotonic one-day catch-up/recovery, no external inference, three viewports, semantic parity, bundle and zero-egress pass locally; performance numbers pass diagnostically but canonical AC run is pending | **NOT RUN:** no unfamiliar-observer manifest; no measured Proof-of-Life pass claim |
+| Gate B / Story Card | final repaired working tree; technical candidate | Follow Mara, state-changing investigation, two advice intents plus abstain, independent deterministic interpretation, three branch consequences, single canonical return response, three-beat Chronicle and Story Card pass automated/browser checks | **NOT RUN:** no participant/card-viewer manifests; no attachment, comprehension, return, or share-conversion claim |
 
 ## Final definition of done
 

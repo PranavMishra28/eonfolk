@@ -41,7 +41,8 @@ body {
 	);
 }
 
-.runtime-failure {
+.runtime-failure,
+.runtime-loading {
 	width: min(42rem, calc(100% - 2rem));
 	margin: 12vh auto;
 	padding: clamp(1.5rem, 4vw, 3rem);
@@ -50,7 +51,8 @@ body {
 	box-shadow: var(--shadow-deep);
 }
 
-.runtime-failure h1 {
+.runtime-failure h1,
+.runtime-loading h1 {
 	max-width: 15ch;
 }
 
@@ -59,6 +61,10 @@ body {
 	margin-top: 0.75rem;
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
+}
+
+.runtime-loading .ink-mark {
+	margin-bottom: 1.5rem;
 }
 button,
 input {

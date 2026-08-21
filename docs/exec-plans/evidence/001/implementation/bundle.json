@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "eonfolk-bundle-measurement-v1",
+  "criticalShellGzip": 122964,
+  "totalJavaScriptGzip": 250133,
+  "worldAssetRawBytes": 0,
+  "limits": {
+    "criticalShellGzip": 204800,
+    "totalJavaScriptGzip": 665600,
+    "worldAssetsDesktop": 6291456,
+    "worldAssetsMobile": 4194304
+  },
+  "files": [
+    {
+      "path": "assets/CanvasPool-HTPHJNQ-.js",
+      "rawBytes": 754,
+      "gzipBytes": 420
+    },
+    {
+      "path": "assets/CanvasRenderer-C77OOJ6D.js",
+      "rawBytes": 87384,
+      "gzipBytes": 27144
+    },
+    {
+      "path": "assets/Filter-BJ3mtSdS.js",
+      "rawBytes": 101619,
+      "gzipBytes": 30855
+    },
+    {
+      "path": "assets/GpuStencilModesToPixi-DyVGbimo.js",
+      "rawBytes": 10522,
+      "gzipBytes": 2779
+    },
+    {
+      "path": "assets/RenderTargetSystem-BUiVc8Vb.js",
+      "rawBytes": 71065,
+      "gzipBytes": 19989
+    },
+    {
+      "path": "assets/browserAll-nkuFN7FH.js",
+      "rawBytes": 42600,
+      "gzipBytes": 11027
+    },
+    {
+      "path": "assets/canvasUtils-vi_qCR7u.js",
+      "rawBytes": 6019,
+      "gzipBytes": 2023
+    },
+    {
+      "path": "assets/getPo2TextureFromSource-BbK029nI.js",
+      "rawBytes": 25050,
+      "gzipBytes": 8568
+    },
+    {
+      "path": "assets/getTextureBatchBindGroup-xYvVrdG2.js",
+      "rawBytes": 340,
+      "gzipBytes": 266
+    },
+    {
+      "path": "assets/index-D-xfqZML.css",
+      "rawBytes": 24673,
+      "gzipBytes": 6324
+    },
+    {
+      "path": "assets/index-DtEgZBgQ.js",
+      "rawBytes": 394048,
+      "gzipBytes": 115799
+    },
+    {
+      "path": "assets/init-983yLYSG.js",
+      "rawBytes": 15266,
+      "gzipBytes": 4740
+    },
+    {
+      "path": "assets/runtime.worker-DVnl7P3C.js",
+      "rawBytes": 94412,
+      "gzipBytes": 26439
+    },
+    {
+      "path": "assets/webworkerAll-MvhsTX2s.js",
+      "rawBytes": 73,
+      "gzipBytes": 84
+    },
+    {
+      "path": "index.html",
+      "rawBytes": 1806,
+      "gzipBytes": 841
+    }
+  ]
+}

@@ -130,6 +130,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
+| Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
+| Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |
 | Local persistence benchmark evidence and limitations | [persistence evidence](exec-plans/evidence/001/implementation/persistence.json) |
 | Production dependency audit evidence and limitations | [security audit](exec-plans/evidence/001/implementation/security-audit.json) |
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |

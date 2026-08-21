@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -62,6 +62,12 @@ const result = {
 	files: rows,
 };
 
+const evidenceDirectory = resolve(process.cwd(), "tmp");
+await mkdir(evidenceDirectory, { recursive: true });
+await writeFile(
+	resolve(evidenceDirectory, "eonfolk-bundle-measurement.json"),
+	`${JSON.stringify(result, null, 2)}\n`,
+);
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 
 const failures = [];

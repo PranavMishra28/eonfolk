@@ -256,6 +256,19 @@ function requestedCounselFromState(state: WorldState): CounselIntent | null {
 	return state.selectedCounselBranch === "follow-plan" ? "abstain" : null;
 }
 
+function recoveredPhase(state: WorldState, requested: Phase): Phase {
+	if (state.lastReturnResponse !== null) return "chronicle";
+	if (state.simulationTime >= 86_400) return "return";
+	if (state.selectedCounselBranch !== null) {
+		return requested === "checkpoint" || requested === "return-pending"
+			? requested
+			: "consequence";
+	}
+	if (state.revision > 0)
+		return requested === "counsel" ? "counsel" : "investigated";
+	return requested === "following" ? "following" : "orientation";
+}
+
 function publicReasonLabel(code: string): string {
 	return (
 		{
@@ -407,6 +420,7 @@ export class AuthoritativeRiverholdRuntime {
 		);
 		if (committed.head.revision === 0) {
 			this.#state = genesis.state;
+			this.#phase = recoveredPhase(genesis.state, this.#phase);
 			return this.#project();
 		}
 		const [batches, events] = await Promise.all([
@@ -439,6 +453,7 @@ export class AuthoritativeRiverholdRuntime {
 		)
 			throw new Error("durable world head does not match deterministic replay");
 		this.#state = replay.state;
+		this.#phase = recoveredPhase(replay.state, this.#phase);
 		this.#requestedCounsel = requestedCounselFromState(replay.state);
 		const recoveredResponse = [...this.#events]
 			.reverse()
@@ -447,11 +462,6 @@ export class AuthoritativeRiverholdRuntime {
 			recoveredResponse?.eventPayload.kind === "ReturnResponseRecorded"
 				? recoveredResponse.eventPayload.action
 				: null;
-		if (
-			this.#phase === "return-pending" &&
-			replay.state.simulationTime >= 86_400
-		)
-			this.#phase = "return";
 		return this.#project();
 	}
 
@@ -733,6 +743,10 @@ export class AuthoritativeRiverholdRuntime {
 				if (this.#requireState().selectedCounselBranch === null)
 					throw new Error("A resolved branch is required before checkpointing");
 				this.#phase = "checkpoint";
+				break;
+			case "return-to-checkpoint":
+				this.#requirePhase("checkpoint");
+				this.#phase = "return-pending";
 				break;
 			case "confirm-advance": {
 				this.#requirePhase("return-pending");

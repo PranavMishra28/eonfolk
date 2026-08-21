@@ -122,6 +122,7 @@ export type RiverholdIntent =
 	| { readonly kind: "open-counsel" }
 	| { readonly kind: "offer-counsel"; readonly counsel: CounselIntent }
 	| { readonly kind: "leave-checkpoint" }
+	| { readonly kind: "return-to-checkpoint" }
 	| { readonly kind: "confirm-advance" }
 	| { readonly kind: "take-second-action"; readonly actionId: string };
 

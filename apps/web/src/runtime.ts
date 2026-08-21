@@ -637,6 +637,11 @@ function createStaticRuntimeBridge(
 					phase = "checkpoint";
 					break;
 				}
+				case "return-to-checkpoint":
+					if (phase !== "checkpoint")
+						throw new Error("Return requires a sealed checkpoint");
+					phase = "return-pending";
+					break;
 				case "confirm-advance":
 					phase = "return";
 					break;
@@ -664,6 +669,7 @@ interface WorkerResponse {
 	readonly id: number;
 	readonly ok: boolean;
 	readonly projection?: RiverholdProjection;
+	readonly code?: string | null;
 	readonly error?: string;
 }
 
@@ -680,10 +686,7 @@ export function createRiverholdRuntimeBridge(
 		return createStaticRuntimeBridge(storage);
 	}
 	const checkpoint = parseCheckpoint(storage);
-	let projection = makeProjection(
-		checkpoint?.phase ?? (checkpoint ? "return-pending" : "orientation"),
-		checkpoint?.branch ?? null,
-	);
+	let projection: RiverholdProjection | null = null;
 	const worker = new Worker(new URL("./runtime.worker.ts", import.meta.url), {
 		type: "module",
 		name: "eonfolk-riverhold-authority",
@@ -703,8 +706,11 @@ export function createRiverholdRuntimeBridge(
 			if (request === undefined) return;
 			pending.delete(message.data.id);
 			if (!message.data.ok || message.data.projection === undefined) {
+				const detail = message.data.error ?? "worker request failed";
+				const code =
+					typeof message.data.code === "string" ? message.data.code : null;
 				request.reject(
-					new Error(message.data.error ?? "worker request failed"),
+					new Error(code === null ? detail : `${code}: ${detail}`),
 				);
 				return;
 			}
@@ -737,7 +743,11 @@ export function createRiverholdRuntimeBridge(
 	});
 
 	return {
-		getProjection: () => projection,
+		getProjection() {
+			if (projection === null)
+				throw new Error("authoritative projection is not ready");
+			return projection;
+		},
 		ready: async () => ready,
 		async dispatch(intent) {
 			await ready;
@@ -781,6 +791,7 @@ export const riverholdRuntimeContract = Object.freeze({
 		"open-counsel",
 		"offer-counsel",
 		"leave-checkpoint",
+		"return-to-checkpoint",
 		"confirm-advance",
 		"take-second-action",
 	]),

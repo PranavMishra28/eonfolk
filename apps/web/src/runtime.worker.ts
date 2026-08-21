@@ -43,9 +43,17 @@ self.addEventListener("message", (message: MessageEvent<Request>) => {
 			}
 			self.postMessage({ id: request.id, ok: true, projection });
 		} catch (error) {
+			const code =
+				typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				typeof error.code === "string"
+					? error.code
+					: null;
 			self.postMessage({
 				id: message.data.id,
 				ok: false,
+				code,
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
