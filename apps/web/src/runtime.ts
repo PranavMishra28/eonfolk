@@ -673,6 +673,16 @@ interface WorkerResponse {
 	readonly error?: string;
 }
 
+export class RiverholdRuntimeError extends Error {
+	readonly code: string | null;
+
+	constructor(message: string, code: string | null) {
+		super(message);
+		this.name = "RiverholdRuntimeError";
+		this.code = code;
+	}
+}
+
 export function createRiverholdRuntimeBridge(
 	storage: Storage | null = typeof window === "undefined"
 		? null
@@ -709,9 +719,7 @@ export function createRiverholdRuntimeBridge(
 				const detail = message.data.error ?? "worker request failed";
 				const code =
 					typeof message.data.code === "string" ? message.data.code : null;
-				request.reject(
-					new Error(code === null ? detail : `${code}: ${detail}`),
-				);
+				request.reject(new RiverholdRuntimeError(detail, code));
 				return;
 			}
 			projection = message.data.projection;
@@ -720,7 +728,12 @@ export function createRiverholdRuntimeBridge(
 	);
 	worker.addEventListener("error", (event) => {
 		for (const request of pending.values())
-			request.reject(new Error(event.message || "Riverhold worker failed"));
+			request.reject(
+				new RiverholdRuntimeError(
+					event.message || "Riverhold worker failed",
+					null,
+				),
+			);
 		pending.clear();
 	});
 	const request = (
@@ -734,7 +747,26 @@ export function createRiverholdRuntimeBridge(
 		const id = nextRequestId++;
 		return new Promise((resolve, reject) => {
 			pending.set(id, { resolve, reject });
-			worker.postMessage({ id, ...message });
+			let testCrashAfterTransition: 1 | 2 | undefined;
+			if (
+				__EONFOLK_E2E_CRASH_HOOKS__ &&
+				message.kind === "dispatch" &&
+				typeof window !== "undefined"
+			) {
+				const requested = window.sessionStorage.getItem(
+					"eonfolk:e2e-crash-after-transition",
+				);
+				window.sessionStorage.removeItem("eonfolk:e2e-crash-after-transition");
+				if (requested === "1" || requested === "2")
+					testCrashAfterTransition = Number(requested) as 1 | 2;
+			}
+			worker.postMessage({
+				id,
+				...message,
+				...(testCrashAfterTransition === undefined
+					? {}
+					: { testCrashAfterTransition }),
+			});
 		});
 	};
 	const ready = request({

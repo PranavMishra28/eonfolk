@@ -146,6 +146,67 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	).toBeVisible();
 });
 
+async function reachVerifyCounsel(page: Page) {
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await page
+		.getByRole("button", { name: /Reach the counsel boundary/i })
+		.click();
+	await page.getByText("Verify the count privately", { exact: true }).click();
+}
+
+test("browser recovers a counsel issue committed before worker failure without issuing it twice", async ({
+	page,
+}) => {
+	await reachVerifyCounsel(page);
+	await page.evaluate(() =>
+		sessionStorage.setItem("eonfolk:e2e-crash-after-transition", "1"),
+	);
+	await page.getByRole("button", { name: "Offer counsel" }).click();
+	await expect(
+		page.getByRole("heading", {
+			name: /Riverhold stopped before showing further world state/i,
+		}),
+	).toBeVisible();
+
+	await page.reload();
+	await expect(
+		page.getByRole("heading", { name: /What risk should Mara take/i }),
+	).toBeVisible();
+	await page.getByText("Verify the count privately", { exact: true }).click();
+	await page.getByRole("button", { name: "Offer counsel" }).click();
+	await expect(
+		page.getByRole("heading", { name: /She accepted your counsel/i }),
+	).toBeVisible();
+	await expect(
+		page.getByText(/Your counsel matched my judgment/i),
+	).toBeVisible();
+});
+
+test("browser rehydrates the durable decision receipt after a resolve commit failure", async ({
+	page,
+}) => {
+	await reachVerifyCounsel(page);
+	await page.evaluate(() =>
+		sessionStorage.setItem("eonfolk:e2e-crash-after-transition", "2"),
+	);
+	await page.getByRole("button", { name: "Offer counsel" }).click();
+	await expect(
+		page.getByRole("heading", {
+			name: /Riverhold stopped before showing further world state/i,
+		}),
+	).toBeVisible();
+
+	await page.reload();
+	await expect(
+		page.getByRole("heading", { name: /She accepted your counsel/i }),
+	).toBeVisible();
+	await expect(
+		page.getByText(/Your counsel matched my judgment/i),
+	).toBeVisible();
+	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
+});
+
 test("accuse path preserves allegation language and offers trust repair", async ({
 	page,
 }) => {

@@ -3,6 +3,11 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
 	plugins: [react()],
+	define: {
+		__EONFOLK_E2E_CRASH_HOOKS__: JSON.stringify(
+			process.env.EONFOLK_E2E_CRASH_HOOKS === "1",
+		),
+	},
 	build: {
 		target: "es2022",
 		cssCodeSplit: true,

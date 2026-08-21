@@ -10,13 +10,28 @@ import {
 	type RiverholdIntent,
 	type RiverholdProjection,
 } from "./projection";
-import { createRiverholdRuntimeBridge } from "./runtime";
+import { createRiverholdRuntimeBridge, RiverholdRuntimeError } from "./runtime";
 
 type Sheet =
 	| { readonly kind: "citizen"; readonly citizenId: string }
 	| { readonly kind: "evidence"; readonly beat: ChronicleBeatProjection }
 	| { readonly kind: "world" }
 	| null;
+
+interface RuntimeFailure {
+	readonly code: string | null;
+	readonly message: string;
+}
+
+function runtimeFailure(error: unknown): RuntimeFailure {
+	if (error instanceof RiverholdRuntimeError)
+		return { code: error.code, message: error.message };
+	return {
+		code: null,
+		message:
+			error instanceof Error ? error.message : "Riverhold runtime failed",
+	};
+}
 
 function InkMark() {
 	return (
@@ -474,7 +489,7 @@ export function RiverholdApp() {
 		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 	);
 	const [sheet, setSheet] = useState<Sheet>(null);
-	const [runtimeError, setRuntimeError] = useState<string | null>(null);
+	const [runtimeError, setRuntimeError] = useState<RuntimeFailure | null>(null);
 	const phaseFocus = useRef<HTMLElement>(null);
 	const pendingDispatch = useRef(true);
 	const dialog = useRef<HTMLElement>(null);
@@ -488,11 +503,7 @@ export function RiverholdApp() {
 				pendingDispatch.current = false;
 				setPending(false);
 			})
-			.catch((error: unknown) => {
-				setRuntimeError(
-					error instanceof Error ? error.message : "Riverhold runtime failed",
-				);
-			});
+			.catch((error: unknown) => setRuntimeError(runtimeFailure(error)));
 		return () => bridge.clear();
 	}, [bridge]);
 
@@ -558,11 +569,7 @@ export function RiverholdApp() {
 			void bridge
 				.dispatch(intent)
 				.then(setProjection)
-				.catch((error: unknown) => {
-					setRuntimeError(
-						error instanceof Error ? error.message : "Riverhold runtime failed",
-					);
-				})
+				.catch((error: unknown) => setRuntimeError(runtimeFailure(error)))
 				.finally(() => {
 					pendingDispatch.current = false;
 					setPending(false);
@@ -588,7 +595,7 @@ export function RiverholdApp() {
 					No world state or Chronicle is being presented as authoritative. This
 					local proof requires a working Web Worker and browser storage.
 				</p>
-				{runtimeError.includes("STALE_FENCE") && (
+				{runtimeError.code === "STALE_FENCE" && (
 					<p role="alert">
 						<strong>Another Riverhold tab took write authority.</strong> This
 						tab was stopped with STALE_FENCE so it cannot overwrite the newer
@@ -597,7 +604,10 @@ export function RiverholdApp() {
 				)}
 				<details>
 					<summary>Technical detail</summary>
-					<code>{runtimeError}</code>
+					<code>
+						{runtimeError.code === null ? "" : `${runtimeError.code}: `}
+						{runtimeError.message}
+					</code>
 				</details>
 			</main>
 		);

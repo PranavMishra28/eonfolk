@@ -1,8 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	readFileSync,
+	readdirSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { arch, platform, release } from "node:os";
-import { resolve } from "node:path";
+import { relative, resolve, sep } from "node:path";
 import { chromium } from "@playwright/test";
 import { preview } from "vite";
 
@@ -19,6 +25,71 @@ if (!Number.isSafeInteger(stateWarmupMs) || stateWarmupMs < 0)
 	throw new Error("state warm-up must be a nonnegative integer");
 if (!Number.isSafeInteger(repetitions) || repetitions < 1)
 	throw new Error("benchmark repetitions must be a positive integer");
+
+const expectedBrowserCohort = Object.freeze({
+	revision: 1234,
+	version: "Google Chrome for Testing 151.0.7922.34",
+	manifestBytes: 62_239,
+	manifestSha256:
+		"25995bc88bf20b6de47b46eb3571b250989846a797c0b8924b8794627b6175fc",
+	files: 326,
+	links: 5,
+	totalBytes: 372_002_382,
+	launcherSha256:
+		"a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+	frameworkBytes: 237_813_488,
+	frameworkSha256:
+		"269114cf695f1c50b54e0816a1442e41dc468d28672e2dedc2036105fb5a8dbe",
+});
+
+function sha256(bytes) {
+	return createHash("sha256").update(bytes).digest("hex");
+}
+
+function captureSourceState() {
+	return {
+		commit: execFileSync("git", ["rev-parse", "HEAD"], {
+			encoding: "utf8",
+		}).trim(),
+		workingTreeDirty:
+			execFileSync("git", ["status", "--porcelain"], {
+				encoding: "utf8",
+			}).trim().length > 0,
+		lockfileSha256: sha256(readFileSync(resolve("pnpm-lock.yaml"))),
+	};
+}
+
+function hashBuiltOutput(root) {
+	const entries = [];
+	const walk = (directory) => {
+		for (const entry of readdirSync(directory, { withFileTypes: true })) {
+			const absolute = resolve(directory, entry.name);
+			if (entry.isDirectory()) walk(absolute);
+			else if (entry.isFile()) {
+				const bytes = readFileSync(absolute);
+				entries.push({
+					path: relative(root, absolute).split(sep).join("/"),
+					bytes: statSync(absolute).size,
+					sha256: sha256(bytes),
+				});
+			} else throw new Error(`unsupported built output entry: ${absolute}`);
+		}
+	};
+	walk(root);
+	entries.sort((left, right) =>
+		Buffer.compare(Buffer.from(left.path), Buffer.from(right.path)),
+	);
+	const manifest = entries
+		.map((entry) => `${entry.path}\t${entry.bytes}\t${entry.sha256}\n`)
+		.join("");
+	return {
+		root,
+		files: entries.length,
+		totalBytes: entries.reduce((total, entry) => total + entry.bytes, 0),
+		manifestSha256: sha256(Buffer.from(manifest)),
+		entries,
+	};
+}
 
 const profiles = [
 	{
@@ -121,17 +192,19 @@ async function frameState(page, name, frameBudgetMs) {
 	};
 }
 
-async function markOnNextFrame(page, name) {
-	return page.evaluate(
-		(markName) =>
-			new Promise((resolveMark) => {
-				requestAnimationFrame(() => {
-					performance.mark(markName);
-					resolveMark(performance.getEntriesByName(markName)[0]?.startTime);
-				});
-			}),
+async function waitForQualificationMark(page, name, timeout) {
+	await page.waitForFunction(
+		(markName) => performance.getEntriesByName(markName).length === 1,
 		name,
+		{ timeout },
 	);
+	return page.evaluate((markName) => {
+		const mark = performance.getEntriesByName(markName)[0];
+		const evidence = window.__eonfolkMarkEvidence?.[markName];
+		if (mark === undefined || evidence === undefined)
+			throw new Error(`qualification mark ${markName} lacks evidence`);
+		return { timeMs: mark.startTime, evidence };
+	}, name);
 }
 
 async function reachBusyMarket(page) {
@@ -223,6 +296,45 @@ const reportPath = resolve(
 	"eonfolk-canonical-performance.json",
 );
 mkdirSync(outputDirectory, { recursive: true });
+const sourceStart = captureSourceState();
+if (sourceStart.workingTreeDirty)
+	throw new Error(
+		"canonical performance requires a clean source tree at start",
+	);
+const browserCohortCommands = [
+	{
+		command: "node scripts/validate-browser-cohort.mjs",
+		output: execFileSync(
+			process.execPath,
+			["scripts/validate-browser-cohort.mjs"],
+			{
+				encoding: "utf8",
+			},
+		).trim(),
+	},
+	{
+		command: "ruby scripts/validate-browser-cohort.rb",
+		output: execFileSync("ruby", ["scripts/validate-browser-cohort.rb"], {
+			encoding: "utf8",
+		}).trim(),
+	},
+];
+const browserExecutablePath = chromium.executablePath();
+const browserVersion = execFileSync(browserExecutablePath, ["--version"], {
+	encoding: "utf8",
+}).trim();
+const launcherSha256 = sha256(readFileSync(browserExecutablePath));
+if (
+	browserVersion !== expectedBrowserCohort.version ||
+	launcherSha256 !== expectedBrowserCohort.launcherSha256
+)
+	throw new Error(
+		"browser version or launcher hash changed after cohort validation",
+	);
+execFileSync("pnpm", ["--filter", "@eonfolk/web", "build"], {
+	stdio: "inherit",
+});
+const builtOutputStart = hashBuiltOutput(resolve("apps/web/dist"));
 const startPowerProfile = readPowerProfile();
 const server = await preview({
 	root: "apps/web",
@@ -232,6 +344,7 @@ const server = await preview({
 const origin = "http://127.0.0.1:4173";
 const routeAttempts = [];
 const browser = await chromium.launch({
+	executablePath: browserExecutablePath,
 	headless: false,
 	args: [
 		"--disable-background-networking",
@@ -275,6 +388,7 @@ try {
 			const page = await context.newPage();
 			await page.addInitScript(() => {
 				window.__eonfolkLongTasks = [];
+				window.__eonfolkMarkEvidence = {};
 				if (typeof PerformanceObserver === "function") {
 					const observer = new PerformanceObserver((list) => {
 						for (const entry of list.getEntries())
@@ -286,6 +400,119 @@ try {
 						// The metric remains an empty unsupported sample.
 					}
 				}
+				const installQualificationObserver = () => {
+					const scheduled = new Set();
+					const markWhen = (name, qualify) => {
+						if (
+							performance.getEntriesByName(name).length > 0 ||
+							scheduled.has(name)
+						)
+							return;
+						const evidence = qualify();
+						if (evidence === null) return;
+						scheduled.add(name);
+						requestAnimationFrame(() => {
+							scheduled.delete(name);
+							const paintedEvidence = qualify();
+							if (paintedEvidence === null) return;
+							window.__eonfolkMarkEvidence[name] = paintedEvidence;
+							performance.mark(name);
+						});
+					};
+					const check = () => {
+						markWhen("eonfolk-shell", () => {
+							const loading = document.querySelector(".runtime-loading");
+							const factSurfaces = document.querySelectorAll(
+								"[data-testid='riverhold-canvas'], .semantic-world, .world-notice, [data-testid='story-card']",
+							);
+							return loading !== null && factSurfaces.length === 0
+								? {
+										factFreeAuthorityShell: true,
+										factSurfaceCount: factSurfaces.length,
+										loadingHeading:
+											document.querySelector(".runtime-loading h1")
+												?.textContent ?? "",
+									}
+								: null;
+						});
+						const follow = [...document.querySelectorAll("button")].find(
+							(button) => button.textContent?.includes("Follow Mara"),
+						);
+						const canvas = document.querySelector(
+							"[data-testid='riverhold-canvas']",
+						);
+						const citizens = [
+							...document.querySelectorAll(
+								"[aria-label='Eight Riverhold citizens and their current activities'] li",
+							),
+						];
+						markWhen("eonfolk-cta", () =>
+							follow instanceof HTMLButtonElement &&
+							!follow.disabled &&
+							canvas?.dataset.ready === "true" &&
+							citizens.length === 8
+								? {
+										authorityReady: true,
+										followEnabled: true,
+										semanticCitizenCount: citizens.length,
+									}
+								: null,
+						);
+						markWhen("eonfolk-meaningful-world", () => {
+							const activityTexts = citizens.map(
+								(citizen) =>
+									citizen.querySelector("button")?.textContent?.trim() ?? "",
+							);
+							const maraCount = citizens.filter((citizen) =>
+								citizen.querySelector("strong")?.textContent?.includes("Mara"),
+							).length;
+							const interaction = [
+								...document.querySelectorAll(".semantic-summary div"),
+							]
+								.find((entry) =>
+									entry
+										.querySelector("dt")
+										?.textContent?.includes("Named interaction or change"),
+								)
+								?.querySelector("dd")
+								?.textContent?.trim();
+							const illustratedInteraction = document
+								.querySelector(".world-notice")
+								?.textContent?.trim();
+							return canvas?.dataset.ready === "true" &&
+								citizens.length === 8 &&
+								activityTexts.every((text) => text.length > 0) &&
+								maraCount === 1 &&
+								typeof interaction === "string" &&
+								interaction.length > 0 &&
+								typeof illustratedInteraction === "string" &&
+								illustratedInteraction.includes(interaction)
+								? {
+										canvasPainted: true,
+										semanticCitizenCount: citizens.length,
+										activityCount: activityTexts.length,
+										maraCount,
+										interactionCue: interaction,
+										semanticIllustratedParity: true,
+									}
+								: null;
+						});
+					};
+					new MutationObserver(check).observe(document.documentElement, {
+						attributes: true,
+						childList: true,
+						characterData: true,
+						subtree: true,
+					});
+					check();
+				};
+				if (document.documentElement) installQualificationObserver();
+				else
+					document.addEventListener(
+						"DOMContentLoaded",
+						installQualificationObserver,
+						{ once: true },
+					);
 			});
 			await page.route("**/*", async (route) => {
 				const url = new URL(route.request().url());
@@ -315,25 +542,24 @@ try {
 				});
 			await page.bringToFront();
 			await page.goto(origin, { waitUntil: "domcontentloaded" });
-			const shellMs = await markOnNextFrame(page, "eonfolk-shell");
+			const shell = await waitForQualificationMark(
+				page,
+				"eonfolk-shell",
+				2_000,
+			);
 			const follow = page.getByRole("button", { name: /Follow Mara/ });
 			await follow.waitFor({ timeout: profile.maximumDisplayMs });
 			if (!(await follow.isEnabled()))
 				throw new Error("Follow Mara is visible but not operable");
-			await page.waitForFunction(
-				() =>
-					document.querySelector("[data-testid='riverhold-canvas']")?.dataset
-						.ready === "true" &&
-					document.querySelectorAll(
-						"[aria-label='Eight Riverhold citizens and their current activities'] li",
-					).length === 8,
-				undefined,
-				{ timeout: profile.maximumDisplayMs },
+			const cta = await waitForQualificationMark(
+				page,
+				"eonfolk-cta",
+				profile.maximumDisplayMs,
 			);
-			const ctaMs = await markOnNextFrame(page, "eonfolk-cta");
-			const meaningfulWorldMs = await markOnNextFrame(
+			const meaningfulWorld = await waitForQualificationMark(
 				page,
 				"eonfolk-meaningful-world",
+				profile.maximumDisplayMs,
 			);
 			await cdp.send("Network.emulateNetworkConditions", {
 				offline: true,
@@ -387,7 +613,16 @@ try {
 				deviceScaleFactor: profile.deviceScaleFactor,
 				cpuSlowdown: profile.cpuSlowdown,
 				network: profile.network,
-				marks: { shellMs, ctaMs, meaningfulWorldMs },
+				marks: {
+					shellMs: shell.timeMs,
+					ctaMs: cta.timeMs,
+					meaningfulWorldMs: meaningfulWorld.timeMs,
+				},
+				markEvidence: {
+					shell: shell.evidence,
+					cta: cta.evidence,
+					meaningfulWorld: meaningfulWorld.evidence,
+				},
 				investigationLatencyMs,
 				catchUpMs,
 				states,
@@ -421,20 +656,59 @@ const aggregates = profiles.map((profile) => {
 		pooled: summarize(allSamples, profile.maximumP95FrameMs),
 	};
 });
-const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], {
-	encoding: "utf8",
-}).trim();
-const workingTreeDirty =
-	execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim()
-		.length > 0;
-const lockfileSha256 = createHash("sha256")
-	.update(readFileSync(resolve("pnpm-lock.yaml")))
-	.digest("hex");
+const sourceEnd = captureSourceState();
+const sourceStable =
+	sourceStart.commit === sourceEnd.commit &&
+	sourceStart.lockfileSha256 === sourceEnd.lockfileSha256 &&
+	!sourceStart.workingTreeDirty &&
+	!sourceEnd.workingTreeDirty;
+const builtOutputEnd = hashBuiltOutput(resolve("apps/web/dist"));
+const builtOutputStable =
+	builtOutputStart.manifestSha256 === builtOutputEnd.manifestSha256;
 const endPowerProfile = readPowerProfile();
 const powerProfileAccepted =
 	startPowerProfile.accepted &&
 	endPowerProfile.accepted &&
 	startPowerProfile.source === endPowerProfile.source;
+const failed =
+	!canonical ||
+	!sourceStable ||
+	!builtOutputStable ||
+	!powerProfileAccepted ||
+	externalRoutes.length > 0 ||
+	externalNetlogAttempts.length > 0 ||
+	aggregates.some((aggregate) => {
+		const profile = profiles.find(
+			(candidate) => candidate.name === aggregate.profile,
+		);
+		return (
+			profile === undefined ||
+			aggregate.pooled.p95Ms > profile.maximumP95FrameMs ||
+			aggregate.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
+		);
+	}) ||
+	runs.some((run) => {
+		const profile = profiles.find(
+			(candidate) => candidate.name === run.profile,
+		);
+		return (
+			profile === undefined ||
+			run.marks.shellMs > 2_000 ||
+			run.marks.ctaMs > 3_000 ||
+			run.marks.meaningfulWorldMs > profile.maximumDisplayMs ||
+			run.markEvidence.shell.factFreeAuthorityShell !== true ||
+			run.markEvidence.shell.factSurfaceCount !== 0 ||
+			run.markEvidence.cta.authorityReady !== true ||
+			run.markEvidence.cta.followEnabled !== true ||
+			run.markEvidence.cta.semanticCitizenCount !== 8 ||
+			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
+			run.markEvidence.meaningfulWorld.semanticCitizenCount !== 8 ||
+			run.markEvidence.meaningfulWorld.activityCount !== 8 ||
+			run.markEvidence.meaningfulWorld.maraCount !== 1 ||
+			run.markEvidence.meaningfulWorld.semanticIllustratedParity !== true ||
+			run.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
+		);
+	});
 const report = {
 	schemaVersion: "eonfolk-canonical-web-performance-v1",
 	measuredAt: new Date().toISOString(),
@@ -442,7 +716,13 @@ const report = {
 	runtime: {
 		node: process.version,
 		host: `${platform()} ${release()} ${arch()}`,
-		chromium: chromium.executablePath(),
+		chromium: {
+			executablePath: browserExecutablePath,
+			version: browserVersion,
+			launcherSha256,
+			cohort: expectedBrowserCohort,
+			validators: browserCohortCommands,
+		},
 		headed: true,
 		previewOrigin: origin,
 		power: {
@@ -453,7 +733,26 @@ const report = {
 				"stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change",
 		},
 	},
-	source: { commit: sourceCommit, workingTreeDirty, lockfileSha256 },
+	source: {
+		commit: sourceEnd.commit,
+		workingTreeDirty: sourceEnd.workingTreeDirty,
+		lockfileSha256: sourceEnd.lockfileSha256,
+		start: sourceStart,
+		end: sourceEnd,
+		stable: sourceStable,
+		commands: [
+			{
+				command: "pnpm --filter @eonfolk/web build",
+				exitCode: 0,
+			},
+			{ command: "pnpm benchmark:web", exitCode: failed ? 1 : 0 },
+		],
+		builtOutput: {
+			start: builtOutputStart,
+			end: builtOutputEnd,
+			stable: builtOutputStable,
+		},
+	},
 	fixture: {
 		run: "canonical-local-proof",
 		region: "region_riverhold",
@@ -486,33 +785,4 @@ const report = {
 };
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-
-const failed =
-	!canonical ||
-	workingTreeDirty ||
-	!powerProfileAccepted ||
-	externalRoutes.length > 0 ||
-	externalNetlogAttempts.length > 0 ||
-	aggregates.some((aggregate) => {
-		const profile = profiles.find(
-			(candidate) => candidate.name === aggregate.profile,
-		);
-		return (
-			profile === undefined ||
-			aggregate.pooled.p95Ms > profile.maximumP95FrameMs ||
-			aggregate.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
-		);
-	}) ||
-	runs.some((run) => {
-		const profile = profiles.find(
-			(candidate) => candidate.name === run.profile,
-		);
-		return (
-			profile === undefined ||
-			run.marks.shellMs > 2_000 ||
-			run.marks.ctaMs > 3_000 ||
-			run.marks.meaningfulWorldMs > profile.maximumDisplayMs ||
-			run.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
-		);
-	});
 if (failed) process.exitCode = 1;

@@ -15,8 +15,11 @@ import type {
 import {
 	bytesFromHex,
 	type CognitiveDecisionRecord,
+	decisionRecordHash,
 	type DecisionContext,
 	type IntentProposal,
+	jcs,
+	proposalHash,
 	type ReturnResponseAction,
 	seedPrng,
 	type VisibilityContext,
@@ -259,6 +262,8 @@ function requestedCounselFromState(state: WorldState): CounselIntent | null {
 function recoveredPhase(state: WorldState, requested: Phase): Phase {
 	if (state.lastReturnResponse !== null) return "chronicle";
 	if (state.simulationTime >= 86_400) return "return";
+	if (state.lastCounsel !== null && state.selectedCounselBranch === null)
+		return "counsel";
 	if (state.selectedCounselBranch !== null) {
 		return requested === "checkpoint" || requested === "return-pending"
 			? requested
@@ -455,6 +460,7 @@ export class AuthoritativeRiverholdRuntime {
 		this.#state = replay.state;
 		this.#phase = recoveredPhase(replay.state, this.#phase);
 		this.#requestedCounsel = requestedCounselFromState(replay.state);
+		await this.#recoverInterpretation();
 		const recoveredResponse = [...this.#events]
 			.reverse()
 			.find((event) => event.eventPayload.kind === "ReturnResponseRecorded");
@@ -580,9 +586,18 @@ export class AuthoritativeRiverholdRuntime {
 	async #resolveCounsel(counsel: CounselIntent): Promise<void> {
 		let state = this.#requireState();
 		const mara = citizenBySlug(state, "mara");
-		const intent = requestedIntent(counsel);
+		const pendingCounsel =
+			state.lastCounsel !== null && state.selectedCounselBranch === null
+				? requestedCounselFromState(state)
+				: null;
+		if (pendingCounsel !== null && pendingCounsel !== counsel)
+			throw new Error("A different counsel intent is already durably pending");
+		const resolvedCounsel = pendingCounsel ?? counsel;
+		const intent = requestedIntent(resolvedCounsel);
 		let interventionId: string | null = null;
-		if (intent !== null) {
+		if (pendingCounsel !== null) {
+			interventionId = state.lastCounsel?.interventionId ?? null;
+		} else if (intent !== null) {
 			interventionId = `intervention_${state.revision}_${intent}`;
 			const counselTransition = await this.#worldCommand(
 				"counsel",
@@ -689,6 +704,95 @@ export class AuthoritativeRiverholdRuntime {
 			acceptedEventInterval: resolved.receipt.eventInterval,
 		});
 		await this.#commit(resolved, decision);
+		this.#requestedCounsel = resolvedCounsel;
+		this.#interpretation = this.#interpretationFrom(proposal, resolvedCounsel);
+	}
+
+	async #recoverInterpretation(): Promise<void> {
+		const state = this.#requireState();
+		if (state.selectedCounselBranch === null) {
+			this.#interpretation = null;
+			return;
+		}
+		const resolvedEvent = [...this.#events]
+			.reverse()
+			.find(
+				(event) =>
+					event.eventPayload.kind === "CounselInterpreted" &&
+					event.provenance.kind === "cognition",
+			);
+		if (
+			resolvedEvent === undefined ||
+			resolvedEvent.provenance.kind !== "cognition" ||
+			resolvedEvent.eventPayload.kind !== "CounselInterpreted" ||
+			typeof resolvedEvent.provenance.decisionId !== "string" ||
+			typeof resolvedEvent.provenance.proposalId !== "string"
+		)
+			throw new Error("resolved counsel is missing cognition provenance");
+		const stored = await this.#persistence.getDecisionRecord(
+			state.runId,
+			state.regionId,
+			resolvedEvent.provenance.decisionId,
+		);
+		if (stored === null)
+			throw new Error(
+				"resolved counsel is missing its durable decision record",
+			);
+		const record = asObject<CognitiveDecisionRecord>(stored.data);
+		if (
+			record.schemaVersion !== "eonfolk-cognitive-decision-record-v1" ||
+			record.decisionId !== stored.decisionId ||
+			record.decisionId !== resolvedEvent.provenance.decisionId ||
+			record.runId !== stored.runId ||
+			record.regionId !== stored.regionId ||
+			record.decisionRecordHash !== stored.decisionRecordHash ||
+			record.proposedCommandId !== resolvedEvent.provenance.commandId ||
+			record.acceptedEventInterval === null ||
+			!record.acceptedEventInterval.eventIds.includes(resolvedEvent.eventId)
+		)
+			throw new Error("durable counsel decision linkage is invalid");
+		const { decisionRecordHash: claimedRecordHash, ...recordWithoutHash } =
+			record;
+		if ((await decisionRecordHash(recordWithoutHash)) !== claimedRecordHash)
+			throw new Error("durable counsel decision hash is invalid");
+		if (record.proposalCanonicalBytes === null || record.proposalHash === null)
+			throw new Error("durable counsel proposal is missing");
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(record.proposalCanonicalBytes);
+		} catch {
+			throw new Error("durable counsel proposal is not valid JSON");
+		}
+		const proposal = parsed as IntentProposal;
+		if (
+			typeof proposal !== "object" ||
+			proposal === null ||
+			proposal.proposalId !== resolvedEvent.provenance.proposalId ||
+			proposal.proposalHash !== record.proposalHash ||
+			jcs(proposal) !== record.proposalCanonicalBytes
+		)
+			throw new Error("durable counsel proposal linkage is invalid");
+		const { proposalHash: claimedProposalHash, ...proposalWithoutHash } =
+			proposal;
+		if ((await proposalHash(proposalWithoutHash)) !== claimedProposalHash)
+			throw new Error("durable counsel proposal hash is invalid");
+		const action =
+			proposal.action.kind === "VerifyReserve"
+				? "verify-reserve"
+				: proposal.action.kind === "AccusePublicly"
+					? "accuse-publicly"
+					: proposal.action.kind === "FollowStandingPlan"
+						? "follow-plan"
+						: null;
+		if (
+			action === null ||
+			action !== state.selectedCounselBranch ||
+			action !== resolvedEvent.eventPayload.action
+		)
+			throw new Error("durable counsel proposal does not match Reality");
+		const counsel = requestedCounselFromState(state);
+		if (counsel === null)
+			throw new Error("resolved counsel intent cannot be recovered");
 		this.#requestedCounsel = counsel;
 		this.#interpretation = this.#interpretationFrom(proposal, counsel);
 	}
