@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
 	mkdirSync,
-	readFileSync,
 	readdirSync,
+	readFileSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
@@ -207,8 +207,43 @@ async function waitForQualificationMark(page, name, timeout) {
 	}, name);
 }
 
+async function captureArrivalInvariant(page) {
+	return page.evaluate(() => {
+		const buttons = [...document.querySelectorAll("button")];
+		const followButtons = buttons.filter((button) =>
+			button.textContent?.includes("Follow Mara"),
+		);
+		return {
+			arrivalPanelCount: document.querySelectorAll(".phase-panel--arrival")
+				.length,
+			followButtonCount: followButtons.length,
+			followButtonEnabled:
+				followButtons.length === 1 && !followButtons[0].disabled,
+			runtimeErrorCount: document.querySelectorAll(".runtime-error").length,
+			visibleButtonNames: buttons
+				.filter((button) => button.getClientRects().length > 0)
+				.map((button) => button.textContent?.replace(/\s+/g, " ").trim() ?? "")
+				.filter((name) => name.length > 0),
+		};
+	});
+}
+
+function assertArrivalInvariant(invariant, boundary) {
+	if (
+		invariant.arrivalPanelCount !== 1 ||
+		invariant.followButtonCount !== 1 ||
+		!invariant.followButtonEnabled ||
+		invariant.runtimeErrorCount !== 0
+	)
+		throw new Error(
+			`arrival invariant failed ${boundary}: ${JSON.stringify(invariant)}`,
+		);
+}
+
 async function reachBusyMarket(page) {
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page
+		.getByRole("button", { name: /Follow Mara/ })
+		.click({ timeout: 5_000 });
 	const started = performance.now();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByText("OBSERVED", { exact: true }).waitFor();
@@ -581,6 +616,8 @@ try {
 				uploadThroughput: 0,
 			});
 			const states = [];
+			const arrivalBeforeSample = await captureArrivalInvariant(page);
+			assertArrivalInvariant(arrivalBeforeSample, "before sample");
 			for (const stateName of ["arrival"]) {
 				const measured = await frameState(
 					page,
@@ -593,6 +630,8 @@ try {
 					...measured.samples,
 				]);
 			}
+			const arrivalAfterSample = await captureArrivalInvariant(page);
+			assertArrivalInvariant(arrivalAfterSample, "after sample");
 			const investigationLatencyMs = await reachBusyMarket(page);
 			const busyMarket = await frameState(
 				page,
@@ -635,6 +674,10 @@ try {
 					shell: shell.evidence,
 					cta: cta.evidence,
 					meaningfulWorld: meaningfulWorld.evidence,
+				},
+				arrivalInvariant: {
+					beforeSample: arrivalBeforeSample,
+					afterSample: arrivalAfterSample,
 				},
 				investigationLatencyMs,
 				catchUpMs,
