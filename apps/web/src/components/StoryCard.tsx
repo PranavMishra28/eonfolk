@@ -1,0 +1,65 @@
+import { useState } from "react";
+import type { RiverholdProjection } from "../projection";
+
+export function StoryCard({
+	projection,
+}: {
+	readonly projection: RiverholdProjection;
+}) {
+	const [format, setFormat] = useState<"wide" | "portrait">("wide");
+	const [copied, setCopied] = useState(false);
+	const card = projection.storyCard;
+	if (!card) return null;
+	const copy = `${card.heading}\n${card.choice}\n${card.followed}\n${card.unresolved}\n\nRiverhold · Day ${projection.day}`;
+	const copyCard = async () => {
+		try {
+			await navigator.clipboard.writeText(copy);
+		} catch {
+			/* Clipboard permission is optional in local preview. */
+		}
+		setCopied(true);
+	};
+	return (
+		<section className="story-section" aria-labelledby="story-title">
+			<div className="story-toolbar">
+				<div>
+					<p className="eyebrow">SHARE THE CONSEQUENCE, NOT THE TECHNOLOGY</p>
+					<h2 id="story-title">Riverhold Story Card</h2>
+				</div>
+				<fieldset className="segmented" aria-label="Story Card aspect ratio">
+					<button
+						type="button"
+						aria-pressed={format === "wide"}
+						onClick={() => setFormat("wide")}
+					>
+						16:9
+					</button>
+					<button
+						type="button"
+						aria-pressed={format === "portrait"}
+						onClick={() => setFormat("portrait")}
+					>
+						9:16
+					</button>
+				</fieldset>
+			</div>
+			<div
+				className={`story-card story-card--${format}`}
+				data-testid="story-card"
+			>
+				<div className="story-sun" aria-hidden="true" />
+				<p className="story-place">RIVERHOLD · DAY {projection.day}</p>
+				<h3>{card.heading}</h3>
+				<div className="story-beats">
+					<p>{card.choice}</p>
+					<p>{card.followed}</p>
+				</div>
+				<p className="story-unresolved">{card.unresolved}</p>
+				<p className="story-mark">EONFOLK · factual event replay</p>
+			</div>
+			<button className="primary-action" type="button" onClick={copyCard}>
+				{copied ? "Story Card copied" : "Copy Story Card"}
+			</button>
+		</section>
+	);
+}
