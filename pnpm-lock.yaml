@@ -152,6 +152,8 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/world-presentation: {}
+
 packages:
 
   '@babel/helper-string-parser@7.29.7':

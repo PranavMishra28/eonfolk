@@ -77,6 +77,25 @@ const rules = [
 			[/\bDate\.now\s*\(/, "ambient wall clock"],
 		],
 	},
+	{
+		directories: ["packages/world-presentation"],
+		patterns: [
+			[
+				/from\s+["'](?:react|react-dom|pixi\.js|playcanvas|@playcanvas)/,
+				"renderer dependency",
+			],
+			[
+				/from\s+["'][^"']*(?:apps\/web|persistence|cognition)/,
+				"application authority",
+			],
+			[
+				/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/,
+				"network authority",
+			],
+			[/\bDate\.now\s*\(/, "ambient wall clock"],
+			[/\bMath\.random\s*\(/, "ambient randomness"],
+		],
+	},
 ];
 
 const failures = [];
