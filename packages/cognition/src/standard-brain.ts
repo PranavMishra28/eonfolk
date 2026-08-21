@@ -138,7 +138,9 @@ function score(
 		context.counselIntent !== null &&
 		entry.counselAffinity === context.counselIntent
 	)
-		terms.push(term("counsel", 2_700));
+		// Counsel is material, but it cannot erase the citizen's existing plan,
+		// commitments, relationships, evidence, values, and risk assessment.
+		terms.push(term("counsel", 2_000));
 	const total = checkedInt32(
 		terms.reduce((sum, current) => checkedInt32(sum + current.value), 0),
 	);

@@ -439,6 +439,22 @@ function commandEvents(
 					},
 					{ externalParents },
 				),
+				pending(
+					{
+						kind: "TimeAdvanced",
+						seconds: 21_600,
+						needIncrease: 0,
+					},
+					{
+						parentIndexes: [
+							{
+								index: 0,
+								relation: "direct",
+								mechanismId: "riverhold-delayed-resolution-v1",
+							},
+						],
+					},
+				),
 			];
 			if (payload.action === "verify-reserve") {
 				events.push(
@@ -458,6 +474,31 @@ function commandEvents(
 									index: 0,
 									relation: "direct",
 									mechanismId: "riverhold-private-verification-v1",
+								},
+							],
+							relatedEvents: [
+								{
+									eventId: eventIds[1]!,
+									relation: "temporal-predecessor",
+								},
+							],
+						},
+					),
+					pending(
+						{
+							kind: "RelationshipChanged",
+							fromCitizenId: payload.citizenId,
+							toCitizenId: citizenBySlug(state, "toma").citizenId,
+							trustDelta: 500,
+							strainDelta: -300,
+							reasonCode: "private-verification-trust",
+						},
+						{
+							parentIndexes: [
+								{
+									index: 2,
+									relation: "direct",
+									mechanismId: "riverhold-sourced-recount-trust-v1",
 								},
 							],
 						},
@@ -498,7 +539,7 @@ function commandEvents(
 						{
 							parentIndexes: [
 								{
-									index: 1,
+									index: 2,
 									relation: "direct",
 									mechanismId: "riverhold-public-accusation-trust-v1",
 								},
@@ -515,7 +556,7 @@ function commandEvents(
 							visibility: { kind: "public" },
 							parentIndexes: [
 								{
-									index: 1,
+									index: 2,
 									relation: "trigger",
 									mechanismId: "riverhold-petition-threshold-v1",
 								},
@@ -543,6 +584,26 @@ function commandEvents(
 							],
 						},
 					),
+					pending(
+						{
+							kind: "PetitionChanged",
+							endorsementDelta: 1,
+							reasonCode: "independent-unresolved-ledger-interest",
+						},
+						{
+							visibility: { kind: "public" },
+							relatedEvents: [
+								{
+									eventId: eventIds[1]!,
+									relation: "temporal-predecessor",
+								},
+								{
+									eventId: eventIds[2]!,
+									relation: "temporal-predecessor",
+								},
+							],
+						},
+					),
 				);
 			}
 			return events;
@@ -556,11 +617,19 @@ function commandEvents(
 				);
 				const expectedKind =
 					state.selectedCounselBranch === "verify-reserve"
-						? "BeliefChanged"
+						? "RelationshipChanged"
 						: state.selectedCounselBranch === "accuse-publicly"
 							? "PetitionChanged"
 							: state.selectedCounselBranch === "follow-plan"
-								? "StandingPlanChanged"
+								? "PetitionChanged"
+								: null;
+				const expectedReasonCode =
+					state.selectedCounselBranch === "verify-reserve"
+						? "private-verification-trust"
+						: state.selectedCounselBranch === "accuse-publicly"
+							? "public-statement-endorsements"
+							: state.selectedCounselBranch === "follow-plan"
+								? "independent-unresolved-ledger-interest"
 								: null;
 				if (
 					prior === undefined ||
@@ -569,7 +638,9 @@ function commandEvents(
 					prior.regionId !== state.regionId ||
 					prior.sequence >= state.nextSequence ||
 					prior.provenance.kind !== "cognition" ||
-					prior.eventPayload.kind !== expectedKind
+					prior.eventPayload.kind !== expectedKind ||
+					!("reasonCode" in prior.eventPayload) ||
+					prior.eventPayload.reasonCode !== expectedReasonCode
 				)
 					throw new Error("INVALID_COMMAND");
 			}
@@ -790,9 +861,9 @@ export async function prepareTransition(
 		const provisionalCount =
 			command.payload.kind === "ResolveCounsel" &&
 			command.payload.action === "accuse-publicly"
-				? 4
+				? 5
 				: command.payload.kind === "ResolveCounsel"
-					? 2
+					? 4
 					: command.payload.kind === "Advance"
 						? 9
 						: 1;

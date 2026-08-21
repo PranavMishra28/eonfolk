@@ -20,7 +20,10 @@ import {
 } from "../../../packages/sim/src/index.js";
 import { riverholdDecisionFixture } from "../../fixtures/riverhold/index.js";
 
-async function branch(intent: "verify-reserve" | "accuse-publicly" | null) {
+async function branch(
+	intent: "verify-reserve" | "accuse-publicly" | null,
+	forcedLegalAction?: "verify-reserve" | "accuse-publicly" | "follow-plan",
+) {
 	const fixture = await riverholdDecisionFixture({ counselIntent: intent });
 	let state = fixture.genesis.state;
 	let head = fixture.genesis.genesisWorldHeadHash;
@@ -71,11 +74,12 @@ async function branch(intent: "verify-reserve" | "accuse-publicly" | null) {
 		{ proposalId: `proposal-${intent ?? "abstain"}`, prngState: prng },
 	);
 	const action =
-		proposal.action.kind === "VerifyReserve"
+		forcedLegalAction ??
+		(proposal.action.kind === "VerifyReserve"
 			? "verify-reserve"
 			: proposal.action.kind === "AccusePublicly"
 				? "accuse-publicly"
-				: "follow-plan";
+				: "follow-plan");
 	const resolve = await createWorldCommand({
 		commandId: `cmd-resolve-${intent ?? "abstain"}`,
 		expectedRevision: state.revision,
@@ -114,7 +118,7 @@ async function branch(intent: "verify-reserve" | "accuse-publicly" | null) {
 describe("counsel divergence and factual Chronicle", () => {
 	it("reaches three materially different terminal world vectors", async () => {
 		const verify = await branch("verify-reserve");
-		const accuse = await branch("accuse-publicly");
+		const accuse = await branch("accuse-publicly", "accuse-publicly");
 		const abstain = await branch(null);
 		expect(
 			new Set([
@@ -129,15 +133,62 @@ describe("counsel divergence and factual Chronicle", () => {
 			),
 		).toBe(true);
 		expect(
+			verify.postState.relationships["relationship-mara-toma"],
+		).toMatchObject({ trust: 8_000, strain: 500 });
+		const verifyBelief = verify.events.find(
+			(event) => event.eventPayload.kind === "BeliefChanged",
+		)!;
+		const verifyRelationship = verify.events.find(
+			(event) =>
+				event.eventPayload.kind === "RelationshipChanged" &&
+				event.eventPayload.reasonCode === "private-verification-trust",
+		)!;
+		expect(verifyRelationship.causalParents).toContainEqual({
+			eventId: verifyBelief.eventId,
+			relation: "direct",
+			mechanismId: "riverhold-sourced-recount-trust-v1",
+		});
+		expect(
 			accuse.postState.relationships["relationship-mara-toma"],
 		).toMatchObject({ trust: 5_000, strain: 3_300 });
 		expect(accuse.postState.petitionEndorsements).toBe(3);
+		const accusation = accuse.events.find(
+			(event) => event.eventPayload.kind === "StatementMade",
+		)!;
+		for (const effect of accuse.events.filter(
+			(event) =>
+				event.eventPayload.kind === "RelationshipChanged" ||
+				event.eventPayload.kind === "PetitionChanged",
+		)) {
+			expect(effect.causalParents[0]?.eventId).toBe(accusation.eventId);
+		}
 		expect(abstain.postState.selectedCounselBranch).toBe("follow-plan");
+		expect(abstain.postState.petitionEndorsements).toBe(1);
+		for (const result of [verify, accuse, abstain]) {
+			expect(result.postState.simulationTime).toBe(21_600);
+			const delayedAt = result.events.findIndex(
+				(event) => event.eventPayload.kind === "TimeAdvanced",
+			);
+			expect(delayedAt).toBeGreaterThanOrEqual(1);
+			expect(
+				result.events
+					.slice(delayedAt + 1)
+					.every((event) => event.simulationTime === 21_600),
+			).toBe(true);
+			expect(result.events.at(-1)?.simulationTime).toBe(21_600);
+		}
+		const independentPetition = abstain.events.at(-1)!;
+		expect(independentPetition.eventPayload).toMatchObject({
+			kind: "PetitionChanged",
+			reasonCode: "independent-unresolved-ledger-interest",
+		});
+		expect(independentPetition.causalParents).toEqual([]);
+		expect(independentPetition.relatedEvents).toHaveLength(2);
 	});
 
 	it("derives three-beat branch Chronicles only from accepted event evidence", async () => {
 		const verify = await branch("verify-reserve");
-		const accuse = await branch("accuse-publicly");
+		const accuse = await branch("accuse-publicly", "accuse-publicly");
 		const abstain = await branch(null);
 		for (const result of [verify, accuse, abstain]) {
 			const acceptedIds = new Set(result.events.map((event) => event.eventId));
@@ -156,10 +207,11 @@ describe("counsel divergence and factual Chronicle", () => {
 		expect(accuse.chronicle.storyCard).toContain("allegation");
 		expect(abstain.chronicle.branch).toBe("follow-plan");
 		expect(abstain.chronicle.storyCard).toContain("NO ADVICE");
+		expect(abstain.chronicle.storyCard).toContain("independently endorsed");
 	});
 
 	it("does not expose a private causal parent in a public child projection", async () => {
-		const accuse = await branch("accuse-publicly");
+		const accuse = await branch("accuse-publicly", "accuse-publicly");
 		const publicChronicle = projectChronicle({
 			events: accuse.events,
 			viewer: { kind: "public" },
@@ -193,7 +245,11 @@ describe("counsel divergence and factual Chronicle", () => {
 	it("accepts only one canonical return response", async () => {
 		const result = await branch("verify-reserve");
 		const mara = citizenBySlug(result.postState, "mara");
-		const priorEventId = result.events.at(-1)!.eventId;
+		const priorEventId = result.events.find(
+			(event) =>
+				event.eventPayload.kind === "RelationshipChanged" &&
+				event.eventPayload.reasonCode === "private-verification-trust",
+		)!.eventId;
 		const firstCommand = await createWorldCommand({
 			commandId: "cmd-return-response-first",
 			expectedRevision: result.postState.revision,
@@ -242,7 +298,11 @@ describe("counsel divergence and factual Chronicle", () => {
 	it("rejects dangling, future, cross-run, and wrong-branch return references", async () => {
 		const result = await branch("verify-reserve");
 		const mara = citizenBySlug(result.postState, "mara");
-		const legal = result.events.at(-1)!;
+		const legal = result.events.find(
+			(event) =>
+				event.eventPayload.kind === "RelationshipChanged" &&
+				event.eventPayload.reasonCode === "private-verification-trust",
+		)!;
 		const wrongBranch = result.events.find(
 			(event) => event.eventPayload.kind === "CounselInterpreted",
 		)!;
@@ -270,6 +330,21 @@ describe("counsel divergence and factual Chronicle", () => {
 				history: [
 					...result.events,
 					{ ...legal, eventId: "event_cross_run", runId: "run_other" },
+				],
+			},
+			{
+				label: "wrong-reason",
+				priorEventId: "event_wrong_reason",
+				history: [
+					...result.events,
+					{
+						...legal,
+						eventId: "event_wrong_reason",
+						eventPayload: {
+							...legal.eventPayload,
+							reasonCode: "public-accusation",
+						},
+					},
 				],
 			},
 			{
@@ -335,7 +410,11 @@ describe("counsel divergence and factual Chronicle", () => {
 					responseId: "response-dangling-replay",
 					citizenId: mara.citizenId,
 					action: "publish-verified-count",
-					priorEventId: result.events.at(-1)!.eventId,
+					priorEventId: result.events.find(
+						(event) =>
+							event.eventPayload.kind === "RelationshipChanged" &&
+							event.eventPayload.reasonCode === "private-verification-trust",
+					)!.eventId,
 				},
 			}),
 			result.events,

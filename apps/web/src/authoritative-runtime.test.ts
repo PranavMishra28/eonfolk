@@ -263,12 +263,22 @@ describe("authoritative Riverhold application runtime", () => {
 			mismatch: 12,
 		});
 		const consequence = await reachCounsel(runtime, "accuse-now");
-		expect(consequence.branch).toBe("accuse-now");
+		expect(consequence.branch).toBe("abstain");
 		expect(consequence.interpretation).toMatchObject({
 			counsel: "accuse-now",
-			chosenAction: "accuse-now",
-			disposition: "accepted",
+			chosenAction: "abstain",
+			disposition: "rejected",
 		});
+		expect(consequence.interpretation?.decisiveTerms).toContain(
+			"Standing Plan",
+		);
+		expect(consequence.interpretation?.publicReason).toMatch(
+			/^I will keep my plan: /,
+		);
+		expect(consequence.worldNotices).toContain(
+			"One citizen independently endorsed an audit petition",
+		);
+		expect(consequence.consequence).toContain("independently endorsed");
 		const head = await persistence.getHead("run_riverhold_0001", "riverhold");
 		expect(head.revision).toBe(3);
 		expect(
@@ -299,6 +309,12 @@ describe("authoritative Riverhold application runtime", () => {
 			actionId: "publish-verified-count",
 		});
 		expect(chronicle.chronicle).toHaveLength(3);
+		expect(chronicle.chronicle.map((beat) => beat.timeLabel)).toEqual([
+			"00:00",
+			"00:06",
+			"00:12",
+		]);
+		expect(chronicle.chronicle[2]?.title).toContain("recorded trust");
 		expect(
 			chronicle.chronicle
 				.flatMap((beat) => beat.evidence)
@@ -319,7 +335,7 @@ describe("authoritative Riverhold application runtime", () => {
 
 	it.each([
 		["verify-private", "publish-verified-count", "YOU ADVISED: verify first"],
-		["accuse-now", "repair-trust", "YOU ADVISED: speak now"],
+		["accuse-now", "ask-iven", "YOU ADVISED: speak now"],
 		["abstain", "ask-iven", "YOU OFFERED NO ADVICE"],
 	] as const)(
 		"rehydrates exact %s advice and its canonical return response",

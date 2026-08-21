@@ -118,16 +118,22 @@ function baseProjection(
 			branch === "accuse-now"
 				? "Mara's allegation moved the petition and strained Toma's trust."
 				: branch === "verify-private"
-					? "Mara recorded Iven's recount; public understanding still lags."
-					: "The public ledger and open-bin count still differ.",
+					? "Mara recorded Iven's recount and her recorded trust in Toma increased; public understanding still lags."
+					: "The mismatch remained unresolved, and one citizen independently endorsed an audit petition.",
 		citizens: [],
 		resources: { food: 0, water: 0, wood: 0 },
 		worldNotices:
 			branch === "accuse-now"
 				? ["Petition gained three endorsements", "Toma's trust strained"]
 				: branch === "verify-private"
-					? ["Sourced reserve belief recorded", "Public count unresolved"]
-					: ["Eight citizens act on Standing Plans", "Ledger mismatch remains"],
+					? [
+							"Sourced reserve belief recorded",
+							"Mara's recorded trust in Toma increased",
+						]
+					: [
+							"Mara continued her Standing Plan",
+							"One citizen independently endorsed an audit petition",
+						],
 		mara: {
 			activity: "checking the market tally",
 			values: [],
@@ -166,9 +172,9 @@ function baseProjection(
 			branch === "accuse-now"
 				? "Mara spoke publicly; three petition endorsements followed and Toma's trust fell."
 				: branch === "verify-private"
-					? "Mara recorded a sourced belief that Iven's recount confirmed the reserve."
+					? "Mara recorded Iven's sourced recount; six hours later, her recorded trust in Toma increased."
 					: branch === "abstain"
-						? "Mara continued her existing Standing Plan; the mismatch remained unresolved."
+						? "Mara continued her existing Standing Plan; six hours later, one citizen independently endorsed an audit petition."
 						: null,
 		whileAway: summaryVisible
 			? branch === "accuse-now"
@@ -177,11 +183,17 @@ function baseProjection(
 						"Mara and Toma's recorded trust remained strained.",
 						"Citizens continued their bounded routines for one simulated day.",
 					]
-				: [
-						"Citizens continued their bounded routines for one simulated day.",
-						"The ledger mismatch remained part of Mara's plan.",
-						"The town advanced without external inference.",
-					]
+				: branch === "verify-private"
+					? [
+							"Mara's recorded trust in Toma remained above its starting level after the sourced recount.",
+							"The ledger mismatch remained part of Mara's plan.",
+							"The town advanced without external inference.",
+						]
+					: [
+							"The audit petition retained one independently recorded endorsement.",
+							"The ledger mismatch remained part of Mara's plan.",
+							"The town advanced without external inference.",
+						]
 			: [],
 		secondActions:
 			phase === "return" && branch !== null ? secondActions[branch] : [],
@@ -1127,9 +1139,27 @@ export class AuthoritativeRiverholdRuntime {
 					).secondActions.some((action) => action.id === intent.actionId)
 				)
 					throw new Error("The action is not available in this branch");
+				const selectedBranch =
+					this.#requireState().selectedCounselBranch ?? "follow-plan";
+				const expectedPriorKind =
+					selectedBranch === "verify-reserve"
+						? "RelationshipChanged"
+						: "PetitionChanged";
+				const expectedReasonCode =
+					selectedBranch === "verify-reserve"
+						? "private-verification-trust"
+						: selectedBranch === "accuse-publicly"
+							? "public-statement-endorsements"
+							: "independent-unresolved-ledger-interest";
 				const priorEvent = [...this.#events]
 					.reverse()
-					.find((event) => event.provenance.kind === "cognition");
+					.find(
+						(event) =>
+							event.provenance.kind === "cognition" &&
+							event.eventPayload.kind === expectedPriorKind &&
+							"reasonCode" in event.eventPayload &&
+							event.eventPayload.reasonCode === expectedReasonCode,
+					);
 				if (priorEvent === undefined)
 					throw new Error("The return response has no canonical prior event");
 				const mara = citizenBySlug(this.#requireState(), "mara");
@@ -1320,7 +1350,7 @@ export class AuthoritativeRiverholdRuntime {
 			});
 			return {
 				id: `beat:${index + 1}`,
-				timeLabel: `0${index}:${index * 6}`,
+				timeLabel: `00:${String(index * 6).padStart(2, "0")}`,
 				eyebrow: sentence?.relation.toUpperCase() ?? "FACT",
 				title: beat.text,
 				body:

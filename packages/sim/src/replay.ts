@@ -138,17 +138,27 @@ export async function replayLedger(input: {
 				if (related.relation === "response-to") {
 					const expectedKind =
 						state.selectedCounselBranch === "verify-reserve"
-							? "BeliefChanged"
+							? "RelationshipChanged"
 							: state.selectedCounselBranch === "accuse-publicly"
 								? "PetitionChanged"
 								: state.selectedCounselBranch === "follow-plan"
-									? "StandingPlanChanged"
+									? "PetitionChanged"
+									: null;
+					const expectedReasonCode =
+						state.selectedCounselBranch === "verify-reserve"
+							? "private-verification-trust"
+							: state.selectedCounselBranch === "accuse-publicly"
+								? "public-statement-endorsements"
+								: state.selectedCounselBranch === "follow-plan"
+									? "independent-unresolved-ledger-interest"
 									: null;
 					if (
 						event.eventPayload.kind !== "ReturnResponseRecorded" ||
 						event.eventPayload.priorEventId !== related.eventId ||
 						target.provenance.kind !== "cognition" ||
-						target.eventPayload.kind !== expectedKind
+						target.eventPayload.kind !== expectedKind ||
+						!("reasonCode" in target.eventPayload) ||
+						target.eventPayload.reasonCode !== expectedReasonCode
 					)
 						throw new Error("response-to target is not a legal branch event");
 				}

@@ -40,7 +40,7 @@ async function decide(
 }
 
 describe("Mind and Standard Brain", () => {
-	it("produces three grounded, materially distinct counsel dispositions", async () => {
+	it("lets visible plans and commitments reject advice without a random draw", async () => {
 		const verify = await decide("verify-reserve");
 		const accuse = await decide("accuse-publicly");
 		const abstain = await decide(null);
@@ -52,8 +52,16 @@ describe("Mind and Standard Brain", () => {
 		expect(verify.proposal.publicJustification).not.toContain(
 			"because counsel",
 		);
-		expect(accuse.proposal.action.kind).toBe("AccusePublicly");
-		expect(accuse.proposal.explanation.counselDisposition).toBe("accepted");
+		expect(accuse.proposal.action.kind).toBe("FollowStandingPlan");
+		expect(accuse.proposal.explanation.counselDisposition).toBe("rejected");
+		expect(accuse.proposal.explanation.decisiveReasonCodes).toContain("plan");
+		expect(accuse.proposal.explanation.relationshipIdsRead).toContain(
+			"relationship-mara-toma",
+		);
+		expect(accuse.proposal.explanation.tieBreak.used).toBe(false);
+		expect(accuse.proposal.publicJustification).toMatch(
+			/^I will keep my plan: /,
+		);
 		expect(abstain.proposal.action.kind).toBe("FollowStandingPlan");
 		expect(abstain.proposal.explanation.counselDisposition).toBe(
 			"not-applicable",
