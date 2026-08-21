@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — first confirmation failed with seven P1s; all seven repairs integrated; targeted confirmation and final release lattice pending
+**Status:** ACTIVE — first confirmation failed with seven P1s; all seven repairs integrated; clean local DEEP passed; targeted confirmation and remote release lattice pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -231,6 +231,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Confirmation repair split browser evidence into two crash-hook-only journeys followed by a clean production rebuild, budget check, and fourteen unchanged production journeys. Both suites passed their zero-egress network oracle; the production bundle remained within the 200/650 KiB gzip budgets and contained no crash marker. PR manifests now hash only the inspected production `dist`; DEEP alone admits its four benchmark outputs. The corrected OFF/LOCAL/ALPHA browser benchmark completed its full current counsel path from a clean, unchanged source tree with `PASS`: every mode met frame, relative-journey, zero-egress, clean-console, and mode-evidence assertions. Full integrated DEEP remains pending coordinator integration.
 - 2026-08-21 — Confirmation follow-up replaced the unverifiable outer `pnpm verify:*:checks` manifest row with runner-owned ordered step lists. PR now records nineteen actual constituent commands/results; DEEP reuses those exact nineteen and appends seven DEEP-only commands. Direct regressions prove prefix identity, unique IDs, per-step timing/status, and fail-fast omission of unexecuted work. The check-only aliases call the same list rather than maintaining a second command sequence.
 - 2026-08-21 — Exact clean PR passed all nineteen rows at `b286da8`. The first integrated DEEP attempt then correctly failed closed only at canonical performance because that second harness retained the obsolete counsel label already repaired in the diagnostics harness. No partial sample is accepted. Both DEEP browser scripts now use the current `Review Mara's choices` phase contract, protected by one direct source regression; the invalidated targeted-review candidate remains tagged as failed-run evidence and received no review verdict.
+- 2026-08-21 — Exact clean DEEP passed all 26 ordered rows at `59edef3c768d9a3fe9409f07d77d49fded4b9554`, with unchanged source/lockfile, production-only `dist`, four admitted DEEP artifacts, and output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. Fifteen fresh-browser canonical journeys kept worst per-state p95 at 10.0 ms or better, meaningful-world display at 2,354 ms or better, and route/netlog external attempts at zero. This is automated local evidence; targeted confirmation, protected remote checks, human gates, physical mobile, screen reader, live providers, and deployment remain pending or `NOT RUN` as applicable.
 
 ## Decision, risk, and deviation log
 
@@ -259,9 +260,9 @@ Exact availability and results are recorded below as implementation lands. A nam
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
 | Diagnostics/Sentinel | AUTOMATED PASS; targeted confirmation pending | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
 | Feedback/observer | AUTOMATED PASS; live path NOT RUN | browser-only queue/preview/delete/expiry, hostile-summary reconstruction, relay D1/quota/reconciliation/provider adversarial fixtures; live provider path NOT RUN |
-| Founder Alpha browser matrix | REPAIRED; final clean PR/DEEP pending | Two test-only injected-fault journeys and fourteen unchanged-production journeys passed separately with zero-egress validation; the production rebuild is budgeted and artifact-bound after fault testing |
+| Founder Alpha browser matrix | CLEAN LOCAL DEEP PASS; remote CI pending | Two test-only injected-fault journeys and fourteen unchanged-production journeys passed separately with zero-egress validation; the production rebuild is budgeted and artifact-bound after fault testing; clean DEEP passed 26/26 rows at `59edef3` |
 | Cognition experiments | BOUNDED AUTOMATED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; ordered per-execution result journal; unforgeable authorized Observatory artifact; no model/planner candidate run |
-| Performance OFF/LOCAL/ALPHA | SOURCE + comparative browser PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the clean corrected three-mode browser comparison passed all assertions; final canonical repeated browser profile remains |
+| Performance OFF/LOCAL/ALPHA | CLEAN LOCAL DEEP PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the corrected three-mode browser comparison and fifteen-run canonical profile passed all assertions at `59edef3`; physical mobile remains `NOT RUN` |
 | Security/privacy review | FIRST CONFIRMATION REPAIRED; targeted confirmation pending | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions integrated; live relay NOT RUN |
 | Human Gate 0/A/B/Story Card | NOT RUN | no claim permitted |
 

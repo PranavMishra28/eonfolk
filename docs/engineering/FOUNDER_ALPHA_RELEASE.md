@@ -2,7 +2,7 @@
 
 **Purpose:** define the reproducible local production preview, CI evidence retention, and the credential-gated path from the inert feedback relay core to a future private alpha deployment.
 
-**Status:** LOCAL PRODUCTION PREVIEW AVAILABLE; CLOUDFLARE, TURNSTILE, GITHUB APP, PUBLIC ROUTE, AND DEPLOYMENT NOT RUN
+**Status:** LOCAL PRODUCTION PREVIEW VERIFIED BY CLEAN DEEP; TARGETED REVIEW AND PROTECTED CI PENDING; CLOUDFLARE, TURNSTILE, GITHUB APP, PUBLIC ROUTE, AND DEPLOYMENT NOT RUN
 
 **Authority boundary:** this file owns Founder Alpha release procedure and release-status claims. It does not authorize deployment, spend, credentials, a public availability claim, or changes to Reality. [Feedback](FEEDBACK.md) owns relay behavior; [Testing](../quality/TESTING.md) owns verification policy; [Security](SECURITY.md) owns trust boundaries.
 
@@ -27,6 +27,8 @@ pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort
 Open `http://127.0.0.1:4174/`. `verify:pr` builds the production assets before preview. This is a loopback-only production-bundle preview, not a public deployment. World state, diagnostics, and feedback remain browser-local; closing or clearing the browser profile can remove local evidence. No relay availability, durability, backup, or multi-device continuity is claimed.
 
 The release candidate additionally requires `pnpm verify:deep`, an actual browser playtest, inspection of the generated Git diff and evidence, and reconciliation of every P0/P1 review finding. Human, physical-device, provider, and deployment evidence must remain `NOT RUN` until actually performed.
+
+Clean local DEEP passed all 26 ordered rows at commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, including two fault-only and fourteen unchanged-production browser journeys, zero-egress route/netlog evidence, production bundle budgets, dependency audit, bounded formal model, mutations, deep properties, persistence and diagnostics measurements, and fifteen canonical performance journeys. The exact manifest output SHA-256 is `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. This does not substitute for targeted review, protected remote checks, human study evidence, live-provider testing, or deployment approval.
 
 ## CI release surface
 

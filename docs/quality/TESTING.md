@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED — Founder Alpha lattice repaired; final clean-candidate local/CI evidence pending
+**Status:** IMPLEMENTED — Founder Alpha lattice repaired; clean local DEEP passed; targeted review and protected CI pending
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 
@@ -88,6 +88,8 @@ The PR browser stage separates **two explicitly test-only crash-injection journe
 The comparative browser diagnostics benchmark uses the current `Review Mara's choices` accessible control and runs the same arrival -> follow -> investigate -> counsel -> leave/return -> Chronicle path in OFF, LOCAL, and ALPHA builds. A dirty-tree `--smoke-only` run may prove path execution but cannot satisfy DEEP acceptance; only the clean-tree command can return `PASS`.
 
 The v2 tier manifest is produced by the same declared step list that executes acceptance. PR records nineteen ordered constituent results; DEEP is that exact ordered prefix plus seven DEEP-only results. Every row contains a stable ID, the executed command, duration, exit code, and PASS/FAIL status. Execution stops at the first failure and records no result for work it did not run. `verify:pr:checks` and `verify:deep:checks` remain convenient check-only entry points, but delegate to these runner-owned lists so the executable sequence and evidence schema cannot drift.
+
+The clean local DEEP run at `59edef3c768d9a3fe9409f07d77d49fded4b9554` passed all 26 ordered rows with identical start/end commit and lockfile, a clean tree, production `dist` present, crash markers absent, and manifest output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. The run includes 165 unit tests in 21 files, 8/8 targeted mutants, the 500-run/320-command property profile, two fault journeys, fourteen unchanged-production journeys, bounded TLC (3,480 generated/350 distinct states, depth 10, five invariants), exact browser-cohort validation, persistence/diagnostic measurements, and fifteen canonical performance journeys. This evidence remains local until protected remote checks pass.
 
 Cognition changes additionally prove schema/authorization, hidden-fact noninterference, Standard Brain-only liveness, replay without cognition, control/ablation/transfer behavior, planner-promotion fail-closure, pre-run experiment identity/result-journal isolation, and authorized Chronicle-to-Observatory projection. Provider timeout/malformed/fallback checks become mandatory only when an executable adapter exists. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus actual 200% browser zoom, keyboard/dialog focus, reduced motion, selectable semantic fallback, and failing traces where practical.
 

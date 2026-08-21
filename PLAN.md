@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — seven first-confirmation P1s repaired; targeted confirmation and final release lattice pending
+**Status:** FOUNDER ALPHA ACTIVE — seven first-confirmation P1s repaired; clean local DEEP passed; targeted confirmation and remote release lattice pending
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Targeted confirmation pending | Start SHA `74a8a7e`; six-review candidate `7319d59` and first confirmation candidate `d9f7c20` were correctly rejected; all frozen and seven confirmation P1s now have accepted bounded repairs/direct regressions on sole branch `feat/002-founder-alpha` |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Targeted confirmation pending | Start SHA `74a8a7e`; six-review candidate `7319d59` and first confirmation candidate `d9f7c20` were correctly rejected; all frozen and seven confirmation P1s now have accepted bounded repairs/direct regressions; exact clean DEEP passed 26/26 rows at `59edef3` on sole branch `feat/002-founder-alpha` |
 
 ## Operator implementation override — 2026-08-21
 
@@ -101,6 +101,7 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | First Founder Alpha confirmation | `7cbdcfa` | Fresh reviewer inspected exact tagged `d9f7c20`; zero P0 and seven P1 mechanisms retained before repair |
 | Confirmation repair batch | `d81d971`, `b99530f`, `c518af1`, `e2fb64b`, `9759988`, `8c49759` | Observatory/hostile-storage, control/claim, execution-bound experiment evidence, production-artifact identity, runnable DEEP browser comparison, and per-constituent tier evidence repaired with direct regressions |
 | Integrated release-lattice probe | coordinator at `b286da8` | PR passed all nineteen rows; DEEP failed closed only when canonical performance exposed a second obsolete counsel selector. No partial performance sample or targeted-review verdict was accepted; both DEEP browser scripts now share a tested phase contract. |
+| Clean local release lattice | coordinator at `59edef3` | DEEP passed all 26 ordered rows from one clean, unchanged source and lockfile. It includes 165 unit tests, PR and deep properties, real IndexedDB, timing, fault-only and fourteen production journeys with zero egress, production build/budgets/audit, bounded TLC, 8/8 targeted mutants, exact browser cohort, persistence and diagnostics benchmarks, and fifteen canonical performance runs. Manifest output SHA-256: `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. |
 
 ## Disposable spike evidence
 

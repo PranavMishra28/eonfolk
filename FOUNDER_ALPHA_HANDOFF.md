@@ -2,7 +2,7 @@
 
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
-**Status:** RELEASE CANDIDATE — seven confirmation P1 mechanisms repaired; targeted confirmation, final DEEP, remote CI, merge, and cleanup pending
+**Status:** RELEASE CANDIDATE — seven confirmation P1 mechanisms repaired; clean local DEEP passed; targeted confirmation, remote CI, merge, and cleanup pending
 
 **Authority boundary:** this file is an operational summary. [docs/INDEX.md](docs/INDEX.md) maps product and technical authority; [002-founder-alpha.md](docs/exec-plans/active/002-founder-alpha.md) owns execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) owns release boundaries.
 
@@ -61,6 +61,8 @@ The accepted TLC JAR SHA-256 is `eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d3297
 
 DEEP adds targeted mutations, the 500/320 property profile, exact browser-cohort validation, fail-closed persistence measurement, source and browser OFF/LOCAL/ALPHA comparisons, and the repeated canonical browser performance battery. Acceptance requires a clean, unchanged source tree; dirty success exits nonzero as `SMOKE_ONLY`.
 
+The accepted local DEEP evidence currently binds clean commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`: 26/26 ordered rows passed, start/end source and lockfile matched, crash markers were absent from production `dist`, and the manifest output SHA-256 is `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. Canonical performance used fifteen fresh-browser journeys; worst per-state p95 was 10.0 ms, maximum throttled-mobile meaningful display was 2,354 ms, and route/netlog external attempts were zero. Re-run DEEP after any executable or dependency change.
+
 ## Product and browser smoke
 
 Use a fresh browser profile. Confirm:
@@ -92,4 +94,3 @@ These remain **NOT RUN**: unfamiliar-human Gate 0/A/B and Story Card studies; fu
 ## Git and release boundary
 
 Repository `PranavMishra28/eonfolk` is private with default branch `main`. The release branch is `feat/002-founder-alpha`; the one permitted PR title is `Founder Alpha: observability, feedback, cognition, polish, and release hardening`. Merge is authorized only after targeted confirmation reports zero P0/P1 and protected `Verify`, `Formal model`, and `Secret scan` checks are green. After merge, verify `main == origin/main`, preserve immutable evidence tags, remove merged/stale Founder Alpha branches and external worktrees, and leave unrelated Dependabot PRs unmerged.
-
