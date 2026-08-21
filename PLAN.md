@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Candidate preparation | Start SHA `74a8a7e`; implementation through `377cd62`; local production journey and 124-test FAST passed; GitHub privacy corrected from public to private; sole branch `feat/002-founder-alpha`; final verification/review/merge remains |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Frozen-review repair | Start SHA `74a8a7e`; frozen candidate `7319d59` rejected by six independent reviews with one P0 and P1 findings; bounded repairs active; sole branch `feat/002-founder-alpha` |
 
 ## Operator implementation override — 2026-08-21
 

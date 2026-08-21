@@ -122,6 +122,12 @@ Each concern has one authority. Research records evidence; reviews record object
 | Immutable zero-context Goal-prompt review trail and final confirmation | [GOAL_PROMPT_REVIEW.md](reviews/GOAL_PROMPT_REVIEW.md) |
 | Civilization amendment audit, dispositions and immutable final confirmation | [CIVILIZATION_AMENDMENT_REVIEW.md](reviews/CIVILIZATION_AMENDMENT_REVIEW.md) |
 | Frozen implementation review, P0/P1 reconciliation and confirmation | [IMPLEMENTATION_FINAL_REVIEW.md](reviews/IMPLEMENTATION_FINAL_REVIEW.md) |
+| Founder Alpha product/game frozen review | [FOUNDER_ALPHA_PRODUCT_GAME_REVIEW.md](reviews/FOUNDER_ALPHA_PRODUCT_GAME_REVIEW.md) |
+| Founder Alpha systems/correctness frozen review | [FOUNDER_ALPHA_SYSTEMS_CORRECTNESS_REVIEW.md](reviews/FOUNDER_ALPHA_SYSTEMS_CORRECTNESS_REVIEW.md) |
+| Founder Alpha visual/accessibility frozen review | [FOUNDER_ALPHA_VISUAL_ACCESSIBILITY_REVIEW.md](reviews/FOUNDER_ALPHA_VISUAL_ACCESSIBILITY_REVIEW.md) |
+| Founder Alpha diagnostics/privacy frozen review | [FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md](reviews/FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md) |
+| Founder Alpha cognition/research frozen review | [FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md](reviews/FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md) |
+| Founder Alpha CI/evidence frozen review | [FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md](reviews/FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene
