@@ -157,7 +157,7 @@ export const browserDiagnostics = new BrowserDiagnostics();
 
 if (typeof window !== "undefined" && browserDiagnostics.mode === "local") {
 	Object.defineProperty(window, "__EONFOLK_OBSERVER__", {
-		configurable: false,
+		configurable: true,
 		enumerable: false,
 		writable: false,
 		value: () => browserDiagnostics.observer(),

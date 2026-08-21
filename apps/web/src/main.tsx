@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { RiverholdApp } from "./RiverholdApp";
 
 const root = document.getElementById("root");
@@ -44,7 +44,10 @@ class RuntimeBoundary extends Component<
 	}
 }
 
-createRoot(root).render(
+const reactRoot: Root = import.meta.hot?.data.reactRoot ?? createRoot(root);
+if (import.meta.hot) import.meta.hot.data.reactRoot = reactRoot;
+
+reactRoot.render(
 	<RuntimeBoundary>
 		<RiverholdApp />
 	</RuntimeBoundary>,
