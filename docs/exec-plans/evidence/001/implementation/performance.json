@@ -1,7 +1,7 @@
 {
 	"schemaVersion": "eonfolk-implementation-performance-evidence-v1",
 	"measuredAt": "2026-08-21",
-	"commit": "WORKTREE_PRE_REVIEW",
+	"commit": "20b6d3b0a9b0082a97d587e9e96aaa2c8b29ef17",
 	"operatorEvidenceClass": "AUTOMATED TECHNICAL MEASUREMENT",
 	"humanGateClaim": "NOT RUN — OPERATOR IMPLEMENTATION OVERRIDE",
 	"runtime": {
@@ -46,6 +46,6 @@
 		"Mobile is viewport emulation on the target Mac, not a physical mid-tier phone.",
 		"Localhost timing does not represent 4G transfer latency.",
 		"Headless requestAnimationFrame is a smoke measurement, not a field percentile.",
-		"The commit field must be replaced with the frozen reviewed SHA before final handoff."
+		"The recorded commit is the exact measured implementation tree; the evidence-only follow-up commit changes no runtime input."
 	]
 }
