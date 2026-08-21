@@ -33,6 +33,9 @@ describe("authoritative Riverhold application runtime", () => {
 		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
 		const initial = await runtime.initialize();
 		expect(initial.citizens).toHaveLength(8);
+		expect(initial.worldNotices[0]).toMatch(
+			/Mara Vale.*Toma Reed.*market tally/i,
+		);
 		expect(initial.investigation).toMatchObject({
 			ledgerCount: 40,
 			openBinCount: 28,

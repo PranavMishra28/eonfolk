@@ -463,6 +463,10 @@ try {
 								(citizen) =>
 									citizen.querySelector("button")?.textContent?.trim() ?? "",
 							);
+							const citizenNames = citizens.map(
+								(citizen) =>
+									citizen.querySelector("strong")?.textContent?.trim() ?? "",
+							);
 							const maraCount = citizens.filter((citizen) =>
 								citizen.querySelector("strong")?.textContent?.includes("Mara"),
 							).length;
@@ -479,12 +483,20 @@ try {
 							const illustratedInteraction = document
 								.querySelector(".world-notice")
 								?.textContent?.trim();
+							const interactionCitizenCount =
+								typeof interaction === "string"
+									? citizenNames.filter(
+											(name) => name.length > 0 && interaction.includes(name),
+										).length
+									: 0;
 							return canvas?.dataset.ready === "true" &&
 								citizens.length === 8 &&
 								activityTexts.every((text) => text.length > 0) &&
 								maraCount === 1 &&
 								typeof interaction === "string" &&
 								interaction.length > 0 &&
+								interactionCitizenCount >= 2 &&
+								/(?:exchange|compare|tally)/i.test(interaction) &&
 								typeof illustratedInteraction === "string" &&
 								illustratedInteraction.includes(interaction)
 								? {
@@ -493,6 +505,7 @@ try {
 										activityCount: activityTexts.length,
 										maraCount,
 										interactionCue: interaction,
+										interactionCitizenCount,
 										semanticIllustratedParity: true,
 									}
 								: null;
@@ -705,6 +718,7 @@ const failed =
 			run.markEvidence.meaningfulWorld.semanticCitizenCount !== 8 ||
 			run.markEvidence.meaningfulWorld.activityCount !== 8 ||
 			run.markEvidence.meaningfulWorld.maraCount !== 1 ||
+			run.markEvidence.meaningfulWorld.interactionCitizenCount < 2 ||
 			run.markEvidence.meaningfulWorld.semanticIllustratedParity !== true ||
 			run.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
 		);

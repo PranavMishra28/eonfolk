@@ -935,13 +935,27 @@ export class AuthoritativeRiverholdRuntime {
 		const exchange = this.#events.find(
 			(event) => event.eventPayload.kind === "ExchangeCompleted",
 		);
+		const activeTraders = citizens
+			.filter((citizen) => citizen.activityKind === "trade")
+			.map((citizen) => citizen.name)
+			.sort();
 		const worldNotices =
 			branch === null && exchange?.eventPayload.kind === "ExchangeCompleted"
 				? [
 						"Iven Holt gave 1 wood to Toma Reed for 1 food",
 						"The bilateral exchange settled in canonical Reality",
 					]
-				: base.worldNotices;
+				: branch === null && activeTraders.length >= 2
+					? [
+							`${activeTraders[0]} and ${activeTraders[1]} are completing a bilateral exchange`,
+							"The exchange is visibly in progress; settlement is not yet claimed",
+						]
+					: branch === null
+						? [
+								"Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+								"Relationship cue only — no authoritative change is claimed",
+							]
+						: base.worldNotices;
 		const story =
 			this.#phase === "chronicle" && chronicle.length > 0
 				? {
