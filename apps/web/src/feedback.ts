@@ -4,6 +4,7 @@ import { normalizeIngressText } from "@eonfolk/protocol";
 export const FEEDBACK_SCHEMA_VERSION = "eonfolk-feedback-v1" as const;
 const STORAGE_KEY = "eonfolk:founder-alpha-feedback:v1";
 const MAX_REPORTS = 3;
+export const FEEDBACK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_INPUT_IMAGE_BYTES = 4 * 1024 * 1024;
 const MAX_OUTPUT_IMAGE_BYTES = 768 * 1024;
 const MAX_IMAGE_EDGE = 1440;
@@ -38,8 +39,8 @@ const likelySecretPatterns = [
 
 export function sanitizeFeedbackText(value: string): string {
 	let sanitized = normalizeIngressText(value.trim(), {
-		maxBytes: 2_000,
-		maxCodePoints: 1_200,
+		maxBytes: 8_000,
+		maxCodePoints: 2_000,
 	});
 	for (const pattern of likelySecretPatterns)
 		sanitized = sanitized.replace(pattern, "[redacted]");
@@ -129,9 +130,11 @@ function isReport(value: unknown): value is LocalFeedbackReport {
 
 export class LocalFeedbackQueue {
 	readonly #storage: Storage;
+	readonly #now: () => number;
 
-	constructor(storage: Storage) {
+	constructor(storage: Storage, now: () => number = () => Date.now()) {
 		this.#storage = storage;
+		this.#now = now;
 	}
 
 	list(): readonly LocalFeedbackReport[] {
@@ -140,7 +143,16 @@ export class LocalFeedbackQueue {
 				this.#storage.getItem(STORAGE_KEY) ?? "[]",
 			) as unknown;
 			if (!Array.isArray(parsed)) return [];
-			return Object.freeze(parsed.filter(isReport).slice(-MAX_REPORTS));
+			const cutoff = Math.max(0, this.#now() - FEEDBACK_MAX_AGE_MS);
+			const reports = parsed
+				.filter(isReport)
+				.filter((report) => report.createdAtMs >= cutoff)
+				.slice(-MAX_REPORTS);
+			if (reports.length !== parsed.length) {
+				if (reports.length === 0) this.#storage.removeItem(STORAGE_KEY);
+				else this.#storage.setItem(STORAGE_KEY, JSON.stringify(reports));
+			}
+			return Object.freeze(reports);
 		} catch {
 			return [];
 		}

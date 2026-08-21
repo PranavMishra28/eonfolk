@@ -39,6 +39,7 @@ export class BrowserDiagnostics {
 	}
 
 	enableAlphaCapture(): void {
+		if (this.#recorder.mode === "alpha") return;
 		this.#recorder.setMode("alpha");
 		this.record({
 			category: "ui",

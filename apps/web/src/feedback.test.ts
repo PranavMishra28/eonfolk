@@ -36,7 +36,7 @@ describe("Founder Alpha feedback", () => {
 			),
 		).toBe("Email me at [redacted] with [redacted]");
 		expect(() => sanitizeFeedbackText("x".repeat(2_001))).toThrow(
-			/byte budget/u,
+			/code-point budget/u,
 		);
 	});
 
@@ -53,7 +53,7 @@ describe("Founder Alpha feedback", () => {
 	});
 
 	it("keeps only three local reports and supports explicit deletion", () => {
-		const queue = new LocalFeedbackQueue(new MemoryStorage());
+		const queue = new LocalFeedbackQueue(new MemoryStorage(), () => 3);
 		for (let index = 0; index < 4; index += 1) {
 			queue.save(
 				createLocalFeedbackReport({
@@ -72,6 +72,24 @@ describe("Founder Alpha feedback", () => {
 			"report 3",
 		]);
 		queue.clear();
+		expect(queue.list()).toEqual([]);
+	});
+
+	it("prunes reports after seven days using an injected local clock", () => {
+		const storage = new MemoryStorage();
+		let now = 10_000;
+		const queue = new LocalFeedbackQueue(storage, () => now);
+		queue.save(
+			createLocalFeedbackReport({
+				category: "confusing",
+				text: "old report",
+				diagnostics: null,
+				attachment: null,
+				reportId: "alpha_report_old",
+				createdAtMs: now,
+			}),
+		);
+		now += 7 * 24 * 60 * 60 * 1_000 + 1;
 		expect(queue.list()).toEqual([]);
 	});
 });
