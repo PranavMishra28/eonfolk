@@ -10,6 +10,7 @@ import {
 
 export function FeedbackPanel() {
 	const queue = useMemo(() => new LocalFeedbackQueue(window.localStorage), []);
+	const [open, setOpen] = useState(false);
 	const [category, setCategory] = useState<FeedbackCategory>("bug");
 	const [text, setText] = useState("");
 	const [includeDiagnostics, setIncludeDiagnostics] = useState(false);
@@ -67,98 +68,115 @@ export function FeedbackPanel() {
 	};
 
 	return (
-		<section className="feedback-panel" aria-labelledby="feedback-title">
+		<section
+			className={`feedback-panel${open ? "" : " feedback-panel--closed"}`}
+			aria-labelledby="feedback-title"
+		>
 			<div>
 				<p className="eyebrow">FOUNDER ALPHA FEEDBACK</p>
 				<h2 id="feedback-title">What broke the spell?</h2>
-				<p>
-					Reports stay on this device until a separately configured relay
-					exists. Do not include names, email addresses, keys, or private
-					information.
-				</p>
-			</div>
-			<div className="feedback-form">
-				<label>
-					<span>Kind of feedback</span>
-					<select
-						value={category}
-						onChange={(event) =>
-							setCategory(event.target.value as FeedbackCategory)
-						}
-					>
-						<option value="bug">Something broke</option>
-						<option value="confusing">Something was unclear</option>
-						<option value="idea">I wanted another option</option>
-						<option value="story">A moment stayed with me</option>
-					</select>
-				</label>
-				<label>
-					<span>What happened?</span>
-					<textarea
-						value={text}
-						maxLength={1200}
-						required
-						onChange={(event) => setText(event.target.value)}
-						placeholder="Describe the moment and what you expected."
-					/>
-				</label>
-				<label>
-					<span>Optional image</span>
-					<input
-						type="file"
-						accept="image/png,image/jpeg,image/webp"
-						onChange={(event) =>
-							void prepareAttachment(event.target.files?.[0])
-						}
-					/>
-				</label>
-				{attachment && (
-					<img
-						className="feedback-preview"
-						src={attachment.dataUrl}
-						alt="Sanitized attachment preview"
-					/>
-				)}
-				{attachmentStatus && <p role="status">{attachmentStatus}</p>}
-				<label className="feedback-consent">
-					<input
-						type="checkbox"
-						checked={includeDiagnostics}
-						onChange={(event) => setIncludeDiagnostics(event.target.checked)}
-					/>
-					<span>
-						Attach bounded structured diagnostics. This never includes raw world
-						state, prompts, hidden reasoning, credentials, or browser history.
-					</span>
-				</label>
-				<div className="feedback-actions">
-					<button
-						type="button"
-						className="primary-action"
-						disabled={text.trim().length === 0}
-						onClick={save}
-					>
-						Save feedback locally
-					</button>
-					{queued > 0 && (
-						<button
-							type="button"
-							onClick={() => {
-								queue.clear();
-								setQueued(0);
-								setStatus("Deleted all locally queued feedback.");
-							}}
-						>
-							Delete queued feedback ({queued})
-						</button>
-					)}
-				</div>
-				{status && (
-					<p className="feedback-status" role="status">
-						{status}
+				{open && (
+					<p>
+						Reports stay on this device until a separately configured relay
+						exists. Do not include names, email addresses, keys, or private
+						information.
 					</p>
 				)}
+				<button
+					type="button"
+					className="feedback-toggle"
+					aria-expanded={open}
+					aria-controls="feedback-form"
+					onClick={() => setOpen((current) => !current)}
+				>
+					{open ? "Close feedback" : "Report issue / Send feedback"}
+				</button>
 			</div>
+			{open && (
+				<div className="feedback-form" id="feedback-form">
+					<label>
+						<span>Kind of feedback</span>
+						<select
+							value={category}
+							onChange={(event) =>
+								setCategory(event.target.value as FeedbackCategory)
+							}
+						>
+							<option value="bug">Something broke</option>
+							<option value="confusing">Something was unclear</option>
+							<option value="idea">I wanted another option</option>
+							<option value="story">A moment stayed with me</option>
+						</select>
+					</label>
+					<label>
+						<span>What happened?</span>
+						<textarea
+							value={text}
+							maxLength={2000}
+							required
+							onChange={(event) => setText(event.target.value)}
+							placeholder="Describe the moment and what you expected."
+						/>
+					</label>
+					<label>
+						<span>Optional image</span>
+						<input
+							type="file"
+							accept="image/png,image/jpeg,image/webp"
+							onChange={(event) =>
+								void prepareAttachment(event.target.files?.[0])
+							}
+						/>
+					</label>
+					{attachment && (
+						<img
+							className="feedback-preview"
+							src={attachment.dataUrl}
+							alt="Sanitized attachment preview"
+						/>
+					)}
+					{attachmentStatus && <p role="status">{attachmentStatus}</p>}
+					<label className="feedback-consent">
+						<input
+							type="checkbox"
+							checked={includeDiagnostics}
+							onChange={(event) => setIncludeDiagnostics(event.target.checked)}
+						/>
+						<span>
+							Attach bounded structured diagnostics. This never includes raw
+							world state, prompts, hidden reasoning, credentials, or browser
+							history.
+						</span>
+					</label>
+					<div className="feedback-actions">
+						<button
+							type="button"
+							className="primary-action"
+							disabled={text.trim().length === 0}
+							onClick={save}
+						>
+							Save feedback locally
+						</button>
+						{queued > 0 && (
+							<button
+								type="button"
+								onClick={() => {
+									queue.clear();
+									setQueued(0);
+									setStatus("Deleted all locally queued feedback.");
+								}}
+							>
+								Delete queued feedback ({queued})
+							</button>
+						)}
+					</div>
+					{status && (
+						<p className="feedback-status" role="status">
+							{status}
+						</p>
+					)}
+				</div>
+			)}
 		</section>
 	);
 }

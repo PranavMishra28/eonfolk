@@ -32,6 +32,27 @@
 	background: color-mix(in srgb, var(--paper) 94%, var(--rust));
 }
 
+.feedback-panel--closed {
+	display: block;
+	width: min(92vw, 38rem);
+	padding: 1.15rem 1.3rem;
+	background: color-mix(in srgb, var(--paper) 86%, var(--ink));
+}
+
+.feedback-panel--closed h2 {
+	margin-bottom: 0.85rem;
+	font-size: clamp(1.35rem, 2vw, 1.85rem);
+}
+
+.feedback-toggle {
+	border: 1px solid color-mix(in srgb, var(--ink) 48%, transparent);
+	background: transparent;
+	color: var(--ink);
+	padding: 0.65rem 0.85rem;
+	font-weight: 750;
+	cursor: pointer;
+}
+
 .feedback-form,
 .feedback-form label {
 	display: grid;

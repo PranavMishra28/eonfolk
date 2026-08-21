@@ -151,6 +151,9 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 }) => {
 	const panel = page.getByRole("region", { name: "What broke the spell?" });
 	await panel
+		.getByRole("button", { name: "Report issue / Send feedback" })
+		.click();
+	await panel
 		.getByLabel("What happened?")
 		.fill(
 			"The relationship consequence was clear. Contact player@example.com with ghp_abcdefghijklmnopqrstuvwxyz123456",
