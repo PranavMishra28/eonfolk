@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final repair passes local verification; canonical AC performance, confirmation and remote CI pending; no measured-human pass claimed
+**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final repair and checkpoint CI pass; clean-commit performance and confirmation pending; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -26,7 +26,7 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
-| 7. Operator-authorized implementation and consolidation | Confirmation pending | Local `main` contains preserved planning plus the final repaired Riverhold working tree; full local verification and a 15-run battery diagnostic pass, but canonical AC performance remains pending; human gates remain NOT RUN |
+| 7. Operator-authorized implementation and consolidation | Confirmation pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; local verification and exact-checkpoint CI pass; a 15-run diagnostic passed numerically and the finalized clean-commit run remains pending; human gates remain NOT RUN |
 
 ## Operator implementation override — 2026-08-21
 
@@ -48,7 +48,7 @@ Verified bootstrap state:
 
 Local `pnpm verify` on the final repaired working tree passed runtime/cohort/architecture/docs/format/lint/typecheck; 61 unit tests; two property tests; a real Chromium IndexedDB reload; the fixed 20-warmup/200-cycle timing analyzer; build and bundle budgets; a zero-advisory production audit; six Chromium journeys; 254 routed requests plus 27,707 Chromium-netlog events with zero external attempts; and the bounded TLA+ model (3,480 generated/350 distinct states, depth 10, five invariants).
 
-The headed performance harness completed 15 full journeys after forcing the browser network offline, sampled arrival/busy-market/Chronicle for 30 seconds each, kept every state/run p95 at 10.1 ms or better, marked meaningful world at 2,255.6 ms or better under the throttled mobile profile, and recorded zero external route/netlog attempts. The immediate post-run audit reported Battery Power, however, so the result is retained only as a diagnostic and canonical AC acceptance remains pending. The finalized harness now fails dirty-tree or non-AC runs and adds exact source/power metadata plus pooled summaries. [Performance](docs/exec-plans/evidence/001/implementation/performance.json), [bundle](docs/exec-plans/evidence/001/implementation/bundle.json), and [timing](docs/exec-plans/evidence/001/implementation/decision-trace-timing.json) evidence are retained. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
+The headed performance harness completed 15 full journeys after forcing the browser network offline, sampled arrival/busy-market/Chronicle for 30 seconds each, kept every state/run p95 at 10.1 ms or better, marked meaningful world at 2,255.6 ms or better under the throttled mobile profile, and recorded zero external route/netlog attempts. That earlier report omitted in-report power and pooled summaries, so it remains diagnostic. The finalized harness now fails dirty-tree, unstable/low-power/low-battery, profile, or numerical mismatches and adds exact source/power metadata plus pooled summaries. DEV-M5-001 accepts stable normal-mode battery >=50% without changing any numerical target, consistent with the operator's binding overnight acceptance. [Performance](docs/exec-plans/evidence/001/implementation/performance.json), [bundle](docs/exec-plans/evidence/001/implementation/bundle.json), and [timing](docs/exec-plans/evidence/001/implementation/decision-trace-timing.json) evidence are retained. The [implementation review](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md) records all limitations and dispositions.
 
 This evidence does not establish fun, unfamiliar-observer legibility, attachment, delayed return, Story Card comprehension/conversion, physical mobile/4G performance, production scale, or the 40–60-hour labor budget. Gate 0/A/B/Card remain **NOT RUN**.
 

@@ -66,6 +66,36 @@ const summarize = (samples, frameBudgetMs) => ({
 	droppedFrameCount: samples.filter((sample) => sample > frameBudgetMs).length,
 });
 
+function readPowerProfile() {
+	const batteryStatus = execFileSync("pmset", ["-g", "batt"], {
+		encoding: "utf8",
+	}).trim();
+	const settings = execFileSync("pmset", ["-g", "custom"], {
+		encoding: "utf8",
+	}).trim();
+	const source = batteryStatus.includes("AC Power")
+		? "AC Power"
+		: batteryStatus.includes("Battery Power")
+			? "Battery Power"
+			: "unknown";
+	const percentageMatch = batteryStatus.match(/(\d+)%/);
+	const percentage =
+		percentageMatch === null ? null : Number(percentageMatch[1]);
+	const sectionMatch = settings.match(
+		new RegExp(
+			`(?:^|\\n)${source.replace(" ", "\\s+")}:([\\s\\S]*?)(?=\\n(?:AC|Battery)\\s+Power:|$)`,
+		),
+	);
+	const powerModeMatch = sectionMatch?.[1]?.match(/powermode\s+(\d+)/);
+	const powerMode =
+		powerModeMatch === undefined ? null : Number(powerModeMatch[1]);
+	const accepted =
+		powerMode === 0 &&
+		(source === "AC Power" ||
+			(source === "Battery Power" && percentage !== null && percentage >= 50));
+	return { source, percentage, powerMode, accepted, batteryStatus };
+}
+
 async function frameState(page, name, frameBudgetMs) {
 	await page.waitForTimeout(stateWarmupMs);
 	const samples = await page.evaluate(
@@ -193,6 +223,7 @@ const reportPath = resolve(
 	"eonfolk-canonical-performance.json",
 );
 mkdirSync(outputDirectory, { recursive: true });
+const startPowerProfile = readPowerProfile();
 const server = await preview({
 	root: "apps/web",
 	logLevel: "silent",
@@ -399,9 +430,11 @@ const workingTreeDirty =
 const lockfileSha256 = createHash("sha256")
 	.update(readFileSync(resolve("pnpm-lock.yaml")))
 	.digest("hex");
-const power = execFileSync("pmset", ["-g", "batt"], {
-	encoding: "utf8",
-}).trim();
+const endPowerProfile = readPowerProfile();
+const powerProfileAccepted =
+	startPowerProfile.accepted &&
+	endPowerProfile.accepted &&
+	startPowerProfile.source === endPowerProfile.source;
 const report = {
 	schemaVersion: "eonfolk-canonical-web-performance-v1",
 	measuredAt: new Date().toISOString(),
@@ -412,7 +445,13 @@ const report = {
 		chromium: chromium.executablePath(),
 		headed: true,
 		previewOrigin: origin,
-		power,
+		power: {
+			start: startPowerProfile,
+			end: endPowerProfile,
+			profileAccepted: powerProfileAccepted,
+			acceptanceRule:
+				"stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change",
+		},
 	},
 	source: { commit: sourceCommit, workingTreeDirty, lockfileSha256 },
 	fixture: {
@@ -451,7 +490,7 @@ process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 const failed =
 	!canonical ||
 	workingTreeDirty ||
-	!power.includes("AC Power") ||
+	!powerProfileAccepted ||
 	externalRoutes.length > 0 ||
 	externalNetlogAttempts.length > 0 ||
 	aggregates.some((aggregate) => {

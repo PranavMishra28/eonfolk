@@ -2,7 +2,7 @@
 
 **Purpose:** Give the operator one practical, evidence-backed summary of the consolidated Riverhold implementation.
 
-**Status:** TECHNICAL CANDIDATE — repaired code `970879a`; canonical AC performance, targeted confirmation, remote CI and cleanup pending
+**Status:** TECHNICAL CANDIDATE — repaired code `970879a`; clean-commit performance, targeted confirmation, final CI and cleanup pending
 
 **Authority boundary:** This file summarizes implemented reality. Product and technical semantics remain owned by [docs/INDEX.md](docs/INDEX.md); execution evidence remains in the [001 ExecPlan](docs/exec-plans/active/001-foundation.md).
 
@@ -32,7 +32,7 @@ corepack pnpm runtime:check
 
 ## Verified locally
 
-`pnpm verify` passed on the repaired tree: 61 unit, two property, one real-browser IndexedDB reload, fixed 20-warmup/200-cycle timing analysis, build/budgets, zero known production advisories, six Playwright journeys, 254 allowed local routes/27,707 netlog events/zero external attempts, and 3,480-state bounded formal exploration. A 15-run headed battery diagnostic passed all numerical performance gates, but the frozen profile requires AC Power; the finalized harness now fails non-AC or dirty-tree runs, and a wholly new AC run remains blocking. Evidence is in `docs/exec-plans/evidence/001/implementation/`.
+`pnpm verify` passed on the repaired tree: 61 unit, two property, one real-browser IndexedDB reload, fixed 20-warmup/200-cycle timing analysis, build/budgets, zero known production advisories, six Playwright journeys, 254 allowed local routes/27,707 netlog events/zero external attempts, and 3,480-state bounded formal exploration. Private checkpoint CI passed Verify/Formal/Secret scan at `54fca9e`. A 15-run headed diagnostic passed all numerical performance gates; the finalized harness now records exact source and stable normal-power boundaries, rejects low-power/low-battery/dirty runs, and requires a wholly new clean-commit run. Evidence is in `docs/exec-plans/evidence/001/implementation/`.
 
 ## Honest limits
 
