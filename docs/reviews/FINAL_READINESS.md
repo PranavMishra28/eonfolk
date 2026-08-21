@@ -4,7 +4,7 @@
 
 **Status:** READY FOR GOAL MODE — exact amended execution contract confirmed; product gates remain unrun
 
-**Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/active/001-foundation.md).
+**Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/completed/001-foundation.md).
 
 **Related documents:** [product](../product/PRODUCT.md), [human loop](../product/HUMAN_LOOP.md), [Chronicle](../product/CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [player perspectives](PLAYER_PERSPECTIVES.md)
 
@@ -71,7 +71,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Renderer/assets | PixiJS 2.5D atlas + semantic DOM; no R3F/3D pipeline | [FRONTEND](../engineering/FRONTEND.md) |
 | Persistence | atomic run genesis; durable-before-visible run-scoped IndexedDB; receipts/fencing; no backup/export/import | [PERSISTENCE](../engineering/PERSISTENCE.md) |
 | Causality | direct/trigger/contributing causal; temporal/response separate; allegation content | [SIMULATION](../engineering/SIMULATION.md) |
-| Scope/hours | 52 planned + ≤8 fix/review, hard 60; Gate 0/A/B | [001-foundation](../exec-plans/active/001-foundation.md) |
+| Scope/hours | 52 planned + ≤8 fix/review, hard 60; Gate 0/A/B | [001-foundation](../exec-plans/completed/001-foundation.md) |
 | Budgets/access | explicit payload/time/frame/mobile/semantic/reduced-motion gates | [PERFORMANCE](../quality/PERFORMANCE.md) |
 | CI/security | required/conditional suites, probed capabilities, no invented protection | [TESTING](../quality/TESTING.md) |
 
@@ -97,7 +97,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Future Institution kernel | [Governance](../game/GOVERNANCE.md) | names/IDs avoid council-only lock-in | generic institutions/organizations/war |
 | Human roles | [Product](../product/PRODUCT.md) | Follow Mara provides only the narrow patron/history path | Stranger/Follower/Historian/Experimenter/Creator UI |
 | Canon and counterfactuals | [World structure](../product/WORLD_STRUCTURE.md) | one `canonical-local-proof` manifest; no fork route | snapshot-derived noncanonical World Forks |
-| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/active/001-foundation.md) | no human-society claim, dashboard, or added mechanics; the two-hour contract delta replaces two hours of removed export work | post-gate bounded research |
+| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/completed/001-foundation.md) | no human-society claim, dashboard, or added mechanics; the two-hour contract delta replaces two hours of removed export work | post-gate bounded research |
 
 ## Required exit checks
 

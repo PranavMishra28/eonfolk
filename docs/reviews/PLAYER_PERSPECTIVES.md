@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns the consolidated persona objections and predicted abandonment. It does not own product decisions; dispositions are in [DECISIONS](../decisions/DECISIONS.md).
 
-**Related documents:** [frozen plan](../exec-plans/active/001-foundation.md), [product red team](PRODUCT_RED_TEAM.md), [game red team](GAME_RED_TEAM.md), [quality bar](../quality/QUALITY_BAR.md)
+**Related documents:** [frozen plan](../exec-plans/completed/001-foundation.md), [product red team](PRODUCT_RED_TEAM.md), [game red team](GAME_RED_TEAM.md), [quality bar](../quality/QUALITY_BAR.md)
 
 ## Review basis
 

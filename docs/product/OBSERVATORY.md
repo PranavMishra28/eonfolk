@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns Observatory product/research semantics. [WORLD_MODEL](../game/WORLD_MODEL.md) owns truth and visibility, [COGNITION](../engineering/COGNITION.md) owns decision records, [PERSISTENCE](../engineering/PERSISTENCE.md) owns stored ledgers/manifests, and [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns canon/forks.
 
-**Related documents:** [product](PRODUCT.md), [Chronicle](CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [simulation](../engineering/SIMULATION.md), [first ExecPlan](../exec-plans/active/001-foundation.md)
+**Related documents:** [product](PRODUCT.md), [Chronicle](CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [simulation](../engineering/SIMULATION.md), [first ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Owned decision
 

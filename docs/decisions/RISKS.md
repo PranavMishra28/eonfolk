@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns risk priority, mitigation and abandon/change triggers. [Decisions](DECISIONS.md) owns accepted responses; [open questions](OPEN_QUESTIONS.md) owns experiments.
 
-**Related documents:** [quality bar](../quality/QUALITY_BAR.md), [performance](../quality/PERFORMANCE.md), [first ExecPlan](../exec-plans/active/001-foundation.md).
+**Related documents:** [quality bar](../quality/QUALITY_BAR.md), [performance](../quality/PERFORMANCE.md), [first ExecPlan](../exec-plans/completed/001-foundation.md).
 
 ## Top 5 abandon-or-change triggers
 

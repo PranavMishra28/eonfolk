@@ -6,7 +6,7 @@
 
 **Authority boundary:** owns cross-discipline pass/fail. [TESTING](TESTING.md), [EVALS](EVALS.md), [VISUAL_QA](VISUAL_QA.md), and [PERFORMANCE](PERFORMANCE.md) own detailed procedures.
 
-**Related documents:** [product](../product/PRODUCT.md), [ExecPlan](../exec-plans/active/001-foundation.md), [reviews](../reviews/PRODUCT_RED_TEAM.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md)
+**Related documents:** [product](../product/PRODUCT.md), [ExecPlan](../exec-plans/completed/001-foundation.md), [reviews](../reviews/PRODUCT_RED_TEAM.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md)
 
 ## Owned decision
 

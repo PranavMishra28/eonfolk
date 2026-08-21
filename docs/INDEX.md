@@ -2,11 +2,11 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** IMPLEMENTATION COMPLETE UNDER OPERATOR OVERRIDE — technical evidence retained; human product gates not run
+**Status:** FOUNDER ALPHA ACTIVE — 001 technical evidence retained; human product gates not run
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [first ExecPlan](exec-plans/active/001-foundation.md).
+**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md), [completed first slice](exec-plans/completed/001-foundation.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
@@ -17,7 +17,7 @@ Each concern has one authority. Research records evidence; reviews record object
 3. [Human loop](product/HUMAN_LOOP.md).
 4. [Distribution](product/DISTRIBUTION.md).
 5. [Architecture](engineering/ARCHITECTURE.md).
-6. [001-foundation ExecPlan](exec-plans/active/001-foundation.md).
+6. [002 Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md).
 
 ## Coordinator-owned shared authorities
 
@@ -123,7 +123,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Retained artifact |
 |---|---|
 | ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
-| Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/active/001-foundation.md) |
+| Sole living Founder Alpha plan | [002-founder-alpha.md](exec-plans/active/002-founder-alpha.md) |
+| Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/completed/001-foundation.md) |
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |

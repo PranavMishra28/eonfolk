@@ -6,7 +6,7 @@
 
 **Authority boundary:** owns architectural layers, package dependencies, local-first execution, and the future region-server boundary. Simulation rules, storage semantics, cognition policy, and rendering details are owned by their linked authorities.
 
-**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [Observatory](../product/OBSERVATORY.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/active/001-foundation.md`
+**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [Observatory](../product/OBSERVATORY.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/completed/001-foundation.md`
 
 ## Owned decision
 

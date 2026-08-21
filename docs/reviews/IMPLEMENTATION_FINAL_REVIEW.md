@@ -4,7 +4,7 @@
 
 **Status:** FINAL TARGETED CONFIRMATION FAILED AT `32808e1`; ALL THREE P1S REPAIRED; COMPLETE LOCAL VERIFY AND PUSHED-CANDIDATE CI GREEN; NO SECOND CONFIRMATION CLAIMED
 
-**Authority boundary:** this file owns implementation-review findings and dispositions. The [ExecPlan](../exec-plans/active/001-foundation.md) owns completion state; engineering and product authorities own the accepted behavior.
+**Authority boundary:** this file owns implementation-review findings and dispositions. The [ExecPlan](../exec-plans/completed/001-foundation.md) owns completion state; engineering and product authorities own the accepted behavior.
 
 **Related documents:** [testing](../quality/TESTING.md), [persistence](../engineering/PERSISTENCE.md), [security](../engineering/SECURITY.md), [performance evidence](../exec-plans/evidence/001/implementation/performance.json)
 

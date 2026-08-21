@@ -2,11 +2,11 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** IMPLEMENTATION-COMPLETE UNDER OPERATOR OVERRIDE — final repairs, canonical performance, complete local verification, pushed-candidate CI, repository hardening, and archival cleanup green; no measured-human pass claimed
+**Status:** FOUNDER ALPHA ACTIVE — exact 001 baseline green; privacy P0 corrected; 002 implementation and review pending
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
-**Related documents:** [authority index](docs/INDEX.md), [source ledger](docs/research/SOURCE_LEDGER.md), [risks](docs/decisions/RISKS.md), [first ExecPlan](docs/exec-plans/active/001-foundation.md).
+**Related documents:** [authority index](docs/INDEX.md), [source ledger](docs/research/SOURCE_LEDGER.md), [risks](docs/decisions/RISKS.md), [Founder Alpha ExecPlan](docs/exec-plans/active/002-founder-alpha.md), [completed first ExecPlan](docs/exec-plans/completed/001-foundation.md).
 
 ## Binding constraints
 
@@ -27,6 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Active | Start SHA `74a8a7e`; exact baseline green; GitHub privacy corrected from public to private; sole branch `feat/002-founder-alpha`; living [002 plan](docs/exec-plans/active/002-founder-alpha.md) |
 
 ## Operator implementation override — 2026-08-21
 

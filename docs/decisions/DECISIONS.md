@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns acceptance and review disposition. Linked authority documents own detailed behavior and contracts; the [source ledger](../research/SOURCE_LEDGER.md) owns provenance.
 
-**Related documents:** [risks](RISKS.md), [open questions](OPEN_QUESTIONS.md), [product](../product/PRODUCT.md), [architecture](../engineering/ARCHITECTURE.md), [first ExecPlan](../exec-plans/active/001-foundation.md).
+**Related documents:** [risks](RISKS.md), [open questions](OPEN_QUESTIONS.md), [product](../product/PRODUCT.md), [architecture](../engineering/ARCHITECTURE.md), [first ExecPlan](../exec-plans/completed/001-foundation.md).
 
 ## Top 10 decisions
 

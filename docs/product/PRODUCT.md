@@ -4,7 +4,7 @@
 
 **Status:** ACCEPTED AFTER RED TEAM — still a product hypothesis until observed play
 
-**Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/active/001-foundation.md) owns implementation scope.
+**Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/completed/001-foundation.md) owns implementation scope.
 
 **Related documents:** [tournament](../research/GAME_DESIGN_RESEARCH.md), [player evidence](../research/PLAYER_RESEARCH.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md), [Chronicle](CHRONICLE.md), [Observatory](OBSERVATORY.md), [distribution](DISTRIBUTION.md)
 

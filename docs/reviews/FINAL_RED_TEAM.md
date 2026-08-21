@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns the final objections and verdict against review commit `6850b699221fb5c79f247e03b1b4955c2c96b44b`. It does not change product, technical, quality, decision, risk, question, source-ledger, or execution authority.
 
-**Related documents:** [authority index](../INDEX.md), [review reconciliation](../decisions/DECISIONS.md#review-reconciliation), [first ExecPlan](../exec-plans/active/001-foundation.md), [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md), [final-readiness candidate](FINAL_READINESS.md), [quality bar](../quality/QUALITY_BAR.md).
+**Related documents:** [authority index](../INDEX.md), [review reconciliation](../decisions/DECISIONS.md#review-reconciliation), [first ExecPlan](../exec-plans/completed/001-foundation.md), [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md), [final-readiness candidate](FINAL_READINESS.md), [quality bar](../quality/QUALITY_BAR.md).
 
 ## Review basis and verdict
 
@@ -56,7 +56,7 @@ This review used only exact commit **`6850b699221fb5c79f247e03b1b4955c2c96b44b`*
 
 ### FR-003 — The 52+8-hour claim is not a credible estimate
 
-**Exact location.** [001 hour and scope budget](../exec-plans/active/001-foundation.md#hour-and-scope-budget) assigns only milestone totals at lines 29–40. [M0](../exec-plans/active/001-foundation.md#m0--product-and-visual-kill-gates-4-hours) gives four hours to six product variants, a Pixi/semantic fixture, three-viewport/access/performance checks, ten participant/observer sessions and two independent reviews. [M1](../exec-plans/active/001-foundation.md#m1--deterministic-durable-kernel-8-hours) gives eight hours to workspace setup, byte contracts, reducer/scheduler, IndexedDB receipts/snapshots/fencing/export, cross-runtime vectors and crash injection. [M4](../exec-plans/active/001-foundation.md#m4--gate-b-proof-of-agency-and-bounded-attachment-12-hours) gives twelve hours to remaining branch/Chronicle/return work, full tests, eight real-versus-yoked sessions, five separate card viewers and four independent review disciplines.
+**Exact location.** [001 hour and scope budget](../exec-plans/completed/001-foundation.md#hour-and-scope-budget) assigns only milestone totals at lines 29–40. [M0](../exec-plans/completed/001-foundation.md#m0--product-and-visual-kill-gates-4-hours) gives four hours to six product variants, a Pixi/semantic fixture, three-viewport/access/performance checks, ten participant/observer sessions and two independent reviews. [M1](../exec-plans/completed/001-foundation.md#m1--deterministic-durable-kernel-8-hours) gives eight hours to workspace setup, byte contracts, reducer/scheduler, IndexedDB receipts/snapshots/fencing/export, cross-runtime vectors and crash injection. [M4](../exec-plans/completed/001-foundation.md#m4--gate-b-proof-of-agency-and-bounded-attachment-12-hours) gives twelve hours to remaining branch/Chronicle/return work, full tests, eight real-versus-yoked sessions, five separate card viewers and four independent review disciplines.
 
 **Why material.** No task/dependency/three-point estimate shows those outcomes fit. Recruitment, scheduling, facilitation, analysis, dependency setup, artifact authoring, physical-device access, integration/rework, and reviewer turnaround have no owned hours. The Goal prompt permits up to three child agents but never defines whether “focused hours” means coordinator wall time or total labor, so concurrency can silently multiply a solo 60-hour ceiling. The cut list removes presentation extras; it cannot remove the kernel, three histories, semantic game, human denominators, 30/90/365-day tests, access paths, or failure drills creating the estimate pressure. PR-007 and ER-009 are therefore not fully mitigated by reordering alone.
 
@@ -66,7 +66,7 @@ This review used only exact commit **`6850b699221fb5c79f247e03b1b4955c2c96b44b`*
 
 ### FR-004 — Gate 0 has no reproducible comparison protocol
 
-**Exact location.** [QUALITY_BAR, Gate 0](../quality/QUALITY_BAR.md#gate-0--product-kill-gate), [001 M0](../exec-plans/active/001-foundation.md#m0--product-and-visual-kill-gates-4-hours), and [Goal prompt, Gate 0](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md#gate-0--cheap-product-and-visual-kill-tests).
+**Exact location.** [QUALITY_BAR, Gate 0](../quality/QUALITY_BAR.md#gate-0--product-kill-gate), [001 M0](../exec-plans/completed/001-foundation.md#m0--product-and-visual-kill-gates-4-hours), and [Goal prompt, Gate 0](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md#gate-0--cheap-product-and-visual-kill-tests).
 
 **Why material.** Six variants are assigned to five participants, but the documents never say whether each person sees all variants or one subset, how order/carryover is controlled, which facts/actions/delay/presentation are held constant, how “wins overall” combines the recorded measures, how a tie works, or how the 20-percentage-point rule is computed for nonbinary responses. Two compliant coordinators can reach opposite D-001 decisions from the same observations. That leaves PR-006 and GR-008 only partially mitigated and makes the fastest product kill gate non-falsifiable as written.
 
@@ -76,7 +76,7 @@ This review used only exact commit **`6850b699221fb5c79f247e03b1b4955c2c96b44b`*
 
 ### FR-005 — The focal repair object still contradicts its authorities
 
-**Exact location.** [ECONOMY](../game/ECONOMY.md#owned-decision) line 19 says `2 wood + work` repairs the **well**. [DESIGN, Riverhold visual lexicon](../design/DESIGN.md#riverhold-visual-lexicon) line 106 renders “repairing well.” [GAME_SYSTEMS](../game/GAME_SYSTEMS.md#owned-decision) line 20, [001 exact scope](../exec-plans/active/001-foundation.md#exact-included-scope), the Goal prompt, and [CHRONICLE RV-009](../product/CHRONICLE.md#riverhold-oracle-chain) instead make it a **mill** repair. `ECONOMY` is the sole owner of resource/exchange semantics, while `GAME_SYSTEMS` owns visible mechanics.
+**Exact location.** [ECONOMY](../game/ECONOMY.md#owned-decision) line 19 says `2 wood + work` repairs the **well**. [DESIGN, Riverhold visual lexicon](../design/DESIGN.md#riverhold-visual-lexicon) line 106 renders “repairing well.” [GAME_SYSTEMS](../game/GAME_SYSTEMS.md#owned-decision) line 20, [001 exact scope](../exec-plans/completed/001-foundation.md#exact-included-scope), the Goal prompt, and [CHRONICLE RV-009](../product/CHRONICLE.md#riverhold-oracle-chain) instead make it a **mill** repair. `ECONOMY` is the sole owner of resource/exchange semantics, while `GAME_SYSTEMS` owns visible mechanics.
 
 **Why material.** The red teams already required exchange/repair to feed Riverhold rather than run beside it. Following the economy owner builds a well mechanic; following the plan builds a mill mechanic. The reserve work order and Chronicle name the mill, so a well conversion becomes unrelated Gate A activity or makes presentation disagree with authoritative state. This is a gate/factuality/scope conflict, not a cosmetic noun mismatch.
 
