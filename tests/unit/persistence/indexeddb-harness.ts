@@ -1,3 +1,4 @@
+import { AuthoritativeRiverholdRuntime } from "../../../apps/web/src/authoritative-runtime.js";
 import {
 	type CrashPoint,
 	IndexedDbPersistence,
@@ -37,6 +38,63 @@ function inspectStores(name: string): Promise<readonly string[]> {
 		request.addEventListener("error", () => reject(request.error), {
 			once: true,
 		});
+	});
+}
+
+function mutateFirstBatchSchema(name: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.open(name);
+		request.addEventListener("error", () => reject(request.error), {
+			once: true,
+		});
+		request.addEventListener(
+			"success",
+			() => {
+				const database = request.result;
+				const transaction = database.transaction(
+					PERSISTENCE_STORE_NAMES.batches,
+					"readwrite",
+				);
+				const store = transaction.objectStore(PERSISTENCE_STORE_NAMES.batches);
+				const rows = store.getAll();
+				rows.addEventListener(
+					"success",
+					() => {
+						const row = rows.result[0] as
+							| {
+									key: string;
+									record: { data: Record<string, unknown> };
+							  }
+							| undefined;
+						if (row === undefined) {
+							transaction.abort();
+							reject(new Error("runtime test batch is missing"));
+							return;
+						}
+						store.put({
+							...row,
+							record: {
+								...row.record,
+								data: { ...row.record.data, schemaVersion: "future" },
+							},
+						});
+					},
+					{ once: true },
+				);
+				transaction.addEventListener(
+					"complete",
+					() => {
+						database.close();
+						resolve();
+					},
+					{ once: true },
+				);
+				transaction.addEventListener("error", () => reject(transaction.error), {
+					once: true,
+				});
+			},
+			{ once: true },
+		);
 	});
 }
 
@@ -116,6 +174,41 @@ async function run(): Promise<void> {
 	reopened.close();
 	const stores = await inspectStores(databaseName);
 	await deleteDatabase(databaseName);
+
+	const runtimeDatabaseName = "eonfolk-indexeddb-runtime-version-test";
+	await deleteDatabase(runtimeDatabaseName);
+	const runtimePersistence = await IndexedDbPersistence.open({
+		databaseName: runtimeDatabaseName,
+	});
+	const runtime = new AuthoritativeRiverholdRuntime({
+		persistence: runtimePersistence,
+	});
+	await runtime.initialize();
+	await runtime.dispatch({ kind: "follow-mara" });
+	await runtime.dispatch({ kind: "investigate-count" });
+	const beforeTamper = await runtimePersistence.getHead(
+		"run_riverhold_0001",
+		"riverhold",
+	);
+	runtimePersistence.close();
+	await mutateFirstBatchSchema(runtimeDatabaseName);
+	const tamperedPersistence = await IndexedDbPersistence.open({
+		databaseName: runtimeDatabaseName,
+	});
+	let tamperErrorCode: string | null = null;
+	try {
+		await new AuthoritativeRiverholdRuntime({
+			persistence: tamperedPersistence,
+		}).initialize();
+	} catch (error) {
+		tamperErrorCode = (error as PersistenceError).code;
+	}
+	const afterTamper = await tamperedPersistence.getHead(
+		"run_riverhold_0001",
+		"riverhold",
+	);
+	tamperedPersistence.close();
+	await deleteDatabase(runtimeDatabaseName);
 	window.__idbResult = {
 		result: {
 			collisionCode,
@@ -125,6 +218,12 @@ async function run(): Promise<void> {
 			revisionAfterAbort,
 			retryIdempotent: retry.idempotent,
 			revision: finalHead.revision,
+			tamperErrorCode,
+			tamperPreservedHead:
+				beforeTamper.revision === afterTamper.revision &&
+				beforeTamper.stateHash === afterTamper.stateHash &&
+				beforeTamper.worldHeadHash === afterTamper.worldHeadHash &&
+				beforeTamper.fencingToken === afterTamper.fencingToken,
 			stores,
 			expectedStores: Object.values(PERSISTENCE_STORE_NAMES),
 		},

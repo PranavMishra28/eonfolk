@@ -38,6 +38,8 @@ test("IndexedDB adapter persists atomically across a browser reload", async () =
 			revisionAfterAbort: 1,
 			retryIdempotent: true,
 			revision: 2,
+			tamperErrorCode: "UNSUPPORTED_VERSION",
+			tamperPreservedHead: true,
 			stores: [
 				"batches",
 				"catchUpOperations",

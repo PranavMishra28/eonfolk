@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { standardBrain } from "../../../packages/cognition/src/index.js";
 import {
+	batchHash,
+	DETERMINISM_VERSION,
+	ENGINE_VERSION,
+	eventHash,
 	jcs,
+	PROTOCOL_SCHEMA_VERSION,
+	REPLAY_VERSION,
 	seedPrng,
 	type WorldEventEnvelope,
 } from "../../../packages/protocol/src/index.js";
@@ -10,6 +16,7 @@ import {
 	createWorldCommand,
 	prepareTransition,
 	projectChronicle,
+	replayLedger,
 } from "../../../packages/sim/src/index.js";
 import { riverholdDecisionFixture } from "../../fixtures/riverhold/index.js";
 
@@ -209,6 +216,7 @@ describe("counsel divergence and factual Chronicle", () => {
 			result.postState,
 			result.resultingWorldHeadHash,
 			firstCommand,
+			result.events,
 		);
 		expect(first.accepted).toBe(true);
 		expect(first.postState.lastReturnResponse?.responseId).toBe(
@@ -223,10 +231,176 @@ describe("counsel divergence and factual Chronicle", () => {
 				expectedRevision: first.postState.revision,
 				payload: { ...firstCommand.payload, responseId: "response-second" },
 			}),
+			[...result.events, ...first.events],
 		);
 		expect(duplicate.accepted).toBe(false);
 		expect(duplicate.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
 		expect(duplicate.postState).toBe(first.postState);
 		expect(duplicate.resultingWorldHeadHash).toBe(first.resultingWorldHeadHash);
+	});
+
+	it("rejects dangling, future, cross-run, and wrong-branch return references", async () => {
+		const result = await branch("verify-reserve");
+		const mara = citizenBySlug(result.postState, "mara");
+		const legal = result.events.at(-1)!;
+		const wrongBranch = result.events.find(
+			(event) => event.eventPayload.kind === "CounselInterpreted",
+		)!;
+		const cases = [
+			{
+				label: "missing",
+				priorEventId: "event_missing",
+				history: result.events,
+			},
+			{
+				label: "future",
+				priorEventId: "event_future",
+				history: [
+					...result.events,
+					{
+						...legal,
+						eventId: "event_future",
+						sequence: result.postState.nextSequence,
+					},
+				],
+			},
+			{
+				label: "cross-run",
+				priorEventId: "event_cross_run",
+				history: [
+					...result.events,
+					{ ...legal, eventId: "event_cross_run", runId: "run_other" },
+				],
+			},
+			{
+				label: "wrong-branch",
+				priorEventId: wrongBranch.eventId,
+				history: result.events,
+			},
+		] as const;
+		for (const candidate of cases) {
+			const command = await createWorldCommand({
+				commandId: `cmd-return-${candidate.label}`,
+				expectedRevision: result.postState.revision,
+				principal: {
+					kind: "patron",
+					principalId: "principal_local_patron",
+					beneficiaryCitizenId: mara.citizenId,
+				},
+				runId: result.postState.runId,
+				regionId: result.postState.regionId,
+				payload: {
+					kind: "RespondOnReturn",
+					responseId: `response-${candidate.label}`,
+					citizenId: mara.citizenId,
+					action: "publish-verified-count",
+					priorEventId: candidate.priorEventId,
+				},
+			});
+			const rejected = await prepareTransition(
+				result.postState,
+				result.resultingWorldHeadHash,
+				command,
+				candidate.history,
+			);
+			expect(rejected.receipt.rejectionCode, candidate.label).toBe(
+				"INVALID_COMMAND",
+			);
+			expect(rejected.postState, candidate.label).toBe(result.postState);
+			expect(rejected.events, candidate.label).toEqual([]);
+			expect(rejected.resultingWorldHeadHash, candidate.label).toBe(
+				result.resultingWorldHeadHash,
+			);
+		}
+	});
+
+	it("fails replay before reduction when a response relation dangles", async () => {
+		const result = await branch("verify-reserve");
+		const mara = citizenBySlug(result.postState, "mara");
+		const response = await prepareTransition(
+			result.postState,
+			result.resultingWorldHeadHash,
+			await createWorldCommand({
+				commandId: "cmd-dangling-replay",
+				expectedRevision: result.postState.revision,
+				principal: {
+					kind: "patron",
+					principalId: "principal_local_patron",
+					beneficiaryCitizenId: mara.citizenId,
+				},
+				runId: result.postState.runId,
+				regionId: result.postState.regionId,
+				payload: {
+					kind: "RespondOnReturn",
+					responseId: "response-dangling-replay",
+					citizenId: mara.citizenId,
+					action: "publish-verified-count",
+					priorEventId: result.events.at(-1)!.eventId,
+				},
+			}),
+			result.events,
+		);
+		const original = response.events[0]!;
+		const { eventHash: _oldHash, ...withoutHash } = original;
+		const mutatedWithoutHash = {
+			...withoutHash,
+			relatedEvents: [
+				{ eventId: "event_missing", relation: "response-to" },
+			] as const,
+		};
+		const mutatedEvent = {
+			...mutatedWithoutHash,
+			eventHash: await eventHash(mutatedWithoutHash),
+		};
+		const originalHeader = response.batchHeader!;
+		const headerWithoutHash = {
+			runId: originalHeader.runId,
+			regionId: originalHeader.regionId,
+			batchId: originalHeader.batchId,
+			priorWorldHeadHash: originalHeader.priorWorldHeadHash,
+			firstSequence: originalHeader.firstSequence,
+			eventHashes: [mutatedEvent.eventHash],
+			payloadFingerprint: originalHeader.payloadFingerprint,
+			resultRevision: originalHeader.resultRevision,
+			finalStateHash: originalHeader.finalStateHash,
+		};
+		const mutatedHeader = {
+			...originalHeader,
+			eventHashes: headerWithoutHash.eventHashes,
+			batchHash: await batchHash(headerWithoutHash),
+		};
+		await expect(
+			replayLedger({
+				snapshotState: result.postState,
+				snapshotStateHash: result.finalStateHash,
+				baseWorldHeadHash: result.resultingWorldHeadHash,
+				headers: [mutatedHeader],
+				events: [mutatedEvent],
+				manifest: {
+					schemaVersion: "eonfolk-replay-manifest-v1",
+					runId: result.postState.runId,
+					regionId: result.postState.regionId,
+					worldSeedHex: result.postState.worldSeedHex,
+					experimentManifestHash: "a".repeat(64),
+					snapshot: {
+						runId: result.postState.runId,
+						regionId: result.postState.regionId,
+						snapshotId: "snapshot-branch",
+						baseSequence: result.postState.nextSequence - 1,
+						stateHash: result.finalStateHash,
+						baseWorldHeadHash: result.resultingWorldHeadHash,
+					},
+					fromSequenceInclusive: result.postState.nextSequence,
+					toSequenceExclusive: result.postState.nextSequence + 1,
+					engineVersion: ENGINE_VERSION,
+					worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+					determinismVersion: DETERMINISM_VERSION,
+					replayVersion: REPLAY_VERSION,
+					expectedFinalStateHash: response.finalStateHash,
+					expectedFinalWorldHeadHash: mutatedHeader.batchHash,
+					presentation: { title: "dangling replay", branch: "verify" },
+				},
+			}),
+		).rejects.toThrow("related event does not precede child");
 	});
 });

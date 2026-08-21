@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { jcs } from "../../../packages/protocol/src/index.js";
+import {
+	DETERMINISM_VERSION,
+	ENGINE_VERSION,
+	jcs,
+	PROTOCOL_SCHEMA_VERSION,
+	REPLAY_VERSION,
+} from "../../../packages/protocol/src/index.js";
 import {
 	citizenBySlug,
 	createWorldCommand,
@@ -197,6 +203,30 @@ describe("Riverhold deterministic Reality", () => {
 			baseWorldHeadHash: genesis.genesisWorldHeadHash,
 			headers: [first.batchHeader!, counsel.batchHeader!],
 			events: [...first.events, ...counsel.events],
+			manifest: {
+				schemaVersion: "eonfolk-replay-manifest-v1",
+				runId: genesis.state.runId,
+				regionId: genesis.state.regionId,
+				worldSeedHex: genesis.state.worldSeedHex,
+				experimentManifestHash: genesis.experimentManifest.manifestHash,
+				snapshot: {
+					runId: genesis.state.runId,
+					regionId: genesis.state.regionId,
+					snapshotId: "snapshot_genesis",
+					baseSequence: 0,
+					stateHash: genesis.initialStateHash,
+					baseWorldHeadHash: genesis.genesisWorldHeadHash,
+				},
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: 1 + first.events.length + counsel.events.length,
+				engineVersion: ENGINE_VERSION,
+				worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+				determinismVersion: DETERMINISM_VERSION,
+				replayVersion: REPLAY_VERSION,
+				expectedFinalStateHash: counsel.finalStateHash,
+				expectedFinalWorldHeadHash: counsel.resultingWorldHeadHash,
+				presentation: { title: "test replay", branch: null },
+			},
 		});
 		expect(jcs(replay.state)).toBe(jcs(counsel.postState));
 		expect(replay.stateHash).toBe(counsel.finalStateHash);

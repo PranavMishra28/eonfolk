@@ -4,22 +4,30 @@ import {
 	riverholdCounselCatalog,
 	standardBrain,
 } from "@eonfolk/cognition";
-import type {
-	JsonValue,
-	PersistencePort,
-	DecisionRecord as StoredDecisionRecord,
-	WorldBatchRecord,
-	WorldEventRecord,
-	WorldHead,
+
+import {
+	type CommitGenesisResult,
+	type JsonValue,
+	PersistenceError,
+	type PersistencePort,
+	type DecisionRecord as StoredDecisionRecord,
+	type WorldBatchRecord,
+	type WorldEventRecord,
+	type WorldHead,
 } from "@eonfolk/persistence";
 import {
 	bytesFromHex,
 	type CognitiveDecisionRecord,
+	DETERMINISM_VERSION,
 	type DecisionContext,
 	decisionRecordHash,
+	ENGINE_VERSION,
 	type IntentProposal,
 	jcs,
+	PROTOCOL_SCHEMA_VERSION,
 	proposalHash,
+	REPLAY_VERSION,
+	type ReplayManifest,
 	type ReturnResponseAction,
 	seedPrng,
 	type VisibilityContext,
@@ -190,6 +198,187 @@ function asJson(value: unknown): JsonValue {
 
 function asObject<T>(value: JsonValue): T {
 	return value as T;
+}
+
+function assertCanonicalJsonEqual(
+	actual: unknown,
+	expected: unknown,
+	label: string,
+): void {
+	let equal = false;
+	try {
+		equal = jcs(actual) === jcs(expected);
+	} catch {
+		equal = false;
+	}
+	if (!equal)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			`${label} outer fields and data disagree`,
+		);
+}
+
+function requireJsonObject(
+	value: JsonValue,
+	label: string,
+): Record<string, unknown> {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			`${label} data is not an object`,
+		);
+	return value as Record<string, unknown>;
+}
+
+function assertSupportedGenesis(
+	committed: CommitGenesisResult,
+	expected: Awaited<ReturnType<typeof createRiverholdGenesis>>,
+): WorldState {
+	const manifestData = requireJsonObject(
+		committed.manifest.data,
+		"experiment manifest",
+	);
+	if (
+		committed.manifest.schemaVersion !== "eonfolk-experiment-manifest-v1" ||
+		manifestData.manifestVersion !== "eonfolk-experiment-manifest-v1" ||
+		manifestData.engineVersion !== ENGINE_VERSION ||
+		manifestData.worldSchemaVersion !== PROTOCOL_SCHEMA_VERSION ||
+		manifestData.determinismVersion !== DETERMINISM_VERSION ||
+		manifestData.replayVersion !== REPLAY_VERSION
+	)
+		throw new PersistenceError(
+			"UNSUPPORTED_VERSION",
+			"stored experiment manifest version is unsupported",
+		);
+	assertCanonicalJsonEqual(
+		committed.manifest.data,
+		expected.experimentManifest,
+		"experiment manifest",
+	);
+	if (
+		committed.manifest.runId !== expected.state.runId ||
+		committed.manifest.regionId !== expected.state.regionId ||
+		committed.manifest.manifestHash !== expected.experimentManifest.manifestHash
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"experiment manifest outer fields and data disagree",
+		);
+
+	const snapshotData = requireJsonObject(
+		committed.snapshot.data,
+		"genesis snapshot",
+	);
+	if (
+		committed.snapshot.schemaVersion !== "riverhold-world-state-v1" ||
+		snapshotData.schemaVersion !== "riverhold-world-state-v1"
+	)
+		throw new PersistenceError(
+			"UNSUPPORTED_VERSION",
+			"stored snapshot schema version is unsupported",
+		);
+	assertCanonicalJsonEqual(
+		committed.snapshot.data,
+		expected.state,
+		"genesis snapshot",
+	);
+	if (
+		committed.snapshot.runId !== expected.state.runId ||
+		committed.snapshot.regionId !== expected.state.regionId ||
+		committed.snapshot.snapshotId !==
+			expected.experimentManifest.initialSnapshotRef.snapshotId ||
+		committed.snapshot.baseSequence !== 0 ||
+		committed.snapshot.createdAtRevision !== 0 ||
+		committed.snapshot.stateHash !== expected.initialStateHash ||
+		committed.snapshot.baseWorldHeadHash !== expected.genesisWorldHeadHash
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"snapshot outer fields and data disagree",
+		);
+	if (
+		committed.head.runId !== expected.state.runId ||
+		committed.head.regionId !== expected.state.regionId ||
+		(committed.head.revision === 0 &&
+			(committed.head.lastSequence !== 0 ||
+				committed.head.stateHash !== committed.snapshot.stateHash ||
+				committed.head.worldHeadHash !== committed.snapshot.baseWorldHeadHash))
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"durable world head does not agree with the genesis records",
+		);
+	return asObject<WorldState>(committed.snapshot.data);
+}
+
+function loadBatchHeader(record: WorldBatchRecord): WorldBatchHeader {
+	const header = requireJsonObject(
+		record.data,
+		"stored batch",
+	) as unknown as WorldBatchHeader;
+	if (
+		record.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
+		header.schemaVersion !== PROTOCOL_SCHEMA_VERSION
+	)
+		throw new PersistenceError(
+			"UNSUPPORTED_VERSION",
+			"stored batch schema version is unsupported",
+		);
+	assertCanonicalJsonEqual(
+		record.data,
+		{
+			schemaVersion: record.schemaVersion,
+			runId: record.runId,
+			regionId: record.regionId,
+			batchId: record.batchId,
+			priorWorldHeadHash: record.previousWorldHeadHash,
+			firstSequence: record.firstSequence,
+			eventCount: record.eventCount,
+			eventHashes: record.eventHashes,
+			payloadFingerprint: record.payloadFingerprint,
+			resultRevision: record.resultRevision,
+			finalStateHash: record.finalStateHash,
+			batchHash: record.batchHash,
+		},
+		"stored batch",
+	);
+	return header;
+}
+
+function loadEventEnvelope(record: WorldEventRecord): WorldEventEnvelope {
+	const event = requireJsonObject(
+		record.data,
+		"stored event",
+	) as unknown as WorldEventEnvelope;
+	const provenance = requireJsonObject(
+		event.provenance as unknown as JsonValue,
+		"stored event provenance",
+	);
+	if (
+		record.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
+		event.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
+		event.engineVersion !== ENGINE_VERSION
+	)
+		throw new PersistenceError(
+			"UNSUPPORTED_VERSION",
+			"stored event or engine version is unsupported",
+		);
+	if (
+		event.runId !== record.runId ||
+		event.regionId !== record.regionId ||
+		event.batchId !== record.batchId ||
+		provenance.commandId !== record.commandId ||
+		event.eventId !== record.eventId ||
+		event.sequence !== record.sequence ||
+		event.preStateHash !== record.preStateHash ||
+		event.postStateHash !== record.postStateHash ||
+		event.eventHash !== record.eventHash
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"stored event outer fields and data disagree",
+		);
+	return event;
 }
 
 function toStoredBatch(
@@ -379,6 +568,7 @@ export class AuthoritativeRiverholdRuntime {
 	#interpretation: InterpretationProjection | null = null;
 	#requestedCounsel: CounselIntent | null = null;
 	#secondAction: string | null = null;
+	#safeStop: PersistenceError | null = null;
 
 	constructor(options: AuthoritativeRuntimeOptions) {
 		this.#persistence = options.persistence;
@@ -418,14 +608,15 @@ export class AuthoritativeRiverholdRuntime {
 				data: asJson(genesis.state),
 			},
 		});
-		this.#head = await this.#persistence.acquireFencingToken(
-			genesis.state.runId,
-			genesis.state.regionId,
-			committed.head.fencingToken,
-		);
+		const snapshotState = assertSupportedGenesis(committed, genesis);
 		if (committed.head.revision === 0) {
-			this.#state = genesis.state;
-			this.#phase = recoveredPhase(genesis.state, this.#phase);
+			this.#head = await this.#persistence.acquireFencingToken(
+				genesis.state.runId,
+				genesis.state.regionId,
+				committed.head.fencingToken,
+			);
+			this.#state = snapshotState;
+			this.#phase = recoveredPhase(snapshotState, this.#phase);
 			return this.#project();
 		}
 		const [batches, events] = await Promise.all([
@@ -442,21 +633,49 @@ export class AuthoritativeRiverholdRuntime {
 				toSequenceExclusive: committed.head.lastSequence + 1,
 			}),
 		]);
-		this.#events = events.map((event) =>
-			asObject<WorldEventEnvelope>(event.data),
-		);
+		this.#events = events.map(loadEventEnvelope);
+		const replayManifest: ReplayManifest = {
+			schemaVersion: "eonfolk-replay-manifest-v1",
+			runId: snapshotState.runId,
+			regionId: snapshotState.regionId,
+			worldSeedHex: snapshotState.worldSeedHex,
+			experimentManifestHash: committed.manifest.manifestHash,
+			snapshot: {
+				runId: committed.snapshot.runId,
+				regionId: committed.snapshot.regionId,
+				snapshotId: committed.snapshot.snapshotId,
+				baseSequence: committed.snapshot.baseSequence,
+				stateHash: committed.snapshot.stateHash,
+				baseWorldHeadHash: committed.snapshot.baseWorldHeadHash,
+			},
+			fromSequenceInclusive: snapshotState.nextSequence,
+			toSequenceExclusive: committed.head.lastSequence + 1,
+			engineVersion: ENGINE_VERSION,
+			worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+			determinismVersion: DETERMINISM_VERSION,
+			replayVersion: REPLAY_VERSION,
+			expectedFinalStateHash: committed.head.stateHash,
+			expectedFinalWorldHeadHash: committed.head.worldHeadHash,
+			presentation: { title: "Riverhold local proof", branch: null },
+		};
 		const replay = await replayLedger({
-			snapshotState: genesis.state,
-			snapshotStateHash: genesis.initialStateHash,
-			baseWorldHeadHash: genesis.genesisWorldHeadHash,
-			headers: batches.map((batch) => asObject<WorldBatchHeader>(batch.data)),
+			snapshotState,
+			snapshotStateHash: committed.snapshot.stateHash,
+			baseWorldHeadHash: committed.snapshot.baseWorldHeadHash,
+			headers: batches.map(loadBatchHeader),
 			events: this.#events,
+			manifest: replayManifest,
 		});
 		if (
 			replay.stateHash !== committed.head.stateHash ||
 			replay.worldHeadHash !== committed.head.worldHeadHash
 		)
 			throw new Error("durable world head does not match deterministic replay");
+		this.#head = await this.#persistence.acquireFencingToken(
+			genesis.state.runId,
+			genesis.state.regionId,
+			committed.head.fencingToken,
+		);
 		this.#state = replay.state;
 		this.#phase = recoveredPhase(replay.state, this.#phase);
 		this.#requestedCounsel = requestedCounselFromState(replay.state);
@@ -488,30 +707,45 @@ export class AuthoritativeRiverholdRuntime {
 						data: asJson(decision),
 					};
 		if (!prepared.accepted || prepared.batchHeader === null) {
-			await this.#persistence.commitRejectedCommand({
+			const expectedRejectedReceipt = {
+				schemaVersion: prepared.receipt.schemaVersion,
+				runId: prepared.receipt.runId,
+				regionId: prepared.receipt.regionId,
+				commandId: prepared.receipt.commandId,
+				payloadFingerprint: prepared.receipt.payloadFingerprint,
+				outcome: "rejected" as const,
+				observedRevision: head.revision,
+				resultingRevision: head.revision,
+				resultingStateHash: head.stateHash,
+				resultingWorldHeadHash: head.worldHeadHash,
+				fencingToken: head.fencingToken,
+				batchId: null,
+				fromSequenceInclusive: null,
+				toSequenceExclusive: null,
+				rejectionCode: prepared.receipt.rejectionCode ?? "INVALID_COMMAND",
+				data: asJson(prepared.receipt),
+			};
+			const durableReceipt = await this.#persistence.commitRejectedCommand({
 				runId: prepared.command.runId,
 				regionId: prepared.command.regionId,
 				fencingToken: head.fencingToken,
-				receipt: {
-					schemaVersion: prepared.receipt.schemaVersion,
-					runId: prepared.receipt.runId,
-					regionId: prepared.receipt.regionId,
-					commandId: prepared.receipt.commandId,
-					payloadFingerprint: prepared.receipt.payloadFingerprint,
-					outcome: "rejected",
-					observedRevision: head.revision,
-					resultingRevision: head.revision,
-					resultingStateHash: head.stateHash,
-					resultingWorldHeadHash: head.worldHeadHash,
-					fencingToken: head.fencingToken,
-					batchId: null,
-					fromSequenceInclusive: null,
-					toSequenceExclusive: null,
-					rejectionCode: prepared.receipt.rejectionCode ?? "INVALID_COMMAND",
-					data: asJson(prepared.receipt),
-				},
+				receipt: expectedRejectedReceipt,
 				decision: storedDecision,
 			});
+			const durableHead = await this.#persistence.getHead(
+				prepared.command.runId,
+				prepared.command.regionId,
+			);
+			if (jcs(durableHead) !== jcs(head))
+				this.#failClosed(
+					"STALE_WORLD_HEAD",
+					"rejected command resolved at a different durable world head",
+				);
+			if (jcs(durableReceipt) !== jcs(expectedRejectedReceipt))
+				this.#failClosed(
+					"INVALID_INPUT",
+					"durable rejected receipt differs from prepared rejection",
+				);
 			throw new Error(prepared.receipt.rejectionCode ?? "command rejected");
 		}
 		const interval = prepared.receipt.eventInterval;
@@ -526,7 +760,25 @@ export class AuthoritativeRiverholdRuntime {
 			worldHeadHash: prepared.resultingWorldHeadHash,
 			fencingToken: head.fencingToken,
 		};
-		await this.#persistence.commitTransition({
+		const expectedReceipt = {
+			schemaVersion: prepared.receipt.schemaVersion,
+			runId: prepared.receipt.runId,
+			regionId: prepared.receipt.regionId,
+			commandId: prepared.receipt.commandId,
+			payloadFingerprint: prepared.receipt.payloadFingerprint,
+			outcome: "accepted" as const,
+			observedRevision: prepared.receipt.actualRevision,
+			resultingRevision: prepared.receipt.resultingRevision,
+			resultingStateHash: prepared.finalStateHash,
+			resultingWorldHeadHash: prepared.resultingWorldHeadHash,
+			fencingToken: head.fencingToken,
+			batchId: prepared.batchHeader.batchId,
+			fromSequenceInclusive: interval.fromSequenceInclusive,
+			toSequenceExclusive: interval.toSequenceExclusive,
+			rejectionCode: null,
+			data: asJson(prepared.receipt),
+		};
+		const result = await this.#persistence.commitTransition({
 			runId: prepared.postState.runId,
 			regionId: prepared.postState.regionId,
 			expectedRevision: head.revision,
@@ -537,27 +789,22 @@ export class AuthoritativeRiverholdRuntime {
 			events: prepared.events.map((event) =>
 				toStoredEvent(event, prepared.command.commandId),
 			),
-			receipt: {
-				schemaVersion: prepared.receipt.schemaVersion,
-				runId: prepared.receipt.runId,
-				regionId: prepared.receipt.regionId,
-				commandId: prepared.receipt.commandId,
-				payloadFingerprint: prepared.receipt.payloadFingerprint,
-				outcome: "accepted",
-				observedRevision: prepared.receipt.actualRevision,
-				resultingRevision: prepared.receipt.resultingRevision,
-				resultingStateHash: prepared.finalStateHash,
-				resultingWorldHeadHash: prepared.resultingWorldHeadHash,
-				fencingToken: head.fencingToken,
-				batchId: prepared.batchHeader.batchId,
-				fromSequenceInclusive: interval.fromSequenceInclusive,
-				toSequenceExclusive: interval.toSequenceExclusive,
-				rejectionCode: null,
-				data: asJson(prepared.receipt),
-			},
+			receipt: expectedReceipt,
 			decision: storedDecision,
 			postHead,
 		});
+		if (jcs(result.head) !== jcs(postHead))
+			this.#failClosed(
+				result.idempotent ? "STALE_WORLD_HEAD" : "INVALID_INPUT",
+				result.idempotent
+					? "idempotent command resolved at a different durable world head"
+					: "durable world head differs from prepared transition",
+			);
+		if (jcs(result.receipt) !== jcs(expectedReceipt))
+			this.#failClosed(
+				"INVALID_INPUT",
+				"durable command receipt differs from prepared transition",
+			);
 		this.#state = prepared.postState;
 		this.#head = postHead;
 		this.#events.push(...prepared.events);
@@ -580,7 +827,12 @@ export class AuthoritativeRiverholdRuntime {
 			regionId: state.regionId,
 			payload,
 		});
-		return prepareTransition(state, this.#requireHead().worldHeadHash, command);
+		return prepareTransition(
+			state,
+			this.#requireHead().worldHeadHash,
+			command,
+			this.#events,
+		);
 	}
 
 	async #resolveCounsel(counsel: CounselIntent): Promise<void> {
@@ -818,6 +1070,7 @@ export class AuthoritativeRiverholdRuntime {
 	}
 
 	async dispatch(intent: RiverholdIntent): Promise<RiverholdProjection> {
+		this.#assertRunning();
 		switch (intent.kind) {
 			case "follow-mara":
 				this.#requirePhase("orientation");
@@ -905,6 +1158,7 @@ export class AuthoritativeRiverholdRuntime {
 	}
 
 	diagnosticWorldHead() {
+		this.#assertRunning();
 		const state = this.#requireState();
 		const head = this.#requireHead();
 		return Object.freeze({
@@ -1082,11 +1336,13 @@ export class AuthoritativeRiverholdRuntime {
 	}
 
 	#requireState(): WorldState {
+		this.#assertRunning();
 		if (this.#state === null) throw new Error("runtime is not initialized");
 		return this.#state;
 	}
 
 	#requireHead(): WorldHead {
+		this.#assertRunning();
 		if (this.#head === null) throw new Error("runtime is not initialized");
 		return this.#head;
 	}
@@ -1096,5 +1352,18 @@ export class AuthoritativeRiverholdRuntime {
 			throw new Error(
 				`Action requires phase ${expected}; found ${this.#phase}`,
 			);
+	}
+
+	#assertRunning(): void {
+		if (this.#safeStop !== null) throw this.#safeStop;
+	}
+
+	#failClosed(
+		code: "INVALID_INPUT" | "STALE_WORLD_HEAD",
+		message: string,
+	): never {
+		const error = new PersistenceError(code, message);
+		this.#safeStop = error;
+		throw error;
 	}
 }

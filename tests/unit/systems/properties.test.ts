@@ -1,8 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+	DETERMINISM_VERSION,
+	ENGINE_VERSION,
 	hexFromBytes,
 	jcs,
+	PROTOCOL_SCHEMA_VERSION,
+	REPLAY_VERSION,
 	tuple,
 	utf8,
 } from "../../../packages/protocol/src/index.js";
@@ -166,6 +170,32 @@ describe("bounded deterministic properties", () => {
 				baseWorldHeadHash: genesis.genesisWorldHeadHash,
 				headers,
 				events,
+				manifest: {
+					schemaVersion: "eonfolk-replay-manifest-v1",
+					runId: genesis.state.runId,
+					regionId: genesis.state.regionId,
+					worldSeedHex: genesis.state.worldSeedHex,
+					experimentManifestHash: genesis.experimentManifest.manifestHash,
+					snapshot: {
+						runId: genesis.state.runId,
+						regionId: genesis.state.regionId,
+						snapshotId: "snapshot_genesis",
+						baseSequence: 0,
+						stateHash: genesis.initialStateHash,
+						baseWorldHeadHash: genesis.genesisWorldHeadHash,
+					},
+					fromSequenceInclusive: 1,
+					toSequenceExclusive: 1 + events.length,
+					engineVersion: ENGINE_VERSION,
+					worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+					determinismVersion: DETERMINISM_VERSION,
+					replayVersion: REPLAY_VERSION,
+					expectedFinalStateHash: await import(
+						"../../../packages/protocol/src/index.js"
+					).then(({ stateHash }) => stateHash(state)),
+					expectedFinalWorldHeadHash: head,
+					presentation: { title: "horizon replay", branch: null },
+				},
 			});
 			expect(replay.stateHash).toBe(
 				await import("../../../packages/protocol/src/index.js").then(

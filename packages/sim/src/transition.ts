@@ -316,6 +316,7 @@ function commandEvents(
 	state: WorldState,
 	command: WorldCommand,
 	eventIds: readonly string[],
+	authoritativeHistory: readonly WorldEventEnvelope[],
 ): readonly PendingEvent[] {
 	const payload = command.payload;
 	switch (payload.kind) {
@@ -549,6 +550,29 @@ function commandEvents(
 		case "RespondOnReturn":
 			if (state.lastReturnResponse !== null)
 				throw new Error("ACTION_UNAVAILABLE");
+			{
+				const prior = authoritativeHistory.find(
+					(event) => event.eventId === payload.priorEventId,
+				);
+				const expectedKind =
+					state.selectedCounselBranch === "verify-reserve"
+						? "BeliefChanged"
+						: state.selectedCounselBranch === "accuse-publicly"
+							? "PetitionChanged"
+							: state.selectedCounselBranch === "follow-plan"
+								? "StandingPlanChanged"
+								: null;
+				if (
+					prior === undefined ||
+					expectedKind === null ||
+					prior.runId !== state.runId ||
+					prior.regionId !== state.regionId ||
+					prior.sequence >= state.nextSequence ||
+					prior.provenance.kind !== "cognition" ||
+					prior.eventPayload.kind !== expectedKind
+				)
+					throw new Error("INVALID_COMMAND");
+			}
 			return [
 				pending(
 					{
@@ -713,6 +737,7 @@ export async function prepareTransition(
 	state: WorldState,
 	priorWorldHeadHash: string,
 	command: WorldCommand,
+	authoritativeHistory: readonly WorldEventEnvelope[] = [],
 ): Promise<PreparedTransition> {
 	assertWorldInvariants(state);
 	const priorStateHash = await stateHash(state);
@@ -777,7 +802,12 @@ export async function prepareTransition(
 				stableId("event", worldSeed, state.nextCreationSequence + offset),
 			),
 		);
-		const pendingEvents = commandEvents(state, command, eventIds);
+		const pendingEvents = commandEvents(
+			state,
+			command,
+			eventIds,
+			authoritativeHistory,
+		);
 		if (pendingEvents.length < 1 || pendingEvents.length > 32)
 			throw new Error("INVALID_COMMAND");
 		if (pendingEvents.length !== eventIds.length) {

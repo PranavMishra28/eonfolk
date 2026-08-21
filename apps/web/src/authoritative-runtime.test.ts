@@ -1,4 +1,14 @@
-import { type CrashPoint, MemoryPersistence } from "@eonfolk/persistence";
+import {
+	type CommitGenesisRequest,
+	type CommitGenesisResult,
+	type CommitTransitionRequest,
+	type CommitTransitionResult,
+	type CrashPoint,
+	type EventRangeRequest,
+	MemoryPersistence,
+	PersistenceError,
+	type WorldEventRecord,
+} from "@eonfolk/persistence";
 import { describe, expect, it } from "vitest";
 import { AuthoritativeRiverholdRuntime } from "./authoritative-runtime";
 
@@ -17,6 +27,143 @@ class NthTransitionCrash {
 	}
 }
 
+class BlockingTransitionPersistence extends MemoryPersistence {
+	#blockNext = false;
+	#entered: (() => void) | null = null;
+	#release: (() => void) | null = null;
+	#waitForRelease: Promise<void> | null = null;
+
+	blockNextTransition(): { entered: Promise<void>; release: () => void } {
+		this.#blockNext = true;
+		const entered = new Promise<void>((resolve) => {
+			this.#entered = resolve;
+		});
+		this.#waitForRelease = new Promise<void>((resolve) => {
+			this.#release = resolve;
+		});
+		return {
+			entered,
+			release: () => this.#release?.(),
+		};
+	}
+
+	override async commitTransition(
+		request: CommitTransitionRequest,
+	): Promise<CommitTransitionResult> {
+		if (this.#blockNext) {
+			this.#blockNext = false;
+			this.#entered?.();
+			await this.#waitForRelease;
+			this.#waitForRelease = null;
+		}
+		return super.commitTransition(request);
+	}
+}
+
+type DurableReadMutator =
+	| "batch-outer-data"
+	| "batch-data-schema"
+	| "event-data-engine"
+	| "event-data-schema"
+	| "event-outer-data"
+	| "manifest-data-version"
+	| "manifest-version"
+	| "snapshot-data-version"
+	| "snapshot-version";
+
+class TamperedReadPersistence extends MemoryPersistence {
+	mutator: DurableReadMutator | null = null;
+
+	override async commitGenesis(
+		request: CommitGenesisRequest,
+	): Promise<CommitGenesisResult> {
+		const result = structuredClone(await super.commitGenesis(request));
+		if (this.mutator === "manifest-version") {
+			return {
+				...result,
+				manifest: {
+					...result.manifest,
+					schemaVersion: "eonfolk-experiment-manifest-v99",
+				},
+			};
+		}
+		if (this.mutator === "manifest-data-version") {
+			return {
+				...result,
+				manifest: {
+					...result.manifest,
+					data: {
+						...(result.manifest.data as object),
+						engineVersion: "future",
+					},
+				},
+			};
+		}
+		if (this.mutator === "snapshot-version") {
+			return {
+				...result,
+				snapshot: { ...result.snapshot, schemaVersion: "future-snapshot" },
+			};
+		}
+		if (this.mutator === "snapshot-data-version") {
+			return {
+				...result,
+				snapshot: {
+					...result.snapshot,
+					data: {
+						...(result.snapshot.data as object),
+						schemaVersion: "future-snapshot",
+					},
+				},
+			};
+		}
+		return result;
+	}
+
+	override async getBatchRange(
+		request: Parameters<MemoryPersistence["getBatchRange"]>[0],
+	) {
+		const records = structuredClone(await super.getBatchRange(request));
+		if (this.mutator === "batch-outer-data")
+			return records.map((record, index) =>
+				index === 0
+					? { ...record, firstSequence: record.firstSequence + 1 }
+					: record,
+			);
+		if (this.mutator !== "batch-data-schema") return records;
+		return records.map((record, index) =>
+			index === 0
+				? {
+						...record,
+						data: { ...(record.data as object), schemaVersion: "future" },
+					}
+				: record,
+		);
+	}
+
+	override async getEventRange(
+		request: EventRangeRequest,
+	): Promise<readonly WorldEventRecord[]> {
+		const records = structuredClone(await super.getEventRange(request));
+		return records.map((record, index) => {
+			if (index !== 0) return record;
+			if (this.mutator === "event-data-engine")
+				return {
+					...record,
+					data: { ...(record.data as object), engineVersion: "future" },
+				} as WorldEventRecord;
+			if (this.mutator === "event-data-schema")
+				return {
+					...record,
+					data: { ...(record.data as object), schemaVersion: "future" },
+				} as WorldEventRecord;
+			if (this.mutator === "event-outer-data")
+				return { ...record, sequence: record.sequence + 1 };
+			return record;
+		});
+	}
+}
+
 async function reachCounsel(
 	runtime: AuthoritativeRiverholdRuntime,
 	intent: "verify-private" | "accuse-now" | "abstain",
@@ -28,6 +175,80 @@ async function reachCounsel(
 }
 
 describe("authoritative Riverhold application runtime", () => {
+	it("safe-stops instead of publishing a stale candidate after an idempotent race", async () => {
+		const persistence = new BlockingTransitionPersistence();
+		const runtimeA = new AuthoritativeRiverholdRuntime({ persistence });
+		await runtimeA.initialize();
+		await runtimeA.dispatch({ kind: "follow-mara" });
+		const gate = persistence.blockNextTransition();
+		const blocked = runtimeA.dispatch({ kind: "investigate-count" });
+		await gate.entered;
+
+		const runtimeB = new AuthoritativeRiverholdRuntime({ persistence });
+		await runtimeB.initialize();
+		await runtimeB.dispatch({ kind: "follow-mara" });
+		await runtimeB.dispatch({ kind: "investigate-count" });
+		await runtimeB.dispatch({ kind: "open-counsel" });
+		await runtimeB.dispatch({
+			kind: "offer-counsel",
+			counsel: "verify-private",
+		});
+		gate.release();
+
+		await expect(blocked).rejects.toMatchObject({
+			name: "PersistenceError",
+			code: "STALE_WORLD_HEAD",
+		});
+		expect(() => runtimeA.diagnosticWorldHead()).toThrow(PersistenceError);
+		await expect(
+			runtimeA.dispatch({ kind: "open-counsel" }),
+		).rejects.toMatchObject({ code: "STALE_WORLD_HEAD" });
+		const durable = await persistence.getHead(
+			"run_riverhold_0001",
+			"riverhold",
+		);
+		expect(durable.revision).toBe(3);
+	});
+
+	it.each([
+		"manifest-version",
+		"manifest-data-version",
+		"snapshot-version",
+		"snapshot-data-version",
+		"batch-data-schema",
+		"batch-outer-data",
+		"event-data-engine",
+		"event-data-schema",
+		"event-outer-data",
+	] as const)(
+		"fails closed on unsupported or incoherent durable %s",
+		async (mutator) => {
+			const persistence = new TamperedReadPersistence();
+			const first = new AuthoritativeRiverholdRuntime({ persistence });
+			await first.initialize();
+			await first.dispatch({ kind: "follow-mara" });
+			await first.dispatch({ kind: "investigate-count" });
+			const before = await persistence.getHead(
+				"run_riverhold_0001",
+				"riverhold",
+			);
+			persistence.mutator = mutator;
+			const reloaded = new AuthoritativeRiverholdRuntime({ persistence });
+			await expect(reloaded.initialize()).rejects.toBeInstanceOf(
+				PersistenceError,
+			);
+			persistence.mutator = null;
+			const after = await persistence.getHead(
+				"run_riverhold_0001",
+				"riverhold",
+			);
+			expect(after.revision).toBe(before.revision);
+			expect(after.stateHash).toBe(before.stateHash);
+			expect(after.worldHeadHash).toBe(before.worldHeadHash);
+			expect(after.fencingToken).toBe(before.fencingToken);
+		},
+	);
+
 	it("commits cognition and world events before exposing a branch projection", async () => {
 		const persistence = new MemoryPersistence();
 		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
