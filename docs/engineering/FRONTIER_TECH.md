@@ -1,0 +1,62 @@
+# Frontier technology decisions
+
+**Purpose:** record narrow implementation decisions for persistence, bounded formal checking, planning, local inference, and provenance projection.
+
+**Status:** IMPLEMENTATION SPIKE — accepted only for the local proof; later infrastructure remains gated.
+
+**Authority boundary:** this document records measured frontier choices and reopen triggers. It does not replace the canonical persistence, simulation, cognition, security, or product authorities, and it authorizes no dependency, model download, deployment, or spend.
+
+**Related documents:** [persistence](PERSISTENCE.md), [simulation](SIMULATION.md), [cognition](COGNITION.md), [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md)
+
+## Decision register
+
+| Area | Status | Decision for the first slice | Reopen evidence |
+|---|---|---|---|
+| Browser persistence | **ADOPT** | Use the generic `PersistencePort` with IndexedDB in the browser and `MemoryPersistence` for pure tests. Keep manifests, world heads/batches/events, decisions, command receipts, catch-up receipts, and snapshots in distinct stores while transactions cross stores atomically. | IndexedDB transaction, quota, eviction, or recovery drills fail on target browsers; measured storage approaches 64 MiB; or Gate A/B needs query patterns the adapter cannot serve. |
+| SQLite/WASM over OPFS | **DEFER** | Add no SQLite dependency and claim no performance comparison. The official SQLite WASM documentation describes multiple OPFS VFS choices with worker, header, concurrency, locking, and portability tradeoffs; those costs do not buy a needed first-slice behavior. | After both product gates, run the same fixed workload against a pinned SQLite/WASM build when profiling shows IndexedDB—not simulation or rendering—is the bottleneck. |
+| Server/region persistence | **DEFER** | Preserve structural portability, but do not claim the browser adapter drops into a region server. Authentication, authorization, backups, outbox/alarm semantics, moderation, and import policy remain new work. | Both product gates pass and a shared canonical region is the next approved experiment. |
+| Broad local storage abstraction, event-sourcing framework, or premature CRDT | **REJECT** | One bounded port and one single-writer world are sufficient. Framework or distributed-conflict machinery would consume the solo slice without answering attachment. | A measured multiwriter requirement appears after product validation. |
+| TLA+ model | **SPIKE** | Keep a small executable model for atomic genesis/append, idempotent retry, fencing, catch-up progress, and crash/recovery. It is a review instrument, not a proof of TypeScript, IndexedDB, hashes, or the unbounded system. | Persistence transactions materially change; then update the model and bounded constants before accepting the change. |
+| Mandatory formal CI/toolchain | **DEFER** | `check-formal.mjs` runs TLC when Java and `tla2tools.jar` are supplied and honestly reports `TOOL_UNAVAILABLE` otherwise. Do not commit Java or the JAR. | A reproducible, pinned, license-reviewed CI installation is approved and its maintenance cost stays small. |
+| “Formally verified persistence” claim | **REJECT** | Bounded TLC coverage and executable tests may be reported separately. Neither justifies an unqualified formal-verification claim. | Only a defined proof obligation plus implementation refinement argument could reopen the wording. |
+| Standard Brain bounded planner | **ADOPT** | Use a deterministic, typed action catalog with explicit budgets and a shallow bounded choice/replan path. It must terminate and operate without a model. Persistence stores only finalized bounded decision provenance, never hidden reasoning. | Fixed behavioral evaluations show the bounded planner cannot express the Gate B accept/reject/delay/reinterpret outcomes. |
+| General autonomous planner/search loop | **REJECT** | No open-ended tool loop, unbounded tree search, background model reasoning, or self-modifying plan belongs in the first slice. | A later isolated experiment demonstrates a player-visible gain under deterministic safety and cost bounds. |
+| Browser-local model | **DEFER** | No model download or WebGPU requirement in onboarding. WebLLM and Transformers.js demonstrate viable local inference paths, but their model download, memory, latency, browser support, licensing, and renderer GPU-contention costs require measured opt-in evaluation. | Blinded Gate B comparisons show bounded model proposals materially improve stories after download/memory/latency/license/GPU tests pass on target devices. |
+| Required external inference or training | **REJECT** | Standard Brain remains complete; no hosted inference, provider key, training, fine-tuning, proprietary dataset, or owned GPU is required. | Reopen only as an optional, separately budgeted experiment after zero-inference play is already compelling. |
+| Typed provenance projection | **ADOPT** | Preserve run/region, command, decision, event, causal-parent relation, mechanism, visibility, and hashes so a small authorized projection can later map world facts into interoperable provenance concepts. Projection is derived and never reducer input. | Chronicle evidence cannot express a required factual relation with the closed typed causality vocabulary. |
+| Full PROV-O/RDF graph in the canonical ledger | **DEFER** | W3C PROV-O is an interchange ontology with entities, activities, agents, and provenance relations. A full OWL/RDF store would enlarge schemas and disclosure risk without helping Gate A/B. Add only a one-way export projection after its audience and privacy rules exist. | A real interoperability consumer requests it and redaction/nonexposure tests pass. |
+| Provenance graph as world authority | **REJECT** | The canonical event ledger and verified state remain Reality. An interchange or Chronicle projection cannot create facts or replace replay. | No reopen trigger within the accepted architecture. |
+
+## Measured persistence spike
+
+On 2026-08-21, `scripts/benchmark-persistence.mjs` ran Node 22.23.1 and the pinned Playwright Chromium on the target Mac. Each of five repetitions created genesis, committed 128 deterministic transitions with 1–4 events each (320 events total), then read the complete event interval after reopening IndexedDB.
+
+| Adapter | Median 128-transition append | Median 320-event recovery read | Interpretation |
+|---|---:|---:|---|
+| Memory | 6.19 ms | 0.483 ms | Test/reference adapter only; no durability claim. |
+| IndexedDB | 62.1 ms | 11.4 ms | Comfortable for eight-citizen event boundaries in this synthetic smoke workload. |
+| SQLite/WASM + OPFS | Not run | Not run | **DEFER**, not “slower” or “faster.” No dependency was added. |
+
+These measurements are not a capacity forecast. They exclude renderer contention, quota pressure, large snapshots, eviction, mobile hardware, and OS power-loss durability. The harness prints all raw samples and fixed-workload metadata so later spikes can compare like with like.
+
+The IndexedDB choice follows its transactional, asynchronous, Worker-available browser contract ([MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), accessed 2026-08-21). SQLite's own WASM persistence guide reports multiple OPFS modes and explicit threading, locking, concurrency, and header tradeoffs ([SQLite WASM persistent storage](https://sqlite.org/wasm/doc/trunk/persistence.md), accessed 2026-08-21). This is evidence for measuring later, not for assuming either backend wins.
+
+## Bounded formal result
+
+`formal/Persistence.tla` was checked with OpenJDK 21.0.12.1 and the official TLA+ 1.8.0 `tla2tools.jar` (SHA-256 `ab323b79802aedc3203b3f9af37c6aca3ed43f4e0225b36f2aa77b26de46c05f`). TLC 2026.08.11.125311 explored **3,480 generated / 350 distinct states**, depth **10**, with no invariant violation for four command IDs, four revisions/events, three fencing tokens, and two catch-up chapters.
+
+The checked invariants are `TypeInvariant`, `AtomicGenesis`, `LedgerHeadAgreement`, `CatchUpProgress`, and `CrashPreservesDurableShape`. The exact abstraction limits and plain-English meanings live in `formal/README.md`. TLC is the model checker shipped by the TLA+ project ([official TLA+ tools repository](https://github.com/tlaplus/tlaplus), accessed 2026-08-21).
+
+## Local inference and provenance boundary
+
+WebLLM runs inference in-browser with WebGPU and worker support ([official WebLLM repository](https://github.com/mlc-ai/web-llm), accessed 2026-08-21). Transformers.js likewise exposes WebGPU execution while warning that support and behavior vary by browser ([official Transformers.js WebGPU guide](https://huggingface.co/docs/transformers.js/guides/webgpu), accessed 2026-08-21). Those are feasibility signals only. They do not falsify the product requirement that onboarding needs no key, model download, or WebGPU and that the renderer owns a competing GPU budget.
+
+W3C PROV-O is designed to represent and interchange provenance across systems ([W3C PROV-O Recommendation](https://www.w3.org/TR/prov-o/), accessed 2026-08-21). EONFOLK should retain enough typed causal identity to project into that vocabulary later, while keeping the compact canonical event schema, audience filtering, and factual Chronicle rules authoritative now.
+
+## Constraint fit
+
+- **Solo builder / bounded slice:** one TypeScript port, two adapters, no database framework, and a small optional formal tool keep integration legible.
+- **Approximately $0 / no deployment:** browser storage and deterministic cognition are complete offline paths; the benchmark, tests, and TLC run incurred no service or model cost.
+- **M4 Pro / no owned GPU / no training:** persistence is CPU/storage work; no training, fine-tuning, model weights, or GPU service appears.
+- **Useful free V1:** saved local play and replay require no account, provider, payment, license business, partner, or regulated dataset.
+- **Honest limits:** local storage is not backup, bounded model checking is not proof, and deferred technologies have no invented benchmark result.
