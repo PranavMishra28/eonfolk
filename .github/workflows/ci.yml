@@ -22,7 +22,34 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Classify conditional verification
+        id: classify
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${BASE_SHA}" ]] || [[ "${BASE_SHA}" =~ ^0+$ ]] || ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            echo "cognition=true" >> "${GITHUB_OUTPUT}"
+            echo "ui=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
+          if grep -Eq '^(packages/(cognition|observatory|protocol)/|tests/unit/(cognition|observatory)/|tests/unit/systems/cognition\.test\.ts$|tests/timing/cognition-timing\.test\.ts$)' <<<"${changed_files}"; then
+            echo "cognition=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "cognition=false" >> "${GITHUB_OUTPUT}"
+          fi
+          if grep -Eq '^(apps/web/|tests/e2e/)' <<<"${changed_files}"; then
+            echo "ui=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ui=false" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -47,6 +74,94 @@ jobs:
           EONFOLK_ALLOW_LINUX_CI: "1"
         run: pnpm verify:pr
 
+      - name: Run cognition benchmark and evaluation regressions
+        if: steps.classify.outputs.cognition == 'true'
+        run: >-
+          pnpm exec vitest run
+          tests/unit/cognition/planner-benchmark.test.ts
+          tests/unit/cognition/experiment.test.ts
+          tests/unit/observatory/projection.test.ts
+          tests/unit/systems/cognition.test.ts
+
+      - name: Capture deterministic UI evidence
+        if: steps.classify.outputs.ui == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="tmp/founder-alpha-ui-evidence"
+          mkdir -p "${evidence_dir}"
+          pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort >"${evidence_dir}/preview.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "${preview_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:4174/ >/dev/null; then
+              break
+            fi
+            if ! kill -0 "${preview_pid}" 2>/dev/null; then
+              echo "Production preview exited before becoming ready" >&2
+              exit 1
+            fi
+            if [[ "${attempt}" == "40" ]]; then
+              echo "Production preview did not become ready" >&2
+              exit 1
+            fi
+            sleep 0.25
+          done
+          node --input-type=module <<'EOF'
+          import { chromium } from "@playwright/test";
+
+          const browser = await chromium.launch({
+            args: [
+              "--disable-background-networking",
+              "--dns-prefetch-disable",
+              "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+            ],
+          });
+          try {
+            for (const viewport of [
+              { name: "desktop-1728x1117", width: 1728, height: 1117 },
+              { name: "laptop-1366x768", width: 1366, height: 768 },
+              { name: "mobile-390x844", width: 390, height: 844 },
+            ]) {
+              const context = await browser.newContext({
+                colorScheme: "light",
+                deviceScaleFactor: 1,
+                reducedMotion: "reduce",
+                viewport,
+              });
+              const page = await context.newPage();
+              await page.route("**/*", async (route) => {
+                const url = new URL(route.request().url());
+                if (url.hostname === "127.0.0.1") await route.continue();
+                else await route.abort("blockedbyclient");
+              });
+              await page.goto("http://127.0.0.1:4174/", {
+                waitUntil: "networkidle",
+              });
+              await page
+                .getByTestId("riverhold-canvas")
+                .waitFor({ state: "visible" });
+              await page.screenshot({
+                animations: "disabled",
+                fullPage: true,
+                path: `tmp/founder-alpha-ui-evidence/${viewport.name}.png`,
+              });
+              await context.close();
+            }
+          } finally {
+            await browser.close();
+          }
+          EOF
+
+      - name: Retain accepted UI evidence
+        if: success() && steps.classify.outputs.ui == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: founder-alpha-ui-${{ github.run_id }}
+          path: tmp/founder-alpha-ui-evidence
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Retain failing browser evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -54,6 +169,7 @@ jobs:
           name: browser-failure-${{ github.run_id }}
           path: |
             tmp/riverhold-playwright
+            tmp/founder-alpha-ui-evidence
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14
