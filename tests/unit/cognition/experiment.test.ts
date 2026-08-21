@@ -93,7 +93,9 @@ async function completedResult(
 		execution,
 		outcome: {
 			status: "completed",
+			proposalHash: digestA,
 			outputHash: digestB,
+			terminalVectorHash: digestC,
 			failureCode: null,
 			latencyMicros: 900 + execution.ordinal,
 			peakMemoryBytes: 1_024,
@@ -303,6 +305,16 @@ describe("BrainPort experiment contracts", () => {
 			outcome: { ...first.outcome, outputHash: digestC },
 		};
 		expect(await verifyExperimentResultV2(tampered)).toBe(false);
+		const proposalTampered = {
+			...first,
+			outcome: { ...first.outcome, proposalHash: digestB },
+		};
+		expect(await verifyExperimentResultV2(proposalTampered)).toBe(false);
+		const terminalTampered = {
+			...first,
+			outcome: { ...first.outcome, terminalVectorHash: digestA },
+		};
+		expect(await verifyExperimentResultV2(terminalTampered)).toBe(false);
 		for (const execution of manifest.corpus.executions)
 			await journal.appendResult(
 				await completedResult(manifest.manifestHash, execution),
@@ -360,7 +372,9 @@ describe("BrainPort experiment contracts", () => {
 					execution,
 					outcome: {
 						status: "failed",
+						proposalHash: null,
 						outputHash: null,
+						terminalVectorHash: null,
 						failureCode: "timeout",
 						latencyMicros: 3_000_000,
 						peakMemoryBytes: 1_024,
@@ -401,7 +415,9 @@ describe("BrainPort experiment contracts", () => {
 				execution,
 				outcome: {
 					status: "completed",
+					proposalHash: digestA,
 					outputHash: digestB,
+					terminalVectorHash: digestC,
 					failureCode: null,
 					latencyMicros: 900,
 					peakMemoryBytes: 1_024,
@@ -418,6 +434,59 @@ describe("BrainPort experiment contracts", () => {
 				},
 			}),
 		).rejects.toThrow("passing invariants");
+	});
+
+	it("rejects missing proposal identity from completed evidence", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const result = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[0]!,
+		);
+		const {
+			schemaVersion: _schemaVersion,
+			resultHash: _resultHash,
+			...input
+		} = result;
+		const { proposalHash: _proposalHash, ...missingProposal } = input.outcome;
+		await expect(
+			createExperimentResultV2({
+				...input,
+				outcome: missingProposal,
+			} as Parameters<typeof createExperimentResultV2>[0]),
+		).rejects.toThrow("experiment outcome contains unknown or missing fields");
+		await expect(
+			createExperimentResultV2({
+				...input,
+				outcome: { ...input.outcome, terminalVectorHash: null },
+			}),
+		).rejects.toThrow("terminal vector");
+		await expect(
+			createExperimentResultV2({
+				...input,
+				outcome: {
+					...input.outcome,
+					status: "failed",
+					failureCode: "timeout",
+					outputHash: null,
+					terminalVectorHash: null,
+				},
+			}),
+		).rejects.toThrow("only an invoked failure code");
+		await expect(
+			createExperimentResultV2({
+				...input,
+				outcome: {
+					...input.outcome,
+					status: "not-run",
+					failureCode: "missing",
+					outputHash: null,
+					terminalVectorHash: null,
+					latencyMicros: null,
+					peakMemoryBytes: null,
+					invariantResults: [],
+				},
+			}),
+		).rejects.toThrow("pre-invocation failure");
 	});
 
 	it("rejects caller-supplied aggregate invocation counts", async () => {
@@ -454,7 +523,9 @@ describe("BrainPort experiment contracts", () => {
 			},
 			outcome: {
 				status: "not-run",
+				proposalHash: null,
 				outputHash: null,
+				terminalVectorHash: null,
 				failureCode: "protocol-blocked",
 				latencyMicros: null,
 				peakMemoryBytes: null,

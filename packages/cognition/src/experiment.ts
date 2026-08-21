@@ -157,7 +157,9 @@ export interface ExperimentResultV2 {
 	readonly execution: ExperimentExecutionIdentity;
 	readonly outcome: {
 		readonly status: "completed" | "failed" | "not-run";
+		readonly proposalHash: string | null;
 		readonly outputHash: string | null;
+		readonly terminalVectorHash: string | null;
 		readonly failureCode:
 			| "missing"
 			| "timeout"
@@ -642,7 +644,9 @@ function assertResultInput(input: ExperimentResultV2Input): void {
 		input.outcome,
 		[
 			"status",
+			"proposalHash",
 			"outputHash",
+			"terminalVectorHash",
 			"failureCode",
 			"latencyMicros",
 			"peakMemoryBytes",
@@ -690,33 +694,38 @@ function assertResultInput(input: ExperimentResultV2Input): void {
 	if (input.outcome.status === "completed") {
 		if (
 			input.outcome.failureCode !== null ||
+			input.outcome.proposalHash === null ||
 			input.outcome.outputHash === null ||
+			input.outcome.terminalVectorHash === null ||
 			input.outcome.latencyMicros === null ||
 			input.outcome.invariantResults.length === 0 ||
 			input.outcome.invariantResults.some(({ passed }) => !passed)
 		)
 			throw new Error(
-				"completed execution requires output, latency, passing invariants, and no failure",
+				"completed execution requires proposal, output, terminal vector, latency, passing invariants, and no failure",
 			);
 	} else if (input.outcome.status === "failed") {
 		if (
 			input.outcome.failureCode === null ||
 			input.outcome.failureCode === "missing" ||
 			input.outcome.failureCode === "protocol-blocked" ||
-			input.outcome.latencyMicros === null
+			input.outcome.latencyMicros === null ||
+			input.outcome.proposalHash !== null ||
+			input.outcome.outputHash !== null ||
+			input.outcome.terminalVectorHash !== null
 		)
 			throw new Error(
-				"failed execution requires an invoked failure code and latency evidence",
+				"failed execution requires only an invoked failure code and latency evidence",
 			);
 	} else if (
 		(input.outcome.failureCode !== "missing" &&
 			input.outcome.failureCode !== "protocol-blocked") ||
-		input.outcome.outputHash !== null
+		input.outcome.proposalHash !== null ||
+		input.outcome.outputHash !== null ||
+		input.outcome.terminalVectorHash !== null
 	) {
 		throw new Error("not-run execution requires a pre-invocation failure");
 	}
-	if (input.outcome.status !== "completed" && input.outcome.outputHash !== null)
-		throw new Error("non-completed execution cannot claim an output");
 	if (
 		input.outcome.status === "not-run" &&
 		(input.outcome.latencyMicros !== null ||
@@ -724,8 +733,12 @@ function assertResultInput(input: ExperimentResultV2Input): void {
 			input.outcome.invariantResults.length !== 0)
 	)
 		throw new Error("not-run execution cannot claim runtime evidence");
-	if (input.outcome.outputHash !== null)
-		assertSha256(input.outcome.outputHash, "outcome.outputHash");
+	for (const [label, hash] of [
+		["proposalHash", input.outcome.proposalHash],
+		["outputHash", input.outcome.outputHash],
+		["terminalVectorHash", input.outcome.terminalVectorHash],
+	] as const)
+		if (hash !== null) assertSha256(hash, `outcome.${label}`);
 	if (input.outcome.latencyMicros !== null)
 		assertBoundedInteger(
 			input.outcome.latencyMicros,
