@@ -249,7 +249,7 @@ function PhasePanel({
 					</p>
 				</div>
 				<aside className="local-disclosure">
-					<strong>Local proof</strong>
+							<strong>Browser-local Alpha</strong>
 					<span>{projection.localSaveNotice}</span>
 				</aside>
 				<button
