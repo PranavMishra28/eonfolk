@@ -1,0 +1,16 @@
+{
+	"extends": "../../../tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": "../../..",
+		"types": ["node"]
+	},
+	"include": [
+		"../../../packages/protocol/src/**/*.ts",
+		"../../../packages/sim/src/**/*.ts",
+		"../../../packages/cognition/src/**/*.ts",
+		"../../fixtures/protocol/**/*.ts",
+		"../../fixtures/riverhold/**/*.ts",
+		"./**/*.ts"
+	]
+}
