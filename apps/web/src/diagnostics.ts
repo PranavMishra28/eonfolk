@@ -1,8 +1,10 @@
 import {
+	BoundedPerformanceSummary,
 	type DiagnosticIncident,
 	type DiagnosticInput,
 	type DiagnosticMode,
 	FlightRecorder,
+	NativePerformanceMonitor,
 	projectLocalObserver,
 	Sentinel,
 	type WorldHeadSummary,
@@ -17,8 +19,11 @@ function configuredMode(): DiagnosticMode {
 
 export class BrowserDiagnostics {
 	readonly #recorder: FlightRecorder;
+	#performance: NativePerformanceMonitor | null;
+	#performanceSummary: BoundedPerformanceSummary | null;
 	#incidents: DiagnosticIncident[] = [];
 	#worldHead: WorldHeadSummary | null = null;
+	#worldReadyMarked = false;
 
 	constructor(mode: DiagnosticMode = configuredMode()) {
 		let fallbackTick = 0;
@@ -32,6 +37,31 @@ export class BrowserDiagnostics {
 			maximumEvents: mode === "off" ? 64 : 512,
 			maximumBytes: mode === "off" ? 32 * 1024 : 256 * 1024,
 		});
+		const performance = this.#createPerformanceMonitor(mode);
+		this.#performanceSummary = performance?.summary ?? null;
+		this.#performance = performance?.monitor ?? null;
+		this.#performance?.mark("app-start");
+	}
+
+	#createPerformanceMonitor(mode: DiagnosticMode): Readonly<{
+		readonly summary: BoundedPerformanceSummary;
+		readonly monitor: NativePerformanceMonitor;
+	}> | null {
+		if (mode === "off") return null;
+		const summary = new BoundedPerformanceSummary({
+			maximumSamples: mode === "local" ? 2_048 : 512,
+			allowedNames: [
+				"app-start",
+				"world-ready",
+				"meaningful-world",
+				"feedback-freeze",
+				"self",
+			],
+		});
+		return Object.freeze({
+			summary,
+			monitor: new NativePerformanceMonitor({ summary }),
+		});
 	}
 
 	get mode(): DiagnosticMode {
@@ -41,6 +71,11 @@ export class BrowserDiagnostics {
 	enableAlphaCapture(): void {
 		if (this.#recorder.mode === "alpha") return;
 		this.#recorder.setMode("alpha");
+		if (this.#performance === null) {
+			const performance = this.#createPerformanceMonitor("alpha");
+			this.#performanceSummary = performance?.summary ?? null;
+			this.#performance = performance?.monitor ?? null;
+		}
 		this.record({
 			category: "ui",
 			name: "alpha-capture-consent",
@@ -51,12 +86,25 @@ export class BrowserDiagnostics {
 		});
 	}
 
+	markPerformance(name: "feedback-freeze"): void {
+		this.#performance?.mark(name);
+	}
+
 	record(input: DiagnosticInput): void {
 		this.#recorder.record(input);
 	}
 
 	setWorldHead(summary: WorldHeadSummary): void {
 		this.#worldHead = Object.freeze({ ...summary });
+		if (!this.#worldReadyMarked) {
+			this.#worldReadyMarked = true;
+			this.#performance?.mark("world-ready");
+			this.#performance?.measure(
+				"meaningful-world",
+				"app-start",
+				"world-ready",
+			);
+		}
 	}
 
 	async captureRuntimeFailure(input: {
@@ -94,6 +142,13 @@ export class BrowserDiagnostics {
 			snapshot: this.#recorder.snapshot(),
 			incidents: this.#incidents,
 			worldHead: this.#worldHead,
+			nativePerformance:
+				this.#performance === null || this.#performanceSummary === null
+					? null
+					: Object.freeze({
+							support: this.#performance.support,
+							summary: this.#performanceSummary.snapshot(),
+						}),
 		});
 	}
 }

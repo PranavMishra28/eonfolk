@@ -45,6 +45,8 @@ export function FeedbackPanel() {
 	const save = () => {
 		try {
 			if (includeDiagnostics) browserDiagnostics.enableAlphaCapture();
+			if (includeDiagnostics)
+				browserDiagnostics.markPerformance("feedback-freeze");
 			const report = createLocalFeedbackReport({
 				category,
 				text,

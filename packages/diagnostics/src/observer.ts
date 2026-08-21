@@ -4,11 +4,16 @@ import type {
 	ObserverProjection,
 	WorldHeadSummary,
 } from "./types";
+import type { PerformanceSummary, PerformanceSupport } from "./performance";
 
 export function projectLocalObserver(input: {
 	readonly snapshot: DiagnosticSnapshot;
 	readonly incidents: readonly DiagnosticIncident[];
 	readonly worldHead: WorldHeadSummary | null;
+	readonly nativePerformance?: Readonly<{
+		readonly support: PerformanceSupport;
+		readonly summary: PerformanceSummary;
+	}> | null;
 }): ObserverProjection {
 	const lastIncident = input.incidents.at(-1);
 	const status =
@@ -42,6 +47,7 @@ export function projectLocalObserver(input: {
 		performance: Object.freeze(
 			input.snapshot.events.filter((event) => event.category === "performance"),
 		),
+		nativePerformance: input.nativePerformance ?? null,
 		network: Object.freeze(
 			input.snapshot.events.filter((event) => event.category === "network"),
 		),

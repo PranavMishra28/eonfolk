@@ -1,4 +1,5 @@
 import type { RestrictedJson } from "@eonfolk/protocol";
+import type { PerformanceSummary, PerformanceSupport } from "./performance";
 
 export const DIAGNOSTICS_SCHEMA_VERSION = "eonfolk-diagnostics-v1" as const;
 export const REDACTION_POLICY_VERSION = "eonfolk-redaction-v2" as const;
@@ -121,6 +122,10 @@ export interface ObserverProjection {
 	}>[];
 	readonly trace: readonly DiagnosticEvent[];
 	readonly performance: readonly DiagnosticEvent[];
+	readonly nativePerformance: Readonly<{
+		readonly support: PerformanceSupport;
+		readonly summary: PerformanceSummary;
+	}> | null;
 	readonly network: readonly DiagnosticEvent[];
 	readonly reproduction: Readonly<{
 		readonly startSequence: number | null;

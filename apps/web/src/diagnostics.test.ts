@@ -23,6 +23,10 @@ describe("browser diagnostics boundary", () => {
 		const observer = diagnostics.observer();
 		expect(observer.health.status).toBe("healthy");
 		expect(observer.performance).toHaveLength(1);
+		expect(observer.nativePerformance).not.toBeNull();
+		expect(observer.nativePerformance?.summary.schemaVersion).toBe(
+			"eonfolk-performance-summary-v1",
+		);
 		expect(observer.worldHead?.revision).toBe(2);
 		expect(JSON.stringify(observer)).not.toContain("prompt");
 	});
@@ -41,5 +45,6 @@ describe("browser diagnostics boundary", () => {
 		expect(order).toEqual(["protected"]);
 		expect(incident.recovery).toBe("safe-stop");
 		expect(diagnostics.observer().health.status).toBe("safe-stop");
+		expect(diagnostics.observer().nativePerformance).toBeNull();
 	});
 });
