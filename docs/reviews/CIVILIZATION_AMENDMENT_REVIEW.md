@@ -34,7 +34,7 @@ Three fresh reviewers independently audited commit `e9c356bb0d3e2c2cf6e55b14862a
 | ZG-005 | P2 | Goal status states its external-approval precondition and no longer promises a later self-edit. |
 | ZG-006 | P2 | Gate 0 reserves 165 operator minutes, leaving the T01+T03 low estimate of 75 minutes inside M0's four hours. |
 
-All dispositions are recorded as ACCEPT — MITIGATED in [DECISIONS](../decisions/DECISIONS.md#frozen-review-dispositions).
+All dispositions are recorded as ACCEPT — MITIGATED in [DECISIONS](../decisions/DECISIONS.md#civilization-amendment-review-reconciliation).
 
 ## Final immutable confirmation
 
