@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 
 const root = process.cwd();
@@ -57,6 +57,24 @@ const rules = [
 				/\b(?:child_process|node:fs|node:net|node:http|node:https)\b/,
 				"host authority",
 			],
+		],
+	},
+	{
+		directories: ["packages/diagnostics"],
+		patterns: [
+			[
+				/from\s+["'][^"']*(?:packages\/(?:sim|cognition|persistence)|apps\/web|@eonfolk\/(?:sim|cognition|persistence))/,
+				"world/application authority",
+			],
+			[
+				/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\b/,
+				"network authority",
+			],
+			[
+				/\b(?:child_process|node:fs|node:net|node:http|node:https)\b/,
+				"host authority",
+			],
+			[/\bDate\.now\s*\(/, "ambient wall clock"],
 		],
 	},
 ];

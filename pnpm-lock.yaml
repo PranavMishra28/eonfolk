@@ -125,6 +125,12 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/diagnostics:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/observatory:
     dependencies:
       '@eonfolk/sim':
