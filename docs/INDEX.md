@@ -128,6 +128,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha diagnostics/privacy frozen review | [FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md](reviews/FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md) |
 | Founder Alpha cognition/research frozen review | [FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md](reviews/FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md) |
 | Founder Alpha CI/evidence frozen review | [FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md](reviews/FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md) |
+| Founder Alpha first confirmation and seven repair findings | [FOUNDER_ALPHA_CONFIRMATION.md](reviews/FOUNDER_ALPHA_CONFIRMATION.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene
@@ -151,6 +152,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
 | Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
+| Founder Alpha setup, verification, diagnosis, limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |

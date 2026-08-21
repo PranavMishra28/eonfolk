@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — frozen review repairs integrated; targeted confirmation and final release lattice pending
+**Status:** ACTIVE — first confirmation failed with seven P1s; all seven repairs integrated; targeted confirmation and final release lattice pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -239,9 +239,9 @@ Exact availability and results are recorded below as implementation lands. A nam
 | FA-D-002 | ACCEPT | Keep Standard Brain and canonical Reality untouched by diagnostics, feedback, experiments, and ontology projection. |
 | FA-D-003 | REJECT | Do not add rrweb, browser OpenTelemetry, or an MCP server. Keep a disabled `ReplayCapturePort`; typed traces, native performance measures, and explicit screenshots are the Alpha surface. |
 | FA-D-004 | ACCEPT WITH GATE | Implement only a dependency-light deploy-ready Worker/D1/Turnstile/private-GitHub-App relay seam. Do not deploy, create credentials, activate R2, or claim exactly-once delivery. |
-| FA-D-005 | ACCEPT WITH GATE | Planner Brain must earn inclusion against the frozen 64-context Standard-Brain benchmark and three-case improvement floor; otherwise remove it. POMCP/MCTS is rejected. |
+| FA-D-005 | ACCEPT WITH GATE | Planner Brain must earn inclusion against a future trusted frozen 64-context Standard-Brain benchmark and three-case improvement floor; the current generated corpus is smoke-only. Otherwise remove it. POMCP/MCTS is rejected. |
 | FA-D-006 | ACCEPT | Keep optional local-model work at the provider-neutral subprocess contract only. No executable, model, weight, download, SDK, or network call enters Founder Alpha. |
-| FA-D-007 | ACCEPT | Keep one authorized offline JSON-LD 1.1/PROV-O projection with a closed SHACL-1.0-like validator; RDF never becomes Reality or reducer input. |
+| FA-D-007 | ACCEPT | Keep one authorized offline JSON-LD 1.1, locally PROV-shaped projection with a closed repository validator. It claims neither full PROV-O nor SHACL conformance; RDF never becomes Reality or reducer input. |
 | FA-D-008 | ACCEPT | Observer remains a typed local read-only command. MCP is optional future transport and no security boundary. |
 | FA-D-009 | ACCEPT | R2 stays disabled because activation crosses a subscription/cost gate and budget alerts do not cap spend. |
 | FA-R-001 | ACTIVE | Diagnostics could become an unbounded privacy leak or second authority. Close through source redaction, bounds, explicit modes, and hostile tests. |
@@ -256,12 +256,12 @@ Exact availability and results are recorded below as implementation lands. A nam
 |---|---|---|
 | Start baseline | PASS | exact command and counts in Start-state freeze |
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
-| Diagnostics/Sentinel | PASS pending frozen review | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
-| Feedback/observer | PASS pending frozen review | browser-only queue/preview/delete/expiry; relay D1/quota/reconciliation/provider adversarial fixtures through `20c4fd8`; live provider path NOT RUN |
-| Founder Alpha browser matrix | REPAIRED; clean candidate rerun pending | Two test-only injected-fault journeys and fourteen unchanged-production journeys passed separately with zero-egress validation; the production rebuild is budgeted and artifact-bound after fault testing |
-| Cognition experiments | BOUNDED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; pre-run/result journal split; authorized Observatory artifact; no model/planner candidate run |
+| Diagnostics/Sentinel | AUTOMATED PASS; targeted confirmation pending | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
+| Feedback/observer | AUTOMATED PASS; live path NOT RUN | browser-only queue/preview/delete/expiry, hostile-summary reconstruction, relay D1/quota/reconciliation/provider adversarial fixtures; live provider path NOT RUN |
+| Founder Alpha browser matrix | REPAIRED; final clean PR/DEEP pending | Two test-only injected-fault journeys and fourteen unchanged-production journeys passed separately with zero-egress validation; the production rebuild is budgeted and artifact-bound after fault testing |
+| Cognition experiments | BOUNDED AUTOMATED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; ordered per-execution result journal; unforgeable authorized Observatory artifact; no model/planner candidate run |
 | Performance OFF/LOCAL/ALPHA | SOURCE + comparative browser PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the clean corrected three-mode browser comparison passed all assertions; final canonical repeated browser profile remains |
-| Security/privacy review | FROZEN REVIEW COMPLETE; repairs pending confirmation | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability regressions integrated; live relay NOT RUN |
+| Security/privacy review | FIRST CONFIRMATION REPAIRED; targeted confirmation pending | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions integrated; live relay NOT RUN |
 | Human Gate 0/A/B/Story Card | NOT RUN | no claim permitted |
 
 ## Definition of done

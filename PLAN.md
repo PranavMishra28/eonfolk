@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — frozen-review repairs integrated; targeted confirmation and final release lattice pending
+**Status:** FOUNDER ALPHA ACTIVE — seven first-confirmation P1s repaired; targeted confirmation and final release lattice pending
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Targeted confirmation pending | Start SHA `74a8a7e`; frozen candidate `7319d59` rejected by six independent reviews; every P0/P1 now has an accepted bounded repair/removal and direct regression on sole branch `feat/002-founder-alpha` |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Targeted confirmation pending | Start SHA `74a8a7e`; six-review candidate `7319d59` and first confirmation candidate `d9f7c20` were correctly rejected; all frozen and seven confirmation P1s now have accepted bounded repairs/direct regressions on sole branch `feat/002-founder-alpha` |
 
 ## Operator implementation override — 2026-08-21
 
@@ -97,7 +97,9 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | Systems/CI/privacy repair | `a0c6d03`, `2166d37`, `d3915bc` | Durable-before-visible, replay/version/reference, lease/quota/retention, redaction/storage, full-history secret, exact formal tool, and fail-closed lattice fixes inspected |
 | Cognition/Observatory repair | `b64531f` | Named controls/ablations/transfer, recursive validation, promotion fail-closure, manifest/result split, and authorized artifact projection inspected |
 | Visual/product repair | `2d5f511`, `ab6e420`, `cb535f4` | Mobile/counsel/keyboard/fallback/lexicon/access repairs plus deterministic counsel rejection, six-hour typed consequences, factual Chronicle, exact card times, and production-browser regressions inspected |
-| Shared authority synthesis | `7a1ba77` plus current candidate updates | Every frozen P0/P1 has an explicit disposition and direct evidence; fresh targeted confirmation and final clean lattice remain |
+| Shared authority synthesis | `7a1ba77`, `d9f7c20`, plus current candidate updates | Every frozen P0/P1 and all seven first-confirmation P1s have an explicit disposition and direct repair evidence; fresh targeted confirmation and final clean lattice remain |
+| First Founder Alpha confirmation | `7cbdcfa` | Fresh reviewer inspected exact tagged `d9f7c20`; zero P0 and seven P1 mechanisms retained before repair |
+| Confirmation repair batch | `d81d971`, `b99530f`, `c518af1`, `e2fb64b`, `9759988`, `8c49759` | Observatory/hostile-storage, control/claim, execution-bound experiment evidence, production-artifact identity, runnable DEEP browser comparison, and per-constituent tier evidence repaired with direct regressions |
 
 ## Disposable spike evidence
 
