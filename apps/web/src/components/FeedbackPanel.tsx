@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { browserDiagnostics } from "../diagnostics";
 import {
 	createLocalFeedbackReport,
+	FEEDBACK_EXPECTED_MAX_LENGTH,
+	FEEDBACK_HAPPENED_MAX_LENGTH,
 	type FeedbackCategory,
 	LocalFeedbackQueue,
 	type SanitizedFeedbackImage,
@@ -10,16 +12,30 @@ import {
 
 export function FeedbackPanel() {
 	const queue = useMemo(() => new LocalFeedbackQueue(window.localStorage), []);
+	const attachmentInput = useRef<HTMLInputElement>(null);
 	const [open, setOpen] = useState(false);
 	const [category, setCategory] = useState<FeedbackCategory>("bug");
-	const [text, setText] = useState("");
+	const [whatHappened, setWhatHappened] = useState("");
+	const [whatExpected, setWhatExpected] = useState("");
 	const [includeDiagnostics, setIncludeDiagnostics] = useState(false);
 	const [attachment, setAttachment] = useState<SanitizedFeedbackImage | null>(
 		null,
 	);
 	const [attachmentStatus, setAttachmentStatus] = useState("");
-	const [queued, setQueued] = useState(() => queue.list().length);
+	const [queuedReports, setQueuedReports] = useState(() => queue.list());
+	const [online, setOnline] = useState(() => navigator.onLine);
 	const [status, setStatus] = useState("");
+
+	useEffect(() => {
+		const markOnline = () => setOnline(true);
+		const markOffline = () => setOnline(false);
+		window.addEventListener("online", markOnline);
+		window.addEventListener("offline", markOffline);
+		return () => {
+			window.removeEventListener("online", markOnline);
+			window.removeEventListener("offline", markOffline);
+		};
+	}, []);
 
 	const prepareAttachment = async (file: File | undefined) => {
 		if (file === undefined) {
@@ -49,15 +65,18 @@ export function FeedbackPanel() {
 				browserDiagnostics.markPerformance("feedback-freeze");
 			const report = createLocalFeedbackReport({
 				category,
-				text,
+				whatHappened,
+				whatExpected,
 				diagnostics: includeDiagnostics ? browserDiagnostics.observer() : null,
 				attachment,
 				reportId: `alpha_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
 				createdAtMs: Date.now(),
 			});
-			setQueued(queue.save(report).length);
-			setText("");
+			setQueuedReports(queue.save(report));
+			setWhatHappened("");
+			setWhatExpected("");
 			setAttachment(null);
+			if (attachmentInput.current !== null) attachmentInput.current.value = "";
 			setAttachmentStatus("");
 			setStatus(
 				"Saved only in this browser. No feedback relay is configured, so nothing was uploaded.",
@@ -96,6 +115,15 @@ export function FeedbackPanel() {
 			</div>
 			{open && (
 				<div className="feedback-form" id="feedback-form">
+					<div
+						className="feedback-delivery"
+						role="status"
+						aria-label="Feedback delivery status"
+					>
+						<strong>Storage: this browser only</strong>
+						<span>Upload: unavailable — no relay is configured</span>
+						<span>Connection: {online ? "online" : "offline"}</span>
+					</div>
 					<label>
 						<span>Kind of feedback</span>
 						<select
@@ -113,16 +141,27 @@ export function FeedbackPanel() {
 					<label>
 						<span>What happened?</span>
 						<textarea
-							value={text}
-							maxLength={2000}
+							value={whatHappened}
+							maxLength={FEEDBACK_HAPPENED_MAX_LENGTH}
 							required
-							onChange={(event) => setText(event.target.value)}
-							placeholder="Describe the moment and what you expected."
+							onChange={(event) => setWhatHappened(event.target.value)}
+							placeholder="Describe the moment you observed."
+						/>
+					</label>
+					<label>
+						<span>What did you expect? (optional)</span>
+						<textarea
+							className="feedback-expected"
+							value={whatExpected}
+							maxLength={FEEDBACK_EXPECTED_MAX_LENGTH}
+							onChange={(event) => setWhatExpected(event.target.value)}
+							placeholder="What would you have expected instead?"
 						/>
 					</label>
 					<label>
 						<span>Optional image</span>
 						<input
+							ref={attachmentInput}
 							type="file"
 							accept="image/png,image/jpeg,image/webp"
 							onChange={(event) =>
@@ -131,11 +170,27 @@ export function FeedbackPanel() {
 						/>
 					</label>
 					{attachment && (
-						<img
-							className="feedback-preview"
-							src={attachment.dataUrl}
-							alt="Sanitized attachment preview"
-						/>
+						<figure className="feedback-preview-frame">
+							<img
+								className="feedback-preview"
+								src={attachment.dataUrl}
+								alt="Exact sanitized preview that will be saved with this report"
+							/>
+							<figcaption>
+								This is the exact re-encoded image saved with the local report.
+							</figcaption>
+							<button
+								type="button"
+								onClick={() => {
+									setAttachment(null);
+									setAttachmentStatus("");
+									if (attachmentInput.current !== null)
+										attachmentInput.current.value = "";
+								}}
+							>
+								Remove image
+							</button>
+						</figure>
 					)}
 					{attachmentStatus && <p role="status">{attachmentStatus}</p>}
 					<label className="feedback-consent">
@@ -145,33 +200,76 @@ export function FeedbackPanel() {
 							onChange={(event) => setIncludeDiagnostics(event.target.checked)}
 						/>
 						<span>
-							Attach bounded structured diagnostics. This never includes raw
-							world state, prompts, hidden reasoning, credentials, or browser
-							history.
+							Include bounded structured diagnostics in this report (optional;
+							off until checked). Checking this turns on Alpha capture in this
+							tab. It never includes raw world state, prompts, hidden reasoning,
+							credentials, or browser history.
+						</span>
+					</label>
+					<label className="feedback-consent feedback-unavailable">
+						<input type="checkbox" disabled />
+						<span>
+							Attach recent replay (unavailable). Replay capture was
+							deliberately rejected for Founder Alpha, so no replay data is
+							recorded or saved.
 						</span>
 					</label>
 					<div className="feedback-actions">
 						<button
 							type="button"
 							className="primary-action"
-							disabled={text.trim().length === 0}
+							disabled={whatHappened.trim().length === 0}
 							onClick={save}
 						>
 							Save feedback locally
 						</button>
-						{queued > 0 && (
+						{queuedReports.length > 0 && (
+							<button
+								type="button"
+								disabled
+								title="No feedback relay is configured"
+							>
+								Retry upload (relay unavailable)
+							</button>
+						)}
+						{queuedReports.length > 0 && (
 							<button
 								type="button"
 								onClick={() => {
 									queue.clear();
-									setQueued(0);
+									setQueuedReports([]);
 									setStatus("Deleted all locally queued feedback.");
 								}}
 							>
-								Delete queued feedback ({queued})
+								Delete queued feedback ({queuedReports.length})
 							</button>
 						)}
 					</div>
+					{queuedReports.length > 0 && (
+						<section className="feedback-queue" aria-label="Saved feedback">
+							<p>
+								{queuedReports.length} unsent local{" "}
+								{queuedReports.length === 1 ? "report" : "reports"}. Reports
+								expire after seven days unless you delete them sooner.
+							</p>
+							<ul>
+								{queuedReports.map((report) => (
+									<li key={report.reportId}>
+										<span>{report.category} · local only</span>
+										<button
+											type="button"
+											onClick={() => {
+												setQueuedReports(queue.remove(report.reportId));
+												setStatus("Deleted one locally saved report.");
+											}}
+										>
+											Delete this report
+										</button>
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
 					{status && (
 						<p className="feedback-status" role="status">
 							{status}

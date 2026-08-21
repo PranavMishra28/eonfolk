@@ -11,6 +11,9 @@ const MAX_IMAGE_EDGE = 1440;
 
 export type FeedbackCategory = "bug" | "confusing" | "idea" | "story";
 
+export const FEEDBACK_HAPPENED_MAX_LENGTH = 1_600;
+export const FEEDBACK_EXPECTED_MAX_LENGTH = 300;
+
 export interface SanitizedFeedbackImage {
 	readonly mimeType: "image/webp" | "image/png";
 	readonly width: number;
@@ -45,6 +48,27 @@ export function sanitizeFeedbackText(value: string): string {
 	for (const pattern of likelySecretPatterns)
 		sanitized = sanitized.replace(pattern, "[redacted]");
 	return sanitized;
+}
+
+export function composeFeedbackText(
+	whatHappened: string,
+	whatExpected: string,
+): string {
+	const happened = whatHappened.trim();
+	if (happened.length === 0)
+		throw new TypeError("Describe what happened before saving feedback.");
+	const expected = whatExpected.trim();
+	if ([...happened].length > FEEDBACK_HAPPENED_MAX_LENGTH)
+		throw new RangeError("What happened exceeds the feedback length budget.");
+	if ([...expected].length > FEEDBACK_EXPECTED_MAX_LENGTH)
+		throw new RangeError(
+			"What you expected exceeds the feedback length budget.",
+		);
+	return sanitizeFeedbackText(
+		expected.length === 0
+			? `What happened:\n${happened}`
+			: `What happened:\n${happened}\n\nWhat I expected:\n${expected}`,
+	);
 }
 
 export function validateFeedbackAttachmentInput(
@@ -168,11 +192,21 @@ export class LocalFeedbackQueue {
 	clear(): void {
 		this.#storage.removeItem(STORAGE_KEY);
 	}
+
+	remove(reportId: string): readonly LocalFeedbackReport[] {
+		const reports = this.list().filter(
+			(report) => report.reportId !== reportId,
+		);
+		if (reports.length === 0) this.#storage.removeItem(STORAGE_KEY);
+		else this.#storage.setItem(STORAGE_KEY, JSON.stringify(reports));
+		return Object.freeze(reports);
+	}
 }
 
 export function createLocalFeedbackReport(input: {
 	readonly category: FeedbackCategory;
-	readonly text: string;
+	readonly whatHappened: string;
+	readonly whatExpected: string;
 	readonly diagnostics: ObserverProjection | null;
 	readonly attachment: SanitizedFeedbackImage | null;
 	readonly reportId: string;
@@ -186,7 +220,7 @@ export function createLocalFeedbackReport(input: {
 		schemaVersion: FEEDBACK_SCHEMA_VERSION,
 		reportId: input.reportId,
 		category: input.category,
-		text: sanitizeFeedbackText(input.text),
+		text: composeFeedbackText(input.whatHappened, input.whatExpected),
 		createdAtMs: input.createdAtMs,
 		diagnostics: input.diagnostics,
 		attachment: input.attachment,

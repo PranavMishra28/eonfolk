@@ -158,6 +158,16 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 		.fill(
 			"The relationship consequence was clear. Contact player@example.com with ghp_abcdefghijklmnopqrstuvwxyz123456",
 		);
+	await panel
+		.getByLabel("What did you expect? (optional)")
+		.fill("A plain-language warning before the transition.");
+	await expect(panel.getByLabel("Feedback delivery status")).toContainText(
+		"Storage: this browser only",
+	);
+	await expect(panel.getByLabel("Feedback delivery status")).toContainText(
+		"Upload: unavailable",
+	);
+	await expect(panel.getByLabel(/Attach recent replay/i)).toBeDisabled();
 	await panel.getByLabel(/Attach bounded structured diagnostics/i).check();
 	await panel.getByLabel("Optional image").setInputFiles({
 		name: "moment.png",
@@ -168,6 +178,15 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 		),
 	});
 	await expect(panel.getByText(/Sanitized to 1×1/i)).toBeVisible();
+	const preview = panel.getByRole("img", {
+		name: /Exact sanitized preview that will be saved/i,
+	});
+	await expect(preview).toBeVisible();
+	await expect(
+		panel.getByText(/exact re-encoded image saved with the local report/i),
+	).toBeVisible();
+	const previewSource = await preview.getAttribute("src");
+	expect(previewSource).not.toBeNull();
 	await panel.getByRole("button", { name: "Save feedback locally" }).click();
 	await expect(
 		panel.getByText(
@@ -183,6 +202,17 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 	expect(stored).not.toContain("player@example.com");
 	expect(stored).not.toContain("ghp_");
 	expect(stored).not.toContain("prompt");
+	expect(stored).toContain("What happened:");
+	expect(stored).toContain("What I expected:");
+	expect(stored).toContain(previewSource);
+	await expect(
+		panel.getByRole("button", { name: /Retry upload/i }),
+	).toBeDisabled();
+	await page.context().setOffline(true);
+	await expect(panel.getByLabel("Feedback delivery status")).toContainText(
+		"Connection: offline",
+	);
+	await page.context().setOffline(false);
 	await panel
 		.getByRole("button", { name: /Delete queued feedback \(1\)/i })
 		.click();

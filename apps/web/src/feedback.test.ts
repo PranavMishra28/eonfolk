@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	composeFeedbackText,
 	createLocalFeedbackReport,
 	LocalFeedbackQueue,
 	sanitizeFeedbackText,
@@ -40,6 +41,24 @@ describe("Founder Alpha feedback", () => {
 		);
 	});
 
+	it("keeps observed and expected behavior distinct in relay-compatible text", () => {
+		expect(composeFeedbackText("The mill stopped.", "A warning first.")).toBe(
+			"What happened:\nThe mill stopped.\n\nWhat I expected:\nA warning first.",
+		);
+		expect(composeFeedbackText("The mill stopped.", "  ")).toBe(
+			"What happened:\nThe mill stopped.",
+		);
+		expect(() => composeFeedbackText(" ", "A warning first.")).toThrow(
+			/what happened/u,
+		);
+		expect(() => composeFeedbackText("x".repeat(1_601), "")).toThrow(
+			/length budget/u,
+		);
+		expect(() => composeFeedbackText("Observed", "x".repeat(301))).toThrow(
+			/length budget/u,
+		);
+	});
+
 	it("rejects unsupported or oversized attachments before decoding", () => {
 		expect(() =>
 			validateFeedbackAttachmentInput({ type: "image/svg+xml", size: 100 }),
@@ -58,7 +77,8 @@ describe("Founder Alpha feedback", () => {
 			queue.save(
 				createLocalFeedbackReport({
 					category: "bug",
-					text: `report ${index}`,
+					whatHappened: `report ${index}`,
+					whatExpected: "",
 					diagnostics: null,
 					attachment: null,
 					reportId: `alpha_report_${index}`,
@@ -67,10 +87,13 @@ describe("Founder Alpha feedback", () => {
 			);
 		}
 		expect(queue.list().map((report) => report.text)).toEqual([
-			"report 1",
-			"report 2",
-			"report 3",
+			"What happened:\nreport 1",
+			"What happened:\nreport 2",
+			"What happened:\nreport 3",
 		]);
+		expect(
+			queue.remove("alpha_report_2").map((report) => report.reportId),
+		).toEqual(["alpha_report_1", "alpha_report_3"]);
 		queue.clear();
 		expect(queue.list()).toEqual([]);
 	});
@@ -82,7 +105,8 @@ describe("Founder Alpha feedback", () => {
 		queue.save(
 			createLocalFeedbackReport({
 				category: "confusing",
-				text: "old report",
+				whatHappened: "old report",
+				whatExpected: "",
 				diagnostics: null,
 				attachment: null,
 				reportId: "alpha_report_old",
