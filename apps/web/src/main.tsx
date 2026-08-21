@@ -1,7 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { RiverholdApp } from "./RiverholdApp";
-import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Riverhold root is missing");
@@ -27,13 +26,13 @@ class RuntimeBoundary extends Component<
 					className="runtime-failure"
 					aria-labelledby="runtime-failure-title"
 				>
-					<p className="eyebrow">LOCAL PROOF UNAVAILABLE</p>
+					<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
 					<h1 id="runtime-failure-title">
 						Riverhold stopped before showing a world.
 					</h1>
 					<p>
 						No world state or Chronicle is being presented as authoritative.
-						This local proof requires a working Web Worker and browser storage.
+						Founder Alpha requires a working Web Worker and browser storage.
 					</p>
 					<details>
 						<summary>Technical detail</summary>

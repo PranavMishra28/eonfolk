@@ -159,7 +159,7 @@ function WorldHeader({
 				<InkMark />
 				<span>
 					<strong>EONFOLK</strong>
-					<small>RIVERHOLD · LOCAL PROOF</small>
+					<small>RIVERHOLD · FOUNDER ALPHA · LOCAL</small>
 				</span>
 			</a>
 			<div className="world-pulse" role="status" aria-label="World pulse">
@@ -612,13 +612,13 @@ export function RiverholdApp() {
 		return (
 			<main className="runtime-failure" aria-labelledby="runtime-failure-title">
 				<InkMark />
-				<p className="eyebrow">LOCAL PROOF UNAVAILABLE</p>
+				<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
 				<h1 id="runtime-failure-title">
 					Riverhold stopped before showing further world state.
 				</h1>
 				<p>
 					No world state or Chronicle is being presented as authoritative. This
-					local proof requires a working Web Worker and browser storage.
+					Founder Alpha requires a working Web Worker and browser storage.
 				</p>
 				{runtimeError.code === "STALE_FENCE" && (
 					<p role="alert">
@@ -736,7 +736,7 @@ export function RiverholdApp() {
 			<footer>
 				<InkMark />
 				<p>
-					<strong>Riverhold local proof</strong>
+					<strong>Riverhold Founder Alpha · local and account-free</strong>
 					<span>
 						Reality should be trustworthy. Mara's beliefs may still be wrong.
 					</span>
