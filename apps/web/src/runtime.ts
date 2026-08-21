@@ -723,6 +723,8 @@ export function createRiverholdRuntimeBridge(
 		{
 			resolve: (value: RiverholdProjection) => void;
 			reject: (reason: Error) => void;
+			operation: "initialize" | RiverholdIntent["kind"];
+			intentKind: RiverholdIntent["kind"] | null;
 		}
 	>();
 	worker.addEventListener(
@@ -743,27 +745,74 @@ export function createRiverholdRuntimeBridge(
 					scope: { component: "runtime-bridge" },
 					fields: {
 						code: code ?? "WORKER_REQUEST_FAILED",
-						operation: "request",
+						operation: request.operation,
 					},
 				});
 				request.reject(new RiverholdRuntimeError(detail, code));
 				return;
 			}
 			projection = message.data.projection;
-			if (message.data.worldHead !== undefined)
-				diagnostics?.setWorldHead(message.data.worldHead);
+			const worldHead = message.data.worldHead;
+			if (worldHead !== undefined) diagnostics?.setWorldHead(worldHead);
 			diagnostics?.record({
 				category: "worker",
-				name: "authority-request-complete",
+				name: "authority-response-observed",
 				severity: "info",
-				outcome: "accepted",
-				scope: { component: "runtime-bridge" },
+				outcome: "observed",
+				scope: {
+					component: "runtime-bridge",
+					...(worldHead === undefined
+						? {}
+						: { runId: worldHead.runId, regionId: worldHead.regionId }),
+				},
 				fields: {
-					operation: "request",
-					revision: message.data.worldHead?.revision ?? 0,
-					sequence: message.data.worldHead?.sequence ?? 0,
+					operation: request.operation,
+					revision: worldHead?.revision ?? 0,
+					sequence: worldHead?.sequence ?? 0,
 				},
 			});
+			diagnostics?.record({
+				category: "ui",
+				name: "authoritative-projection-observed",
+				severity: "info",
+				outcome: "observed",
+				scope: { component: "runtime-bridge" },
+				fields: {
+					operation: request.operation,
+					phase: projection.phase,
+				},
+			});
+			if (
+				request.intentKind === "offer-counsel" &&
+				projection.interpretation !== null
+			) {
+				diagnostics?.record({
+					category: "cognition",
+					name: "counsel-decision-projection-observed",
+					severity: "info",
+					outcome: "observed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						operation: "counsel-decision-boundary",
+						phase: projection.phase,
+						status: projection.interpretation.disposition,
+					},
+				});
+			}
+			if (projection.chronicle.length > 0) {
+				diagnostics?.record({
+					category: "chronicle",
+					name: "chronicle-projection-observed",
+					severity: "info",
+					outcome: "observed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						eventCount: projection.chronicle.length,
+						operation: "projection-read",
+						phase: projection.phase,
+					},
+				});
+			}
 			request.resolve(projection);
 		},
 	);
@@ -804,9 +853,18 @@ export function createRiverholdRuntimeBridge(
 				severity: "info",
 				outcome: "started",
 				scope: { component: "runtime-bridge" },
-				fields: { operation: message.kind },
+				fields: {
+					operation:
+						message.kind === "initialize" ? "initialize" : message.intent.kind,
+				},
 			});
-			pending.set(id, { resolve, reject });
+			pending.set(id, {
+				resolve,
+				reject,
+				operation:
+					message.kind === "initialize" ? "initialize" : message.intent.kind,
+				intentKind: message.kind === "initialize" ? null : message.intent.kind,
+			});
 			let testCrashAfterTransition: 1 | 2 | undefined;
 			if (
 				__EONFOLK_E2E_CRASH_HOOKS__ &&
@@ -844,28 +902,53 @@ export function createRiverholdRuntimeBridge(
 		async dispatch(intent) {
 			await ready;
 			const next = await request({ kind: "dispatch", intent });
+			let checkpoint: SavedCheckpoint | null = null;
 			if (intent.kind === "leave-checkpoint" && next.branch !== null) {
-				storage?.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						schemaVersion: "riverhold-checkpoint-v1",
-						branch: next.branch,
-						phase: "return-pending",
-					} satisfies SavedCheckpoint),
-				);
+				checkpoint = {
+					schemaVersion: "riverhold-checkpoint-v1",
+					branch: next.branch,
+					phase: "return-pending",
+				};
 			} else if (
 				(intent.kind === "confirm-advance" ||
 					intent.kind === "take-second-action") &&
 				next.branch !== null
 			) {
-				storage?.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						schemaVersion: "riverhold-checkpoint-v1",
-						branch: next.branch,
-						phase: intent.kind === "confirm-advance" ? "return" : "chronicle",
-					} satisfies SavedCheckpoint),
-				);
+				checkpoint = {
+					schemaVersion: "riverhold-checkpoint-v1",
+					branch: next.branch,
+					phase: intent.kind === "confirm-advance" ? "return" : "chronicle",
+				};
+			}
+			if (checkpoint !== null && storage !== null) {
+				try {
+					storage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
+					diagnostics?.record({
+						category: "persistence",
+						name: "local-checkpoint-write-observed",
+						severity: "info",
+						outcome: "observed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							operation: "local-checkpoint-write",
+							phase: checkpoint.phase ?? "return-pending",
+						},
+					});
+				} catch (error) {
+					diagnostics?.record({
+						category: "persistence",
+						name: "local-checkpoint-write-failed",
+						severity: "error",
+						outcome: "failed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							code: "CHECKPOINT_WRITE_FAILED",
+							operation: "local-checkpoint-write",
+							phase: checkpoint.phase ?? "return-pending",
+						},
+					});
+					throw error;
+				}
 			}
 			return next;
 		},

@@ -6,6 +6,7 @@ import {
 	DIAGNOSTIC_MODE_LIMITS,
 	DIAGNOSTICS_SCHEMA_VERSION,
 	type DiagnosticEvent,
+	type DiagnosticIdentity,
 	type DiagnosticIncident,
 	type DiagnosticInput,
 	type DiagnosticMode,
@@ -13,6 +14,20 @@ import {
 	type IncidentReason,
 	REDACTION_POLICY_VERSION,
 } from "./types";
+
+const runtimeClasses = new Set<DiagnosticIdentity["runtimeClass"]>([
+	"browser-worker-capable",
+	"browser-main-thread",
+	"node",
+	"unknown",
+]);
+const viewportClasses = new Set<DiagnosticIdentity["viewportClass"]>([
+	"compact",
+	"medium",
+	"wide",
+	"non-visual",
+	"unknown",
+]);
 
 function safeLabel(value: string, label: string): string {
 	const normalized = normalizeIngressText(value, {
@@ -33,10 +48,41 @@ function modeAllows(mode: DiagnosticMode, input: DiagnosticInput): boolean {
 	);
 }
 
+function diagnosticIdentity(
+	input: Partial<Omit<DiagnosticIdentity, "diagnosticsMode">> | undefined,
+): Omit<DiagnosticIdentity, "diagnosticsMode"> {
+	const runtimeClass = input?.runtimeClass ?? "unknown";
+	const viewportClass = input?.viewportClass ?? "unknown";
+	if (!runtimeClasses.has(runtimeClass))
+		throw new TypeError("runtimeClass must be a supported coarse class");
+	if (!viewportClasses.has(viewportClass))
+		throw new TypeError("viewportClass must be a supported coarse class");
+	return Object.freeze({
+		diagnosticSessionId: safeLabel(
+			input?.diagnosticSessionId ?? "session-unknown",
+			"diagnosticSessionId",
+		),
+		buildSha: safeLabel(input?.buildSha ?? "unknown", "buildSha"),
+		appVersion: safeLabel(input?.appVersion ?? "unknown", "appVersion"),
+		protocolVersion: safeLabel(
+			input?.protocolVersion ?? "unknown",
+			"protocolVersion",
+		),
+		experimentId: safeLabel(
+			input?.experimentId ?? "experiment-none",
+			"experimentId",
+		),
+		runId: safeLabel(input?.runId ?? "run-unknown", "identity runId"),
+		runtimeClass,
+		viewportClass,
+	});
+}
+
 export class FlightRecorder {
 	#mode: DiagnosticMode;
 	readonly #now: () => number;
 	readonly #buffer: DiagnosticRingBuffer;
+	readonly #identity: Omit<DiagnosticIdentity, "diagnosticsMode">;
 	#sequence = 0;
 	#frozen = false;
 
@@ -45,9 +91,11 @@ export class FlightRecorder {
 		readonly now: () => number;
 		readonly maximumEvents?: number;
 		readonly maximumBytes?: number;
+		readonly identity?: Partial<Omit<DiagnosticIdentity, "diagnosticsMode">>;
 	}) {
 		this.#mode = input.mode;
 		this.#now = input.now;
+		this.#identity = diagnosticIdentity(input.identity);
 		const defaultLimits = DIAGNOSTIC_MODE_LIMITS[input.mode];
 		this.#buffer = new DiagnosticRingBuffer({
 			maximumEvents: input.maximumEvents ?? defaultLimits.maximumEvents,
@@ -99,6 +147,10 @@ export class FlightRecorder {
 		return Object.freeze({
 			schemaVersion: DIAGNOSTICS_SCHEMA_VERSION,
 			mode: this.#mode,
+			identity: Object.freeze({
+				...this.#identity,
+				diagnosticsMode: this.#mode,
+			}),
 			redactionPolicyVersion: REDACTION_POLICY_VERSION,
 			frozen: this.#frozen,
 			droppedEvents: snapshot.droppedEvents,

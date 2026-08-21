@@ -4,6 +4,7 @@ import {
 	summarizePhysicalObservation,
 	validatePhysicalObservation,
 } from "../../../scripts/record-physical-device-evidence.mjs";
+import { resolveBuildSha } from "../../../apps/web/vite.config";
 
 function observation() {
 	return {
@@ -43,6 +44,18 @@ function observation() {
 }
 
 describe("evidence scripts", () => {
+	it("uses explicit build identity and fails safely without Git metadata", () => {
+		expect(resolveBuildSha("a".repeat(40), () => "ignored")).toBe(
+			"a".repeat(40),
+		);
+		expect(
+			resolveBuildSha(undefined, () => {
+				throw new Error("git unavailable");
+			}),
+		).toBe("unknown");
+		expect(resolveBuildSha("not a sha", () => "ignored")).toBe("unknown");
+	});
+
 	it("uses nearest-rank percentiles for diagnostic durations", () => {
 		expect(summarizeDurations([4, 1, 3, 2, 5])).toEqual({
 			count: 5,

@@ -26,6 +26,7 @@ export function projectLocalObserver(input: {
 	const last = input.snapshot.events.at(-1)?.sequence ?? null;
 	return Object.freeze({
 		schemaVersion: "eonfolk-observer-v1",
+		identity: input.snapshot.identity,
 		health: Object.freeze({
 			mode: input.snapshot.mode,
 			status,

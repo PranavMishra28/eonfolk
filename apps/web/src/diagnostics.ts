@@ -9,12 +9,37 @@ import {
 	Sentinel,
 	type WorldHeadSummary,
 } from "@eonfolk/diagnostics";
+import { PROTOCOL_SCHEMA_VERSION } from "@eonfolk/protocol";
 
 function configuredMode(): DiagnosticMode {
 	if (typeof __EONFOLK_DIAGNOSTICS_MODE__ === "string") {
 		return __EONFOLK_DIAGNOSTICS_MODE__;
 	}
 	return "off";
+}
+
+function diagnosticSessionId(): string {
+	try {
+		return `session-${globalThis.crypto.randomUUID()}`;
+	} catch {
+		return "session-unavailable";
+	}
+}
+
+function runtimeClass() {
+	if (typeof window === "undefined") return "node" as const;
+	return typeof Worker === "undefined"
+		? ("browser-main-thread" as const)
+		: ("browser-worker-capable" as const);
+}
+
+function viewportClass() {
+	if (typeof window === "undefined") return "non-visual" as const;
+	if (!Number.isFinite(window.innerWidth) || window.innerWidth <= 0)
+		return "unknown" as const;
+	if (window.innerWidth < 600) return "compact" as const;
+	if (window.innerWidth < 1_200) return "medium" as const;
+	return "wide" as const;
 }
 
 export class BrowserDiagnostics {
@@ -29,6 +54,22 @@ export class BrowserDiagnostics {
 		let fallbackTick = 0;
 		this.#recorder = new FlightRecorder({
 			mode,
+			identity: {
+				diagnosticSessionId: diagnosticSessionId(),
+				buildSha:
+					typeof __EONFOLK_BUILD_SHA__ === "string"
+						? __EONFOLK_BUILD_SHA__
+						: "unknown",
+				appVersion:
+					typeof __EONFOLK_APP_VERSION__ === "string"
+						? __EONFOLK_APP_VERSION__
+						: "unknown",
+				protocolVersion: PROTOCOL_SCHEMA_VERSION,
+				experimentId: "founder-alpha-standard-brain",
+				runId: "run_riverhold_0001",
+				runtimeClass: runtimeClass(),
+				viewportClass: viewportClass(),
+			},
 			now: () => {
 				const measured = globalThis.performance?.now();
 				if (measured !== undefined) return Math.max(0, Math.floor(measured));

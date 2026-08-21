@@ -6,6 +6,31 @@ export const REDACTION_POLICY_VERSION = "eonfolk-redaction-v2" as const;
 
 export type DiagnosticMode = "off" | "local" | "alpha";
 
+export type DiagnosticRuntimeClass =
+	| "browser-worker-capable"
+	| "browser-main-thread"
+	| "node"
+	| "unknown";
+
+export type DiagnosticViewportClass =
+	| "compact"
+	| "medium"
+	| "wide"
+	| "non-visual"
+	| "unknown";
+
+export interface DiagnosticIdentity {
+	readonly diagnosticSessionId: string;
+	readonly buildSha: string;
+	readonly appVersion: string;
+	readonly protocolVersion: string;
+	readonly experimentId: string;
+	readonly runId: string;
+	readonly runtimeClass: DiagnosticRuntimeClass;
+	readonly viewportClass: DiagnosticViewportClass;
+	readonly diagnosticsMode: DiagnosticMode;
+}
+
 export interface DiagnosticModeLimits {
 	readonly maximumEvents: number;
 	readonly maximumBytes: number;
@@ -78,6 +103,7 @@ export type IncidentReason =
 export interface DiagnosticSnapshot {
 	readonly schemaVersion: typeof DIAGNOSTICS_SCHEMA_VERSION;
 	readonly mode: DiagnosticMode;
+	readonly identity: DiagnosticIdentity;
 	readonly redactionPolicyVersion: typeof REDACTION_POLICY_VERSION;
 	readonly frozen: boolean;
 	readonly droppedEvents: number;
@@ -107,6 +133,7 @@ export interface WorldHeadSummary {
 
 export interface ObserverProjection {
 	readonly schemaVersion: "eonfolk-observer-v1";
+	readonly identity: DiagnosticIdentity;
 	readonly health: Readonly<{
 		readonly mode: DiagnosticMode;
 		readonly status: "healthy" | "degraded" | "safe-stop";

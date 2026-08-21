@@ -103,19 +103,19 @@ function snapshotMaximum(snapshots, field) {
 	);
 }
 
-async function measureMode(FlightRecorder, mode) {
+async function measureMode(FlightRecorder, mode, identity) {
 	const callDurations = [];
 	const freezeDurations = [];
 	const snapshots = [];
 	let modeledMinuteBytes = null;
 	for (let repetition = 0; repetition < REPETITIONS; repetition += 1) {
 		let tick = 0;
-		const warmup = new FlightRecorder({ mode, now: () => tick++ });
+		const warmup = new FlightRecorder({ mode, now: () => tick++, identity });
 		for (let index = 0; index < WARMUP_CALLS; index += 1)
 			warmup.record(eventInput(index));
 
 		tick = 0;
-		const recorder = new FlightRecorder({ mode, now: () => tick++ });
+		const recorder = new FlightRecorder({ mode, now: () => tick++, identity });
 		let minuteBytes = 0;
 		for (let index = 0; index < MEASURED_CALLS; index += 1) {
 			const started = performance.now();
@@ -164,11 +164,9 @@ async function measureMode(FlightRecorder, mode) {
 	});
 	return Object.freeze({
 		mode,
-		identity: Object.freeze({
-			diagnosticMode: mode,
-			diagnosticSchema: snapshots[0].schemaVersion,
-			redactionPolicy: snapshots[0].redactionPolicyVersion,
-		}),
+		identity: snapshots[0].identity,
+		diagnosticSchema: snapshots[0].schemaVersion,
+		redactionPolicy: snapshots[0].redactionPolicyVersion,
 		recordCall,
 		freeze,
 		modeledSerializedBytesPerMinuteAt60Calls: modeledMinuteBytes,
@@ -208,6 +206,10 @@ async function run() {
 		);
 	const expectedNode = JSON.parse(readFileSync(resolve("package.json"), "utf8"))
 		.engines.node;
+	const appVersion = JSON.parse(
+		readFileSync(resolve("apps/web/package.json"), "utf8"),
+	).version;
+	const sourceCommit = git("rev-parse", "HEAD");
 	const runtimeMatches =
 		process.versions.node === expectedNode && arch() === "arm64";
 	if (!runtimeMatches && !arguments_.allowDirty)
@@ -245,8 +247,20 @@ async function run() {
 			"/packages/diagnostics/src/index.ts",
 		);
 		modes = [];
-		for (const mode of MODES)
-			modes.push(await measureMode(diagnostics.FlightRecorder, mode));
+		for (const mode of MODES) {
+			modes.push(
+				await measureMode(diagnostics.FlightRecorder, mode, {
+					diagnosticSessionId: `session-benchmark-${mode}`,
+					buildSha: sourceCommit,
+					appVersion,
+					protocolVersion: "1",
+					experimentId: "diagnostics-overhead",
+					runId: "run-benchmark",
+					runtimeClass: "node",
+					viewportClass: "non-visual",
+				}),
+			);
+		}
 	} finally {
 		await vite.close();
 	}
@@ -265,7 +279,7 @@ async function run() {
 			"Deterministic source-level recorder workload only; this does not satisfy integrated browser frame, input, display, network, persistence, or physical-device gates.",
 		recordedAt: new Date().toISOString(),
 		source: Object.freeze({
-			commit: git("rev-parse", "HEAD"),
+			commit: sourceCommit,
 			clean: !dirty,
 			lockfileSha256: sha256(readFileSync(resolve("pnpm-lock.yaml"))),
 			sourceManifest,

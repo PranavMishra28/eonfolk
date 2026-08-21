@@ -23,6 +23,26 @@ try {
 		}
 		return window.__EONFOLK_OBSERVER__();
 	});
+	const identityFields = [
+		"diagnosticSessionId",
+		"buildSha",
+		"appVersion",
+		"protocolVersion",
+		"experimentId",
+		"runId",
+		"runtimeClass",
+		"viewportClass",
+		"diagnosticsMode",
+	];
+	for (const field of identityFields) {
+		if (
+			typeof projection.identity?.[field] !== "string" ||
+			projection.identity[field].length === 0
+		)
+			throw new Error(`Local observer identity is missing ${field}`);
+	}
+	if (projection.identity.diagnosticsMode !== projection.health.mode)
+		throw new Error("Local observer mode identity does not match health mode");
 	process.stdout.write(`${JSON.stringify(projection, null, 2)}\n`);
 } finally {
 	await browser.close();

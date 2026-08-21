@@ -69,6 +69,17 @@ describe("Founder Alpha diagnostics", () => {
 
 	it("keeps core mode quiet except failures and Sentinel", () => {
 		const recorder = new FlightRecorder({ mode: "off", now: clock() });
+		expect(recorder.snapshot().identity).toEqual({
+			diagnosticSessionId: "session-unknown",
+			buildSha: "unknown",
+			appVersion: "unknown",
+			protocolVersion: "unknown",
+			experimentId: "experiment-none",
+			runId: "run-unknown",
+			runtimeClass: "unknown",
+			viewportClass: "unknown",
+			diagnosticsMode: "off",
+		});
 		expect(
 			recorder.record({
 				category: "ui",
@@ -90,6 +101,7 @@ describe("Founder Alpha diagnostics", () => {
 		).not.toBeNull();
 		expect(recorder.snapshot().events).toHaveLength(1);
 		recorder.setMode("alpha");
+		expect(recorder.snapshot().identity.diagnosticsMode).toBe("alpha");
 		expect(
 			recorder.record({
 				category: "ui",
@@ -115,6 +127,62 @@ describe("Founder Alpha diagnostics", () => {
 		expect(local.snapshot().redactionPolicyVersion).toBe(
 			"eonfolk-redaction-v2",
 		);
+	});
+
+	it("carries a bounded session identity into every snapshot and observer", () => {
+		const recorder = new FlightRecorder({
+			mode: "local",
+			now: clock(),
+			identity: {
+				diagnosticSessionId: "session-1234",
+				buildSha: "a".repeat(40),
+				appVersion: "0.0.0",
+				protocolVersion: "1",
+				experimentId: "founder-alpha-standard-brain",
+				runId: "run_riverhold_0001",
+				runtimeClass: "browser-worker-capable",
+				viewportClass: "wide",
+			},
+		});
+		const snapshot = recorder.snapshot();
+		expect(snapshot.identity).toEqual({
+			diagnosticSessionId: "session-1234",
+			buildSha: "a".repeat(40),
+			appVersion: "0.0.0",
+			protocolVersion: "1",
+			experimentId: "founder-alpha-standard-brain",
+			runId: "run_riverhold_0001",
+			runtimeClass: "browser-worker-capable",
+			viewportClass: "wide",
+			diagnosticsMode: "local",
+		});
+		expect(Object.isFrozen(snapshot.identity)).toBe(true);
+		const observer = projectLocalObserver({
+			snapshot,
+			incidents: [],
+			worldHead: null,
+		});
+		expect(observer.identity).toBe(snapshot.identity);
+		expect(observer.identity.diagnosticsMode).toBe(observer.health.mode);
+	});
+
+	it("rejects unsafe or overly specific identity classes", () => {
+		expect(
+			() =>
+				new FlightRecorder({
+					mode: "local",
+					now: clock(),
+					identity: { buildSha: "https://example.invalid/?token=secret" },
+				}),
+		).toThrow(/buildSha/);
+		expect(
+			() =>
+				new FlightRecorder({
+					mode: "local",
+					now: clock(),
+					identity: { runtimeClass: "browser-safari-22" as never },
+				}),
+		).toThrow(/runtimeClass/);
 	});
 
 	it("keeps disabled replay capture deterministic and side-effect free", () => {
