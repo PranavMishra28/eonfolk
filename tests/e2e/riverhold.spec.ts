@@ -70,16 +70,16 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 		page.getByRole("heading", { name: /What entered the record/i }),
 	).toBeVisible();
 	await page
-		.getByRole("button", { name: /Inspect 1 evidence record/i })
+		.getByRole("button", { name: /Inspect \d+ evidence record/i })
 		.first()
 		.click();
 	await expect(
-		page.getByRole("dialog", { name: /You advised a private check/i }),
+		page.getByRole("dialog", { name: /Mara Vale independently chose/i }),
 	).toBeVisible();
 	await page.getByRole("button", { name: "Close details" }).click();
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
 	await expect(
-		page.getByRole("heading", { name: /Mara chose to verify/i }),
+		page.getByRole("heading", { name: /Mara Vale recorded a sourced belief/i }),
 	).toBeVisible();
 	await page.getByRole("button", { name: "Copy Story Card" }).click();
 	await expect(
@@ -97,8 +97,13 @@ test("accuse path preserves allegation language and offers trust repair", async 
 		.click();
 	await page.getByText("Raise the mismatch in public", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
-	await expect(page.getByText(/audit opened/i)).toBeVisible();
+	await expect(
+		page.getByText(/three petition endorsements followed/i),
+	).toBeVisible();
 	await page.getByRole("button", { name: /Leave Riverhold/i }).click();
+	await expect(
+		page.getByRole("heading", { name: /Riverhold can continue from here/i }),
+	).toBeVisible();
 	await page.reload();
 	await page.getByRole("button", { name: /Advance Riverhold/i }).click();
 	await expect(
@@ -120,15 +125,15 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
 	await page.keyboard.press("Tab");
 	await page.keyboard.press("Enter");
-	await page.getByRole("button", { name: /Mara Market tally-keeper/i }).click();
-	await expect(page.getByRole("dialog", { name: "Mara" })).toBeVisible();
+	await page.getByRole("button", { name: /Mara Vale ledger runner/i }).click();
+	await expect(page.getByRole("dialog", { name: "Mara Vale" })).toBeVisible();
 	await page.goBack();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await expect(
 		page.getByRole("list", { name: /Eight Riverhold citizens/i }),
 	).toBeVisible();
 	await expect(
-		page.getByRole("button", { name: /Mara Market tally-keeper/i }),
+		page.getByRole("button", { name: /Mara Vale ledger runner/i }),
 	).toHaveCSS("min-height", "90px");
 });
 

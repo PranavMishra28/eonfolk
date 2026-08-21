@@ -67,7 +67,12 @@ export interface MaraProjection {
 export interface InterpretationProjection {
 	readonly counsel: CounselIntent;
 	readonly chosenAction: CounselIntent;
-	readonly disposition: "accepted" | "reinterpreted" | "not-applicable";
+	readonly disposition:
+		| "accepted"
+		| "delayed"
+		| "rejected"
+		| "reinterpreted"
+		| "not-applicable";
 	readonly publicReason: string;
 	readonly decisiveTerms: readonly string[];
 }
@@ -122,6 +127,7 @@ export type RiverholdIntent =
 
 export interface RiverholdRuntimeBridge {
 	getProjection(): RiverholdProjection;
+	ready(): Promise<RiverholdProjection>;
 	dispatch(intent: RiverholdIntent): Promise<RiverholdProjection>;
 	clear(): void;
 }

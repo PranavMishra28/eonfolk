@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** PROVISIONAL BUDGETS ACCEPTED; IMPLEMENTATION MEASUREMENTS MAY TIGHTEN BUT NOT SILENTLY WEAKEN THEM
+**Status:** PROVISIONAL BUDGETS ACCEPTED; LOCAL IMPLEMENTATION SMOKE PASSES; CANONICAL MOBILE/NETWORK PROCEDURE NOT RUN
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -60,6 +60,14 @@ Interpretation:
 - no Pixi implementation, production simulation, Chronicle, full UI, atlas payload, thermal soak, or physical mid-tier mobile was measured.
 
 The scratch result is feasibility evidence, not permission to reserve all remaining bundle/frame budget.
+
+## Integrated implementation smoke
+
+**AUTOMATED TECHNICAL MEASUREMENT — NOT A MEASURED HUMAN PASS:** the reviewed-candidate worktree's production build measured **121,784 bytes gzip** for the classified critical shell, **247,947 bytes gzip** for all emitted JavaScript, and zero external world-asset bytes. A local pinned-headless-Chromium smoke at 1728×1117, 1366×768, and 390×844 painted eight semantic citizens in **505.0 ms**, **431.5 ms**, and **266.1 ms** respectively. After a 60-frame warm-up, the profiles measured **10.2–10.3 ms p95** across 120 `requestAnimationFrame` intervals.
+
+The first measurement exposed a real miss: the decorative continuous Pixi ticker produced **25.1 ms desktop p95**. The implementation removed that nonessential loop and now renders on authoritative projection changes; the repeated smoke passed without weakening a budget. Exact evidence and caveats are in the [implementation performance record](../exec-plans/evidence/001/implementation/performance.json).
+
+This is not the canonical five-cold-run, throttled-4G, 30-second-state matrix specified above. It is localhost, headless, and mobile viewport emulation on the M4 Pro. Physical mid-tier mobile, throttled transfer, twelve-citizen stress, thermal behavior, worker-latency percentiles, and the full canonical lab remain explicitly unmeasured.
 
 ## Reduced motion
 

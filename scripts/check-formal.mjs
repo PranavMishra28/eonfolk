@@ -70,7 +70,7 @@ const jar =
 	(await discoverTemporaryJar());
 
 if (java === null || jar === null) {
-	process.stdout.write(
+	process.stderr.write(
 		`${JSON.stringify(
 			{
 				status: "TOOL_UNAVAILABLE",
@@ -86,7 +86,7 @@ if (java === null || jar === null) {
 			2,
 		)}\n`,
 	);
-	process.exit(0);
+	process.exit(1);
 }
 
 const jarBytes = await readFile(jar);

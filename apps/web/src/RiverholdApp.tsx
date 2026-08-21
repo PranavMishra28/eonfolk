@@ -225,8 +225,9 @@ function PhasePanel({
 					<p className="eyebrow">CURRENT TENSION</p>
 					<h3>The count could be wrong. Toma signed it.</h3>
 					<p>
-						Mara trusts Toma, but the public ledger lists 48 food while the open
-						bins hold 36.
+						Mara trusts Toma, but the public ledger lists{" "}
+						{projection.investigation.ledgerCount} food while the open bins hold{" "}
+						{projection.investigation.openBinCount}.
 					</p>
 				</div>
 				<aside className="local-disclosure">
@@ -465,6 +466,11 @@ export function RiverholdApp() {
 	);
 	const [sheet, setSheet] = useState<Sheet>(null);
 	const phaseFocus = useRef<HTMLElement>(null);
+
+	useEffect(() => {
+		void bridge.ready().then(setProjection);
+		return () => bridge.clear();
+	}, [bridge]);
 
 	useEffect(() => {
 		phaseFocus.current?.focus({ preventScroll: true });

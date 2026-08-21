@@ -50,7 +50,8 @@ for (const file of files) {
 	const source = await readFile(file, "utf8");
 	for (const match of source.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)) {
 		let target = match[1].trim();
-		if (target.startsWith("<") && target.endsWith(">")) target = target.slice(1, -1);
+		if (target.startsWith("<") && target.endsWith(">"))
+			target = target.slice(1, -1);
 		if (/^(?:https?:|mailto:|#)/.test(target)) continue;
 		const [rawPath, rawAnchor] = target.split("#", 2);
 		const path = resolve(dirname(file), decodeURIComponent(rawPath));
@@ -74,5 +75,7 @@ if (failures.length > 0) {
 	process.stderr.write(`${failures.join("\n")}\n`);
 	process.exitCode = 1;
 } else {
-	process.stdout.write(`documentation links ok: ${files.length} files, ${checked} local links\n`);
+	process.stdout.write(
+		`documentation links ok: ${files.length} files, ${checked} local links\n`,
+	);
 }

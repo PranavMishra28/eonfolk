@@ -1,0 +1,12 @@
+{
+	"extends": "../../../tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"../../../packages/observatory/src/**/*.ts",
+		"../../../packages/sim/src/**/*.ts",
+		"../../../packages/protocol/src/**/*.ts",
+		"./**/*.ts"
+	]
+}

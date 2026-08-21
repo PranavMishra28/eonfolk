@@ -233,17 +233,13 @@ export function RiverholdWorld({
 			}
 			app.stage.addChild(people);
 
-			if (!reducedMotion) {
-				let tick = 0;
-				app.ticker.add(() => {
-					tick += 0.018;
-					for (const [index, sprite] of sprites.entries())
-						sprite.y += Math.sin(tick + index) * 0.045;
-				});
-			} else {
-				app.ticker.stop();
-				app.renderer.render(app.stage);
-			}
+			// The first slice renders on authoritative projection changes instead of
+			// running a decorative frame loop. This keeps the world legible while
+			// protecting the solo-builder desktop/mobile frame budget.
+			void reducedMotion;
+			void sprites;
+			app.ticker.stop();
+			app.renderer.render(app.stage);
 			container.dataset.ready = "true";
 		};
 		void render();

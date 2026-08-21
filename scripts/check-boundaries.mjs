@@ -15,7 +15,8 @@ async function filesBelow(directory) {
 	}
 	for (const entry of entries) {
 		const path = resolve(absolute, entry.name);
-		if (entry.isDirectory()) output.push(...(await filesBelow(relative(root, path))));
+		if (entry.isDirectory())
+			output.push(...(await filesBelow(relative(root, path))));
 		else if (/\.(?:ts|tsx|js|mjs)$/.test(entry.name)) output.push(path);
 	}
 	return output;
@@ -25,19 +26,37 @@ const rules = [
 	{
 		directories: ["packages/protocol", "packages/sim"],
 		patterns: [
-			[/from\s+["'](?:react|react-dom|pixi\.js|motion|@base-ui)/, "presentation dependency"],
-			[/from\s+["'][^"']*(?:persistence|apps\/web)/, "application/persistence dependency"],
+			[
+				/from\s+["'](?:react|react-dom|pixi\.js|motion|@base-ui)/,
+				"presentation dependency",
+			],
+			[
+				/from\s+["'][^"']*(?:persistence|apps\/web)/,
+				"application/persistence dependency",
+			],
 			[/\bDate\.now\s*\(/, "wall-clock authority"],
 			[/\bMath\.random\s*\(/, "ambient randomness"],
-			[/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/, "network authority"],
+			[
+				/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/,
+				"network authority",
+			],
 		],
 	},
 	{
 		directories: ["packages/cognition"],
 		patterns: [
-			[/from\s+["'](?:openai|@anthropic-ai|ollama|@huggingface)/, "provider SDK"],
-			[/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/, "network authority"],
-			[/\b(?:child_process|node:fs|node:net|node:http|node:https)\b/, "host authority"],
+			[
+				/from\s+["'](?:openai|@anthropic-ai|ollama|@huggingface)/,
+				"provider SDK",
+			],
+			[
+				/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/,
+				"network authority",
+			],
+			[
+				/\b(?:child_process|node:fs|node:net|node:http|node:https)\b/,
+				"host authority",
+			],
 		],
 	},
 ];
@@ -48,7 +67,8 @@ for (const rule of rules) {
 		for (const file of await filesBelow(directory)) {
 			const source = await readFile(file, "utf8");
 			for (const [pattern, label] of rule.patterns) {
-				if (pattern.test(source)) failures.push(`${relative(root, file)}: ${label}`);
+				if (pattern.test(source))
+					failures.push(`${relative(root, file)}: ${label}`);
 			}
 		}
 	}

@@ -74,6 +74,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Mind, Standard Brain, bounded proposals, raw decision records, viewer-safe trace projections and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
+| Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
 
 ## Quality authorities
 
@@ -127,6 +128,9 @@ Each concern has one authority. Research records evidence; reviews record object
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
+| Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
+| Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
+| Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
 | Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |

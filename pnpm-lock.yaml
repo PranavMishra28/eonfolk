@@ -70,6 +70,77 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
 
+  apps/web:
+    dependencies:
+      '@eonfolk/cognition':
+        specifier: workspace:*
+        version: link:../../packages/cognition
+      '@eonfolk/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      '@eonfolk/sim':
+        specifier: workspace:*
+        version: link:../../packages/sim
+      pixi.js:
+        specifier: 8.19.0
+        version: 8.19.0
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.62.1
+        version: 1.62.1
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: 6.1.0
+        version: 6.1.0(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@22.20.1)(jiti@2.7.0)
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
+
+  packages/cognition:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/observatory:
+    dependencies:
+      '@eonfolk/sim':
+        specifier: workspace:*
+        version: link:../sim
+
+  packages/persistence: {}
+
+  packages/protocol: {}
+
+  packages/sim:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
 packages:
 
   '@babel/helper-string-parser@7.29.7':

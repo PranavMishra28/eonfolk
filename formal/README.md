@@ -21,4 +21,4 @@ JAVA_HOME=/absolute/path/to/jdk \
 node scripts/check-formal.mjs
 ```
 
-If neither TLC nor a Java/JAR pair exists, the script reports `TOOL_UNAVAILABLE` and does not claim verification.
+If Java or the JAR is unavailable, the script reports `TOOL_UNAVAILABLE` and exits nonzero. CI supplies a checksum-verified TLA+ 1.8.0 JAR and Java 21; tool absence is never a passing formal check.

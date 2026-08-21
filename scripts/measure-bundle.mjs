@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -23,7 +23,9 @@ async function walk(directory) {
 try {
 	await stat(dist);
 } catch {
-	process.stderr.write("apps/web/dist is missing; run the production build first\n");
+	process.stderr.write(
+		"apps/web/dist is missing; run the production build first\n",
+	);
 	process.exit(1);
 }
 
@@ -37,11 +39,18 @@ for (const path of (await walk(dist)).sort()) {
 	});
 }
 
-const isCode = (row) => [".html", ".css", ".js", ".mjs"].includes(extname(row.path));
-const isRenderer = (row) => /(?:pixi|renderer|world)[-._]/i.test(row.path);
-const sum = (values, key) => values.reduce((total, value) => total + value[key], 0);
-const javascript = rows.filter((row) => [".js", ".mjs"].includes(extname(row.path)));
-const critical = rows.filter((row) => isCode(row) && !isRenderer(row));
+const isCode = (row) =>
+	[".html", ".css", ".js", ".mjs"].includes(extname(row.path));
+const isDeferredRuntime = (row) =>
+	/^assets\/(?:runtime\.worker|webworker|canvas|filter|gpu|renderer|rendertarget|browserall|getpo2texture|gettexture|init-)/i.test(
+		row.path,
+	);
+const sum = (values, key) =>
+	values.reduce((total, value) => total + value[key], 0);
+const javascript = rows.filter((row) =>
+	[".js", ".mjs"].includes(extname(row.path)),
+);
+const critical = rows.filter((row) => isCode(row) && !isDeferredRuntime(row));
 const assets = rows.filter((row) => !isCode(row) && !row.path.endsWith(".map"));
 
 const result = {
@@ -56,9 +65,12 @@ const result = {
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 
 const failures = [];
-if (result.criticalShellGzip > limits.criticalShellGzip) failures.push("critical shell gzip");
-if (result.totalJavaScriptGzip > limits.totalJavaScriptGzip) failures.push("total JavaScript gzip");
-if (result.worldAssetRawBytes > limits.worldAssetsMobile) failures.push("mobile world assets");
+if (result.criticalShellGzip > limits.criticalShellGzip)
+	failures.push("critical shell gzip");
+if (result.totalJavaScriptGzip > limits.totalJavaScriptGzip)
+	failures.push("total JavaScript gzip");
+if (result.worldAssetRawBytes > limits.worldAssetsMobile)
+	failures.push("mobile world assets");
 
 if (failures.length > 0) {
 	process.stderr.write(`bundle budget failed: ${failures.join(", ")}\n`);

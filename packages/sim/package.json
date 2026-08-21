@@ -2,5 +2,8 @@
 	"name": "@eonfolk/sim",
 	"private": true,
 	"type": "module",
-	"exports": "./src/index.ts"
+	"exports": "./src/index.ts",
+	"dependencies": {
+		"@eonfolk/protocol": "workspace:*"
+	}
 }

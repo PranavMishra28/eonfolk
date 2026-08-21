@@ -60,8 +60,8 @@ describe("Riverhold projection bridge", () => {
 		await bridge.dispatch({ kind: "follow-mara" });
 		const projection = await bridge.dispatch({ kind: "investigate-count" });
 		expect(projection.investigation).toEqual({
-			ledgerCount: 48,
-			openBinCount: 36,
+			ledgerCount: 40,
+			openBinCount: 28,
 			mismatch: 12,
 			observed: true,
 		});
@@ -141,10 +141,10 @@ describe("Riverhold projection bridge", () => {
 		).rejects.toThrow("not available in this branch");
 	});
 
-	it("publishes an intentionally narrow replacement boundary", () => {
+	it("publishes the durable worker authority boundary", () => {
 		expect(riverholdRuntimeContract.projectionSchema).toBe("riverhold-view-v1");
 		expect(riverholdRuntimeContract.boundary).toContain(
-			"Authoritative packages will replace",
+			"commits canonical events",
 		);
 		expect(riverholdRuntimeContract.acceptedIntentKinds).toContain(
 			"offer-counsel",

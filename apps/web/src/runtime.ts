@@ -11,6 +11,7 @@ const STORAGE_KEY = "eonfolk:riverhold:checkpoint-v1";
 interface SavedCheckpoint {
 	readonly schemaVersion: "riverhold-checkpoint-v1";
 	readonly branch: CounselIntent;
+	readonly phase?: "return-pending" | "return" | "chronicle";
 }
 
 const baseCitizens = [
@@ -406,6 +407,13 @@ function parseCheckpoint(storage: Storage | null): SavedCheckpoint | null {
 			value.branch !== "abstain"
 		)
 			return null;
+		if (
+			value.phase !== undefined &&
+			value.phase !== "return-pending" &&
+			value.phase !== "return" &&
+			value.phase !== "chronicle"
+		)
+			return null;
 		return value as SavedCheckpoint;
 	} catch {
 		return null;
@@ -458,7 +466,7 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 	});
 }
 
-function makeProjection(
+export function makeProjection(
 	phase: RiverholdProjection["phase"],
 	branch: CounselIntent | null,
 	secondAction: string | null = null,
@@ -503,9 +511,9 @@ function makeProjection(
 						: "Twelve food units appear in the public ledger but not in the open bins.",
 		citizens: Object.freeze(citizensFor(branch, returned)),
 		resources: Object.freeze({
-			food: branch === "accuse-now" ? 36 : 48,
-			water: returned ? 57 : 64,
-			wood: returned ? 14 : 18,
+			food: 28,
+			water: 30,
+			wood: 6,
 		}),
 		worldNotices: Object.freeze(
 			branch === "accuse-now"
@@ -558,8 +566,8 @@ function makeProjection(
 				"She acts for herself. You can advise at named boundaries; you cannot command her.",
 		}),
 		investigation: Object.freeze({
-			ledgerCount: 48,
-			openBinCount: 36,
+			ledgerCount: 40,
+			openBinCount: 28,
 			mismatch: 12,
 			observed: investigated,
 		}),
@@ -579,20 +587,20 @@ function makeProjection(
 	});
 }
 
-export function createRiverholdRuntimeBridge(
+function createStaticRuntimeBridge(
 	storage: Storage | null = typeof window === "undefined"
 		? null
 		: window.localStorage,
 ): RiverholdRuntimeBridge {
 	const checkpoint = parseCheckpoint(storage);
-	let phase: RiverholdProjection["phase"] = checkpoint
-		? "return-pending"
-		: "orientation";
+	let phase: RiverholdProjection["phase"] =
+		checkpoint?.phase ?? (checkpoint ? "return-pending" : "orientation");
 	let branch: CounselIntent | null = checkpoint?.branch ?? null;
 	let projection = makeProjection(phase, branch);
 
 	return {
 		getProjection: () => projection,
+		ready: async () => projection,
 		async dispatch(intent: RiverholdIntent) {
 			switch (intent.kind) {
 				case "follow-mara":
@@ -644,7 +652,121 @@ export function createRiverholdRuntimeBridge(
 			return projection;
 		},
 		clear() {
-			storage?.removeItem(STORAGE_KEY);
+			// Static test adapter has no process resource to release.
+		},
+	};
+}
+
+interface WorkerResponse {
+	readonly id: number;
+	readonly ok: boolean;
+	readonly projection?: RiverholdProjection;
+	readonly error?: string;
+}
+
+export function createRiverholdRuntimeBridge(
+	storage: Storage | null = typeof window === "undefined"
+		? null
+		: window.localStorage,
+): RiverholdRuntimeBridge {
+	if (typeof Worker === "undefined") return createStaticRuntimeBridge(storage);
+	const checkpoint = parseCheckpoint(storage);
+	let projection = makeProjection(
+		checkpoint?.phase ?? (checkpoint ? "return-pending" : "orientation"),
+		checkpoint?.branch ?? null,
+	);
+	const worker = new Worker(new URL("./runtime.worker.ts", import.meta.url), {
+		type: "module",
+		name: "eonfolk-riverhold-authority",
+	});
+	let nextRequestId = 1;
+	const pending = new Map<
+		number,
+		{
+			resolve: (value: RiverholdProjection) => void;
+			reject: (reason: Error) => void;
+		}
+	>();
+	worker.addEventListener(
+		"message",
+		(message: MessageEvent<WorkerResponse>) => {
+			const request = pending.get(message.data.id);
+			if (request === undefined) return;
+			pending.delete(message.data.id);
+			if (!message.data.ok || message.data.projection === undefined) {
+				request.reject(
+					new Error(message.data.error ?? "worker request failed"),
+				);
+				return;
+			}
+			projection = message.data.projection;
+			request.resolve(projection);
+		},
+	);
+	worker.addEventListener("error", (event) => {
+		for (const request of pending.values())
+			request.reject(new Error(event.message || "Riverhold worker failed"));
+		pending.clear();
+	});
+	const request = (
+		message:
+			| {
+					readonly kind: "initialize";
+					readonly phase: RiverholdProjection["phase"];
+			  }
+			| { readonly kind: "dispatch"; readonly intent: RiverholdIntent }
+			| { readonly kind: "reset" },
+	): Promise<RiverholdProjection> => {
+		const id = nextRequestId++;
+		return new Promise((resolve, reject) => {
+			pending.set(id, { resolve, reject });
+			worker.postMessage({ id, ...message });
+		});
+	};
+	const ready = request({
+		kind: "initialize",
+		phase: checkpoint?.phase ?? (checkpoint ? "return-pending" : "orientation"),
+	});
+
+	return {
+		getProjection: () => projection,
+		ready: async () => ready,
+		async dispatch(intent) {
+			await ready;
+			const next = await request(
+				intent.kind === "reset-local-proof"
+					? { kind: "reset" }
+					: { kind: "dispatch", intent },
+			);
+			if (intent.kind === "reset-local-proof") {
+				storage?.removeItem(STORAGE_KEY);
+			} else if (intent.kind === "leave-checkpoint" && next.branch !== null) {
+				storage?.setItem(
+					STORAGE_KEY,
+					JSON.stringify({
+						schemaVersion: "riverhold-checkpoint-v1",
+						branch: next.branch,
+						phase: "return-pending",
+					} satisfies SavedCheckpoint),
+				);
+			} else if (
+				(intent.kind === "confirm-advance" ||
+					intent.kind === "take-second-action") &&
+				next.branch !== null
+			) {
+				storage?.setItem(
+					STORAGE_KEY,
+					JSON.stringify({
+						schemaVersion: "riverhold-checkpoint-v1",
+						branch: next.branch,
+						phase: intent.kind === "confirm-advance" ? "return" : "chronicle",
+					} satisfies SavedCheckpoint),
+				);
+			}
+			return next;
+		},
+		clear() {
+			worker.terminate();
 		},
 	};
 }
@@ -662,5 +784,5 @@ export const riverholdRuntimeContract = Object.freeze({
 		"reset-local-proof",
 	]),
 	boundary:
-		"The application consumes immutable projections. Authoritative packages will replace this local bridge without changing UI components.",
+		"The application consumes immutable projections produced only after the simulation worker commits canonical events and decisions to IndexedDB.",
 });
