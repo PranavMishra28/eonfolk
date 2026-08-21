@@ -322,10 +322,6 @@ function netlogExternalAttempts(netlogPath) {
 }
 
 const outputDirectory = resolve("tmp");
-const netlogPath = resolve(
-	outputDirectory,
-	"eonfolk-canonical-performance-netlog.json",
-);
 const reportPath = resolve(
 	outputDirectory,
 	"eonfolk-canonical-performance.json",
@@ -378,7 +374,8 @@ const server = await preview({
 });
 const origin = "http://127.0.0.1:4173";
 const routeAttempts = [];
-const browser = await chromium.launch({
+const netlogRuns = [];
+const browserLaunchOptions = (netlogPath) => ({
 	executablePath: browserExecutablePath,
 	headless: false,
 	args: [
@@ -414,281 +411,292 @@ try {
 			process.stderr.write(
 				`benchmark ${profile.name} ${repetition}/${repetitions}\n`,
 			);
-			const context = await browser.newContext({
-				viewport: { width: profile.width, height: profile.height },
-				deviceScaleFactor: profile.deviceScaleFactor,
-				reducedMotion: "no-preference",
-				serviceWorkers: "block",
-			});
-			const page = await context.newPage();
-			await page.addInitScript(() => {
-				window.__eonfolkLongTasks = [];
-				window.__eonfolkMarkEvidence = {};
-				if (typeof PerformanceObserver === "function") {
-					const observer = new PerformanceObserver((list) => {
-						for (const entry of list.getEntries())
-							window.__eonfolkLongTasks.push(entry.duration);
-					});
-					try {
-						observer.observe({ type: "longtask", buffered: true });
-					} catch {
-						// The metric remains an empty unsupported sample.
+			const netlogPath = resolve(
+				outputDirectory,
+				`eonfolk-canonical-performance-netlog-${profile.name}-${repetition}.json`,
+			);
+			netlogRuns.push({ profile: profile.name, repetition, path: netlogPath });
+			const browser = await chromium.launch(browserLaunchOptions(netlogPath));
+			try {
+				const context = await browser.newContext({
+					viewport: { width: profile.width, height: profile.height },
+					deviceScaleFactor: profile.deviceScaleFactor,
+					reducedMotion: "no-preference",
+					serviceWorkers: "block",
+				});
+				const page = await context.newPage();
+				await page.addInitScript(() => {
+					window.__eonfolkLongTasks = [];
+					window.__eonfolkMarkEvidence = {};
+					if (typeof PerformanceObserver === "function") {
+						const observer = new PerformanceObserver((list) => {
+							for (const entry of list.getEntries())
+								window.__eonfolkLongTasks.push(entry.duration);
+						});
+						try {
+							observer.observe({ type: "longtask", buffered: true });
+						} catch {
+							// The metric remains an empty unsupported sample.
+						}
 					}
-				}
-				const installQualificationObserver = () => {
-					const scheduled = new Set();
-					const markWhen = (name, qualify) => {
-						if (
-							performance.getEntriesByName(name).length > 0 ||
-							scheduled.has(name)
-						)
-							return;
-						const evidence = qualify();
-						if (evidence === null) return;
-						scheduled.add(name);
-						requestAnimationFrame(() => {
-							scheduled.delete(name);
-							const paintedEvidence = qualify();
-							if (paintedEvidence === null) return;
-							window.__eonfolkMarkEvidence[name] = paintedEvidence;
-							performance.mark(name);
+					const installQualificationObserver = () => {
+						const scheduled = new Set();
+						const markWhen = (name, qualify) => {
+							if (
+								performance.getEntriesByName(name).length > 0 ||
+								scheduled.has(name)
+							)
+								return;
+							const evidence = qualify();
+							if (evidence === null) return;
+							scheduled.add(name);
+							requestAnimationFrame(() => {
+								scheduled.delete(name);
+								const paintedEvidence = qualify();
+								if (paintedEvidence === null) return;
+								window.__eonfolkMarkEvidence[name] = paintedEvidence;
+								performance.mark(name);
+							});
+						};
+						const check = () => {
+							markWhen("eonfolk-shell", () => {
+								const loading = document.querySelector(".runtime-loading");
+								const factSurfaces = document.querySelectorAll(
+									"[data-testid='riverhold-canvas'], .semantic-world, .world-notice, [data-testid='story-card']",
+								);
+								return loading !== null && factSurfaces.length === 0
+									? {
+											factFreeAuthorityShell: true,
+											factSurfaceCount: factSurfaces.length,
+											loadingHeading:
+												document.querySelector(".runtime-loading h1")
+													?.textContent ?? "",
+										}
+									: null;
+							});
+							const follow = [...document.querySelectorAll("button")].find(
+								(button) => button.textContent?.includes("Follow Mara"),
+							);
+							const canvas = document.querySelector(
+								"[data-testid='riverhold-canvas']",
+							);
+							const citizens = [
+								...document.querySelectorAll(
+									"[aria-label='Eight Riverhold citizens and their current activities'] li",
+								),
+							];
+							markWhen("eonfolk-cta", () =>
+								follow instanceof HTMLButtonElement &&
+								!follow.disabled &&
+								canvas?.dataset.ready === "true" &&
+								citizens.length === 8
+									? {
+											authorityReady: true,
+											followEnabled: true,
+											semanticCitizenCount: citizens.length,
+										}
+									: null,
+							);
+							markWhen("eonfolk-meaningful-world", () => {
+								const activityTexts = citizens.map(
+									(citizen) =>
+										citizen.querySelector("button")?.textContent?.trim() ?? "",
+								);
+								const citizenNames = citizens.map(
+									(citizen) =>
+										citizen.querySelector("strong")?.textContent?.trim() ?? "",
+								);
+								const maraCount = citizens.filter((citizen) =>
+									citizen
+										.querySelector("strong")
+										?.textContent?.includes("Mara"),
+								).length;
+								const interaction = [
+									...document.querySelectorAll(".semantic-summary div"),
+								]
+									.find((entry) =>
+										entry
+											.querySelector("dt")
+											?.textContent?.includes("Named interaction or change"),
+									)
+									?.querySelector("dd")
+									?.textContent?.trim();
+								const illustratedInteraction = document
+									.querySelector(".world-notice")
+									?.textContent?.trim();
+								const interactionCitizenCount =
+									typeof interaction === "string"
+										? citizenNames.filter(
+												(name) => name.length > 0 && interaction.includes(name),
+											).length
+										: 0;
+								return canvas?.dataset.ready === "true" &&
+									citizens.length === 8 &&
+									activityTexts.every((text) => text.length > 0) &&
+									maraCount === 1 &&
+									typeof interaction === "string" &&
+									interaction.length > 0 &&
+									interactionCitizenCount >= 2 &&
+									/(?:exchange|compare|tally)/i.test(interaction) &&
+									typeof illustratedInteraction === "string" &&
+									illustratedInteraction.includes(interaction)
+									? {
+											canvasPainted: true,
+											semanticCitizenCount: citizens.length,
+											activityCount: activityTexts.length,
+											maraCount,
+											interactionCue: interaction,
+											interactionCitizenCount,
+											semanticIllustratedParity: true,
+										}
+									: null;
+							});
+						};
+						new MutationObserver(check).observe(document.documentElement, {
+							attributes: true,
+							childList: true,
+							characterData: true,
+							subtree: true,
 						});
+						check();
 					};
-					const check = () => {
-						markWhen("eonfolk-shell", () => {
-							const loading = document.querySelector(".runtime-loading");
-							const factSurfaces = document.querySelectorAll(
-								"[data-testid='riverhold-canvas'], .semantic-world, .world-notice, [data-testid='story-card']",
-							);
-							return loading !== null && factSurfaces.length === 0
-								? {
-										factFreeAuthorityShell: true,
-										factSurfaceCount: factSurfaces.length,
-										loadingHeading:
-											document.querySelector(".runtime-loading h1")
-												?.textContent ?? "",
-									}
-								: null;
-						});
-						const follow = [...document.querySelectorAll("button")].find(
-							(button) => button.textContent?.includes("Follow Mara"),
+					if (document.documentElement) installQualificationObserver();
+					else
+						document.addEventListener(
+							"DOMContentLoaded",
+							installQualificationObserver,
+							{ once: true },
 						);
-						const canvas = document.querySelector(
-							"[data-testid='riverhold-canvas']",
-						);
-						const citizens = [
-							...document.querySelectorAll(
-								"[aria-label='Eight Riverhold citizens and their current activities'] li",
-							),
-						];
-						markWhen("eonfolk-cta", () =>
-							follow instanceof HTMLButtonElement &&
-							!follow.disabled &&
-							canvas?.dataset.ready === "true" &&
-							citizens.length === 8
-								? {
-										authorityReady: true,
-										followEnabled: true,
-										semanticCitizenCount: citizens.length,
-									}
-								: null,
-						);
-						markWhen("eonfolk-meaningful-world", () => {
-							const activityTexts = citizens.map(
-								(citizen) =>
-									citizen.querySelector("button")?.textContent?.trim() ?? "",
-							);
-							const citizenNames = citizens.map(
-								(citizen) =>
-									citizen.querySelector("strong")?.textContent?.trim() ?? "",
-							);
-							const maraCount = citizens.filter((citizen) =>
-								citizen.querySelector("strong")?.textContent?.includes("Mara"),
-							).length;
-							const interaction = [
-								...document.querySelectorAll(".semantic-summary div"),
-							]
-								.find((entry) =>
-									entry
-										.querySelector("dt")
-										?.textContent?.includes("Named interaction or change"),
-								)
-								?.querySelector("dd")
-								?.textContent?.trim();
-							const illustratedInteraction = document
-								.querySelector(".world-notice")
-								?.textContent?.trim();
-							const interactionCitizenCount =
-								typeof interaction === "string"
-									? citizenNames.filter(
-											(name) => name.length > 0 && interaction.includes(name),
-										).length
-									: 0;
-							return canvas?.dataset.ready === "true" &&
-								citizens.length === 8 &&
-								activityTexts.every((text) => text.length > 0) &&
-								maraCount === 1 &&
-								typeof interaction === "string" &&
-								interaction.length > 0 &&
-								interactionCitizenCount >= 2 &&
-								/(?:exchange|compare|tally)/i.test(interaction) &&
-								typeof illustratedInteraction === "string" &&
-								illustratedInteraction.includes(interaction)
-								? {
-										canvasPainted: true,
-										semanticCitizenCount: citizens.length,
-										activityCount: activityTexts.length,
-										maraCount,
-										interactionCue: interaction,
-										interactionCitizenCount,
-										semanticIllustratedParity: true,
-									}
-								: null;
-						});
-					};
-					new MutationObserver(check).observe(document.documentElement, {
-						attributes: true,
-						childList: true,
-						characterData: true,
-						subtree: true,
+				});
+				await page.route("**/*", async (route) => {
+					const url = new URL(route.request().url());
+					const allowed = url.origin === origin;
+					routeAttempts.push({
+						profile: profile.name,
+						repetition,
+						allowed,
+						url: route.request().url(),
 					});
-					check();
-				};
-				if (document.documentElement) installQualificationObserver();
-				else
-					document.addEventListener(
-						"DOMContentLoaded",
-						installQualificationObserver,
-						{ once: true },
-					);
-			});
-			await page.route("**/*", async (route) => {
-				const url = new URL(route.request().url());
-				const allowed = url.origin === origin;
-				routeAttempts.push({
-					profile: profile.name,
-					repetition,
-					allowed,
-					url: route.request().url(),
+					if (allowed) await route.continue();
+					else await route.abort("blockedbyclient");
 				});
-				if (allowed) await route.continue();
-				else await route.abort("blockedbyclient");
-			});
-			const cdp = await context.newCDPSession(page);
-			await cdp.send("Network.enable");
-			await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
-			await cdp.send("Emulation.setCPUThrottlingRate", {
-				rate: profile.cpuSlowdown,
-			});
-			if (profile.cpuSlowdown > 1)
-				await cdp.send("Network.emulateNetworkConditions", {
-					offline: false,
-					latency: 150,
-					downloadThroughput: (1.6 * 1_000_000) / 8,
-					uploadThroughput: (750 * 1_000) / 8,
-					connectionType: "cellular4g",
+				const cdp = await context.newCDPSession(page);
+				await cdp.send("Network.enable");
+				await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+				await cdp.send("Emulation.setCPUThrottlingRate", {
+					rate: profile.cpuSlowdown,
 				});
-			await page.bringToFront();
-			await page.goto(origin, { waitUntil: "domcontentloaded" });
-			const shell = await waitForQualificationMark(
-				page,
-				"eonfolk-shell",
-				2_000,
-			);
-			const follow = page.getByRole("button", { name: /Follow Mara/ });
-			await follow.waitFor({ timeout: profile.maximumDisplayMs });
-			if (!(await follow.isEnabled()))
-				throw new Error("Follow Mara is visible but not operable");
-			const cta = await waitForQualificationMark(
-				page,
-				"eonfolk-cta",
-				profile.maximumDisplayMs,
-			);
-			const meaningfulWorld = await waitForQualificationMark(
-				page,
-				"eonfolk-meaningful-world",
-				profile.maximumDisplayMs,
-			);
-			await cdp.send("Network.emulateNetworkConditions", {
-				offline: true,
-				latency: 0,
-				downloadThroughput: 0,
-				uploadThroughput: 0,
-			});
-			const states = [];
-			const arrivalBeforeSample = await captureArrivalInvariant(page);
-			assertArrivalInvariant(arrivalBeforeSample, "before sample");
-			for (const stateName of ["arrival"]) {
-				const measured = await frameState(
+				if (profile.cpuSlowdown > 1)
+					await cdp.send("Network.emulateNetworkConditions", {
+						offline: false,
+						latency: 150,
+						downloadThroughput: (1.6 * 1_000_000) / 8,
+						uploadThroughput: (750 * 1_000) / 8,
+						connectionType: "cellular4g",
+					});
+				await page.bringToFront();
+				await page.goto(origin, { waitUntil: "domcontentloaded" });
+				const shell = await waitForQualificationMark(
 					page,
-					stateName,
+					"eonfolk-shell",
+					2_000,
+				);
+				const follow = page.getByRole("button", { name: /Follow Mara/ });
+				await follow.waitFor({ timeout: profile.maximumDisplayMs });
+				if (!(await follow.isEnabled()))
+					throw new Error("Follow Mara is visible but not operable");
+				const cta = await waitForQualificationMark(
+					page,
+					"eonfolk-cta",
+					profile.maximumDisplayMs,
+				);
+				const meaningfulWorld = await waitForQualificationMark(
+					page,
+					"eonfolk-meaningful-world",
+					profile.maximumDisplayMs,
+				);
+				await cdp.send("Network.emulateNetworkConditions", {
+					offline: true,
+					latency: 0,
+					downloadThroughput: 0,
+					uploadThroughput: 0,
+				});
+				const states = [];
+				const arrivalBeforeSample = await captureArrivalInvariant(page);
+				assertArrivalInvariant(arrivalBeforeSample, "before sample");
+				for (const stateName of ["arrival"]) {
+					const measured = await frameState(
+						page,
+						stateName,
+						profile.maximumP95FrameMs,
+					);
+					states.push(measured.summary);
+					pooledFrameSamples.set(`${profile.name}:${stateName}`, [
+						...(pooledFrameSamples.get(`${profile.name}:${stateName}`) ?? []),
+						...measured.samples,
+					]);
+				}
+				const arrivalAfterSample = await captureArrivalInvariant(page);
+				assertArrivalInvariant(arrivalAfterSample, "after sample");
+				const investigationLatencyMs = await reachBusyMarket(page);
+				const busyMarket = await frameState(
+					page,
+					"busy-market",
 					profile.maximumP95FrameMs,
 				);
-				states.push(measured.summary);
-				pooledFrameSamples.set(`${profile.name}:${stateName}`, [
-					...(pooledFrameSamples.get(`${profile.name}:${stateName}`) ?? []),
-					...measured.samples,
+				states.push(busyMarket.summary);
+				pooledFrameSamples.set(`${profile.name}:busy-market`, [
+					...(pooledFrameSamples.get(`${profile.name}:busy-market`) ?? []),
+					...busyMarket.samples,
 				]);
+				const catchUpMs = await reachChronicle(page);
+				const chronicle = await frameState(
+					page,
+					"chronicle",
+					profile.maximumP95FrameMs,
+				);
+				states.push(chronicle.summary);
+				pooledFrameSamples.set(`${profile.name}:chronicle`, [
+					...(pooledFrameSamples.get(`${profile.name}:chronicle`) ?? []),
+					...chronicle.samples,
+				]);
+				const diagnostics = await page.evaluate(() => ({
+					longTasksMs: window.__eonfolkLongTasks,
+					usedJsHeapBytes: performance.memory?.usedJSHeapSize ?? "unsupported",
+				}));
+				runs.push({
+					profile: profile.name,
+					repetition,
+					viewport: `${profile.width}x${profile.height}`,
+					deviceScaleFactor: profile.deviceScaleFactor,
+					cpuSlowdown: profile.cpuSlowdown,
+					network: profile.network,
+					marks: {
+						shellMs: shell.timeMs,
+						ctaMs: cta.timeMs,
+						meaningfulWorldMs: meaningfulWorld.timeMs,
+					},
+					markEvidence: {
+						shell: shell.evidence,
+						cta: cta.evidence,
+						meaningfulWorld: meaningfulWorld.evidence,
+					},
+					arrivalInvariant: {
+						beforeSample: arrivalBeforeSample,
+						afterSample: arrivalAfterSample,
+					},
+					investigationLatencyMs,
+					catchUpMs,
+					states,
+					diagnostics,
+				});
+				await context.close();
+			} finally {
+				await browser.close();
 			}
-			const arrivalAfterSample = await captureArrivalInvariant(page);
-			assertArrivalInvariant(arrivalAfterSample, "after sample");
-			const investigationLatencyMs = await reachBusyMarket(page);
-			const busyMarket = await frameState(
-				page,
-				"busy-market",
-				profile.maximumP95FrameMs,
-			);
-			states.push(busyMarket.summary);
-			pooledFrameSamples.set(`${profile.name}:busy-market`, [
-				...(pooledFrameSamples.get(`${profile.name}:busy-market`) ?? []),
-				...busyMarket.samples,
-			]);
-			const catchUpMs = await reachChronicle(page);
-			const chronicle = await frameState(
-				page,
-				"chronicle",
-				profile.maximumP95FrameMs,
-			);
-			states.push(chronicle.summary);
-			pooledFrameSamples.set(`${profile.name}:chronicle`, [
-				...(pooledFrameSamples.get(`${profile.name}:chronicle`) ?? []),
-				...chronicle.samples,
-			]);
-			const diagnostics = await page.evaluate(() => ({
-				longTasksMs: window.__eonfolkLongTasks,
-				usedJsHeapBytes: performance.memory?.usedJSHeapSize ?? "unsupported",
-			}));
-			runs.push({
-				profile: profile.name,
-				repetition,
-				viewport: `${profile.width}x${profile.height}`,
-				deviceScaleFactor: profile.deviceScaleFactor,
-				cpuSlowdown: profile.cpuSlowdown,
-				network: profile.network,
-				marks: {
-					shellMs: shell.timeMs,
-					ctaMs: cta.timeMs,
-					meaningfulWorldMs: meaningfulWorld.timeMs,
-				},
-				markEvidence: {
-					shell: shell.evidence,
-					cta: cta.evidence,
-					meaningfulWorld: meaningfulWorld.evidence,
-				},
-				arrivalInvariant: {
-					beforeSample: arrivalBeforeSample,
-					afterSample: arrivalAfterSample,
-				},
-				investigationLatencyMs,
-				catchUpMs,
-				states,
-				diagnostics,
-			});
-			await context.close();
 		}
 	}
 } finally {
-	await browser.close();
 	await new Promise((resolveClose, rejectClose) => {
 		server.httpServer.close((error) =>
 			error ? rejectClose(error) : resolveClose(),
@@ -697,7 +705,15 @@ try {
 }
 
 const externalRoutes = routeAttempts.filter((attempt) => !attempt.allowed);
-const externalNetlogAttempts = netlogExternalAttempts(netlogPath);
+const parsedNetlogRuns = netlogRuns.map((run) => ({
+	profile: run.profile,
+	repetition: run.repetition,
+	path: relative(resolve("."), run.path).split(sep).join("/"),
+	externalAttempts: netlogExternalAttempts(run.path),
+}));
+const externalNetlogAttempts = [
+	...new Set(parsedNetlogRuns.flatMap((run) => run.externalAttempts)),
+].sort();
 const aggregates = profiles.map((profile) => {
 	const states = ["arrival", "busy-market", "chronicle"].map((state) => {
 		const samples = pooledFrameSamples.get(`${profile.name}:${state}`) ?? [];
@@ -820,6 +836,7 @@ const report = {
 	},
 	procedure: {
 		repetitions,
+		freshBrowserPerRun: true,
 		coldContextPerRun: true,
 		cacheDisabled: true,
 		serviceWorkersBlocked: true,
@@ -833,6 +850,7 @@ const report = {
 		routeRequestCount: routeAttempts.length,
 		externalRouteAttempts: externalRoutes,
 		externalNetlogAttempts,
+		netlogRuns: parsedNetlogRuns,
 	},
 	limitations: [
 		"Mobile is canonical throttled emulation on the target Mac, not a physical phone.",
