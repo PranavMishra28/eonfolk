@@ -107,19 +107,23 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
 	await expect(
 		page.getByRole("heading", {
-			name: /Mara Vale independently chose to verify/i,
+			name: /Mara Vale independently accepted the counsel and chose to verify/i,
 		}),
 	).toBeVisible();
 	await page
 		.getByRole("button", { name: /Inspect \d+ evidence record/i })
 		.click();
 	await expect(
-		page.getByRole("dialog", { name: /Mara Vale independently chose/i }),
+		page.getByRole("dialog", {
+			name: /Mara Vale independently accepted the counsel/i,
+		}),
 	).toBeVisible();
 	await page.getByRole("button", { name: "Close details" }).click();
 	await page.getByRole("button", { name: /Show beat 3/i }).click();
 	await expect(
-		page.getByRole("heading", { name: /Mara Vale recorded a sourced belief/i }),
+		page.getByRole("heading", {
+			name: /Mara Vale's recorded trust in Toma Reed increased/i,
+		}),
 	).toBeVisible();
 	await context.grantPermissions(["clipboard-read", "clipboard-write"], {
 		origin: "http://127.0.0.1:4174",
@@ -301,7 +305,7 @@ test("browser rehydrates the durable decision receipt after a resolve commit fai
 	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
 });
 
-test("accuse path preserves allegation language and offers trust repair", async ({
+test("public-accusation advice is visibly rejected for grounded reasons", async ({
 	page,
 }) => {
 	await page.getByRole("button", { name: /Follow Mara/ }).click();
@@ -310,7 +314,13 @@ test("accuse path preserves allegation language and offers trust repair", async 
 	await page.getByText("Raise the mismatch in public", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await expect(
-		page.getByText(/three petition endorsements followed/i),
+		page.getByRole("heading", { name: /She rejected your counsel/i }),
+	).toBeVisible();
+	await expect(page.getByText(/I will keep my plan/i)).toBeVisible();
+	await expect(
+		page
+			.getByText(/one citizen independently endorsed an audit petition/i)
+			.first(),
 	).toBeVisible();
 	await page.getByRole("button", { name: /Leave Riverhold/i }).click();
 	await expect(
@@ -319,22 +329,26 @@ test("accuse path preserves allegation language and offers trust repair", async 
 	await page.reload();
 	await page.getByRole("button", { name: /Advance Riverhold/i }).click();
 	await expect(
-		page.getByRole("button", { name: /Counsel Mara to repair the trust/i }),
+		page.getByRole("button", { name: /Keep observing/i }),
 	).toBeVisible();
-	await page
-		.getByRole("button", { name: /Counsel Mara to repair the trust/i })
-		.click();
+	await page.getByRole("button", { name: /Keep observing/i }).click();
+	await expect(
+		page.getByRole("heading", { name: /YOU ADVISED: speak now/i }),
+	).toBeVisible();
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
 	await page
 		.getByRole("button", { name: /Inspect \d+ evidence records/i })
 		.click();
 	const evidenceDialog = page.getByRole("dialog", {
-		name: /Mara Vale independently chose to make the allegation/i,
+		name: /Mara Vale independently rejected the counsel/i,
 	});
 	await expect(evidenceDialog).toBeVisible();
 	await expect(
-		evidenceDialog.getByText(/An allegation is attributed content/i),
+		evidenceDialog.getByText(
+			/contributing evidence is recorded separately from the direct cause/i,
+		),
 	).toBeVisible();
+	await expect(evidenceDialog).not.toContainText(/allegation is attributed/i);
 });
 
 test("mobile, keyboard, semantic parity, Back, and reduced motion remain functional", async ({

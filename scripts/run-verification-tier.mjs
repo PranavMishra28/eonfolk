@@ -111,7 +111,7 @@ const reportWithoutHash = {
 					: {
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "PR: 50/32 deterministic runs",
-							browserJourney: "nine headed Playwright journeys",
+							browserJourney: "sixteen headed Playwright journeys",
 						},
 			durationMs,
 			exitCode,

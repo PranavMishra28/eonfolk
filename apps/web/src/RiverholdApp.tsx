@@ -977,8 +977,15 @@ export function RiverholdApp() {
 									))}
 								</ul>
 								<p className="microcopy">
-									An allegation is attributed content. A temporal predecessor is
-									not promoted to cause.
+									{sheet.beat.evidence.some(
+										(item) => item.relation === "allegation",
+									)
+										? "An allegation is attributed content; it is not presented as an established fact."
+										: sheet.beat.evidence.some(
+													(item) => item.relation === "temporal-predecessor",
+												)
+											? "A temporal predecessor is recorded without being promoted to a cause."
+											: "Contributing evidence is recorded separately from the direct cause of the later consequence."}
 								</p>
 							</>
 						)}
