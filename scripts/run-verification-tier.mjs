@@ -75,6 +75,7 @@ const sourceUnchanged =
 const acceptanceEligible = sourceUnchanged && start.clean && end.clean;
 const status =
 	exitCode !== 0 ? "FAIL" : acceptanceEligible ? "PASS" : "SMOKE_ONLY";
+const wrapperExitCode = exitCode !== 0 ? exitCode : acceptanceEligible ? 0 : 1;
 const reportWithoutHash = {
 	schemaVersion: "eonfolk-verification-tier-v1",
 	tier,
@@ -126,4 +127,4 @@ mkdirSync(resolve("tmp"), { recursive: true });
 const output = resolve("tmp", `eonfolk-verification-${tier}.json`);
 writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-process.exitCode = exitCode;
+process.exitCode = wrapperExitCode;

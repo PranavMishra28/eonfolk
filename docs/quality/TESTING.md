@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED AND VERIFIED — COMPLETE LOCAL BASELINE, PUSHED-CANDIDATE CI, FINAL PROTECTION PROBE, AND HARDENING GREEN
+**Status:** IMPLEMENTED — Founder Alpha lattice repaired; final clean-candidate local/CI evidence pending
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 
@@ -36,10 +36,10 @@ When cognition, Mind schemas, proposal validators, or Standard Brain change, run
 - authorization, stale revision, hidden-fact, injection, and partial-mutation fixtures;
 - observation/knowledge/belief/memory/message-claim separation and provenance closure;
 - raw cognitive decision-record hash/context/plan/proposal/validation/receipt/event link integrity plus filtered trace authorization/nonexposure;
-- missing/throwing/timed-out/malformed fake `BrainPort` and deterministic fallback;
+- recursive proposal closure, byte/depth/count bounds, reference authorization, authored-template/hash checks, and Standard Brain-only liveness;
 - perturbation, transfer, baseline, ablation, hidden-fact noninterference, and fixed behavior regressions.
 
-If a real provider/model adapter is later added, additionally run provider timeout/429/revoke/malformed/absence and exact adapter/model/runtime/prompt regressions. No provider-specific route is required in V1.
+If a real provider/model adapter is later added, additionally run hung/late/cancel/process-kill, timeout/429/revoke/malformed/absence, and exact adapter/model/runtime/prompt regressions. No executable optional adapter or provider-specific route exists in Founder Alpha.
 
 When a major UI, renderer, asset, layout, motion, or design-token change occurs, capture deterministic desktop, laptop, and mobile screenshots, inspect them, and retain failing traces where practical. Screenshot pixel comparison is a diagnostic, not the sole visual reviewer.
 
@@ -78,12 +78,12 @@ A nightly failure blocks milestone acceptance even if it does not retroactively 
 ## Founder Alpha verification lattice
 
 - **FAST:** runtime/cohort/architecture/docs/format/lint/typecheck plus focused unit/contract tests for changed packages.
-- **PR:** FAST plus all unit/property tests, deterministic replay, real IndexedDB, timing, production build/budgets/audit, critical headed player journeys, zero-egress validation, diagnostic/feedback security tests, and the bounded formal model.
-- **DEEP:** larger deterministic property/fuzz seeds; 30/90/365-day horizons; repeated OFF/LOCAL/ALPHA performance profiles; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes.
+- **PR:** FAST plus all unit/property tests, deterministic replay, fail-closed real IndexedDB evidence, timing, production build/budgets/audit, critical headed player journeys, zero-egress validation, diagnostic/feedback security tests, and the exact-digest bounded formal model.
+- **DEEP:** 500-run/320-command deterministic property/fuzz profile; 30/90/365-day horizons; fail-closed persistence evidence; repeated source and browser OFF/LOCAL/ALPHA comparisons; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes.
 
 Each tier is a maintained command. A named but unimplemented or rejected check is removed from the promised surface. Results bind commit, environment, inputs, command, duration, pass/fail/not-run, and artifact hashes where material. A build or backend suite cannot substitute for a local game run and browser-visible evidence.
 
-Cognition changes additionally prove schema/authorization, hidden-fact noninterference, provider absence/timeout/malformed output, deterministic fallback, replay without cognition, frozen benchmark repeatability, and experiment isolation. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus 200% text, keyboard, reduced motion, semantic fallback, and failing traces where practical.
+Cognition changes additionally prove schema/authorization, hidden-fact noninterference, Standard Brain-only liveness, replay without cognition, control/ablation/transfer behavior, planner-promotion fail-closure, pre-run experiment identity/result-journal isolation, and authorized Chronicle-to-Observatory projection. Provider timeout/malformed/fallback checks become mandatory only when an executable adapter exists. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus actual 200% browser zoom, keyboard/dialog focus, reduced motion, selectable semantic fallback, and failing traces where practical.
 
 ## Dependabot and updates
 

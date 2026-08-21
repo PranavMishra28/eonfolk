@@ -2,7 +2,7 @@
 
 **Purpose:** Define Founder Alpha failure recording, incident handling, safe observation, and diagnostics budgets.
 
-**Status:** IMPLEMENTED LOCALLY — source-level budgets pass; final browser profile and hostile review pending
+**Status:** IMPLEMENTED LOCALLY — hostile privacy repairs and source budgets pass; final clean-candidate browser profile pending
 
 **Authority boundary:** This file owns diagnostic event, mode, redaction, incident, observer, replay-capture, and overhead behavior. It owns no canonical world fact or product truth.
 
@@ -16,9 +16,9 @@ Use a dependency-light first-party Flight Recorder and Sentinel. Diagnostics are
 
 Each record has schema version, closed kind, severity, component, session sequence, caller-supplied monotonic time, optional simulation revision/time, outcome code, bounded correlation IDs, and a kind-appropriate allowlisted payload. Arbitrary metadata bags, error objects, URLs, bodies, headers, DOM, private state, prompts, provider streams, hidden reasoning, hash preimages, paths, credentials, and user prose are forbidden.
 
-Every snapshot and observer projection carries one bounded identity block: diagnostic session ID, exact build SHA or explicit `unknown`, package app version, protocol version, experiment ID, run ID, coarse runtime class, coarse viewport class, and current diagnostics mode. Build resolution accepts a valid explicit build environment value or the current Git commit and otherwise fails closed to `unknown`; it never substitutes a timestamp or mutable branch name. Runtime/viewport fields are coarse allowlisted classes, not browser fingerprinting.
+Every snapshot and observer projection carries one bounded identity block: diagnostic session ID, exact build SHA or explicit `unknown`, package app version, protocol version, experiment ID, run ID, coarse runtime class, coarse viewport class, and current diagnostics mode. Build resolution accepts a valid explicit build environment value or the current Git commit and otherwise fails closed to `unknown`; it never substitutes a timestamp or mutable branch name. Runtime/viewport fields are coarse allowlisted classes, not browser fingerprinting. Incident fingerprints bind build SHA, protocol version, and diagnostics schema so unrelated builds cannot collapse into one incident.
 
-The caller selects a typed constructor; only allowlisted primitives are copied and length-bounded; routes lose query/fragment; stack input becomes at most three approved module/function tokens; schema validation happens before the record reaches a ring, freeze, observer, preview, disk, or relay. Regex cleanup is defense in depth, never the primary boundary.
+The caller selects a typed constructor; only allowlisted primitives are copied and length-bounded; routes lose query/fragment; stack input becomes at most three approved module/function tokens; schema validation happens before the record reaches a ring, freeze, observer, preview, disk, or relay. Incident summaries are closed outcome/invariant codes, never arbitrary exception text. Regex cleanup is defense in depth, never the primary boundary.
 
 ## Modes and hard budgets
 
@@ -34,7 +34,7 @@ OFF registers no optional replay, frame, long-task, or network capture. It retai
 
 ## Sentinel order
 
-On an invariant failure Sentinel must: stop the affected command or projection; prevent partial/unauthorized publish; freeze the bounded preceding window; compute the stable fingerprint/reproduction ID from public error category, route/build/schema, normalized tokens, and invariant ID; persist or expose the safe incident outside Reality; attempt at most one typed recovery; and present calm failure copy. Feedback text, identity, time, IP, raw URL, attachment bytes, and private Reality data never influence a fingerprint.
+On an invariant failure Sentinel must: stop the affected command or projection; prevent partial/unauthorized publish; freeze the bounded preceding window; compute the stable fingerprint/reproduction ID from public error category, route/build/schema, normalized tokens, and invariant ID; persist or expose the safe incident outside Reality; attempt at most one typed recovery; and present calm failure copy. The OFF-mode crash surface shows only the sanitized stop reason and exact incident ID and offers the same local feedback path; raw runtime errors never become user copy. Feedback text, identity, time, IP, raw URL, attachment bytes, and private Reality data never influence a fingerprint.
 
 ## Observer and performance projection
 

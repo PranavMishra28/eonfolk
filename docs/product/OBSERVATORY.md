@@ -38,9 +38,9 @@ Future experiments use repeated independent manifests/runs, declare intervention
 
 ## Founder Alpha standards-shaped projection
 
-An authorized Observatory record may be projected as bounded embedded JSON-LD 1.1 with a versioned EONFOLK vocabulary and PROV-O mappings for entities, activities, agents, derivation, generation, association, and attribution. A closed offline SHACL-1.0-like validator checks required IDs, types, references, visibility, and allowed predicates. Remote contexts, remote fetching, RDF storage, SPARQL, inference, RDF 1.2-only semantics, and SHACL 1.2 draft features are excluded.
+Founder Alpha can emit a bounded embedded JSON-LD 1.1, locally PROV-shaped subset. It is not a full PROV-O mapping or SHACL-conformance claim. Observatory accepts only an opaque artifact minted by the Chronicle visibility projector; that artifact binds viewer, purpose, revision, policy version, canonical source digest, and the exact authorized event hashes. Every projected evidence ID must resolve to that set. A closed offline validator checks the implemented IDs, node kinds, cardinalities, references, and predicates. Remote contexts, remote fetching, RDF storage, SPARQL, inference, RDF 1.2-only semantics, SHACL 1.2 draft features, and external interoperability claims are excluded.
 
-The projection is generated after viewer authorization from existing evidence. Its removal or reordering cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native JSON remains the executable evidence format; JSON-LD is an interoperability view, never a Truth Ledger.
+The visibility projector mints the input only after authorization from existing evidence; caller-supplied labels cannot mint authorized evidence. Observatory's removal or reordering cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native JSON remains the executable evidence format; JSON-LD is a local research-shaped view, never a Truth Ledger.
 
 ## Rejected alternatives
 

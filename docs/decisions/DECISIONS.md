@@ -227,7 +227,7 @@
 
 **Remaining uncertainty.** The benchmark may show no meaningful planner advantage; optional local inference remains entirely unmeasured for this product and machine.
 
-**Resulting behavior.** Every brain sees only `DecisionContext`, emits one known typed proposal, and passes normal validation. Failure or absence deterministically falls back. Experiments are immutable, separately stored, and never reducer input.
+**Resulting behavior.** Standard Brain is the only executable brain. The future `BrainPort` is a type-only proposal-source seam; it has no adapter, deadline, process, model, network, or fallback claim. Candidate Planner promotion is mechanically disabled until a trusted runner derives outcomes from applied terminal state. Experiment pre-run manifests and append-only results are distinct noncanonical records and never reducer input.
 
 **Constraint fit.** Zero new production dependency/model cost, complete no-model operation, and benchmark-gated scope fit the solo-builder envelope.
 
@@ -235,7 +235,7 @@
 
 ### D-014 — Read-only standards-shaped ontology projection
 
-**Decision.** Observatory may project authorized evidence as embedded JSON-LD 1.1 using stable EONFOLK vocabulary terms and PROV-O mappings, checked by a local SHACL-1.0-like closed validator. RDF/JSON-LD is presentation/export data, never canonical Reality, reducer input, or a new ledger. RDF 1.2 and SHACL 1.2 features remain experimental.
+**Decision.** Observatory may project an opaque viewer-authorized Chronicle artifact as bounded embedded JSON-LD 1.1 using stable EONFOLK vocabulary terms and a locally PROV-shaped subset checked by a closed validator. This is not a full PROV-O/SHACL interoperability claim. RDF/JSON-LD is presentation/export data, never canonical Reality, reducer input, or a new ledger. RDF 1.2 and SHACL 1.2 features remain experimental.
 
 **Evidence.** JSON-LD 1.1, PROV-O, and SHACL 1.0 are W3C Recommendations [S-FA-COG-008] [S-FA-COG-010] [S-FA-COG-011]. RDF 1.2 is a Candidate Recommendation Snapshot and SHACL 1.2 is a Working Draft [S-FA-COG-009] [S-FA-COG-012]. Reviewed general-purpose packages add unnecessary dependency/network surface for the bounded projection [S-FA-COG-014].
 
@@ -243,7 +243,7 @@
 
 **Remaining uncertainty.** No external consumer has demonstrated that the projection improves inquiry; vocabulary evolution needs versioned fixtures.
 
-**Resulting behavior.** Projection is deterministic, authorized, bounded, offline, versioned, and validator-checked. Deleting it cannot change replay or world hashes.
+**Resulting behavior.** Chronicle authorization mints an artifact bound to viewer, purpose, revision, policy, canonical source digest, and the exact authorized event hashes. Observatory resolves every evidence ID against that set, then emits a deterministic, bounded, offline, versioned projection. Deleting it cannot change replay or world hashes.
 
 **Constraint fit.** A small zero-dependency projection preserves future interoperability without expanding infrastructure or the product loop.
 
@@ -351,7 +351,7 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | ER-007 | P1 | ACCEPT — MITIGATED | Noninterference covers context/catalog/errors/targets/explanations/public projection. | COGNITION, EVALS, SECURITY |
 | ER-008 | P1 | ACCEPT — MITIGATED | Monotonic writer fencing token is checked on append/snapshot; stale-tab transfer test blocks. | PERSISTENCE |
 | ER-009 | P1 | ACCEPT — MITIGATED | Product/visual kill gates and ugly loop precede full world; 52 planned + ≤8 fixes, hard 60. | 001 |
-| ER-010 | P1 | PARTIALLY ACCEPT — MITIGATED | No fictional provider-specific path. A fake BrainPort tests generic absence/failure because the requested no-model fallback remains binding; 429/revoke become conditional later. | COGNITION, TESTING |
+| ER-010 | P1 | ACCEPT — MITIGATED BY REMOVAL | No fictional provider-specific path or executable fake-adapter claim remains. Standard Brain is the complete path; hung/timeout/revoke/malformed/provider checks become blocking only if a real optional adapter is later proposed. | COGNITION, TESTING |
 | ER-011 | P1 | ACCEPT — MITIGATED | 30/90/365 must reach exact terminal time under explicit time/event/storage caps; named desktop/mobile profiles. | SIMULATION, PERFORMANCE |
 | ER-012 | P1 | ACCEPT — MITIGATED | FRONTEND selects Pixi-only 2.5D atlas and forbids Three/R3F/3D pipeline. | FRONTEND, PERFORMANCE |
 | ER-013 | P1 | ACCEPT — MITIGATED | Typed DecisionExplanation supplies reason codes/references/terms; authored justification is testimony, not fact. | COGNITION, AGENT_LIFE |

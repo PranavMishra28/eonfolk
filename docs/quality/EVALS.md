@@ -14,7 +14,7 @@ First prove that behavior is state-sensitive, transferable, legible, and more co
 
 ## Fixture matrix
 
-The same pre-boundary scenario varies one factor at a time: trust high/low, caution/public-duty value priority, mismatch-only/verified evidence, prior commitment present/absent, two advice intents/abstain, and Mara/non-Mara actor. Add plan continuation/blockage, urgent need, exchange, impossible action, private fact, stale revision, hostile text, and absent/throwing/malformed fake BrainPort.
+The same pre-boundary scenario varies one factor at a time: trust high/low, caution/public-duty value priority, mismatch-only/verified evidence, prior commitment present/absent, two advice intents/abstain, and Mara/non-Mara actor. Add plan continuation/blockage, urgent need, exchange, impossible action, private fact, stale revision, and hostile text. Optional-adapter failure fixtures are deferred because Founder Alpha ships no executable adapter.
 
 Every fixture records run/region; authorized observation/private-knowledge/belief/memory/claim IDs; plan; relationships/commitments; action catalog; integer terms; legal set; expected invariant set; allowed outcomes; raw hashed cognitive decision record; at least one viewer-scoped filtered trace projection; command receipt; and final state/world-head vector. It never embeds a canonical action lookup as the oracle.
 
@@ -31,12 +31,12 @@ The Riverhold logic transfers to one non-Mara fixture. Three advice paths must d
 
 ## Hard assertions
 
-- Every request ends in a valid accepted proposal, safe no-op, or deterministic fallback.
+- Every Standard Brain request ends in one valid catalog proposal or a typed safe rejection; the application remains complete without another brain.
 - Zero unauthorized/hidden-fact actions, invalid actors/IDs, unsupported explanation references, or partial mutations.
 - Every action comes from the catalog at expected revision.
 - Public justification is authored from the typed receipt, bounded, escaped, attributed, and cannot introduce a Chronicle fact.
 - Noninterference worlds produce byte-identical actor-visible outputs until observation.
-- Fake BrainPort absence/throw/timeout/malformed output preserves progress; replay never invokes cognition.
+- No optional BrainPort implementation is reachable; replay never invokes cognition.
 - Every consequential boundary preserves a closed hashed raw state/context/plan/proposal/validation/receipt/event trace with no hidden reasoning field; raw records never reach partial viewers and filtered projections reauthorize every reference.
 - A message remains an attributed claim until a typed observation/disclosure establishes knowledge; belief confidence or memory cannot grant truth/authority.
 - Canonical replay with BrainPort disabled reproduces state and world-head hashes from batch headers/events; the original structured proposal remains byte-verifiable in separate raw audit.
@@ -60,7 +60,7 @@ One correct social answer, one seed/run presented as a distribution, Riverhold l
 
 ## Reopen evidence
 
-Reopen Standard Brain if perturbations do not change decisions, transfer fails, full brain does not beat controls, players cannot predict plausible refusal, or the real build does not beat yoked script. Reopen models only for a measured semantic/expression deficit after mechanics pass.
+Reopen Standard Brain if perturbations do not change decisions, transfer fails, its state-sensitive choices collapse to the named controls/ablations, players cannot predict plausible refusal, or the real build does not beat the yoked script. Reopen models only for a measured semantic/expression deficit after mechanics pass.
 
 ## Constraint fit
 
