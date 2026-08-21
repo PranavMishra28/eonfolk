@@ -68,7 +68,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Sole authority |
 |---|---|
 | Layers, packages, three-ledger authority, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
-| UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
+| UI stack, embodied-world/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
 | Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
 | IndexedDB world/decision stores, Experiment Manifest, atomic genesis, durable receipts/fencing, snapshots, replay, and version/no-backup policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
 | Mind, Standard Brain, bounded proposals, raw decision records, viewer-safe trace projections and model ecology | [COGNITION.md](engineering/COGNITION.md) |
@@ -106,6 +106,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha recorder, replay-capture, performance, and observer choices | [FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md](research/FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md) |
 | Founder Alpha planner, local-model seam, experiment manifest, and ontology choices | [FOUNDER_ALPHA_COGNITION_RESEARCH.md](research/FOUNDER_ALPHA_COGNITION_RESEARCH.md) |
 | Founder Alpha feedback relay, Cloudflare/GitHub controls, MCP boundary, and live repository probe | [FOUNDER_ALPHA_PLATFORM_RESEARCH.md](research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md) |
+| Founder Alpha spatial semantics, navigation, presentation clock, animation, and Living World evidence | [WORLD_PRESENCE_SPATIAL_RESEARCH.md](research/WORLD_PRESENCE_SPATIAL_RESEARCH.md) |
 
 ## Reviews
 
