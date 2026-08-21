@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** CIVILIZATION AMENDMENT INTEGRATED — fresh review and QA pending
+**Status:** IMPLEMENTATION ACTIVE — operator override recorded; authority reconciliation in progress
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
@@ -125,8 +125,11 @@ Each concern has one authority. Research records evidence; reviews record object
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
+| Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
+| Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
+| Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |
 
-No license, workflow, package manifest, application package, production dependency, credential, deployment artifact, or generated production asset belongs in this planning branch.
+Production code, pinned dependencies, workflows, and handoff evidence may now exist on `main` under the operator bootstrap override. Credentials, deployment artifacts, model weights, paid integrations, and generated concept pixels as runtime assets remain forbidden.

@@ -1,8 +1,8 @@
-# EONFOLK planning run
+# EONFOLK development run
 
-**Purpose:** Track planning execution, integrations, frozen-review state, blockers and evidence for the final readiness declaration.
+**Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** READY FOR GOAL MODE — exact amended Goal blob approved; implementation gates remain unrun
+**Status:** IMPLEMENTATION IN PROGRESS — operator bootstrap override active; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -14,7 +14,7 @@
 - MacBook M4 Pro; no owned GPU infrastructure, model training or fine-tuning.
 - Spend target approximately $0. The $50/$300 envelopes are comparisons, not spending authorization.
 - V1 is useful/free. Revenue, payments, custody, licensing operations, regulated data, proprietary datasets, partnerships and enterprise sales are excluded.
-- Planning contains documentation, research evidence, selected concepts and repository hygiene only—no production game code, dependency manifest, deployment or license.
+- The local proof may contain production game code and pinned open-source dependencies. Deployment, paid action, credentials, model weights, and public publication remain forbidden.
 
 ## Phase status
 
@@ -26,6 +26,21 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
+| 7. Operator-authorized implementation and consolidation | In progress | Private `main` contains preserved planning plus Gate 0 checkpoint; archive/evidence tags pushed; three bounded implementation workstreams active |
+
+## Operator implementation override — 2026-08-21
+
+The operator attachment with SHA-256 `d1d339de6a0814b316bd9e7d95c7c9c948cf1d13dfc9bfbb3f10934cc91d89d2` explicitly authorizes implementation to continue without human Gate 0/A/B evidence, direct bootstrap consolidation onto `main`, repository hardening, open-source tooling, and safe archival cleanup. It does **not** authorize fabricated evidence, paid services, deployment, public publication, secrets, or deletion of unique history.
+
+Gate 0/A/B are therefore recorded as **OPERATOR IMPLEMENTATION OVERRIDE**, never **MEASURED HUMAN PASS**. Historical study state remains immutable at the evidence tags. The override record is [operator-implementation-override.md](docs/exec-plans/evidence/001/operator-implementation-override.md).
+
+Verified bootstrap state:
+
+- GitHub reports `PranavMishra28/eonfolk` private with default branch `main`.
+- Planning head `f8b82d8` and implementation checkpoint `3d25686` were merged without rewriting history at `cc12d33`.
+- Annotated tags preserve the planning head, implementation checkpoint, Gate 0 artifact A, study S, and resume checkpoint.
+- Implementation workspace scaffold commit `4fb5f93` pins Node 22.23.1 and pnpm 11.15.1 and rejects x64 Node on macOS.
+- Old PRs and branches remain until the final green `main` proves their heads reachable; cleanup has not run early.
 
 ## Integration history
 

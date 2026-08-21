@@ -2,7 +2,7 @@
 
 **Purpose:** define the minimum product and technical evidence required to call the first local proof complete.
 
-**Status:** ACCEPTED AFTER RED TEAM — no fun, retention, or general attachment claim is pre-approved
+**Status:** TECHNICAL BAR ACTIVE — human gates not run; operator implementation override permits engineering only
 
 **Authority boundary:** owns cross-discipline pass/fail. [TESTING](TESTING.md), [EVALS](EVALS.md), [VISUAL_QA](VISUAL_QA.md), and [PERFORMANCE](PERFORMANCE.md) own detailed procedures.
 
@@ -10,7 +10,9 @@
 
 ## Owned decision
 
-Completion requires Gate 0, Gate A, Gate B, and every blocking correctness/security/access/performance test. A build, backend suite, scripted Riverhold chain, screenshot, favorable anecdote, or elapsed estimate is not a substitute. All abandonment and confusion stay in the denominator.
+Measured product validation still requires Gate 0, Gate A, Gate B, and every blocking correctness/security/access/performance test. A build, backend suite, scripted Riverhold chain, screenshot, favorable anecdote, or elapsed estimate is not a substitute. All abandonment and confusion stay in the denominator.
+
+For the 2026-08-21 bootstrap run, the operator explicitly permits implementation to continue without the unavailable human manifests. This is an **OPERATOR IMPLEMENTATION OVERRIDE**, not a **MEASURED HUMAN PASS**. It lifts the implementation pause only; technical gates remain blocking, human claims remain unpassed, and no participant/result/signature may be fabricated. The content-addressed authority record is [operator-implementation-override.md](../exec-plans/evidence/001/operator-implementation-override.md).
 
 Only an authorized human operator can supply the unfamiliar-participant manifests through `/Users/pranav/Documents/ChatGPT/.eonfolk-evidence-inbox/001/`; the Goal prompt owns the exact append-only phase/import state machine, schema, sign-off and focused-minute accounting. Codex may prepare builds/scripts and continue non-human work after Gate 0, but cannot recruit, impersonate, fabricate, or substitute planning personas. Without operator-supplied Gate 0 evidence, implementation stops before foundations; without Gate A/B manifests, those gates remain unpassed.
 
