@@ -28,6 +28,90 @@ function artifact(artifactId: string, sha256: string, byteLength = 1_024) {
 	};
 }
 
+function manifestInput() {
+	return {
+		manifestId: "manifest-fixture",
+		experimentId: "experiment-fixture",
+		runId: "run-fixture",
+		createdAt: "2026-08-21T12:00:00.000Z",
+		source: { commit: commitA, tree: treeA, dirty: false as const },
+		versions: {
+			engine: "riverhold-engine-v2",
+			protocol: "riverhold-protocol-v2",
+			determinism: "riverhold-determinism-v2",
+			replay: "riverhold-replay-v2",
+			visibility: "riverhold-visibility-v1",
+			catalog: "riverhold-actions-v1",
+			cognition: "riverhold-cognition-v1",
+		},
+		corpus: {
+			corpusId: "corpus-fixture",
+			corpusHash: digestA,
+			contextHashes: [digestC, digestB],
+			seeds: [7, 3],
+			repetitions: 5,
+		},
+		brain: {
+			kind: "standard" as const,
+			cognitionVersion: "riverhold-cognition-v1",
+			standardBrainVersion: "riverhold-standard-brain-v1",
+		},
+		environment: {
+			host: "MacBook M4 Pro" as const,
+			osVersion: "fixture-os-v1",
+			runtimeVersion: "node-fixture-v1",
+			totalMemoryBytes: 16 * 1024 * 1024 * 1024,
+			powerMode: "normal",
+			cohort: "cold" as const,
+		},
+		controls: {
+			retries: 0 as const,
+			maxRequestBytes: 16_384,
+			maxOutputBytes: 16_384,
+			timeoutMs: 3_000,
+			networkPolicy: "not-applicable" as const,
+			trustRemoteCode: false as const,
+		},
+	};
+}
+
+async function completedResult(
+	manifestHash: string,
+	execution: {
+		readonly ordinal: number;
+		readonly contextHash: string;
+		readonly seed: number;
+		readonly repetition: number;
+	},
+	resultId = `result-${execution.ordinal}`,
+) {
+	return createExperimentResultV2({
+		resultId,
+		manifestHash,
+		sequence: execution.ordinal,
+		recordedAt: "2026-08-21T12:05:00.000Z",
+		execution,
+		outcome: {
+			status: "completed",
+			outputHash: digestB,
+			failureCode: null,
+			latencyMicros: 900 + execution.ordinal,
+			peakMemoryBytes: 1_024,
+			invariantResults: [
+				{ invariantId: "z-last", passed: true },
+				{ invariantId: "a-first", passed: true },
+			],
+		},
+		evidence: {
+			zeroEgressProven: false,
+			zeroEgressArtifactHash: null,
+			dependencyInventoryHash: digestC,
+			licenseInventoryHash: digestA,
+			limitations: ["Synthetic fixture.", "No human evidence."],
+		},
+	});
+}
+
 describe("BrainPort experiment contracts", () => {
 	it("creates a deeply immutable, offline local-process descriptor", async () => {
 		const contract = await createLocalProcessBrainContract({
@@ -122,88 +206,46 @@ describe("BrainPort experiment contracts", () => {
 		).rejects.toThrow("limits.maxStdoutBytes is outside its integer budget");
 	});
 
-	it("hashes, sorts, freezes, and verifies a noncanonical V2 manifest", async () => {
-		const manifest = await createExperimentManifestV2({
-			manifestId: "manifest-fixture",
-			experimentId: "experiment-fixture",
-			runId: "run-fixture",
-			createdAt: "2026-08-21T12:00:00.000Z",
-			source: { commit: commitA, tree: treeA, dirty: false },
-			versions: {
-				engine: "riverhold-engine-v2",
-				protocol: "riverhold-protocol-v2",
-				determinism: "riverhold-determinism-v2",
-				replay: "riverhold-replay-v2",
-				visibility: "riverhold-visibility-v1",
-				catalog: "riverhold-actions-v1",
-				cognition: "riverhold-cognition-v1",
-			},
-			corpus: {
-				corpusId: "corpus-fixture",
-				corpusHash: digestA,
-				contextHashes: [digestC, digestB],
-				seeds: [7, 3],
-				repetitions: 5,
-			},
-			brain: {
-				kind: "standard",
-				cognitionVersion: "riverhold-cognition-v1",
-				standardBrainVersion: "riverhold-standard-brain-v1",
-			},
-			environment: {
-				host: "MacBook M4 Pro",
-				osVersion: "fixture-os-v1",
-				runtimeVersion: "node-fixture-v1",
-				totalMemoryBytes: 16 * 1024 * 1024 * 1024,
-				powerMode: "normal",
-				cohort: "cold",
-			},
-			controls: {
-				retries: 0,
-				maxRequestBytes: 16_384,
-				maxOutputBytes: 16_384,
-				timeoutMs: 3_000,
-				networkPolicy: "not-applicable",
-				trustRemoteCode: false,
-			},
-		});
+	it("binds an ordered 2 x 2 x 5 execution plan into the manifest", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
 		expect(manifest.schemaVersion).toBe(EXPERIMENT_MANIFEST_VERSION);
 		expect(manifest.nonCanonical).toBe(true);
-		expect(manifest.corpus.contextHashes).toEqual([digestB, digestC]);
-		expect(manifest.corpus.seeds).toEqual([3, 7]);
+		expect(manifest.corpus.contextHashes).toEqual([digestC, digestB]);
+		expect(manifest.corpus.seeds).toEqual([7, 3]);
+		expect(manifest.corpus.executions).toHaveLength(20);
+		expect(manifest.corpus.executions.slice(0, 6)).toEqual([
+			{ ordinal: 1, contextHash: digestC, seed: 7, repetition: 1 },
+			{ ordinal: 2, contextHash: digestC, seed: 7, repetition: 2 },
+			{ ordinal: 3, contextHash: digestC, seed: 7, repetition: 3 },
+			{ ordinal: 4, contextHash: digestC, seed: 7, repetition: 4 },
+			{ ordinal: 5, contextHash: digestC, seed: 7, repetition: 5 },
+			{ ordinal: 6, contextHash: digestC, seed: 3, repetition: 1 },
+		]);
 		expect(Object.isFrozen(manifest)).toBe(true);
+		expect(Object.isFrozen(manifest.corpus.executions)).toBe(true);
 		expect(await verifyExperimentManifestV2(manifest)).toBe(true);
 		const tampered = {
 			...manifest,
 			controls: { ...manifest.controls, timeoutMs: 4_000 },
 		};
 		expect(await verifyExperimentManifestV2(tampered)).toBe(false);
-
-		const result = await createExperimentResultV2({
-			resultId: "result-fixture",
-			manifestHash: manifest.manifestHash,
-			sequence: 1,
-			recordedAt: "2026-08-21T12:05:00.000Z",
-			outcome: {
-				status: "completed",
-				adapterInvocations: 640,
-				outputHash: digestB,
-				failureCode: null,
-				latencyMicros: [900, 800],
-				peakMemoryBytes: 1_024,
-				invariantResults: [
-					{ invariantId: "z-last", passed: true },
-					{ invariantId: "a-first", passed: true },
+		const executionTampered = {
+			...manifest,
+			corpus: {
+				...manifest.corpus,
+				executions: [
+					{ ...manifest.corpus.executions[0]!, seed: 99 },
+					...manifest.corpus.executions.slice(1),
 				],
 			},
-			evidence: {
-				zeroEgressProven: false,
-				zeroEgressArtifactHash: null,
-				dependencyInventoryHash: digestC,
-				licenseInventoryHash: digestA,
-				limitations: ["Synthetic fixture.", "No human evidence."],
-			},
-		});
+		};
+		expect(await verifyExperimentManifestV2(executionTampered)).toBe(false);
+
+		const result = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[0]!,
+			"result-fixture",
+		);
 		expect(result.schemaVersion).toBe(EXPERIMENT_RESULT_VERSION);
 		expect(
 			result.outcome.invariantResults.map(({ invariantId }) => invariantId),
@@ -213,19 +255,188 @@ describe("BrainPort experiment contracts", () => {
 		await expect(journal.appendResult(result)).rejects.toThrow("not committed");
 		await journal.commitManifest(manifest);
 		await journal.appendResult(result);
-		await journal.appendResult(result); // idempotent crash retry
+		await expect(journal.appendResult(result)).rejects.toThrow(
+			"duplicate result ID",
+		);
+		const duplicateExecution = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[0]!,
+			"result-fixture-rewritten",
+		);
+		await expect(journal.appendResult(duplicateExecution)).rejects.toThrow(
+			"duplicate execution result",
+		);
 		expect(journal.results(manifest.manifestHash)).toEqual([result]);
 		const collidingManifest = await createExperimentManifestV2({
-			...(Object.fromEntries(
-				Object.entries(manifest).filter(
-					([key]) =>
-						!["schemaVersion", "nonCanonical", "manifestHash"].includes(key),
-				),
-			) as Parameters<typeof createExperimentManifestV2>[0]),
+			...manifestInput(),
 			controls: { ...manifest.controls, timeoutMs: 2_000 },
 		});
 		await expect(journal.commitManifest(collidingManifest)).rejects.toThrow(
 			"manifest ID collision",
+		);
+	});
+
+	it("rejects reordered, mismatched, extraneous, and tampered execution evidence", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const journal = new InMemoryExperimentJournal();
+		await journal.commitManifest(manifest);
+		const reordered = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[1]!,
+		);
+		await expect(journal.appendResult(reordered)).rejects.toThrow(
+			"result sequence is not append-only",
+		);
+		const mismatched = await completedResult(manifest.manifestHash, {
+			...manifest.corpus.executions[0]!,
+			contextHash: digestA,
+		});
+		await expect(journal.appendResult(mismatched)).rejects.toThrow(
+			"does not match",
+		);
+		const first = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[0]!,
+		);
+		const tampered = {
+			...first,
+			outcome: { ...first.outcome, outputHash: digestC },
+		};
+		expect(await verifyExperimentResultV2(tampered)).toBe(false);
+		for (const execution of manifest.corpus.executions)
+			await journal.appendResult(
+				await completedResult(manifest.manifestHash, execution),
+			);
+		const extraneous = await completedResult(manifest.manifestHash, {
+			ordinal: 21,
+			contextHash: digestC,
+			seed: 7,
+			repetition: 1,
+		});
+		await expect(journal.appendResult(extraneous)).rejects.toThrow(
+			"extraneous",
+		);
+	});
+
+	it("derives counts and accepts only an exact complete successful run", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const journal = new InMemoryExperimentJournal();
+		await journal.commitManifest(manifest);
+		expect(() => journal.assertCompletedRun(manifest.manifestHash)).toThrow(
+			"missing manifest executions",
+		);
+		for (const execution of manifest.corpus.executions)
+			await journal.appendResult(
+				await completedResult(manifest.manifestHash, execution),
+			);
+		expect(journal.assertCompletedRun(manifest.manifestHash)).toEqual({
+			manifestHash: manifest.manifestHash,
+			plannedExecutions: 20,
+			recordedExecutions: 20,
+			adapterInvocations: 20,
+			successfulExecutions: 20,
+			complete: true,
+			successful: true,
+		});
+	});
+
+	it("does not label a fully recorded run successful when one execution failed", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const journal = new InMemoryExperimentJournal();
+		await journal.commitManifest(manifest);
+		for (const execution of manifest.corpus.executions) {
+			if (execution.ordinal !== 7) {
+				await journal.appendResult(
+					await completedResult(manifest.manifestHash, execution),
+				);
+				continue;
+			}
+			await journal.appendResult(
+				await createExperimentResultV2({
+					resultId: "result-7",
+					manifestHash: manifest.manifestHash,
+					sequence: execution.ordinal,
+					recordedAt: "2026-08-21T12:05:00.000Z",
+					execution,
+					outcome: {
+						status: "failed",
+						outputHash: null,
+						failureCode: "timeout",
+						latencyMicros: 3_000_000,
+						peakMemoryBytes: 1_024,
+						invariantResults: [],
+					},
+					evidence: {
+						zeroEgressProven: false,
+						zeroEgressArtifactHash: null,
+						dependencyInventoryHash: null,
+						licenseInventoryHash: null,
+						limitations: ["Timed out."],
+					},
+				}),
+			);
+		}
+		expect(journal.runSummary(manifest.manifestHash)).toMatchObject({
+			plannedExecutions: 20,
+			recordedExecutions: 20,
+			adapterInvocations: 20,
+			successfulExecutions: 19,
+			complete: true,
+			successful: false,
+		});
+		expect(() => journal.assertCompletedRun(manifest.manifestHash)).toThrow(
+			"unsuccessful executions",
+		);
+	});
+
+	it("rejects a completed execution with a failed invariant", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const execution = manifest.corpus.executions[0]!;
+		await expect(
+			createExperimentResultV2({
+				resultId: "result-failed-invariant",
+				manifestHash: manifest.manifestHash,
+				sequence: execution.ordinal,
+				recordedAt: "2026-08-21T12:05:00.000Z",
+				execution,
+				outcome: {
+					status: "completed",
+					outputHash: digestB,
+					failureCode: null,
+					latencyMicros: 900,
+					peakMemoryBytes: 1_024,
+					invariantResults: [
+						{ invariantId: "proposal-authorized", passed: false },
+					],
+				},
+				evidence: {
+					zeroEgressProven: false,
+					zeroEgressArtifactHash: null,
+					dependencyInventoryHash: null,
+					licenseInventoryHash: null,
+					limitations: ["Synthetic fixture."],
+				},
+			}),
+		).rejects.toThrow("passing invariants");
+	});
+
+	it("rejects caller-supplied aggregate invocation counts", async () => {
+		const manifest = await createExperimentManifestV2(manifestInput());
+		const result = await completedResult(
+			manifest.manifestHash,
+			manifest.corpus.executions[0]!,
+		);
+		const {
+			schemaVersion: _schemaVersion,
+			resultHash: _resultHash,
+			...input
+		} = result;
+		const legacyAggregate = {
+			...input,
+			outcome: { ...input.outcome, adapterInvocations: 20 },
+		} as Parameters<typeof createExperimentResultV2>[0];
+		await expect(createExperimentResultV2(legacyAggregate)).rejects.toThrow(
+			"experiment outcome contains unknown or missing fields",
 		);
 	});
 
@@ -235,12 +446,17 @@ describe("BrainPort experiment contracts", () => {
 			manifestHash: digestA,
 			sequence: 1,
 			recordedAt: "2026-08-21T12:00:00.000Z",
+			execution: {
+				ordinal: 1,
+				contextHash: digestB,
+				seed: 3,
+				repetition: 1,
+			},
 			outcome: {
 				status: "not-run",
-				adapterInvocations: 0,
 				outputHash: null,
 				failureCode: "protocol-blocked",
-				latencyMicros: [],
+				latencyMicros: null,
 				peakMemoryBytes: null,
 				invariantResults: [],
 			},
