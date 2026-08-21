@@ -2,7 +2,7 @@
 
 **Purpose:** Define the local report experience and the optional least-authority hosted relay boundary.
 
-**Status:** ACTIVE IMPLEMENTATION CONTRACT — local flow present; deploy-ready relay and fault evidence pending; no deployment authorized
+**Status:** IMPLEMENTED LOCALLY — relay core and provider adapters tested; composition, credentials, and deployment not run
 
 **Authority boundary:** This file owns feedback schema, consent, local queue, relay, dedup, quota, retention, and delivery semantics. Feedback never owns game Reality, Chronicle truth, moderation truth, or a public availability claim.
 
@@ -34,11 +34,11 @@ R2 is off and no attachment upload adapter is configured. Enabling it would requ
 
 ## Security, verification, and reopen evidence
 
-Fake adapters inject lost create/comment responses, duplicate retry, marker reconciliation, lease expiry, Turnstile replay/expiry, 403/410/422/429/5xx, origin/schema/MIME/size violations, and D1/quota exhaustion. Tests prove the exact GitHub endpoint and permission surface, no arbitrary repository input, neutralized Markdown, bounded response/logs, safe outage, and no browser egress when feedback is unused. A real deployment additionally requires current quotas/prices/log defaults, Worker key import and CPU under the Free limit, actual account capability, abuse review, rollback, and explicit operator authorization.
+Fake adapters inject lost create/comment responses, duplicate retry, marker reconciliation, lease expiry, Turnstile replay/expiry, 403/410/422/429/5xx, origin/schema/MIME/size violations, and D1/quota exhaustion. The implemented provider layer uses an injected fetch boundary for Turnstile Siteverify, exact fixed-repository GitHub Issues operations, and WebCrypto RS256 GitHub App installation-token minting. Tests prove exact HTTPS hosts and paths, manual redirect rejection, bounded JSON/MIME/status/schema handling, the fixed repository and permission surface, no arbitrary repository input, neutralized Markdown, bounded responses, safe outage, and no browser egress when feedback is unused. No provider SDK, credential, network call, Worker binding, or deployment configuration is present. A real deployment additionally requires current quotas/prices/log defaults, Worker key import and CPU under the Free limit, actual account capability, abuse review, rollback, and explicit operator authorization.
 
 ## Rejected alternatives and uncertainty
 
-Rejected: client PAT/App credentials, public issue repo, arbitrary webhook, exactly-once claim, automatic Actions deployment, R2 by default, public/pre-signed attachment URL, provider-free-tier guarantees, and Turnstile as the only abuse control. No real Cloudflare/GitHub App/Turnstile path, public abuse behavior, CPU profile, or human feedback usability has run.
+Rejected: client PAT/App credentials, public issue repo, arbitrary webhook, exactly-once claim, automatic Actions deployment, R2 by default, public/pre-signed attachment URL, provider-free-tier guarantees, and Turnstile as the only abuse control. The provider implementations are exercised only with injected deterministic fetch fixtures. No live Cloudflare/D1/Turnstile/GitHub App path, public abuse behavior, Worker CPU/bundle profile, GitHub search consistency observation, or human feedback usability has run.
 
 ## Resulting implementation behavior and constraint fit
 

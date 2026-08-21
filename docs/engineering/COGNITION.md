@@ -2,7 +2,7 @@
 
 **Purpose:** lock the visible information boundary, deterministic Standard Brain, cognitive-decision provenance, counsel interpretation, and grounded explanation contract.
 
-**Status:** ACCEPTED AFTER RED TEAM — Standard Brain only in the first slice
+**Status:** IMPLEMENTED AND BENCHMARKED — Standard Brain retained; Planner deferred with no candidate
 
 **Authority boundary:** this file owns `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, viewer-safe `DecisionTraceProjection`, Standard Brain, and optional-model policy. [SIMULATION](SIMULATION.md) owns authoritative application; [PERSISTENCE](PERSISTENCE.md) owns durable storage; [EVALS](../quality/EVALS.md) owns tests.
 
@@ -91,9 +91,13 @@ V1 tests missing/throwing/timed-out/malformed proposal handling with a fake `Bra
 
 Standard Brain remains the complete default. A deterministic zero-dependency HTN/GOAP-style Planner is accepted only after a frozen 64-context corpus runs five repetitions with identical outputs, no illegal proposal, no hidden-fact influence, no replay dependency, bounded search/runtime, safe malformed/absence fallback, and improvement in at least three predeclared coherence or branch-diversity cases. Missing any hard gate or improvement floor rejects/removes the Planner rather than expanding search.
 
+The implemented benchmark freezes corpus SHA-256 `cb1713b932e1a848a264ac3fcf7788b42ce281a17306887ebf39e2beeb965596`. Standard Brain produced legal byte-identical output across all five repetitions for all 64 contexts, preserved hidden-fact-pair equivalence, and completed 52 declared scenario goals. Its recorded disposition is `defer-no-candidate`: the current action catalog does not expose typed action effects sufficient to implement an honest HTN/GOAP comparison. Founder Alpha therefore ships no Planner and does not infer superiority from the absence of a valid challenger.
+
 POMCP/MCTS is rejected because Riverhold has no calibrated stochastic transition/observation model. Search state may contain only `DecisionContext` fields and bounded planner-local bookkeeping; it cannot read canonical state directly or emit more authority than one `IntentProposal`.
 
 `ExperimentManifestV2` is immutable, JCS-canonicalized, SHA-256 identified, and stored outside Reality. It binds run/scenario/seed, exact initial/context/catalog/brain/build/schema versions, budgets, repetitions, outcome measures, and environment. Results append separately and never become reducer input. A provider-neutral local subprocess adapter is contract-only: explicit existing local executable/model paths, offline mode, bounded stdin/stdout/deadline/memory, no shell expansion, no auto-download/network/server, and normal validation/fallback. Founder Alpha includes no executable, model, weights, SDK, or provider selection.
+
+The Observatory implementation is a read-only, viewer-authorized embedded JSON-LD 1.1/PROV-O projection checked by a closed local SHACL-like validator. Remote contexts, network fetches, an RDF store, inference, and a write path are absent; projection output cannot become reducer input or canonical truth.
 
 ## Blocking acceptance
 

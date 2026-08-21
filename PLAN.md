@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — exact 001 baseline green; privacy P0 corrected; 002 implementation and review pending
+**Status:** FOUNDER ALPHA ACTIVE — implementation integrated; final evidence and frozen review pending
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Active | Start SHA `74a8a7e`; exact baseline green; GitHub privacy corrected from public to private; sole branch `feat/002-founder-alpha`; living [002 plan](docs/exec-plans/active/002-founder-alpha.md) |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Candidate preparation | Start SHA `74a8a7e`; implementation through `20c4fd8`; local production journey passed; GitHub privacy corrected from public to private; sole branch `feat/002-founder-alpha`; final verification/review/merge remains |
 
 ## Operator implementation override — 2026-08-21
 
@@ -84,6 +84,16 @@ This evidence does not establish fun, unfamiliar-observer legibility, attachment
 | Final amended base and confirmation trail | coordinator plus one fresh read-only targeted reviewer against `b2e755c` | `4cd1700` | Exact Goal base binding, amendment review and Goal review trail | Reviewer returned PASS with zero residual/new P0/P1; exact Goal blob `a5e3035`, bytes, hashes, ancestry and all eleven obligations confirmed |
 
 Research branches were not pushed. The coordinator staged explicit paths and integrated only clean commits.
+
+### Founder Alpha integration checkpoint
+
+| Work | Integrated SHA | Coordinator evidence |
+|---|---|---|
+| Diagnostics contracts and runtime | `64ade02`, `625869c`, `09c8981`, `e2b4efb`, `b04c10a` | Allowlisted diffs, redaction/Sentinel/observer tests, browser wiring, HMR behavior, build and zero-egress checks inspected |
+| Local feedback and relay | `cdd2a84`, `c3c1328`, `1809cba`, `b3e4f34`, `c071567`, `e173092`, `20c4fd8` | Queue/expiry/image/consent UI, D1 state machine, provider endpoints/crypto and adversarial tests inspected; coordinator caught and repaired one stale-label E2E failure |
+| Cognition and Observatory | `9b95022`, `c383de1` | Frozen corpus, hidden-fact pairs, manifest hashes, subprocess contract, authorized projection, validator, imports, and tests inspected; Planner correctly deferred |
+| Verification and release | `980645b`, `7234738`, `072265f`, `ee8f3a2`, `279e1c6` | Eight targeted mutants killed, CI path gates/artifacts inspected, source diagnostic budgets passed, physical evidence retained as `NOT_RUN` |
+| Shared authority synthesis | `b4af74d` plus current candidate updates | Decision/risk/question/source claims and constraint fit reconciled by coordinator; final frozen review remains |
 
 ## Disposable spike evidence
 

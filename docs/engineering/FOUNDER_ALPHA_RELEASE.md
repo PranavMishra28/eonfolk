@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Founder Alpha is releasable only as a verified local browser build. The web application is complete without an account, network service, hosted model, or feedback relay. `apps/feedback-worker` is a credential-free relay core and D1 contract, not a deployed Worker: this repository intentionally contains no Wrangler configuration, Cloudflare resource identifier, GitHub App key, Turnstile secret, public route, deployment workflow, or automatic deployment action.
+Founder Alpha is releasable only as a verified local browser build. The web application is complete without an account, network service, hosted model, or feedback relay. `apps/feedback-worker` contains a credential-free relay core, D1 contract, injected-fetch Turnstile provider, and fixed-repository GitHub App/Issues providers. It is not a composed or deployed Worker: this repository intentionally contains no Wrangler configuration, Cloudflare resource identifier, GitHub App key, Turnstile secret, public route, deployment workflow, or automatic deployment action.
 
 Reopen this boundary only after Gate A/B remain green, the exact deployment candidate passes PR and DEEP verification, and the operator explicitly approves the concrete account, resource, cost, origin, credential, retention, and rollback plan.
 
@@ -39,7 +39,7 @@ Failed Playwright screenshots/traces are retained for 14 days. Conditional accep
 Every item below is a future manual gate and is **NOT RUN**. The sequence is descriptive, not authorization:
 
 1. Re-probe the private repository, Cloudflare plan/pricing, Worker/D1/Turnstile limits, Actions allowance, and GitHub App permission model on the execution date. Record the observed state and a $0/$50/$300 cost bound before creating anything.
-2. Review the exact relay commit and repeat its unit, schema, quota, duplicate-suppression, failure, secret-scan, and bundle/CPU checks. Implement and review the still-missing production composition adapters; the current core requires injected D1, Turnstile, and GitHub ports.
+2. Review the exact relay/provider commit and repeat its unit, schema, quota, duplicate-suppression, cryptographic-token, endpoint, failure, secret-scan, and bundle/CPU checks. Implement and review the still-missing Worker composition and concrete D1 binding; the current core accepts injected D1, Turnstile, GitHub, clock, and fetch ports.
 3. With explicit operator approval, create one D1 database and apply `apps/feedback-worker/migrations/0001_feedback_relay.sql`. Bind it under a reviewed name. Do not enable R2.
 4. Create one Turnstile site restricted to the exact approved browser origin. Supply its secret only through the Worker secret store and bind the expected hostname/action in server configuration.
 5. Create one private GitHub App installed only on `PranavMishra28/eonfolk`, with Metadata read and Issues read/write and no broader repository or organization permission. Keep the App ID, installation ID, and private key server-side; mint short-lived installation tokens. The browser never receives them and cannot choose a repository.
@@ -59,7 +59,7 @@ Automatic deployment from Actions, client-held GitHub credentials, a personal ac
 
 ## Unproven assumptions and constraint fit
 
-- **UNRESOLVED:** the production adapters, deployed Worker CPU/bundle, actual D1 behavior, Turnstile usability, GitHub App lifecycle, quotas under public abuse, and disable/delete rollback have not run.
+- **UNRESOLVED:** Worker composition, the concrete D1 binding, deployed Worker CPU/bundle, actual D1 behavior, live Turnstile usability, GitHub App lifecycle, GitHub search eventual consistency, quotas under public abuse, and disable/delete rollback have not run.
 - **UNRESOLVED:** the 14/30-day artifact policy fits actual Actions storage and debugging needs; revise from measured usage.
 - **UNRESOLVED:** a feedback relay improves the private alpha enough to justify any operational burden; local feedback remains the complete fallback.
 

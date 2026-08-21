@@ -76,6 +76,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
 | Flight Recorder modes, redaction, Sentinel, incidents, observer, replay-capture seam, and diagnostics overhead | [DIAGNOSTICS.md](engineering/DIAGNOSTICS.md) |
 | Local feedback queue, consent, optional relay, dedup, quotas, retention, and delivery semantics | [FEEDBACK.md](engineering/FEEDBACK.md) |
+| Founder Alpha local preview, CI evidence, credential gates, and release-status claims | [FOUNDER_ALPHA_RELEASE.md](engineering/FOUNDER_ALPHA_RELEASE.md) |
 | Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
 
 ## Quality authorities
@@ -135,6 +136,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
+| Founder Alpha diagnostics benchmark and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md) and [physical-device status](exec-plans/evidence/002/physical-device.json) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
 | Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
 | Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |

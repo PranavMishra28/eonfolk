@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — baseline frozen; implementation not yet accepted
+**Status:** ACTIVE — implementation integrated; final candidate verification and frozen review pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -217,6 +217,10 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Created the only integration branch `feat/002-founder-alpha`; moved completed 001 history out of the active plan directory.
 - 2026-08-21 — Integrated first-party diagnostics (`64ade02`, `625869c`) and local-only feedback (`cdd2a84`). Local observer smoke returned a bounded healthy world-head projection; typecheck, 73 unit tests, build/budgets, nine headed journeys, and zero-egress netlog passed at the feedback checkpoint.
 - 2026-08-21 — Three isolated research streams completed against explicit one-file allowlists and were inspected before integration: diagnostics `ea91c83`, cognition `88e4176`, and platform `23eb6c8`. Coordinator normalized 49 dated source rows into the shared ledger.
+- 2026-08-21 — Integrated the bounded local observer, safe local feedback flow, Sentinel hardening, native performance summaries, targeted mutation lattice, relay core/providers, cognition experiment seams, frozen 64-context benchmark, authorized Observatory projection, conditional CI evidence, and release contract through `20c4fd8`. No deployment, credential, model, training path, telemetry SDK, or paid action entered the tree.
+- 2026-08-21 — A coordinator-operated production preview completed the full Mara abstention path through return, branch-specific second action, factual Chronicle, Story Card, provenance, and feedback controls with zero console errors/warnings and no non-static network request. This is local technical browser evidence, not an unfamiliar-human Gate 0/A/B/Card result.
+- 2026-08-21 — Clean source-level diagnostics profiling passed every record-call and ring ceiling in OFF/LOCAL/ALPHA. The source harness explicitly does not claim browser-frame, input, display, heap, upload, thermal, or physical-device results; the physical-device record remains `NOT_RUN`.
+- 2026-08-21 — The frozen cognition corpus hash is `cb1713b932e1a848a264ac3fcf7788b42ce281a17306887ebf39e2beeb965596`: Standard Brain returned legal byte-identical output across five repetitions for all 64 contexts, preserved hidden-pair equivalence, and completed 52 scenario goals. Planner disposition is `defer-no-candidate`; no Planner or model runtime ships.
 
 ## Decision, risk, and deviation log
 
@@ -243,11 +247,11 @@ Exact availability and results are recorded below as implementation lands. A nam
 |---|---|---|
 | Start baseline | PASS | exact command and counts in Start-state freeze |
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
-| Diagnostics/Sentinel | PARTIAL PASS | package and runtime unit/type/build/E2E checkpoint at `625869c`; injected-fault/deep overhead evidence pending |
-| Feedback/observer | PARTIAL PASS | local preview/queue/redaction/delete and `pnpm diagnose` live smoke at `cdd2a84`; relay fault matrix pending |
-| Founder Alpha browser matrix | NOT RUN | recorded after M3/M5 |
-| Cognition experiments | NOT RUN | recorded after M4 |
-| Performance OFF/LOCAL/ALPHA | NOT RUN | recorded after M5 |
+| Diagnostics/Sentinel | PASS pending frozen review | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
+| Feedback/observer | PASS pending frozen review | browser-only queue/preview/delete/expiry; relay D1/quota/reconciliation/provider adversarial fixtures through `20c4fd8`; live provider path NOT RUN |
+| Founder Alpha browser matrix | LOCAL PASS pending final rerun | nine headed journeys at the latest PR checkpoint plus coordinator production play; final clean candidate capture remains |
+| Cognition experiments | PASS / Planner deferred | frozen 64-context, five-run Standard-Brain benchmark; experiment manifest and Observatory projection regressions; no model candidate run |
+| Performance OFF/LOCAL/ALPHA | SOURCE PASS; browser pending | `pnpm benchmark:diagnostics` passed absolute source ceilings; final canonical browser profile remains |
 | Security/privacy review | NOT RUN | recorded after M6 |
 | Human Gate 0/A/B/Story Card | NOT RUN | no claim permitted |
 

@@ -2,7 +2,7 @@
 
 **Purpose:** Define Founder Alpha failure recording, incident handling, safe observation, and diagnostics budgets.
 
-**Status:** ACTIVE IMPLEMENTATION CONTRACT — integrated measurements and hostile review pending
+**Status:** IMPLEMENTED LOCALLY — source-level budgets pass; final browser profile and hostile review pending
 
 **Authority boundary:** This file owns diagnostic event, mode, redaction, incident, observer, replay-capture, and overhead behavior. It owns no canonical world fact or product truth.
 
@@ -42,11 +42,11 @@ Performance capture uses feature-detected native marks/measures, frame histogram
 
 ## Verification and reopen evidence
 
-Tests inject command, Worker, persistence, cognition, Chronicle, route, and UI failures; assert no partial canonical mutation; search every projection for canaries; exercise ring overflow/truncation; prove identical fingerprints across time-varying inputs; and profile the same deterministic journey in OFF/LOCAL/ALPHA. A concrete defect that cannot be reproduced from structured evidence plus an explicit screenshot may reopen a one-hour rrweb spike under the research contract. Any leak, authority dependency, unbounded growth, or budget miss removes optional capture before a budget waiver.
+Tests inject command, Worker, persistence, cognition, Chronicle, route, and UI failures; assert no partial canonical mutation; search every projection for canaries; exercise ring overflow/truncation; prove identical fingerprints across time-varying inputs; and profile the same deterministic journey in OFF/LOCAL/ALPHA. The clean fixed source workload at `279e1c6` measured p95 record calls of 0.000084 ms OFF, 0.007542 ms LOCAL, and 0.007875 ms ALPHA; p95 freezes were 0.384291 ms, 0.368584 ms, and 0.228375 ms respectively. Serialized bounds were 65 events/18,245 bytes OFF, 2,048/617,952 LOCAL, and 512/154,488 ALPHA. All source-call and ring ceilings passed. These are not browser-frame, input, display, heap, upload, thermal, or physical-device results; the canonical browser profile remains a separate gate. A concrete defect that cannot be reproduced from structured evidence plus an explicit screenshot may reopen a one-hour rrweb spike under the research contract. Any leak, authority dependency, unbounded growth, or budget miss removes optional capture before a budget waiver.
 
 ## Rejected alternatives and uncertainty
 
-Rejected: continuous session replay, unsafe canvas replay, provider/browser telemetry, arbitrary observer access, remote observer, hidden-reasoning capture, and diagnostic canonical events. Still unproven: final integrated overhead, Safari/Firefox token normalization, and whether structured traces reproduce every canvas-only defect.
+Rejected: continuous session replay, unsafe canvas replay, provider/browser telemetry, arbitrary observer access, remote observer, hidden-reasoning capture, and diagnostic canonical events. Still unproven: frame-level regression by mode in the final browser candidate, Safari/Firefox token normalization, physical-device behavior, and whether structured traces reproduce every canvas-only defect.
 
 ## Resulting implementation behavior and constraint fit
 
