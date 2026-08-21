@@ -40,6 +40,26 @@ body {
 		#151915 75rem
 	);
 }
+
+.runtime-failure {
+	width: min(42rem, calc(100% - 2rem));
+	margin: 12vh auto;
+	padding: clamp(1.5rem, 4vw, 3rem);
+	border: 1px solid var(--ink-faint);
+	background: var(--paper);
+	box-shadow: var(--shadow-deep);
+}
+
+.runtime-failure h1 {
+	max-width: 15ch;
+}
+
+.runtime-failure code {
+	display: block;
+	margin-top: 0.75rem;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
 button,
 input {
 	font: inherit;
@@ -1103,6 +1123,27 @@ blockquote {
 	padding-top: 3rem;
 	border-top: 1px solid rgba(255, 255, 255, 0.13);
 }
+.semantic-summary {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin: 1rem 0;
+}
+.semantic-summary div {
+	padding: 0.8rem;
+	background: rgba(255, 255, 255, 0.04);
+	border-left: 2px solid var(--ochre);
+}
+.semantic-summary dt {
+	color: #a9ad9e;
+	font-size: 0.62rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+.semantic-summary dd {
+	margin: 0.35rem 0 0;
+	font-size: 0.75rem;
+}
 .semantic-citizens {
 	list-style: none;
 	padding: 0;
@@ -1366,8 +1407,8 @@ footer .text-button {
 		min-height: 0;
 	}
 	.world-stage {
-		min-height: 49vh;
-		height: 49vh;
+		min-height: 55svh;
+		height: 55svh;
 		border-right: 0;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.16);
 	}
@@ -1414,7 +1455,11 @@ footer .text-button {
 		justify-content: start;
 	}
 	.phase-panel--arrival h1 {
-		font-size: clamp(2.55rem, 14vw, 4.3rem);
+		font-size: clamp(2.15rem, 11vw, 3.2rem);
+	}
+	.phase-panel--arrival {
+		gap: 0.55rem;
+		padding-block: 1rem 1.35rem;
 	}
 	.mara-dossier {
 		grid-template-columns: 82px 1fr;
@@ -1496,6 +1541,9 @@ footer .text-button {
 	.semantic-citizens {
 		grid-template-columns: 1fr;
 	}
+	.semantic-summary {
+		grid-template-columns: 1fr;
+	}
 	.semantic-citizens button {
 		min-height: 90px;
 	}
@@ -1531,8 +1579,8 @@ footer .text-button {
 		height: 27px;
 	}
 	.world-stage {
-		height: 46vh;
-		min-height: 360px;
+		height: 55svh;
+		min-height: 0;
 	}
 	.world-caption {
 		bottom: 0.55rem;

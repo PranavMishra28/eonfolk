@@ -43,6 +43,12 @@ describe("Mind and Standard Brain", () => {
 		const abstain = await decide(null);
 		expect(verify.proposal.action.kind).toBe("VerifyReserve");
 		expect(verify.proposal.explanation.counselDisposition).toBe("accepted");
+		expect(verify.proposal.publicJustification).toMatch(
+			/^Your counsel matched my judgment: /,
+		);
+		expect(verify.proposal.publicJustification).not.toContain(
+			"because counsel",
+		);
 		expect(accuse.proposal.action.kind).toBe("AccusePublicly");
 		expect(accuse.proposal.explanation.counselDisposition).toBe("accepted");
 		expect(abstain.proposal.action.kind).toBe("FollowStandingPlan");

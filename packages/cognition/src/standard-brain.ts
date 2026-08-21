@@ -145,14 +145,32 @@ function disposition(
 export function renderPublicJustification(
 	explanation: DecisionExplanation,
 ): string {
-	const reason = explanation.decisiveReasonCodes[0] ?? "available evidence";
+	const positiveReason = explanation.decisiveReasonCodes.find(
+		(code) =>
+			code !== "counsel" &&
+			explanation.scoreTerms.some(
+				(scoreTerm) => scoreTerm.code === code && scoreTerm.value > 0,
+			),
+	);
+	const reasonCode =
+		positiveReason ?? explanation.decisiveReasonCodes[0] ?? "evidence";
+	const reason =
+		{
+			plan: "it follows my standing plan",
+			commitment: "it honors a commitment I have already made",
+			value: "it fits the values guiding this choice",
+			relationship: "I weighed the trust this decision could change",
+			evidence: "the evidence available to me supports it",
+			risk: "I judged its risk against the alternatives",
+			counsel: "your suggestion matches the choice I was weighing",
+		}[reasonCode] ?? "the visible facts support it";
 	if (explanation.counselDisposition === "accepted")
-		return `I accepted the counsel because ${reason}.`;
+		return `Your counsel matched my judgment: ${reason}.`;
 	if (explanation.counselDisposition === "rejected")
-		return `I will keep my plan because ${reason}.`;
+		return `I will keep my plan: ${reason}.`;
 	if (explanation.counselDisposition === "reinterpreted")
-		return `I changed the counsel's approach because ${reason}.`;
-	return `I chose this because ${reason}.`;
+		return `I changed the counsel's approach: ${reason}.`;
+	return `I chose this: ${reason}.`;
 }
 
 export async function standardBrain(

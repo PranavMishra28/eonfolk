@@ -19,6 +19,19 @@ export function SemanticWorld({
 					here.
 				</p>
 			</div>
+			<dl className="semantic-summary">
+				<div>
+					<dt>Settlement resources</dt>
+					<dd>
+						{projection.resources.food} food · {projection.resources.water}{" "}
+						water · {projection.resources.wood} wood
+					</dd>
+				</div>
+				<div>
+					<dt>Named interaction or change</dt>
+					<dd>{projection.worldNotices[0]}</dd>
+				</div>
+			</dl>
 			<ul
 				className="semantic-citizens"
 				aria-label="Eight Riverhold citizens and their current activities"
@@ -33,7 +46,9 @@ export function SemanticWorld({
 							<span>
 								<strong>{citizen.name}</strong>
 								<small>{citizen.role}</small>
-								<span>{citizen.activity}</span>
+								<span>
+									{citizen.activity} · {citizen.place}
+								</span>
 							</span>
 						</button>
 					</li>

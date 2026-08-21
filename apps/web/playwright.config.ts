@@ -17,12 +17,26 @@ export default defineConfig({
 		launchOptions: {
 			args: [
 				"--disable-background-networking",
+				"--disable-client-side-phishing-detection",
 				"--disable-component-update",
+				"--disable-component-extensions-with-background-pages",
+				"--disable-default-apps",
 				"--disable-domain-reliability",
+				"--disable-features=AccountConsistency,AimEnabled,AutofillServerCommunication,CertificateTransparencyComponentUpdater,DialMediaRouteProvider,MediaRouter,NetworkTimeServiceQuerying,OptimizationGuide,OptimizationGuideModelDownloading,OptimizationHints,PreconnectFromKeyedService,PreconnectToSearch,PrivacySandboxSettings4,Signin,Sync",
+				"--disable-search-engine-choice-screen",
+				"--disable-signin-scoped-device-id",
 				"--disable-sync",
+				"--dns-prefetch-disable",
+				"--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1",
+				"--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+				"--gaia-url=http://127.0.0.1:4174",
+				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/riverhold-playwright/netlog.json")}`,
+				"--metrics-recording-only",
+				"--no-default-browser-check",
 				"--no-first-run",
 			],
 		},
+		serviceWorkers: "block",
 	},
 	webServer: {
 		command:

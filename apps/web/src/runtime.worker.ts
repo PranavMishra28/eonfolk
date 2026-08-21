@@ -12,11 +12,11 @@ type Request =
 			readonly id: number;
 			readonly kind: "dispatch";
 			readonly intent: RiverholdIntent;
-	  }
-	| { readonly id: number; readonly kind: "reset" };
+	  };
 
 let persistence: IndexedDbPersistence | null = null;
 let runtime: AuthoritativeRiverholdRuntime | null = null;
+let requestQueue: Promise<void> = Promise.resolve();
 
 async function open(phase: Phase): Promise<AuthoritativeRiverholdRuntime> {
 	persistence = await IndexedDbPersistence.open({
@@ -29,34 +29,13 @@ async function open(phase: Phase): Promise<AuthoritativeRiverholdRuntime> {
 	return runtime;
 }
 
-async function deleteDatabase(): Promise<void> {
-	persistence?.close();
-	persistence = null;
-	runtime = null;
-	await new Promise<void>((resolve, reject) => {
-		const request = indexedDB.deleteDatabase(DATABASE_NAME);
-		request.addEventListener("success", () => resolve(), { once: true });
-		request.addEventListener("error", () => reject(request.error), {
-			once: true,
-		});
-		request.addEventListener(
-			"blocked",
-			() => reject(new Error("IndexedDB reset was blocked")),
-			{ once: true },
-		);
-	});
-}
-
 self.addEventListener("message", (message: MessageEvent<Request>) => {
-	void (async () => {
+	requestQueue = requestQueue.then(async () => {
 		try {
 			const request = message.data;
 			let projection: RiverholdProjection;
 			if (request.kind === "initialize") {
 				projection = await (await open(request.phase)).initialize();
-			} else if (request.kind === "reset") {
-				await deleteDatabase();
-				projection = await (await open("orientation")).initialize();
 			} else {
 				if (runtime === null)
 					throw new Error("worker runtime is not initialized");
@@ -70,5 +49,5 @@ self.addEventListener("message", (message: MessageEvent<Request>) => {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
-	})();
+	});
 });

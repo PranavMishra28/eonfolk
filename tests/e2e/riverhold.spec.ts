@@ -1,12 +1,31 @@
 import { expect, test } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 let pageErrors: string[] = [];
+const routeLog: Array<{
+	readonly action: "allow" | "abort";
+	readonly method: string;
+	readonly resourceType: string;
+	readonly url: string;
+}> = [];
+const routeLogPath = resolve(
+	import.meta.dirname,
+	"../../tmp/riverhold-playwright/route-log.json",
+);
 
 test.beforeEach(async ({ page }) => {
 	pageErrors = [];
 	await page.route("**/*", async (route) => {
 		const url = new URL(route.request().url());
-		if (url.hostname === "127.0.0.1") await route.continue();
+		const action = url.hostname === "127.0.0.1" ? "allow" : "abort";
+		routeLog.push({
+			action,
+			method: route.request().method(),
+			resourceType: route.request().resourceType(),
+			url: route.request().url(),
+		});
+		if (action === "allow") await route.continue();
 		else await route.abort("blockedbyclient");
 	});
 	page.on("console", (message) => {
@@ -23,8 +42,13 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(() => expect(pageErrors).toEqual([]));
+test.afterAll(() => {
+	mkdirSync(dirname(routeLogPath), { recursive: true });
+	writeFileSync(routeLogPath, `${JSON.stringify(routeLog)}\n`);
+});
 
 test("complete verify path survives reload and reaches Chronicle and Story Card", async ({
+	context,
 	page,
 }) => {
 	await expect(
@@ -50,6 +74,10 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await expect(
 		page.getByRole("heading", { name: /She accepted your counsel/i }),
 	).toBeVisible();
+	await expect(
+		page.getByText(/Your counsel matched my judgment/i),
+	).toBeVisible();
+	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
 	await expect(page.getByText(/contributing input/i)).toBeVisible();
 	await page
 		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
@@ -61,29 +89,55 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 			.getByRole("heading", { name: /Riverhold changed while you were gone/i }),
 	).toBeVisible();
 	await expect(page.getByText(/While you were away/i)).toHaveCount(0);
-	await page.getByRole("button", { name: /Advance Riverhold/i }).click();
+	await page.getByRole("button", { name: /Advance Riverhold/i }).dblclick();
 	await expect(page.getByText(/WHILE YOU WERE AWAY/i)).toBeVisible();
+	await expect(page.getByText(/Day 19/).first()).toBeVisible();
 	await page
 		.getByRole("button", { name: /Ask Mara to publish the verified count/i })
 		.click();
 	await expect(
 		page.getByRole("heading", { name: /What entered the record/i }),
 	).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: /YOU ADVISED: verify first/i }),
+	).toBeVisible();
+	await page.getByRole("button", { name: /Show beat 2/i }).click();
+	await expect(
+		page.getByRole("heading", {
+			name: /Mara Vale independently chose to verify/i,
+		}),
+	).toBeVisible();
 	await page
 		.getByRole("button", { name: /Inspect \d+ evidence record/i })
-		.first()
 		.click();
 	await expect(
 		page.getByRole("dialog", { name: /Mara Vale independently chose/i }),
 	).toBeVisible();
 	await page.getByRole("button", { name: "Close details" }).click();
-	await page.getByRole("button", { name: /Show beat 2/i }).click();
+	await page.getByRole("button", { name: /Show beat 3/i }).click();
 	await expect(
 		page.getByRole("heading", { name: /Mara Vale recorded a sourced belief/i }),
 	).toBeVisible();
+	await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+		origin: "http://127.0.0.1:4174",
+	});
 	await page.getByRole("button", { name: "Copy Story Card" }).click();
 	await expect(
 		page.getByRole("button", { name: "Story Card copied" }),
+	).toBeVisible();
+	await page.evaluate(() => {
+		Object.defineProperty(navigator, "clipboard", {
+			configurable: true,
+			value: {
+				writeText: () => Promise.reject(new Error("permission denied")),
+			},
+		});
+	});
+	await page.getByRole("button", { name: "Story Card copied" }).click();
+	await expect(
+		page.getByRole("button", {
+			name: "Copy unavailable — select the card text",
+		}),
 	).toBeVisible();
 });
 
@@ -113,7 +167,16 @@ test("accuse path preserves allegation language and offers trust repair", async 
 		.getByRole("button", { name: /Counsel Mara to repair the trust/i })
 		.click();
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
-	await expect(page.getByText(/allegation, not proof/i)).toBeVisible();
+	await page
+		.getByRole("button", { name: /Inspect \d+ evidence records/i })
+		.click();
+	const evidenceDialog = page.getByRole("dialog", {
+		name: /Mara Vale independently chose to make the allegation/i,
+	});
+	await expect(evidenceDialog).toBeVisible();
+	await expect(
+		evidenceDialog.getByText(/An allegation is attributed content/i),
+	).toBeVisible();
 });
 
 test("mobile, keyboard, semantic parity, Back, and reduced motion remain functional", async ({
@@ -125,8 +188,18 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
 	await page.keyboard.press("Tab");
 	await page.keyboard.press("Enter");
-	await page.getByRole("button", { name: /Mara Vale ledger runner/i }).click();
+	const maraButton = page.getByRole("button", {
+		name: /Mara Vale ledger runner/i,
+	});
+	await maraButton.click();
 	await expect(page.getByRole("dialog", { name: "Mara Vale" })).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Close details" }),
+	).toBeFocused();
+	await page.keyboard.press("Escape");
+	await expect(page.getByRole("dialog")).toHaveCount(0);
+	await expect(maraButton).toBeFocused();
+	await maraButton.click();
 	await page.goBack();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await expect(

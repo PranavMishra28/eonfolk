@@ -235,6 +235,26 @@ describe("Riverhold deterministic Reality", () => {
 		expect(badResult.events).toHaveLength(0);
 	});
 
+	it("rejects consumption quantities whose derived relief would overflow", async () => {
+		const genesis = await riverholdFixture();
+		const mara = citizenBySlug(genesis.state, "mara");
+		const result = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_overflow_consume", {
+				kind: "ConsumeResource",
+				citizenId: mara.citizenId,
+				resource: "food",
+				quantity: Math.floor(0x7fff_ffff / 3_000) + 1,
+			}),
+		);
+		expect(result.accepted).toBe(false);
+		expect(result.receipt.rejectionCode).toBe("INVALID_COMMAND");
+		expect(result.postState).toBe(genesis.state);
+		expect(result.events).toEqual([]);
+		expect(result.resultingWorldHeadHash).toBe(genesis.genesisWorldHeadHash);
+	});
+
 	it("is byte-deterministic for repeated seeds and command histories", async () => {
 		const left = await riverholdFixture();
 		const right = await riverholdFixture();

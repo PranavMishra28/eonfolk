@@ -21,6 +21,7 @@ const baseCitizens = [
 		role: "Market tally-keeper",
 		activity: "carrying water toward the market tally",
 		activityKind: "water",
+		place: "market",
 		x: 45,
 		y: 45,
 		focal: true,
@@ -31,6 +32,7 @@ const baseCitizens = [
 		role: "Storekeeper",
 		activity: "settling a ration exchange with Iven",
 		activityKind: "trade",
+		place: "market",
 		x: 60,
 		y: 50,
 	},
@@ -40,6 +42,7 @@ const baseCitizens = [
 		role: "Miller",
 		activity: "trading repair wood for rations",
 		activityKind: "trade",
+		place: "market",
 		x: 70,
 		y: 44,
 	},
@@ -49,6 +52,7 @@ const baseCitizens = [
 		role: "Water bearer",
 		activity: "drawing water at the old well",
 		activityKind: "water",
+		place: "spring",
 		x: 28,
 		y: 62,
 	},
@@ -58,6 +62,7 @@ const baseCitizens = [
 		role: "Forester",
 		activity: "bundling windfall wood",
 		activityKind: "wood",
+		place: "woods",
 		x: 17,
 		y: 37,
 	},
@@ -67,6 +72,7 @@ const baseCitizens = [
 		role: "Millwright",
 		activity: "bracing the damaged mill wheel",
 		activityKind: "mill",
+		place: "mill",
 		x: 80,
 		y: 67,
 	},
@@ -76,6 +82,7 @@ const baseCitizens = [
 		role: "Grower",
 		activity: "moving seed grain above the flood line",
 		activityKind: "food",
+		place: "fields",
 		x: 37,
 		y: 73,
 	},
@@ -85,6 +92,7 @@ const baseCitizens = [
 		role: "Carpenter",
 		activity: "hauling cut timber down the north path",
 		activityKind: "wood",
+		place: "north path",
 		x: 87,
 		y: 34,
 	},
@@ -642,11 +650,6 @@ function createStaticRuntimeBridge(
 					phase = "chronicle";
 					projection = makeProjection(phase, branch, intent.actionId);
 					return projection;
-				case "reset-local-proof":
-					storage?.removeItem(STORAGE_KEY);
-					phase = "orientation";
-					branch = null;
-					break;
 			}
 			projection = makeProjection(phase, branch);
 			return projection;
@@ -669,7 +672,13 @@ export function createRiverholdRuntimeBridge(
 		? null
 		: window.localStorage,
 ): RiverholdRuntimeBridge {
-	if (typeof Worker === "undefined") return createStaticRuntimeBridge(storage);
+	if (typeof Worker === "undefined") {
+		if (typeof window !== "undefined")
+			throw new Error(
+				"The authoritative Riverhold runtime requires Web Workers",
+			);
+		return createStaticRuntimeBridge(storage);
+	}
 	const checkpoint = parseCheckpoint(storage);
 	let projection = makeProjection(
 		checkpoint?.phase ?? (checkpoint ? "return-pending" : "orientation"),
@@ -714,8 +723,7 @@ export function createRiverholdRuntimeBridge(
 					readonly kind: "initialize";
 					readonly phase: RiverholdProjection["phase"];
 			  }
-			| { readonly kind: "dispatch"; readonly intent: RiverholdIntent }
-			| { readonly kind: "reset" },
+			| { readonly kind: "dispatch"; readonly intent: RiverholdIntent },
 	): Promise<RiverholdProjection> => {
 		const id = nextRequestId++;
 		return new Promise((resolve, reject) => {
@@ -733,14 +741,8 @@ export function createRiverholdRuntimeBridge(
 		ready: async () => ready,
 		async dispatch(intent) {
 			await ready;
-			const next = await request(
-				intent.kind === "reset-local-proof"
-					? { kind: "reset" }
-					: { kind: "dispatch", intent },
-			);
-			if (intent.kind === "reset-local-proof") {
-				storage?.removeItem(STORAGE_KEY);
-			} else if (intent.kind === "leave-checkpoint" && next.branch !== null) {
+			const next = await request({ kind: "dispatch", intent });
+			if (intent.kind === "leave-checkpoint" && next.branch !== null) {
 				storage?.setItem(
 					STORAGE_KEY,
 					JSON.stringify({
@@ -781,7 +783,6 @@ export const riverholdRuntimeContract = Object.freeze({
 		"leave-checkpoint",
 		"confirm-advance",
 		"take-second-action",
-		"reset-local-proof",
 	]),
 	boundary:
 		"The application consumes immutable projections produced only after the simulation worker commits canonical events and decisions to IndexedDB.",

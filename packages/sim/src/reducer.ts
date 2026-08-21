@@ -280,6 +280,11 @@ export function reducePayload(
 			state = { ...state, selectedCounselBranch: payload.action };
 			break;
 		}
+		case "ReturnResponseRecorded": {
+			if (!state.citizens[payload.citizenId])
+				throw new Error("ACTION_UNAVAILABLE");
+			break;
+		}
 		case "BeliefChanged": {
 			const citizen = state.citizens[payload.citizenId];
 			if (!citizen) throw new Error("ACTION_UNAVAILABLE");

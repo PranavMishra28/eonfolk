@@ -53,8 +53,7 @@ jobs:
         with:
           name: browser-failure-${{ github.run_id }}
           path: |
-            playwright-report
-            test-results
+            tmp/riverhold-playwright
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14

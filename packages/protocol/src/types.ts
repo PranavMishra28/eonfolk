@@ -7,6 +7,12 @@ export type DecisionId = string;
 export type ProposalId = string;
 export type PlanId = string;
 export type ResourceKind = "food" | "water" | "wood";
+export type ReturnResponseAction =
+	| "publish-verified-count"
+	| "observe"
+	| "repair-trust"
+	| "uphold-petition"
+	| "ask-iven";
 export type BehaviorFamily =
 	| "maintain-self"
 	| "acquire-resource"
@@ -75,6 +81,13 @@ export type WorldCommandPayload =
 			readonly decisionId: DecisionId;
 			readonly proposalId: ProposalId;
 			readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
+	  }
+	| {
+			readonly kind: "RespondOnReturn";
+			readonly responseId: string;
+			readonly citizenId: CitizenId;
+			readonly action: ReturnResponseAction;
+			readonly priorEventId: EventId;
 	  }
 	| { readonly kind: "Advance"; readonly seconds: number };
 
@@ -203,6 +216,13 @@ export type WorldEventPayload =
 				| "reinterpreted"
 				| "not-applicable";
 			readonly planId: PlanId;
+	  }
+	| {
+			readonly kind: "ReturnResponseRecorded";
+			readonly responseId: string;
+			readonly citizenId: CitizenId;
+			readonly action: ReturnResponseAction;
+			readonly priorEventId: EventId;
 	  }
 	| {
 			readonly kind: "BeliefChanged";

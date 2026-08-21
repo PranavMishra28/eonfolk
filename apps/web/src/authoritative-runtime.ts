@@ -17,6 +17,7 @@ import {
 	type CognitiveDecisionRecord,
 	type DecisionContext,
 	type IntentProposal,
+	type ReturnResponseAction,
 	seedPrng,
 	type VisibilityContext,
 	type WorldBatchHeader,
@@ -249,6 +250,46 @@ function requestedIntent(
 			: null;
 }
 
+function requestedCounselFromState(state: WorldState): CounselIntent | null {
+	if (state.lastCounsel?.intent === "verify-reserve") return "verify-private";
+	if (state.lastCounsel?.intent === "accuse-publicly") return "accuse-now";
+	return state.selectedCounselBranch === "follow-plan" ? "abstain" : null;
+}
+
+function publicReasonLabel(code: string): string {
+	return (
+		{
+			plan: "Standing Plan",
+			commitment: "Existing commitment",
+			value: "Personal value",
+			relationship: "Trust at stake",
+			evidence: "Visible evidence",
+			risk: "Risk weighed",
+			counsel: "Advice aligned",
+		}[code] ?? code
+	);
+}
+
+function counselStoryLabel(counsel: CounselIntent | null): string {
+	return counsel === "verify-private"
+		? "verify first"
+		: counsel === "accuse-now"
+			? "speak now"
+			: "before leaving";
+}
+
+function returnResponseAction(actionId: string): ReturnResponseAction {
+	if (
+		actionId === "publish-verified-count" ||
+		actionId === "observe" ||
+		actionId === "repair-trust" ||
+		actionId === "uphold-petition" ||
+		actionId === "ask-iven"
+	)
+		return actionId;
+	throw new Error("The return response is not in the closed action catalog");
+}
+
 const citizenPositions: Readonly<
 	Record<string, { readonly x: number; readonly y: number }>
 > = {
@@ -359,7 +400,11 @@ export class AuthoritativeRiverholdRuntime {
 				data: asJson(genesis.state),
 			},
 		});
-		this.#head = committed.head;
+		this.#head = await this.#persistence.acquireFencingToken(
+			genesis.state.runId,
+			genesis.state.regionId,
+			committed.head.fencingToken,
+		);
 		if (committed.head.revision === 0) {
 			this.#state = genesis.state;
 			return this.#project();
@@ -394,6 +439,19 @@ export class AuthoritativeRiverholdRuntime {
 		)
 			throw new Error("durable world head does not match deterministic replay");
 		this.#state = replay.state;
+		this.#requestedCounsel = requestedCounselFromState(replay.state);
+		const recoveredResponse = [...this.#events]
+			.reverse()
+			.find((event) => event.eventPayload.kind === "ReturnResponseRecorded");
+		this.#secondAction =
+			recoveredResponse?.eventPayload.kind === "ReturnResponseRecorded"
+				? recoveredResponse.eventPayload.action
+				: null;
+		if (
+			this.#phase === "return-pending" &&
+			replay.state.simulationTime >= 86_400
+		)
+			this.#phase = "return";
 		return this.#project();
 	}
 
@@ -401,12 +459,7 @@ export class AuthoritativeRiverholdRuntime {
 		prepared: PreparedTransition,
 		decision: CognitiveDecisionRecord | null = null,
 	): Promise<void> {
-		if (!prepared.accepted || prepared.batchHeader === null)
-			throw new Error(prepared.receipt.rejectionCode ?? "command rejected");
 		const head = this.#requireHead();
-		const interval = prepared.receipt.eventInterval;
-		if (interval === null)
-			throw new Error("accepted command has no event interval");
 		const storedDecision: StoredDecisionRecord | null =
 			decision === null
 				? null
@@ -418,6 +471,36 @@ export class AuthoritativeRiverholdRuntime {
 						decisionRecordHash: decision.decisionRecordHash,
 						data: asJson(decision),
 					};
+		if (!prepared.accepted || prepared.batchHeader === null) {
+			await this.#persistence.commitRejectedCommand({
+				runId: prepared.command.runId,
+				regionId: prepared.command.regionId,
+				fencingToken: head.fencingToken,
+				receipt: {
+					schemaVersion: prepared.receipt.schemaVersion,
+					runId: prepared.receipt.runId,
+					regionId: prepared.receipt.regionId,
+					commandId: prepared.receipt.commandId,
+					payloadFingerprint: prepared.receipt.payloadFingerprint,
+					outcome: "rejected",
+					observedRevision: head.revision,
+					resultingRevision: head.revision,
+					resultingStateHash: head.stateHash,
+					resultingWorldHeadHash: head.worldHeadHash,
+					fencingToken: head.fencingToken,
+					batchId: null,
+					fromSequenceInclusive: null,
+					toSequenceExclusive: null,
+					rejectionCode: prepared.receipt.rejectionCode ?? "INVALID_COMMAND",
+					data: asJson(prepared.receipt),
+				},
+				decision: storedDecision,
+			});
+			throw new Error(prepared.receipt.rejectionCode ?? "command rejected");
+		}
+		const interval = prepared.receipt.eventInterval;
+		if (interval === null)
+			throw new Error("accepted command has no event interval");
 		const postHead: WorldHead = {
 			runId: prepared.postState.runId,
 			regionId: prepared.postState.regionId,
@@ -615,31 +698,44 @@ export class AuthoritativeRiverholdRuntime {
 			chosenAction,
 			disposition: proposal.explanation.counselDisposition,
 			publicReason: proposal.publicJustification,
-			decisiveTerms: proposal.explanation.decisiveReasonCodes,
+			decisiveTerms:
+				proposal.explanation.decisiveReasonCodes.map(publicReasonLabel),
 		};
 	}
 
 	async dispatch(intent: RiverholdIntent): Promise<RiverholdProjection> {
 		switch (intent.kind) {
 			case "follow-mara":
+				this.#requirePhase("orientation");
 				this.#phase = "following";
 				break;
-			case "investigate-count":
+			case "investigate-count": {
+				this.#requirePhase("following");
+				const transition = await this.#worldCommand("investigate-minute", {
+					kind: "Advance",
+					seconds: 60,
+				});
+				await this.#commit(transition);
 				this.#phase = "investigated";
 				break;
+			}
 			case "open-counsel":
+				this.#requirePhase("investigated");
 				this.#phase = "counsel";
 				break;
 			case "offer-counsel":
+				this.#requirePhase("counsel");
 				await this.#resolveCounsel(intent.counsel);
 				this.#phase = "consequence";
 				break;
 			case "leave-checkpoint":
+				this.#requirePhase("consequence");
 				if (this.#requireState().selectedCounselBranch === null)
 					throw new Error("A resolved branch is required before checkpointing");
 				this.#phase = "checkpoint";
 				break;
 			case "confirm-advance": {
+				this.#requirePhase("return-pending");
 				const transition = await this.#worldCommand("catch-up-day", {
 					kind: "Advance",
 					seconds: 86_400,
@@ -648,7 +744,8 @@ export class AuthoritativeRiverholdRuntime {
 				this.#phase = "return";
 				break;
 			}
-			case "take-second-action":
+			case "take-second-action": {
+				this.#requirePhase("return");
 				if (
 					!baseProjection(
 						"return",
@@ -659,11 +756,32 @@ export class AuthoritativeRiverholdRuntime {
 					).secondActions.some((action) => action.id === intent.actionId)
 				)
 					throw new Error("The action is not available in this branch");
+				const priorEvent = [...this.#events]
+					.reverse()
+					.find((event) => event.provenance.kind === "cognition");
+				if (priorEvent === undefined)
+					throw new Error("The return response has no canonical prior event");
+				const mara = citizenBySlug(this.#requireState(), "mara");
+				const transition = await this.#worldCommand(
+					"return-response",
+					{
+						kind: "RespondOnReturn",
+						responseId: `return_response_${this.#requireState().revision}`,
+						citizenId: mara.citizenId,
+						action: returnResponseAction(intent.actionId),
+						priorEventId: priorEvent.eventId,
+					},
+					{
+						kind: "patron",
+						principalId: PATRON_ID,
+						beneficiaryCitizenId: mara.citizenId,
+					},
+				);
+				await this.#commit(transition);
 				this.#secondAction = intent.actionId;
 				this.#phase = "chronicle";
 				break;
-			case "reset-local-proof":
-				throw new Error("RESET_REQUIRES_DATABASE_REOPEN");
+			}
 		}
 		return this.#project();
 	}
@@ -679,6 +797,7 @@ export class AuthoritativeRiverholdRuntime {
 			id: citizen.citizenId,
 			name: citizen.name,
 			role: citizen.role,
+			place: state.places[citizen.placeId]?.name ?? citizen.placeId,
 			...activityFor(citizen),
 			...positions(citizen.slug),
 			...(citizen.slug === "mara" ? { focal: true as const } : {}),
@@ -693,18 +812,28 @@ export class AuthoritativeRiverholdRuntime {
 				: this.#secondAction === "repair-trust"
 					? "repairing"
 					: "close";
-		const chronicle = this.#chronicle(branch);
+		const chronicleProjection = this.#chronicle(branch);
+		const chronicle = chronicleProjection.beats;
+		const exchange = this.#events.find(
+			(event) => event.eventPayload.kind === "ExchangeCompleted",
+		);
+		const worldNotices =
+			branch === null && exchange?.eventPayload.kind === "ExchangeCompleted"
+				? [
+						"Iven Holt gave 1 wood to Toma Reed for 1 food",
+						"The bilateral exchange settled in canonical Reality",
+					]
+				: base.worldNotices;
 		const story =
 			this.#phase === "chronicle" && chronicle.length > 0
 				? {
 						heading:
 							this.#requestedCounsel === "abstain"
 								? "YOU OFFERED NO ADVICE"
-								: `YOU ADVISED: ${this.#requestedCounsel ?? "before leaving"}`,
-						choice: chronicle[0]?.title ?? "Mara chose for herself",
-						followed: chronicle[1]?.title ?? "Riverhold responded",
-						unresolved:
-							chronicle[2]?.title ?? "UNRESOLVED: Riverhold continues",
+								: `YOU ADVISED: ${counselStoryLabel(this.#requestedCounsel)}`,
+						choice: chronicle[1]?.title ?? "Mara chose for herself",
+						followed: chronicle[2]?.title ?? "Riverhold responded",
+						unresolved: `UNRESOLVED: ${chronicleProjection.unresolvedTension}`,
 					}
 				: null;
 		return Object.freeze({
@@ -712,6 +841,7 @@ export class AuthoritativeRiverholdRuntime {
 			day: Math.floor(state.simulationTime / 86_400) + 18,
 			citizens: Object.freeze(citizens),
 			resources: Object.freeze({ ...state.settlementInventory }),
+			worldNotices: Object.freeze(worldNotices),
 			mara: Object.freeze({
 				...base.mara,
 				values: Object.freeze(mara.values.map((value) => value.valueId)),
@@ -736,8 +866,12 @@ export class AuthoritativeRiverholdRuntime {
 		});
 	}
 
-	#chronicle(branch: CounselIntent | null): ChronicleBeatProjection[] {
-		if (branch === null) return [];
+	#chronicle(branch: CounselIntent | null): {
+		readonly beats: ChronicleBeatProjection[];
+		readonly unresolvedTension: string;
+	} {
+		if (branch === null)
+			return { beats: [], unresolvedTension: "Riverhold continues." };
 		const state = this.#requireState();
 		const visibilityContext: VisibilityContext = {
 			policyVersion: "riverhold-visibility-v1",
@@ -761,7 +895,7 @@ export class AuthoritativeRiverholdRuntime {
 		const eventsById = new Map(
 			this.#events.map((event) => [event.eventId, event]),
 		);
-		return projected.beats.map((beat, index) => {
+		const beats = projected.beats.map((beat, index) => {
 			const sentence = projected.sentences.find(
 				(candidate) => candidate.text === beat.text,
 			);
@@ -799,6 +933,7 @@ export class AuthoritativeRiverholdRuntime {
 				evidence,
 			};
 		});
+		return { beats, unresolvedTension: projected.unresolvedTension };
 	}
 
 	#requireState(): WorldState {
@@ -809,5 +944,12 @@ export class AuthoritativeRiverholdRuntime {
 	#requireHead(): WorldHead {
 		if (this.#head === null) throw new Error("runtime is not initialized");
 		return this.#head;
+	}
+
+	#requirePhase(expected: Phase): void {
+		if (this.#phase !== expected)
+			throw new Error(
+				`Action requires phase ${expected}; found ${this.#phase}`,
+			);
 	}
 }

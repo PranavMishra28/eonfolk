@@ -31,6 +31,7 @@ export interface CitizenProjection {
 	readonly role: string;
 	readonly activity: string;
 	readonly activityKind: ActivityKind;
+	readonly place: string;
 	readonly x: number;
 	readonly y: number;
 	readonly focal?: boolean;
@@ -122,8 +123,7 @@ export type RiverholdIntent =
 	| { readonly kind: "offer-counsel"; readonly counsel: CounselIntent }
 	| { readonly kind: "leave-checkpoint" }
 	| { readonly kind: "confirm-advance" }
-	| { readonly kind: "take-second-action"; readonly actionId: string }
-	| { readonly kind: "reset-local-proof" };
+	| { readonly kind: "take-second-action"; readonly actionId: string };
 
 export interface RiverholdRuntimeBridge {
 	getProjection(): RiverholdProjection;

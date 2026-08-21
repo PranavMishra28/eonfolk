@@ -89,6 +89,13 @@ function validPayload(payload: unknown): payload is WorldCommand["payload"] {
 			"proposalId",
 			"action",
 		],
+		RespondOnReturn: [
+			"kind",
+			"responseId",
+			"citizenId",
+			"action",
+			"priorEventId",
+		],
 		Advance: ["kind", "seconds"],
 	};
 	const keys = keyMap[payload.kind];
@@ -116,7 +123,8 @@ function validPayload(payload: unknown): payload is WorldCommand["payload"] {
 			return (
 				nonempty(record.citizenId) &&
 				(record.resource === "food" || record.resource === "water") &&
-				quantity(record.quantity)
+				quantity(record.quantity) &&
+				Number(record.quantity) <= Math.floor(0x7fff_ffff / 3_000)
 			);
 		case "Exchange": {
 			const first = record.firstGives;
@@ -163,6 +171,17 @@ function validPayload(payload: unknown): payload is WorldCommand["payload"] {
 				(record.action === "verify-reserve" ||
 					record.action === "accuse-publicly" ||
 					record.action === "follow-plan")
+			);
+		case "RespondOnReturn":
+			return (
+				nonempty(record.responseId) &&
+				nonempty(record.citizenId) &&
+				nonempty(record.priorEventId) &&
+				(record.action === "publish-verified-count" ||
+					record.action === "observe" ||
+					record.action === "repair-trust" ||
+					record.action === "uphold-petition" ||
+					record.action === "ask-iven")
 			);
 		case "Advance":
 			return (
@@ -240,12 +259,15 @@ function authorize(
 	const principal = command.principal;
 	const payload = command.payload;
 	if (principal.kind === "system") {
-		return payload.kind === "IssueCounsel" || payload.kind === "ResolveCounsel"
+		return payload.kind === "IssueCounsel" ||
+			payload.kind === "ResolveCounsel" ||
+			payload.kind === "RespondOnReturn"
 			? "INVALID_PRINCIPAL"
 			: null;
 	}
 	if (principal.kind === "patron") {
-		return payload.kind === "IssueCounsel" &&
+		return (payload.kind === "IssueCounsel" ||
+			payload.kind === "RespondOnReturn") &&
 			payload.citizenId === principal.beneficiaryCitizenId &&
 			state.covenants.some(
 				(covenant) =>
@@ -265,6 +287,7 @@ function authorize(
 function publicEvent(payload: WorldEventPayload): Visibility {
 	return payload.kind === "CounselIssued" ||
 		payload.kind === "CounselInterpreted" ||
+		payload.kind === "ReturnResponseRecorded" ||
 		payload.kind === "BeliefChanged" ||
 		payload.kind === "RelationshipChanged" ||
 		payload.kind === "StandingPlanChanged"
@@ -523,6 +546,26 @@ function commandEvents(
 			}
 			return events;
 		}
+		case "RespondOnReturn":
+			return [
+				pending(
+					{
+						kind: "ReturnResponseRecorded",
+						responseId: payload.responseId,
+						citizenId: payload.citizenId,
+						action: payload.action,
+						priorEventId: payload.priorEventId,
+					},
+					{
+						relatedEvents: [
+							{
+								eventId: payload.priorEventId,
+								relation: "response-to",
+							},
+						],
+					},
+				),
+			];
 		case "Advance": {
 			const needIncrease = Math.min(10_000, Math.trunc(payload.seconds / 60));
 			const events: PendingEvent[] = [
@@ -785,11 +828,15 @@ export async function prepareTransition(
 			});
 			const postHash = await stateHash(postState);
 			const provenance =
-				command.payload.kind === "IssueCounsel"
+				command.payload.kind === "IssueCounsel" ||
+				command.payload.kind === "RespondOnReturn"
 					? {
 							kind: "patron-intervention" as const,
 							commandId: command.commandId,
-							interventionId: command.payload.interventionId,
+							interventionId:
+								command.payload.kind === "IssueCounsel"
+									? command.payload.interventionId
+									: command.payload.responseId,
 						}
 					: command.payload.kind === "ResolveCounsel"
 						? {

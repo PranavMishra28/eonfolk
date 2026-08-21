@@ -80,6 +80,14 @@ export function projectChronicle(input: {
 				break;
 			case "CounselInterpreted":
 				branch = payload.action;
+				if (payload.interventionId === null) {
+					sentences.push({
+						sentenceId: `sentence-no-advice-${event.eventId}`,
+						text: `No counsel was offered to ${nameFor(payload.citizenId, input.citizenNames)} at this decision boundary.`,
+						evidenceEventIds: [event.eventId],
+						relation: "fact",
+					});
+				}
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
 					text: `${nameFor(payload.citizenId, input.citizenNames)} independently chose to ${payload.action === "verify-reserve" ? "verify before speaking" : payload.action === "accuse-publicly" ? "make the allegation now" : "continue the existing plan"}.`,
@@ -138,6 +146,17 @@ export function projectChronicle(input: {
 					relation: "trigger",
 				});
 				break;
+			case "StandingPlanChanged":
+				sentences.push({
+					sentenceId: `sentence-${event.eventId}`,
+					text: `${nameFor(payload.citizenId, input.citizenNames)} kept the existing Standing Plan active.`,
+					evidenceEventIds: [
+						event.eventId,
+						...safeParents.map((parent) => parent.eventId),
+					],
+					relation: "direct",
+				});
+				break;
 			case "ExchangeCompleted":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
@@ -158,11 +177,30 @@ export function projectChronicle(input: {
 				break;
 		}
 	}
-	const branchSentences = sentences.filter(
+	const advice = sentences.find(
 		(sentence) =>
-			sentence.relation !== "fact" || sentence.text.includes("independently"),
+			sentence.text.startsWith("You advised") ||
+			sentence.text.startsWith("No counsel was offered"),
 	);
-	const chosen = branchSentences.length > 0 ? branchSentences : sentences;
+	const independentChoice = sentences.find((sentence) =>
+		sentence.text.includes("independently chose"),
+	);
+	const outcome = sentences.find((sentence) =>
+		branch === "accuse-publicly"
+			? sentence.text.includes("lost trust")
+			: branch === "verify-reserve"
+				? sentence.text.includes("recorded a sourced belief")
+				: sentence.text.includes("kept the existing Standing Plan"),
+	);
+	const chosen = [advice, independentChoice, outcome, ...sentences]
+		.filter((sentence): sentence is ChronicleSentence => sentence !== undefined)
+		.filter(
+			(sentence, index, candidates) =>
+				candidates.findIndex(
+					(candidate) => candidate.sentenceId === sentence.sentenceId,
+				) === index,
+		)
+		.slice(0, 3);
 	const beats: ChronicleBeat[] = ([0, 1, 2] as const).map((index) => {
 		const sentence = chosen[index] ?? chosen.at(-1);
 		return {
@@ -178,14 +216,14 @@ export function projectChronicle(input: {
 			: branch === "verify-reserve"
 				? "Will Mara disclose what the recount establishes, and how will Toma answer?"
 				: "Will the unresolved ledger mismatch become a shortage before Mara acts?";
-	const advice = visible.some(
+	const storyCardHeading = visible.some(
 		(event) => event.eventPayload.kind === "CounselIssued",
 	)
 		? "YOU ADVISED"
 		: branch === "follow-plan"
 			? "NO ADVICE / MARA FOLLOWED HER PLAN"
 			: "MARA ACTED";
-	const storyCard = `${advice}\n${beats.map((beat) => beat.text).join("\n")}\nUNRESOLVED: ${unresolvedTension}`;
+	const storyCard = `${storyCardHeading}\n${beats.map((beat) => beat.text).join("\n")}\nUNRESOLVED: ${unresolvedTension}`;
 	return {
 		schemaVersion: "riverhold-chronicle-v1",
 		visibilityPolicyVersion: VISIBILITY_POLICY_VERSION,

@@ -36,61 +36,75 @@ if (address === null || typeof address === "string")
 const origin = `http://127.0.0.1:${address.port}`;
 const browser = await chromium.launch({ headless: true });
 const results = [];
+const repetitions = 5;
+const percentile95 = (values) => {
+	const sorted = [...values].sort((left, right) => left - right);
+	return sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)];
+};
 try {
 	for (const profile of profiles) {
-		const page = await browser.newPage({
-			viewport: { width: profile.width, height: profile.height },
-			reducedMotion: "no-preference",
-		});
-		await page.route("**/*", async (route) => {
-			const url = new URL(route.request().url());
-			if (url.origin === origin) await route.continue();
-			else await route.abort("blockedbyclient");
-		});
-		const started = performance.now();
-		await page.goto(origin, { waitUntil: "domcontentloaded" });
-		await page
-			.getByTestId("riverhold-canvas")
-			.waitFor({ state: "attached", timeout: profile.maximumDisplayMs });
-		await page.waitForFunction(
-			() =>
-				document.querySelector("[data-testid='riverhold-canvas']")?.dataset
-					.ready === "true",
-			undefined,
-			{ timeout: profile.maximumDisplayMs },
-		);
-		const meaningfulWorldDisplayMs = performance.now() - started;
-		const frameDurations = await page.evaluate(
-			() =>
-				new Promise((resolve) => {
-					const samples = [];
-					let prior = null;
-					let warmupFrames = 60;
-					const sample = (time) => {
-						if (warmupFrames > 0) {
-							warmupFrames -= 1;
-							prior = time;
+		const displaySamples = [];
+		const frameSamples = [];
+		let semanticCitizens = 0;
+		for (let repetition = 0; repetition < repetitions; repetition += 1) {
+			const page = await browser.newPage({
+				viewport: { width: profile.width, height: profile.height },
+				reducedMotion: "no-preference",
+			});
+			await page.route("**/*", async (route) => {
+				const url = new URL(route.request().url());
+				if (url.origin === origin) await route.continue();
+				else await route.abort("blockedbyclient");
+			});
+			const started = performance.now();
+			await page.goto(origin, { waitUntil: "domcontentloaded" });
+			await page
+				.getByTestId("riverhold-canvas")
+				.waitFor({ state: "attached", timeout: profile.maximumDisplayMs });
+			await page.waitForFunction(
+				() =>
+					document.querySelector("[data-testid='riverhold-canvas']")?.dataset
+						.ready === "true",
+				undefined,
+				{ timeout: profile.maximumDisplayMs },
+			);
+			displaySamples.push(performance.now() - started);
+			frameSamples.push(
+				...(await page.evaluate(
+					() =>
+						new Promise((resolve) => {
+							const samples = [];
+							let prior = null;
+							let warmupFrames = 60;
+							const sample = (time) => {
+								if (warmupFrames > 0) {
+									warmupFrames -= 1;
+									prior = time;
+									requestAnimationFrame(sample);
+									return;
+								}
+								if (prior !== null) samples.push(time - prior);
+								prior = time;
+								if (samples.length >= 120) resolve(samples);
+								else requestAnimationFrame(sample);
+							};
 							requestAnimationFrame(sample);
-							return;
-						}
-						if (prior !== null) samples.push(time - prior);
-						prior = time;
-						if (samples.length >= 120) resolve(samples);
-						else requestAnimationFrame(sample);
-					};
-					requestAnimationFrame(sample);
-				}),
-		);
-		const sorted = [...frameDurations].sort((left, right) => left - right);
-		const p95FrameMs =
-			sorted[Math.floor(sorted.length * 0.95)] ?? Number.POSITIVE_INFINITY;
-		const semanticCitizens = await page
-			.getByRole("list", { name: /Eight Riverhold citizens/i })
-			.getByRole("listitem")
-			.count();
+						}),
+				)),
+			);
+			semanticCitizens = await page
+				.getByRole("list", { name: /Eight Riverhold citizens/i })
+				.getByRole("listitem")
+				.count();
+			await page.close();
+		}
+		const meaningfulWorldDisplayMs = percentile95(displaySamples);
+		const p95FrameMs = percentile95(frameSamples);
 		results.push({
 			profile: profile.name,
 			viewport: { width: profile.width, height: profile.height },
+			repetitions,
+			displaySamplesMs: displaySamples,
 			meaningfulWorldDisplayMs,
 			p95FrameMs,
 			semanticCitizens,
@@ -99,7 +113,6 @@ try {
 				maximumP95FrameMs: profile.maximumP95FrameMs,
 			},
 		});
-		await page.close();
 	}
 } finally {
 	await browser.close();
@@ -128,7 +141,7 @@ if (
 		(result) =>
 			result.semanticCitizens !== 8 ||
 			result.meaningfulWorldDisplayMs > result.budgets.maximumDisplayMs ||
-			result.p95FrameMs > result.budgets.maximumP95FrameMs + 0.15,
+			result.p95FrameMs > result.budgets.maximumP95FrameMs,
 	)
 )
 	process.exitCode = 1;

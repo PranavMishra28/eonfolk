@@ -136,6 +136,9 @@ describe("counsel divergence and factual Chronicle", () => {
 			const acceptedIds = new Set(result.events.map((event) => event.eventId));
 			expect(result.chronicle.beats).toHaveLength(3);
 			expect(
+				new Set(result.chronicle.beats.map((beat) => beat.text)).size,
+			).toBe(3);
+			expect(
 				result.chronicle.beats
 					.flatMap((beat) => beat.evidenceEventIds)
 					.every((eventId) => acceptedIds.has(eventId)),

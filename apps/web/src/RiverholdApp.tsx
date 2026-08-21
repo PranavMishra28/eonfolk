@@ -207,6 +207,7 @@ function PhasePanel({
 				<button
 					className="primary-action primary-action--large"
 					type="button"
+					disabled={pending}
 					onClick={() => onDispatch({ kind: "follow-mara" })}
 				>
 					Follow Mara <span aria-hidden="true">→</span>
@@ -237,6 +238,7 @@ function PhasePanel({
 				<button
 					className="primary-action"
 					type="button"
+					disabled={pending}
 					onClick={() => onDispatch({ kind: "investigate-count" })}
 				>
 					Check why Mara doubts the count
@@ -279,6 +281,7 @@ function PhasePanel({
 				<button
 					className="primary-action"
 					type="button"
+					disabled={pending}
 					onClick={() => onDispatch({ kind: "open-counsel" })}
 				>
 					Reach the counsel boundary
@@ -353,6 +356,7 @@ function PhasePanel({
 				<button
 					className="primary-action"
 					type="button"
+					disabled={pending}
 					onClick={() => onDispatch({ kind: "leave-checkpoint" })}
 				>
 					Leave Riverhold at checkpoint
@@ -405,6 +409,7 @@ function PhasePanel({
 				<button
 					className="primary-action primary-action--large"
 					type="button"
+					disabled={pending}
 					onClick={() => onDispatch({ kind: "confirm-advance" })}
 				>
 					Advance Riverhold <span aria-hidden="true">→</span>
@@ -431,6 +436,7 @@ function PhasePanel({
 						<button
 							key={action.id}
 							type="button"
+							disabled={pending}
 							onClick={() =>
 								onDispatch({ kind: "take-second-action", actionId: action.id })
 							}
@@ -460,15 +466,30 @@ function PhasePanel({
 export function RiverholdApp() {
 	const bridge = useMemo(() => createRiverholdRuntimeBridge(), []);
 	const [projection, setProjection] = useState(() => bridge.getProjection());
-	const [pending, setPending] = useState(false);
+	const [pending, setPending] = useState(true);
 	const [reducedMotion, setReducedMotion] = useState(
 		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 	);
 	const [sheet, setSheet] = useState<Sheet>(null);
+	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const phaseFocus = useRef<HTMLElement>(null);
+	const pendingDispatch = useRef(true);
+	const dialog = useRef<HTMLElement>(null);
+	const dialogInvoker = useRef<HTMLElement | null>(null);
 
 	useEffect(() => {
-		void bridge.ready().then(setProjection);
+		void bridge
+			.ready()
+			.then((next) => {
+				setProjection(next);
+				pendingDispatch.current = false;
+				setPending(false);
+			})
+			.catch((error: unknown) => {
+				setRuntimeError(
+					error instanceof Error ? error.message : "Riverhold runtime failed",
+				);
+			});
 		return () => bridge.clear();
 	}, [bridge]);
 
@@ -481,6 +502,10 @@ export function RiverholdApp() {
 		return () => window.removeEventListener("popstate", close);
 	}, []);
 	const openSheet = (next: Exclude<Sheet, null>) => {
+		dialogInvoker.current =
+			document.activeElement instanceof HTMLElement
+				? document.activeElement
+				: null;
 		window.history.pushState({ riverholdSheet: next.kind }, "");
 		setSheet(next);
 	};
@@ -488,27 +513,84 @@ export function RiverholdApp() {
 		if (sheet) window.history.back();
 		else setSheet(null);
 	};
-	const dispatch = (intent: RiverholdIntent, delay = false) => {
-		if (pending) return;
-		if (!delay) {
-			void bridge.dispatch(intent).then(setProjection);
+	useEffect(() => {
+		if (sheet === null) {
+			dialogInvoker.current?.focus({ preventScroll: true });
 			return;
 		}
+		const surface = dialog.current;
+		if (surface === null) return;
+		const focusable = () =>
+			[
+				...surface.querySelectorAll<HTMLElement>("button, [href], [tabindex]"),
+			].filter((element) => !element.hasAttribute("disabled"));
+		focusable()[0]?.focus({ preventScroll: true });
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				event.preventDefault();
+				window.history.back();
+				return;
+			}
+			if (event.key !== "Tab") return;
+			const candidates = focusable();
+			if (candidates.length === 0) return;
+			const first = candidates[0]!;
+			const last = candidates.at(-1)!;
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [sheet]);
+	const dispatch = (intent: RiverholdIntent, delay = false) => {
+		if (pendingDispatch.current) return;
+		pendingDispatch.current = true;
 		setPending(true);
-		window.setTimeout(
-			() => {
-				void bridge.dispatch(intent).then((next) => {
-					setProjection(next);
+		const execute = () => {
+			void bridge
+				.dispatch(intent)
+				.then(setProjection)
+				.catch((error: unknown) => {
+					setRuntimeError(
+						error instanceof Error ? error.message : "Riverhold runtime failed",
+					);
+				})
+				.finally(() => {
+					pendingDispatch.current = false;
 					setPending(false);
 				});
-			},
-			reducedMotion ? 160 : 720,
-		);
+		};
+		if (delay) window.setTimeout(execute, reducedMotion ? 160 : 720);
+		else execute();
 	};
 	const selectedCitizen =
 		sheet?.kind === "citizen"
 			? projection.citizens.find((citizen) => citizen.id === sheet.citizenId)
 			: null;
+
+	if (runtimeError !== null)
+		return (
+			<main className="runtime-failure" aria-labelledby="runtime-failure-title">
+				<InkMark />
+				<p className="eyebrow">LOCAL PROOF UNAVAILABLE</p>
+				<h1 id="runtime-failure-title">
+					Riverhold stopped before showing a world.
+				</h1>
+				<p>
+					No world state or Chronicle is being presented as authoritative. This
+					local proof requires a working Web Worker and browser storage.
+				</p>
+				<details>
+					<summary>Technical detail</summary>
+					<code>{runtimeError}</code>
+				</details>
+			</main>
+		);
 
 	return (
 		<div
@@ -600,17 +682,11 @@ export function RiverholdApp() {
 						Reality should be trustworthy. Mara's beliefs may still be wrong.
 					</span>
 				</p>
-				<button
-					type="button"
-					className="text-button"
-					onClick={() => dispatch({ kind: "reset-local-proof" })}
-				>
-					Reset local proof
-				</button>
 			</footer>
 			{sheet && (
 				<div className="sheet-scrim" role="presentation">
 					<section
+						ref={dialog}
 						className="detail-sheet"
 						role="dialog"
 						aria-modal="true"
