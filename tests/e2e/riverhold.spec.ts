@@ -253,7 +253,7 @@ async function tabTo(page: Page, locator: Locator) {
 	throw new Error("Keyboard focus did not reach the requested control");
 }
 
-test("browser recovers a counsel issue committed before worker failure without issuing it twice", async ({
+test("browser recovers a counsel issue committed before worker failure without issuing it twice @fault", async ({
 	page,
 }) => {
 	await reachVerifyCounsel(page);
@@ -281,7 +281,7 @@ test("browser recovers a counsel issue committed before worker failure without i
 	).toBeVisible();
 });
 
-test("browser rehydrates the durable decision receipt after a resolve commit failure", async ({
+test("browser rehydrates the durable decision receipt after a resolve commit failure @fault", async ({
 	page,
 }) => {
 	await reachVerifyCounsel(page);

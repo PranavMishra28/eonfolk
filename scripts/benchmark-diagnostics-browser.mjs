@@ -128,9 +128,7 @@ async function runMode(mode, browserExecutable) {
 		await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 		await page.getByText("OBSERVED", { exact: true }).waitFor();
 		const busyMarket = await sampleFrames(page);
-		await page
-			.getByRole("button", { name: /Reach the counsel boundary/i })
-			.click();
+		await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 		await page.getByText("Verify the count privately", { exact: true }).click();
 		await page.getByRole("button", { name: "Offer counsel" }).click();
 		await page
