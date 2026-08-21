@@ -69,6 +69,15 @@ export interface ExperimentInvariantResult {
 	readonly passed: boolean;
 }
 
+export interface ExperimentExecutionIdentity {
+	/** One-based position in the manifest's immutable execution plan. */
+	readonly ordinal: number;
+	readonly contextHash: string;
+	readonly seed: number;
+	/** One-based repetition for this exact context/seed pair. */
+	readonly repetition: number;
+}
+
 export type ExperimentBrainConfiguration =
 	| {
 			readonly kind: "standard";
@@ -117,6 +126,7 @@ export interface ExperimentManifestV2 {
 		readonly contextHashes: readonly string[];
 		readonly seeds: readonly number[];
 		readonly repetitions: number;
+		readonly executions: readonly ExperimentExecutionIdentity[];
 	};
 	readonly brain: ExperimentBrainConfiguration;
 	readonly environment: {
@@ -144,9 +154,9 @@ export interface ExperimentResultV2 {
 	readonly manifestHash: string;
 	readonly sequence: number;
 	readonly recordedAt: string;
+	readonly execution: ExperimentExecutionIdentity;
 	readonly outcome: {
 		readonly status: "completed" | "failed" | "not-run";
-		readonly adapterInvocations: number;
 		readonly outputHash: string | null;
 		readonly failureCode:
 			| "missing"
@@ -155,7 +165,7 @@ export interface ExperimentResultV2 {
 			| "throwing"
 			| "protocol-blocked"
 			| null;
-		readonly latencyMicros: readonly number[];
+		readonly latencyMicros: number | null;
 		readonly peakMemoryBytes: number | null;
 		readonly invariantResults: readonly ExperimentInvariantResult[];
 	};
@@ -169,15 +179,27 @@ export interface ExperimentResultV2 {
 	readonly resultHash: string;
 }
 
+type ExperimentCorpusInput = Omit<ExperimentManifestV2["corpus"], "executions">;
+
 export type ExperimentManifestV2Input = Omit<
 	ExperimentManifestV2,
-	"schemaVersion" | "nonCanonical" | "manifestHash"
->;
+	"schemaVersion" | "nonCanonical" | "manifestHash" | "corpus"
+> & { readonly corpus: ExperimentCorpusInput };
 
 export type ExperimentResultV2Input = Omit<
 	ExperimentResultV2,
 	"schemaVersion" | "resultHash"
 >;
+
+export interface ExperimentRunSummary {
+	readonly manifestHash: string;
+	readonly plannedExecutions: number;
+	readonly recordedExecutions: number;
+	readonly adapterInvocations: number;
+	readonly successfulExecutions: number;
+	readonly complete: boolean;
+	readonly successful: boolean;
+}
 
 function assertSafeText(
 	value: string,
@@ -197,6 +219,20 @@ function assertSafeText(
 
 function assertSafeId(value: string, label: string): void {
 	if (!SAFE_ID_PATTERN.test(value)) throw new TypeError(`${label} is invalid`);
+}
+
+function assertExactKeys(
+	value: object,
+	expectedKeys: readonly string[],
+	label: string,
+): void {
+	const actual = Object.keys(value).sort();
+	const expected = [...expectedKeys].sort();
+	if (
+		actual.length !== expected.length ||
+		actual.some((key, index) => key !== expected[index])
+	)
+		throw new TypeError(`${label} contains unknown or missing fields`);
 }
 
 function assertSha256(value: string, label: string): void {
@@ -401,6 +437,27 @@ function assertBrainConfiguration(brain: ExperimentBrainConfiguration): void {
 }
 
 function assertManifestInput(input: ExperimentManifestV2Input): void {
+	assertExactKeys(
+		input,
+		[
+			"manifestId",
+			"experimentId",
+			"runId",
+			"createdAt",
+			"source",
+			"versions",
+			"corpus",
+			"brain",
+			"environment",
+			"controls",
+		],
+		"experiment manifest",
+	);
+	assertExactKeys(
+		input.corpus,
+		["corpusId", "corpusHash", "contextHashes", "seeds", "repetitions"],
+		"experiment corpus",
+	);
 	assertSafeId(input.manifestId, "manifestId");
 	assertSafeId(input.experimentId, "experimentId");
 	assertSafeId(input.runId, "runId");
@@ -435,6 +492,11 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 	if (new Set(input.corpus.seeds).size !== input.corpus.seeds.length)
 		throw new TypeError("seeds must be unique");
 	assertBoundedInteger(input.corpus.repetitions, "corpus.repetitions", 1, 100);
+	const executionCount =
+		input.corpus.contextHashes.length *
+		input.corpus.seeds.length *
+		input.corpus.repetitions;
+	assertBoundedInteger(executionCount, "corpus execution count", 1, 100_000);
 	assertBrainConfiguration(input.brain);
 	assertSafeText(input.environment.osVersion, "environment.osVersion", 128);
 	assertSafeText(
@@ -487,6 +549,23 @@ export async function createExperimentManifestV2(
 	input: ExperimentManifestV2Input,
 ): Promise<ExperimentManifestV2> {
 	assertManifestInput(input);
+	const executions: ExperimentExecutionIdentity[] = [];
+	for (const contextHash of input.corpus.contextHashes) {
+		for (const seed of input.corpus.seeds) {
+			for (
+				let repetition = 1;
+				repetition <= input.corpus.repetitions;
+				repetition += 1
+			) {
+				executions.push({
+					ordinal: executions.length + 1,
+					contextHash,
+					seed,
+					repetition,
+				});
+			}
+		}
+	}
 	const withoutHash = canonicalClone({
 		schemaVersion: EXPERIMENT_MANIFEST_VERSION,
 		manifestId: input.manifestId,
@@ -498,8 +577,9 @@ export async function createExperimentManifestV2(
 		versions: input.versions,
 		corpus: {
 			...input.corpus,
-			contextHashes: [...input.corpus.contextHashes].sort(),
-			seeds: [...input.corpus.seeds].sort((left, right) => left - right),
+			contextHashes: [...input.corpus.contextHashes],
+			seeds: [...input.corpus.seeds],
+			executions,
 		},
 		brain: input.brain,
 		environment: input.environment,
@@ -523,11 +603,14 @@ export async function verifyExperimentManifestV2(
 		manifestHash,
 		schemaVersion: _schemaVersion,
 		nonCanonical,
-		...input
+		corpus,
+		...rest
 	} = manifest;
 	if (nonCanonical !== true) return false;
 	if (!SHA256_PATTERN.test(manifestHash)) return false;
 	try {
+		const { executions: _executions, ...corpusInput } = corpus;
+		const input: ExperimentManifestV2Input = { ...rest, corpus: corpusInput };
 		assertManifestInput(input);
 		const recreated = await createExperimentManifestV2(input);
 		return jcs(manifest) === jcs(recreated);
@@ -537,37 +620,119 @@ export async function verifyExperimentManifestV2(
 }
 
 function assertResultInput(input: ExperimentResultV2Input): void {
+	assertExactKeys(
+		input,
+		[
+			"resultId",
+			"manifestHash",
+			"sequence",
+			"recordedAt",
+			"execution",
+			"outcome",
+			"evidence",
+		],
+		"experiment result",
+	);
+	assertExactKeys(
+		input.execution,
+		["ordinal", "contextHash", "seed", "repetition"],
+		"experiment execution identity",
+	);
+	assertExactKeys(
+		input.outcome,
+		[
+			"status",
+			"outputHash",
+			"failureCode",
+			"latencyMicros",
+			"peakMemoryBytes",
+			"invariantResults",
+		],
+		"experiment outcome",
+	);
+	assertExactKeys(
+		input.evidence,
+		[
+			"zeroEgressProven",
+			"zeroEgressArtifactHash",
+			"dependencyInventoryHash",
+			"licenseInventoryHash",
+			"limitations",
+		],
+		"experiment evidence",
+	);
 	assertSafeId(input.resultId, "resultId");
 	assertSha256(input.manifestHash, "manifestHash");
 	assertBoundedInteger(input.sequence, "sequence", 1, 100_000);
+	assertBoundedInteger(
+		input.execution.ordinal,
+		"execution.ordinal",
+		1,
+		100_000,
+	);
+	assertSha256(input.execution.contextHash, "execution.contextHash");
+	assertBoundedInteger(input.execution.seed, "execution.seed", 0, 0xffff_ffff);
+	assertBoundedInteger(
+		input.execution.repetition,
+		"execution.repetition",
+		1,
+		100,
+	);
+	if (input.sequence !== input.execution.ordinal)
+		throw new Error(
+			"result sequence must equal its manifest execution ordinal",
+		);
 	if (
 		!ISO_INSTANT_PATTERN.test(input.recordedAt) ||
 		new Date(input.recordedAt).toISOString() !== input.recordedAt
 	)
 		throw new TypeError("recordedAt must be a valid millisecond UTC instant");
-	assertBoundedInteger(
-		input.outcome.adapterInvocations,
-		"outcome.adapterInvocations",
-		0,
-		100_000,
-	);
 	if (input.outcome.status === "completed") {
-		if (input.outcome.failureCode !== null || input.outcome.outputHash === null)
-			throw new Error("completed result requires output and no failure");
-	} else if (input.outcome.failureCode === null) {
-		throw new Error("non-completed result requires a failure code");
+		if (
+			input.outcome.failureCode !== null ||
+			input.outcome.outputHash === null ||
+			input.outcome.latencyMicros === null ||
+			input.outcome.invariantResults.length === 0 ||
+			input.outcome.invariantResults.some(({ passed }) => !passed)
+		)
+			throw new Error(
+				"completed execution requires output, latency, passing invariants, and no failure",
+			);
+	} else if (input.outcome.status === "failed") {
+		if (
+			input.outcome.failureCode === null ||
+			input.outcome.failureCode === "missing" ||
+			input.outcome.failureCode === "protocol-blocked" ||
+			input.outcome.latencyMicros === null
+		)
+			throw new Error(
+				"failed execution requires an invoked failure code and latency evidence",
+			);
+	} else if (
+		(input.outcome.failureCode !== "missing" &&
+			input.outcome.failureCode !== "protocol-blocked") ||
+		input.outcome.outputHash !== null
+	) {
+		throw new Error("not-run execution requires a pre-invocation failure");
 	}
+	if (input.outcome.status !== "completed" && input.outcome.outputHash !== null)
+		throw new Error("non-completed execution cannot claim an output");
 	if (
 		input.outcome.status === "not-run" &&
-		input.outcome.adapterInvocations !== 0
+		(input.outcome.latencyMicros !== null ||
+			input.outcome.peakMemoryBytes !== null ||
+			input.outcome.invariantResults.length !== 0)
 	)
-		throw new Error("not-run result cannot invoke an adapter");
+		throw new Error("not-run execution cannot claim runtime evidence");
 	if (input.outcome.outputHash !== null)
 		assertSha256(input.outcome.outputHash, "outcome.outputHash");
-	if (input.outcome.latencyMicros.length > 100_000)
-		throw new RangeError("too many latency samples");
-	for (const latency of input.outcome.latencyMicros)
-		assertBoundedInteger(latency, "outcome latency", 0, 60_000_000);
+	if (input.outcome.latencyMicros !== null)
+		assertBoundedInteger(
+			input.outcome.latencyMicros,
+			"outcome latency",
+			0,
+			60_000_000,
+		);
 	if (input.outcome.peakMemoryBytes !== null)
 		assertBoundedInteger(
 			input.outcome.peakMemoryBytes,
@@ -577,8 +742,16 @@ function assertResultInput(input: ExperimentResultV2Input): void {
 		);
 	if (input.outcome.invariantResults.length > 512)
 		throw new RangeError("too many invariant results");
-	for (const result of input.outcome.invariantResults)
+	for (const result of input.outcome.invariantResults) {
+		assertExactKeys(result, ["invariantId", "passed"], "invariant result");
 		assertSafeId(result.invariantId, "invariantId");
+	}
+	if (
+		new Set(
+			input.outcome.invariantResults.map(({ invariantId }) => invariantId),
+		).size !== input.outcome.invariantResults.length
+	)
+		throw new TypeError("invariant results must be unique");
 	for (const hash of [
 		input.evidence.zeroEgressArtifactHash,
 		input.evidence.dependencyInventoryHash,
@@ -606,9 +779,9 @@ export async function createExperimentResultV2(
 		manifestHash: input.manifestHash,
 		sequence: input.sequence,
 		recordedAt: input.recordedAt,
+		execution: input.execution,
 		outcome: {
 			...input.outcome,
-			latencyMicros: [...input.outcome.latencyMicros],
 			invariantResults: [...input.outcome.invariantResults].sort((a, b) =>
 				a.invariantId.localeCompare(b.invariantId),
 			),
@@ -660,27 +833,69 @@ export class InMemoryExperimentJournal {
 	async appendResult(result: ExperimentResultV2): Promise<void> {
 		if (!(await verifyExperimentResultV2(result)))
 			throw new Error("invalid experiment result");
-		if (
-			![...this.#manifests.values()].some(
-				({ manifestHash }) => manifestHash === result.manifestHash,
-			)
-		)
+		const manifest = [...this.#manifests.values()].find(
+			({ manifestHash }) => manifestHash === result.manifestHash,
+		);
+		if (manifest === undefined)
 			throw new Error("result manifest is not committed");
 		const prior = this.#results.get(result.manifestHash) ?? [];
-		const duplicate = prior.find(
-			({ resultId }) => resultId === result.resultId,
-		);
-		if (duplicate !== undefined) {
-			if (duplicate.resultHash !== result.resultHash)
-				throw new Error("result ID collision");
-			return;
-		}
+		if (prior.some(({ resultId }) => resultId === result.resultId))
+			throw new Error("duplicate result ID");
+		if (
+			prior.some(
+				({ execution }) => execution.ordinal === result.execution.ordinal,
+			)
+		)
+			throw new Error("duplicate execution result");
 		if (result.sequence !== prior.length + 1)
 			throw new Error("result sequence is not append-only");
+		const planned = manifest.corpus.executions[prior.length];
+		if (planned === undefined)
+			throw new Error("result is extraneous to the manifest execution plan");
+		if (jcs(result.execution) !== jcs(planned))
+			throw new Error("result does not match the next manifest execution");
 		this.#results.set(result.manifestHash, Object.freeze([...prior, result]));
 	}
 
 	results(manifestHash: string): readonly ExperimentResultV2[] {
 		return this.#results.get(manifestHash) ?? Object.freeze([]);
+	}
+
+	runSummary(manifestHash: string): ExperimentRunSummary {
+		const manifest = [...this.#manifests.values()].find(
+			(candidate) => candidate.manifestHash === manifestHash,
+		);
+		if (manifest === undefined) throw new Error("manifest is not committed");
+		const results = this.results(manifestHash);
+		const adapterInvocations = results.filter(
+			({ outcome }) =>
+				outcome.status === "completed" ||
+				(outcome.status === "failed" &&
+					outcome.failureCode !== "missing" &&
+					outcome.failureCode !== "protocol-blocked"),
+		).length;
+		const successfulExecutions = results.filter(
+			({ outcome }) => outcome.status === "completed",
+		).length;
+		return deepFreeze({
+			manifestHash,
+			plannedExecutions: manifest.corpus.executions.length,
+			recordedExecutions: results.length,
+			adapterInvocations,
+			successfulExecutions,
+			complete: results.length === manifest.corpus.executions.length,
+			successful:
+				results.length === manifest.corpus.executions.length &&
+				successfulExecutions === manifest.corpus.executions.length,
+		});
+	}
+
+	assertCompletedRun(manifestHash: string): ExperimentRunSummary {
+		const summary = this.runSummary(manifestHash);
+		if (!summary.complete)
+			throw new Error("completed run is missing manifest executions");
+		if (!summary.successful)
+			throw new Error("completed run contains unsuccessful executions");
+		return summary;
 	}
 }
