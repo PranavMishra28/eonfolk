@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
 	createExperimentManifestV2,
+	createExperimentResultV2,
 	createLocalProcessBrainContract,
 	EXPERIMENT_MANIFEST_VERSION,
+	EXPERIMENT_RESULT_VERSION,
+	InMemoryExperimentJournal,
 	LOCAL_PROCESS_BRAIN_CONTRACT_VERSION,
 	verifyExperimentManifestV2,
+	verifyExperimentResultV2,
 } from "../../../packages/cognition/src/index.js";
 
 const digestA = "a".repeat(64);
@@ -162,9 +166,27 @@ describe("BrainPort experiment contracts", () => {
 				networkPolicy: "not-applicable",
 				trustRemoteCode: false,
 			},
-			result: {
+		});
+		expect(manifest.schemaVersion).toBe(EXPERIMENT_MANIFEST_VERSION);
+		expect(manifest.nonCanonical).toBe(true);
+		expect(manifest.corpus.contextHashes).toEqual([digestB, digestC]);
+		expect(manifest.corpus.seeds).toEqual([3, 7]);
+		expect(Object.isFrozen(manifest)).toBe(true);
+		expect(await verifyExperimentManifestV2(manifest)).toBe(true);
+		const tampered = {
+			...manifest,
+			controls: { ...manifest.controls, timeoutMs: 4_000 },
+		};
+		expect(await verifyExperimentManifestV2(tampered)).toBe(false);
+
+		const result = await createExperimentResultV2({
+			resultId: "result-fixture",
+			manifestHash: manifest.manifestHash,
+			sequence: 1,
+			recordedAt: "2026-08-21T12:05:00.000Z",
+			outcome: {
 				status: "completed",
-				adapterInvocations: 0,
+				adapterInvocations: 640,
 				outputHash: digestB,
 				failureCode: null,
 				latencyMicros: [900, 800],
@@ -182,67 +204,38 @@ describe("BrainPort experiment contracts", () => {
 				limitations: ["Synthetic fixture.", "No human evidence."],
 			},
 		});
-		expect(manifest.schemaVersion).toBe(EXPERIMENT_MANIFEST_VERSION);
-		expect(manifest.nonCanonical).toBe(true);
-		expect(manifest.corpus.contextHashes).toEqual([digestB, digestC]);
-		expect(manifest.corpus.seeds).toEqual([3, 7]);
+		expect(result.schemaVersion).toBe(EXPERIMENT_RESULT_VERSION);
 		expect(
-			manifest.result.invariantResults.map((result) => result.invariantId),
+			result.outcome.invariantResults.map(({ invariantId }) => invariantId),
 		).toEqual(["a-first", "z-last"]);
-		expect(Object.isFrozen(manifest)).toBe(true);
-		expect(Object.isFrozen(manifest.result.invariantResults)).toBe(true);
-		expect(await verifyExperimentManifestV2(manifest)).toBe(true);
-		const tampered = {
-			...manifest,
-			result: { ...manifest.result, adapterInvocations: 1 },
-		};
-		expect(await verifyExperimentManifestV2(tampered)).toBe(false);
+		expect(await verifyExperimentResultV2(result)).toBe(true);
+		const journal = new InMemoryExperimentJournal();
+		await expect(journal.appendResult(result)).rejects.toThrow("not committed");
+		await journal.commitManifest(manifest);
+		await journal.appendResult(result);
+		await journal.appendResult(result); // idempotent crash retry
+		expect(journal.results(manifest.manifestHash)).toEqual([result]);
+		const collidingManifest = await createExperimentManifestV2({
+			...(Object.fromEntries(
+				Object.entries(manifest).filter(
+					([key]) =>
+						!["schemaVersion", "nonCanonical", "manifestHash"].includes(key),
+				),
+			) as Parameters<typeof createExperimentManifestV2>[0]),
+			controls: { ...manifest.controls, timeoutMs: 2_000 },
+		});
+		await expect(journal.commitManifest(collidingManifest)).rejects.toThrow(
+			"manifest ID collision",
+		);
 	});
 
 	it("requires an evidence artifact before claiming zero egress", async () => {
-		const invalid = createExperimentManifestV2({
-			manifestId: "manifest-invalid-egress",
-			experimentId: "experiment-invalid-egress",
-			runId: "run-invalid-egress",
-			createdAt: "2026-08-21T12:00:00.000Z",
-			source: { commit: commitA, tree: treeA, dirty: false },
-			versions: {
-				engine: "engine-v1",
-				protocol: "protocol-v1",
-				determinism: "determinism-v1",
-				replay: "replay-v1",
-				visibility: "visibility-v1",
-				catalog: "catalog-v1",
-				cognition: "cognition-v1",
-			},
-			corpus: {
-				corpusId: "corpus-invalid-egress",
-				corpusHash: digestA,
-				contextHashes: [digestB],
-				seeds: [1],
-				repetitions: 1,
-			},
-			brain: {
-				kind: "local-process-model",
-				contractHash: digestC,
-			},
-			environment: {
-				host: "MacBook M4 Pro",
-				osVersion: "fixture-os",
-				runtimeVersion: "fixture-runtime",
-				totalMemoryBytes: 1,
-				powerMode: "normal",
-				cohort: "cold",
-			},
-			controls: {
-				retries: 0,
-				maxRequestBytes: 1,
-				maxOutputBytes: 1,
-				timeoutMs: 1,
-				networkPolicy: "deny-all-required",
-				trustRemoteCode: false,
-			},
-			result: {
+		const invalid = createExperimentResultV2({
+			resultId: "result-invalid-egress",
+			manifestHash: digestA,
+			sequence: 1,
+			recordedAt: "2026-08-21T12:00:00.000Z",
+			outcome: {
 				status: "not-run",
 				adapterInvocations: 0,
 				outputHash: null,

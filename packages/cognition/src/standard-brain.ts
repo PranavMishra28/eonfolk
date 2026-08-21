@@ -18,6 +18,17 @@ interface ScoredCandidate {
 	readonly total: number;
 }
 
+export type StandardBrainAblation =
+	| "commitments"
+	| "evidence"
+	| "relationships"
+	| "standing-plan"
+	| "values";
+
+interface ScoreOptions {
+	readonly ablate?: StandardBrainAblation;
+}
+
 function term(
 	code: ScoreTerm["code"],
 	value: number,
@@ -29,13 +40,18 @@ function term(
 function score(
 	context: DecisionContext,
 	entry: ActionCatalogEntry,
+	options: ScoreOptions = {},
 ): ScoredCandidate {
 	const terms: ScoreTerm[] = [];
-	if (entry.action.kind === "FollowStandingPlan")
-		terms.push(term("plan", 1_000, [context.activeStandingPlan.planId]));
-	const commitments = context.visibleRecords.filter(
-		(record) => record.kind === "commitment",
-	);
+	if (
+		entry.action.kind === "FollowStandingPlan" &&
+		options.ablate !== "standing-plan"
+	)
+		terms.push(term("plan", 2_000, [context.activeStandingPlan.planId]));
+	const commitments =
+		options.ablate === "commitments"
+			? []
+			: context.visibleRecords.filter((record) => record.kind === "commitment");
 	if (entry.tags.includes("commitment") && commitments.length > 0) {
 		terms.push(
 			term(
@@ -45,9 +61,12 @@ function score(
 			),
 		);
 	}
-	const matchingValues = context.values.filter((value) =>
-		entry.tags.includes(value.valueId as never),
-	);
+	const matchingValues =
+		options.ablate === "values"
+			? []
+			: context.values.filter((value) =>
+					entry.tags.includes(value.valueId as never),
+				);
 	if (matchingValues.length > 0)
 		terms.push(
 			term(
@@ -56,16 +75,8 @@ function score(
 				matchingValues.map((value) => value.valueId),
 			),
 		);
-	else if (
-		entry.action.kind === "FollowStandingPlan" &&
-		context.values[0] !== undefined
-	) {
-		terms.push(
-			term("value", context.values[0].weight, [context.values[0].valueId]),
-		);
-	}
 	const relationship =
-		entry.relationshipId === null
+		entry.relationshipId === null || options.ablate === "relationships"
 			? undefined
 			: context.relationships.find(
 					(candidate) => candidate.relationshipId === entry.relationshipId,
@@ -80,7 +91,9 @@ function score(
 					);
 		terms.push(term("relationship", value, [relationship.relationshipId]));
 	}
-	const evidence = context.visibleRecords.filter(
+	const evidence = (
+		options.ablate === "evidence" ? [] : context.visibleRecords
+	).filter(
 		(record) =>
 			entry.evidenceRecordIds.includes(record.recordId) &&
 			record.confidence !== null,
@@ -180,13 +193,36 @@ export async function standardBrain(
 	readonly proposal: IntentProposal;
 	readonly nextPrngState: PrngState;
 }> {
+	return chooseWithStandardBrain(context, input, {});
+}
+
+/** Evaluation-only entry point for one-field causal ablations. */
+export async function standardBrainAblated(
+	context: DecisionContext,
+	input: { readonly proposalId: string; readonly prngState: PrngState },
+	ablate: StandardBrainAblation,
+): Promise<{
+	readonly proposal: IntentProposal;
+	readonly nextPrngState: PrngState;
+}> {
+	return chooseWithStandardBrain(context, input, { ablate });
+}
+
+async function chooseWithStandardBrain(
+	context: DecisionContext,
+	input: { readonly proposalId: string; readonly prngState: PrngState },
+	options: ScoreOptions,
+): Promise<{
+	readonly proposal: IntentProposal;
+	readonly nextPrngState: PrngState;
+}> {
 	if (
 		context.actionCatalog.length === 0 ||
 		context.actionCatalog.length > context.budgets.maxCandidates
 	)
 		throw new Error("ACTION_UNAVAILABLE");
 	const scored = context.actionCatalog
-		.map((entry) => score(context, entry))
+		.map((entry) => score(context, entry, options))
 		.sort(
 			(left, right) =>
 				right.total - left.total ||
@@ -297,8 +333,17 @@ export async function standardBrain(
 
 export async function validateIntentProposal(
 	context: DecisionContext,
-	proposal: IntentProposal,
+	proposal: unknown,
 ): Promise<"accepted" | "ACTION_UNAVAILABLE"> {
+	if (!isPlainRecord(proposal)) return "ACTION_UNAVAILABLE";
+	let encodedBytes: number;
+	try {
+		encodedBytes = new TextEncoder().encode(jcs(proposal)).byteLength;
+	} catch {
+		return "ACTION_UNAVAILABLE";
+	}
+	if (encodedBytes > context.budgets.maxBytes || !isBoundedJson(proposal))
+		return "ACTION_UNAVAILABLE";
 	const expectedKeys = [
 		"schemaVersion",
 		"proposalId",
@@ -325,12 +370,18 @@ export async function validateIntentProposal(
 		proposal.actorId !== context.actorId ||
 		proposal.revision !== context.revision ||
 		proposal.schemaVersion !== "eonfolk-intent-proposal-v1" ||
+		!isPlainRecord(proposal.provenance) ||
+		!hasExactKeys(proposal.provenance, ["cognitionKind", "cognitionVersion"]) ||
 		proposal.provenance.cognitionKind !== "standard-brain" ||
 		proposal.provenance.cognitionVersion !== COGNITION_VERSION ||
 		proposal.planProposal !== null ||
 		proposal.memoryProposal !== null ||
+		typeof proposal.publicJustification !== "string" ||
 		proposal.publicJustification.length > 512 ||
-		proposal.explanation.selectedActionId !== proposal.actionId
+		!isClosedExplanation(proposal.explanation, context) ||
+		proposal.explanation.selectedActionId !== proposal.actionId ||
+		proposal.publicJustification !==
+			renderPublicJustification(proposal.explanation as DecisionExplanation)
 	)
 		return "ACTION_UNAVAILABLE";
 	const catalogEntry = context.actionCatalog.find(
@@ -341,8 +392,176 @@ export async function validateIntentProposal(
 		jcs(catalogEntry.action) !== jcs(proposal.action)
 	)
 		return "ACTION_UNAVAILABLE";
+	if (typeof proposal.proposalHash !== "string") return "ACTION_UNAVAILABLE";
 	const { proposalHash: claimedHash, ...withoutHash } = proposal;
 	if ((await proposalHash(withoutHash)) !== claimedHash)
 		return "ACTION_UNAVAILABLE";
 	return "accepted";
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return false;
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
+}
+
+function hasExactKeys(
+	value: Record<string, unknown>,
+	expected: readonly string[],
+): boolean {
+	const keys = Object.keys(value).sort();
+	const sorted = [...expected].sort();
+	return (
+		keys.length === sorted.length && keys.every((key, i) => key === sorted[i])
+	);
+}
+
+function isBoundedJson(value: unknown, depth = 0): boolean {
+	if (depth > 8) return false;
+	if (value === null || typeof value === "boolean" || typeof value === "string")
+		return typeof value !== "string" || [...value].length <= 2_048;
+	if (typeof value === "number") return Number.isSafeInteger(value);
+	if (Array.isArray(value))
+		return (
+			value.length <= 128 &&
+			value.every((child) => isBoundedJson(child, depth + 1))
+		);
+	if (!isPlainRecord(value) || Object.keys(value).length > 64) return false;
+	return Object.values(value).every((child) => isBoundedJson(child, depth + 1));
+}
+
+function isStringArray(value: unknown, maximum: number): value is string[] {
+	return (
+		Array.isArray(value) &&
+		value.length <= maximum &&
+		value.every((item) => typeof item === "string")
+	);
+}
+
+function isClosedExplanation(
+	value: unknown,
+	context: DecisionContext,
+): value is DecisionExplanation {
+	if (
+		!isPlainRecord(value) ||
+		!hasExactKeys(value, [
+			"selectedActionId",
+			"templateId",
+			"decisiveReasonCodes",
+			"visibleRecordIdsRead",
+			"relationshipIdsRead",
+			"valueIdsRead",
+			"commitmentIdsRead",
+			"scoreTerms",
+			"totalScore",
+			"tieBreak",
+			"counselDisposition",
+			"discardedCandidates",
+		])
+	)
+		return false;
+	if (
+		typeof value.selectedActionId !== "string" ||
+		typeof value.templateId !== "string" ||
+		!value.templateId.startsWith("standard-") ||
+		!isStringArray(value.decisiveReasonCodes, 3) ||
+		!isStringArray(value.visibleRecordIdsRead, 128) ||
+		!isStringArray(value.relationshipIdsRead, 128) ||
+		!isStringArray(value.valueIdsRead, 128) ||
+		!isStringArray(value.commitmentIdsRead, 128) ||
+		!Number.isSafeInteger(value.totalScore) ||
+		!Array.isArray(value.scoreTerms) ||
+		value.scoreTerms.length > 32 ||
+		!Array.isArray(value.discardedCandidates) ||
+		value.discardedCandidates.length > context.actionCatalog.length ||
+		!isPlainRecord(value.tieBreak) ||
+		!hasExactKeys(value.tieBreak, ["used", "draw", "tiedActionIds"])
+	)
+		return false;
+	const visibleIds = new Set(
+		context.visibleRecords.map(({ recordId }) => recordId),
+	);
+	const relationshipIds = new Set(
+		context.relationships.map(({ relationshipId }) => relationshipId),
+	);
+	const valueIds = new Set(context.values.map(({ valueId }) => valueId));
+	const commitmentIds = new Set(
+		context.visibleRecords
+			.filter(({ kind }) => kind === "commitment")
+			.map(({ recordId }) => recordId),
+	);
+	const catalogIds = new Set(
+		context.actionCatalog.map(({ actionId }) => actionId),
+	);
+	const allowedCodes = new Set([
+		"plan",
+		"commitment",
+		"value",
+		"relationship",
+		"evidence",
+		"risk",
+		"counsel",
+	]);
+	if (!value.decisiveReasonCodes.every((code) => allowedCodes.has(code)))
+		return false;
+	if (
+		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
+			String(value.counselDisposition),
+		)
+	)
+		return false;
+	if (!value.visibleRecordIdsRead.every((id) => visibleIds.has(id)))
+		return false;
+	if (!value.relationshipIdsRead.every((id) => relationshipIds.has(id)))
+		return false;
+	if (!value.valueIdsRead.every((id) => valueIds.has(id))) return false;
+	if (!value.commitmentIdsRead.every((id) => commitmentIds.has(id)))
+		return false;
+	const tieBreak = value.tieBreak;
+	if (
+		typeof tieBreak.used !== "boolean" ||
+		(tieBreak.draw !== null && !Number.isSafeInteger(tieBreak.draw)) ||
+		!isStringArray(tieBreak.tiedActionIds, context.actionCatalog.length) ||
+		!tieBreak.tiedActionIds.every((id) => catalogIds.has(id))
+	)
+		return false;
+	for (const termValue of value.scoreTerms) {
+		if (
+			!isPlainRecord(termValue) ||
+			!hasExactKeys(termValue, ["code", "sourceIds", "value"]) ||
+			typeof termValue.code !== "string" ||
+			!allowedCodes.has(termValue.code) ||
+			!Number.isSafeInteger(termValue.value) ||
+			!isStringArray(termValue.sourceIds, 128)
+		)
+			return false;
+		for (const sourceId of termValue.sourceIds) {
+			if (termValue.code === "plan") {
+				if (sourceId !== context.activeStandingPlan.planId) return false;
+			} else if (
+				!visibleIds.has(sourceId) &&
+				!relationshipIds.has(sourceId) &&
+				!valueIds.has(sourceId)
+			)
+				return false;
+		}
+	}
+	for (const discarded of value.discardedCandidates) {
+		if (
+			!isPlainRecord(discarded) ||
+			!hasExactKeys(discarded, ["actionId", "reasonCode"]) ||
+			typeof discarded.actionId !== "string" ||
+			!catalogIds.has(discarded.actionId) ||
+			(discarded.reasonCode !== "LOWER_GROUNDED_SCORE" &&
+				discarded.reasonCode !== "TIE_BREAK")
+		)
+			return false;
+	}
+	const total = value.scoreTerms.reduce(
+		(sum, item) => sum + Number((item as Record<string, unknown>).value),
+		0,
+	);
+	if (total !== value.totalScore) return false;
+	return true;
 }

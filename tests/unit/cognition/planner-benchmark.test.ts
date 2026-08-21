@@ -234,7 +234,7 @@ describe("frozen 64-context Planner Brain benchmark", () => {
 			eligible: false,
 			reason: "candidate-not-run",
 			caseCount: 64,
-			baselineGoalCompletions: 52,
+			baselineGoalCompletions: null,
 			candidateGoalCompletions: null,
 		});
 
@@ -253,9 +253,10 @@ describe("frozen 64-context Planner Brain benchmark", () => {
 				candidate: gateFixture,
 			}),
 		).toMatchObject({
-			disposition: "promote-candidate",
-			eligible: true,
-			candidateGoalImprovement: 12,
+			disposition: "reject-candidate",
+			eligible: false,
+			reason: "candidate-promotion-disabled",
+			candidateGoalImprovement: null,
 			candidateDistinctPlans: 4,
 			candidateMedianMicros: 900,
 		});
@@ -271,6 +272,7 @@ describe("frozen 64-context Planner Brain benchmark", () => {
 		).toMatchObject({
 			disposition: "reject-candidate",
 			eligible: false,
+			reason: "candidate-promotion-disabled",
 		});
 	});
 });

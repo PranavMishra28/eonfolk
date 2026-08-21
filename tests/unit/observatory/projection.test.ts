@@ -1,47 +1,88 @@
 import { describe, expect, it } from "vitest";
 import {
+	authorizeChronicleForObservatory,
 	EONFOLK_SHAPE_SUBSET_VERSION,
 	EONFOLK_VOCABULARY,
 	OBSERVATORY_JSON_LD_VERSION,
 	projectAuthorizedChronicleToProv,
 	validateObservatoryJsonLdProjection,
 } from "../../../packages/observatory/src/index.js";
-import type { ChronicleProjection } from "../../../packages/sim/src/index.js";
+import { createRiverholdGenesis } from "../../../packages/sim/src/index.js";
 
-function chronicle(
-	sentences: ChronicleProjection["sentences"] = [
-		{
-			sentenceId: "sentence-visible",
-			text: "Mara verified the reserve.",
-			evidenceEventIds: ["event-visible"],
-			relation: "direct",
+async function authorized(
+	publicOnly = false,
+	includePrivate = false,
+	invalidHash = false,
+) {
+	const genesis = await createRiverholdGenesis();
+	const citizens = Object.values(genesis.state.citizens);
+	const event = {
+		eventId: "event-visible",
+		sequence: 1,
+		simulationTime: 1,
+		eventPayload: {
+			kind: "ExchangeCompleted",
+			firstCitizenId: citizens[0]!.citizenId,
+			secondCitizenId: citizens[1]!.citizenId,
+			firstGives: { resource: "food", quantity: 1 },
+			secondGives: { resource: "water", quantity: 1 },
+			behavior: "trade",
 		},
-	],
-): ChronicleProjection {
-	return {
-		schemaVersion: "riverhold-chronicle-v1",
-		visibilityPolicyVersion: "riverhold-visibility-v1",
-		branch: "verify-reserve",
-		sentences,
-		beats: [],
-		unresolvedTension: "Will she publish the count?",
-		storyCard: "Mara verified the reserve.",
-	};
+		causalParents: [],
+		relatedEvents: [],
+		visibility: { kind: "public" },
+		eventHash: invalidHash ? "unverified" : "a".repeat(64),
+	} as unknown as Parameters<
+		typeof authorizeChronicleForObservatory
+	>[0]["events"][number];
+	const privateEvent = {
+		...event,
+		eventId: "event-private",
+		eventHash: "b".repeat(64),
+		sequence: 2,
+		eventPayload: {
+			kind: "StatementMade",
+			speakerId: citizens[0]!.citizenId,
+			recipientIds: [citizens[1]!.citizenId],
+			proposition: "A private allegation.",
+			allegation: true,
+		},
+		visibility: {
+			kind: "participant-private",
+			principalIds: ["principal_local_patron"],
+		},
+	} as unknown as Parameters<
+		typeof authorizeChronicleForObservatory
+	>[0]["events"][number];
+	return authorizeChronicleForObservatory({
+		events: includePrivate ? [event, privateEvent] : [event],
+		viewer: publicOnly
+			? { kind: "public" }
+			: { kind: "participant", principalId: "principal_local_patron" },
+		purpose: publicOnly ? "chronicle-public" : "chronicle-private",
+		atRevision: 3,
+		visibilityContext: {
+			policyVersion: "riverhold-visibility-v1",
+			covenants: genesis.state.covenants,
+			localOwnerPrincipalId: "principal_local_patron",
+			nonproduction: true,
+		},
+		citizenNames: Object.fromEntries(
+			citizens.map(({ citizenId, name }) => [citizenId, name]),
+		),
+	});
 }
 
-function project(value = chronicle()) {
+async function project() {
 	return projectAuthorizedChronicleToProv({
 		projectionId: "projection-visible",
-		viewerKind: "participant",
-		purpose: "chronicle-private",
-		atRevision: 3,
-		chronicle: value,
+		authorized: await authorized(),
 	});
 }
 
 describe("authorized Observatory JSON-LD projection", () => {
-	it("emits a versioned, embedded JSON-LD 1.1 PROV-O bundle", () => {
-		const projection = project();
+	it("emits a versioned, embedded JSON-LD 1.1 PROV subset bundle", async () => {
+		const projection = await project();
 		const bytes = JSON.stringify(projection);
 		expect(projection["@context"]).toEqual({
 			"@version": 1.1,
@@ -65,72 +106,72 @@ describe("authorized Observatory JSON-LD projection", () => {
 		expect(Object.isFrozen(projection["@graph"])).toBe(true);
 	});
 
-	it("is byte-stable under sentence and evidence input reordering", () => {
-		const firstSentence = {
-			sentenceId: "sentence-a",
-			text: "Mara checked both records.",
-			evidenceEventIds: ["event-b", "event-a", "event-b"],
-			relation: "direct" as const,
-		};
-		const secondSentence = {
-			sentenceId: "sentence-b",
-			text: "Toma answered the allegation.",
-			evidenceEventIds: ["event-c"],
-			relation: "allegation" as const,
-		};
-		const forward = project(chronicle([firstSentence, secondSentence]));
-		const reversed = project(
-			chronicle([
-				secondSentence,
-				{
-					...firstSentence,
-					evidenceEventIds: [...firstSentence.evidenceEventIds].reverse(),
-				},
-			]),
-		);
+	it("is byte-stable for the same authorized source", async () => {
+		const artifact = await authorized();
+		const forward = projectAuthorizedChronicleToProv({
+			projectionId: "same",
+			authorized: artifact,
+		});
+		const reversed = projectAuthorizedChronicleToProv({
+			projectionId: "same",
+			authorized: artifact,
+		});
 		expect(JSON.stringify(forward)).toBe(JSON.stringify(reversed));
 		expect(
 			forward["@graph"].filter((node) =>
-				String(node["@id"]).includes("event:v2:event-b"),
+				String(node["@id"]).includes("event:v2:event-visible"),
 			),
 		).toHaveLength(1);
 	});
 
-	it("requires an explicit authorized viewer-purpose pair", () => {
+	it("requires an opaque visibility-authorized artifact", () => {
 		expect(() =>
 			projectAuthorizedChronicleToProv({
 				projectionId: "projection-public-mismatch",
-				viewerKind: "public",
-				purpose: "chronicle-private",
-				atRevision: 3,
-				chronicle: chronicle(),
+				authorized: {} as never,
 			}),
-		).toThrow("viewer and purpose are not an authorized projection pair");
+		).toThrow("not authorized");
 	});
 
-	it("rejects conflicting duplicate sentence IDs", () => {
-		expect(() =>
-			project(
-				chronicle([
-					{
-						sentenceId: "same",
-						text: "First authorized sentence.",
-						evidenceEventIds: ["event-a"],
-						relation: "fact",
-					},
-					{
-						sentenceId: "same",
-						text: "Conflicting authorized sentence.",
-						evidenceEventIds: ["event-b"],
-						relation: "direct",
-					},
-				]),
-			),
-		).toThrow("conflicting projected node IDs");
+	it("binds viewer identity, purpose, revision, policy, and event evidence", async () => {
+		const participant = await authorized();
+		const publicArtifact = await authorized(true);
+		expect(participant.viewerId).toBe("participant:principal_local_patron");
+		expect(publicArtifact.viewerId).toBe("public");
+		expect(participant.sourceDigest).toMatch(/^[0-9a-f]{64}$/u);
+		expect(participant.policyVersion).toBe("riverhold-visibility-v1");
+		expect(participant.authorizedEventIds).toEqual(["event-visible"]);
+		const projection = projectAuthorizedChronicleToProv({
+			projectionId: "bound",
+			authorized: participant,
+		});
+		expect(JSON.stringify(projection)).toContain(participant.sourceDigest);
+		expect(JSON.stringify(projection)).toContain(participant.viewerId);
 	});
 
-	it("fails closed on remote contexts, duplicate IDs, and dangling references", () => {
-		const base = JSON.parse(JSON.stringify(project())) as Record<
+	it("does not relabel private event evidence as public", async () => {
+		const participant = await authorized(false, true);
+		const publicArtifact = await authorized(true, true);
+		expect(participant.authorizedEventIds).toContain("event-private");
+		expect(publicArtifact.authorizedEventIds).not.toContain("event-private");
+		const publicProjection = projectAuthorizedChronicleToProv({
+			projectionId: "public-safe",
+			authorized: publicArtifact,
+		});
+		expect(JSON.stringify(publicProjection)).not.toContain("event-private");
+		expect(JSON.stringify(publicProjection)).not.toContain(
+			"private allegation",
+		);
+	});
+
+	it("rejects Chronicle evidence that lacks a verified source event hash", async () => {
+		await expect(authorized(false, false, true)).rejects.toThrow(
+			"does not resolve to a hashed source event",
+		);
+	});
+
+	it("fails closed on remote contexts, duplicate IDs, and dangling references", async () => {
+		const base = JSON.parse(JSON.stringify(await project())) as Record<
 			string,
 			unknown
 		>;
@@ -163,12 +204,8 @@ describe("authorized Observatory JSON-LD projection", () => {
 		).toContain("DANGLING_REFERENCE");
 	});
 
-	it("enforces local node and byte limits without gaining world authority", () => {
-		const projection = project({
-			...chronicle(),
-			wholeStateHash: "hidden-whole-state",
-			rawDecisionRecord: { chainOfThought: "must never project" },
-		} as ChronicleProjection);
+	it("enforces local node and byte limits without gaining world authority", async () => {
+		const projection = await project();
 		const bytes = JSON.stringify(projection);
 		expect(bytes).not.toContain("hidden-whole-state");
 		expect(bytes).not.toContain("chainOfThought");

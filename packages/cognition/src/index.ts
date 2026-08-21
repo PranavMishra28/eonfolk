@@ -4,4 +4,5 @@ export * from "./decision-record.js";
 export * from "./experiment.js";
 export * from "./planner-benchmark.js";
 export * from "./standard-brain.js";
+export * from "./standard-brain-controls.js";
 export * from "./standing-plan.js";

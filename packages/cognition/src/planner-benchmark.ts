@@ -46,19 +46,13 @@ export interface PlannerBenchmarkObservation {
 
 export interface FrozenPlannerBenchmarkReport {
 	readonly benchmarkVersion: typeof FROZEN_PLANNER_BENCHMARK_VERSION;
-	readonly disposition:
-		| "promote-candidate"
-		| "reject-candidate"
-		| "defer-no-candidate";
-	readonly eligible: boolean;
-	readonly reason:
-		| "all-promotion-gates-passed"
-		| "candidate-missed-promotion-gate"
-		| "candidate-not-run";
+	readonly disposition: "reject-candidate" | "defer-no-candidate";
+	readonly eligible: false;
+	readonly reason: "candidate-promotion-disabled" | "candidate-not-run";
 	readonly caseCount: 64;
-	readonly baselineGoalCompletions: number;
-	readonly candidateGoalCompletions: number | null;
-	readonly candidateGoalImprovement: number | null;
+	readonly baselineGoalCompletions: null;
+	readonly candidateGoalCompletions: null;
+	readonly candidateGoalImprovement: null;
 	readonly candidateDistinctPlans: number | null;
 	readonly candidateMedianMicros: number | null;
 	readonly candidateP95Micros: number | null;
@@ -190,9 +184,6 @@ export function evaluateFrozenPlannerBenchmark(input: {
 	readonly candidate?: readonly PlannerBenchmarkObservation[];
 }): FrozenPlannerBenchmarkReport {
 	assertCompleteObservations("baseline", input.baseline);
-	const baselineGoalCompletions = input.baseline.filter(
-		(observation) => observation.goalCompleted,
-	).length;
 	if (input.candidate === undefined) {
 		return Object.freeze({
 			benchmarkVersion: FROZEN_PLANNER_BENCHMARK_VERSION,
@@ -200,7 +191,7 @@ export function evaluateFrozenPlannerBenchmark(input: {
 			eligible: false,
 			reason: "candidate-not-run",
 			caseCount: 64,
-			baselineGoalCompletions,
+			baselineGoalCompletions: null,
 			candidateGoalCompletions: null,
 			candidateGoalImprovement: null,
 			candidateDistinctPlans: null,
@@ -210,9 +201,10 @@ export function evaluateFrozenPlannerBenchmark(input: {
 		});
 	}
 	assertCompleteObservations("candidate", input.candidate);
-	const candidateGoalCompletions = input.candidate.filter(
-		(observation) => observation.goalCompleted,
-	).length;
+	// Promotion is intentionally disabled. The current observations include
+	// caller-reported goal/safety/search fields and therefore are useful only as
+	// smoke diagnostics. A later trusted runner must bind frozen context/catalog/
+	// oracle bytes and derive terminal outcomes before this can promote anything.
 	const candidateDistinctPlans = new Set(
 		input.candidate
 			.map((observation) => observation.planSignature)
@@ -229,57 +221,15 @@ export function evaluateFrozenPlannerBenchmark(input: {
 	const candidateWorstMicros = Math.max(
 		...input.candidate.map((observation) => observation.latencyMicros),
 	);
-	const baselineSafety = input.baseline.every(
-		(observation) =>
-			observation.legal &&
-			observation.byteDeterministic &&
-			observation.hiddenEquivalent &&
-			observation.proposalBytes <= 16_384,
-	);
-	const noSafetyRegression = input.candidate.every(
-		(observation) =>
-			observation.legal &&
-			observation.byteDeterministic &&
-			observation.hiddenEquivalent &&
-			observation.proposalBytes <= 16_384 &&
-			(observation.planSignature === null
-				? observation.planDepth === null
-				: observation.planDepth !== null && observation.planDepth <= 4) &&
-			observation.expandedNodes !== null &&
-			observation.expandedNodes <= 64 &&
-			observation.generatedNodes !== null &&
-			observation.generatedNodes <= 128,
-	);
-	const baselineById = new Map(
-		input.baseline.map((observation) => [observation.caseId, observation]),
-	);
-	const noGoalRegression = input.candidate.every(
-		(observation) =>
-			baselineById.get(observation.caseId)?.goalCompleted !== true ||
-			observation.goalCompleted,
-	);
-	const candidateGoalImprovement =
-		candidateGoalCompletions - baselineGoalCompletions;
-	const eligible =
-		baselineSafety &&
-		noSafetyRegression &&
-		noGoalRegression &&
-		candidateGoalImprovement >= 3 &&
-		candidateDistinctPlans >= 4 &&
-		candidateMedianMicros <= 1_000 &&
-		candidateP95Micros <= 3_000 &&
-		candidateWorstMicros <= 8_000;
 	return Object.freeze({
 		benchmarkVersion: FROZEN_PLANNER_BENCHMARK_VERSION,
-		disposition: eligible ? "promote-candidate" : "reject-candidate",
-		eligible,
-		reason: eligible
-			? "all-promotion-gates-passed"
-			: "candidate-missed-promotion-gate",
+		disposition: "reject-candidate",
+		eligible: false,
+		reason: "candidate-promotion-disabled",
 		caseCount: 64,
-		baselineGoalCompletions,
-		candidateGoalCompletions,
-		candidateGoalImprovement,
+		baselineGoalCompletions: null,
+		candidateGoalCompletions: null,
+		candidateGoalImprovement: null,
 		candidateDistinctPlans,
 		candidateMedianMicros,
 		candidateP95Micros,

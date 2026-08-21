@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+	chooseControlAction,
 	createCognitiveDecisionRecord,
-	decideWithDeterministicFallback,
 	projectDecisionTrace,
+	STANDARD_BRAIN_EVALUATION_POLICIES,
 	standardBrain,
+	standardBrainAblated,
+	terminalDecisionVector,
 	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
 import {
@@ -88,9 +91,6 @@ describe("Mind and Standard Brain", () => {
 	it("changes grounded score receipts under independent trust, value, evidence, and commitment perturbations", async () => {
 		const baseline = await decide(null);
 		const trust = await decide(null, { trust: 500 });
-		const value = await decide(null, {
-			valueOrder: ["candor", "caution", "loyalty"],
-		});
 		const evidence = await decide(null, { evidenceConfidence: 1_000 });
 		const commitment = await decide(null, { removeCommitment: true });
 		const term = (result: Awaited<ReturnType<typeof decide>>, code: string) =>
@@ -100,9 +100,7 @@ describe("Mind and Standard Brain", () => {
 		expect(term(trust, "relationship")?.value).not.toBe(
 			term(baseline, "relationship")?.value,
 		);
-		expect(term(value, "value")?.sourceIds).not.toEqual(
-			term(baseline, "value")?.sourceIds,
-		);
+		expect(term(baseline, "value")).toBeUndefined();
 		expect(term(evidence, "evidence")?.value).not.toBe(
 			term(baseline, "evidence")?.value,
 		);
@@ -116,6 +114,102 @@ describe("Mind and Standard Brain", () => {
 		);
 		expect(transferred.proposal.action.kind).toBe("VerifyReserve");
 		expect(transferred.proposal.publicJustification).not.toContain("Mara");
+		expect(
+			transferred.mind.records.every(
+				({ recordId }) => !recordId.includes("ledger-mismatch"),
+			),
+		).toBe(true);
+		expect(
+			transferred.mind.records.some(({ recordId }) =>
+				recordId.startsWith("observation-sela"),
+			),
+		).toBe(true);
+	});
+
+	it("runs three named controls, Standard Brain, five ablations, and terminal decision vectors", async () => {
+		const fixture = await riverholdDecisionFixture({
+			counselIntent: "verify-reserve",
+		});
+		const prng = await seedPrng(
+			new Uint8Array(32).fill(9),
+			"controls",
+			fixture.context.actorId,
+			"matrix",
+		);
+		const standard = await standardBrain(fixture.context, {
+			proposalId: "standard-control",
+			prngState: prng,
+		});
+		const controlVectors = [
+			"canonical-trajectory",
+			"reactive-nearest-need",
+			"seeded-legal-random",
+		].map((control) => {
+			const decision = chooseControlAction({
+				control: control as "canonical-trajectory",
+				context: fixture.context,
+				prngState: prng,
+			});
+			return terminalDecisionVector({
+				context: fixture.context,
+				actionId: decision.actionId,
+			});
+		});
+		const standardVector = terminalDecisionVector({
+			context: fixture.context,
+			actionId: standard.proposal.actionId,
+		});
+		expect(STANDARD_BRAIN_EVALUATION_POLICIES).toEqual([
+			"standard-brain",
+			"canonical-trajectory",
+			"reactive-nearest-need",
+			"seeded-legal-random",
+		]);
+		expect(
+			new Set(
+				[...controlVectors, standardVector].map((vector) => vector.actionKind),
+			).size,
+		).toBeGreaterThanOrEqual(2);
+		const ablations = await Promise.all(
+			(
+				[
+					"commitments",
+					"evidence",
+					"relationships",
+					"standing-plan",
+					"values",
+				] as const
+			).map((ablation) =>
+				standardBrainAblated(
+					fixture.context,
+					{ proposalId: `ablate-${ablation}`, prngState: prng },
+					ablation,
+				),
+			),
+		);
+		expect(ablations).toHaveLength(5);
+		expect(
+			ablations.every(({ proposal }) =>
+				fixture.context.actionCatalog.some(
+					({ actionId }) => actionId === proposal.actionId,
+				),
+			),
+		).toBe(true);
+	});
+
+	it("never cites an unrelated value as a positive FollowStandingPlan reason", async () => {
+		const result = await decide(null, {
+			valueOrder: ["unrelated-a", "unrelated-b", "unrelated-c"],
+		});
+		expect(result.proposal.action.kind).toBe("FollowStandingPlan");
+		expect(
+			result.proposal.explanation.scoreTerms.some(
+				({ code }) => code === "value",
+			),
+		).toBe(false);
+		expect(result.proposal.publicJustification).not.toContain(
+			"fits the values",
+		);
 	});
 
 	it("keeps DecisionContext byte-identical when only an unreadable secret changes", async () => {
@@ -152,67 +246,37 @@ describe("Mind and Standard Brain", () => {
 				publicJustification: "tampered after hashing",
 			}),
 		).toBe("ACTION_UNAVAILABLE");
-	});
-
-	it("falls back once and deterministically for missing, throwing, malformed, and timeout adapters", async () => {
-		const fixture = await riverholdDecisionFixture({
-			counselIntent: "verify-reserve",
-		});
-		const prng = await seedPrng(
-			new Uint8Array(
-				fixture.genesis.state.worldSeedHex
-					.match(/../gu)!
-					.map((part) => Number.parseInt(part, 16)),
-			),
-			"standard-brain",
-			fixture.context.actorId,
-			"fallback",
-		);
-		const missing = await decideWithDeterministicFallback({
-			context: fixture.context,
-			proposalId: "proposal-missing",
-			prngState: prng,
-		});
-		const throwing = await decideWithDeterministicFallback({
-			context: fixture.context,
-			proposalId: "proposal-throwing",
-			prngState: prng,
-			optionalBrain: {
-				propose: async () => {
-					throw new Error("offline");
-				},
-			},
-		});
-		const malformed = await decideWithDeterministicFallback({
-			context: fixture.context,
-			proposalId: "proposal-malformed",
-			prngState: prng,
-			optionalBrain: { propose: async () => ({ action: "anything" }) },
-		});
-		const timeout = await decideWithDeterministicFallback({
-			context: fixture.context,
-			proposalId: "proposal-timeout",
-			prngState: prng,
-			optionalBrain: { propose: async () => undefined },
-			forcedFailure: "timeout",
-		});
-		expect([
-			missing.fallbackReason,
-			throwing.fallbackReason,
-			malformed.fallbackReason,
-			timeout.fallbackReason,
-		]).toEqual(["missing", "throwing", "malformed", "timeout"]);
-		expect([
-			missing.adapterInvocations,
-			throwing.adapterInvocations,
-			malformed.adapterInvocations,
-			timeout.adapterInvocations,
-		]).toEqual([0, 1, 1, 0]);
 		expect(
-			[missing, throwing, malformed, timeout].every(
-				(result) => result.proposal.action.kind === "VerifyReserve",
-			),
-		).toBe(true);
+			await validateIntentProposal(result.context, {
+				...result.proposal,
+				provenance: { ...result.proposal.provenance, provider: "spoofed" },
+			}),
+		).toBe("ACTION_UNAVAILABLE");
+		expect(
+			await validateIntentProposal(result.context, {
+				...result.proposal,
+				explanation: { ...result.proposal.explanation, unknown: true },
+			}),
+		).toBe("ACTION_UNAVAILABLE");
+		expect(
+			await validateIntentProposal(result.context, {
+				...result.proposal,
+				explanation: {
+					...result.proposal.explanation,
+					visibleRecordIdsRead: ["private-unavailable-record"],
+				},
+			}),
+		).toBe("ACTION_UNAVAILABLE");
+		const deeplyNested = { value: null } as { value: unknown };
+		let cursor = deeplyNested;
+		for (let depth = 0; depth < 12; depth += 1) {
+			const next = { value: null };
+			cursor.value = next;
+			cursor = next;
+		}
+		expect(await validateIntentProposal(result.context, deeplyNested)).toBe(
+			"ACTION_UNAVAILABLE",
+		);
 	});
 
 	it("hashes a bounded raw audit record and exposes only reauthorized trace fields", async () => {

@@ -9,6 +9,8 @@ export const LOCAL_PROCESS_BRAIN_CONTRACT_VERSION =
 	"eonfolk-local-process-brain-contract-v1" as const;
 export const EXPERIMENT_MANIFEST_VERSION =
 	"eonfolk-experiment-manifest-v2" as const;
+export const EXPERIMENT_RESULT_VERSION =
+	"eonfolk-experiment-result-v2" as const;
 
 export interface LocalArtifactIdentity {
 	readonly artifactId: string;
@@ -133,7 +135,16 @@ export interface ExperimentManifestV2 {
 		readonly networkPolicy: "not-applicable" | "deny-all-required";
 		readonly trustRemoteCode: false;
 	};
-	readonly result: {
+	readonly manifestHash: string;
+}
+
+export interface ExperimentResultV2 {
+	readonly schemaVersion: typeof EXPERIMENT_RESULT_VERSION;
+	readonly resultId: string;
+	readonly manifestHash: string;
+	readonly sequence: number;
+	readonly recordedAt: string;
+	readonly outcome: {
 		readonly status: "completed" | "failed" | "not-run";
 		readonly adapterInvocations: number;
 		readonly outputHash: string | null;
@@ -155,12 +166,17 @@ export interface ExperimentManifestV2 {
 		readonly licenseInventoryHash: string | null;
 		readonly limitations: readonly string[];
 	};
-	readonly manifestHash: string;
+	readonly resultHash: string;
 }
 
 export type ExperimentManifestV2Input = Omit<
 	ExperimentManifestV2,
 	"schemaVersion" | "nonCanonical" | "manifestHash"
+>;
+
+export type ExperimentResultV2Input = Omit<
+	ExperimentResultV2,
+	"schemaVersion" | "resultHash"
 >;
 
 function assertSafeText(
@@ -465,56 +481,6 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 		1,
 		15_000,
 	);
-	assertBoundedInteger(
-		input.result.adapterInvocations,
-		"result.adapterInvocations",
-		0,
-		1,
-	);
-	if (input.result.status === "completed") {
-		if (input.result.failureCode !== null || input.result.outputHash === null)
-			throw new Error("completed result requires output and no failure");
-	} else if (input.result.failureCode === null) {
-		throw new Error("non-completed result requires a failure code");
-	}
-	if (
-		input.result.status === "not-run" &&
-		input.result.adapterInvocations !== 0
-	)
-		throw new Error("not-run result cannot invoke an adapter");
-	if (input.result.outputHash !== null)
-		assertSha256(input.result.outputHash, "result.outputHash");
-	if (input.result.latencyMicros.length > 512)
-		throw new RangeError("too many latency samples");
-	for (const latency of input.result.latencyMicros)
-		assertBoundedInteger(latency, "result latency", 0, 60_000_000);
-	if (input.result.peakMemoryBytes !== null)
-		assertBoundedInteger(
-			input.result.peakMemoryBytes,
-			"result.peakMemoryBytes",
-			0,
-			128 * 1024 * 1024 * 1024,
-		);
-	if (input.result.invariantResults.length > 128)
-		throw new RangeError("too many invariant results");
-	for (const result of input.result.invariantResults)
-		assertSafeId(result.invariantId, "invariantId");
-	for (const hash of [
-		input.evidence.zeroEgressArtifactHash,
-		input.evidence.dependencyInventoryHash,
-		input.evidence.licenseInventoryHash,
-	]) {
-		if (hash !== null) assertSha256(hash, "evidence hash");
-	}
-	if (
-		input.evidence.zeroEgressProven !==
-		(input.evidence.zeroEgressArtifactHash !== null)
-	)
-		throw new Error("zero-egress status and evidence hash must agree");
-	if (input.evidence.limitations.length > 32)
-		throw new RangeError("too many limitations");
-	for (const limitation of input.evidence.limitations)
-		assertSafeText(limitation, "limitation", 512);
 }
 
 export async function createExperimentManifestV2(
@@ -538,21 +504,6 @@ export async function createExperimentManifestV2(
 		brain: input.brain,
 		environment: input.environment,
 		controls: input.controls,
-		result: {
-			...input.result,
-			invariantResults: [...input.result.invariantResults].sort(
-				(left, right) =>
-					left.invariantId < right.invariantId
-						? -1
-						: left.invariantId > right.invariantId
-							? 1
-							: 0,
-			),
-		},
-		evidence: {
-			...input.evidence,
-			limitations: [...input.evidence.limitations].sort(),
-		},
 	});
 	const manifest = {
 		...withoutHash,
@@ -582,5 +533,154 @@ export async function verifyExperimentManifestV2(
 		return jcs(manifest) === jcs(recreated);
 	} catch {
 		return false;
+	}
+}
+
+function assertResultInput(input: ExperimentResultV2Input): void {
+	assertSafeId(input.resultId, "resultId");
+	assertSha256(input.manifestHash, "manifestHash");
+	assertBoundedInteger(input.sequence, "sequence", 1, 100_000);
+	if (
+		!ISO_INSTANT_PATTERN.test(input.recordedAt) ||
+		new Date(input.recordedAt).toISOString() !== input.recordedAt
+	)
+		throw new TypeError("recordedAt must be a valid millisecond UTC instant");
+	assertBoundedInteger(
+		input.outcome.adapterInvocations,
+		"outcome.adapterInvocations",
+		0,
+		100_000,
+	);
+	if (input.outcome.status === "completed") {
+		if (input.outcome.failureCode !== null || input.outcome.outputHash === null)
+			throw new Error("completed result requires output and no failure");
+	} else if (input.outcome.failureCode === null) {
+		throw new Error("non-completed result requires a failure code");
+	}
+	if (
+		input.outcome.status === "not-run" &&
+		input.outcome.adapterInvocations !== 0
+	)
+		throw new Error("not-run result cannot invoke an adapter");
+	if (input.outcome.outputHash !== null)
+		assertSha256(input.outcome.outputHash, "outcome.outputHash");
+	if (input.outcome.latencyMicros.length > 100_000)
+		throw new RangeError("too many latency samples");
+	for (const latency of input.outcome.latencyMicros)
+		assertBoundedInteger(latency, "outcome latency", 0, 60_000_000);
+	if (input.outcome.peakMemoryBytes !== null)
+		assertBoundedInteger(
+			input.outcome.peakMemoryBytes,
+			"outcome.peakMemoryBytes",
+			0,
+			128 * 1024 * 1024 * 1024,
+		);
+	if (input.outcome.invariantResults.length > 512)
+		throw new RangeError("too many invariant results");
+	for (const result of input.outcome.invariantResults)
+		assertSafeId(result.invariantId, "invariantId");
+	for (const hash of [
+		input.evidence.zeroEgressArtifactHash,
+		input.evidence.dependencyInventoryHash,
+		input.evidence.licenseInventoryHash,
+	])
+		if (hash !== null) assertSha256(hash, "evidence hash");
+	if (
+		input.evidence.zeroEgressProven !==
+		(input.evidence.zeroEgressArtifactHash !== null)
+	)
+		throw new Error("zero-egress status and evidence hash must agree");
+	if (input.evidence.limitations.length > 32)
+		throw new RangeError("too many limitations");
+	for (const limitation of input.evidence.limitations)
+		assertSafeText(limitation, "limitation", 512);
+}
+
+export async function createExperimentResultV2(
+	input: ExperimentResultV2Input,
+): Promise<ExperimentResultV2> {
+	assertResultInput(input);
+	const withoutHash = canonicalClone({
+		schemaVersion: EXPERIMENT_RESULT_VERSION,
+		resultId: input.resultId,
+		manifestHash: input.manifestHash,
+		sequence: input.sequence,
+		recordedAt: input.recordedAt,
+		outcome: {
+			...input.outcome,
+			latencyMicros: [...input.outcome.latencyMicros],
+			invariantResults: [...input.outcome.invariantResults].sort((a, b) =>
+				a.invariantId.localeCompare(b.invariantId),
+			),
+		},
+		evidence: {
+			...input.evidence,
+			limitations: [...input.evidence.limitations].sort(),
+		},
+	});
+	return deepFreeze({
+		...withoutHash,
+		resultHash: await domainHash("EONFOLK:EXPERIMENT-RESULT:v2", withoutHash),
+	} as ExperimentResultV2);
+}
+
+export async function verifyExperimentResultV2(
+	result: ExperimentResultV2,
+): Promise<boolean> {
+	if (
+		result.schemaVersion !== EXPERIMENT_RESULT_VERSION ||
+		!SHA256_PATTERN.test(result.resultHash)
+	)
+		return false;
+	const { resultHash, schemaVersion: _schemaVersion, ...input } = result;
+	try {
+		return jcs(result) === jcs(await createExperimentResultV2(input));
+	} catch {
+		return false;
+	}
+}
+
+/** Noncanonical append-only journal. It exposes no reducer or Reality port. */
+export class InMemoryExperimentJournal {
+	readonly #manifests = new Map<string, ExperimentManifestV2>();
+	readonly #results = new Map<string, readonly ExperimentResultV2[]>();
+
+	async commitManifest(manifest: ExperimentManifestV2): Promise<void> {
+		if (!(await verifyExperimentManifestV2(manifest)))
+			throw new Error("invalid experiment manifest");
+		const existing = this.#manifests.get(manifest.manifestId);
+		if (
+			existing !== undefined &&
+			existing.manifestHash !== manifest.manifestHash
+		)
+			throw new Error("manifest ID collision");
+		this.#manifests.set(manifest.manifestId, manifest);
+	}
+
+	async appendResult(result: ExperimentResultV2): Promise<void> {
+		if (!(await verifyExperimentResultV2(result)))
+			throw new Error("invalid experiment result");
+		if (
+			![...this.#manifests.values()].some(
+				({ manifestHash }) => manifestHash === result.manifestHash,
+			)
+		)
+			throw new Error("result manifest is not committed");
+		const prior = this.#results.get(result.manifestHash) ?? [];
+		const duplicate = prior.find(
+			({ resultId }) => resultId === result.resultId,
+		);
+		if (duplicate !== undefined) {
+			if (duplicate.resultHash !== result.resultHash)
+				throw new Error("result ID collision");
+			return;
+		}
+		if (result.sequence !== prior.length + 1)
+			throw new Error("result sequence is not append-only");
+		this.#results.set(result.manifestHash, Object.freeze([...prior, result]));
+	}
+
+	results(manifestHash: string): readonly ExperimentResultV2[] {
+		return this.#results.get(manifestHash) ?? Object.freeze([]);
 	}
 }

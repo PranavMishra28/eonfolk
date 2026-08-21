@@ -1,4 +1,4 @@
-import type { ChronicleProjection } from "@eonfolk/sim";
+import { type ChronicleProjection, projectChronicle } from "@eonfolk/sim";
 
 export const OBSERVATORY_JSON_LD_VERSION =
 	"eonfolk-observatory-jsonld-v2" as const;
@@ -26,11 +26,21 @@ export type ObservatoryViewerKind =
 	| "citizen"
 	| "implementation";
 
-export interface AuthorizedChronicleProjectionInput {
-	readonly projectionId: string;
+const AUTHORIZED_CHRONICLE = Symbol("authorized-chronicle");
+
+export interface AuthorizedChronicleArtifact {
+	readonly [AUTHORIZED_CHRONICLE]: true;
+	readonly viewerId: string;
 	readonly viewerKind: ObservatoryViewerKind;
 	readonly purpose: ObservatoryProjectionPurpose;
 	readonly atRevision: number;
+	readonly policyVersion: "riverhold-visibility-v1";
+	readonly sourceDigest: string;
+	readonly authorizedEventIds: readonly string[];
+	readonly eventEvidence: readonly Readonly<{
+		eventId: string;
+		eventHash: string;
+	}>[];
 	readonly chronicle: ChronicleProjection;
 }
 
@@ -82,6 +92,8 @@ const ACTIVITY_KEYS = Object.freeze(
 		"@type",
 		"eon:atRevision",
 		"eon:purpose",
+		"eon:sourceDigest",
+		"eon:viewerId",
 		"eon:viewerKind",
 		"eon:visibilityPolicyVersion",
 		"prov:used",
@@ -97,7 +109,9 @@ const SENTENCE_KEYS = Object.freeze(
 		"prov:wasGeneratedBy",
 	].sort(),
 );
-const EVIDENCE_KEYS = Object.freeze(["@id", "@type", "eon:eventId"].sort());
+const EVIDENCE_KEYS = Object.freeze(
+	["@id", "@type", "eon:eventHash", "eon:eventId"].sort(),
+);
 const TOP_LEVEL_TYPES = Object.freeze([
 	"prov:Bundle",
 	"eon:AuthorizedProjection",
@@ -152,12 +166,12 @@ function assertScalarText(value: string, label: string, maxCodePoints: number) {
 	}
 }
 
-function assertAuthorizedInput(
-	input: AuthorizedChronicleProjectionInput,
-): void {
-	assertScalarText(input.projectionId, "projectionId", 128);
-	if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u.test(input.projectionId))
-		throw new TypeError("projectionId is invalid");
+function assertAuthorizedArtifact(input: AuthorizedChronicleArtifact): void {
+	if (input[AUTHORIZED_CHRONICLE] !== true)
+		throw new Error(
+			"Chronicle artifact was not authorized by the visibility projector",
+		);
+	assertScalarText(input.viewerId, "viewerId", 128);
 	if (!Number.isSafeInteger(input.atRevision) || input.atRevision < 0)
 		throw new RangeError("atRevision must be a nonnegative safe integer");
 	const authorizedPair =
@@ -168,6 +182,17 @@ function assertAuthorizedInput(
 			input.purpose === "implementation-diagnostic");
 	if (!authorizedPair)
 		throw new Error("viewer and purpose are not an authorized projection pair");
+	if (!/^[0-9a-f]{64}$/u.test(input.sourceDigest))
+		throw new TypeError("sourceDigest is invalid");
+	if (
+		input.eventEvidence.length !== input.authorizedEventIds.length ||
+		input.eventEvidence.some(
+			(evidence, index) =>
+				evidence.eventId !== input.authorizedEventIds[index] ||
+				!/^[0-9a-f]{64}$/u.test(evidence.eventHash),
+		)
+	)
+		throw new Error("authorized event evidence is missing or invalid");
 	if (input.chronicle.schemaVersion !== "riverhold-chronicle-v1")
 		throw new Error("unsupported Chronicle projection version");
 	if (input.chronicle.visibilityPolicyVersion !== "riverhold-visibility-v1")
@@ -188,6 +213,78 @@ function assertAuthorizedInput(
 		)
 			throw new TypeError("Chronicle relation is unsupported");
 	}
+}
+
+function viewerIdentity(
+	viewer: Parameters<typeof projectChronicle>[0]["viewer"],
+): string {
+	switch (viewer.kind) {
+		case "public":
+			return "public";
+		case "citizen":
+			return `citizen:${viewer.citizenId}`;
+		case "participant":
+			return `participant:${viewer.principalId}`;
+		case "implementation":
+			return `implementation:${viewer.testRunId}`;
+		case "moderator":
+			return `moderator:${viewer.roleId}`;
+	}
+}
+
+/** The sole Observatory mint: Chronicle applies canRead before this artifact exists. */
+export async function authorizeChronicleForObservatory(
+	input: Parameters<typeof projectChronicle>[0],
+): Promise<AuthorizedChronicleArtifact> {
+	const chronicle = projectChronicle(input);
+	const viewerKind = input.viewer.kind as ObservatoryViewerKind;
+	const purpose = input.purpose as ObservatoryProjectionPurpose;
+	const authorizedEventIds = [
+		...new Set(
+			chronicle.sentences.flatMap(({ evidenceEventIds }) => evidenceEventIds),
+		),
+	].sort();
+	const eventsById = new Map(
+		input.events.map((event) => [event.eventId, event]),
+	);
+	const eventEvidence = authorizedEventIds.map((eventId) => {
+		const event = eventsById.get(eventId);
+		if (event === undefined || !/^[0-9a-f]{64}$/u.test(event.eventHash))
+			throw new Error(
+				"Chronicle evidence does not resolve to a hashed source event",
+			);
+		return Object.freeze({ eventId, eventHash: event.eventHash });
+	});
+	const digestBytes = await crypto.subtle.digest(
+		"SHA-256",
+		new TextEncoder().encode(
+			JSON.stringify({
+				atRevision: input.atRevision,
+				viewer: input.viewer,
+				purpose,
+				policyVersion: input.visibilityContext.policyVersion,
+				eventEvidence,
+				chronicle,
+			}),
+		),
+	);
+	const sourceDigest = [...new Uint8Array(digestBytes)]
+		.map((value) => value.toString(16).padStart(2, "0"))
+		.join("");
+	const artifact = {
+		[AUTHORIZED_CHRONICLE]: true as const,
+		viewerId: viewerIdentity(input.viewer),
+		viewerKind,
+		purpose,
+		atRevision: input.atRevision,
+		policyVersion: input.visibilityContext.policyVersion,
+		sourceDigest,
+		authorizedEventIds: Object.freeze(authorizedEventIds),
+		eventEvidence: Object.freeze(eventEvidence),
+		chronicle,
+	};
+	assertAuthorizedArtifact(artifact);
+	return deepFreeze(artifact);
 }
 
 function encodeUrnComponent(value: string): string {
@@ -228,18 +325,24 @@ function deepFreeze<T>(value: T): T {
 }
 
 /**
- * Projects one already-authorized Chronicle view into a deterministic PROV-O
- * shaped JSON-LD bundle. It accepts no ledger, Reality, Mind, decision record,
+ * Projects one visibility-authorized Chronicle artifact into the repository's
+ * closed, local PROV-shaped JSON-LD subset. This is not a general PROV-O or
+ * SHACL implementation. It accepts no ledger, Reality, Mind, decision record,
  * hash preimage, document loader, or write capability.
  */
-export function projectAuthorizedChronicleToProv(
-	input: AuthorizedChronicleProjectionInput,
-): ProvJsonLdProjection {
-	assertAuthorizedInput(input);
+export function projectAuthorizedChronicleToProv(input: {
+	readonly projectionId: string;
+	readonly authorized: AuthorizedChronicleArtifact;
+}): ProvJsonLdProjection {
+	assertScalarText(input.projectionId, "projectionId", 128);
+	if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u.test(input.projectionId))
+		throw new TypeError("projectionId is invalid");
+	assertAuthorizedArtifact(input.authorized);
+	const authorized = input.authorized;
 	const projectionActivityId = activityUri(input.projectionId);
 	const usedEvidenceIds = [
 		...new Set(
-			input.chronicle.sentences.flatMap((sentence) =>
+			authorized.chronicle.sentences.flatMap((sentence) =>
 				sentence.evidenceEventIds.map(eventUri),
 			),
 		),
@@ -248,14 +351,22 @@ export function projectAuthorizedChronicleToProv(
 		{
 			"@id": projectionActivityId,
 			"@type": ["prov:Activity", "eon:ChronicleProjectionActivity"],
-			"eon:atRevision": input.atRevision,
-			"eon:purpose": input.purpose,
-			"eon:viewerKind": input.viewerKind,
-			"eon:visibilityPolicyVersion": input.chronicle.visibilityPolicyVersion,
+			"eon:atRevision": authorized.atRevision,
+			"eon:purpose": authorized.purpose,
+			"eon:sourceDigest": authorized.sourceDigest,
+			"eon:viewerId": authorized.viewerId,
+			"eon:viewerKind": authorized.viewerKind,
+			"eon:visibilityPolicyVersion": authorized.policyVersion,
 			"prov:used": usedEvidenceIds.map((eventId) => ({ "@id": eventId })),
 		},
 	];
-	for (const sentence of input.chronicle.sentences) {
+	for (const sentence of authorized.chronicle.sentences) {
+		if (
+			sentence.evidenceEventIds.some(
+				(eventId) => !authorized.authorizedEventIds.includes(eventId),
+			)
+		)
+			throw new Error("Chronicle evidence is outside the authorized event set");
 		const evidenceIds = [...new Set(sentence.evidenceEventIds)]
 			.map(eventUri)
 			.sort();
@@ -270,10 +381,16 @@ export function projectAuthorizedChronicleToProv(
 			"prov:wasGeneratedBy": { "@id": projectionActivityId },
 		});
 		for (const eventId of [...new Set(sentence.evidenceEventIds)].sort()) {
+			const evidence = authorized.eventEvidence.find(
+				(candidate) => candidate.eventId === eventId,
+			);
+			if (evidence === undefined)
+				throw new Error("Chronicle evidence hash is unavailable");
 			nodes.push({
 				"@id": eventUri(eventId),
 				"@type": ["prov:Entity", "eon:AuthorizedEventEvidence"],
 				"eon:eventId": eventId,
+				"eon:eventHash": evidence.eventHash,
 			});
 		}
 	}
@@ -409,6 +526,7 @@ function validateNode(
 			);
 		const purpose = node["eon:purpose"];
 		const viewerKind = node["eon:viewerKind"];
+		const viewerId = node["eon:viewerId"];
 		const authorizedPair =
 			(viewerKind === "public" && purpose === "chronicle-public") ||
 			((viewerKind === "participant" || viewerKind === "citizen") &&
@@ -421,6 +539,30 @@ function validateNode(
 					"DATATYPE",
 					path,
 					"activity viewer and purpose are not an authorized pair",
+				),
+			);
+		if (
+			typeof viewerId !== "string" ||
+			(viewerKind === "public"
+				? viewerId !== "public"
+				: !viewerId.startsWith(`${String(viewerKind)}:`))
+		)
+			violations.push(
+				violation(
+					"DATATYPE",
+					`${path}.eon:viewerId`,
+					"viewer identity is not bound to viewer kind",
+				),
+			);
+		if (
+			typeof node["eon:sourceDigest"] !== "string" ||
+			!/^[0-9a-f]{64}$/u.test(node["eon:sourceDigest"] as string)
+		)
+			violations.push(
+				violation(
+					"DATATYPE",
+					`${path}.eon:sourceDigest`,
+					"source digest is invalid",
 				),
 			);
 		if (node["eon:visibilityPolicyVersion"] !== "riverhold-visibility-v1")
@@ -528,6 +670,17 @@ function validateNode(
 					"INVALID_IRI",
 					`${path}.@id`,
 					"event node ID does not match its authorized event ID",
+				),
+			);
+		if (
+			typeof node["eon:eventHash"] !== "string" ||
+			!/^[0-9a-f]{64}$/u.test(node["eon:eventHash"] as string)
+		)
+			violations.push(
+				violation(
+					"DATATYPE",
+					`${path}.eon:eventHash`,
+					"event evidence hash is invalid",
 				),
 			);
 	}
