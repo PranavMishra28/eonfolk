@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** TECHNICAL IMPLEMENTATION CANDIDATE — final targeted-confirmation findings repaired; canonical performance and complete local verification green; exact-head remote verification pending; no measured-human pass claimed
+**Status:** IMPLEMENTATION-COMPLETE UNDER OPERATOR OVERRIDE — final repairs, canonical performance, complete local verification, pushed-candidate CI, repository hardening, and archival cleanup green; no measured-human pass claimed
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -26,7 +26,7 @@
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
-| 7. Operator-authorized implementation and consolidation | Exact-head CI and repository cleanup pending | Private `main` contains preserved planning plus the repaired Riverhold candidate; final canonical 15-run clean-commit performance and complete local verification pass; the one allowed targeted confirmation found three P1s and all are repaired; exact-head CI/hardening/archive cleanup remain; human gates remain NOT RUN |
+| 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
 
 ## Operator implementation override — 2026-08-21
 
@@ -40,7 +40,7 @@ Verified bootstrap state:
 - Planning head `f8b82d8` and implementation checkpoint `3d25686` were merged without rewriting history at `cc12d33`.
 - Annotated tags preserve the planning head, implementation checkpoint, Gate 0 artifact A, study S, and resume checkpoint.
 - Implementation workspace scaffold commit `4fb5f93` pins Node 22.23.1 and pnpm 11.15.1 and rejects x64 Node on macOS.
-- Old PRs and branches remain until the final green `main` proves their heads reachable; cleanup has not run early.
+- After pushed-candidate CI turned green, every unique obsolete branch head was preserved by a remote annotated tag; obsolete PR #2, its two remote branches, seven clean auxiliary worktrees, and 23 local branches were then removed without deleting unique history.
 - Systems, persistence, UI and coordinator work were integrated through `20b6d3b`; three independent reviews froze `b387a6d`, their first repairs are `bad215a`, a fresh confirmation failure at `1834f1f` produced `970879a`, and the one final targeted confirmation at `32808e1` exposed three remaining P1s repaired in `90d999b`/`50b2310`. No second confirmation is claimed.
 - M1–M5 focused hours are UNKNOWN because contemporaneous segments were not preserved across the resumed run. The 40–60-hour fit therefore remains an unproven scope hypothesis, not an evidence-backed implementation claim.
 
@@ -86,7 +86,7 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 
 ## Disposable spike evidence
 
-Scratch worktrees/branches were not merged and must be removed after the planning review preserves their SHAs.
+Scratch worktrees/branches were not merged. Their SHAs are preserved by remote annotated tags, and their clean worktrees/local branches were removed after the green pushed-candidate checkpoint.
 
 | Spike | Local SHA | Result | Decision consequence |
 |---|---|---|---|
@@ -97,6 +97,10 @@ Scratch worktrees/branches were not merged and must be removed after the plannin
 ## GitHub capability probe — 2026-08-20
 
 Repository remained private with default `main`. Actions are enabled with all actions allowed and no required SHA pinning. Rulesets API returned an empty list; `main` is unprotected. Dependabot alerts and automated fixes are disabled. Secret scanning is disabled, push protection is not evidenced, code scanning is disabled, and private vulnerability reporting was not established. No setting was changed. Exact API results and implementation consequences are recorded in [testing](docs/quality/TESTING.md#actual-private-repository-probe--2026-08-20).
+
+## Final GitHub hardening and cleanup — 2026-08-21
+
+Pushed technical candidate `7d857a216cb9fbd76f2a0afd64418822a84b9a2e` passed all three jobs in [Actions run 32481390293](https://github.com/PranavMishra28/eonfolk/actions/runs/32481390293). GitHub then accepted classic `main` protection with strict required `Verify`, `Formal model`, and `Secret scan` checks, administrator enforcement, and force-push/deletion disabled. Rulesets remain empty; native vulnerability alerts/secret scanning/code scanning remain disabled, so the pinned Gitleaks job is the active secret control. Twenty-six remote tags preserve all unique historical heads. Obsolete draft PR #2 was closed unmerged, its two remote branches were deleted, seven clean auxiliary worktrees and 23 obsolete local branches were removed, and Dependabot PRs #3/#4 remain open and unmerged.
 
 ## Frozen review state
 
@@ -120,9 +124,9 @@ The fourteen published determinism preimages in Simulation and Goal, both displa
 
 The tracked tree contains no production source, executable dependency/lock manifest, workflow, deployment configuration, license, credential, unfinished marker or empty retained artifact. GitHub remains private with default `main`; Actions are enabled, rulesets are empty, `main` is unprotected, Dependabot/automated fixes/secret scanning/code scanning remain disabled or unevidenced, and no setting was changed. Exactly one draft PR remains open and unmerged.
 
-## Draft PR handoff
+## Planning draft PR handoff (historical)
 
-GitHub re-verification found `PranavMishra28/eonfolk` private with default branch `main`. Exactly one PR exists: draft [#1, Plan: Eonfolk product and technical foundation](https://github.com/PranavMishra28/eonfolk/pull/1), base `main`, head `plan/000-product-foundation`, state OPEN and unmerged. Research, review and spike branches remain local only.
+At the planning handoff, draft [#1, Plan: Eonfolk product and technical foundation](https://github.com/PranavMishra28/eonfolk/pull/1) was open and unmerged. The later operator override authorized consolidation; #1 was merged, obsolete implementation PR #2 was closed unmerged, and their superseded remote branches were removed only after archive tags and green `main` existed.
 
 ## Pre-amendment exit evidence (historical)
 
@@ -159,6 +163,6 @@ At the amendment-integration checkpoint, the original `READY FOR GOAL MODE` decl
 - [x] Frozen discipline reviews, five player perspectives, full Goal audits, civilization-amendment audits and the one final targeted confirmation are reconciled with no accepted P0 or unmitigated P1.
 - [x] The self-contained Goal prompt's exact approved Git blob is `a5e30353d3bee951ff25a85758f9accf22aea30a`; external higher-authority approval remains mandatory for execution.
 - [x] Fresh Markdown, link, source, contradiction, secret, license, production-code and Git QA passes.
-- [x] The planning branch is pushed; exactly one matching draft PR remains open, private and unmerged.
+- [x] The private repository is consolidated on protected `main`; required CI is green at the pushed technical candidate; unique history is remotely tagged; obsolete PR/branches/worktrees are cleaned; only unmerged Dependabot PRs remain.
 
 `READY FOR GOAL MODE` means the contract is ready to implement and falsify, not that fun, attachment, refusal tolerance, delayed return, session-20 depth, or the research thesis has been validated with humans.
