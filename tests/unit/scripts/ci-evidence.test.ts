@@ -8,6 +8,26 @@ import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
+	it("uses tier-specific artifact allowlists", () => {
+		const describeArtifacts = (tier: "pr" | "deep") => {
+			const result = spawnSync(
+				process.execPath,
+				["scripts/run-verification-tier.mjs", tier, "--describe-artifacts"],
+				{ cwd: resolve("."), encoding: "utf8" },
+			);
+			expect(result.status).toBe(0);
+			return JSON.parse(result.stdout);
+		};
+		expect(describeArtifacts("pr")).toEqual(["apps/web/dist"]);
+		expect(describeArtifacts("deep")).toEqual([
+			"apps/web/dist",
+			"tmp/eonfolk-persistence-benchmark.json",
+			"tmp/eonfolk-diagnostics-overhead.json",
+			"tmp/eonfolk-diagnostics-browser-comparison.json",
+			"tmp/eonfolk-canonical-performance.json",
+		]);
+	});
+
 	it("keeps the pinned TLC identity in one repository constant", async () => {
 		const directory = mkdtempSync(join(tmpdir(), "eonfolk-wrong-tlc-"));
 		try {

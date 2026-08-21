@@ -83,6 +83,10 @@ A nightly failure blocks milestone acceptance even if it does not retroactively 
 
 Each tier is a maintained command. A named but unimplemented or rejected check is removed from the promised surface. Results bind commit, environment, inputs, command, duration, pass/fail/not-run, and artifact hashes where material. A build or backend suite cannot substitute for a local game run and browser-visible evidence.
 
+The PR browser stage separates **two explicitly test-only crash-injection journeys** from **fourteen production acceptance journeys**. It runs and zero-egress-checks the fault suite first, rebuilds with the exact production configuration, measures that production bundle, then previews the existing `dist` without another build for all fourteen acceptance journeys. The verification wrapper fails closed if that final `dist` is empty or retains either crash-injection marker; its PR artifact manifest hashes only those inspected production files. DEEP manifests additionally admit only the four benchmark outputs produced by that tier. Stale DEEP files in `tmp` therefore cannot enter a PR manifest.
+
+The comparative browser diagnostics benchmark uses the current `Review Mara's choices` accessible control and runs the same arrival -> follow -> investigate -> counsel -> leave/return -> Chronicle path in OFF, LOCAL, and ALPHA builds. A dirty-tree `--smoke-only` run may prove path execution but cannot satisfy DEEP acceptance; only the clean-tree command can return `PASS`.
+
 Cognition changes additionally prove schema/authorization, hidden-fact noninterference, Standard Brain-only liveness, replay without cognition, control/ablation/transfer behavior, planner-promotion fail-closure, pre-run experiment identity/result-journal isolation, and authorized Chronicle-to-Observatory projection. Provider timeout/malformed/fallback checks become mandatory only when an executable adapter exists. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus actual 200% browser zoom, keyboard/dialog focus, reduced motion, selectable semantic fallback, and failing traces where practical.
 
 ## Dependabot and updates

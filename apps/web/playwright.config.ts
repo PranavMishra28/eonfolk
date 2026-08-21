@@ -4,6 +4,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
 	outputDir: resolve(import.meta.dirname, "../../tmp/riverhold-playwright"),
+	grepInvert: /@fault/u,
 	fullyParallel: false,
 	retries: 0,
 	reporter: "line",
@@ -39,8 +40,7 @@ export default defineConfig({
 		serviceWorkers: "block",
 	},
 	webServer: {
-		command:
-			"EONFOLK_E2E_CRASH_HOOKS=1 ./node_modules/.bin/vite build && ./node_modules/.bin/vite preview --port 4174 --strictPort",
+		command: "./node_modules/.bin/vite preview --port 4174 --strictPort",
 		cwd: import.meta.dirname,
 		port: 4174,
 		reuseExistingServer: false,
