@@ -87,6 +87,14 @@ Canonical replay never calls Standard Brain or a model: it applies the preserved
 
 V1 tests missing/throwing/timed-out/malformed proposal handling with a fake `BrainPort` only to prove deterministic fallback. It ships no provider SDK, provider UI, key, branded choice, continuous inference, training, embeddings, vector storage, or model download. Provider-specific 429/licensing/eval suites are conditional on a later real adapter.
 
+## Founder Alpha planner and experiment gate
+
+Standard Brain remains the complete default. A deterministic zero-dependency HTN/GOAP-style Planner is accepted only after a frozen 64-context corpus runs five repetitions with identical outputs, no illegal proposal, no hidden-fact influence, no replay dependency, bounded search/runtime, safe malformed/absence fallback, and improvement in at least three predeclared coherence or branch-diversity cases. Missing any hard gate or improvement floor rejects/removes the Planner rather than expanding search.
+
+POMCP/MCTS is rejected because Riverhold has no calibrated stochastic transition/observation model. Search state may contain only `DecisionContext` fields and bounded planner-local bookkeeping; it cannot read canonical state directly or emit more authority than one `IntentProposal`.
+
+`ExperimentManifestV2` is immutable, JCS-canonicalized, SHA-256 identified, and stored outside Reality. It binds run/scenario/seed, exact initial/context/catalog/brain/build/schema versions, budgets, repetitions, outcome measures, and environment. Results append separately and never become reducer input. A provider-neutral local subprocess adapter is contract-only: explicit existing local executable/model paths, offline mode, bounded stdin/stdout/deadline/memory, no shell expansion, no auto-download/network/server, and normal validation/fallback. Founder Alpha includes no executable, model, weights, SDK, or provider selection.
+
 ## Blocking acceptance
 
 - Hidden-fact noninterference passes for context, catalog, errors, targets, explanation, filtered decision-trace projection, and Chronicle projection; raw audit records are excluded.

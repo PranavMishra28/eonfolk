@@ -36,6 +36,12 @@ Canonical replay means applying the recorded accepted batch-header/event interva
 
 Future experiments use repeated independent manifests/runs, declare interventions and parent snapshot, and report outcome distributions and uncertainty. A counterfactual is factual only about the simulated fork itself; it is never retroactive canon or an unsimulated alternate history.
 
+## Founder Alpha standards-shaped projection
+
+An authorized Observatory record may be projected as bounded embedded JSON-LD 1.1 with a versioned EONFOLK vocabulary and PROV-O mappings for entities, activities, agents, derivation, generation, association, and attribution. A closed offline SHACL-1.0-like validator checks required IDs, types, references, visibility, and allowed predicates. Remote contexts, remote fetching, RDF storage, SPARQL, inference, RDF 1.2-only semantics, and SHACL 1.2 draft features are excluded.
+
+The projection is generated after viewer authorization from existing evidence. Its removal or reordering cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native JSON remains the executable evidence format; JSON-LD is an interoperability view, never a Truth Ledger.
+
 ## Rejected alternatives
 
 Reject benchmark-first onboarding, omniscient agent inspection, chain-of-thought collection, one mixed ledger, rerunning an LLM during canonical replay, treating one seed as scientific evidence, hidden canon mutation, disconnected mini-game experiments, human-society prediction claims, and research scope that changes Gate A/B mechanics.

@@ -74,6 +74,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Mind, Standard Brain, bounded proposals, raw decision records, viewer-safe trace projections and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
+| Flight Recorder modes, redaction, Sentinel, incidents, observer, replay-capture seam, and diagnostics overhead | [DIAGNOSTICS.md](engineering/DIAGNOSTICS.md) |
+| Local feedback queue, consent, optional relay, dedup, quotas, retention, and delivery semantics | [FEEDBACK.md](engineering/FEEDBACK.md) |
 | Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
 
 ## Quality authorities

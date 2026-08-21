@@ -75,6 +75,16 @@ Keep PR CI short enough for a solo loop. Use small seed sets and bounded fuzzing
 
 A nightly failure blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR.
 
+## Founder Alpha verification lattice
+
+- **FAST:** runtime/cohort/architecture/docs/format/lint/typecheck plus focused unit/contract tests for changed packages.
+- **PR:** FAST plus all unit/property tests, deterministic replay, real IndexedDB, timing, production build/budgets/audit, critical headed player journeys, zero-egress validation, diagnostic/feedback security tests, and the bounded formal model.
+- **DEEP:** larger deterministic property/fuzz seeds; 30/90/365-day horizons; repeated OFF/LOCAL/ALPHA performance profiles; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes.
+
+Each tier is a maintained command. A named but unimplemented or rejected check is removed from the promised surface. Results bind commit, environment, inputs, command, duration, pass/fail/not-run, and artifact hashes where material. A build or backend suite cannot substitute for a local game run and browser-visible evidence.
+
+Cognition changes additionally prove schema/authorization, hidden-fact noninterference, provider absence/timeout/malformed output, deterministic fallback, replay without cognition, frozen benchmark repeatability, and experiment isolation. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus 200% text, keyboard, reduced motion, semantic fallback, and failing traces where practical.
+
 ## Dependabot and updates
 
 - Enable weekly grouped updates for npm and GitHub Actions.

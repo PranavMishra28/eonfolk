@@ -124,6 +124,12 @@ Do not remove citizens, facts, interaction results, counsel, Chronicle, or repla
 - The UI remains responsive during catch-up and can display the last committed world state.
 - External cognition is absent in V1. A later local-model spike must disclose artifact bytes and separately measure cold/warm latency, memory, heat, battery, and renderer p95. It cannot run concurrently in a way that violates the frame gates; pause/degrade optional inference or fall back to Standard Brain.
 
+## Diagnostics mode budgets
+
+The canonical OFF/LOCAL/ALPHA ceilings are owned by [Diagnostics](../engineering/DIAGNOSTICS.md#modes-and-hard-budgets). The integrated browser benchmark runs the same build, seed, journey, viewports, warmup, sample duration, and power/network conditions for all three modes. It records p50/p95 frame time, long tasks, input latency, meaningful-display time, heap where supported, serialized bytes/minute, ring/queue bounds, freeze latency, and player-route gzip. Unsupported browser signals are reported as unsupported rather than zero.
+
+OFF may regress p95 frame time by at most 1%; LOCAL and ALPHA by at most 3%. A miss removes or coalesces optional diagnostic detail before any visual/gameplay budget changes. ALPHA serialization/upload work cannot run in animation-critical slices.
+
 ## Resulting implementation behavior
 
 The semantic shell arrives first, the Pixi renderer is lazy but inside the route ceiling, and eight citizens remain readable. Quality tiers reduce decoration before information or agency. A device that cannot sustain canvas receives the complete local game through semantic view.
