@@ -1,9 +1,22 @@
 import type { RestrictedJson } from "@eonfolk/protocol";
 
 export const DIAGNOSTICS_SCHEMA_VERSION = "eonfolk-diagnostics-v1" as const;
-export const REDACTION_POLICY_VERSION = "eonfolk-redaction-v1" as const;
+export const REDACTION_POLICY_VERSION = "eonfolk-redaction-v2" as const;
 
 export type DiagnosticMode = "off" | "local" | "alpha";
+
+export interface DiagnosticModeLimits {
+	readonly maximumEvents: number;
+	readonly maximumBytes: number;
+}
+
+export const DIAGNOSTIC_MODE_LIMITS: Readonly<
+	Record<DiagnosticMode, DiagnosticModeLimits>
+> = Object.freeze({
+	off: Object.freeze({ maximumEvents: 128, maximumBytes: 128 * 1024 }),
+	local: Object.freeze({ maximumEvents: 2_048, maximumBytes: 2 * 1024 * 1024 }),
+	alpha: Object.freeze({ maximumEvents: 512, maximumBytes: 512 * 1024 }),
+});
 export type DiagnosticSeverity =
 	| "debug"
 	| "info"

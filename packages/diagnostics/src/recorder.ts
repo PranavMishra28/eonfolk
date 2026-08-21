@@ -1,8 +1,9 @@
 import { normalizeIngressText } from "@eonfolk/protocol";
 import { diagnosticFingerprint } from "./fingerprint";
-import { sanitizeDiagnosticFields } from "./redaction";
+import { sanitizeDiagnosticFieldsForCategory } from "./redaction";
 import { DiagnosticRingBuffer } from "./ring-buffer";
 import {
+	DIAGNOSTIC_MODE_LIMITS,
 	DIAGNOSTICS_SCHEMA_VERSION,
 	type DiagnosticEvent,
 	type DiagnosticIncident,
@@ -47,9 +48,10 @@ export class FlightRecorder {
 	}) {
 		this.#mode = input.mode;
 		this.#now = input.now;
+		const defaultLimits = DIAGNOSTIC_MODE_LIMITS[input.mode];
 		this.#buffer = new DiagnosticRingBuffer({
-			maximumEvents: input.maximumEvents ?? 256,
-			maximumBytes: input.maximumBytes ?? 128 * 1024,
+			maximumEvents: input.maximumEvents ?? defaultLimits.maximumEvents,
+			maximumBytes: input.maximumBytes ?? defaultLimits.maximumBytes,
 		});
 	}
 
@@ -85,7 +87,7 @@ export class FlightRecorder {
 					? { regionId: safeLabel(input.scope.regionId, "regionId") }
 					: {}),
 			}),
-			fields: sanitizeDiagnosticFields(input.fields),
+			fields: sanitizeDiagnosticFieldsForCategory(input.category, input.fields),
 		});
 		this.#sequence += 1;
 		this.#buffer.push(event);

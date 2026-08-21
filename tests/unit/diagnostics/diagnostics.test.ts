@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
 	diagnosticFingerprint,
+	disabledReplayCapturePort,
 	FlightRecorder,
 	projectLocalObserver,
 	Sentinel,
 	sanitizeDiagnosticFields,
+	sanitizeDiagnosticFieldsForCategory,
 } from "../../../packages/diagnostics/src/index.js";
 
 function clock() {
@@ -24,6 +26,45 @@ describe("Founder Alpha diagnostics", () => {
 		});
 		expect(sanitized).toEqual({ code: "STALE_FENCE", operation: "commit" });
 		expect(JSON.stringify(sanitized)).not.toContain("secret");
+	});
+
+	it("uses category-specific fields and rejects arbitrary string values", () => {
+		const sanitized = sanitizeDiagnosticFieldsForCategory("performance", {
+			durationMs: 17,
+			operation: "frame-summary",
+			invariant: "must-not-cross-category",
+			code: "must-not-cross-category",
+			status: "Bearer-secret-token",
+			chainOfThought: "must never survive",
+		});
+		expect(sanitized).toEqual({
+			durationMs: 17,
+			operation: "frame-summary",
+			status: "[redacted:unsafe-string]",
+		});
+		expect(JSON.stringify(sanitized)).not.toContain("Bearer");
+		expect(JSON.stringify(sanitized)).not.toContain("invariant");
+	});
+
+	it("fails closed for wrong field types, cyclic arrays, and throwing getters", () => {
+		const cyclic: unknown[] = [];
+		cyclic.push(cyclic);
+		const fields: Record<string, unknown> = {
+			durationMs: "17",
+			operation: cyclic,
+		};
+		Object.defineProperty(fields, "status", {
+			enumerable: true,
+			get: () => {
+				throw new Error("must not escape diagnostics");
+			},
+		});
+		expect(() =>
+			sanitizeDiagnosticFieldsForCategory("performance", fields),
+		).not.toThrow();
+		expect(sanitizeDiagnosticFieldsForCategory("performance", fields)).toEqual(
+			{},
+		);
 	});
 
 	it("keeps core mode quiet except failures and Sentinel", () => {
@@ -59,6 +100,35 @@ describe("Founder Alpha diagnostics", () => {
 				fields: { mode: "alpha" },
 			}),
 		).not.toBeNull();
+		const local = new FlightRecorder({ mode: "local", now: clock() });
+		expect(
+			local.record({
+				category: "performance",
+				name: "frame-summary",
+				severity: "debug",
+				outcome: "observed",
+				scope: { component: "renderer" },
+				fields: { durationMs: 17 },
+			}),
+		).not.toBeNull();
+		expect(local.snapshot().mode).toBe("local");
+		expect(local.snapshot().redactionPolicyVersion).toBe(
+			"eonfolk-redaction-v2",
+		);
+	});
+
+	it("keeps disabled replay capture deterministic and side-effect free", () => {
+		expect(Object.isFrozen(disabledReplayCapturePort)).toBe(true);
+		expect(disabledReplayCapturePort.available).toBe(false);
+		expect(disabledReplayCapturePort.begin()).toBe(false);
+		expect(
+			disabledReplayCapturePort.freeze({
+				reason: "explicit-capture",
+				triggerSequence: 12,
+				fingerprint: null,
+			}),
+		).toBeNull();
+		expect(() => disabledReplayCapturePort.discard()).not.toThrow();
 	});
 
 	it("bounds events and bytes while accounting for eviction", () => {
