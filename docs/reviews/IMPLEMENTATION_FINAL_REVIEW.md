@@ -2,7 +2,7 @@
 
 **Purpose:** preserve the hostile review of the first integrated Riverhold implementation, every P0/P1 disposition, the repair evidence, and the final confirmation verdict.
 
-**Status:** RECONCILED; FIRST CONFIRMATION FAILED AT `1834f1f`; REPAIRED CANDIDATE AWAITS FINAL TARGETED CONFIRMATION
+**Status:** RECONCILED; FIRST CONFIRMATION FAILED AT `1834f1f`; REPAIRED CANDIDATE `970879a` AWAITS AC PERFORMANCE AND FINAL TARGETED CONFIRMATION
 
 **Authority boundary:** this file owns implementation-review findings and dispositions. The [ExecPlan](../exec-plans/active/001-foundation.md) owns completion state; engineering and product authorities own the accepted behavior.
 
