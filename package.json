@@ -1,9 +1,14 @@
 {
-	"name": "eonfolk-gate-0-prototype",
+	"name": "eonfolk",
 	"private": true,
 	"packageManager": "pnpm@11.15.1",
 	"type": "module",
+	"engines": {
+		"node": "22.23.1",
+		"pnpm": "11.15.1"
+	},
 	"scripts": {
+		"runtime:check": "node scripts/check-runtime.mjs",
 		"cohort:check": "node scripts/validate-dependency-cohort.mjs",
 		"browser-cohort:check": "node scripts/validate-browser-cohort.mjs && ruby scripts/validate-browser-cohort.rb",
 		"gate0:artifact": "node --experimental-strip-types scripts/generate-gate0-artifact.mjs && node --experimental-strip-types docs/exec-plans/evidence/001/studies/gate-0/validate.mjs && ruby docs/exec-plans/evidence/001/studies/gate-0/validate.rb",
