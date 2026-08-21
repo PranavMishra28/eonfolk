@@ -7,6 +7,7 @@ import {
 	utf8,
 } from "../../../packages/protocol/src/index.js";
 import {
+	assertWorldInvariants,
 	createWorldCommand,
 	prepareTransition,
 	replayLedger,
@@ -33,6 +34,23 @@ async function advance(
 }
 
 describe("bounded deterministic properties", () => {
+	it("rejects a state whose resource baseline no longer conserves", async () => {
+		const genesis = await riverholdFixture();
+		const corrupted: WorldState = {
+			...genesis.state,
+			conservation: {
+				...genesis.state.conservation,
+				baseline: {
+					...genesis.state.conservation.baseline,
+					food: genesis.state.conservation.baseline.food + 1,
+				},
+			},
+		};
+		expect(() => assertWorldInvariants(corrupted)).toThrow(
+			/food conservation failed/u,
+		);
+	});
+
 	it("tuple framing remains injective over former delimiter-ambiguous string pairs", () => {
 		fc.assert(
 			fc.property(
