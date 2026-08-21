@@ -430,10 +430,53 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 		}),
 	).toBeVisible();
 	await expect(page.getByRole("alert")).toContainText(/STALE_FENCE/i);
+	await expect(page.getByText(/Reproduction ID:/i)).toContainText(
+		/inc_[a-f0-9]{24}/u,
+	);
+	await expect(
+		page.getByRole("button", { name: "Report issue / Send feedback" }),
+	).toBeVisible();
 	await newer.getByRole("button", { name: /Follow Mara/ }).click();
 	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(newer.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await newer.close();
+});
+
+test("safe-stop redacts a raw worker error while keeping a local report path", async ({
+	page,
+}) => {
+	await page.addInitScript(() => {
+		const canary = "Bearer ghp_abcdefghijklmnopqrstuvwxyz123456 private-state";
+		window.Worker = class FailedWorker {
+			addEventListener(
+				type: string,
+				listener: EventListenerOrEventListenerObject,
+			) {
+				if (type !== "error") return;
+				window.setTimeout(() => {
+					const event = new ErrorEvent("error", { message: canary });
+					if (typeof listener === "function") listener(event);
+					else listener.handleEvent(event);
+				}, 0);
+			}
+			postMessage() {}
+			terminate() {}
+		} as unknown as typeof Worker;
+	});
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(
+		page.getByRole("heading", {
+			name: /Riverhold stopped before showing further world state/i,
+		}),
+	).toBeVisible();
+	await expect(page.getByText(/Reproduction ID:/i)).toContainText(
+		/inc_[a-f0-9]{24}/u,
+	);
+	await expect(
+		page.getByRole("button", { name: "Report issue / Send feedback" }),
+	).toBeVisible();
+	await expect(page.locator("body")).not.toContainText("ghp_");
+	await expect(page.locator("body")).not.toContainText("private-state");
 });
 
 test("required desktop, laptop, mobile, and 200% text layouts do not overflow", async ({

@@ -37,7 +37,6 @@ describe("browser diagnostics boundary", () => {
 		const incident = await diagnostics.captureRuntimeFailure({
 			code: "STALE_FENCE",
 			component: "runtime-bridge",
-			safeSummary: "This tab stopped before another write.",
 			protectReality: () => {
 				order.push("protected");
 			},
@@ -46,5 +45,12 @@ describe("browser diagnostics boundary", () => {
 		expect(incident.recovery).toBe("safe-stop");
 		expect(diagnostics.observer().health.status).toBe("safe-stop");
 		expect(diagnostics.observer().nativePerformance).toBeNull();
+		expect(diagnostics.observer().capabilities.nativePerformance).toBe(
+			"disabled",
+		);
+		expect(diagnostics.observer().capabilities.localObserver).toBe("disabled");
+		expect(diagnostics.observer().capabilities.replayCapture).toBe(
+			"unsupported",
+		);
 	});
 });

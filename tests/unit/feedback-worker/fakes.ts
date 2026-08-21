@@ -5,6 +5,7 @@ import type {
 	IncidentState,
 	LeaseResult,
 	ReservationResult,
+	SourceQuotaPort,
 	StoredIncident,
 	StoredSubmission,
 	TurnstilePort,
@@ -47,12 +48,75 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 	forceBusy = false;
 	forceQuota = false;
 	forceFailure = false;
+	readonly quotas = new Map<string, { count: number; updatedAtMs: number }>();
+	globalLease: {
+		token: string;
+		untilMs: number;
+		nextMutationAtMs: number;
+	} | null = null;
+
+	async cleanup(input: {
+		readonly nowMs: number;
+		readonly stagingCutoffMs: number;
+		readonly metadataCutoffMs: number;
+		readonly limit: number;
+	}): Promise<void> {
+		if (this.forceFailure) throw new Error("D1 unavailable");
+		let remaining = input.limit;
+		for (const submission of [...this.submissions.values()].sort(
+			(a, b) => a.updatedAtMs - b.updatedAtMs,
+		)) {
+			if (remaining <= 0) break;
+			const incident = this.incidents.get(submission.fingerprint)!;
+			const live =
+				incident.leaseUntilMs !== null && incident.leaseUntilMs > input.nowMs;
+			if (
+				!live &&
+				submission.payloadJson !== null &&
+				submission.updatedAtMs < input.stagingCutoffMs
+			) {
+				submission.payloadJson = null;
+				remaining -= 1;
+			}
+		}
+		remaining = input.limit;
+		for (const submission of [...this.submissions.values()].sort(
+			(a, b) => a.updatedAtMs - b.updatedAtMs,
+		)) {
+			if (remaining <= 0) break;
+			const incident = this.incidents.get(submission.fingerprint)!;
+			const live =
+				incident.leaseUntilMs !== null && incident.leaseUntilMs > input.nowMs;
+			if (!live && submission.updatedAtMs < input.metadataCutoffMs) {
+				this.submissions.delete(submission.submissionId);
+				remaining -= 1;
+			}
+		}
+		for (const incident of [...this.incidents.values()]) {
+			const hasSubmission = [...this.submissions.values()].some(
+				(value) => value.fingerprint === incident.fingerprint,
+			);
+			const live =
+				incident.leaseUntilMs !== null && incident.leaseUntilMs > input.nowMs;
+			if (
+				!hasSubmission &&
+				!live &&
+				incident.updatedAtMs < input.metadataCutoffMs
+			)
+				this.incidents.delete(incident.fingerprint);
+		}
+		for (const [key, quota] of this.quotas) {
+			if (quota.updatedAtMs < input.metadataCutoffMs) this.quotas.delete(key);
+		}
+	}
 
 	async reserve(input: {
 		readonly submissionId: string;
 		readonly fingerprint: string;
 		readonly payloadDigest: string;
 		readonly payloadJson: string;
+		readonly sourceHourKey: string;
+		readonly sourceDayKey: string;
 		readonly nowMs: number;
 	}): Promise<ReservationResult> {
 		if (this.forceFailure) throw new Error("D1 unavailable");
@@ -69,6 +133,27 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 				submission: submissionSnapshot(existing),
 				incident: incidentSnapshot(this.incidents.get(existing.fingerprint)!),
 			};
+		}
+		const hourBucket = Math.floor(input.nowMs / 3_600_000);
+		const dayBucket = Math.floor(input.nowMs / 86_400_000);
+		for (const [scope, key, bucket, maximum] of [
+			["source-hour", input.sourceHourKey, hourBucket, 5],
+			["source-day", input.sourceDayKey, dayBucket, 10],
+		] as const) {
+			const quotaKey = `${scope}:${key}:${bucket}`;
+			const quota = this.quotas.get(quotaKey);
+			if ((quota?.count ?? 0) >= maximum) return { kind: "quota", scope };
+		}
+		for (const [scope, key, bucket] of [
+			["source-hour", input.sourceHourKey, hourBucket],
+			["source-day", input.sourceDayKey, dayBucket],
+		] as const) {
+			const quotaKey = `${scope}:${key}:${bucket}`;
+			const quota = this.quotas.get(quotaKey);
+			this.quotas.set(quotaKey, {
+				count: (quota?.count ?? 0) + 1,
+				updatedAtMs: input.nowMs,
+			});
 		}
 		const submission: MutableSubmission = {
 			submissionId: input.submissionId,
@@ -112,13 +197,21 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 		const incident = this.incidents.get(input.fingerprint)!;
 		if (
 			this.forceBusy ||
-			(incident.leaseUntilMs !== null && incident.leaseUntilMs > input.nowMs)
+			(incident.leaseUntilMs !== null && incident.leaseUntilMs > input.nowMs) ||
+			(this.globalLease !== null &&
+				(this.globalLease.untilMs > input.nowMs ||
+					this.globalLease.nextMutationAtMs > input.nowMs))
 		)
 			return { kind: "busy", retryAfterSeconds: 1 };
 		incident.state = "creating";
 		incident.leaseToken = input.leaseToken;
 		incident.leaseUntilMs = input.leaseUntilMs;
 		incident.updatedAtMs = input.nowMs;
+		this.globalLease = {
+			token: input.leaseToken,
+			untilMs: input.leaseUntilMs,
+			nextMutationAtMs: 0,
+		};
 		return { kind: "acquired", incident: incidentSnapshot(incident) };
 	}
 
@@ -132,7 +225,10 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 		if (this.forceFailure) throw new Error("D1 unavailable");
 		const submission = this.submissions.get(input.submissionId)!;
 		const incident = this.incidents.get(submission.fingerprint)!;
-		if (incident.leaseToken !== input.leaseToken)
+		if (
+			incident.leaseToken !== input.leaseToken ||
+			this.globalLease?.token !== input.leaseToken
+		)
 			throw new Error("stale lease");
 		submission.state = "delivered";
 		submission.payloadJson = null;
@@ -144,6 +240,11 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 		incident.leaseToken = null;
 		incident.leaseUntilMs = null;
 		incident.updatedAtMs = input.nowMs;
+		this.globalLease = {
+			token: "",
+			untilMs: 0,
+			nextMutationAtMs: input.nowMs + 1_000,
+		};
 		return submissionSnapshot(submission);
 	}
 
@@ -155,7 +256,10 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 		if (this.forceFailure) throw new Error("D1 unavailable");
 		const submission = this.submissions.get(input.submissionId)!;
 		const incident = this.incidents.get(submission.fingerprint)!;
-		if (incident.leaseToken !== input.leaseToken)
+		if (
+			incident.leaseToken !== input.leaseToken ||
+			this.globalLease?.token !== input.leaseToken
+		)
 			throw new Error("stale lease");
 		submission.state = "retryable";
 		submission.updatedAtMs = input.nowMs;
@@ -163,6 +267,28 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 		incident.leaseToken = null;
 		incident.leaseUntilMs = null;
 		incident.updatedAtMs = input.nowMs;
+		this.globalLease = {
+			token: "",
+			untilMs: 0,
+			nextMutationAtMs: input.nowMs + 1_000,
+		};
+	}
+}
+
+export class FakeSourceQuota implements SourceQuotaPort {
+	hourKey = "a".repeat(64);
+	dayKey = "b".repeat(64);
+	throwNext = false;
+
+	async bucketKeys(): Promise<{
+		readonly hourKey: string;
+		readonly dayKey: string;
+	}> {
+		if (this.throwNext) {
+			this.throwNext = false;
+			throw new Error("source unavailable");
+		}
+		return { hourKey: this.hourKey, dayKey: this.dayKey };
 	}
 }
 

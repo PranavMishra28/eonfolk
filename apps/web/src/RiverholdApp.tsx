@@ -1,3 +1,4 @@
+import type { DiagnosticIncident } from "@eonfolk/diagnostics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chronicle } from "./components/Chronicle";
 import { FeedbackPanel } from "./components/FeedbackPanel";
@@ -21,18 +22,13 @@ type Sheet =
 	| null;
 
 interface RuntimeFailure {
-	readonly code: string | null;
-	readonly message: string;
+	readonly writeAuthorityTransferred: boolean;
 }
 
 function runtimeFailure(error: unknown): RuntimeFailure {
 	if (error instanceof RiverholdRuntimeError)
-		return { code: error.code, message: error.message };
-	return {
-		code: null,
-		message:
-			error instanceof Error ? error.message : "Riverhold runtime failed",
-	};
+		return { writeAuthorityTransferred: error.code === "STALE_FENCE" };
+	return { writeAuthorityTransferred: false };
 }
 
 function InkMark() {
@@ -495,6 +491,8 @@ export function RiverholdApp() {
 	);
 	const [sheet, setSheet] = useState<Sheet>(null);
 	const [runtimeError, setRuntimeError] = useState<RuntimeFailure | null>(null);
+	const [runtimeIncident, setRuntimeIncident] =
+		useState<DiagnosticIncident | null>(null);
 	const phaseFocus = useRef<HTMLElement>(null);
 	const pendingDispatch = useRef(true);
 	const dialog = useRef<HTMLElement>(null);
@@ -503,12 +501,13 @@ export function RiverholdApp() {
 		const failure = runtimeFailure(error);
 		void browserDiagnostics
 			.captureRuntimeFailure({
-				code: failure.code ?? "RUNTIME_FAILED",
+				code: failure.writeAuthorityTransferred
+					? "STALE_FENCE"
+					: "RUNTIME_FAILED",
 				component: "riverhold-app",
-				safeSummary:
-					"Riverhold paused before showing further world state. Your durable local record was not replaced.",
 				protectReality: () => bridge.clear(),
 			})
+			.then(setRuntimeIncident)
 			.finally(() => setRuntimeError(failure));
 	};
 
@@ -620,20 +619,22 @@ export function RiverholdApp() {
 					No world state or Chronicle is being presented as authoritative. This
 					Founder Alpha requires a working Web Worker and browser storage.
 				</p>
-				{runtimeError.code === "STALE_FENCE" && (
+				{runtimeError.writeAuthorityTransferred && (
 					<p role="alert">
 						<strong>Another Riverhold tab took write authority.</strong> This
 						tab was stopped with STALE_FENCE so it cannot overwrite the newer
 						world.
 					</p>
 				)}
-				<details>
-					<summary>Technical detail</summary>
-					<code>
-						{runtimeError.code === null ? "" : `${runtimeError.code}: `}
-						{runtimeError.message}
-					</code>
-				</details>
+				{runtimeIncident !== null && (
+					<aside aria-label="Local reproduction details">
+						<p>{runtimeIncident.safeSummary}</p>
+						<p>
+							Reproduction ID: <code>{runtimeIncident.incidentId}</code>
+						</p>
+					</aside>
+				)}
+				<FeedbackPanel />
 			</main>
 		);
 

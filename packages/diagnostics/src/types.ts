@@ -6,6 +6,21 @@ export const REDACTION_POLICY_VERSION = "eonfolk-redaction-v2" as const;
 
 export type DiagnosticMode = "off" | "local" | "alpha";
 
+export type DiagnosticCapabilityState =
+	| "disabled"
+	| "unsupported"
+	| "available"
+	| "active";
+
+export interface DiagnosticCapabilities {
+	readonly nativePerformance: DiagnosticCapabilityState;
+	readonly localObserver: DiagnosticCapabilityState;
+	readonly feedbackDiagnostics: DiagnosticCapabilityState;
+	readonly replayCapture: DiagnosticCapabilityState;
+	readonly workerRuntime: DiagnosticCapabilityState;
+	readonly networkRelay: DiagnosticCapabilityState;
+}
+
 export type DiagnosticRuntimeClass =
 	| "browser-worker-capable"
 	| "browser-main-thread"
@@ -100,10 +115,16 @@ export type IncidentReason =
 	| "feedback"
 	| "explicit-capture";
 
+export type IncidentSummaryCode =
+	| "reality-protected"
+	| "write-authority-transferred"
+	| "diagnostic-capture";
+
 export interface DiagnosticSnapshot {
 	readonly schemaVersion: typeof DIAGNOSTICS_SCHEMA_VERSION;
 	readonly mode: DiagnosticMode;
 	readonly identity: DiagnosticIdentity;
+	readonly capabilities: DiagnosticCapabilities;
 	readonly redactionPolicyVersion: typeof REDACTION_POLICY_VERSION;
 	readonly frozen: boolean;
 	readonly droppedEvents: number;
@@ -116,6 +137,7 @@ export interface DiagnosticIncident {
 	readonly incidentId: string;
 	readonly fingerprint: string;
 	readonly reason: IncidentReason;
+	readonly summaryCode: IncidentSummaryCode;
 	readonly safeSummary: string;
 	readonly createdAtMonotonicMs: number;
 	readonly snapshot: DiagnosticSnapshot;
@@ -134,6 +156,7 @@ export interface WorldHeadSummary {
 export interface ObserverProjection {
 	readonly schemaVersion: "eonfolk-observer-v1";
 	readonly identity: DiagnosticIdentity;
+	readonly capabilities: DiagnosticCapabilities;
 	readonly health: Readonly<{
 		readonly mode: DiagnosticMode;
 		readonly status: "healthy" | "degraded" | "safe-stop";
@@ -144,6 +167,7 @@ export interface ObserverProjection {
 		readonly incidentId: string;
 		readonly fingerprint: string;
 		readonly reason: IncidentReason;
+		readonly summaryCode: IncidentSummaryCode;
 		readonly safeSummary: string;
 		readonly recovery: DiagnosticIncident["recovery"];
 	}>[];

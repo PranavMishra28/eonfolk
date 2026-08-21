@@ -7,6 +7,9 @@ export const MAX_JSON_BYTES = 32 * 1024;
 export const MAX_PROSE_SCALARS = 2_000;
 export const MAX_DIAGNOSTICS_BYTES = 24 * 1024;
 export const LEASE_DURATION_MS = 30_000;
+export const FEEDBACK_STAGING_TTL_MS = 7 * 24 * 60 * 60 * 1_000;
+export const FEEDBACK_METADATA_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
+export const FEEDBACK_CLEANUP_BATCH = 100;
 export const FEEDBACK_GITHUB_REPOSITORY = Object.freeze({
 	owner: "PranavMishra28",
 	name: "eonfolk",
@@ -62,6 +65,18 @@ export interface TurnstilePort {
 	}): Promise<TurnstileVerification>;
 }
 
+export interface SourceQuotaKeys {
+	readonly hourKey: string;
+	readonly dayKey: string;
+}
+
+export interface SourceQuotaPort {
+	bucketKeys(input: {
+		readonly request: Request;
+		readonly nowMs: number;
+	}): Promise<SourceQuotaKeys>;
+}
+
 export type SubmissionState = "reserved" | "retryable" | "delivered";
 export type IncidentState = "reserved" | "creating" | "open" | "retryable";
 
@@ -101,11 +116,19 @@ export type LeaseResult =
 	| { readonly kind: "busy"; readonly retryAfterSeconds: number };
 
 export interface FeedbackRepository {
+	cleanup(input: {
+		readonly nowMs: number;
+		readonly stagingCutoffMs: number;
+		readonly metadataCutoffMs: number;
+		readonly limit: number;
+	}): Promise<void>;
 	reserve(input: {
 		readonly submissionId: string;
 		readonly fingerprint: string;
 		readonly payloadDigest: string;
 		readonly payloadJson: string;
+		readonly sourceHourKey: string;
+		readonly sourceDayKey: string;
 		readonly nowMs: number;
 	}): Promise<ReservationResult>;
 	acquireLease(input: {
@@ -160,6 +183,7 @@ export interface FeedbackWorkerDependencies {
 	readonly repository: FeedbackRepository;
 	readonly turnstile: TurnstilePort;
 	readonly github: GitHubIssuePort;
+	readonly sourceQuota: SourceQuotaPort;
 	readonly digest?: DigestPort;
 	readonly now?: () => number;
 	readonly randomId?: () => string;

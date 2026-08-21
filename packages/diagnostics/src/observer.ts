@@ -1,10 +1,10 @@
+import type { PerformanceSummary, PerformanceSupport } from "./performance";
 import type {
 	DiagnosticIncident,
 	DiagnosticSnapshot,
 	ObserverProjection,
 	WorldHeadSummary,
 } from "./types";
-import type { PerformanceSummary, PerformanceSupport } from "./performance";
 
 export function projectLocalObserver(input: {
 	readonly snapshot: DiagnosticSnapshot;
@@ -27,6 +27,7 @@ export function projectLocalObserver(input: {
 	return Object.freeze({
 		schemaVersion: "eonfolk-observer-v1",
 		identity: input.snapshot.identity,
+		capabilities: input.snapshot.capabilities,
 		health: Object.freeze({
 			mode: input.snapshot.mode,
 			status,
@@ -39,6 +40,7 @@ export function projectLocalObserver(input: {
 					incidentId: incident.incidentId,
 					fingerprint: incident.fingerprint,
 					reason: incident.reason,
+					summaryCode: incident.summaryCode,
 					safeSummary: incident.safeSummary,
 					recovery: incident.recovery,
 				}),

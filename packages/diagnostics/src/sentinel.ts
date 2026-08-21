@@ -1,12 +1,12 @@
 import type { FlightRecorder } from "./recorder";
-import type { DiagnosticIncident } from "./types";
+import type { DiagnosticIncident, IncidentSummaryCode } from "./types";
 
 export interface SentinelCheck {
 	readonly invariant: string;
 	readonly holds: boolean;
 	readonly component: string;
 	readonly code: string;
-	readonly safeSummary: string;
+	readonly summaryCode: IncidentSummaryCode;
 }
 
 export class Sentinel {
@@ -60,7 +60,7 @@ export class Sentinel {
 		return this.#recorder.freeze({
 			reason: "invariant",
 			trigger,
-			safeSummary: check.safeSummary,
+			summaryCode: check.summaryCode,
 			recovery: recovered ? "recovered" : "safe-stop",
 		});
 	}

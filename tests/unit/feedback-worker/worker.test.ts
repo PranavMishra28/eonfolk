@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	ATTACHMENTS_ENABLED,
 	createFeedbackWorker,
+	createHmacSourceQuotaPort,
 	FEEDBACK_ERROR_VERSION,
 	FEEDBACK_RECEIPT_VERSION,
 	FEEDBACK_SCHEMA_VERSION,
 } from "../../../apps/feedback-worker/src/index.js";
 import {
 	FakeGitHub,
+	FakeSourceQuota,
 	FakeTurnstile,
 	MemoryFeedbackRepository,
 } from "./fakes.js";
@@ -73,6 +75,7 @@ describe("Founder Alpha feedback Worker", () => {
 	let repository: MemoryFeedbackRepository;
 	let turnstile: FakeTurnstile;
 	let github: FakeGitHub;
+	let sourceQuota: FakeSourceQuota;
 	let clock: number;
 	let worker: ReturnType<typeof createFeedbackWorker>;
 
@@ -80,6 +83,7 @@ describe("Founder Alpha feedback Worker", () => {
 		repository = new MemoryFeedbackRepository();
 		turnstile = new FakeTurnstile();
 		github = new FakeGitHub();
+		sourceQuota = new FakeSourceQuota();
 		clock = 1_800_000_000_000;
 		worker = createFeedbackWorker(
 			{
@@ -91,6 +95,7 @@ describe("Founder Alpha feedback Worker", () => {
 				repository,
 				turnstile,
 				github,
+				sourceQuota,
 				now: () => clock,
 				randomId: () => "0123456789abcdef0123456789abcdef",
 			},
@@ -348,8 +353,75 @@ describe("Founder Alpha feedback Worker", () => {
 		response = await worker.fetch(request(payload(4)));
 		expect(response.status).toBe(503);
 		expect(await responseBody(response)).toMatchObject({
-			code: "repository-unavailable",
+			code: "repository-cleanup-unavailable",
 			retryable: true,
 		});
+	});
+
+	it("blocks a sixth keyed-source report in one hour before GitHub mutation", async () => {
+		for (let value = 1; value <= 5; value += 1) {
+			const body = payload(value);
+			body.diagnostics = {
+				...((body.diagnostics as Record<string, unknown>) ?? {}),
+				errorCode: `E_DISTINCT_${value}`,
+			};
+			expect((await worker.fetch(request(body))).status).toBe(201);
+			clock += 1_000;
+		}
+		const blocked = await worker.fetch(request(payload(6)));
+		expect(blocked.status).toBe(429);
+		expect(await responseBody(blocked)).toMatchObject({
+			code: "feedback-quota-reached",
+		});
+		expect(github.issues).toHaveLength(5);
+
+		sourceQuota.hourKey = "c".repeat(64);
+		sourceQuota.dayKey = "d".repeat(64);
+		const otherSource = payload(7);
+		otherSource.diagnostics = {
+			...((otherSource.diagnostics as Record<string, unknown>) ?? {}),
+			errorCode: "E_OTHER_SOURCE",
+		};
+		expect((await worker.fetch(request(otherSource))).status).toBe(201);
+	});
+
+	it("rotates privacy-preserving HMAC quota keys at exact UTC boundaries", async () => {
+		const secret = await crypto.subtle.importKey(
+			"raw",
+			new TextEncoder().encode("test-only-source-quota-secret"),
+			{ name: "HMAC", hash: "SHA-256" },
+			false,
+			["sign"],
+		);
+		const quota = createHmacSourceQuotaPort({ secret });
+		const source = "203.0.113.7";
+		const sourceRequest = new Request(ROUTE, {
+			headers: { "CF-Connecting-IP": source },
+		});
+		const initial = await quota.bucketKeys({
+			request: sourceRequest,
+			nowMs: 0,
+		});
+		const sameHour = await quota.bucketKeys({
+			request: sourceRequest,
+			nowMs: 3_599_999,
+		});
+		const nextHour = await quota.bucketKeys({
+			request: sourceRequest,
+			nowMs: 3_600_000,
+		});
+		const nextDay = await quota.bucketKeys({
+			request: sourceRequest,
+			nowMs: 86_400_000,
+		});
+		expect(sameHour).toEqual(initial);
+		expect(nextHour.hourKey).not.toBe(initial.hourKey);
+		expect(nextHour.dayKey).toBe(initial.dayKey);
+		expect(nextDay.hourKey).not.toBe(nextHour.hourKey);
+		expect(nextDay.dayKey).not.toBe(initial.dayKey);
+		expect(JSON.stringify([initial, nextHour, nextDay])).not.toContain(source);
+		await expect(
+			quota.bucketKeys({ request: new Request(ROUTE), nowMs: 0 }),
+		).rejects.toThrow(/unavailable/u);
 	});
 });

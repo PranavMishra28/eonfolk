@@ -232,13 +232,35 @@ describe("Founder Alpha diagnostics", () => {
 			fields: { code: "QUOTA_ABORT", operation: "commit" },
 		});
 		expect(event).not.toBeNull();
-		const first = await diagnosticFingerprint("runtime-failure", event!);
-		const second = await diagnosticFingerprint("runtime-failure", {
-			...event!,
-			sequence: 900,
-			monotonicMs: 999,
+		const first = await diagnosticFingerprint("runtime-failure", event!, {
+			buildSha: "a".repeat(40),
+			protocolVersion: "protocol-v1",
 		});
+		const second = await diagnosticFingerprint(
+			"runtime-failure",
+			{
+				...event!,
+				sequence: 900,
+				monotonicMs: 999,
+			},
+			{
+				buildSha: "a".repeat(40),
+				protocolVersion: "protocol-v1",
+			},
+		);
 		expect(first).toBe(second);
+		expect(
+			await diagnosticFingerprint("runtime-failure", event!, {
+				buildSha: "b".repeat(40),
+				protocolVersion: "protocol-v1",
+			}),
+		).not.toBe(first);
+		expect(
+			await diagnosticFingerprint("runtime-failure", event!, {
+				buildSha: "a".repeat(40),
+				protocolVersion: "protocol-v2",
+			}),
+		).not.toBe(first);
 		expect(first).toMatch(/^inc_[a-f0-9]{24}$/u);
 	});
 
@@ -260,7 +282,7 @@ describe("Founder Alpha diagnostics", () => {
 			holds: false,
 			component: "authoritative-runtime",
 			code: "HEAD_MISMATCH",
-			safeSummary: "Riverhold paused before showing further world state.",
+			summaryCode: "reality-protected",
 		});
 		expect(order).toEqual(["protect", "recover"]);
 		expect(incident?.recovery).toBe("safe-stop");
@@ -277,10 +299,39 @@ describe("Founder Alpha diagnostics", () => {
 			},
 		});
 		expect(observer.health.status).toBe("safe-stop");
+		expect(observer.capabilities.nativePerformance).toBe("unsupported");
 		expect(observer.worldHead?.revision).toBe(4);
 		const bytes = JSON.stringify(observer);
 		expect(bytes).not.toContain("stateHash");
 		expect(bytes).not.toContain("decisionRecord");
 		expect(bytes).not.toContain("prompt");
+	});
+
+	it("projects only closed authored incident summaries", async () => {
+		const recorder = new FlightRecorder({ mode: "alpha", now: clock() });
+		const trigger = recorder.record({
+			category: "sentinel",
+			name: "invariant-violation",
+			severity: "critical",
+			outcome: "failed",
+			scope: { component: "runtime" },
+			fields: { code: "RUNTIME_FAILED", invariant: "world-head-agreement" },
+		});
+		const incident = await recorder.freeze({
+			reason: "runtime-failure",
+			trigger: trigger!,
+			summaryCode: "Bearer ghp_abcdefghijklmnopqrstuvwxyz123456" as never,
+			recovery: "safe-stop",
+		});
+		const serialized = JSON.stringify(
+			projectLocalObserver({
+				snapshot: recorder.snapshot(),
+				incidents: [incident],
+				worldHead: null,
+			}),
+		);
+		expect(incident.safeSummary).toContain("Riverhold paused");
+		expect(serialized).not.toContain("ghp_");
+		expect(incident.incidentId).toMatch(/^inc_[a-f0-9]{24}$/u);
 	});
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BrowserDiagnostics } from "./diagnostics.js";
 import {
 	composeFeedbackText,
 	createLocalFeedbackReport,
@@ -6,6 +7,8 @@ import {
 	sanitizeFeedbackText,
 	validateFeedbackAttachmentInput,
 } from "./feedback.js";
+
+const STORAGE_KEY = "eonfolk:founder-alpha-feedback:v1";
 
 class MemoryStorage implements Storage {
 	readonly #values = new Map<string, string>();
@@ -115,5 +118,78 @@ describe("Founder Alpha feedback", () => {
 		);
 		now += 7 * 24 * 60 * 60 * 1_000 + 1;
 		expect(queue.list()).toEqual([]);
+	});
+
+	it("reconstructs a closed diagnostic projection instead of retaining trace data", () => {
+		const diagnostics = new BrowserDiagnostics("local");
+		diagnostics.record({
+			category: "ui",
+			name: "panel-open",
+			severity: "info",
+			outcome: "observed",
+			scope: { component: "feedback" },
+			fields: { operation: "open" },
+		});
+		const report = createLocalFeedbackReport({
+			category: "bug",
+			whatHappened: "The panel stopped.",
+			whatExpected: "The panel should open.",
+			diagnostics: diagnostics.observer(),
+			attachment: null,
+			reportId: "alpha_diagnostics",
+			createdAtMs: 10,
+		});
+		expect(report.diagnostics?.schemaVersion).toBe(
+			"eonfolk-local-feedback-diagnostics-v1",
+		);
+		expect(JSON.stringify(report)).not.toContain("panel-open");
+		expect(report.diagnostics?.capabilities.localObserver).toBe("active");
+	});
+
+	it("prunes hostile, future-dated, unknown, and oversized browser records", () => {
+		const storage = new MemoryStorage();
+		const now = 10 * 24 * 60 * 60 * 1_000;
+		const valid = createLocalFeedbackReport({
+			category: "bug",
+			whatHappened: "Valid bounded report.",
+			whatExpected: "",
+			diagnostics: null,
+			attachment: null,
+			reportId: "alpha_valid_report",
+			createdAtMs: now,
+		});
+		storage.setItem(
+			STORAGE_KEY,
+			JSON.stringify([
+				valid,
+				{ ...valid, reportId: "alpha_future", createdAtMs: now + 31536000000 },
+				{ ...valid, reportId: "alpha_unknown", attacker: "private" },
+				{
+					...valid,
+					reportId: "alpha_nested",
+					diagnostics: { schemaVersion: "attacker", nested: { private: true } },
+				},
+				{
+					...valid,
+					reportId: "alpha_bad_image",
+					attachment: {
+						mimeType: "image/png",
+						width: 1,
+						height: 1,
+						byteLength: 99,
+						dataUrl: "data:image/png;base64,AAAA",
+					},
+				},
+			]),
+		);
+		const reports = new LocalFeedbackQueue(storage, () => now).list();
+		expect(reports.map((report) => report.reportId)).toEqual([
+			"alpha_valid_report",
+		]);
+		expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "[]")).toHaveLength(1);
+
+		storage.setItem(STORAGE_KEY, "x".repeat(4 * 1024 * 1024 + 1));
+		expect(new LocalFeedbackQueue(storage, () => now).list()).toEqual([]);
+		expect(storage.getItem(STORAGE_KEY)).toBeNull();
 	});
 });

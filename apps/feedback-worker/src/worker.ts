@@ -1,8 +1,11 @@
 import {
+	FEEDBACK_CLEANUP_BATCH,
 	FEEDBACK_ERROR_VERSION,
 	FEEDBACK_GITHUB_REPOSITORY,
+	FEEDBACK_METADATA_TTL_MS,
 	FEEDBACK_RECEIPT_VERSION,
 	FEEDBACK_ROUTE,
+	FEEDBACK_STAGING_TTL_MS,
 	type FeedbackSubmission,
 	type FeedbackWorkerConfig,
 	type FeedbackWorkerDependencies,
@@ -391,6 +394,45 @@ export function createFeedbackWorker(
 			}
 
 			const timestamp = now();
+			let sourceQuotaKeys: Awaited<
+				ReturnType<typeof dependencies.sourceQuota.bucketKeys>
+			>;
+			try {
+				sourceQuotaKeys = await dependencies.sourceQuota.bucketKeys({
+					request,
+					nowMs: timestamp,
+				});
+			} catch {
+				return errorResponse(
+					{
+						status: 503,
+						code: "source-quota-unavailable",
+						message: "Feedback abuse protection is temporarily unavailable.",
+						retryable: true,
+						retryAfterSeconds: 30,
+					},
+					origin,
+				);
+			}
+			try {
+				await dependencies.repository.cleanup({
+					nowMs: timestamp,
+					stagingCutoffMs: Math.max(0, timestamp - FEEDBACK_STAGING_TTL_MS),
+					metadataCutoffMs: Math.max(0, timestamp - FEEDBACK_METADATA_TTL_MS),
+					limit: FEEDBACK_CLEANUP_BATCH,
+				});
+			} catch {
+				return errorResponse(
+					{
+						status: 503,
+						code: "repository-cleanup-unavailable",
+						message: "Feedback retention cleanup is temporarily unavailable.",
+						retryable: true,
+						retryAfterSeconds: 30,
+					},
+					origin,
+				);
+			}
 			let reservation: ReservationResult;
 			try {
 				reservation = await dependencies.repository.reserve({
@@ -398,6 +440,8 @@ export function createFeedbackWorker(
 					fingerprint,
 					payloadDigest,
 					payloadJson: serializePayload(payload),
+					sourceHourKey: sourceQuotaKeys.hourKey,
+					sourceDayKey: sourceQuotaKeys.dayKey,
 					nowMs: timestamp,
 				});
 			} catch {

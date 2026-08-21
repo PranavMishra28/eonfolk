@@ -60,9 +60,10 @@ interface SubmissionRow {
 const RESERVE_SQL = `
 INSERT INTO feedback_submissions (
   submission_id, fingerprint, payload_digest, payload_json, state,
-  issue_number, comment_id, day_bucket, created_at_ms, updated_at_ms
+  issue_number, comment_id, source_hour_key, source_day_key,
+  hour_bucket, day_bucket, created_at_ms, updated_at_ms
 )
-SELECT ?, ?, ?, ?, 'reserved', NULL, NULL, ?, ?, ?
+SELECT ?, ?, ?, ?, 'reserved', NULL, NULL, ?, ?, ?, ?, ?, ?
 WHERE NOT EXISTS (
   SELECT 1 FROM feedback_submissions WHERE submission_id = ?
 )
@@ -95,8 +96,15 @@ const ACQUIRE_LEASE_SQL = `
 UPDATE feedback_incidents
 SET state = 'creating', lease_token = ?, lease_until_ms = ?, updated_at_ms = ?
 WHERE fingerprint = ?
-  AND (lease_until_ms IS NULL OR lease_until_ms <= ?)
+  AND (lease_until_ms IS NULL OR (lease_until_ms <= ? AND lease_token <> ?))
 RETURNING *
+`;
+
+const CLEANUP_SQL = `
+UPDATE feedback_cleanup SET
+  requested_at_ms = ?, staging_cutoff_ms = ?, metadata_cutoff_ms = ?, batch_limit = ?
+WHERE singleton = 1
+RETURNING singleton
 `;
 
 const DELIVER_SQL = `
@@ -178,13 +186,34 @@ export class D1FeedbackRepository implements FeedbackRepository {
 		this.#database = database;
 	}
 
+	async cleanup(input: {
+		readonly nowMs: number;
+		readonly stagingCutoffMs: number;
+		readonly metadataCutoffMs: number;
+		readonly limit: number;
+	}): Promise<void> {
+		const row = await this.#database
+			.prepare(CLEANUP_SQL)
+			.bind(
+				input.nowMs,
+				input.stagingCutoffMs,
+				input.metadataCutoffMs,
+				input.limit,
+			)
+			.first<{ singleton: number }>();
+		if (row === null) throw new Error("D1 cleanup control row is unavailable");
+	}
+
 	async reserve(input: {
 		readonly submissionId: string;
 		readonly fingerprint: string;
 		readonly payloadDigest: string;
 		readonly payloadJson: string;
+		readonly sourceHourKey: string;
+		readonly sourceDayKey: string;
 		readonly nowMs: number;
 	}): Promise<ReservationResult> {
+		const hourBucket = Math.floor(input.nowMs / 3_600_000);
 		const dayBucket = Math.floor(input.nowMs / 86_400_000);
 		let inserted = false;
 		try {
@@ -195,6 +224,9 @@ export class D1FeedbackRepository implements FeedbackRepository {
 					input.fingerprint,
 					input.payloadDigest,
 					input.payloadJson,
+					input.sourceHourKey,
+					input.sourceDayKey,
+					hourBucket,
 					dayBucket,
 					input.nowMs,
 					input.nowMs,
@@ -241,6 +273,7 @@ export class D1FeedbackRepository implements FeedbackRepository {
 					input.nowMs,
 					input.fingerprint,
 					input.nowMs,
+					input.leaseToken,
 				)
 				.first<IncidentRow>();
 		} catch (error) {

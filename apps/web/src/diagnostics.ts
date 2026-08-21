@@ -1,5 +1,6 @@
 import {
 	BoundedPerformanceSummary,
+	type DiagnosticCapabilities,
 	type DiagnosticIncident,
 	type DiagnosticInput,
 	type DiagnosticMode,
@@ -49,11 +50,30 @@ export class BrowserDiagnostics {
 	#incidents: DiagnosticIncident[] = [];
 	#worldHead: WorldHeadSummary | null = null;
 	#worldReadyMarked = false;
+	#capabilities: DiagnosticCapabilities;
 
 	constructor(mode: DiagnosticMode = configuredMode()) {
 		let fallbackTick = 0;
+		const workerAvailable =
+			typeof window !== "undefined" && typeof Worker !== "undefined";
+		const performanceAvailable =
+			typeof globalThis.performance?.now === "function";
+		this.#capabilities = Object.freeze({
+			nativePerformance:
+				mode === "off"
+					? "disabled"
+					: performanceAvailable
+						? "active"
+						: "unsupported",
+			localObserver: mode === "local" ? "active" : "disabled",
+			feedbackDiagnostics: mode === "alpha" ? "active" : "available",
+			replayCapture: "unsupported",
+			workerRuntime: workerAvailable ? "active" : "unsupported",
+			networkRelay: "unsupported",
+		});
 		this.#recorder = new FlightRecorder({
 			mode,
+			capabilities: this.#capabilities,
 			identity: {
 				diagnosticSessionId: diagnosticSessionId(),
 				buildSha:
@@ -117,6 +137,12 @@ export class BrowserDiagnostics {
 			this.#performanceSummary = performance?.summary ?? null;
 			this.#performance = performance?.monitor ?? null;
 		}
+		this.#capabilities = Object.freeze({
+			...this.#capabilities,
+			nativePerformance: this.#performance === null ? "unsupported" : "active",
+			feedbackDiagnostics: "active",
+		});
+		this.#recorder.setCapabilities(this.#capabilities);
 		this.record({
 			category: "ui",
 			name: "alpha-capture-consent",
@@ -151,7 +177,6 @@ export class BrowserDiagnostics {
 	async captureRuntimeFailure(input: {
 		readonly code: string;
 		readonly component: string;
-		readonly safeSummary: string;
 		readonly protectReality: () => void | Promise<void>;
 	}): Promise<DiagnosticIncident> {
 		const sentinel = new Sentinel({
@@ -164,7 +189,10 @@ export class BrowserDiagnostics {
 			holds: false,
 			component: input.component,
 			code: input.code,
-			safeSummary: input.safeSummary,
+			summaryCode:
+				input.code === "STALE_FENCE"
+					? "write-authority-transferred"
+					: "reality-protected",
 		});
 		if (incident === null)
 			throw new Error("runtime failure did not create an incident");
