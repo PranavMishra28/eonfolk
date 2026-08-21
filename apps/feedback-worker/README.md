@@ -9,6 +9,18 @@ by `createFeedbackWorker`. The caller must supply four explicit capabilities:
 - the `D1FeedbackRepository` over a migrated D1 binding; and
 - a private GitHub App delivery port fixed to the one approved repository.
 
+`createCloudflareTurnstilePort` supplies the concrete Siteverify adapter using an
+injected secret and optional injected `fetch`. `createGitHubIssuePort` supplies
+the concrete GitHub Issues adapter and rejects every destination except
+`PranavMishra28/eonfolk`. It obtains short-lived credentials only through an
+`InstallationTokenProvider`. `createGitHubAppInstallationTokenProvider` is the
+included Cloudflare-compatible token authority: it signs a nine-minute RS256 JWT
+with WebCrypto from an injected, unencrypted PKCS#8 key and exchanges it for an
+installation token. Secrets and tokens are never accepted from a request,
+returned in an error, or logged. Provider calls use exact HTTPS origins and
+paths, manual redirect handling, bounded JSON responses, and required response
+schema checks.
+
 The endpoint is `POST /v1/feedback`. It accepts at most 32 KiB of JSON, 2,000
 Unicode scalar values of prose, and a small allowlisted diagnostic projection.
 Unknown properties are rejected. Attachments and every R2 path are intentionally
