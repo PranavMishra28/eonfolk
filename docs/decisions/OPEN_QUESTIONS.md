@@ -107,3 +107,35 @@
 - **Fastest falsification:** After both product gates and a separately reviewed export design, give one frozen authorized dataset plus schema to independent systems/research reviewers and ask them to reconstruct sampled decision/event chains and specify a repeated-run study without privileged hidden data.
 - **Evidence required:** Every sampled chain closes; privacy projections remain enforceable; the proposed study uses independent manifests/outcome distributions and does not claim human prediction. Failure removes/revises Observatory before adding infrastructure.
 - **Decision reopened:** D-001 and D-007; never weaken World/Chronicle factuality or expand Gate A/B to rescue research positioning.
+
+### Q-012 — Are diagnostics useful enough at their privacy and performance cost?
+
+- **Why it matters:** Founder Alpha needs actionable failure evidence, but recording can create a surveillance surface or harm frame/loading budgets.
+- **Current default:** First-party typed OFF/LOCAL/ALPHA recorder, Sentinel, native performance summaries, screenshots supplied only through explicit feedback, and disabled replay capture.
+- **Fastest falsification:** Inject one fault at each command/Worker/persistence/cognition/Chronicle boundary, reproduce from only the safe incident bundle, then run repeated OFF/LOCAL/ALPHA browser profiles and adversarial secret/private-state fixtures.
+- **Evidence required:** Every injected fault has a stable bounded reproduction ID and actionable trace; no prohibited bytes survive; no diagnostic dependency writes Reality; measured overhead stays within the Alpha budgets.
+- **Decision reopened:** D-011; remove event kinds or the recorder entirely before adding replay capture if cost exceeds diagnosis value.
+
+### Q-013 — Can the optional relay accept reports without duplicate delivery or hidden cost?
+
+- **Why it matters:** A feedback convenience must not become an abuse, credential, quota, privacy, or operations burden.
+- **Current default:** Local queue is complete; deploy-ready Worker/D1/Turnstile/private-GitHub-App seam is disabled and R2 is off.
+- **Fastest falsification:** Fake-adapter fault matrix for lost create/comment responses, duplicate retries, expired leases/tokens, marker reconciliation, 403/410/422/429/5xx, origin/schema violations, and daily/monthly cap exhaustion.
+- **Evidence required:** Accepted reports reconcile without uncontrolled duplicate issues/comments; rejected/outage states remain local and playable; secrets and bodies never enter logs; real quota/cost/CPU evidence is mandatory before deployment.
+- **Decision reopened:** D-012; keep feedback local-only if the relay cannot meet these conditions.
+
+### Q-014 — Does bounded planning improve behavior enough to keep?
+
+- **Why it matters:** A Planner can add maintenance and latency while making behavior less understandable.
+- **Current default:** Standard Brain only unless the frozen 64-context benchmark clears all hard gates and three named improvement cases.
+- **Fastest falsification:** Five deterministic repeats of the fixed corpus with exact proposal/outcome hashes, runtime distribution, hidden-fact mutations, malformed/absence fallback, and blinded coherence/diversity comparison.
+- **Evidence required:** No correctness/replay/hidden-fact regression, bounded runtime, stable output, and at least the predeclared improvement floor. Otherwise the Planner is rejected, not tuned indefinitely.
+- **Decision reopened:** D-013; retain Standard Brain and remove unused planner code.
+
+### Q-015 — Does standards-shaped provenance help a real reader?
+
+- **Why it matters:** JSON-LD/PROV-O can be valid yet provide no product or research value.
+- **Current default:** One read-only, versioned, authorized projection with a closed local validator and no graph service.
+- **Fastest falsification:** Ask an independent systems/research reader to reconstruct sampled authorized decision/event chains from the projection and compare it with the simpler native JSON evidence.
+- **Evidence required:** The standards-shaped projection improves or preserves reconstruction without leaking hidden facts or changing canonical bytes; otherwise keep only the native evidence form.
+- **Decision reopened:** D-014; remove or narrow the projection rather than add a graph stack.

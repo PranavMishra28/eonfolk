@@ -183,6 +183,88 @@
 
 **Reopen trigger.** Only reopen commercial/hosted/naming behavior after both product gates, separate evidence and explicit authorization.
 
+## Founder Alpha decisions
+
+### D-011 — First-party bounded diagnostics, not session replay
+
+**Decision.** Founder Alpha uses a typed first-party Flight Recorder, stable incident fingerprints, a Reality-protecting Sentinel, bounded native performance summaries, and a local read-only observer. Modes are OFF, LOCAL, and explicit-consent ALPHA. Preserve a disabled `ReplayCapturePort`, but do not add rrweb, browser OpenTelemetry, or an MCP server.
+
+**Evidence.** rrweb 2.1.1 does not capture Pixi canvas by default; its canvas replay path removes script-execution sandbox protection. The reviewed dependency graph would also add more runtime surface than the structured traces need [S-FA-DIAG-001] [S-FA-DIAG-002] [S-FA-DIAG-003]. The browser Performance APIs provide the small timing surface required without a telemetry SDK [S-FA-DIAG-009] [S-FA-DIAG-010].
+
+**Rejected alternatives.** Continuous DOM replay, raw network/body capture, hidden-reasoning capture, provider telemetry, browser OpenTelemetry, arbitrary-file observer access, and an SDK-backed MCP server.
+
+**Remaining uncertainty.** Integrated OFF/LOCAL/ALPHA overhead and cross-browser fingerprint stability still require measured evidence; screenshots plus typed traces may not reproduce every canvas defect.
+
+**Resulting behavior.** Redaction happens before storage or projection; rings and frozen incidents are byte/count bounded; diagnostics cannot write Reality; OFF retains only failures/Sentinel evidence; the observer reports typed health, incidents, performance, network summary, reproduction steps, artifacts, and a bounded world head.
+
+**Constraint fit.** The design is dependency-light, local-first, free, operable on the target Mac, and small enough for one builder.
+
+**Reopen trigger.** Reconsider replay capture only if a concrete unreproducible Alpha defect survives structured traces and screenshots and a bounded spike passes privacy, sandbox, bundle, and overhead gates.
+
+### D-012 — Local feedback first; deployment-ready least-authority relay
+
+**Decision.** Gameplay and feedback remain complete locally. The hosted seam is deploy-ready but not deployed: a minimal Worker validates bounded text/diagnostics, exact Origin, Turnstile, D1-backed reservation/dedup/lease state, and delivery through one private single-repository GitHub App with Metadata read and Issues write. Delivery is reconciled at-least-once, not claimed exactly-once. R2 attachments remain disabled.
+
+**Evidence.** GitHub documents narrowly scoped installation tokens but no idempotency key on issue/comment creation, so D1 must own dedup and marker reconciliation [S-FA-PLATFORM-011] [S-FA-PLATFORM-012] [S-FA-PLATFORM-013]. Turnstile validation is mandatory and short-lived but is not identity or a quota [S-FA-PLATFORM-008] [S-FA-PLATFORM-009]. R2 requires a subscription and budget alerts do not cap spend [S-FA-PLATFORM-005] [S-FA-PLATFORM-006].
+
+**Rejected alternatives.** Browser GitHub credentials, PATs, arbitrary repository input, exactly-once claims, automatic deployment, public attachment URLs, foundational hosted feedback, and R2 activation under an assumed free tier.
+
+**Remaining uncertainty.** No Cloudflare account, App registration, key import, live Turnstile, Worker CPU measurement, D1 deployment, public abuse test, or public URL has run.
+
+**Resulting behavior.** The web app previews and queues sanitized reports locally with clear local/upload state and deletion. The relay is an optional adapter with hard schema/origin/rate/quota/retention boundaries and no game authority. Outage never blocks the world.
+
+**Constraint fit.** The accepted path incurs no cost or credentials now, uses no partner, and defers all operations while retaining a narrow future seam.
+
+**Reopen trigger.** Revalidate all quotas, logging defaults, credentials, CPU, D1 reconciliation, abuse controls, and cost posture before any real deployment; reject the relay if fault injection duplicates or loses accepted reports.
+
+### D-013 — Planner earns inclusion; model stays an optional local seam
+
+**Decision.** Standard Brain remains complete and default. A zero-dependency deterministic HTN/GOAP-style Planner may ship only if a frozen 64-context benchmark clears every correctness/runtime gate and improves at least three predeclared coherence/diversity cases. POMCP/MCTS is rejected for Alpha. A provider-neutral local-subprocess BrainPort contract may exist, but no executable, model, weights, download, provider SDK, or network path ships.
+
+**Evidence.** HTN/GOAP techniques provide authored reusable planning structure but have measurable search/precondition cost [S-FA-COG-001] [S-FA-COG-002]. POMCP requires a calibrated black-box transition/observation model that Riverhold does not have [S-FA-COG-003]. Reviewed local runtimes support offline/local execution, but no source establishes EONFOLK quality, latency, memory, thermals, or renderer coexistence [S-FA-COG-004] [S-FA-COG-007].
+
+**Rejected alternatives.** Search sophistication as a deliverable, POMCP/MCTS without a calibrated model, required inference, auto-download, remote model identifiers, training, continuous calls, and free-form state patches.
+
+**Remaining uncertainty.** The benchmark may show no meaningful planner advantage; optional local inference remains entirely unmeasured for this product and machine.
+
+**Resulting behavior.** Every brain sees only `DecisionContext`, emits one known typed proposal, and passes normal validation. Failure or absence deterministically falls back. Experiments are immutable, separately stored, and never reducer input.
+
+**Constraint fit.** Zero new production dependency/model cost, complete no-model operation, and benchmark-gated scope fit the solo-builder envelope.
+
+**Reopen trigger.** Remove the Planner if any hard benchmark gate fails or it does not clear the predeclared improvement floor. Authorize a local-model spike only after product evidence isolates a cognition deficit and an exact executable/model/license/security protocol is separately approved.
+
+### D-014 — Read-only standards-shaped ontology projection
+
+**Decision.** Observatory may project authorized evidence as embedded JSON-LD 1.1 using stable EONFOLK vocabulary terms and PROV-O mappings, checked by a local SHACL-1.0-like closed validator. RDF/JSON-LD is presentation/export data, never canonical Reality, reducer input, or a new ledger. RDF 1.2 and SHACL 1.2 features remain experimental.
+
+**Evidence.** JSON-LD 1.1, PROV-O, and SHACL 1.0 are W3C Recommendations [S-FA-COG-008] [S-FA-COG-010] [S-FA-COG-011]. RDF 1.2 is a Candidate Recommendation Snapshot and SHACL 1.2 is a Working Draft [S-FA-COG-009] [S-FA-COG-012]. Reviewed general-purpose packages add unnecessary dependency/network surface for the bounded projection [S-FA-COG-014].
+
+**Rejected alternatives.** RDF as the source of truth, remote context fetching, arbitrary SPARQL, general graph storage, full standards libraries, draft-only SHACL features, and ontology-driven reducer behavior.
+
+**Remaining uncertainty.** No external consumer has demonstrated that the projection improves inquiry; vocabulary evolution needs versioned fixtures.
+
+**Resulting behavior.** Projection is deterministic, authorized, bounded, offline, versioned, and validator-checked. Deleting it cannot change replay or world hashes.
+
+**Constraint fit.** A small zero-dependency projection preserves future interoperability without expanding infrastructure or the product loop.
+
+**Reopen trigger.** Change the vocabulary/validator only with a versioned migration fixture or a concrete consumer need; remove the surface if it adds maintenance without demonstrated inquiry value.
+
+### D-015 — Proportionate three-tier verification
+
+**Decision.** Maintain FAST, PR, and DEEP verification tiers. PR protects the complete critical journey and authoritative invariants; DEEP adds long-horizon/property/fuzz/performance/privacy work. Mutation analysis and formal expansion are targeted only where a surviving fault could undermine Reality, persistence, redaction, Sentinel, feedback authorization, or experiment isolation.
+
+**Evidence.** The 001 baseline already provides deterministic replay, IndexedDB, headed browser, network, performance, security-audit, and bounded TLC evidence. GitHub's dated private-repository probe establishes the controls actually present rather than assumed enterprise features [S-FA-PLATFORM-015] [S-FA-PLATFORM-016] [S-FA-PLATFORM-017] [S-FA-PLATFORM-018].
+
+**Rejected alternatives.** A single slow command, backend-only release evidence, unbounded fuzzing, broad mutation score theater, Actions deployment, mandatory outside reviewer, and claims based on unavailable native security products.
+
+**Remaining uncertainty.** Final Alpha runtime and CI duration, diagnostic overhead, and physical mobile behavior are not yet measured.
+
+**Resulting behavior.** Every release claim names its command, SHA, environment, pass/fail/not-run status, and artifact. UI changes require browser-visible evidence; cognition changes require isolation/failure/eval evidence; passing compilation never substitutes for play.
+
+**Constraint fit.** The tiers keep routine feedback short for one maintainer while reserving expensive evidence for explicit release work at approximately $0.
+
+**Reopen trigger.** Rebalance tiers when measured CI time or defect escape shows a check is misplaced; never remove a direct invariant falsification without an equal or stronger replacement.
+
 ## Civilization amendment integration
 
 | ID | Binding direction | Accepted implementation consequence | Scope guard |

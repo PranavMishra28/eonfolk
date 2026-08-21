@@ -215,6 +215,8 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Intake audited. Exact start `74a8a7e`; clean `main`; no open PR/issues; no competing coordinator/worktree. GitHub unexpectedly reported the repository public. Coordinator corrected it to private and verified `isPrivate:true` before implementation.
 - 2026-08-21 — Baseline `pnpm verify` passed with the reviewed official TLC jar hash recorded above. Biome emitted one non-blocking deprecation notice for `linter.recommended`; record for maintenance.
 - 2026-08-21 — Created the only integration branch `feat/002-founder-alpha`; moved completed 001 history out of the active plan directory.
+- 2026-08-21 — Integrated first-party diagnostics (`64ade02`, `625869c`) and local-only feedback (`cdd2a84`). Local observer smoke returned a bounded healthy world-head projection; typecheck, 73 unit tests, build/budgets, nine headed journeys, and zero-egress netlog passed at the feedback checkpoint.
+- 2026-08-21 — Three isolated research streams completed against explicit one-file allowlists and were inspected before integration: diagnostics `ea91c83`, cognition `88e4176`, and platform `23eb6c8`. Coordinator normalized 49 dated source rows into the shared ledger.
 
 ## Decision, risk, and deviation log
 
@@ -222,9 +224,13 @@ Exact availability and results are recorded below as implementation lands. A nam
 |---|---|---|
 | FA-D-001 | ACCEPT | Correct GitHub privacy immediately; public state is a P0 regardless of prior handoff prose. |
 | FA-D-002 | ACCEPT | Keep Standard Brain and canonical Reality untouched by diagnostics, feedback, experiments, and ontology projection. |
-| FA-D-003 | OPEN | Retain rrweb only if source masking, bounded history, measured overhead, and license/dependency review pass. |
-| FA-D-004 | OPEN | Implement Cloudflare relay as deploy-ready only unless credentials and deployment approval already exist; never fabricate availability. |
-| FA-D-005 | OPEN | Planner Brain must earn inclusion against the frozen Standard Brain benchmark; search sophistication is not a deliverable by itself. |
+| FA-D-003 | REJECT | Do not add rrweb, browser OpenTelemetry, or an MCP server. Keep a disabled `ReplayCapturePort`; typed traces, native performance measures, and explicit screenshots are the Alpha surface. |
+| FA-D-004 | ACCEPT WITH GATE | Implement only a dependency-light deploy-ready Worker/D1/Turnstile/private-GitHub-App relay seam. Do not deploy, create credentials, activate R2, or claim exactly-once delivery. |
+| FA-D-005 | ACCEPT WITH GATE | Planner Brain must earn inclusion against the frozen 64-context Standard-Brain benchmark and three-case improvement floor; otherwise remove it. POMCP/MCTS is rejected. |
+| FA-D-006 | ACCEPT | Keep optional local-model work at the provider-neutral subprocess contract only. No executable, model, weight, download, SDK, or network call enters Founder Alpha. |
+| FA-D-007 | ACCEPT | Keep one authorized offline JSON-LD 1.1/PROV-O projection with a closed SHACL-1.0-like validator; RDF never becomes Reality or reducer input. |
+| FA-D-008 | ACCEPT | Observer remains a typed local read-only command. MCP is optional future transport and no security boundary. |
+| FA-D-009 | ACCEPT | R2 stays disabled because activation crosses a subscription/cost gate and budget alerts do not cap spend. |
 | FA-R-001 | ACTIVE | Diagnostics could become an unbounded privacy leak or second authority. Close through source redaction, bounds, explicit modes, and hostile tests. |
 | FA-R-002 | ACTIVE | Alpha polish could hide branch convergence or weak product pull. Preserve counterfactual and human NOT RUN labels. |
 | FA-R-003 | ACTIVE | Feedback relay could create abuse, credential, quota, and GitHub issue-spam risk. It remains least-authority and non-foundational. |
@@ -237,8 +243,8 @@ Exact availability and results are recorded below as implementation lands. A nam
 |---|---|---|
 | Start baseline | PASS | exact command and counts in Start-state freeze |
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
-| Diagnostics/Sentinel | NOT RUN | recorded after M1 |
-| Feedback/observer | NOT RUN | recorded after M2 |
+| Diagnostics/Sentinel | PARTIAL PASS | package and runtime unit/type/build/E2E checkpoint at `625869c`; injected-fault/deep overhead evidence pending |
+| Feedback/observer | PARTIAL PASS | local preview/queue/redaction/delete and `pnpm diagnose` live smoke at `cdd2a84`; relay fault matrix pending |
 | Founder Alpha browser matrix | NOT RUN | recorded after M3/M5 |
 | Cognition experiments | NOT RUN | recorded after M4 |
 | Performance OFF/LOCAL/ALPHA | NOT RUN | recorded after M5 |

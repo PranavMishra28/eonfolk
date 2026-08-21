@@ -100,6 +100,9 @@ Each concern has one authority. Research records evidence; reviews record object
 | Live tool/skill/plugin/MCP availability and risks | [PROPOSED_TOOLS.md](research/PROPOSED_TOOLS.md) |
 | Exact future direct/transitive dependency graph, integrity, licenses and lifecycle metadata | [DEPENDENCY_COHORT.md](research/DEPENDENCY_COHORT.md) |
 | Bounded codename collision screen | [NAMING_RESEARCH.md](research/NAMING_RESEARCH.md) |
+| Founder Alpha recorder, replay-capture, performance, and observer choices | [FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md](research/FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md) |
+| Founder Alpha planner, local-model seam, experiment manifest, and ontology choices | [FOUNDER_ALPHA_COGNITION_RESEARCH.md](research/FOUNDER_ALPHA_COGNITION_RESEARCH.md) |
+| Founder Alpha feedback relay, Cloudflare/GitHub controls, MCP boundary, and live repository probe | [FOUNDER_ALPHA_PLATFORM_RESEARCH.md](research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md) |
 
 ## Reviews
 
