@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	evaluateFrozenPlannerBenchmark,
 	FROZEN_PLANNER_BENCHMARK_CASES,
-	frozenPlannerBenchmarkCorpusHash,
 	type FrozenPlannerBenchmarkCase,
+	frozenPlannerBenchmarkCorpusHash,
 	type PlannerBenchmarkObservation,
 	standardBrain,
 	validateIntentProposal,
@@ -13,8 +13,8 @@ import {
 	contextHash,
 	type DecisionContext,
 	jcs,
-	seedPrng,
 	type StandingPlan,
+	seedPrng,
 } from "../../../packages/protocol/src/index.js";
 import { riverholdDecisionFixture } from "../../fixtures/riverhold/index.js";
 

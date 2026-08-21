@@ -3,8 +3,8 @@ import type {
 	IntentProposal,
 	PrngState,
 } from "../../protocol/src/index.js";
-import { standardBrain, validateIntentProposal } from "./standard-brain.js";
 import type { LocalProcessBrainContract } from "./experiment.js";
+import { standardBrain, validateIntentProposal } from "./standard-brain.js";
 
 export interface BrainPort {
 	propose(context: DecisionContext): Promise<unknown>;
