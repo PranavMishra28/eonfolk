@@ -59,7 +59,7 @@ corepack pnpm runtime:check
 
 ## 12. Performance and accessibility
 
-The canonical 15-run lab stayed within every unchanged gate: critical shell 123,027 bytes gzip; total route JavaScript 250,885 bytes gzip; zero authored world-asset bytes; worst meaningful display 2,250.9 ms in throttled mobile; every pooled and per-state p95 frame time at or below 10.0 ms; worst frame 10.5 ms. Reduced motion, keyboard/focus behavior, semantic parity, 200% text, mobile layout, and weak-device semantic fallback are browser-tested. This is M4 Pro emulation, not a physical mid-tier-device result.
+The final AC-powered 15-run lab stayed within every unchanged gate: critical shell 123,027 bytes gzip; total route JavaScript 250,885 bytes gzip; zero authored world-asset bytes; worst meaningful display 2,266.6 ms in throttled mobile; every pooled and per-state p95 frame time at or below 9.3 ms. Each repetition used a fresh pinned headed browser/context/netlog, and all 15 netlogs were zero-egress. Isolated worst frames reached 25.1 ms desktop, 42.0 ms laptop, and 174.8 ms mobile, but remained below the allowed five-percent p95 tail; exact exceeded-budget counts are retained rather than described as zero. Reduced motion, keyboard/focus behavior, semantic parity, 200% text, mobile layout, and weak-device semantic fallback are browser-tested. This is M4 Pro emulation, not a physical mid-tier-device result.
 
 ## 13. Size
 

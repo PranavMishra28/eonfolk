@@ -85,7 +85,7 @@ jobs:
           curl --fail --location --silent --show-error \
             https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar \
             --output "${RUNNER_TEMP}/tla2tools.jar"
-          echo "ab323b79802aedc3203b3f9af37c6aca3ed43f4e0225b36f2aa77b26de46c05f  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
+          echo "eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d329789085f8953a80533a  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
 
       - name: Check persistence protocol model
         env:
