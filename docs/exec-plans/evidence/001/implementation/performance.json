@@ -1,6 +1,6 @@
 {
   "schemaVersion": "eonfolk-canonical-web-performance-v1",
-  "measuredAt": "2026-08-21T12:10:45.451Z",
+  "measuredAt": "2026-08-21T16:02:47.596Z",
   "canonical": true,
   "runtime": {
     "node": "v22.23.1",
@@ -36,34 +36,34 @@
     "previewOrigin": "http://127.0.0.1:4173",
     "power": {
       "start": {
-        "source": "Battery Power",
-        "percentage": 77,
+        "source": "AC Power",
+        "percentage": 72,
         "powerMode": 0,
         "accepted": true,
-        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t77%; discharging; 17:24 remaining present: true"
+        "batteryStatus": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35455075)\t72%; charging; 3:35 remaining present: true"
       },
       "end": {
-        "source": "Battery Power",
-        "percentage": 75,
+        "source": "AC Power",
+        "percentage": 85,
         "powerMode": 0,
         "accepted": true,
-        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t75%; discharging; 18:44 remaining present: true"
+        "batteryStatus": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35455075)\t85%; charging; 0:53 remaining present: true"
       },
       "profileAccepted": true,
       "acceptanceRule": "stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change"
     }
   },
   "source": {
-    "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
+    "commit": "adf71c841066e1ead961493fa98394c206ca26d3",
     "workingTreeDirty": false,
     "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6",
     "start": {
-      "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
+      "commit": "adf71c841066e1ead961493fa98394c206ca26d3",
       "workingTreeDirty": false,
       "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
     },
     "end": {
-      "commit": "50b231010388d60d0bc2f95900021287ab2c122a",
+      "commit": "adf71c841066e1ead961493fa98394c206ca26d3",
       "workingTreeDirty": false,
       "lockfileSha256": "2ea20c761a7534b3cf2a4490e1ff7eb7422dd469bb360c4e22b21ac98ebf5fc6"
     },
@@ -258,6 +258,7 @@
   },
   "procedure": {
     "repetitions": 5,
+    "freshBrowserPerRun": true,
     "coldContextPerRun": true,
     "cacheDisabled": true,
     "serviceWorkersBlocked": true,
@@ -278,9 +279,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 65,
-        "ctaMs": 157.80000001192093,
-        "meaningfulWorldMs": 157.90000000596046
+        "shellMs": 90.90000000596046,
+        "ctaMs": 187.7000000178814,
+        "meaningfulWorldMs": 187.80000001192093
       },
       "markEvidence": {
         "shell": {
@@ -303,39 +304,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 308.89166699999623,
-      "catchUpMs": 80.35912500000268,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 235.24366600000212,
+      "catchUpMs": 79.76070800000161,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3601,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10.100000000002183,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9,
+          "worstMs": 9.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3602,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.10000000000582,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 15.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3605,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.39999999999418,
-          "droppedFrameCount": 0
+          "p95Ms": 9,
+          "worstMs": 22.80000000000291,
+          "droppedFrameCount": 3
         }
       ],
       "diagnostics": {
-        "longTasksMs": [
-          51
-        ],
-        "usedJsHeapBytes": 9129548
+        "longTasksMs": [],
+        "usedJsHeapBytes": 9062672
       }
     },
     {
@@ -346,9 +385,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 59.29999998211861,
-        "ctaMs": 133.69999998807907,
-        "meaningfulWorldMs": 133.7999999821186
+        "shellMs": 81.40000000596046,
+        "ctaMs": 178.60000002384186,
+        "meaningfulWorldMs": 178.60000002384186
       },
       "markEvidence": {
         "shell": {
@@ -371,37 +410,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 310.90808400002425,
-      "catchUpMs": 80.11229200000525,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 280.8588330000057,
+      "catchUpMs": 80.69679100002395,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
+          "sampleCount": 3603,
           "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.399999999999636,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 12.399999999997817,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 15.900000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3602,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.099999999991269,
+          "worstMs": 13.19999999999709,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9096899
+        "usedJsHeapBytes": 9033424
       }
     },
     {
@@ -412,9 +491,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 60.099999994039536,
-        "ctaMs": 133.40000000596046,
-        "meaningfulWorldMs": 133.40000000596046
+        "shellMs": 89.7999999821186,
+        "ctaMs": 183.7999999821186,
+        "meaningfulWorldMs": 183.89999997615814
       },
       "markEvidence": {
         "shell": {
@@ -437,37 +516,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 311.4480840000033,
-      "catchUpMs": 81.24937499995576,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 280.680583999987,
+      "catchUpMs": 82.00520900002448,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9,
+          "worstMs": 9.400000000000546,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3604,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 13.10000000000582,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.89999999999418,
-          "worstMs": 10.39999999999418,
+          "p95Ms": 9.30000000000291,
+          "worstMs": 9.5,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9100628
+        "usedJsHeapBytes": 9043224
       }
     },
     {
@@ -478,9 +597,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 61.69999998807907,
-        "ctaMs": 135.59999999403954,
-        "meaningfulWorldMs": 135.59999999403954
+        "shellMs": 59.20000001788139,
+        "ctaMs": 150,
+        "meaningfulWorldMs": 150
       },
       "markEvidence": {
         "shell": {
@@ -503,37 +622,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 307.38850000000093,
-      "catchUpMs": 79.77962500002468,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 301.6692080000066,
+      "catchUpMs": 81.03991700004553,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 9.900000000001455,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.299999999999272,
+          "worstMs": 9.5,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 3601,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 9.89999999999418,
-          "worstMs": 10.400000000008731,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999995634,
+          "worstMs": 9.5,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.80000000000291,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.400000000008731,
+          "worstMs": 10.80000000000291,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9101270
+        "usedJsHeapBytes": 9026820
       }
     },
     {
@@ -545,8 +704,8 @@
       "network": "unthrottled-local",
       "marks": {
         "shellMs": 57.599999994039536,
-        "ctaMs": 132,
-        "meaningfulWorldMs": 132
+        "ctaMs": 143.59999999403954,
+        "meaningfulWorldMs": 143.59999999403954
       },
       "markEvidence": {
         "shell": {
@@ -569,37 +728,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 308.06462499999907,
-      "catchUpMs": 79.4455420000013,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 312.0388340000063,
+      "catchUpMs": 81.31758400000399,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 9.800000000000182,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.5,
+          "worstMs": 10.30000000000291,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 3601,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 9.80000000000291,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.69999999999709,
+          "worstMs": 14.5,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3592,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.89999999999418,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 25.10000000000582,
+          "droppedFrameCount": 3
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 9125736
+        "usedJsHeapBytes": 9219046
       }
     },
     {
@@ -610,9 +809,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 59.599999994039536,
-        "ctaMs": 133.09999999403954,
-        "meaningfulWorldMs": 133.09999999403954
+        "shellMs": 80,
+        "ctaMs": 171,
+        "meaningfulWorldMs": 171
       },
       "markEvidence": {
         "shell": {
@@ -635,37 +834,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 126.41395900002681,
-      "catchUpMs": 65.08479200000875,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 110.95583399990574,
+      "catchUpMs": 91.62558400002308,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10.19999999999709,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
+          "sampleCount": 3598,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 24,
+          "droppedFrameCount": 4
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 10.19999999999709,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "sampleCount": 3597,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 16.80000000000291,
+          "droppedFrameCount": 1
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3593,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 33.90000000000873,
+          "droppedFrameCount": 3
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8994505
+        "usedJsHeapBytes": 8938985
       }
     },
     {
@@ -676,9 +915,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 60.5,
-        "ctaMs": 133.09999999403954,
-        "meaningfulWorldMs": 133.09999999403954
+        "shellMs": 77.80000001192093,
+        "ctaMs": 188.30000001192093,
+        "meaningfulWorldMs": 188.40000000596046
       },
       "markEvidence": {
         "shell": {
@@ -701,37 +940,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 125.27724999992643,
-      "catchUpMs": 67.48954199999571,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 119.86454199999571,
+      "catchUpMs": 95.4334159999853,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3600,
           "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 9.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
+          "sampleCount": 3598,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.10000000000582,
+          "worstMs": 25,
+          "droppedFrameCount": 1
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999988358,
-          "p95Ms": 10.099999999991269,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "sampleCount": 3597,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.30000000000291,
+          "worstMs": 16.79999999998836,
+          "droppedFrameCount": 1
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8999448
+        "usedJsHeapBytes": 8944296
       }
     },
     {
@@ -742,9 +1021,9 @@
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
-        "shellMs": 59.5,
-        "ctaMs": 128.5,
-        "meaningfulWorldMs": 128.59999999403954
+        "shellMs": 61.10000002384186,
+        "ctaMs": 202,
+        "meaningfulWorldMs": 202.10000002384186
       },
       "markEvidence": {
         "shell": {
@@ -767,50 +1046,198 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 124.36487500008661,
-      "catchUpMs": 65.8119580000639,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 114.3703749999404,
+      "catchUpMs": 103.97983299999032,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
+          "sampleCount": 3602,
           "p50Ms": 8.299999999999272,
-          "p95Ms": 10.099999999998545,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 16.599999999998545,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 18.69999999999709,
+          "droppedFrameCount": 5
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3589,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000008731,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.10000000000582,
+          "worstMs": 42,
+          "droppedFrameCount": 5
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8999061
+        "usedJsHeapBytes": 8941955
       }
     },
     {
       "profile": "laptop",
       "repetition": 4,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 87.80000001192093,
+        "ctaMs": 178.7000000178814,
+        "meaningfulWorldMs": 178.80000001192093
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Checking Riverhold's durable record…"
+        },
+        "cta": {
+          "authorityReady": true,
+          "followEnabled": true,
+          "semanticCitizenCount": 8
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "semanticCitizenCount": 8,
+          "activityCount": 8,
+          "maraCount": 1,
+          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
+          "interactionCitizenCount": 2,
+          "semanticIllustratedParity": true
+        }
+      },
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 91.26658300007693,
+      "catchUpMs": 85.39312499994412,
+      "states": [
+        {
+          "state": "arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.199999999998909,
+          "worstMs": 16.699999999999818,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "busy-market",
+          "sampleCount": 3591,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 25.200000000004366,
+          "droppedFrameCount": 3
+        },
+        {
+          "state": "chronicle",
+          "sampleCount": 3599,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.099999999991269,
+          "worstMs": 16.80000000000291,
+          "droppedFrameCount": 1
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [
+          53
+        ],
+        "usedJsHeapBytes": 8945507
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 5,
       "viewport": "1366x768",
       "deviceScaleFactor": 1,
       "cpuSlowdown": 1,
       "network": "unthrottled-local",
       "marks": {
         "shellMs": 59,
-        "ctaMs": 127.80000001192093,
-        "meaningfulWorldMs": 128
+        "ctaMs": 173,
+        "meaningfulWorldMs": 173
       },
       "markEvidence": {
         "shell": {
@@ -833,103 +1260,77 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 126.23729199997615,
-      "catchUpMs": 67.3308749999851,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "People & resources",
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 128.1762919999892,
+      "catchUpMs": 68.22233300004154,
       "states": [
         {
           "state": "arrival",
           "sampleCount": 3601,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 10.700000000000728,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 3601,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000001455,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.099999999998545,
+          "worstMs": 9.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000008731,
-          "worstMs": 10.39999999999418,
+          "p95Ms": 9,
+          "worstMs": 9.39999999999418,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [],
-        "usedJsHeapBytes": 8994939
-      }
-    },
-    {
-      "profile": "laptop",
-      "repetition": 5,
-      "viewport": "1366x768",
-      "deviceScaleFactor": 1,
-      "cpuSlowdown": 1,
-      "network": "unthrottled-local",
-      "marks": {
-        "shellMs": 57.5,
-        "ctaMs": 126.7000000178814,
-        "meaningfulWorldMs": 126.80000001192093
-      },
-      "markEvidence": {
-        "shell": {
-          "factFreeAuthorityShell": true,
-          "factSurfaceCount": 0,
-          "loadingHeading": "Checking Riverhold's durable record…"
-        },
-        "cta": {
-          "authorityReady": true,
-          "followEnabled": true,
-          "semanticCitizenCount": 8
-        },
-        "meaningfulWorld": {
-          "canvasPainted": true,
-          "semanticCitizenCount": 8,
-          "activityCount": 8,
-          "maraCount": 1,
-          "interactionCue": "Mara Vale and Toma Reed compare the signed market tally; the concern remains unresolved",
-          "interactionCitizenCount": 2,
-          "semanticIllustratedParity": true
-        }
-      },
-      "investigationLatencyMs": 125.03720800008159,
-      "catchUpMs": 67.4657920000609,
-      "states": [
-        {
-          "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 9.899999999999636,
-          "worstMs": 10.399999999999636,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "busy-market",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 9.80000000000291,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
-        },
-        {
-          "state": "chronicle",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 9.80000000000291,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
-        }
-      ],
-      "diagnostics": {
-        "longTasksMs": [],
-        "usedJsHeapBytes": 9000265
+        "usedJsHeapBytes": 8937488
       }
     },
     {
@@ -940,9 +1341,9 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1578.2000000178814,
-        "ctaMs": 2250.800000011921,
-        "meaningfulWorldMs": 2250.9000000059605
+        "shellMs": 1570.300000011921,
+        "ctaMs": 2238.7000000178814,
+        "meaningfulWorldMs": 2238.7000000178814
       },
       "markEvidence": {
         "shell": {
@@ -965,41 +1366,84 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 143.79837500001304,
-      "catchUpMs": 117.88774999999441,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 192.51987499999814,
+      "catchUpMs": 140.48466699989513,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
+          "sampleCount": 3526,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 100.19999999999891,
+          "droppedFrameCount": 7
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3598,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 17.19999999999709,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3570,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.200000000011642,
+          "worstMs": 174.8000000000029,
+          "droppedFrameCount": 1
         }
       ],
       "diagnostics": {
         "longTasksMs": [
-          59,
-          84,
-          52
+          60,
+          81,
+          86,
+          58,
+          60,
+          58,
+          98,
+          150
         ],
-        "usedJsHeapBytes": 8957138
+        "usedJsHeapBytes": 8667803
       }
     },
     {
@@ -1010,9 +1454,9 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1580.0999999940395,
-        "ctaMs": 2249.5,
-        "meaningfulWorldMs": 2249.5999999940395
+        "shellMs": 1562.9000000059605,
+        "ctaMs": 2265.5999999940395,
+        "meaningfulWorldMs": 2266.5999999940395
       },
       "markEvidence": {
         "shell": {
@@ -1035,41 +1479,82 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 142.43445800011978,
-      "catchUpMs": 128.24679200001992,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 237.89104199991561,
+      "catchUpMs": 137.34425000008196,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3596,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 24.80000000000291,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3600,
+          "sampleCount": 3591,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.200000000004366,
+          "worstMs": 33.400000000001455,
+          "droppedFrameCount": 1
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3595,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 25.19999999999709,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [
-          59,
-          81,
-          54
+          61,
+          117,
+          89,
+          196,
+          65,
+          56
         ],
-        "usedJsHeapBytes": 8963708
+        "usedJsHeapBytes": 8880900
       }
     },
     {
@@ -1080,9 +1565,9 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1576,
-        "ctaMs": 2242.899999976158,
-        "meaningfulWorldMs": 2242.899999976158
+        "shellMs": 1581.5999999940395,
+        "ctaMs": 2264.699999988079,
+        "meaningfulWorldMs": 2265.0999999940395
       },
       "markEvidence": {
         "shell": {
@@ -1105,41 +1590,79 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 138.77766699995846,
-      "catchUpMs": 122.67004200001247,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 151.48674999992363,
+      "catchUpMs": 126.92066599987447,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3600,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 9.900000000001455,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
           "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
+          "sampleCount": 3600,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.89999999999418,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [
           60,
-          83,
+          93,
           55
         ],
-        "usedJsHeapBytes": 8955689
+        "usedJsHeapBytes": 8888912
       }
     },
     {
@@ -1150,9 +1673,9 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1571.9000000059605,
-        "ctaMs": 2250.9000000059605,
-        "meaningfulWorldMs": 2250.9000000059605
+        "shellMs": 1581,
+        "ctaMs": 2243.5999999940395,
+        "meaningfulWorldMs": 2243.5999999940395
       },
       "markEvidence": {
         "shell": {
@@ -1175,40 +1698,79 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 144.40687499986961,
-      "catchUpMs": 127.20499999984168,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 147.27316699991934,
+      "catchUpMs": 124.172290999908,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000001455,
-          "worstMs": 10.399999999999636,
+          "sampleCount": 3603,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.199999999998909,
+          "worstMs": 15,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
+          "sampleCount": 3603,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 20.70000000001164,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3600,
+          "sampleCount": 3606,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 28.39999999999418,
           "droppedFrameCount": 0
         }
       ],
       "diagnostics": {
         "longTasksMs": [
-          58,
-          84
+          60,
+          81,
+          50
         ],
-        "usedJsHeapBytes": 8960428
+        "usedJsHeapBytes": 8893545
       }
     },
     {
@@ -1219,9 +1781,9 @@
       "cpuSlowdown": 4,
       "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
       "marks": {
-        "shellMs": 1563.800000011921,
-        "ctaMs": 2233.5,
-        "meaningfulWorldMs": 2234.2000000178814
+        "shellMs": 1574.699999988079,
+        "ctaMs": 2244.399999976158,
+        "meaningfulWorldMs": 2244.399999976158
       },
       "markEvidence": {
         "shell": {
@@ -1244,40 +1806,78 @@
           "semanticIllustratedParity": true
         }
       },
-      "investigationLatencyMs": 144.0236670000013,
-      "catchUpMs": 123.59041699999943,
+      "arrivalInvariant": {
+        "beforeSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        },
+        "afterSample": {
+          "arrivalPanelCount": 1,
+          "followButtonCount": 1,
+          "followButtonEnabled": true,
+          "runtimeErrorCount": 0,
+          "visibleButtonNames": [
+            "Reduce motion",
+            "Follow Mara →",
+            "Mara Valeledger runnerchecking the market tally · Market Green",
+            "Toma Reedstorekeeperworking as Riverhold's storekeeper · Market Green",
+            "Iven Holtmillerworking as Riverhold's miller · Market Green",
+            "Sela Fenwater carrierworking as Riverhold's water carrier · Low Spring",
+            "Rowan Pikewoodcutterworking as Riverhold's woodcutter · Alder Woods",
+            "Neri Ashforagerworking as Riverhold's forager · North Fields",
+            "Odo Bellrepair handworking as Riverhold's repair hand · River Mill",
+            "Els Wrencouncil clerkworking as Riverhold's council clerk · Granary"
+          ]
+        }
+      },
+      "investigationLatencyMs": 146.99037500005215,
+      "catchUpMs": 121.44420799985528,
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 3601,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 3605,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 26.30000000000291,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "sampleCount": 3633,
+          "p50Ms": 8.200000000004366,
+          "p95Ms": 9.10000000000582,
+          "worstMs": 29.29999999998836,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 3601,
-          "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "sampleCount": 3610,
+          "p50Ms": 8.200000000011642,
+          "p95Ms": 9.10000000000582,
+          "worstMs": 36.90000000000873,
+          "droppedFrameCount": 1
         }
       ],
       "diagnostics": {
         "longTasksMs": [
-          60,
-          83
+          59,
+          81
         ],
-        "usedJsHeapBytes": 8961404
+        "usedJsHeapBytes": 8893787
       }
     }
   ],
@@ -1287,35 +1887,35 @@
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 18002,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
+          "sampleCount": 18004,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 12.399999999997817,
           "droppedFrameCount": 0
         },
         {
           "state": "busy-market",
-          "sampleCount": 18003,
+          "sampleCount": 18008,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
+          "p95Ms": 9.299999999988358,
+          "worstMs": 15.900000000001455,
           "droppedFrameCount": 0
         },
         {
           "state": "chronicle",
-          "sampleCount": 18002,
+          "sampleCount": 18000,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 25.10000000000582,
+          "droppedFrameCount": 6
         }
       ],
       "pooled": {
-        "sampleCount": 54007,
-        "p50Ms": 8.299999999999272,
-        "p95Ms": 10,
-        "worstMs": 10.400000000008731,
-        "droppedFrameCount": 0
+        "sampleCount": 54012,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 9.200000000000728,
+        "worstMs": 25.10000000000582,
+        "droppedFrameCount": 6
       }
     },
     {
@@ -1324,34 +1924,34 @@
         {
           "state": "arrival",
           "sampleCount": 18002,
-          "p50Ms": 8.299999999999272,
-          "p95Ms": 10,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.199999999998909,
+          "worstMs": 24,
+          "droppedFrameCount": 4
         },
         {
           "state": "busy-market",
-          "sampleCount": 18002,
-          "p50Ms": 8.299999999995634,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "sampleCount": 17988,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 25.200000000004366,
+          "droppedFrameCount": 10
         },
         {
           "state": "chronicle",
-          "sampleCount": 18002,
+          "sampleCount": 17978,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 9.900000000008731,
-          "worstMs": 10.5,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 42,
+          "droppedFrameCount": 10
         }
       ],
       "pooled": {
-        "sampleCount": 54006,
-        "p50Ms": 8.299999999999272,
-        "p95Ms": 10,
-        "worstMs": 10.5,
-        "droppedFrameCount": 0
+        "sampleCount": 53968,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 9.19999999999709,
+        "worstMs": 42,
+        "droppedFrameCount": 24
       }
     },
     {
@@ -1359,42 +1959,134 @@
       "states": [
         {
           "state": "arrival",
-          "sampleCount": 18003,
-          "p50Ms": 8.300000000001091,
-          "p95Ms": 10,
-          "worstMs": 10.400000000001455,
-          "droppedFrameCount": 0
+          "sampleCount": 17931,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 100.19999999999891,
+          "droppedFrameCount": 7
         },
         {
           "state": "busy-market",
-          "sampleCount": 18002,
+          "sampleCount": 18025,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 33.400000000001455,
+          "droppedFrameCount": 1
         },
         {
           "state": "chronicle",
-          "sampleCount": 18003,
+          "sampleCount": 17981,
           "p50Ms": 8.30000000000291,
-          "p95Ms": 10,
-          "worstMs": 10.400000000008731,
-          "droppedFrameCount": 0
+          "p95Ms": 9.19999999999709,
+          "worstMs": 174.8000000000029,
+          "droppedFrameCount": 2
         }
       ],
       "pooled": {
-        "sampleCount": 54008,
+        "sampleCount": 53937,
         "p50Ms": 8.30000000000291,
-        "p95Ms": 10,
-        "worstMs": 10.400000000008731,
-        "droppedFrameCount": 0
+        "p95Ms": 9.19999999999709,
+        "worstMs": 174.8000000000029,
+        "droppedFrameCount": 10
       }
     }
   ],
   "networkOracle": {
     "routeRequestCount": 210,
     "externalRouteAttempts": [],
-    "externalNetlogAttempts": []
+    "externalNetlogAttempts": [],
+    "netlogRuns": [
+      {
+        "profile": "desktop",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-5.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-5.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-5.json",
+        "externalAttempts": []
+      }
+    ]
   },
   "limitations": [
     "Mobile is canonical throttled emulation on the target Mac, not a physical phone.",
