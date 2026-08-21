@@ -6,6 +6,10 @@ import { describe, expect, it } from "vitest";
 import { parsePersistenceBenchmarkArguments } from "../../../scripts/benchmark-persistence.mjs";
 import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
+import {
+	runVerificationSteps,
+	verificationStepsForTier,
+} from "../../../scripts/run-verification-tier.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
 	it("uses tier-specific artifact allowlists", () => {
@@ -25,6 +29,76 @@ describe("Founder Alpha CI evidence controls", () => {
 			"tmp/eonfolk-diagnostics-overhead.json",
 			"tmp/eonfolk-diagnostics-browser-comparison.json",
 			"tmp/eonfolk-canonical-performance.json",
+		]);
+	});
+
+	it("declares every PR constituent once and makes DEEP a strict ordered superset", () => {
+		const pr = verificationStepsForTier("pr");
+		const deep = verificationStepsForTier("deep");
+		expect(pr.map((entry) => entry.id)).toEqual([
+			"runtime",
+			"dependency-cohort",
+			"architecture",
+			"documentation",
+			"format",
+			"lint",
+			"typecheck",
+			"unit",
+			"property-pr",
+			"indexeddb",
+			"timing",
+			"browser-fault",
+			"browser-fault-network",
+			"production-build",
+			"bundle-budget",
+			"browser-production",
+			"browser-production-network",
+			"production-audit",
+			"formal",
+		]);
+		expect(deep.slice(0, pr.length)).toEqual(pr);
+		expect(deep.slice(pr.length).map((entry) => entry.id)).toEqual([
+			"targeted-mutation",
+			"property-deep",
+			"browser-cohort",
+			"persistence-benchmark",
+			"diagnostics-source-benchmark",
+			"diagnostics-browser-benchmark",
+			"canonical-web-performance",
+		]);
+		expect(new Set(deep.map((entry) => entry.id)).size).toBe(deep.length);
+	});
+
+	it("records individual results and fails closed without running later steps", () => {
+		const steps = verificationStepsForTier("pr").slice(0, 3);
+		const calls: string[] = [];
+		const ticks = [0, 5, 5, 13];
+		const result = runVerificationSteps(steps, {
+			now: () => ticks.shift() ?? 13,
+			spawn: (command, arguments_) => {
+				calls.push([command, ...arguments_].join(" "));
+				return { status: calls.length === 2 ? 7 : 0 };
+			},
+			stdio: "ignore",
+		});
+		expect(result.status).toBe("FAIL");
+		expect(result.exitCode).toBe(7);
+		expect(calls).toEqual(["pnpm runtime:check", "pnpm cohort:check"]);
+		expect(result.steps).toEqual([
+			{
+				id: "runtime",
+				command: "pnpm runtime:check",
+				durationMs: 5,
+				exitCode: 0,
+				status: "PASS",
+			},
+			{
+				id: "dependency-cohort",
+				command: "pnpm cohort:check",
+				durationMs: 8,
+				exitCode: 7,
+				status: "FAIL",
+			},
 		]);
 	});
 
