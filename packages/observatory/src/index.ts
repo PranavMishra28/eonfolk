@@ -27,6 +27,7 @@ export type ObservatoryViewerKind =
 	| "implementation";
 
 const AUTHORIZED_CHRONICLE = Symbol("authorized-chronicle");
+const authorizedChronicleArtifacts = new WeakSet<object>();
 
 export interface AuthorizedChronicleArtifact {
 	readonly [AUTHORIZED_CHRONICLE]: true;
@@ -167,7 +168,12 @@ function assertScalarText(value: string, label: string, maxCodePoints: number) {
 }
 
 function assertAuthorizedArtifact(input: AuthorizedChronicleArtifact): void {
-	if (input[AUTHORIZED_CHRONICLE] !== true)
+	if (
+		typeof input !== "object" ||
+		input === null ||
+		!authorizedChronicleArtifacts.has(input) ||
+		input[AUTHORIZED_CHRONICLE] !== true
+	)
 		throw new Error(
 			"Chronicle artifact was not authorized by the visibility projector",
 		);
@@ -271,7 +277,7 @@ export async function authorizeChronicleForObservatory(
 	const sourceDigest = [...new Uint8Array(digestBytes)]
 		.map((value) => value.toString(16).padStart(2, "0"))
 		.join("");
-	const artifact = {
+	const artifact = deepFreeze({
 		[AUTHORIZED_CHRONICLE]: true as const,
 		viewerId: viewerIdentity(input.viewer),
 		viewerKind,
@@ -282,9 +288,10 @@ export async function authorizeChronicleForObservatory(
 		authorizedEventIds: Object.freeze(authorizedEventIds),
 		eventEvidence: Object.freeze(eventEvidence),
 		chronicle,
-	};
+	});
+	authorizedChronicleArtifacts.add(artifact);
 	assertAuthorizedArtifact(artifact);
-	return deepFreeze(artifact);
+	return artifact;
 }
 
 function encodeUrnComponent(value: string): string {

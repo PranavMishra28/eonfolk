@@ -164,6 +164,26 @@ describe("authorized Observatory JSON-LD projection", () => {
 		);
 	});
 
+	it("rejects a cloned authorization symbol with private Chronicle content", async () => {
+		const participant = await authorized(false, true);
+		expect(JSON.stringify(participant)).toContain("private allegation");
+		const authorizationSymbols = Object.getOwnPropertySymbols(participant);
+		expect(authorizationSymbols).toHaveLength(1);
+		const forgedPublicArtifact = Object.freeze({
+			...participant,
+			[authorizationSymbols[0]!]: true,
+			viewerId: "public",
+			viewerKind: "public",
+			purpose: "chronicle-public",
+		});
+		expect(() =>
+			projectAuthorizedChronicleToProv({
+				projectionId: "forged-public-private-canary",
+				authorized: forgedPublicArtifact as never,
+			}),
+		).toThrow("not authorized");
+	});
+
 	it("rejects Chronicle evidence that lacks a verified source event hash", async () => {
 		await expect(authorized(false, false, true)).rejects.toThrow(
 			"does not resolve to a hashed source event",
