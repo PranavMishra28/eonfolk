@@ -59,6 +59,10 @@ function checkedSummaryCode(code: IncidentSummaryCode): IncidentSummaryCode {
 	return Object.hasOwn(incidentSummaries, code) ? code : "reality-protected";
 }
 
+export function diagnosticIncidentSummary(code: IncidentSummaryCode): string {
+	return incidentSummaries[checkedSummaryCode(code)];
+}
+
 const runtimeClasses = new Set<DiagnosticIdentity["runtimeClass"]>([
 	"browser-worker-capable",
 	"browser-main-thread",
@@ -227,7 +231,7 @@ export class FlightRecorder {
 			},
 		);
 		const summaryCode = checkedSummaryCode(input.summaryCode);
-		const summary = incidentSummaries[summaryCode];
+		const summary = diagnosticIncidentSummary(summaryCode);
 		return Object.freeze({
 			schemaVersion: DIAGNOSTICS_SCHEMA_VERSION,
 			incidentId: fingerprint,

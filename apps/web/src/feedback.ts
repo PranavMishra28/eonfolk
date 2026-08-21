@@ -1,4 +1,8 @@
-import type { ObserverProjection } from "@eonfolk/diagnostics";
+import {
+	diagnosticIncidentSummary,
+	type IncidentSummaryCode,
+	type ObserverProjection,
+} from "@eonfolk/diagnostics";
 import { normalizeIngressText } from "@eonfolk/protocol";
 
 export const FEEDBACK_SCHEMA_VERSION = "eonfolk-feedback-v1" as const;
@@ -285,15 +289,21 @@ function cloneLocalDiagnostics(
 				"write-authority-transferred",
 				"diagnostic-capture",
 			].includes(item.summaryCode as string) ||
-			typeof item.safeSummary !== "string" ||
-			new TextEncoder().encode(item.safeSummary).byteLength > 240 ||
 			!["not-attempted", "recovered", "safe-stop"].includes(
 				item.recovery as string,
 			)
 		)
 			return null;
+		const summaryCode = item.summaryCode as IncidentSummaryCode;
 		return Object.freeze({
-			...item,
+			incidentId: item.incidentId as string,
+			fingerprint: item.fingerprint as string,
+			reason:
+				item.reason as LocalFeedbackDiagnostics["incidents"][number]["reason"],
+			summaryCode,
+			safeSummary: diagnosticIncidentSummary(summaryCode),
+			recovery:
+				item.recovery as LocalFeedbackDiagnostics["incidents"][number]["recovery"],
 		}) as LocalFeedbackDiagnostics["incidents"][number];
 	});
 	if (incidents.some((item) => item === null)) return null;

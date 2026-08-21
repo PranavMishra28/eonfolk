@@ -146,6 +146,40 @@ describe("Founder Alpha feedback", () => {
 		expect(report.diagnostics?.capabilities.localObserver).toBe("active");
 	});
 
+	it("rewrites hostile stored incident summaries from the closed summary code", async () => {
+		const storage = new MemoryStorage();
+		const now = 10_000;
+		const diagnostics = new BrowserDiagnostics("local");
+		await diagnostics.captureRuntimeFailure({
+			code: "RUNTIME_FAILED",
+			component: "feedback-test",
+			protectReality: () => undefined,
+		});
+		const valid = createLocalFeedbackReport({
+			category: "bug",
+			whatHappened: "The world stopped safely.",
+			whatExpected: "The world should remain readable.",
+			diagnostics: diagnostics.observer(),
+			attachment: null,
+			reportId: "alpha_hostile_summary",
+			createdAtMs: now,
+		});
+		const hostile = JSON.parse(JSON.stringify(valid));
+		hostile.diagnostics.incidents[0].safeSummary =
+			"Bearer attacker-token ghp_abcdefghijklmnopqrstuvwxyz123456";
+		storage.setItem(STORAGE_KEY, JSON.stringify([hostile]));
+
+		const reports = new LocalFeedbackQueue(storage, () => now).list();
+		expect(reports).toHaveLength(1);
+		expect(reports[0]?.diagnostics?.incidents[0]?.safeSummary).toBe(
+			"Riverhold paused before showing further world state. Your durable local record was not replaced.",
+		);
+		const rewritten = storage.getItem(STORAGE_KEY) ?? "";
+		expect(rewritten).not.toContain("Bearer");
+		expect(rewritten).not.toContain("ghp_");
+		expect(rewritten).toBe(JSON.stringify(reports));
+	});
+
 	it("prunes hostile, future-dated, unknown, and oversized browser records", () => {
 		const storage = new MemoryStorage();
 		const now = 10 * 24 * 60 * 60 * 1_000;
