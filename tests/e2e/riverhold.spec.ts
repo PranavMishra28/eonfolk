@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 let pageErrors: string[] = [];
@@ -71,9 +71,7 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(page.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await expect(page.getByText(/has not observed theft/i)).toBeVisible();
-	await page
-		.getByRole("button", { name: /Reach the counsel boundary/i })
-		.click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await expect(
@@ -83,7 +81,7 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 		page.getByText(/Your counsel matched my judgment/i),
 	).toBeVisible();
 	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
-	await expect(page.getByText(/contributing input/i)).toBeVisible();
+	await expect(page.getByText(/Your advice influenced her/i)).toBeVisible();
 	await page
 		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
 		.click();
@@ -144,6 +142,20 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 			name: "Copy unavailable — select the card text",
 		}),
 	).toBeVisible();
+	const chronicleTextFloors = await page.evaluate(() => ({
+		factual: [
+			...document.querySelectorAll(
+				".replay-stage p:not(.beat-time), .replay-track button, .story-beats p, .story-unresolved, .semantic-summary dd, .semantic-citizens span:last-child",
+			),
+		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+		secondary: [
+			...document.querySelectorAll(
+				".beat-time, .replay-track span, .story-place, .story-mark, .semantic-summary dt, .semantic-citizens small, footer span",
+			),
+		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+	}));
+	expect(Math.min(...chronicleTextFloors.factual)).toBeGreaterThanOrEqual(16);
+	expect(Math.min(...chronicleTextFloors.secondary)).toBeGreaterThanOrEqual(14);
 });
 
 test("feedback stays local, sanitizes its image, requires consent for diagnostics, and can be deleted", async ({
@@ -151,7 +163,7 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 }) => {
 	const panel = page.getByRole("region", { name: "What broke the spell?" });
 	await panel
-		.getByRole("button", { name: "Report issue / Send feedback" })
+		.getByRole("button", { name: "Report issue / Save feedback locally" })
 		.click();
 	await panel
 		.getByLabel("What happened?")
@@ -224,10 +236,17 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 async function reachVerifyCounsel(page: Page) {
 	await page.getByRole("button", { name: /Follow Mara/ }).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-	await page
-		.getByRole("button", { name: /Reach the counsel boundary/i })
-		.click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
+}
+
+async function tabTo(page: Page, locator: Locator) {
+	for (let step = 0; step < 80; step += 1) {
+		if (await locator.evaluate((element) => element === document.activeElement))
+			return;
+		await page.keyboard.press("Tab");
+	}
+	throw new Error("Keyboard focus did not reach the requested control");
 }
 
 test("browser recovers a counsel issue committed before worker failure without issuing it twice", async ({
@@ -287,9 +306,7 @@ test("accuse path preserves allegation language and offers trust repair", async 
 }) => {
 	await page.getByRole("button", { name: /Follow Mara/ }).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-	await page
-		.getByRole("button", { name: /Reach the counsel boundary/i })
-		.click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Raise the mismatch in public", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await expect(
@@ -327,16 +344,15 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.reload();
 	await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
-	await page.keyboard.press("Tab");
+	const worldViewToggle = page.getByRole("button", { name: "Use list view" });
+	await worldViewToggle.focus();
 	await page.keyboard.press("Enter");
 	const maraButton = page.getByRole("button", {
 		name: /Mara Vale ledger runner/i,
 	});
 	await maraButton.click();
 	await expect(page.getByRole("dialog", { name: "Mara Vale" })).toBeVisible();
-	await expect(
-		page.getByRole("button", { name: "Close details" }),
-	).toBeFocused();
+	await expect(page.getByRole("heading", { name: "Mara Vale" })).toBeFocused();
 	await page.keyboard.press("Tab");
 	await expect(
 		page.getByRole("button", { name: "Close details" }),
@@ -434,7 +450,9 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 		/inc_[a-f0-9]{24}/u,
 	);
 	await expect(
-		page.getByRole("button", { name: "Report issue / Send feedback" }),
+		page.getByRole("button", {
+			name: "Report issue / Save feedback locally",
+		}),
 	).toBeVisible();
 	await newer.getByRole("button", { name: /Follow Mara/ }).click();
 	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
@@ -473,13 +491,15 @@ test("safe-stop redacts a raw worker error while keeping a local report path", a
 		/inc_[a-f0-9]{24}/u,
 	);
 	await expect(
-		page.getByRole("button", { name: "Report issue / Send feedback" }),
+		page.getByRole("button", {
+			name: "Report issue / Save feedback locally",
+		}),
 	).toBeVisible();
 	await expect(page.locator("body")).not.toContainText("ghp_");
 	await expect(page.locator("body")).not.toContainText("private-state");
 });
 
-test("required desktop, laptop, mobile, and 200% text layouts do not overflow", async ({
+test("required layouts and a CDP 200% browser-zoom equivalent reflow without lost actions", async ({
 	page,
 }) => {
 	for (const viewport of [
@@ -502,13 +522,323 @@ test("required desktop, laptop, mobile, and 200% text layouts do not overflow", 
 			page.getByRole("button", { name: /Follow Mara/ }),
 		).toBeVisible();
 	}
-	await page.evaluate(() => {
-		document.documentElement.style.fontSize = "200%";
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("Emulation.setDeviceMetricsOverride", {
+		width: 195,
+		height: 422,
+		deviceScaleFactor: 2,
+		mobile: false,
 	});
+	await page.reload();
 	await expect(page.getByRole("button", { name: /Follow Mara/ })).toBeVisible();
 	const zoomed = await page.evaluate(() => ({
 		client: document.documentElement.clientWidth,
 		scroll: document.documentElement.scrollWidth,
+		scale: window.devicePixelRatio,
 	}));
+	expect(zoomed.scale).toBe(2);
 	expect(zoomed.scroll).toBeLessThanOrEqual(zoomed.client);
+	await page.screenshot({
+		path: resolve(
+			import.meta.dirname,
+			"../../tmp/riverhold-playwright/zoom-200-mobile.png",
+		),
+		fullPage: true,
+	});
+});
+
+test("mobile arrival keeps the world dominant and the opening action in the first viewport", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.reload();
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+	);
+	const geometry = await page.evaluate(() => {
+		const header = document.querySelector(".topbar")?.getBoundingClientRect();
+		const world = document
+			.querySelector(".world-stage")
+			?.getBoundingClientRect();
+		const action = [...document.querySelectorAll("button")]
+			.find((button) => button.textContent?.includes("Follow Mara"))
+			?.getBoundingClientRect();
+		return {
+			headerBottom: header?.bottom ?? 0,
+			worldHeight: world?.height ?? 0,
+			actionTop: action?.top ?? Number.POSITIVE_INFINITY,
+			actionBottom: action?.bottom ?? Number.POSITIVE_INFINITY,
+			viewportHeight: window.innerHeight,
+			scrollWidth: document.documentElement.scrollWidth,
+			clientWidth: document.documentElement.clientWidth,
+		};
+	});
+	expect(
+		geometry.worldHeight / (geometry.viewportHeight - geometry.headerBottom),
+	).toBeGreaterThanOrEqual(0.55);
+	expect(geometry.actionTop).toBeGreaterThanOrEqual(0);
+	expect(geometry.actionBottom).toBeLessThanOrEqual(geometry.viewportHeight);
+	expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+	const textFloors = await page.evaluate(() => ({
+		factual: [
+			...document.querySelectorAll(".world-notice, .lede, .arrival-facts span"),
+		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+		secondary: [
+			...document.querySelectorAll(
+				".resource-ribbon small, .eyebrow, .microcopy",
+			),
+		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+	}));
+	expect(Math.min(...textFloors.factual)).toBeGreaterThanOrEqual(16);
+	expect(Math.min(...textFloors.secondary)).toBeGreaterThanOrEqual(14);
+
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	const peek = page.locator(".phase-panel--following");
+	await expect(peek).toBeVisible();
+	const peekHeight = await peek.evaluate(
+		(element) => element.getBoundingClientRect().height,
+	);
+	expect(peekHeight).toBeLessThanOrEqual(
+		(844 - geometry.headerBottom) * 0.35 + 1,
+	);
+	await expect(peek.getByText("Mara", { exact: true })).toBeVisible();
+	await expect(peek.getByText(/acts for herself/i)).toBeVisible();
+	await expect(peek.getByText(/saved only in this browser/i)).toBeVisible();
+	await expect(
+		peek.getByRole("button", { name: /Check why Mara doubts/i }),
+	).toBeVisible();
+});
+
+test("counsel presents its grounding and all three stakes in one state", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
+	const panel = page.getByLabel("Current Riverhold decision");
+	const context = panel.getByRole("region", {
+		name: "What Mara knows and cares about",
+	});
+	await expect(context).toContainText(/40 food.*28.*12-unit gap/i);
+	await expect(context).toContainText(/caution.*candor.*loyalty/i);
+	await expect(context).toContainText(
+		/Reconcile the ledger.*reconcile-ledger/i,
+	);
+	await expect(context).toContainText(/Mara trusts Toma/i);
+	await expect(context).toContainText(/reason is not known/i);
+	await expect(panel.getByText(/saved only in this browser/i)).toBeVisible();
+	for (const name of [
+		"Verify the count privately",
+		"Raise the mismatch in public",
+		"Offer no advice",
+	]) {
+		await expect(
+			panel.getByRole("radio", { name: new RegExp(name, "i") }),
+		).toBeVisible();
+	}
+	await expect(
+		panel.getByText(/public count may stay wrong longer/i),
+	).toBeVisible();
+	await expect(
+		panel.getByText(/unverified allegation may damage trust/i),
+	).toBeVisible();
+	await expect(panel.getByText(/uncertainty may survive/i)).toBeVisible();
+	const counselFactFloor = await panel
+		.locator(
+			".counsel-context p, .local-disclosure, .counsel-card small, .counsel-card em",
+		)
+		.evaluateAll((elements) =>
+			elements.map((element) =>
+				Number.parseFloat(getComputedStyle(element).fontSize),
+			),
+		);
+	expect(Math.min(...counselFactFloor)).toBeGreaterThanOrEqual(16);
+});
+
+test("fact badges pass normal-text contrast and focus survives forced colors", async ({
+	page,
+}) => {
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	const ratios = await page
+		.locator(".fact-badge, .belief-badge, .claim-badge")
+		.evaluateAll((elements) => {
+			const rgb = (value: string) =>
+				(value.match(/[\d.]+/gu) ?? []).slice(0, 3).map(Number);
+			const luminance = ([red = 0, green = 0, blue = 0]: number[]) => {
+				const linear = [red, green, blue].map((channel) => {
+					const normalized = channel / 255;
+					return normalized <= 0.04045
+						? normalized / 12.92
+						: ((normalized + 0.055) / 1.055) ** 2.4;
+				});
+				return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+			};
+			return elements.map((element) => {
+				const style = getComputedStyle(element);
+				const first = luminance(rgb(style.color));
+				const second = luminance(rgb(style.backgroundColor));
+				return (
+					(Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+				);
+			});
+		});
+	for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
+	await page.emulateMedia({ forcedColors: "active" });
+	const verify = page.getByRole("radio", {
+		name: /Verify the count privately/i,
+	});
+	await tabTo(page, verify);
+	await expect(verify.locator("..")).toHaveCSS("outline-style", "solid");
+	await expect(verify.locator("..")).toHaveCSS("outline-width", "3px");
+});
+
+test("the complete critical journey is keyboard-only and modal focus is isolated and restored", async ({
+	page,
+}) => {
+	const follow = page.getByRole("button", { name: /Follow Mara/ });
+	await tabTo(page, follow);
+	await page.keyboard.press("Enter");
+	const investigate = page.getByRole("button", {
+		name: /Check why Mara doubts/i,
+	});
+	await tabTo(page, investigate);
+	await page.keyboard.press("Enter");
+	const openCounsel = page.getByRole("button", {
+		name: /Review Mara's choices/i,
+	});
+	await tabTo(page, openCounsel);
+	await page.keyboard.press("Enter");
+	const verify = page.getByRole("radio", {
+		name: /Verify the count privately/i,
+	});
+	await tabTo(page, verify);
+	const visibleCard = verify.locator("..");
+	await expect(visibleCard).toHaveCSS("outline-style", "double");
+	await expect(visibleCard).toHaveCSS("outline-width", "4px");
+	await page.keyboard.press("Space");
+	await expect(verify).toBeChecked();
+	const offer = page.getByRole("button", { name: "Offer counsel" });
+	await tabTo(page, offer);
+	await page.keyboard.press("Enter");
+	const leave = page.getByRole("button", {
+		name: /Leave Riverhold at checkpoint/i,
+	});
+	await tabTo(page, leave);
+	await page.keyboard.press("Enter");
+	const returnButton = page.getByRole("button", {
+		name: /Return to Riverhold/i,
+	});
+	await tabTo(page, returnButton);
+	await page.keyboard.press("Enter");
+	const advance = page.getByRole("button", { name: /Advance Riverhold/i });
+	await tabTo(page, advance);
+	await page.keyboard.press("Enter");
+	const nextRisk = page.getByRole("button", {
+		name: /Ask Mara to publish the verified count/i,
+	});
+	await tabTo(page, nextRisk);
+	await page.keyboard.press("Enter");
+	const beatTwo = page.getByRole("button", { name: /Show beat 2/i });
+	await tabTo(page, beatTwo);
+	await page.keyboard.press("Enter");
+	const evidence = page.getByRole("button", {
+		name: /Inspect \d+ evidence record/i,
+	});
+	await tabTo(page, evidence);
+	await page.keyboard.press("Enter");
+	const dialog = page.getByRole("dialog");
+	const heading = dialog.getByRole("heading");
+	await expect(heading).toBeFocused();
+	await expect(page.locator("main#world")).toHaveAttribute("inert", "");
+	await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+	await page.keyboard.press("Tab");
+	await expect(
+		dialog.getByRole("button", { name: "Close details" }),
+	).toBeFocused();
+	await page.keyboard.press("Escape");
+	await expect(dialog).toHaveCount(0);
+	await expect(evidence).toBeFocused();
+});
+
+test("remembered words view and renderer failure preserve a fully playable journey", async ({
+	page,
+}) => {
+	await page.evaluate(() =>
+		sessionStorage.setItem("eonfolk:e2e-renderer-failure", "1"),
+	);
+	await page.reload();
+	await expect(
+		page.getByText(/illustrated view could not start/i),
+	).toBeVisible();
+	await expect(
+		page.getByRole("region", { name: "Riverhold world in words" }),
+	).toBeVisible();
+	await expect(page.getByTestId("riverhold-canvas")).toHaveCount(0);
+	await expect(
+		page.getByRole("list", { name: /Eight Riverhold citizens/i }),
+	).toBeVisible();
+	await page.reload();
+	await expect(
+		page.getByRole("button", { name: "Use illustrated view" }),
+	).toBeVisible();
+
+	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
+	await page.getByRole("radio", { name: /Offer no advice/i }).check();
+	await page.getByRole("button", { name: "Offer counsel" }).click();
+	await page
+		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
+		.click();
+	await page.getByRole("button", { name: /Return to Riverhold/i }).click();
+	await page.getByRole("button", { name: /Advance Riverhold/i }).click();
+	await page.getByRole("button", { name: /Keep observing/i }).click();
+	await expect(
+		page.getByRole("heading", { name: /What entered the record/i }),
+	).toBeVisible();
+	await page.getByRole("button", { name: /Show beat 2/i }).click();
+	await page
+		.getByRole("button", { name: /Inspect \d+ evidence record/i })
+		.click();
+	await expect(page.getByRole("dialog")).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(
+		page.getByRole("region", { name: /Riverhold Story Card/i }),
+	).toBeVisible();
+	await page.getByRole("button", { name: /Save feedback locally/i }).click();
+	await expect(page.getByLabel("Feedback delivery status")).toContainText(
+		"browser only",
+	);
+});
+
+test("manual reduced motion persists, removes root smooth scrolling, and touch targets meet the floor", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.emulateMedia({ reducedMotion: "no-preference" });
+	await page.reload();
+	const toggle = page.getByRole("button", { name: "Reduce motion" });
+	await toggle.click();
+	await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+	await expect(page.locator(".app-shell")).toHaveClass(/reduced-motion/);
+	await page.reload();
+	await expect(
+		page.getByRole("button", { name: "Motion reduced" }),
+	).toBeVisible();
+	await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+
+	for (const locator of [
+		page.getByRole("link", { name: "EONFOLK Riverhold home" }),
+		page.getByRole("button", { name: "Motion reduced" }),
+		page.getByRole("button", { name: "Use list view" }),
+		page.getByRole("button", { name: /Follow Mara/ }),
+	]) {
+		const box = await locator.boundingBox();
+		expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+		expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+	}
 });

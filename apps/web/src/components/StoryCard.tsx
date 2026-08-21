@@ -57,7 +57,7 @@ export function StoryCard({
 					<p>{card.followed}</p>
 				</div>
 				<p className="story-unresolved">{card.unresolved}</p>
-				<p className="story-mark">EONFOLK · factual event replay</p>
+				<p className="story-mark">EONFOLK · a true Riverhold story</p>
 			</div>
 			<button
 				className="primary-action"

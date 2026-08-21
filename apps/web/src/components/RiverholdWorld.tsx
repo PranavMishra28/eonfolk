@@ -65,9 +65,11 @@ function hatch(graphics: Graphics, width: number, height: number) {
 export function RiverholdWorld({
 	projection,
 	reducedMotion,
+	onFailure,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
+	readonly onFailure: () => void;
 }) {
 	const host = useRef<HTMLDivElement>(null);
 
@@ -78,6 +80,8 @@ export function RiverholdWorld({
 		let app: Application | null = new Application();
 		const container = host.current;
 		const render = async () => {
+			if (sessionStorage.getItem("eonfolk:e2e-renderer-failure") === "1")
+				throw new Error("Injected renderer initialization failure");
 			await app?.init({
 				antialias: true,
 				autoDensity: true,
@@ -118,7 +122,7 @@ export function RiverholdWorld({
 			const labelStyle = {
 				fill: "#24241f",
 				fontFamily: "Georgia",
-				fontSize: mobile ? 10 : 13,
+				fontSize: mobile ? 14 : 16,
 				fontWeight: "bold" as const,
 			};
 			const addLandmark = (
@@ -180,34 +184,63 @@ export function RiverholdWorld({
 
 			const people = new Container();
 			const sprites: Container[] = [];
-			for (const citizen of projection.citizens) {
+			for (const [index, citizen] of projection.citizens.entries()) {
 				const person = new Container();
+				const direction = index % 2 === 0 ? 1 : -1;
 				const body = new Graphics()
-					.circle(0, 0, citizen.focal ? 15 : 12)
+					.circle(0, -8, citizen.focal ? 13 : 10)
 					.fill(citizen.focal ? gold : ink)
 					.stroke({
 						color: citizen.focal ? 0xf3ddb0 : 0xc8af7e,
 						width: citizen.focal ? 4 : 2,
 					});
 				body
-					.moveTo(-8, 12)
-					.lineTo(0, 23)
-					.lineTo(8, 12)
+					.moveTo(-10 - (index % 3), 2)
+					.lineTo(index % 2 === 0 ? -5 : 0, 25 + (index % 3) * 2)
+					.lineTo(11 + (index % 2) * 3, 5)
 					.closePath()
 					.fill(citizen.focal ? 0x9a562d : 0x44463d);
+				// Eight deliberately different silhouettes: headwear, stance, and arm
+				// angle are tied to stable citizen order rather than decorative motion.
+				if (index % 4 === 0)
+					body
+						.rect(-15, -20, 30, 5)
+						.fill(0x73472c)
+						.rect(-8, -26, 16, 8)
+						.fill(0x73472c);
+				else if (index % 4 === 1)
+					body
+						.moveTo(-13, -16)
+						.lineTo(0, -29)
+						.lineTo(13, -16)
+						.closePath()
+						.fill(0x667047);
+				else if (index % 4 === 2)
+					body.circle(0, -18, 14).stroke({ color: rust, width: 4 });
+				else
+					body
+						.moveTo(-11, -20)
+						.lineTo(11, -20)
+						.lineTo(0, -30)
+						.closePath()
+						.fill(river);
+				body
+					.moveTo(direction * 2, 5)
+					.lineTo(direction * 18, -1 + (index % 3) * 5)
+					.stroke({ color: ink, width: 4 });
 				const prop = propFor(citizen.activityKind);
-				prop.position.set(18, -4);
+				prop.position.set(direction * 22, -1 + (index % 3) * 5);
 				const label = new Text({
 					text: citizen.name,
 					style: {
 						fill: "#171914",
 						fontFamily: "Georgia",
-						fontSize: mobile ? 10 : 13,
+						fontSize: mobile ? 14 : 16,
 						fontWeight: citizen.focal ? "bold" : "normal",
 					},
 				});
 				label.anchor.set(0.5, 0);
-				label.position.set(0, 26);
+				label.position.set(0, 31);
 				person.addChild(body, prop, label);
 				person.position.set(
 					(width * citizen.x) / 100,
@@ -220,6 +253,9 @@ export function RiverholdWorld({
 			const toma = projection.citizens.find(
 				(citizen) => citizen.id === "citizen:toma",
 			);
+			const iven = projection.citizens.find(
+				(citizen) => citizen.id === "citizen:iven",
+			);
 			const mara = projection.citizens[0];
 			if (toma && mara) {
 				const edge = new Graphics();
@@ -230,6 +266,33 @@ export function RiverholdWorld({
 					.lineTo((width * toma.x) / 100, (height * toma.y) / 100)
 					.stroke({ color, width: 2, alpha: 0.75 });
 				app.stage.addChild(edge);
+			}
+			if (toma && iven && projection.branch === null) {
+				const tx = (width * toma.x) / 100;
+				const ty = (height * toma.y) / 100;
+				const ix = (width * iven.x) / 100;
+				const iy = (height * iven.y) / 100;
+				const midpointX = (tx + ix) / 2;
+				const midpointY = (ty + iy) / 2;
+				const exchange = new Graphics()
+					.moveTo(tx + 18, ty - 8)
+					.lineTo(ix - 18, iy - 8)
+					.stroke({ color: ochre, width: 5 })
+					.rect(midpointX - 10, midpointY - 18, 20, 16)
+					.fill(0x70442a)
+					.stroke({ color: ink, width: 2 });
+				const exchangeLabel = new Text({
+					text: "Toma ↔ Iven · wood for rations",
+					style: {
+						fill: "#171914",
+						fontFamily: "Georgia",
+						fontSize: mobile ? 14 : 16,
+						fontWeight: "bold",
+					},
+				});
+				exchangeLabel.anchor.set(0.5, 1);
+				exchangeLabel.position.set(midpointX, midpointY - 23);
+				app.stage.addChild(exchange, exchangeLabel);
 			}
 			app.stage.addChild(people);
 
@@ -242,13 +305,15 @@ export function RiverholdWorld({
 			app.renderer.render(app.stage);
 			container.dataset.ready = "true";
 		};
-		void render();
+		void render().catch(() => {
+			if (!destroyed) onFailure();
+		});
 		return () => {
 			destroyed = true;
 			if (initialized) app?.destroy(true);
 			app = null;
 		};
-	}, [projection, reducedMotion]);
+	}, [onFailure, projection, reducedMotion]);
 
 	return (
 		<div

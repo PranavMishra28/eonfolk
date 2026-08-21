@@ -3,16 +3,29 @@ import type { RiverholdProjection } from "../projection";
 export function SemanticWorld({
 	projection,
 	onCitizen,
+	compact = false,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly onCitizen: (citizenId: string) => void;
+	readonly compact?: boolean;
 }) {
 	return (
-		<section className="semantic-world" aria-labelledby="semantic-world-title">
+		<section
+			className={`semantic-world${compact ? " semantic-world--compact" : ""}`}
+			aria-labelledby={
+				compact ? "semantic-world-title-compact" : "semantic-world-title"
+			}
+		>
 			<div className="semantic-heading">
 				<div>
-					<p className="eyebrow">SEMANTIC WORLD</p>
-					<h2 id="semantic-world-title">Riverhold, in words</h2>
+					<p className="eyebrow">WORLD IN WORDS</p>
+					<h2
+						id={
+							compact ? "semantic-world-title-compact" : "semantic-world-title"
+						}
+					>
+						Riverhold, in words
+					</h2>
 				</div>
 				<p>
 					All facts and actions shown in the illustrated world are available

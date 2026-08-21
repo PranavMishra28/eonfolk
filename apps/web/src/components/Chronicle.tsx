@@ -32,12 +32,12 @@ export function Chronicle({
 		<section className="chronicle" aria-labelledby="chronicle-title">
 			<div className="chronicle-heading">
 				<div>
-					<p className="eyebrow">FACTUAL CHRONICLE · THREE BEATS</p>
+					<p className="eyebrow">THE CHRONICLE · THREE MOMENTS</p>
 					<h2 id="chronicle-title">What entered the record</h2>
 				</div>
 				<p className="chronicle-note">
-					Causal language comes from recorded typed relations, never from prose
-					order.
+					The order of the story does not prove what caused what. Open Evidence
+					for the exact recorded links.
 				</p>
 			</div>
 			<div className="replay-stage" aria-live="polite">

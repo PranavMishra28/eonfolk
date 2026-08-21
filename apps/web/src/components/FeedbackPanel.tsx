@@ -110,7 +110,7 @@ export function FeedbackPanel() {
 					aria-controls="feedback-form"
 					onClick={() => setOpen((current) => !current)}
 				>
-					{open ? "Close feedback" : "Report issue / Send feedback"}
+					{open ? "Close feedback" : "Report issue / Save feedback locally"}
 				</button>
 			</div>
 			{open && (
