@@ -5,6 +5,45 @@ import type {
 	SpatialSceneDefinition,
 } from "./types";
 
+export interface ChronicleCameraComposition {
+	readonly key: "advice" | "choice" | "consequence";
+	readonly distanceM: number;
+	readonly yawDegrees: number;
+	readonly pitchDegrees: number;
+}
+
+const chronicleCameraCompositions = Object.freeze([
+	Object.freeze({
+		key: "advice",
+		distanceM: 22,
+		yawDegrees: 4,
+		pitchDegrees: 50,
+	}),
+	Object.freeze({
+		key: "choice",
+		distanceM: 17,
+		yawDegrees: 32,
+		pitchDegrees: 46,
+	}),
+	Object.freeze({
+		key: "consequence",
+		distanceM: 20,
+		yawDegrees: -28,
+		pitchDegrees: 54,
+	}),
+] as const satisfies readonly ChronicleCameraComposition[]);
+
+/** Stable, bounded compositions for the three accepted Chronicle beats. */
+export function chronicleCameraComposition(
+	beatId: string,
+): ChronicleCameraComposition {
+	const parsed = /^beat:(\d+)$/u.exec(beatId);
+	const ordinal = Number(parsed?.[1] ?? 1);
+	return chronicleCameraCompositions[
+		Math.max(0, Math.min(chronicleCameraCompositions.length - 1, ordinal - 1))
+	]!;
+}
+
 interface NodeOptions {
 	readonly affordance?: SpatialNode["affordance"];
 	readonly capacity?: number;

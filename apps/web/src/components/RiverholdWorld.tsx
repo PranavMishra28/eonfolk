@@ -1,11 +1,13 @@
 import {
 	advancePresentationClock,
+	chronicleCameraComposition,
 	humanoidPose,
 	inspectSpatialProjection,
 	projectPresentationResidency,
 	projectSpatialScene,
 	riverholdPhysicalScale,
 	riverholdSpatialScene,
+	workToolForAction,
 	type SemanticScale,
 	type SpatialActorProjection,
 	type SpatialCitizenInput,
@@ -60,6 +62,8 @@ const palette = {
 	roof: material("#8a4937"),
 	timber: material("#70472d"),
 	grain: material("#d7b35d"),
+	verified: material("#b7cf78"),
+	warning: material("#cf603f"),
 	linen: material("#e1d6ba"),
 	mara: material("#3f7d83"),
 	maraScarf: material("#c46d39"),
@@ -90,6 +94,14 @@ const physicalScale = Object.freeze({
 });
 
 const CITIZEN_RIG_HEIGHT = 2.3;
+const tallyMarkerPositions = Object.freeze([
+	-0.75, -0.45, -0.15, 0.15, 0.45, 0.75,
+]);
+const chronicleMarkerOffsets = Object.freeze({
+	1: Object.freeze([0]),
+	2: Object.freeze([-0.26, 0.26]),
+	3: Object.freeze([-0.52, 0, 0.52]),
+} as const);
 
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
 
@@ -221,6 +233,183 @@ function MarketStall({
 			<Primitive
 				position={[0.75, 1.05, 0]}
 				scale={[0.48, 0.42, 0.48]}
+				color={palette.grain}
+			/>
+		</Entity>
+	);
+}
+
+function MarketTally({
+	projection,
+}: {
+	readonly projection: RiverholdProjection;
+}) {
+	const observed = projection.investigation.observed;
+	const verified = projection.mara.beliefStatus === "verified";
+	return (
+		<Entity position={[-3.2, 0, -4.4]} rotation={[0, 145, 0]}>
+			<Primitive
+				position={[0, 0.82, 0]}
+				scale={[2.35, 0.16, 1.05]}
+				color={palette.timber}
+			/>
+			{[-0.88, 0.88].map((x) => (
+				<Primitive
+					key={x}
+					position={[x, 0.4, 0]}
+					scale={[0.15, 0.8, 0.15]}
+					color={palette.timber}
+				/>
+			))}
+			<Entity position={[0, 1.01, 0]} rotation={[-6, 0, 0]}>
+				<Primitive
+					position={[-0.42, 0, 0]}
+					scale={[0.78, 0.05, 0.72]}
+					color={palette.linen}
+					castShadows={false}
+				/>
+				<Primitive
+					position={[0.42, 0, 0]}
+					scale={[0.78, 0.05, 0.72]}
+					color={palette.linen}
+					castShadows={false}
+				/>
+				{[-0.58, -0.29, 0.29, 0.58].map((x) => (
+					<Primitive
+						key={x}
+						position={[x, 0.04, 0]}
+						scale={[0.08, 0.035, 0.48]}
+						color={palette.ink}
+						castShadows={false}
+					/>
+				))}
+			</Entity>
+			{observed
+				? tallyMarkerPositions.map((x) => (
+						<Primitive
+							key={`tally:${x}`}
+							position={[x, 1.18, -0.16]}
+							scale={[0.13, 0.13, 0.13]}
+							color={verified ? palette.verified : palette.warning}
+							castShadows={false}
+						/>
+					))
+				: null}
+			{verified ? (
+				<Primitive
+					type="cylinder"
+					position={[0.76, 1.18, -0.15]}
+					scale={[0.28, 0.08, 0.28]}
+					color={palette.verified}
+					castShadows={false}
+				/>
+			) : null}
+		</Entity>
+	);
+}
+
+function MarketRouteLandmarks() {
+	return (
+		<>
+			<Entity position={[-9, 0, 1.5]}>
+				<Primitive
+					position={[0, 1.25, 0]}
+					scale={[2.3, 0.13, 0.13]}
+					color={palette.timber}
+				/>
+				{[-0.72, 0.72].map((x) => (
+					<Primitive
+						key={x}
+						position={[x, 0.55, 0]}
+						scale={[0.12, 1.4, 0.12]}
+						color={palette.timber}
+					/>
+				))}
+				{[-0.55, 0.55].map((x) => (
+					<Primitive
+						key={`bucket:${x}`}
+						type="cylinder"
+						position={[x, 0.32, 0.28]}
+						scale={[0.42, 0.58, 0.42]}
+						color={palette.water}
+					/>
+				))}
+			</Entity>
+			<Entity position={[8.4, 0, 1.4]}>
+				<Primitive
+					type="cylinder"
+					position={[-0.35, 0.28, 0]}
+					scale={[0.3, 1.5, 0.3]}
+					rotation={[90, 0, 0]}
+					color={palette.timber}
+				/>
+				<Primitive
+					type="cylinder"
+					position={[0.35, 0.28, 0.1]}
+					scale={[0.3, 1.5, 0.3]}
+					rotation={[90, 0, 0]}
+					color={palette.timber}
+				/>
+				<Primitive
+					position={[0.95, 0.72, 0]}
+					scale={[0.11, 1.25, 0.11]}
+					rotation={[0, 0, 18]}
+					color={palette.timber}
+				/>
+				<Primitive
+					position={[1.1, 1.27, 0]}
+					scale={[0.58, 0.18, 0.14]}
+					color={palette.stone}
+				/>
+			</Entity>
+			<Entity position={[-3.8, 0, -8]}>
+				{[-0.55, 0.55].map((x) => (
+					<Primitive
+						key={x}
+						type="cylinder"
+						position={[x, 0.34, 0]}
+						scale={[0.58, 0.62, 0.58]}
+						color={palette.grain}
+					/>
+				))}
+			</Entity>
+		</>
+	);
+}
+
+/** Open-front granary: storage remains substantial without hiding its workers. */
+function Granary() {
+	return (
+		<Entity position={[-18.2, 0, -28.5]}>
+			<Primitive
+				position={[0, 0.18, 1.1]}
+				scale={[8.8, 0.32, 5.9]}
+				color={palette.earth}
+			/>
+			<Primitive
+				position={[0, 2.2, -1.75]}
+				scale={[8.8, 4.1, 0.35]}
+				color={palette.wall}
+			/>
+			<Primitive
+				position={[-4.25, 1.55, 0]}
+				scale={[0.35, 3.1, 3.8]}
+				color={palette.wall}
+			/>
+			<Primitive
+				position={[0, 4.55, -0.15]}
+				scale={[9.4, 0.5, 6.6]}
+				color={palette.roof}
+				rotation={[0, 0, 8]}
+			/>
+			<Primitive
+				position={[3.6, 0.9, -1.35]}
+				scale={[1.2, 1.55, 1.2]}
+				color={palette.grain}
+			/>
+			<Primitive
+				position={[2.05, 0.75, -1.45]}
+				scale={[1.05, 1.25, 1.05]}
 				color={palette.grain}
 			/>
 		</Entity>
@@ -371,7 +560,14 @@ interface ActorRig {
 export type WorldFocus =
 	| { readonly kind: "overview" }
 	| { readonly kind: "citizen"; readonly id: string; readonly follow: boolean }
-	| { readonly kind: "place"; readonly id: string };
+	| { readonly kind: "place"; readonly id: string }
+	| {
+			readonly kind: "chronicle";
+			readonly beatId: string;
+			readonly placeId: string;
+			readonly participantIds: readonly string[];
+			readonly targetIds: readonly string[];
+	  };
 
 const citizenMaterials: Readonly<Record<string, StandardMaterial>> = {
 	mara: palette.mara,
@@ -384,8 +580,12 @@ const citizenMaterials: Readonly<Record<string, StandardMaterial>> = {
 	els: palette.leaf,
 };
 
-function CitizenProp({ actor }: { readonly actor: SpatialActorProjection }) {
-	if (actor.prop === null) return null;
+function CitizenEquipment({
+	actor,
+}: {
+	readonly actor: SpatialActorProjection;
+}) {
+	const tool = workToolForAction(actor.action);
 	if (actor.prop === "logs")
 		return (
 			<Entity position={[0, 0.92, -0.48]}>
@@ -405,7 +605,7 @@ function CitizenProp({ actor }: { readonly actor: SpatialActorProjection }) {
 				/>
 			</Entity>
 		);
-	if (actor.prop === "tool")
+	if (actor.prop === "tool" || tool === "mallet")
 		return (
 			<Entity position={[0.5, 0.95, -0.12]} rotation={[0, 0, 32]}>
 				<Primitive
@@ -420,6 +620,76 @@ function CitizenProp({ actor }: { readonly actor: SpatialActorProjection }) {
 				/>
 			</Entity>
 		);
+	if (tool === "ledger")
+		return (
+			<Entity position={[0, 1.14, -0.53]} rotation={[-18, 0, 0]}>
+				<Primitive
+					position={[0, 0, 0]}
+					scale={[0.72, 0.5, 0.08]}
+					color={palette.linen}
+				/>
+				{[-0.2, 0, 0.2].map((x) => (
+					<Primitive
+						key={x}
+						position={[x, 0.05, -0.06]}
+						scale={[0.08, 0.3, 0.04]}
+						color={palette.ink}
+						castShadows={false}
+					/>
+				))}
+			</Entity>
+		);
+	if (tool === "bucket")
+		return (
+			<Entity position={[0, 0.88, -0.4]}>
+				{[-0.45, 0.45].map((x) => (
+					<Primitive
+						key={x}
+						type="cylinder"
+						position={[x, -0.24, 0]}
+						scale={[0.34, 0.48, 0.34]}
+						color={palette.water}
+					/>
+				))}
+				<Primitive
+					position={[0, 0.14, 0]}
+					scale={[1.08, 0.08, 0.08]}
+					color={palette.timber}
+				/>
+			</Entity>
+		);
+	if (tool === "axe")
+		return (
+			<Entity position={[0.48, 1, -0.08]} rotation={[0, 0, 18]}>
+				<Primitive
+					scale={[0.1, 1.05, 0.1]}
+					position={[0, 0, 0]}
+					color={palette.timber}
+				/>
+				<Primitive
+					scale={[0.52, 0.18, 0.14]}
+					position={[0.18, 0.5, 0]}
+					color={palette.stone}
+				/>
+			</Entity>
+		);
+	if (tool === "basket")
+		return (
+			<Entity position={[0, 0.82, -0.48]}>
+				<Primitive
+					type="cylinder"
+					position={[0, 0, 0]}
+					scale={[0.52, 0.4, 0.52]}
+					color={palette.grain}
+				/>
+				<Primitive
+					position={[0, 0.3, 0]}
+					scale={[0.68, 0.08, 0.08]}
+					color={palette.timber}
+				/>
+			</Entity>
+		);
+	if (actor.prop === null) return null;
 	const color =
 		actor.prop === "water"
 			? palette.water
@@ -439,10 +709,12 @@ function CitizenRig({
 	actor,
 	register,
 	semanticScale,
+	chronicleBeat,
 }: {
 	readonly actor: SpatialActorProjection;
 	readonly register: (citizenId: string, rig: ActorRig | null) => void;
 	readonly semanticScale: SemanticScale;
+	readonly chronicleBeat: 1 | 2 | 3 | null;
 }) {
 	const root = useRef<PlayCanvasEntity>(null);
 	const leftArm = useRef<PlayCanvasEntity>(null);
@@ -480,6 +752,31 @@ function CitizenRig({
 				physicalScale.citizenHeight / CITIZEN_RIG_HEIGHT,
 			]}
 		>
+			{chronicleBeat !== null ? (
+				<Entity position={[0, 0.02, 0]}>
+					<Primitive
+						type="cylinder"
+						position={[0, 0, 0]}
+						scale={[
+							1.8 + chronicleBeat * 0.24,
+							0.055,
+							1.8 + chronicleBeat * 0.24,
+						]}
+						color={chronicleBeat === 3 ? palette.verified : palette.maraScarf}
+						castShadows={false}
+					/>
+					{chronicleMarkerOffsets[chronicleBeat].map((x) => (
+						<Primitive
+							key={`chronicle:${chronicleBeat}:${x}`}
+							type="sphere"
+							position={[x, 2.85, 0]}
+							scale={[0.22, 0.22, 0.22]}
+							color={chronicleBeat === 3 ? palette.verified : palette.linen}
+							castShadows={false}
+						/>
+					))}
+				</Entity>
+			) : null}
 			{actor.focal || semanticScale === "region" ? (
 				<Primitive
 					type="cylinder"
@@ -529,7 +826,7 @@ function CitizenRig({
 				/>
 			</Entity>
 			<Entity ref={prop}>
-				<CitizenProp actor={actor} />
+				<CitizenEquipment actor={actor} />
 			</Entity>
 			{actor.slug === "mara" ? (
 				<>
@@ -557,7 +854,10 @@ function poseRig(rig: ActorRig, actor: SpatialActorProjection, tick: number) {
 	rig.rightLeg.setLocalEulerAngles(pose.rightLegDegrees, 0, 0);
 	if (rig.prop !== null) {
 		const scale =
-			actor.prop === null || actor.animationClass === "idle" ? 0 : 1;
+			(actor.prop === null && workToolForAction(actor.action) === null) ||
+			actor.animationClass === "idle"
+				? 0
+				: 1;
 		rig.prop.setLocalScale(scale, scale, scale);
 	}
 }
@@ -759,11 +1059,11 @@ function CameraController({
 }) {
 	const camera = useRef<PlayCanvasEntity>(null);
 	const cameraState = useRef({
-		targetX: 0,
-		targetZ: -5,
-		distance: 58,
-		yaw: 38,
-		pitch: 48,
+		targetX: 1,
+		targetZ: 1,
+		distance: 36,
+		yaw: 32,
+		pitch: 47,
 	});
 	const appliedInitialFocus = useRef(false);
 	const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -776,9 +1076,11 @@ function CameraController({
 	useEffect(() => {
 		const state = cameraState.current;
 		if (focus.kind === "overview") {
-			state.targetX = 0;
-			state.targetZ = -5;
-			state.distance = appliedInitialFocus.current ? 118 : 58;
+			state.targetX = 1;
+			state.targetZ = 1;
+			state.distance = appliedInitialFocus.current ? 118 : 36;
+			state.yaw = 32;
+			state.pitch = 47;
 			appliedInitialFocus.current = true;
 			return;
 		}
@@ -790,6 +1092,22 @@ function CameraController({
 				state.targetZ = place.centerMm.z / 1_000;
 				state.distance = 52;
 			}
+			return;
+		}
+		if (focus.kind === "chronicle") {
+			const composition = chronicleCameraComposition(focus.beatId);
+			const subjectId = [...focus.participantIds, ...focus.targetIds].find(
+				(candidate) => rigs.current.has(candidate),
+			);
+			const rig =
+				subjectId === undefined ? undefined : rigs.current.get(subjectId);
+			const place = riverholdSpatialScene.places[focus.placeId];
+			const position = rig?.root.getPosition();
+			state.targetX = position?.x ?? (place?.centerMm.x ?? 0) / 1_000;
+			state.targetZ = position?.z ?? (place?.centerMm.z ?? 0) / 1_000;
+			state.distance = composition.distanceM;
+			state.yaw = composition.yawDegrees;
+			state.pitch = composition.pitchDegrees;
 			return;
 		}
 		const rig = rigs.current.get(focus.id);
@@ -1020,8 +1338,18 @@ function CameraController({
 		const entity = camera.current;
 		if (entity === null) return;
 		const state = cameraState.current;
-		if (focus.kind === "citizen" && focus.follow) {
-			const rig = rigs.current.get(focus.id);
+		if (
+			(focus.kind === "citizen" && focus.follow) ||
+			focus.kind === "chronicle"
+		) {
+			const trackedId =
+				focus.kind === "citizen"
+					? focus.id
+					: [...focus.participantIds, ...focus.targetIds].find((candidate) =>
+							rigs.current.has(candidate),
+						);
+			const rig =
+				trackedId === undefined ? undefined : rigs.current.get(trackedId);
 			if (rig !== undefined) {
 				const position = rig.root.getPosition();
 				const blend = reducedMotion ? 1 : 0.09;
@@ -1045,7 +1373,12 @@ function CameraController({
 				z: Math.round(state.targetZ * 1_000),
 			},
 			distanceMm: Math.round(state.distance * 1_000),
-			selectedCitizenId: focus.kind === "citizen" ? focus.id : null,
+			selectedCitizenId:
+				focus.kind === "citizen"
+					? focus.id
+					: focus.kind === "chronicle"
+						? (focus.participantIds[0] ?? null)
+						: null,
 		});
 		if (host.current !== null) {
 			host.current.dataset.semanticScale = residency.semanticScale;
@@ -1059,6 +1392,39 @@ function CameraController({
 				? "direct"
 				: "animated";
 			const cameraComponent = entity.camera;
+			const focusSubjectId =
+				focus.kind === "chronicle"
+					? [...focus.participantIds, ...focus.targetIds].find((candidate) =>
+							rigs.current.has(candidate),
+						)
+					: focus.kind === "citizen"
+						? focus.id
+						: undefined;
+			const focusSubject =
+				focusSubjectId === undefined
+					? undefined
+					: rigs.current.get(focusSubjectId);
+			if (cameraComponent !== undefined && focusSubject !== undefined) {
+				const point = cameraComponent.worldToScreen(
+					focusSubject.root.getPosition(),
+				);
+				const visible =
+					point.x >= 32 &&
+					point.x <= host.current.clientWidth - 32 &&
+					point.y >= 32 &&
+					point.y <= host.current.clientHeight - 32;
+				host.current.dataset.focusSubject = focusSubjectId;
+				host.current.dataset.focusSubjectVisible = String(visible);
+				host.current.dataset.focusSubjectScreen = `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+			} else {
+				delete host.current.dataset.focusSubject;
+				delete host.current.dataset.focusSubjectVisible;
+				delete host.current.dataset.focusSubjectScreen;
+			}
+			host.current.dataset.focusComposition =
+				focus.kind === "chronicle"
+					? chronicleCameraComposition(focus.beatId).key
+					: focus.kind;
 			pickTargetSample.current = (pickTargetSample.current + 1) % 6;
 			if (
 				cameraComponent !== undefined &&
@@ -1224,7 +1590,7 @@ function LivingLandscape({
 			<House x={22} z={19} rotation={-10} wide />
 			<House x={-29} z={14} rotation={20} />
 			<House x={9} z={32} rotation={-4} wide />
-			<House x={-14} z={-26} rotation={3} wide />
+			<Granary />
 			<Entity position={[1, 0, 1]}>
 				<Primitive
 					type="cylinder"
@@ -1239,6 +1605,8 @@ function LivingLandscape({
 				<MarketStall x={-5.2} z={0} rotation={12} canopy={palette.roof} />
 				<MarketStall x={5.2} z={0} rotation={-10} canopy={palette.grain} />
 				<MarketStall x={0} z={-6.1} rotation={90} canopy={palette.mara} />
+				<MarketTally projection={projection} />
+				<MarketRouteLandmarks />
 				{projection.spatial.interactions.length > 0 ? (
 					<ConversationIndicator />
 				) : null}
@@ -1321,6 +1689,31 @@ function LivingLandscape({
 					color={palette.timber}
 				/>
 			</Entity>
+			<Entity position={[59, 0, 43]}>
+				<Primitive
+					type="cylinder"
+					position={[0, 0.28, 0]}
+					scale={[1.7, 0.5, 1.7]}
+					color={palette.timber}
+				/>
+				<Primitive
+					position={[1.25, 0.28, 0.35]}
+					scale={[1.7, 0.38, 0.42]}
+					color={palette.timber}
+					rotation={[0, 32, 0]}
+				/>
+			</Entity>
+			<Entity position={[-40, 0, -61]}>
+				{[-1.1, 0, 1.1].map((x) => (
+					<Primitive
+						key={x}
+						type="cone"
+						position={[x, 0.8, 0]}
+						scale={[0.7, 1.6, 0.7]}
+						color={palette.grain}
+					/>
+				))}
+			</Entity>
 			<WorldProps projection={projection} />
 			{treePositions.map(([x, z, scale]) => (
 				<Tree key={`${x}:${z}`} x={x} z={z} scale={scale} />
@@ -1391,6 +1784,17 @@ function Settlement({
 		setSemanticScale(scale);
 		onSemanticScaleChange(scale);
 	};
+	const chronicleOrdinal: 1 | 2 | 3 | null =
+		focus.kind === "chronicle"
+			? (Math.max(
+					1,
+					Math.min(3, Number(/^beat:(\d+)$/u.exec(focus.beatId)?.[1] ?? 1)),
+				) as 1 | 2 | 3)
+			: null;
+	const chronicleParticipants =
+		focus.kind === "chronicle"
+			? new Set([...focus.participantIds, ...focus.targetIds])
+			: null;
 	return (
 		<Application
 			deviceTypes={[DEVICETYPE_WEBGL2]}
@@ -1424,7 +1828,7 @@ function Settlement({
 				<Light
 					type="directional"
 					color="#ffedca"
-					intensity={1.35}
+					intensity={1.08}
 					castShadows
 					shadowResolution={1024}
 				/>
@@ -1450,6 +1854,11 @@ function Settlement({
 					actor={actor}
 					register={register}
 					semanticScale={semanticScale}
+					chronicleBeat={
+						chronicleParticipants?.has(actor.citizenId)
+							? chronicleOrdinal
+							: null
+					}
 				/>
 			))}
 		</Application>
@@ -1549,6 +1958,14 @@ export function RiverholdWorld({
 			data-citizen-height-m={physicalScale.citizenHeight}
 			data-door-height-m={physicalScale.doorHeight}
 			data-cosmetic-processes="river-flow"
+			data-opening-choreography="ledger,exchange,water-route,wood-route,field-route,mill-repair"
+			data-consequence-tableau={
+				projection.mara.beliefStatus === "verified"
+					? "verified-ledger-sealed"
+					: projection.investigation.observed
+						? "mismatch-marked"
+						: "unmarked-ledger"
+			}
 			data-mill-state={
 				projection.worldProcesses.millRepaired ? "repaired" : "needs-repair"
 			}

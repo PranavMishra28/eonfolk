@@ -235,7 +235,7 @@ function WorldControls({
 			className="world-controls"
 			aria-label="Riverhold camera and lenses"
 		>
-			<div className="camera-controls">
+			<div className="camera-controls camera-controls--primary">
 				<button
 					type="button"
 					onClick={() => onFocus({ kind: "overview" })}
@@ -270,55 +270,60 @@ function WorldControls({
 				>
 					−
 				</button>
-				<button
-					type="button"
-					aria-label="Pan Riverhold left"
-					onClick={() => cameraIntent("pan-left")}
-				>
-					←
-				</button>
-				<button
-					type="button"
-					aria-label="Pan Riverhold right"
-					onClick={() => cameraIntent("pan-right")}
-				>
-					→
-				</button>
-				<button
-					type="button"
-					aria-label="Pan Riverhold up"
-					onClick={() => cameraIntent("pan-up")}
-				>
-					↑
-				</button>
-				<button
-					type="button"
-					aria-label="Pan Riverhold down"
-					onClick={() => cameraIntent("pan-down")}
-				>
-					↓
-				</button>
 				<span aria-live="polite">{semanticScale} scale · tap the world</span>
 			</div>
-			<section className="lens-controls" aria-label="World lenses">
-				{(["activity", "resources", "routes"] as const).map((value) => (
+			<details className="world-tools">
+				<summary>World tools</summary>
+				<div className="camera-controls camera-controls--secondary">
 					<button
-						key={value}
 						type="button"
-						aria-pressed={lens === value}
-						onClick={() => onLens(lens === value ? "none" : value)}
+						aria-label="Pan Riverhold left"
+						onClick={() => cameraIntent("pan-left")}
 					>
-						{value === "activity"
-							? "People"
-							: value === "resources"
-								? "Resources"
-								: "Routes"}
+						←
 					</button>
-				))}
-				<button type="button" onClick={onResearch}>
-					Research lens
-				</button>
-			</section>
+					<button
+						type="button"
+						aria-label="Pan Riverhold right"
+						onClick={() => cameraIntent("pan-right")}
+					>
+						→
+					</button>
+					<button
+						type="button"
+						aria-label="Pan Riverhold up"
+						onClick={() => cameraIntent("pan-up")}
+					>
+						↑
+					</button>
+					<button
+						type="button"
+						aria-label="Pan Riverhold down"
+						onClick={() => cameraIntent("pan-down")}
+					>
+						↓
+					</button>
+				</div>
+				<section className="lens-controls" aria-label="World lenses">
+					{(["activity", "resources", "routes"] as const).map((value) => (
+						<button
+							key={value}
+							type="button"
+							aria-pressed={lens === value}
+							onClick={() => onLens(lens === value ? "none" : value)}
+						>
+							{value === "activity"
+								? "People"
+								: value === "resources"
+									? "Resources"
+									: "Routes"}
+						</button>
+					))}
+					<button type="button" onClick={onResearch}>
+						Research lens
+					</button>
+				</section>
+			</details>
 			{lens === "activity" ? (
 				<div className="world-lens world-lens--people">
 					<strong>People in motion</strong>
@@ -778,7 +783,13 @@ export function RiverholdApp() {
 
 	useEffect(() => {
 		phaseFocus.current?.focus({ preventScroll: true });
-		if (projection?.phase === "following") {
+		if (
+			projection?.phase === "following" ||
+			projection?.phase === "consequence" ||
+			projection?.phase === "return-pending" ||
+			projection?.phase === "return" ||
+			projection?.phase === "chronicle"
+		) {
 			const mara = projection.citizens.find(
 				(citizen) => citizen.slug === "mara",
 			);
@@ -1091,12 +1102,13 @@ export function RiverholdApp() {
 						reducedMotion={reducedMotion}
 						onEvidence={(beat) => openSheet({ kind: "evidence", beat })}
 						onShowInWorld={(beat) => {
-							const citizenId = beat.spatialFocus.participantIds[0];
-							setWorldFocus(
-								citizenId === undefined
-									? { kind: "place", id: beat.spatialFocus.placeId }
-									: { kind: "citizen", id: citizenId, follow: false },
-							);
+							setWorldFocus({
+								kind: "chronicle",
+								beatId: beat.id,
+								placeId: beat.spatialFocus.placeId,
+								participantIds: beat.spatialFocus.participantIds,
+								targetIds: beat.spatialFocus.targetIds,
+							});
 							document.querySelector("#world")?.scrollIntoView({
 								behavior: reducedMotion ? "auto" : "smooth",
 							});

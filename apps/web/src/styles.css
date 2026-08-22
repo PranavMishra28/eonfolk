@@ -2388,3 +2388,89 @@ em {
 		animation: none;
 	}
 }
+
+.world-tools {
+	width: fit-content;
+	color: #f8efdc;
+}
+
+.world-tools > summary {
+	width: fit-content;
+	min-height: 38px;
+	padding: 0.55rem 0.72rem;
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	background: rgba(24, 29, 24, 0.88);
+	box-shadow: 5px 5px 0 rgba(79, 51, 31, 0.22);
+	font-size: 0.72rem;
+	font-weight: 800;
+	cursor: pointer;
+	list-style-position: inside;
+}
+
+.world-tools[open] > summary {
+	color: var(--ink);
+	background: #efd9a8;
+}
+
+.world-tools .camera-controls,
+.world-tools .lens-controls {
+	margin-top: 0.35rem;
+}
+
+@media (min-width: 901px) and (max-height: 820px) {
+	.phase-orientation .decision-rail {
+		top: 0.5rem;
+		bottom: 0.5rem;
+		max-height: calc(100% - 1rem);
+	}
+
+	.phase-orientation .phase-panel--arrival {
+		gap: 0.5rem;
+		padding: 1rem 1.35rem;
+	}
+
+	.phase-orientation .phase-panel--arrival > * {
+		margin-block: 0;
+	}
+
+	.phase-orientation .phase-panel--arrival h1 {
+		font-size: clamp(2.45rem, 4vw, 3.4rem);
+	}
+
+	.phase-orientation .arrival-facts {
+		margin-block: 0.35rem;
+	}
+
+	.phase-orientation .arrival-facts span {
+		padding-block: 0.55rem;
+	}
+
+	.phase-orientation .phase-panel--arrival .primary-action {
+		min-height: 54px;
+	}
+
+	.phase-orientation .phase-panel--arrival .microcopy {
+		line-height: 1.3;
+	}
+}
+
+@media (max-width: 520px) {
+	.world-controls {
+		gap: 0.3rem;
+	}
+
+	.camera-controls--primary > span {
+		display: none;
+	}
+
+	.world-tools > summary {
+		min-height: 34px;
+		padding: 0.38rem 0.52rem;
+		font-size: 0.64rem;
+	}
+
+	.world-tools[open] .camera-controls,
+	.world-tools[open] .lens-controls {
+		max-width: calc(100vw - 1.3rem);
+	}
+}
