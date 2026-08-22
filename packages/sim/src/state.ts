@@ -1,14 +1,16 @@
 import type {
+	AuthoritativeAffordance,
 	BehaviorFamily,
 	CitizenId,
 	EpistemicRecord,
 	NeedState,
 	PatronCovenant,
 	RelationshipState,
-	ReturnResponseAction,
 	ResourceKind,
+	ReturnResponseAction,
 	SemanticTravelState,
 	StandingPlan,
+	TaskReservation,
 	ValuePriority,
 } from "../../protocol/src/index.js";
 
@@ -16,6 +18,7 @@ export interface PlaceState {
 	readonly placeId: string;
 	readonly name: string;
 	readonly neighbors: readonly string[];
+	readonly travelSecondsByNeighbor: Readonly<Record<string, number>>;
 }
 
 export interface ResourceSiteState {
@@ -33,6 +36,7 @@ export interface CitizenState {
 	readonly alive: boolean;
 	readonly placeId: string;
 	readonly travel?: SemanticTravelState | null;
+	readonly activeTaskId: string | null;
 	readonly inventory: Readonly<Record<ResourceKind, number>>;
 	readonly needs: NeedState;
 	readonly values: readonly ValuePriority[];
@@ -79,6 +83,8 @@ export interface WorldState {
 	readonly nextSequence: number;
 	readonly nextCreationSequence: number;
 	readonly places: Readonly<Record<string, PlaceState>>;
+	readonly affordances: Readonly<Record<string, AuthoritativeAffordance>>;
+	readonly taskReservations: Readonly<Record<string, TaskReservation>>;
 	readonly resourceSites: Readonly<Record<string, ResourceSiteState>>;
 	readonly citizens: Readonly<Record<CitizenId, CitizenState>>;
 	readonly relationships: Readonly<Record<string, RelationshipState>>;
@@ -113,4 +119,20 @@ export function citizenBySlug(state: WorldState, slug: string): CitizenState {
 	);
 	if (citizen === undefined) throw new Error(`unknown citizen slug: ${slug}`);
 	return citizen;
+}
+
+export function travelDurationSeconds(
+	state: WorldState,
+	fromPlaceId: string,
+	toPlaceId: string,
+): number {
+	const duration =
+		state.places[fromPlaceId]?.travelSecondsByNeighbor[toPlaceId];
+	if (
+		!Number.isSafeInteger(duration) ||
+		duration === undefined ||
+		duration <= 0
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	return duration;
 }

@@ -1,5 +1,5 @@
 import type { WorldEventPayload } from "../../protocol/src/index.js";
-import type { WorldState } from "./state.js";
+import { travelDurationSeconds, type WorldState } from "./state.js";
 
 export interface ScheduledAction {
 	readonly simulationTime: number;
@@ -141,6 +141,7 @@ export function scheduleAutonomousActions(
 		}
 		const toPlaceId = routeTarget(state, citizen.slug, citizen.placeId);
 		if (toPlaceId !== citizen.placeId) {
+			const duration = travelDurationSeconds(state, citizen.placeId, toPlaceId);
 			actions.push({
 				simulationTime: atSimulationTime,
 				priority: 30,
@@ -154,7 +155,7 @@ export function scheduleAutonomousActions(
 					destinationPlaceId: toPlaceId,
 					routeId: `${citizen.placeId}>${toPlaceId}`,
 					departureSimulationTime: atSimulationTime,
-					expectedArrivalSimulationTime: atSimulationTime + 120,
+					expectedArrivalSimulationTime: atSimulationTime + duration,
 					task: "fulfill-plan",
 				},
 			});

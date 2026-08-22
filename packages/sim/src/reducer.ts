@@ -4,7 +4,11 @@ import {
 	type WorldEventPayload,
 } from "../../protocol/src/index.js";
 import { assertWorldInvariants } from "./invariants.js";
-import type { CitizenState, WorldState } from "./state.js";
+import {
+	type CitizenState,
+	travelDurationSeconds,
+	type WorldState,
+} from "./state.js";
 
 function updateCitizen(
 	state: WorldState,
@@ -38,6 +42,117 @@ function clampBand(value: number): number {
 	return Math.max(0, Math.min(10_000, value));
 }
 
+function releaseTaskReservations(
+	state: WorldState,
+	citizenIds: readonly string[],
+): WorldState {
+	const releasing = new Set(citizenIds);
+	const releasedTaskIds = new Set(
+		Object.values(state.taskReservations)
+			.filter((reservation) =>
+				reservation.citizenIds.some((citizenId) => releasing.has(citizenId)),
+			)
+			.map((reservation) => reservation.taskId),
+	);
+	if (releasedTaskIds.size === 0) return state;
+	const releasedCitizens = new Set(
+		Object.values(state.taskReservations)
+			.filter((reservation) => releasedTaskIds.has(reservation.taskId))
+			.flatMap((reservation) => [...reservation.citizenIds]),
+	);
+	return {
+		...state,
+		citizens: Object.fromEntries(
+			Object.values(state.citizens).map((citizen) => [
+				citizen.citizenId,
+				releasedCitizens.has(citizen.citizenId)
+					? { ...citizen, activeTaskId: null }
+					: citizen,
+			]),
+		),
+		taskReservations: Object.fromEntries(
+			Object.entries(state.taskReservations).filter(
+				([taskId]) => !releasedTaskIds.has(taskId),
+			),
+		),
+	};
+}
+
+function reserveAffordance(
+	state: WorldState,
+	affordanceId: string,
+	citizenIds: readonly string[],
+	behavior: CitizenState["currentBehavior"],
+	eventId: string,
+): WorldState {
+	const affordance = state.affordances[affordanceId];
+	const uniqueCitizenIds = [...new Set(citizenIds)];
+	if (
+		affordance === undefined ||
+		uniqueCitizenIds.length !== citizenIds.length ||
+		uniqueCitizenIds.length === 0 ||
+		uniqueCitizenIds.length > affordance.capacity
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	for (const citizenId of uniqueCitizenIds) {
+		const citizen = state.citizens[citizenId];
+		if (
+			citizen === undefined ||
+			!citizen.alive ||
+			citizen.travel != null ||
+			citizen.placeId !== affordance.placeId
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+	}
+	const requestedCitizenSet = new Set(uniqueCitizenIds);
+	const participantReservations = Object.values(state.taskReservations).filter(
+		(reservation) =>
+			reservation.citizenIds.some((citizenId) =>
+				requestedCitizenSet.has(citizenId),
+			),
+	);
+	if (
+		participantReservations.some(
+			(reservation) =>
+				reservation.affordanceId !== affordanceId ||
+				reservation.citizenIds.length !== uniqueCitizenIds.length ||
+				reservation.citizenIds.some(
+					(citizenId) => !requestedCitizenSet.has(citizenId),
+				),
+		)
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	const released = releaseTaskReservations(state, uniqueCitizenIds);
+	if (
+		Object.values(released.taskReservations).some(
+			(reservation) => reservation.affordanceId === affordanceId,
+		)
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	const taskId = `task:${eventId}`;
+	return {
+		...released,
+		citizens: Object.fromEntries(
+			Object.values(released.citizens).map((citizen) => [
+				citizen.citizenId,
+				uniqueCitizenIds.includes(citizen.citizenId)
+					? { ...citizen, activeTaskId: taskId, currentBehavior: behavior }
+					: citizen,
+			]),
+		),
+		taskReservations: {
+			...released.taskReservations,
+			[taskId]: {
+				taskId,
+				affordanceId,
+				citizenIds: uniqueCitizenIds,
+				behavior,
+				reservedAtSimulationTime: released.simulationTime,
+			},
+		},
+	};
+}
+
 export function reducePayload(
 	prior: WorldState,
 	payload: WorldEventPayload,
@@ -57,6 +172,7 @@ export function reducePayload(
 		case "CitizenMoved": {
 			if (!state.places[payload.toPlaceId])
 				throw new Error("ACTION_UNAVAILABLE");
+			state = releaseTaskReservations(state, [payload.citizenId]);
 			state = updateCitizen(state, payload.citizenId, (citizen) => {
 				if (citizen.placeId !== payload.fromPlaceId)
 					throw new Error("ACTION_UNAVAILABLE");
@@ -67,6 +183,7 @@ export function reducePayload(
 				return {
 					...citizen,
 					placeId: payload.toPlaceId,
+					travel: null,
 					currentBehavior: payload.behavior,
 				};
 			});
@@ -75,6 +192,12 @@ export function reducePayload(
 		case "TravelStarted": {
 			if (!state.places[payload.destinationPlaceId])
 				throw new Error("ACTION_UNAVAILABLE");
+			const duration = travelDurationSeconds(
+				state,
+				payload.originPlaceId,
+				payload.destinationPlaceId,
+			);
+			state = releaseTaskReservations(state, [payload.citizenId]);
 			state = updateCitizen(state, payload.citizenId, (citizen) => {
 				if (
 					citizen.travel != null ||
@@ -83,7 +206,10 @@ export function reducePayload(
 						payload.destinationPlaceId,
 					) ||
 					payload.departureSimulationTime !== state.simulationTime ||
-					payload.expectedArrivalSimulationTime <= state.simulationTime
+					payload.routeId !==
+						`${payload.originPlaceId}>${payload.destinationPlaceId}` ||
+					payload.expectedArrivalSimulationTime !==
+						state.simulationTime + duration
 				)
 					throw new Error("ACTION_UNAVAILABLE");
 				return {
@@ -135,6 +261,13 @@ export function reducePayload(
 			) {
 				throw new Error("ACTION_UNAVAILABLE");
 			}
+			state = reserveAffordance(
+				state,
+				`${site.siteId}-${payload.resource}`,
+				[payload.citizenId],
+				payload.behavior,
+				envelope.eventId,
+			);
 			state = {
 				...state,
 				resourceSites: {
@@ -161,6 +294,7 @@ export function reducePayload(
 				payload.quantity === 0
 			)
 				throw new Error("ACTION_UNAVAILABLE");
+			state = releaseTaskReservations(state, [payload.citizenId]);
 			state = updateCitizen(state, payload.citizenId, (current) => ({
 				...adjustInventory(current, payload.resource, -payload.quantity),
 				needs: {
@@ -200,8 +334,17 @@ export function reducePayload(
 				payload.secondGives.quantity <= 0
 			)
 				throw new Error("ACTION_UNAVAILABLE");
+			state = reserveAffordance(
+				state,
+				`${first.placeId}-exchange`,
+				[first.citizenId, second.citizenId],
+				payload.behavior,
+				envelope.eventId,
+			);
+			const reservedFirst = state.citizens[payload.firstCitizenId]!;
+			const reservedSecond = state.citizens[payload.secondCitizenId]!;
 			let updatedFirst = adjustInventory(
-				first,
+				reservedFirst,
 				payload.firstGives.resource,
 				-payload.firstGives.quantity,
 			);
@@ -211,7 +354,7 @@ export function reducePayload(
 				payload.secondGives.quantity,
 			);
 			let updatedSecond = adjustInventory(
-				second,
+				reservedSecond,
 				payload.secondGives.resource,
 				-payload.secondGives.quantity,
 			);
@@ -246,6 +389,13 @@ export function reducePayload(
 			) {
 				throw new Error("ACTION_UNAVAILABLE");
 			}
+			state = reserveAffordance(
+				state,
+				"mill-repair",
+				[payload.citizenId],
+				payload.behavior,
+				envelope.eventId,
+			);
 			state = updateCitizen(state, citizen.citizenId, (current) => ({
 				...adjustInventory(current, "wood", -2),
 				currentBehavior: payload.behavior,

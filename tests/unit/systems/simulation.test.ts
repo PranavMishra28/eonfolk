@@ -10,6 +10,7 @@ import {
 	citizenBySlug,
 	createWorldCommand,
 	prepareTransition,
+	reducePayload,
 	replayLedger,
 	resourceTotals,
 } from "../../../packages/sim/src/index.js";
@@ -51,6 +52,194 @@ describe("Riverhold deterministic Reality", () => {
 		).toHaveLength(2);
 		expect(genesis.experimentManifest.provider).toBeNull();
 		expect(genesis.experimentManifest.runKind).toBe("canonical-local-proof");
+		expect(Object.keys(genesis.state.taskReservations)).toHaveLength(7);
+		expect(
+			Object.values(genesis.state.taskReservations).flatMap(
+				(reservation) => reservation.citizenIds,
+			),
+		).toHaveLength(8);
+	});
+
+	it("keeps origin authoritative until deterministic arrival and replays the travel boundary", async () => {
+		const genesis = await riverholdFixture();
+		const mara = citizenBySlug(genesis.state, "mara");
+		const moveCommand = await command(genesis.state, "cmd_truthful_travel", {
+			kind: "MoveCitizen",
+			citizenId: mara.citizenId,
+			toPlaceId: "granary",
+		});
+		const started = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			moveCommand,
+		);
+		const repeated = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			moveCommand,
+		);
+		expect(jcs(repeated)).toBe(jcs(started));
+		expect(started.events.map((event) => event.eventPayload.kind)).toEqual([
+			"TravelStarted",
+		]);
+		expect(started.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "market",
+			activeTaskId: null,
+			travel: {
+				originPlaceId: "market",
+				destinationPlaceId: "granary",
+				routeId: "market>granary",
+				departureSimulationTime: 0,
+				expectedArrivalSimulationTime: 90,
+			},
+		});
+		expect(
+			Object.values(started.postState.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(mara.citizenId),
+			),
+		).toBe(false);
+
+		const inProgress = await prepareTransition(
+			started.postState,
+			started.resultingWorldHeadHash,
+			await command(started.postState, "cmd_truthful_travel_89", {
+				kind: "Advance",
+				seconds: 89,
+			}),
+		);
+		expect(inProgress.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "market",
+			travel: { expectedArrivalSimulationTime: 90 },
+		});
+		expect(
+			inProgress.events.some(
+				(event) =>
+					event.eventPayload.kind === "TravelArrived" &&
+					event.eventPayload.citizenId === mara.citizenId,
+			),
+		).toBe(false);
+
+		const arrived = await prepareTransition(
+			inProgress.postState,
+			inProgress.resultingWorldHeadHash,
+			await command(inProgress.postState, "cmd_truthful_travel_90", {
+				kind: "Advance",
+				seconds: 1,
+			}),
+		);
+		expect(arrived.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "granary",
+			travel: null,
+			activeTaskId: null,
+		});
+		expect(
+			arrived.events.some(
+				(event) =>
+					event.eventPayload.kind === "TravelArrived" &&
+					event.eventPayload.citizenId === mara.citizenId,
+			),
+		).toBe(true);
+
+		const allEvents = [
+			...started.events,
+			...inProgress.events,
+			...arrived.events,
+		];
+		const replay = await replayLedger({
+			snapshotState: genesis.state,
+			snapshotStateHash: genesis.initialStateHash,
+			baseWorldHeadHash: genesis.genesisWorldHeadHash,
+			headers: [
+				started.batchHeader!,
+				inProgress.batchHeader!,
+				arrived.batchHeader!,
+			],
+			events: allEvents,
+			manifest: {
+				schemaVersion: "eonfolk-replay-manifest-v1",
+				runId: genesis.state.runId,
+				regionId: genesis.state.regionId,
+				worldSeedHex: genesis.state.worldSeedHex,
+				experimentManifestHash: genesis.experimentManifest.manifestHash,
+				snapshot: {
+					runId: genesis.state.runId,
+					regionId: genesis.state.regionId,
+					snapshotId: "snapshot_travel_genesis",
+					baseSequence: 0,
+					stateHash: genesis.initialStateHash,
+					baseWorldHeadHash: genesis.genesisWorldHeadHash,
+				},
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: 1 + allEvents.length,
+				engineVersion: ENGINE_VERSION,
+				worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+				determinismVersion: DETERMINISM_VERSION,
+				replayVersion: REPLAY_VERSION,
+				expectedFinalStateHash: arrived.finalStateHash,
+				expectedFinalWorldHeadHash: arrived.resultingWorldHeadHash,
+				presentation: { title: "travel boundary replay", branch: null },
+			},
+		});
+		expect(jcs(replay.state)).toBe(jcs(arrived.postState));
+		expect(replay.stateHash).toBe(arrived.finalStateHash);
+	});
+
+	it("owns work slots in Reality and rejects a conflicting reassignment", async () => {
+		const genesis = await riverholdFixture();
+		const toma = citizenBySlug(genesis.state, "toma");
+		const iven = citizenBySlug(genesis.state, "iven");
+		const mara = citizenBySlug(genesis.state, "mara");
+		const exchangeReservation = Object.values(
+			genesis.state.taskReservations,
+		).find((reservation) => reservation.affordanceId === "market-exchange");
+		expect(exchangeReservation?.citizenIds).toEqual([
+			toma.citizenId,
+			iven.citizenId,
+		]);
+		expect(toma.activeTaskId).toBe(exchangeReservation?.taskId);
+		expect(iven.activeTaskId).toBe(exchangeReservation?.taskId);
+
+		const conflict = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_conflicting_exchange", {
+				kind: "Exchange",
+				firstCitizenId: mara.citizenId,
+				secondCitizenId: toma.citizenId,
+				firstGives: { resource: "water", quantity: 1 },
+				secondGives: { resource: "food", quantity: 1 },
+			}),
+		);
+		expect(conflict.accepted).toBe(false);
+		expect(conflict.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(conflict.postState).toBe(genesis.state);
+		expect(conflict.events).toEqual([]);
+	});
+
+	it("accepts the legacy atomic movement event while clearing obsolete occupancy", async () => {
+		const genesis = await riverholdFixture();
+		const mara = citizenBySlug(genesis.state, "mara");
+		const migrated = reducePayload(
+			genesis.state,
+			{
+				kind: "CitizenMoved",
+				citizenId: mara.citizenId,
+				fromPlaceId: "market",
+				toPlaceId: "granary",
+				behavior: "fulfill-plan",
+			},
+			{ eventId: "legacy-move-event", sequence: 1, finalRevision: 1 },
+		);
+		expect(migrated.citizens[mara.citizenId]).toMatchObject({
+			placeId: "granary",
+			travel: null,
+			activeTaskId: null,
+		});
+		expect(
+			Object.values(migrated.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(mara.citizenId),
+			),
+		).toBe(false);
 	});
 
 	it("advances eight citizens through four legible behavior families without creating resources", async () => {

@@ -12,6 +12,7 @@ import {
 	type StandingPlan,
 	stableId,
 	stateHash,
+	type TaskReservation,
 	type ValuePriority,
 } from "../../protocol/src/index.js";
 import type { CitizenState, GenesisResult, WorldState } from "./state.js";
@@ -178,6 +179,7 @@ export async function createRiverholdGenesis(
 			alive: true,
 			placeId: seed.place,
 			travel: null,
+			activeTaskId: null,
 			inventory: {
 				food: seed.slug === "toma" ? 8 : seed.slug === "iven" ? 1 : 2,
 				water: seed.slug === "sela" ? 8 : 2,
@@ -297,6 +299,70 @@ export async function createRiverholdGenesis(
 		recordIds: ["knowledge-repair-order"],
 	};
 
+	const taskReservations: Record<string, TaskReservation> = {};
+	const reserveGenesisTask = (
+		taskId: string,
+		affordanceId: string,
+		slugs: readonly string[],
+		behavior: TaskReservation["behavior"],
+	): void => {
+		const citizenIds = slugs.map((slug) => {
+			const citizenId = slugToId.get(slug);
+			if (citizenId === undefined) throw new Error(`missing citizen ${slug}`);
+			citizens[citizenId] = { ...citizens[citizenId]!, activeTaskId: taskId };
+			return citizenId;
+		});
+		taskReservations[taskId] = {
+			taskId,
+			affordanceId,
+			citizenIds,
+			behavior,
+			reservedAtSimulationTime: 0,
+		};
+	};
+	reserveGenesisTask(
+		"task:genesis:market-ledger",
+		"market-ledger",
+		["mara"],
+		"fulfill-plan",
+	);
+	reserveGenesisTask(
+		"task:genesis:market-exchange",
+		"market-exchange",
+		["toma", "iven"],
+		"respond-socially",
+	);
+	reserveGenesisTask(
+		"task:genesis:spring-water",
+		"spring-water",
+		["sela"],
+		"acquire-resource",
+	);
+	reserveGenesisTask(
+		"task:genesis:woods-wood",
+		"woods-wood",
+		["rowan"],
+		"acquire-resource",
+	);
+	reserveGenesisTask(
+		"task:genesis:fields-food",
+		"fields-food",
+		["neri"],
+		"acquire-resource",
+	);
+	reserveGenesisTask(
+		"task:genesis:mill-repair",
+		"mill-repair",
+		["odo"],
+		"fulfill-plan",
+	);
+	reserveGenesisTask(
+		"task:genesis:granary-ledger",
+		"granary-ledger",
+		["els"],
+		"fulfill-plan",
+	);
+
 	const settlementInventory = { food: 28, water: 30, wood: 6 } as const;
 	const resourceSites = {
 		spring: {
@@ -352,25 +418,84 @@ export async function createRiverholdGenesis(
 				placeId: "market",
 				name: "Market Green",
 				neighbors: ["granary", "mill", "spring"],
+				travelSecondsByNeighbor: { granary: 90, mill: 120, spring: 150 },
 			},
 			granary: {
 				placeId: "granary",
 				name: "Granary",
 				neighbors: ["market", "fields"],
+				travelSecondsByNeighbor: { market: 90, fields: 180 },
 			},
 			mill: {
 				placeId: "mill",
 				name: "River Mill",
 				neighbors: ["market", "woods"],
+				travelSecondsByNeighbor: { market: 120, woods: 180 },
 			},
-			spring: { placeId: "spring", name: "Low Spring", neighbors: ["market"] },
-			woods: { placeId: "woods", name: "Alder Woods", neighbors: ["mill"] },
+			spring: {
+				placeId: "spring",
+				name: "Low Spring",
+				neighbors: ["market"],
+				travelSecondsByNeighbor: { market: 150 },
+			},
+			woods: {
+				placeId: "woods",
+				name: "Alder Woods",
+				neighbors: ["mill"],
+				travelSecondsByNeighbor: { mill: 180 },
+			},
 			fields: {
 				placeId: "fields",
 				name: "North Fields",
 				neighbors: ["granary"],
+				travelSecondsByNeighbor: { granary: 180 },
 			},
 		},
+		affordances: {
+			"market-ledger": {
+				affordanceId: "market-ledger",
+				placeId: "market",
+				kind: "inspect",
+				capacity: 1,
+			},
+			"market-exchange": {
+				affordanceId: "market-exchange",
+				placeId: "market",
+				kind: "exchange",
+				capacity: 2,
+			},
+			"spring-water": {
+				affordanceId: "spring-water",
+				placeId: "spring",
+				kind: "gather-water",
+				capacity: 1,
+			},
+			"woods-wood": {
+				affordanceId: "woods-wood",
+				placeId: "woods",
+				kind: "gather-wood",
+				capacity: 1,
+			},
+			"fields-food": {
+				affordanceId: "fields-food",
+				placeId: "fields",
+				kind: "gather-food",
+				capacity: 1,
+			},
+			"mill-repair": {
+				affordanceId: "mill-repair",
+				placeId: "mill",
+				kind: "repair",
+				capacity: 1,
+			},
+			"granary-ledger": {
+				affordanceId: "granary-ledger",
+				placeId: "granary",
+				kind: "inspect",
+				capacity: 1,
+			},
+		},
+		taskReservations,
 		resourceSites,
 		citizens,
 		relationships,
