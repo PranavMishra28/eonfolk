@@ -2,7 +2,7 @@
 
 **Purpose:** lock the Founder Alpha presentation stack, WorldPresentation/SpatialProjection contract, navigation choice, asset boundary, and semantic fallback.
 
-**Status:** REOPENED — World-as-Product scale, camera, semantic zoom/LOD, and world-first UI are release-blocking
+**Status:** IMPLEMENTED CANDIDATE — clean performance evidence and independent release review pending
 
 **Authority boundary:** this file owns renderer/UI libraries, the spatial presentation boundary, navigation policy, and runtime asset delivery. [ART_DIRECTIONS](../design/ART_DIRECTIONS.md) owns visual production rules; [DESIGN](../design/DESIGN.md) owns applied composition; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
 
@@ -11,6 +11,8 @@
 ## Steering correction
 
 The content-addressed World-as-Product override (`21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863`) preserves PlayCanvas and the pure presentation boundary but invalidates the fixed-camera 24×25 m diorama and permanent decision rail as a release target. Founder Alpha now requires a coherent metre-scale region context, three semantic camera scales, LOD0–LOD3 residency, selection-first contextual surfaces, and Chronicle-to-space focus. Rendering residency remains non-authoritative.
+
+The current candidate implements a 250×210 m authored Riverhold context at one world unit per metre. A single physical-scale manifest drives rendered citizen, door, house, road, mature-tree, market, mill, and wheel dimensions. It opens at a 58 m town/activity camera distance, offers a 118 m settlement overview and 18 m citizen follow, and classifies ≤28 m/≤92 m/farther views as citizen/town/region. Wheel, pointer drag, touch pinch, bounded alternate/right-drag orbit, direct citizen/place picking, Home/arrow/plus/minus/F keyboard control, and DOM camera buttons all change presentation only.
 
 ## Owned decision
 
@@ -34,6 +36,8 @@ Committed events are factual results. Current-behavior actions are explicitly in
 
 Founder Alpha uses a versioned authored waypoint/interaction-slot graph for Market Green, Low Spring, Alder Woods, North Fields, River Mill, and Granary. Stable path selection and integer coordinates are deterministic. Tests sample every tick across a full cycle, reject blocked-volume entry, and cap ordinary displacement.
 
+The presentation scene is explicitly Region → Cell → Place → node/entity. Residency classifies cells and LOD0–LOD3 without changing their simulated existence. With zero external runtime art, all small procedural core geometry remains resident and PlayCanvas frustum-culls it; town-only detail trees are the sole current semantic-detail load switch. A selected citizen stays resident. Asset fetching/unloading is intentionally absent because there is no asset payload to stream.
+
 Recast/navigation-js was evaluated and deferred. Its navmesh/crowd path is capable, but adds a material WASM/loader payload plus a custom fixed-step interpolation adapter [S-WP-006] [S-WP-007] [S-WP-008] [S-WP-009] [S-WP-010]. Adopt it only if a required gate action cannot be represented by the authored graph after one bounded graph revision. It may never make navigation authoritative or allow ordinary teleport.
 
 ## Embodied action presentation
@@ -44,7 +48,7 @@ Every citizen has a head, torso, two arms, and two legs. The renderer-neutral st
 - gather, inspect, talk, listen, exchange, and repair;
 - eat/rest and emotional reaction.
 
-Toma and Iven begin at paired market slots, face one another, use talk/listen poses, and pass a visible trade prop so an unfamiliar observer sees an exchange immediately; a linked committed exchange uses the same pair with event provenance. Citizens carry visible water, grain, logs, trade goods, or tools where appropriate. Odo reaches the mill with a tool, and the mill's brace/blade presentation changes only when canonical `mill.repaired` is true. Mara is identifiable by teal clothing, rust scarf, and distinct headwear without a giant marker. River stripes are cosmetic motion and are labeled as such in instrumentation; they make no production or repair claim.
+Toma and Iven begin at Reality-owned paired market slots, face one another, gesture, and show a subtle interaction indicator. The shared transfer prop remains hidden while the exchange is merely in progress; it crosses once for presentation ticks 0–47 only after a committed exchange and then settles. Sela, Rowan, and Neri begin in authoritative semantic travel toward the spring, woods, and fields. Mara inspects the tally, Odo repairs at the mill slot, and Els inspects at the granary slot. Citizens carry visible water, grain, logs, trade goods, or tools where their action permits it. The mill's presentation changes only when canonical `mill.repaired` is true. Mara is identifiable by teal clothing, rust scarf, and distinct headwear without a giant marker. River stripes are cosmetic motion and are labeled as such in instrumentation; they make no production or repair claim.
 
 ## Flight Recorder and contradiction checks
 
@@ -54,7 +58,7 @@ The renderer reports one bounded `presentation` diagnostic per source head and o
 
 ## UI and semantic parity
 
-The world occupies the larger desktop/laptop column and 55% of the initial mobile viewport. DOM UI is contextual support. The semantic view remains fully playable and names all eight citizens, resources, places, current action, action provenance/status, interaction/process, Mara facts, counsel, return confirmation, Chronicle, evidence, and replay controls.
+The world occupies the larger desktop/laptop column and at least 55% of the initial mobile viewport. The opening orientation card is onboarding context; after Follow Mara the permanent rail collapses to a bounded contextual overlay, and mobile citizen/place selection uses a bottom sheet capped at 35 svh. No data lens opens by default. Direct world selection and Chronicle spatial focus use the same citizen/place callbacks as the semantic DOM. The semantic view remains fully playable and names all eight citizens, resources, places, current action, action provenance/status, interaction/process, Mara facts, counsel, return confirmation, Chronicle, evidence, and replay controls.
 
 The PlayCanvas chunk is dynamically imported after the critical shell. Failure switches to the remembered semantic view without a page error. A `ResizeObserver` keeps the canvas inside its host and caps rendered pixel ratio at 1.5. Reduced motion keeps deterministic spatial facts while slowing pose cadence and stopping cosmetic river motion.
 
@@ -68,7 +72,7 @@ If procedural readability fails the independent gate, the only pre-reviewed esca
 
 Rejected: sparse Pixi markers, mixed renderers, WebGPU-only execution, renderer-owned world logic, canvas-only actions, permanent dashboard, ordinary teleport, generalized Recast crowd work, unreviewed marketplace assets, and production generated images.
 
-Unproven: physical mid-tier mobile thermals/battery, long-session GPU behavior, and unaided human recognition of several tasks. The independent reviewer must still answer YES to “Does Riverhold visibly feel inhabited and alive?”
+Unproven: physical mid-tier mobile thermals/battery, long-session GPU behavior, and unaided human recognition of several tasks. The exact frozen-candidate independent reviewer must still answer YES to “Does this feel like watching real inhabitants of a place, rather than looking at a visualization of a simulation?”
 
 ## Reopen evidence and constraint fit
 

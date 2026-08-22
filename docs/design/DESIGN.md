@@ -2,7 +2,7 @@
 
 **Purpose:** Define the player-facing hierarchy and embodied Living Woodcut grammar that Founder Alpha must exhibit.
 
-**Status:** REOPENED BY WORLD-AS-PRODUCT OVERRIDE — release implementation and fresh-observer gate pending.
+**Status:** IMPLEMENTED CANDIDATE — exact frozen-candidate review and human observer evidence pending.
 
 **Authority boundary:** This document owns visual hierarchy, palette roles, typography behavior, and world/Chronicle continuity. [Art directions](ART_DIRECTIONS.md) owns selection and asset production; [interaction](INTERACTION.md) owns controls and information behavior.
 
@@ -70,6 +70,8 @@ Names, dates, causal types, acceptance/refusal, costs, uncertainty, and actions 
 ### First five seconds
 
 Show a useful fact-safe shell immediately, then lazy-load the PlayCanvas/WebGL2 settlement. Within ten seconds an unfamiliar observer must recognize a settlement, several full-limbed people, multiple activities, and an interaction/process without opening a dashboard. Mara is the single authored focal person. The only opening action is **Follow Mara** with **She acts for herself**; there is no candidate, creation, or roster suggestion.
+
+The implementation opens at the primary town/activity scale rather than the distant region scale, with every optional lens closed. Market stalls, carried props, a Reality-owned exchange pair, three travellers, repair/inspect work, and the one event callout establish activity without a feed. Settlement Overview moves outward; Follow Mara moves inward. The authored river, fields, roads, homes, market, mill, well, forest edge, unused land, and boundary hills prevent an accidental exposed board edge.
 
 ### Selection
 

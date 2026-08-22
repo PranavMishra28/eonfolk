@@ -2,7 +2,7 @@
 
 **Purpose:** Define how the player observes, investigates, counsels, returns, and verifies consequence without turning the world into a control dashboard.
 
-**Status:** ACCEPTED FOR `001-foundation` — must pass keyboard, touch, browser, and fresh-observer evidence.
+**Status:** IMPLEMENTED CANDIDATE — automated pointer/keyboard/touch parity passes; fresh-observer evidence pending.
 
 **Authority boundary:** This document owns interaction hierarchy, control states, semantic alternatives, and Chronicle/replay manipulation. [Design](DESIGN.md) owns appearance; [mobile](MOBILE.md) owns narrow-screen adaptation.
 
@@ -18,11 +18,13 @@ The player never directly puppets movement or routine labor. They gather enough 
 
 ### Observe and follow
 
-Default state. The world fills the view, citizens act, and no card blocks the settlement.
+Default state. The town/activity camera fills the playable view, citizens act, and a restrained first-arrival card provides the one Follow Mara choice. No optional data lens is open. After Follow Mara the orientation card collapses and world context remains visible around the current decision surface.
 
 Available actions:
 
 - cycle citizen focus;
+- tap/click an embodied citizen or place for contextual detail;
+- pan/drag, wheel/pinch zoom, bounded orbit, or use the equivalent camera buttons/keys;
 - activate **Follow Mara**;
 - inspect a salient world change;
 - open the return summary when present; and
@@ -73,7 +75,8 @@ Replay controls do not change authoritative state.
 
 | Important action | Pointer/touch | Keyboard/semantic equivalent |
 |---|---|---|
-| Select citizen | Tap visible citizen/marker | Navigate named citizen list; `Enter` selects |
+| Select citizen/place | Tap/click a screen-projected embodied target | Navigate the named People/place controls; `Enter` selects |
+| Navigate camera | Drag/pinch/wheel; alternate/right-drag or buttons orbit | Focus world: arrows pan, `+`/`-` zoom, `F` follows Mara, Home/`0` returns to overview; named buttons duplicate pan/zoom |
 | Review identity | Tap portrait/lens | Focus “Open identity”; heading and sections follow DOM order |
 | Inspect relationship | Tap carved edge/portrait | Activate named relationship link |
 | Give counsel | Tap counsel action | Tab/radio/confirm flow with explicit cost and uncertainty |

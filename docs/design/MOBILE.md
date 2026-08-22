@@ -2,7 +2,7 @@
 
 **Purpose:** Define the portrait layout, semantic fallback, device degradation, and measured budgets that keep the first slice understandable and playable on mobile and weak devices.
 
-**Status:** ACCEPTED FOR `001-foundation` — viewport evidence exists; real mid-tier device and 4G evidence remain required.
+**Status:** IMPLEMENTED CANDIDATE — 390×844 automation passes; real mid-tier device and unfamiliar-observer evidence remain required.
 
 **Authority boundary:** This document owns mobile composition, touch behavior, weak-device degradation order, and device evidence. [Interaction](INTERACTION.md) owns cross-input action semantics; [design](DESIGN.md) owns visual grammar.
 
@@ -52,12 +52,14 @@ The disposable R3F spike (`4bdef56`) remains historical risk evidence. The later
 ## Touch and keyboard behavior
 
 - Primary touch targets are at least 44 × 44 CSS px and separated enough to avoid accidental counsel confirmation.
-- World selection supports tap but never requires pixel-perfect contact. Pointer-down freezes target ordering; top visible target wins, and overlapping hit regions open a named chooser rather than selecting an unseen citizen. A labeled **People** control is always available.
+- World selection supports tap with enlarged screen-space hit thresholds and never gates play on pixel-perfect contact. The closest projected inhabitant wins before a place; ambiguous or inaccessible targets remain available through the named **People** and place controls. A pointer gesture is not treated as selection after drag/pinch movement.
 - Pan/zoom is optional. No important citizen, fact, counsel, or replay control is reachable only by gesture.
 - Bottom sheets provide explicit open/close buttons and do not require drag handles.
 - The entire mobile flow remains keyboard-operable for switch devices and external keyboards.
 - The on-screen keyboard must not obscure the confirmation action; the first slice should avoid free-form player input.
 - Orientation change preserves selected citizen, sheet state, and Chronicle beat.
+
+The implemented citizen/place selection sheet is capped at 35 svh/300 px with a quiet scrim so the world stays visible. The post-orientation decision rail is capped at 35% and scrolls rather than consuming the viewport. Reduced motion removes sheet entrance animation and makes follow-camera changes direct.
 
 ## Semantic list/map view
 
