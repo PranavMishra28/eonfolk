@@ -274,7 +274,7 @@ function interactions(
 			status: exchange?.status ?? "in-progress",
 			semanticLabel:
 				exchange === undefined
-					? "Toma and Iven are visibly exchanging carried goods; no world result is claimed."
+					? "Toma and Iven visibly perform a carried-goods exchange; no world result is claimed."
 					: "Toma and Iven visibly project the linked canonical exchange.",
 		}),
 	]);

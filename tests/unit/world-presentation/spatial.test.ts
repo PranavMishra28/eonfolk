@@ -245,6 +245,8 @@ describe("world presentation", () => {
 			expect.objectContaining({
 				kind: "exchange",
 				participantIds: ["citizen:toma", "citizen:iven"],
+				semanticLabel:
+					"Toma and Iven visibly perform a carried-goods exchange; no world result is claimed.",
 				status: "in-progress",
 			}),
 		]);
