@@ -254,6 +254,40 @@ describe("authoritative Riverhold application runtime", () => {
 		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
 		const initial = await runtime.initialize();
 		expect(initial.citizens).toHaveLength(8);
+		const citizen = (slug: string) => {
+			const value = initial.citizens.find(
+				(candidate) => candidate.slug === slug,
+			);
+			if (value === undefined)
+				throw new Error(`missing projected citizen ${slug}`);
+			return value;
+		};
+		expect(citizen("toma").canonicalAction).toMatchObject({
+			kind: "exchange",
+			status: "in-progress",
+			affordanceId: "market-exchange",
+			affordanceSlotIndex: 0,
+			targetId: citizen("iven").id,
+		});
+		expect(citizen("iven").canonicalAction).toMatchObject({
+			kind: "exchange",
+			status: "in-progress",
+			affordanceId: "market-exchange",
+			affordanceSlotIndex: 1,
+			targetId: citizen("toma").id,
+		});
+		for (const [slug, originPlaceId, destinationPlaceId] of [
+			["sela", "market", "spring"],
+			["rowan", "mill", "woods"],
+			["neri", "granary", "fields"],
+		] as const)
+			expect(citizen(slug).canonicalAction).toMatchObject({
+				kind: "carry",
+				status: "in-progress",
+				originPlaceId,
+				destinationPlaceId,
+				affordanceId: null,
+			});
 		expect(initial.worldNotices[0]).toMatch(
 			/Iven Holt.*Toma Reed.*bilateral exchange/i,
 		);
