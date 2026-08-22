@@ -2,7 +2,7 @@
 
 **Purpose:** lock the authoritative command/event model, byte-level determinism profile, causal vocabulary, scheduler, and catch-up behavior.
 
-**Status:** ACCEPTED AFTER RED TEAM — implementation has not begun
+**Status:** IMPLEMENTED CANDIDATE — clean release lattice pending
 
 **Authority boundary:** this file owns simulation semantics and wire fields. [PERSISTENCE](PERSISTENCE.md) owns durable commit order; [WORLD_MODEL](../game/WORLD_MODEL.md) owns game-state meaning; [CHRONICLE](../product/CHRONICLE.md) owns narration.
 
@@ -33,6 +33,14 @@ Reality is a pure deterministic reducer over one run-scoped region. It accepts r
 Allegation is content of a typed `StatementMade` or `BeliefChanged` event. It is never a causal relation. A parent must precede its child in the same run and region; every causal edge carries the exact rule/mechanism that consumed it. Event and causal-parent IDs are unique only inside their enclosing `runId`; comparisons across runs use an explicit `(runId,eventId)` pair outside canonical causality.
 
 The world event proves only that a typed transition occurred. Its optional `decisionId` links to noncanonical cognitive provenance; it does not make the linked belief, memory, justification, or proposal true. Every consequential accepted proposal has one preallocated decision ID, one durable command receipt, and an accepted event interval. Downstream history traces through event-to-event causal parents, never by mutating the earlier decision record.
+
+## Spatial authority and semantic movement
+
+Reality owns places, symmetric per-edge integer travel durations, authored affordance capacity, task reservations, current task pointers, semantic travel, and carried inventory. `TravelStarted` releases any occupied task, retains the citizen's origin `placeId`, and records origin, destination, route ID, departure, deterministic expected arrival, and typed task. Only `TravelArrived` changes `placeId`; camera time and presentation interpolation cannot arrive early. An ordinary traveller cannot simultaneously occupy a task slot, and a task reservation cannot displace a different participant.
+
+The opening world has five inhabitants in four bounded Reality-owned task reservations: Mara at the market ledger, Toma and Iven in ordered bilateral exchange slots, Odo at mill repair, and Els at the granary ledger. Sela, Rowan, and Neri are authoritative genesis travellers from market→spring, mill→woods, and granary→fields. Their travel is part of the genesis snapshot, not invented renderer traffic. Presentation may interpolate feet along the authored graph and stop one metre short while an arrival remains uncommitted; it cannot emit canonical footsteps or use visibility/camera state as simulation input.
+
+A coarse `Advance` processes an overdue arrival at the first deterministic simulation boundary at or after its due time. It does not subdivide a long catch-up command at every travel deadline. This bounded behavior is explicit and tested; reopen scheduling only if a product gate requires exact within-command arrival chronology rather than the current boundary semantics.
 
 ## Determinism profile `eonfolk-determinism-v2`
 

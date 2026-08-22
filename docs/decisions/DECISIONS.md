@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns acceptance and review disposition. Linked authority documents own detailed behavior and contracts; the [source ledger](../research/SOURCE_LEDGER.md) owns provenance.
 
-**Related documents:** [risks](RISKS.md), [open questions](OPEN_QUESTIONS.md), [product](../product/PRODUCT.md), [architecture](../engineering/ARCHITECTURE.md), [first ExecPlan](../exec-plans/active/001-foundation.md).
+**Related documents:** [risks](RISKS.md), [open questions](OPEN_QUESTIONS.md), [product](../product/PRODUCT.md), [architecture](../engineering/ARCHITECTURE.md), [first ExecPlan](../exec-plans/completed/001-foundation.md).
 
 ## Top 10 decisions
 
@@ -19,7 +19,7 @@
 | 5 | D-005 | Make the deterministic Standard Brain the complete V1 cognition path | Free, fast, replayable, device-inclusive operation is binding |
 | 6 | D-006 | Run V1 locally in a Web Worker with IndexedDB behind `PersistencePort` | Fits solo/$0 constraints while preserving a later region-server seam |
 | 7 | D-007 | Lock world, cognitive-decision, experiment, replay and persistence contracts before UI work | Prevents presentation, models, or research tooling from becoming authority |
-| 8 | D-008 | Use a sparse Living Woodcut language with one PixiJS 2.5D renderer | Strongest distinctiveness/Chronicle fit within the asset and performance ceiling |
+| 8 | D-008 | Make one continuous metre-scale PlayCanvas place the product surface | The World-as-Product override makes truthful inhabitation, navigation, selection, and causal place—not a board or dashboard—the release gate |
 | 9 | D-009 | Treat the factual Story Card/replay as private comprehension evidence in V1 | No public route exists, so distribution remains post-proof |
 | 10 | D-010 | Keep V1 free, account-free, model-free and noncommercial | Avoids spend, operations and business scope before fun is proven |
 
@@ -135,21 +135,35 @@
 
 **Reopen trigger.** Contract changes require a recorded migration decision and replay fixtures; any inability to preserve deterministic equivalence blocks Gate A.
 
-## D-008 — Living Woodcut on PixiJS
+## D-008 — Continuous Living Woodcut world on PlayCanvas
 
-**Decision.** Select Living Woodcut, Weathered Atlas as runner-up/fallback, and Hearthscale only as warmth/readability reference. Implement a deliberately sparse 2.5D scene with one PixiJS renderer and semantic DOM; generated concepts are references, never production pixels.
+**Decision.** The content-addressed 2026-08-21 World-as-Product override supersedes both the sparse Pixi candidate and the fixed-camera `593e5ab` PlayCanvas diorama while retaining Living Woodcut's palette, graphic restraint, Chronicle grammar, and the one-renderer choice. Founder Alpha uses one continuous, human-scale PlayCanvas React/WebGL2 Riverhold with a larger region context, a navigable three-band camera, explicit semantic cells/places/affordances, eight recognizable inhabitants, Reality-sourced travel and activity, selection-first contextual surfaces, and Chronicle-to-space focus. `packages/world-presentation` remains a pure read-only boundary, and a parallel fully playable semantic DOM remains mandatory. Historical Pixi and diorama commits are immutable evidence, not release targets.
 
-**Evidence.** Branding-removed review scored Living Woodcut 38/45, Weathered Atlas 33/45 and Hearthscale 28/45. The R3F spike fit payload/load ceilings but missed desktop p95 at 17.1 ms and exposed a mobile panel overflow [S-SPIKE-002].
+**Evidence.** The bounded PlayCanvas spike proved the engine can render eight moving humanoids inside the budget envelope, but the hostile baseline answered the binding product question **NO** and identified the small board, fixed camera, invented cyclic routines, permanent rail, and detached Chronicle as release blockers [S-WP-014] [S-WP-022]. Official city/villager-simulation and PlayCanvas material supports the narrower design principles: visible consequential activity must report to simulation truth; overview belongs spatially in the world while detail follows selection; ordinary life needs explicit destinations and routines; and camera, culling, loading, batching, and animation are mechanisms that still require EONFOLK-owned policies [S-WAP-001] [S-WAP-002] [S-WAP-003] [S-WAP-007] [S-WAP-012] [S-WAP-013] [S-WAP-014] [S-WAP-015] [S-WAP-016]. Recast remains deferred because its payload and adapter burden are unjustified until a required authored route actually fails [S-WAP-017].
 
-**Rejected alternatives.** R3F/Three for V1, dual renderers, 3D asset pipeline, literal engraved detail, generated shipping assets, painterly scene production and mixed art languages.
+**Rejected alternatives.** Sparse/static Pixi markers fail the release-blocking presence requirement. R3F/Three remains rejected for the measured first-slice path; dual renderers, custom WebGPU, generalized navmesh/crowd machinery, unreviewed asset packs, generated shipping assets, and a production Blender pipeline exceed the proof scope. Recast is deferred until authored topology demonstrably cannot express a required route.
 
-**Remaining uncertainty.** Sparse authored woodcut assets may lose warmth/readability; PixiJS performance and asset effort remain unmeasured.
+**Remaining uncertainty.** The one permitted post-fix independent confirmation against frozen `90c0ad2` answered—“Does this feel like watching real inhabitants of a place, rather than looking at a visualization of a simulation?”—exactly **YES** with zero P0/P1. Exact clean final implementation head `f818d10` then passed protected GitHub CI, the full target-Mac five-repetition-per-profile battery, all sixteen illustrated journeys, unchanged source/lockfile, accepted AC power, all declared aggregate/p95 gates, and zero external attempts. One isolated 50.1 ms laptop-arrival frame remains recorded as one dropped frame. These are automated agent/emulation results, not an unfamiliar-human or physical-device Gate result. Real mid-tier mobile/GPU/thermal behavior remains unmeasured. KayKit CC0 assets remain a conditional reviewed fallback, not a default dependency or committed payload [S-WP-015] [S-WP-016] [S-WP-021].
 
-**Resulting behavior.** One small authored atlas, fixed oblique composition, eight silhouettes/portraits, limited poses, paper/ink grammar and causal marks. DOM owns all facts/actions. Simplify effects/cadence/markers before any budget waiver.
+**Resulting behavior.** Reality owns semantic travel start/arrival, current task, affordance reservation, authoritative action kind, origin, destination, target, simulation window, and result event. The authored opening exchange remains reserved through simulation time 180 and settles exactly once at 240, which keeps a current illustrated interaction present through the unchanged throttled-mobile meaningful-world predicate without letting the renderer control simulation. Presentation owns only interpolation, pose, camera, semantic representation, residency, and explicitly cosmetic ambience; camera and loading never change simulation outcomes. Region/town/follow bands expose different useful information and LOD0–LOD3 fidelity. Post-onboarding play is world-dominant; citizen/place/resource selection opens contextual cards or mobile sheets, while deliberate player lenses and a separate Research Lens prevent raw hashes and event identifiers from becoming the game. Chronicle beats carry typed spatial targets. Tests reject teleports, premature arrival, blocked traversal, slot conflicts, invented results, missing links, action/animation/prop contradictions, renderer-caused state changes, and inaccessible consequential actions.
 
-**Constraint fit.** One atlas and renderer reduce asset, tooling and performance burden for one builder on an M4 at $0.
+**World-as-Product P1 reconciliation.** Every finding is accepted; none is waived or relabeled. `e1100f6` repairs illustrated choreography, ledger consequence, controls, and Chronicle framing. `e6b4e95` plus `81694ec`/`17b2a3d` repair watched cadence, task lifecycle, route continuity, event-time focus, the real temporal gate, and stale-writer behavior. `4c205e2` repairs the final opening-lifetime/mobile-qualification mechanism. Frozen `90c0ad2` then received the one permitted exact-YES confirmation with zero P0/P1.
 
-**Reopen trigger.** After one simplification pass, switch to stripped Weathered Atlas if three of five observers cannot identify three activities and one interaction, budgets miss, or the asset inventory exceeds eight focused hours.
+| Finding | Disposition | Direct closure |
+|---|---|---|
+| WAPR-PROD-P1-001 / WAPR-VIS-001 | **ACCEPT** | Typed tools/routes plus the Reality-owned exchange remain current through all three meaningful paints; final exact answer **YES**. |
+| WAPR-PROD-P1-002 | **ACCEPT** | Market tally changes physically from unmarked to mismatch to sourced seal with staged participants. |
+| WAPR-PROD-P1-003 / WAPR-VIS-003 | **ACCEPT** | Return framing and three Chronicle compositions remain distinct, event-linked, and subject-visible. |
+| WAPR-SYS-001 | **ACCEPT** | Worker cadence serializes deterministic Advance commands and persists before unsolicited projection publication; it pauses at the explicit return boundary. |
+| WAPR-SYS-002 | **ACCEPT** | Exchange/gather/repair require in-progress reservations, apply once, release, and resume; completed props/poses clear. |
+| WAPR-SYS-003 | **ACCEPT** | Presentation derives from canonical simulation time and stable action starts; cross-head/reload inspection retains monotonic evidence. |
+| WAPR-SYS-004 | **ACCEPT** | Production gate samples more than 12 seconds, advances Reality through multiple boundaries, checks release/list-view/reload, and retains direct failure oracles. |
+| WAPR-VIS-002 | **ACCEPT** | Failed low-battery evidence remains invalid; exact clean final implementation head `f818d10` passed all fifteen target-Mac repetitions on accepted AC power with every declared aggregate/p95 and zero-egress gate green. One isolated 50.1 ms laptop-arrival frame is retained as a dropped frame. |
+| WAPC-P1-001 / WAPC-P1-002 | **ACCEPT** | Exchange reservation persists through time 180, settles once at 240, and unchanged throttled mobile qualifies at 4,439.5 ms with a current illustrated interaction. |
+
+**Constraint fit.** The correction retains one renderer, one region, eight inhabitants, procedural primitives, authored routes/cells, existing packages, no production asset download, no Recast dependency, no server/model/deployment, and $0 operation. It removes false presentation behavior before adding mechanics and stays a bounded Founder Alpha repair rather than becoming a generalized world engine.
+
+**Reopen trigger.** Reopen scope or renderer only if the frozen three-viewport candidate misses blocking payload/frame/display budgets after the fixed degradation order, an accepted route cannot be expressed by the authored graph, or one bounded correction still cannot earn the exact independent **YES**. A failure reopens composition, choreography, or product scope before adding population, generalized navigation, assets, or a second renderer.
 
 ## D-009 — Consequence-led distribution
 
@@ -182,6 +196,142 @@
 **Constraint fit.** This decision directly implements every binding personal, hardware, cost and business constraint.
 
 **Reopen trigger.** Only reopen commercial/hosted/naming behavior after both product gates, separate evidence and explicit authorization.
+
+## Founder Alpha decisions
+
+### D-011 — First-party bounded diagnostics, not session replay
+
+**Decision.** Founder Alpha uses a typed first-party Flight Recorder, stable incident fingerprints, a Reality-protecting Sentinel, bounded native performance summaries, and a local read-only observer. Modes are OFF, LOCAL, and explicit-consent ALPHA. Preserve a disabled `ReplayCapturePort`, but do not add rrweb, browser OpenTelemetry, or an MCP server.
+
+**Evidence.** rrweb 2.1.1 does not capture Pixi canvas by default; its canvas replay path removes script-execution sandbox protection. The reviewed dependency graph would also add more runtime surface than the structured traces need [S-FA-DIAG-001] [S-FA-DIAG-002] [S-FA-DIAG-003]. The browser Performance APIs provide the small timing surface required without a telemetry SDK [S-FA-DIAG-009] [S-FA-DIAG-010].
+
+**Rejected alternatives.** Continuous DOM replay, raw network/body capture, hidden-reasoning capture, provider telemetry, browser OpenTelemetry, arbitrary-file observer access, and an SDK-backed MCP server.
+
+**Remaining uncertainty.** Integrated OFF/LOCAL/ALPHA overhead and cross-browser fingerprint stability still require measured evidence; screenshots plus typed traces may not reproduce every canvas defect.
+
+**Resulting behavior.** Redaction happens before storage or projection; rings and frozen incidents are byte/count bounded; diagnostics cannot write Reality; OFF retains only failures/Sentinel evidence; the observer reports typed health, incidents, performance, network summary, reproduction steps, artifacts, and a bounded world head.
+
+**Constraint fit.** The design is dependency-light, local-first, free, operable on the target Mac, and small enough for one builder.
+
+**Reopen trigger.** Reconsider replay capture only if a concrete unreproducible Alpha defect survives structured traces and screenshots and a bounded spike passes privacy, sandbox, bundle, and overhead gates.
+
+### D-012 — Local feedback first; deployment-ready least-authority relay
+
+**Decision.** Gameplay and feedback remain complete locally. The hosted seam is deploy-ready but not deployed: a minimal Worker validates bounded text/diagnostics, exact Origin, Turnstile, D1-backed reservation/dedup/lease state, and delivery through one private single-repository GitHub App with Metadata read and Issues write. Delivery is reconciled at-least-once, not claimed exactly-once. R2 attachments remain disabled.
+
+**Evidence.** GitHub documents narrowly scoped installation tokens but no idempotency key on issue/comment creation, so D1 must own dedup and marker reconciliation [S-FA-PLATFORM-011] [S-FA-PLATFORM-012] [S-FA-PLATFORM-013]. Turnstile validation is mandatory and short-lived but is not identity or a quota [S-FA-PLATFORM-008] [S-FA-PLATFORM-009]. R2 requires a subscription and budget alerts do not cap spend [S-FA-PLATFORM-005] [S-FA-PLATFORM-006].
+
+**Rejected alternatives.** Browser GitHub credentials, PATs, arbitrary repository input, exactly-once claims, automatic deployment, public attachment URLs, foundational hosted feedback, and R2 activation under an assumed free tier.
+
+**Remaining uncertainty.** No Cloudflare account, App registration, key import, live Turnstile, Worker CPU measurement, D1 deployment, public abuse test, or public URL has run.
+
+**Resulting behavior.** The web app previews and queues sanitized reports locally with clear local/upload state and deletion. The relay is an optional adapter with hard schema/origin/rate/quota/retention boundaries and no game authority. Outage never blocks the world.
+
+**Constraint fit.** The accepted path incurs no cost or credentials now, uses no partner, and defers all operations while retaining a narrow future seam.
+
+**Reopen trigger.** Revalidate all quotas, logging defaults, credentials, CPU, D1 reconciliation, abuse controls, and cost posture before any real deployment; reject the relay if fault injection duplicates or loses accepted reports.
+
+### D-013 — Planner earns inclusion; model stays an optional local seam
+
+**Decision.** Standard Brain remains complete and default. A zero-dependency deterministic HTN/GOAP-style Planner may ship only if a frozen 64-context benchmark clears every correctness/runtime gate and improves at least three predeclared coherence/diversity cases. POMCP/MCTS is rejected for Alpha. A provider-neutral local-subprocess BrainPort contract may exist, but no executable, model, weights, download, provider SDK, or network path ships.
+
+**Evidence.** HTN/GOAP techniques provide authored reusable planning structure but have measurable search/precondition cost [S-FA-COG-001] [S-FA-COG-002]. POMCP requires a calibrated black-box transition/observation model that Riverhold does not have [S-FA-COG-003]. Reviewed local runtimes support offline/local execution, but no source establishes EONFOLK quality, latency, memory, thermals, or renderer coexistence [S-FA-COG-004] [S-FA-COG-007].
+
+**Rejected alternatives.** Search sophistication as a deliverable, POMCP/MCTS without a calibrated model, required inference, auto-download, remote model identifiers, training, continuous calls, and free-form state patches.
+
+**Remaining uncertainty.** The benchmark may show no meaningful planner advantage; optional local inference remains entirely unmeasured for this product and machine.
+
+**Resulting behavior.** Standard Brain is the only executable brain. The future `BrainPort` is a type-only proposal-source seam; it has no adapter, deadline, process, model, network, or fallback claim. Candidate Planner promotion is mechanically disabled until a trusted runner derives outcomes from applied terminal state. Experiment pre-run manifests and append-only results are distinct noncanonical records and never reducer input.
+
+**Constraint fit.** Zero new production dependency/model cost, complete no-model operation, and benchmark-gated scope fit the solo-builder envelope.
+
+**Reopen trigger.** Remove the Planner if any hard benchmark gate fails or it does not clear the predeclared improvement floor. Authorize a local-model spike only after product evidence isolates a cognition deficit and an exact executable/model/license/security protocol is separately approved.
+
+### D-014 — Read-only standards-shaped ontology projection
+
+**Decision.** Observatory may project an opaque viewer-authorized Chronicle artifact as bounded embedded JSON-LD 1.1 using stable EONFOLK vocabulary terms and a locally PROV-shaped subset checked by a closed validator. This is not a full PROV-O/SHACL interoperability claim. RDF/JSON-LD is presentation/export data, never canonical Reality, reducer input, or a new ledger. RDF 1.2 and SHACL 1.2 features remain experimental.
+
+**Evidence.** JSON-LD 1.1, PROV-O, and SHACL 1.0 are W3C Recommendations [S-FA-COG-008] [S-FA-COG-010] [S-FA-COG-011]. RDF 1.2 is a Candidate Recommendation Snapshot and SHACL 1.2 is a Working Draft [S-FA-COG-009] [S-FA-COG-012]. Reviewed general-purpose packages add unnecessary dependency/network surface for the bounded projection [S-FA-COG-014].
+
+**Rejected alternatives.** RDF as the source of truth, remote context fetching, arbitrary SPARQL, general graph storage, full standards libraries, draft-only SHACL features, and ontology-driven reducer behavior.
+
+**Remaining uncertainty.** No external consumer has demonstrated that the projection improves inquiry; vocabulary evolution needs versioned fixtures.
+
+**Resulting behavior.** Chronicle authorization mints an artifact bound to viewer, purpose, revision, policy, canonical source digest, and the exact authorized event hashes. Observatory resolves every evidence ID against that set, then emits a deterministic, bounded, offline, versioned projection. Deleting it cannot change replay or world hashes.
+
+**Constraint fit.** A small zero-dependency projection preserves future interoperability without expanding infrastructure or the product loop.
+
+**Reopen trigger.** Change the vocabulary/validator only with a versioned migration fixture or a concrete consumer need; remove the surface if it adds maintenance without demonstrated inquiry value.
+
+### D-015 — Proportionate three-tier verification
+
+**Decision.** Maintain FAST, PR, and DEEP verification tiers. PR protects the complete critical journey and authoritative invariants; DEEP adds long-horizon/property/fuzz/performance/privacy work. Mutation analysis and formal expansion are targeted only where a surviving fault could undermine Reality, persistence, redaction, Sentinel, feedback authorization, or experiment isolation.
+
+**Evidence.** The 001 baseline already provides deterministic replay, IndexedDB, headed browser, network, performance, security-audit, and bounded TLC evidence. GitHub's dated private-repository probe establishes the controls actually present rather than assumed enterprise features [S-FA-PLATFORM-015] [S-FA-PLATFORM-016] [S-FA-PLATFORM-017] [S-FA-PLATFORM-018].
+
+**Rejected alternatives.** A single slow command, backend-only release evidence, unbounded fuzzing, broad mutation score theater, Actions deployment, mandatory outside reviewer, and claims based on unavailable native security products.
+
+**Remaining uncertainty.** Final Alpha runtime and CI duration, diagnostic overhead, and physical mobile behavior are not yet measured.
+
+**Resulting behavior.** Every release claim names its command, SHA, environment, pass/fail/not-run status, and artifact. UI changes require browser-visible evidence; cognition changes require isolation/failure/eval evidence; passing compilation never substitutes for play.
+
+**Constraint fit.** The tiers keep routine feedback short for one maintainer while reserving expensive evidence for explicit release work at approximately $0.
+
+**Reopen trigger.** Rebalance tiers when measured CI time or defect escape shows a check is misplaced; never remove a direct invariant falsification without an equal or stronger replacement.
+
+## Founder Alpha frozen-review reconciliation
+
+Six independent reviewers inspected frozen candidate `7319d59260555ffbe4eb2f4d58beb61d3f8a11ee`. The candidate was correctly rejected. Every P0/P1 is accepted below; “closed by removal/deferral” means the unsafe claim or executable surface no longer exists, not that an active release blocker is tolerated. Human comprehension, attachment, screen-reader, physical-device, live-provider, deployment, and model evidence remain `NOT_RUN` and are not converted into technical passes.
+
+| Finding | Severity | Disposition | Repair and direct evidence |
+|---|---|---|---|
+| FA-CI-001 | P0 | ACCEPT — CLOSED | `2166d37` uses an exact path **and** fingerprint Gitleaks exception for the benign fixture; full-history Gitleaks 8.30.1 passes and the adjacent-secret probe still rejects. |
+| FA-CI-002 | P1 | ACCEPT — CLOSED | `2166d37` centralizes the accepted TLC SHA-256 and rejects missing/wrong JAR bytes before Java; the correct artifact still checks 3,480 generated/350 distinct states at depth 10. |
+| FA-CI-003 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `2166d37` established the tiers; `9759988` separates fault-only and exact-production browser artifacts, fixes the comparative browser path, and makes PR/DEEP artifact allowlists disjoint; `8c49759` records every actually executed constituent and stops before unexecuted work. |
+| FA-CI-004 | P1 | ACCEPT — CLOSED | `2166d37` makes IndexedDB unavailability/failure nonzero unless an explicit smoke-only probe is requested; smoke output cannot say PASS. |
+| FA-SYS-001 | P1 | ACCEPT — CLOSED | `d3915bc` makes expired incident takeover atomic with the singleton global D1 lease and preserves live leases; concurrency/expiry fixtures pass. |
+| FA-SYS-002 | P1 | ACCEPT — CLOSED | `d3915bc` implements HMAC-keyed 5/hour and 10/day source quotas, existing fingerprint/global caps, seven-day staging TTL, 30-day cleanup, and fail-closed cleanup. |
+| FA-SYS-003 | P1 | ACCEPT — CLOSED | `a0c6d03` compares the durable commit result with the prepared post-head/receipt and safe-stops stale idempotent divergence before publishing candidate state. |
+| FA-SYS-004 | P1 | ACCEPT — CLOSED | `a0c6d03` validates snapshot, manifest, batch, event, engine, schema, and outer/data agreement before replay or fencing; unsupported versions fail closed. |
+| FA-SYS-005 | P1 | ACCEPT — CLOSED | `a0c6d03` and `ab6e420` require a same-run/region, prior, cognition-originated branch consequence with exact kind/reason; transition, replay, and runtime reject dangling/wrong references. |
+| FA-DP-001 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `d3915bc` closes trusted recorder summaries; `d81d971` also reconstructs hostile browser-storage incident prose solely from the repository-owned summary-code mapping. |
+| FA-DP-002 | P1 | ACCEPT — CLOSED | `d3915bc` shows only a sanitized OFF-mode stop reason plus exact incident ID and exposes the local report path; raw runtime errors are not rendered. |
+| FA-DP-003 | P1 | ACCEPT — CLOSED | `d3915bc` implements seven-day relay staging expiry and 30-day counter/dedup cleanup without deleting a live lease. |
+| FA-DP-004 | P1 | ACCEPT — CLOSED | `d3915bc` derives source buckets through operator-secret HMAC without persisting the raw source and rejects missing source/HMAC capability. |
+| FA-DP-005 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `d3915bc` establishes queue bounds; `d81d971` proves a stored Bearer/credential-pattern canary is removed during closed-schema reconstruction and storage rewrite. |
+| FA-VA-P1-001 | P1 | ACCEPT — CLOSED | `2d5f511` adds a 390×844 bounding regression: Follow Mara intersects the initial viewport while the illustrated world remains at least 55% of usable height. |
+| FA-VA-P1-002 | P1 | ACCEPT — MITIGATED | `2d5f511` enforces 16 px factual/14 px secondary floors and deterministic 200%-equivalent browser reflow. A separate headful Chrome 151 run at 600×434 CSS/4 DPR recorded zero horizontal overflow and all three counsel choices; direct browser-UI shortcut control was OS-denied and remains honestly `NOT_RUN`. |
+| FA-VA-P1-003 | P1 | ACCEPT — CLOSED | `2d5f511` gives counsel a distinct focus ring and implements heading-first modal focus, inert/hidden background, scroll lock, trap, Escape, and invoker restoration with a keyboard-only complete journey. |
+| FA-VA-P1-004 | P1 | ACCEPT — CLOSED | `2d5f511` adds a remembered selectable words view and injected renderer-failure fallback; the complete loop remains playable without canvas. |
+| FA-VA-P1-005 | P1 | ACCEPT — CLOSED | `2d5f511` implements eight differentiated silhouettes, activity props/labels, and an explicit Toma–Iven wood-for-rations interaction plus equivalent semantic rows. |
+| FA-VA-P1-006 | P1 | ACCEPT — CLOSED | `2d5f511` persists manual reduced motion and disables root smooth scrolling and nonessential motion. |
+| FA-VA-P1-007 | P1 | ACCEPT — CLOSED | `2d5f511` raises UNKNOWN badge contrast and directly computes every fact/belief/claim badge at ≥4.5:1. |
+| FA-COG-R-001 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `b64531f` adds the comparison surface; `b99530f` makes reactive-nearest-need use only typed need tags with a closed fallback and proves control-specific rules plus all five action/explanation ablations under rehashed contexts. Existing branch tests retain the three terminal world vectors. |
+| FA-COG-R-002 | P1 | ACCEPT — CLOSED BY FAIL-CLOSED DEFERRAL | `b64531f` disables promotion; `b99530f` removes the last active 52-goal sentence and limits the descriptor to generated legality/repeatability smoke evidence until a trusted authoritative runner exists. |
+| FA-COG-R-003 | P1 | ACCEPT — CLOSED BY REMOVAL | `b64531f` removes the executable optional adapter and false timeout path. The remaining Standard proposal validator is recursively closed, byte/depth/count bounded, reference-authorized, template-checked, and hash-checked. |
+| FA-COG-R-004 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `c518af1` binds ordered context/seed/repetition executions and derives completion/invocation counts; `e2fb64b` requires per-execution proposal/output/terminal-vector hashes, latency, and passing invariants. The docs retain that caller-bound hashes are not proof of a real adapter or authoritative terminal application. |
+| FA-COG-R-005 | P1 | ACCEPT — CLOSED AFTER CONFIRMATION REPAIR | `d81d971` adds private `WeakSet` object-identity provenance to the existing immutable artifact binding; reflected-symbol/cloned/private-canary relabelling now fails closed. |
+| FA-PRODUCT-P1-001 | P1 | ACCEPT — CLOSED | Same repair/evidence as FA-VA-P1-001; unfamiliar-human findability remains `NOT_RUN`. |
+| FA-PRODUCT-P1-002 | P1 | ACCEPT — CLOSED | `2d5f511` presents the exact count mismatch, values, plan, Toma relationship, uncertainty, local-save limit, all choices, and stakes in the same counsel frame on mobile and desktop. |
+| FA-PRODUCT-P1-003 | P1 | ACCEPT — CLOSED | `ab6e420` makes default accuse advice deterministically reject: Mara's visible plan, commitment, and trust outweigh counsel without a tie/random draw. Browser evidence in `cb535f4` proves requested advice and chosen action differ. |
+| FA-PRODUCT-P1-004 | P1 | ACCEPT — CLOSED | `ab6e420` inserts a six-hour boundary and typed consequence for every branch: verify changes trust after sourced belief; accuse changes trust/petition after allegation; abstention gains one independent petition endorsement with zero causal parents and temporal-only links. |
+
+## Founder Alpha first-confirmation reconciliation
+
+Fresh confirmation at frozen commit `d9f7c20ce2d7439c0886adfd7603f4eab5af1fcb` found zero P0 and seven P1 mechanisms. The failed report is retained in [FOUNDER_ALPHA_CONFIRMATION](../reviews/FOUNDER_ALPHA_CONFIRMATION.md). All seven are accepted and repaired below; this table supersedes the premature closure wording for the affected frozen findings. It does not claim the permitted targeted re-review or final DEEP/remote CI has passed yet.
+
+| Finding | Disposition | Repair and direct evidence |
+|---|---|---|
+| FA-CONF-001 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `9759988` updates the comparative browser journey to the current counsel control and corrects argument forwarding. The direct OFF/LOCAL/ALPHA benchmark passed all mode/frame/relative/console/zero-egress assertions on the repair branch. |
+| FA-CONF-002 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `9759988` isolates two fault-only journeys, then rebuilds/budgets production and runs fourteen journeys against unchanged `dist`; `8c49759` records nineteen actual PR constituents and the seven DEEP additions individually, fail-fast. Crash markers are forbidden in the final production manifest. |
+| FA-CONF-003 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `d81d971` requires private `WeakSet` mint identity as well as the immutable brand/binding. A reflected-symbol clone relabelled public with private canary content is rejected. |
+| FA-CONF-004 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `d81d971` reconstructs incident prose from the accepted summary code and copies only closed fields. Hostile Bearer/credential-pattern prose is absent after load and storage rewrite. |
+| FA-CONF-005 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `b99530f` makes reactive-nearest-need use the only typed need signal available, ignore counsel/risk/values/records, expose a closed selection reason, and proves control plus all five ablation differences under rehashed contexts. No nearest-severity or terminal-world claim is added. |
+| FA-CONF-006 | ACCEPT — CLOSED IN AUTHORITY; TARGETED CONFIRMATION PENDING | `b99530f` removes the retained 52-goal statement and explicitly limits the 64 generated cases to legality/repeatability smoke evidence. Planner promotion remains disabled. |
+| FA-CONF-007 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | `c518af1` binds every ordered context/seed/repetition execution and derives counts; `e2fb64b` additionally requires proposal/output/terminal-vector hashes, latency, and passing invariants per completed execution. Missing, duplicate, reordered, extraneous, mismatched, tampered, incomplete, or unsuccessful runs reject. These caller-bound identities are not presented as proof of a real adapter or authoritative terminal application. |
+| FA-QA-001 | ACCEPT — CLOSED IN CODE; TARGETED CONFIRMATION PENDING | The first integrated DEEP run correctly failed closed after every preceding constituent passed because the canonical performance harness retained the same obsolete counsel label already removed from the diagnostics harness. The repair aligns both scripts to `Review Mara's choices` and adds one source-contract regression covering both DEEP browser journeys. A subsequent clean, unchanged run at `59edef3` passed all 26 DEEP rows and fifteen canonical journeys; manifest output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. The failed run and partial benchmark remain unaccepted. |
+
+The reviewed P2s were also bounded: build/schema-bound fingerprints and capability truth (`d3915bc`), authorized Observatory input and hostile local storage (`b64531f`/`d3915bc`), 44 px targets and ordinary-language/local-feedback copy (`2d5f511`), and exact `00:00`/`00:06`/`00:12` Story Card labels (`ab6e420`). The disposable rehearsal procedure and all human judgments remain operational/human evidence rather than product claims.
 
 ## Civilization amendment integration
 
@@ -269,11 +419,11 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | ER-007 | P1 | ACCEPT — MITIGATED | Noninterference covers context/catalog/errors/targets/explanations/public projection. | COGNITION, EVALS, SECURITY |
 | ER-008 | P1 | ACCEPT — MITIGATED | Monotonic writer fencing token is checked on append/snapshot; stale-tab transfer test blocks. | PERSISTENCE |
 | ER-009 | P1 | ACCEPT — MITIGATED | Product/visual kill gates and ugly loop precede full world; 52 planned + ≤8 fixes, hard 60. | 001 |
-| ER-010 | P1 | PARTIALLY ACCEPT — MITIGATED | No fictional provider-specific path. A fake BrainPort tests generic absence/failure because the requested no-model fallback remains binding; 429/revoke become conditional later. | COGNITION, TESTING |
+| ER-010 | P1 | ACCEPT — MITIGATED BY REMOVAL | No fictional provider-specific path or executable fake-adapter claim remains. Standard Brain is the complete path; hung/timeout/revoke/malformed/provider checks become blocking only if a real optional adapter is later proposed. | COGNITION, TESTING |
 | ER-011 | P1 | ACCEPT — MITIGATED | 30/90/365 must reach exact terminal time under explicit time/event/storage caps; named desktop/mobile profiles. | SIMULATION, PERFORMANCE |
-| ER-012 | P1 | ACCEPT — MITIGATED | FRONTEND selects Pixi-only 2.5D atlas and forbids Three/R3F/3D pipeline. | FRONTEND, PERFORMANCE |
+| ER-012 | P1 | ACCEPT — SUPERSEDED | The earlier Pixi-only mitigation was release-invalidated by the World Presence override. D-008 now selects one PlayCanvas/WebGL2 renderer and still forbids a mixed renderer stack. | FRONTEND, PERFORMANCE |
 | ER-013 | P1 | ACCEPT — MITIGATED | Typed DecisionExplanation supplies reason codes/references/terms; authored justification is testimony, not fact. | COGNITION, AGENT_LIFE |
-| DR-001 | P1 | ACCEPT — MITIGATED | Renderer authority now unambiguously Pixi/atlas; all R3F language is historical rejected-spike evidence. | FRONTEND, PERFORMANCE |
+| DR-001 | P1 | ACCEPT — SUPERSEDED | Renderer authority is now unambiguously PlayCanvas plus the pure WorldPresentation boundary; Pixi is historical evidence only. | FRONTEND, PERFORMANCE |
 | DR-002 | P1 | ACCEPT — MITIGATED | Single orientation → Follow Mara → peek → inspect/investigate → decide state machine. | INTERACTION, MOBILE |
 | DR-003 | P1 | ACCEPT — MITIGATED | Four-hour visual checkpoint occurs before full sim/persistence integration. | FRONTEND, 001 |
 | DR-004 | P1 | ACCEPT — MITIGATED | Exact five-observer manifest and 3/5, 4/5 thresholds replace singular observer. | VISUAL_QA, QUALITY_BAR |

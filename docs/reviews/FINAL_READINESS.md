@@ -2,9 +2,9 @@
 
 **Purpose:** answer the twelve product-readiness questions concretely and audit the decision-complete exit conditions.
 
-**Status:** READY FOR GOAL MODE — exact amended execution contract confirmed; product gates remain unrun
+**Status:** PLANNING READY; FOUNDER ALPHA WORLD PRESENCE RELEASE GATE ACTIVE — product gates remain unrun
 
-**Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/active/001-foundation.md).
+**Authority boundary:** this file owns the final readiness answers and exit evidence summary. It does not override [DECISIONS](../decisions/DECISIONS.md), [QUALITY_BAR](../quality/QUALITY_BAR.md), or the [ExecPlan](../exec-plans/completed/001-foundation.md).
 
 **Related documents:** [product](../product/PRODUCT.md), [human loop](../product/HUMAN_LOOP.md), [Chronicle](../product/CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [player perspectives](PLAYER_PERSPECTIVES.md)
 
@@ -68,18 +68,18 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Long horizon | session 5/20/death/newcomer are hypotheses, not V1 claims | [PROGRESSION](../product/PROGRESSION.md) |
 | Distribution | private Story Card comprehension; no public URL/activation claim | [DISTRIBUTION](../product/DISTRIBUTION.md) |
 | Model ecology | complete Standard Brain; no model/provider in V1 | [COGNITION](../engineering/COGNITION.md) |
-| Renderer/assets | PixiJS 2.5D atlas + semantic DOM; no R3F/3D pipeline | [FRONTEND](../engineering/FRONTEND.md) |
+| Renderer/assets | one embodied PlayCanvas/WebGL2 world + pure WorldPresentation boundary + semantic DOM; no dual renderer | [FRONTEND](../engineering/FRONTEND.md) |
 | Persistence | atomic run genesis; durable-before-visible run-scoped IndexedDB; receipts/fencing; no backup/export/import | [PERSISTENCE](../engineering/PERSISTENCE.md) |
 | Causality | direct/trigger/contributing causal; temporal/response separate; allegation content | [SIMULATION](../engineering/SIMULATION.md) |
-| Scope/hours | 52 planned + ≤8 fix/review, hard 60; Gate 0/A/B | [001-foundation](../exec-plans/active/001-foundation.md) |
+| Scope/hours | 52 planned + ≤8 fix/review, hard 60; Gate 0/A/B | [001-foundation](../exec-plans/completed/001-foundation.md) |
 | Budgets/access | explicit payload/time/frame/mobile/semantic/reduced-motion gates | [PERFORMANCE](../quality/PERFORMANCE.md) |
 | CI/security | required/conditional suites, probed capabilities, no invented protection | [TESTING](../quality/TESTING.md) |
 
 ## Constraint-fit audit
 
-- Solo builder: one scenario, one renderer/atlas, one local adapter, one version, no platform.
+- Solo builder: one scenario, one procedural renderer, one authored spatial graph, one local adapter, one version, no platform.
 - 40–60 hours: 52 planned, ≤8 fix contingency; product proof occurs before hour 20.
-- M4/no GPU: worker/Pixi/DOM and Standard Brain are CPU/local; physical device is a QA target, not infrastructure.
+- M4/no GPU: worker/PlayCanvas/WebGL2/DOM and Standard Brain run locally; physical device is a QA target, not infrastructure.
 - Approximately $0: no spend/action/service needed; $50/$300 remain unapproved comparisons.
 - Free V1: no account/key/download/model/server/payment.
 - No training/data/partner/enterprise: authored fictional fixtures only; no commercial operations.
@@ -97,7 +97,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 | Future Institution kernel | [Governance](../game/GOVERNANCE.md) | names/IDs avoid council-only lock-in | generic institutions/organizations/war |
 | Human roles | [Product](../product/PRODUCT.md) | Follow Mara provides only the narrow patron/history path | Stranger/Follower/Historian/Experimenter/Creator UI |
 | Canon and counterfactuals | [World structure](../product/WORLD_STRUCTURE.md) | one `canonical-local-proof` manifest; no fork route | snapshot-derived noncanonical World Forks |
-| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/active/001-foundation.md) | no human-society claim, dashboard, or added mechanics; the two-hour contract delta replaces two hours of removed export work | post-gate bounded research |
+| Research positioning and unchanged gates | [Observatory](../product/OBSERVATORY.md), [001-foundation](../exec-plans/completed/001-foundation.md) | no human-society claim, dashboard, or added mechanics; the two-hour contract delta replaces two hours of removed export work | post-gate bounded research |
 
 ## Required exit checks
 
@@ -105,7 +105,7 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 - [x] `IMPLEMENTATION_GOAL_PROMPT.md` exists and is self-contained; exact blob `a5e30353d3bee951ff25a85758f9accf22aea30a` passed final fresh targeted confirmation with zero P0/P1.
 - [x] Tool/plugin/MCP inventory contains every requested capability and field.
 - [x] CI/CD contract covers required/conditional/security/branch/update/retention behavior and actual private-repo probes.
-- [x] Initial performance/accessibility budgets incorporate the failed R3F spike and require a new early Pixi measurement.
+- [ ] Initial performance/accessibility budgets remain binding; the PlayCanvas spike and dirty integrated checkpoint pass directionally, but fresh clean 15-run evidence and an independent inhabited/alive YES are release-blocking.
 - [x] Gate A/B have browser-visible three-viewport criteria and human denominators.
 - [x] Distribution and model ecology alter V1 scope rather than remain prose appendices.
 - [x] Top decisions, assumptions, and abandon/change triggers are present.
@@ -116,4 +116,4 @@ Gate 0 first: six unfamiliar participants compare ugly one-citizen/family/trio/f
 - [x] Amended branch is pushed and exactly one draft PR exists; draft [#1](https://github.com/PranavMishra28/eonfolk/pull/1) remains open and unmerged.
 - [x] Civilization amendment authorities and revised Goal prompt pass fresh independent review and final QA.
 
-Future Goal invocation must supply `APPROVED_ORCHESTRATION_PROMPT_BLOB=a5e30353d3bee951ff25a85758f9accf22aea30a` in higher-authority metadata; the repository cannot originate that approval. `READY FOR GOAL MODE` means the experiment contract is implementation-ready, not that the product or research thesis is true or that Gate 0/A/B/Card has passed with humans.
+The historical 001 Goal invocation used `APPROVED_ORCHESTRATION_PROMPT_BLOB=a5e30353d3bee951ff25a85758f9accf22aea30a`; the repository could not originate that approval. Current Founder Alpha work is governed by the active 002 ExecPlan and later content-addressed operator overrides. Planning readiness never means the product or research thesis is true, and Gate 0/A/B/Card remain unpassed with humans.

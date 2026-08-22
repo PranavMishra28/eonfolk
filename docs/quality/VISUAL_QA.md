@@ -2,7 +2,7 @@
 
 **Purpose:** define deterministic browser evidence, manual interaction review, observer walkthroughs, and the visual fix loop.
 
-**Status:** ACCEPTED FUTURE IMPLEMENTATION CONTRACT
+**Status:** AUTOMATED RELEASE GATE PASSED — independent exact-YES confirmation complete; unfamiliar-human gates remain NOT RUN
 
 **Authority boundary:** owns viewport/browser evidence and visual review process. Visual language is owned by future `docs/design/DESIGN.md`; numerical limits by [performance](PERFORMANCE.md); CI retention by [testing](TESTING.md).
 
@@ -17,9 +17,9 @@ Use the active Browser for exploratory/manual local play and a pinned project Pl
 For a named commit, seed, browser version, and clean local build:
 
 1. launch with no account/key/model/download;
-2. inspect first 5 and 30 seconds before reading instructions;
+2. inspect first 5, 10, and 30 seconds before reading instructions;
 3. find **Follow Mara** within 10 seconds and state that she acts for herself;
-4. identify three citizen activities and one interaction;
+4. within 10 seconds identify a physical settlement, recognizable humans, multiple activities, and an interaction/process; within 30 seconds describe several tasks;
 5. inspect identity, value, relationship, tension, local-device notice, and complete state-changing investigation by 60 seconds;
 6. give one of two advice intents or abstain by pointer and keyboard;
 7. observe acceptance, rejection, delay, or reinterpretation and a later consequence;
@@ -38,8 +38,10 @@ Without a raw feed or developer narration:
 
 - What are at least three citizens doing?
 - Which two citizens interacted, and what visibly changed?
+- Are the actors recognizably human, with locomotion/action rather than marker drift?
 - Does the settlement dominate the screen, or does UI chrome feel like a dashboard?
 - Can the same facts/actions be found when canvas interaction is unavailable?
+- Does Riverhold visibly feel inhabited and alive? The release answer must be **YES**.
 
 Five silent unfamiliar observers use the identical manifest; at least three identify the three actions and authoritative interaction. At least four find Follow Mara/understand no direct control. Failure is P1 even if automation locates DOM nodes.
 
@@ -66,9 +68,11 @@ Vague answers reopen product/Chronicle presentation; a screenshot cannot pass th
 - no secret, local path, debug panel, raw provider text, or unrelated browser/account state appears in evidence;
 - no shadcn/template/AI-generated visual smell overrides the selected art direction.
 
-## Rendering-spike finding
+## Rendering-spike and automated findings
 
-Rejected R3F spike `4bdef56` exposed mobile overflow at 390×844 and desktop p95 17.1 ms. It is risk evidence, not renderer evidence. Pixi must pass the four-hour feasibility checkpoint before full sim/persistence integration: five silent observers, three-of-five world legibility, four-of-five Follow/autonomy, mobile containment, keyboard/semantic/reduced motion, and budgets.
+Rejected R3F spike `4bdef56` remains historical risk evidence. The bounded PlayCanvas spike passed the architectural feasibility threshold with eight articulated citizens, six action classes, interactions, WebGL2, and sub-10-ms headed p95 across three emulated profiles [S-WP-014].
+
+The integrated candidate now automates continuous clock advance, three-or-more moving citizens, four-or-more observed classes, an initial interaction, canonical-event linkage after consequential play, WebGL2, ≤1.51 pixel ratio, canvas/host containment, zero teleports, and zero contradictions. It also preserves keyboard, reduced-motion, semantic, renderer-failure, 200% reflow, mobile-first-viewport, and complete player-journey tests. A fresh independent reviewer inspected frozen repaired candidate `90c0ad2` and answered the binding inhabited-place question exactly **YES** with zero P0/P1. Exact implementation head `f818d10` then passed the complete target-Mac three-profile fifteen-run battery and all sixteen illustrated journeys. GitHub Linux [run 32559456985](https://github.com/PranavMishra28/eonfolk/actions/runs/32559456985) separately passed fourteen semantic product journeys plus a blocking trace-free real PlayCanvas/WebGL2 smoke at all three required viewports; screenshots retained in `founder-alpha-ui-32559456985` show eight projected/semantic citizens, active work, exact canvas containment, pixel ratio 1, and zero browser errors/egress. The Linux split is not described as full illustrated-journey coverage, and none of this substitutes for unfamiliar-human or physical-device evidence.
 
 ## Fix and rerun loop
 

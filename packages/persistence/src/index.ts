@@ -6,6 +6,7 @@ export {
 	PERSISTENCE_STORE_NAMES,
 } from "./indexeddb.js";
 export { MemoryPersistence, type MemoryPersistenceOptions } from "./memory.js";
+export { validateReceipt } from "./validation.js";
 export type {
 	AppendRejectedDecisionRequest,
 	BatchRangeRequest,

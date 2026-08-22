@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns Observatory product/research semantics. [WORLD_MODEL](../game/WORLD_MODEL.md) owns truth and visibility, [COGNITION](../engineering/COGNITION.md) owns decision records, [PERSISTENCE](../engineering/PERSISTENCE.md) owns stored ledgers/manifests, and [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns canon/forks.
 
-**Related documents:** [product](PRODUCT.md), [Chronicle](CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [simulation](../engineering/SIMULATION.md), [first ExecPlan](../exec-plans/active/001-foundation.md)
+**Related documents:** [product](PRODUCT.md), [Chronicle](CHRONICLE.md), [architecture](../engineering/ARCHITECTURE.md), [simulation](../engineering/SIMULATION.md), [first ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Owned decision
 
@@ -35,6 +35,12 @@ The optional-model segment is explicitly absent/null under Standard Brain. Recor
 Canonical replay means applying the recorded accepted batch-header/event interval to its verified snapshot under the named versions and reproducing exact state and world-head hashes. It never means rerunning cognition. A model call may be nondeterministic or unavailable; preserve the original structured proposal and accepted/rejected result instead.
 
 Future experiments use repeated independent manifests/runs, declare interventions and parent snapshot, and report outcome distributions and uncertainty. A counterfactual is factual only about the simulated fork itself; it is never retroactive canon or an unsimulated alternate history.
+
+## Founder Alpha standards-shaped projection
+
+Founder Alpha can emit a bounded embedded JSON-LD 1.1, locally PROV-shaped subset. It is not a full PROV-O mapping or SHACL-conformance claim. Observatory accepts only an opaque artifact minted by the Chronicle visibility projector; that artifact binds viewer, purpose, revision, policy version, canonical source digest, and the exact authorized event hashes. Every projected evidence ID must resolve to that set. A closed offline validator checks the implemented IDs, node kinds, cardinalities, references, and predicates. Remote contexts, remote fetching, RDF storage, SPARQL, inference, RDF 1.2-only semantics, SHACL 1.2 draft features, and external interoperability claims are excluded.
+
+The visibility projector mints the input only after authorization from existing evidence; caller-supplied labels cannot mint authorized evidence. Observatory's removal or reordering cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native JSON remains the executable evidence format; JSON-LD is a local research-shaped view, never a Truth Ledger.
 
 ## Rejected alternatives
 

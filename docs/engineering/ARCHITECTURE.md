@@ -6,7 +6,7 @@
 
 **Authority boundary:** owns architectural layers, package dependencies, local-first execution, and the future region-server boundary. Simulation rules, storage semantics, cognition policy, and rendering details are owned by their linked authorities.
 
-**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [Observatory](../product/OBSERVATORY.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/active/001-foundation.md`
+**Related documents:** [simulation](SIMULATION.md), [persistence](PERSISTENCE.md), [cognition](COGNITION.md), [Observatory](../product/OBSERVATORY.md), [frontend](FRONTEND.md), [security](SECURITY.md), [systems evidence](../research/SYSTEMS_RESEARCH.md), future `docs/exec-plans/completed/001-foundation.md`
 
 ## Owned decision
 
@@ -46,7 +46,7 @@ sim <- application orchestration
 cognition <- application orchestration
 ```
 
-`sim` and `protocol` must not import React, browser storage, provider SDKs, Cloudflare bindings, Three.js, PixiJS, or any renderer. `cognition` may depend on protocol types but not provider SDKs in the first slice. The renderer consumes presentation projections and cannot feed frame time, wall time, or pointer state into Reality.
+`sim` and `protocol` must not import React, browser storage, provider SDKs, Cloudflare bindings, PlayCanvas, PixiJS, or any renderer. `cognition` may depend on protocol types but not provider SDKs in the first slice. `world-presentation` consumes immutable Reality projections and owns deterministic authored paths/interpolation contracts without importing a renderer. PlayCanvas consumes its output and cannot feed frame time, wall time, camera, or pointer state into Reality.
 
 ## Contract registry
 
@@ -62,6 +62,12 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 | `ReplayManifest` | [Persistence](PERSISTENCE.md) | Versioned snapshot and event interval needed to replay |
 | `ExperimentManifest` | [Persistence](PERSISTENCE.md) | Immutable run/seed/version/cognition/intervention/parent identity |
 | `PersistencePort` / `CommandReceipt` / `CatchUpOperationReceipt` | [Persistence](PERSISTENCE.md) | Crash-safe world/decision/catch-up commit, replay, and idempotency boundary |
+
+## Founder Alpha non-authoritative sidecars
+
+`packages/diagnostics` receives closed, source-redacted boundary observations from Application, Worker, persistence, cognition, and Chronicle. Its dependency direction is outward only: simulation/protocol/persistence/cognition never import the web observer, feedback relay, or any network adapter. Sentinel may stop publication or request one typed recovery through Application, but it cannot prepare, commit, install, or publish canonical state.
+
+Local feedback is an Application concern. The optional `apps/feedback-worker` deployment seam validates and delivers sanitized reports but has no import path to simulation, persistence, cognition, Chronicle projection, or browser credentials. D1/GitHub records are operational feedback data, never the Canonical World Ledger, Cognitive/Decision Ledger, Experiment Manifest, or a Truth Ledger.
 
 Provider names and browser APIs never appear in authoritative world contracts. Optional provider/model/version/artifact values appear only as nullable provenance inside cognitive/experiment records. `regionId` and `runId` appear now even though the slice has one local run/region.
 

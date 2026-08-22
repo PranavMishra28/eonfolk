@@ -8,15 +8,20 @@
 		"dev": "vite --host 127.0.0.1",
 		"preview": "vite preview",
 		"test": "vitest run",
-		"test:e2e": "playwright test --config playwright.config.ts",
+		"test:e2e": "pnpm test:e2e:fault && pnpm build && pnpm test:e2e:production",
+		"test:e2e:fault": "playwright test --config playwright.fault.config.ts",
+		"test:e2e:production": "playwright test --config playwright.config.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@eonfolk/cognition": "workspace:*",
+		"@eonfolk/diagnostics": "workspace:*",
 		"@eonfolk/persistence": "workspace:*",
 		"@eonfolk/protocol": "workspace:*",
 		"@eonfolk/sim": "workspace:*",
-		"pixi.js": "8.19.0",
+		"@eonfolk/world-presentation": "workspace:*",
+		"@playcanvas/react": "0.11.5",
+		"playcanvas": "2.21.4",
 		"react": "19.2.8",
 		"react-dom": "19.2.8"
 	},

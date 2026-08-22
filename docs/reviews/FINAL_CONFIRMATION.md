@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file records confirmation evidence and one bounded caveat. It changes no product, game, engineering, quality, execution, decision, or research authority.
 
-**Related documents:** [final red team](FINAL_RED_TEAM.md), [decision reconciliation](../decisions/DECISIONS.md), [simulation](../engineering/SIMULATION.md), [world model](../game/WORLD_MODEL.md), [quality bar](../quality/QUALITY_BAR.md), [001 ExecPlan](../exec-plans/active/001-foundation.md), [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md), [source ledger](../research/SOURCE_LEDGER.md)
+**Related documents:** [final red team](FINAL_RED_TEAM.md), [decision reconciliation](../decisions/DECISIONS.md), [simulation](../engineering/SIMULATION.md), [world model](../game/WORLD_MODEL.md), [quality bar](../quality/QUALITY_BAR.md), [001 ExecPlan](../exec-plans/completed/001-foundation.md), [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md), [source ledger](../research/SOURCE_LEDGER.md)
 
 ## Review identity and verdict
 

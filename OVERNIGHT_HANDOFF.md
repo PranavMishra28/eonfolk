@@ -4,7 +4,7 @@
 
 **Status:** IMPLEMENTATION-COMPLETE UNDER OPERATOR OVERRIDE — automated/local and pushed-candidate CI green; human product gates not run
 
-**Authority boundary:** This file summarizes implemented reality. Product and technical semantics remain owned by [docs/INDEX.md](docs/INDEX.md); execution evidence remains in the [001 ExecPlan](docs/exec-plans/active/001-foundation.md).
+**Authority boundary:** This file summarizes implemented reality. Product and technical semantics remain owned by [docs/INDEX.md](docs/INDEX.md); execution evidence remains in the [001 ExecPlan](docs/exec-plans/completed/001-foundation.md).
 
 ## 1. Implemented product
 
@@ -71,7 +71,7 @@ Human Gate 0, Gate A, Gate B, and Story Card studies are **NOT RUN**. Fun, unfam
 
 ## 15. Evidence paths
 
-- [Execution and gate status](docs/exec-plans/active/001-foundation.md)
+- [Execution and gate status](docs/exec-plans/completed/001-foundation.md)
 - [Final review reconciliation](docs/reviews/IMPLEMENTATION_FINAL_REVIEW.md)
 - [Performance evidence](docs/exec-plans/evidence/001/implementation/performance.json)
 - [Bundle evidence](docs/exec-plans/evidence/001/implementation/bundle.json)

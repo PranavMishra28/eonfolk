@@ -1,3 +1,9 @@
+import type { DiagnosticInput, WorldHeadSummary } from "@eonfolk/diagnostics";
+import {
+	type AnimationClass,
+	type CanonicalActionRef,
+	projectSpatialScene,
+} from "@eonfolk/world-presentation";
 import type {
 	ChronicleBeatProjection,
 	CounselIntent,
@@ -17,86 +23,119 @@ interface SavedCheckpoint {
 const baseCitizens = [
 	{
 		id: "citizen:mara",
-		name: "Mara",
-		role: "Market tally-keeper",
+		slug: "mara",
+		name: "Mara Vale",
+		role: "Ledger runner",
 		activity: "carrying water toward the market tally",
 		activityKind: "water",
+		placeId: "market",
 		place: "market",
-		x: 45,
-		y: 45,
+		canonicalActionKind: "inspect",
 		focal: true,
 	},
 	{
 		id: "citizen:toma",
-		name: "Toma",
+		slug: "toma",
+		name: "Toma Reed",
 		role: "Storekeeper",
 		activity: "settling a ration exchange with Iven",
 		activityKind: "trade",
+		placeId: "market",
 		place: "market",
-		x: 60,
-		y: 50,
+		canonicalActionKind: "talk",
 	},
 	{
 		id: "citizen:iven",
-		name: "Iven",
+		slug: "iven",
+		name: "Iven Holt",
 		role: "Miller",
 		activity: "trading repair wood for rations",
 		activityKind: "trade",
+		placeId: "market",
 		place: "market",
-		x: 70,
-		y: 44,
+		canonicalActionKind: "listen",
 	},
 	{
-		id: "citizen:sera",
-		name: "Sera",
+		id: "citizen:sela",
+		slug: "sela",
+		name: "Sela Fen",
 		role: "Water bearer",
 		activity: "drawing water at the old well",
 		activityKind: "water",
+		placeId: "spring",
 		place: "spring",
-		x: 28,
-		y: 62,
+		canonicalActionKind: "carry",
 	},
 	{
-		id: "citizen:nadi",
-		name: "Nadi",
+		id: "citizen:rowan",
+		slug: "rowan",
+		name: "Rowan Pike",
 		role: "Forester",
 		activity: "bundling windfall wood",
 		activityKind: "wood",
+		placeId: "woods",
 		place: "woods",
-		x: 17,
-		y: 37,
+		canonicalActionKind: "gather",
 	},
 	{
-		id: "citizen:owen",
-		name: "Owen",
-		role: "Millwright",
-		activity: "bracing the damaged mill wheel",
-		activityKind: "mill",
-		place: "mill",
-		x: 80,
-		y: 67,
-	},
-	{
-		id: "citizen:bela",
-		name: "Bela",
+		id: "citizen:neri",
+		slug: "neri",
+		name: "Neri Ash",
 		role: "Grower",
 		activity: "moving seed grain above the flood line",
 		activityKind: "food",
+		placeId: "fields",
 		place: "fields",
-		x: 37,
-		y: 73,
+		canonicalActionKind: "gather",
 	},
 	{
-		id: "citizen:corin",
-		name: "Corin",
-		role: "Carpenter",
-		activity: "hauling cut timber down the north path",
-		activityKind: "wood",
-		place: "north path",
-		x: 87,
-		y: 34,
+		id: "citizen:odo",
+		slug: "odo",
+		name: "Odo Bell",
+		role: "Millwright",
+		activity: "bracing the damaged mill wheel",
+		activityKind: "mill",
+		placeId: "mill",
+		place: "mill",
+		canonicalActionKind: "repair",
+	},
+	{
+		id: "citizen:els",
+		slug: "els",
+		name: "Els Wren",
+		role: "Council clerk",
+		activity: "checking the granary allocation board",
+		activityKind: "council",
+		placeId: "granary",
+		place: "granary",
+		canonicalActionKind: "inspect",
 	},
 ] as const;
+
+function staticCanonicalAction(input: {
+	readonly id: string;
+	readonly kind: AnimationClass;
+	readonly phase: RiverholdProjection["phase"];
+	readonly placeId: string;
+	readonly simulationTime: number;
+}): CanonicalActionRef {
+	return Object.freeze({
+		actionId: `static:${input.id}:${input.phase}`,
+		sourceKind: "current-behavior",
+		eventId: null,
+		eventSequence: null,
+		status: "in-progress",
+		kind: input.kind,
+		originPlaceId: input.placeId,
+		destinationPlaceId: input.placeId,
+		affordanceId: null,
+		affordanceSlotIndex: null,
+		targetId: null,
+		simulationStart: input.simulationTime,
+		simulationEnd: null,
+		resultEventId: null,
+	});
+}
 
 const branchData = {
 	"verify-private": {
@@ -222,11 +261,25 @@ function dataFor(branch: CounselIntent | null) {
 	return branch ? branchData[branch] : null;
 }
 
+function withFixtureSpatialFocus(
+	beats: readonly Omit<ChronicleBeatProjection, "spatialFocus">[],
+): readonly ChronicleBeatProjection[] {
+	return beats.map((beat) => ({
+		...beat,
+		spatialFocus: {
+			placeId: "market",
+			participantIds: ["citizen:mara", "citizen:toma"],
+			targetIds: beat.id === "beat:result" ? ["granary"] : ["market:tally"],
+			sourceEventIds: beat.evidence.map((item) => item.eventId),
+		},
+	}));
+}
+
 function chronicleFor(
 	branch: CounselIntent,
 ): readonly ChronicleBeatProjection[] {
 	if (branch === "verify-private") {
-		return [
+		return withFixtureSpatialFocus([
 			{
 				id: "beat:counsel",
 				timeLabel: "00:00",
@@ -282,10 +335,10 @@ function chronicleFor(
 					},
 				],
 			},
-		];
+		]);
 	}
 	if (branch === "accuse-now") {
-		return [
+		return withFixtureSpatialFocus([
 			{
 				id: "beat:counsel",
 				timeLabel: "00:00",
@@ -348,9 +401,9 @@ function chronicleFor(
 					},
 				],
 			},
-		];
+		]);
 	}
-	return [
+	return withFixtureSpatialFocus([
 		{
 			id: "beat:counsel",
 			timeLabel: "00:00",
@@ -399,7 +452,7 @@ function chronicleFor(
 				},
 			],
 		},
-	];
+	]);
 }
 
 function parseCheckpoint(storage: Storage | null): SavedCheckpoint | null {
@@ -439,8 +492,7 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 						? "preparing the verified count for the square"
 						: "recounting the sealed reserve with Iven",
 					activityKind: "investigate" as const,
-					x: 67,
-					y: 48,
+					canonicalActionKind: "inspect" as const,
 				};
 			if (branch === "accuse-now")
 				return {
@@ -449,15 +501,15 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 						? "watching the audit notice go up"
 						: "speaking before the market council",
 					activityKind: "council" as const,
-					x: 57,
-					y: 43,
+					canonicalActionKind: returned
+						? ("react" as const)
+						: ("talk" as const),
 				};
 			return {
 				...citizen,
 				activity: "continuing her tally round",
 				activityKind: "investigate" as const,
-				x: 47,
-				y: 52,
+				canonicalActionKind: "inspect" as const,
 			};
 		}
 		if (citizen.id === "citizen:toma" && branch === "accuse-now")
@@ -467,8 +519,7 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 					? "working apart from Mara at the reserve"
 					: "answering the council audit",
 				activityKind: "council" as const,
-				x: 76,
-				y: 55,
+				canonicalActionKind: returned ? ("carry" as const) : ("talk" as const),
 			};
 		return citizen;
 	});
@@ -496,6 +547,48 @@ export function makeProjection(
 			: relationshipBand === "repairing"
 				? "Mara and Toma have begun a careful repair"
 				: "Mara trusts Toma";
+	const citizens = citizensFor(branch, returned).map((citizen) => ({
+		id: citizen.id,
+		slug: citizen.slug,
+		name: citizen.name,
+		role: citizen.role,
+		activity: citizen.activity,
+		activityKind: citizen.activityKind,
+		placeId: citizen.placeId,
+		place: citizen.place,
+		carriedProp:
+			citizen.canonicalActionKind === "carry" ? ("trade" as const) : null,
+		canonicalAction: staticCanonicalAction({
+			id: citizen.id,
+			kind: citizen.canonicalActionKind,
+			phase,
+			placeId: citizen.placeId,
+			simulationTime: returned ? 110_400 : 82_800,
+		}),
+		...(citizen.id === "citizen:mara" ? { focal: true as const } : {}),
+	}));
+	const spatial = projectSpatialScene({
+		source: {
+			runId: "run_riverhold_static_adapter",
+			regionId: "riverhold",
+			revision: branch === null ? 0 : 1,
+			throughSequence: 0,
+			stateHash: branch === null ? "0".repeat(64) : "1".repeat(64),
+		},
+		citizens: citizens.map((citizen) => ({
+			citizenId: citizen.id,
+			slug: citizen.slug,
+			name: citizen.name,
+			role: citizen.role,
+			placeId: citizen.placeId,
+			activity: citizen.activity,
+			activityKind: citizen.activityKind,
+			focal: citizen.focal === true,
+			carriedProp: citizen.carriedProp,
+			canonicalAction: citizen.canonicalAction,
+		})),
+		presentationTick: 0,
+	});
 	return Object.freeze({
 		schemaVersion: "riverhold-view-v1",
 		phase,
@@ -517,12 +610,14 @@ export function makeProjection(
 					: branch === "abstain"
 						? "Mara protected the relationship, and carried the uncertainty forward."
 						: "Twelve food units appear in the public ledger but not in the open bins.",
-		citizens: Object.freeze(citizensFor(branch, returned)),
+		citizens: Object.freeze(citizens),
+		spatial,
 		resources: Object.freeze({
 			food: 28,
 			water: 30,
 			wood: 6,
 		}),
+		worldProcesses: Object.freeze({ millRepaired: false }),
 		worldNotices: Object.freeze(
 			branch === "accuse-now"
 				? ["Council audit open", "Repair reserve held", relationship]
@@ -541,9 +636,7 @@ export function makeProjection(
 							],
 		),
 		mara: Object.freeze({
-			activity:
-				citizensFor(branch, returned)[0]?.activity ??
-				"checking the market tally",
+			activity: citizens[0]?.activity ?? "checking the market tally",
 			values: Object.freeze([
 				"Tell the truth carefully",
 				"Protect earned trust",
@@ -609,6 +702,7 @@ function createStaticRuntimeBridge(
 	return {
 		getProjection: () => projection,
 		ready: async () => projection,
+		subscribe: () => () => {},
 		async dispatch(intent: RiverholdIntent) {
 			switch (intent.kind) {
 				case "follow-mara":
@@ -667,10 +761,17 @@ function createStaticRuntimeBridge(
 
 interface WorkerResponse {
 	readonly id: number;
+	readonly kind?: "watched-cadence";
 	readonly ok: boolean;
 	readonly projection?: RiverholdProjection;
+	readonly worldHead?: WorldHeadSummary;
 	readonly code?: string | null;
 	readonly error?: string;
+}
+
+export interface RuntimeDiagnosticsPort {
+	record(input: DiagnosticInput): void;
+	setWorldHead(summary: WorldHeadSummary): void;
 }
 
 export class RiverholdRuntimeError extends Error {
@@ -687,6 +788,7 @@ export function createRiverholdRuntimeBridge(
 	storage: Storage | null = typeof window === "undefined"
 		? null
 		: window.localStorage,
+	diagnostics?: RuntimeDiagnosticsPort,
 ): RiverholdRuntimeBridge {
 	if (typeof Worker === "undefined") {
 		if (typeof window !== "undefined")
@@ -701,17 +803,67 @@ export function createRiverholdRuntimeBridge(
 		type: "module",
 		name: "eonfolk-riverhold-authority",
 	});
+	diagnostics?.record({
+		category: "worker",
+		name: "authority-worker-created",
+		severity: "info",
+		outcome: "started",
+		scope: { component: "runtime-bridge" },
+		fields: { operation: "create" },
+	});
 	let nextRequestId = 1;
+	const subscribers = new Set<(value: RiverholdProjection) => void>();
+	const cadenceFailureSubscribers = new Set<(error: Error) => void>();
 	const pending = new Map<
 		number,
 		{
 			resolve: (value: RiverholdProjection) => void;
 			reject: (reason: Error) => void;
+			operation: "initialize" | RiverholdIntent["kind"];
+			intentKind: RiverholdIntent["kind"] | null;
 		}
 	>();
 	worker.addEventListener(
 		"message",
 		(message: MessageEvent<WorkerResponse>) => {
+			if (message.data.id === 0 && message.data.kind === "watched-cadence") {
+				if (message.data.ok && message.data.projection !== undefined) {
+					projection = message.data.projection;
+					if (message.data.worldHead !== undefined)
+						diagnostics?.setWorldHead(message.data.worldHead);
+					diagnostics?.record({
+						category: "worker",
+						name: "watched-cadence-committed",
+						severity: "info",
+						outcome: "observed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							operation: "watched-cadence",
+							revision: message.data.worldHead?.revision ?? 0,
+							sequence: message.data.worldHead?.sequence ?? 0,
+						},
+					});
+					for (const subscriber of subscribers) subscriber(projection);
+				} else {
+					const error = new RiverholdRuntimeError(
+						message.data.error ?? "watched-world cadence failed",
+						typeof message.data.code === "string" ? message.data.code : null,
+					);
+					diagnostics?.record({
+						category: "worker",
+						name: "watched-cadence-failed",
+						severity: "critical",
+						outcome: "failed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							code: error.code ?? "WATCHED_CADENCE_FAILED",
+							operation: "watched-cadence",
+						},
+					});
+					for (const subscriber of cadenceFailureSubscribers) subscriber(error);
+				}
+				return;
+			}
 			const request = pending.get(message.data.id);
 			if (request === undefined) return;
 			pending.delete(message.data.id);
@@ -719,14 +871,94 @@ export function createRiverholdRuntimeBridge(
 				const detail = message.data.error ?? "worker request failed";
 				const code =
 					typeof message.data.code === "string" ? message.data.code : null;
+				diagnostics?.record({
+					category: "worker",
+					name: "authority-request-failed",
+					severity: "error",
+					outcome: "failed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						code: code ?? "WORKER_REQUEST_FAILED",
+						operation: request.operation,
+					},
+				});
 				request.reject(new RiverholdRuntimeError(detail, code));
 				return;
 			}
 			projection = message.data.projection;
+			const worldHead = message.data.worldHead;
+			if (worldHead !== undefined) diagnostics?.setWorldHead(worldHead);
+			diagnostics?.record({
+				category: "worker",
+				name: "authority-response-observed",
+				severity: "info",
+				outcome: "observed",
+				scope: {
+					component: "runtime-bridge",
+					...(worldHead === undefined
+						? {}
+						: { runId: worldHead.runId, regionId: worldHead.regionId }),
+				},
+				fields: {
+					operation: request.operation,
+					revision: worldHead?.revision ?? 0,
+					sequence: worldHead?.sequence ?? 0,
+				},
+			});
+			diagnostics?.record({
+				category: "ui",
+				name: "authoritative-projection-observed",
+				severity: "info",
+				outcome: "observed",
+				scope: { component: "runtime-bridge" },
+				fields: {
+					operation: request.operation,
+					phase: projection.phase,
+				},
+			});
+			if (
+				request.intentKind === "offer-counsel" &&
+				projection.interpretation !== null
+			) {
+				diagnostics?.record({
+					category: "cognition",
+					name: "counsel-decision-projection-observed",
+					severity: "info",
+					outcome: "observed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						operation: "counsel-decision-boundary",
+						phase: projection.phase,
+						status: projection.interpretation.disposition,
+					},
+				});
+			}
+			if (projection.chronicle.length > 0) {
+				diagnostics?.record({
+					category: "chronicle",
+					name: "chronicle-projection-observed",
+					severity: "info",
+					outcome: "observed",
+					scope: { component: "runtime-bridge" },
+					fields: {
+						eventCount: projection.chronicle.length,
+						operation: "projection-read",
+						phase: projection.phase,
+					},
+				});
+			}
 			request.resolve(projection);
 		},
 	);
 	worker.addEventListener("error", (event) => {
+		diagnostics?.record({
+			category: "worker",
+			name: "authority-worker-crashed",
+			severity: "critical",
+			outcome: "failed",
+			scope: { component: "runtime-bridge" },
+			fields: { code: "WORKER_CRASH", operation: "worker-event" },
+		});
 		for (const request of pending.values())
 			request.reject(
 				new RiverholdRuntimeError(
@@ -746,7 +978,27 @@ export function createRiverholdRuntimeBridge(
 	): Promise<RiverholdProjection> => {
 		const id = nextRequestId++;
 		return new Promise((resolve, reject) => {
-			pending.set(id, { resolve, reject });
+			diagnostics?.record({
+				category: "command",
+				name:
+					message.kind === "initialize"
+						? "initialize-request"
+						: "dispatch-request",
+				severity: "info",
+				outcome: "started",
+				scope: { component: "runtime-bridge" },
+				fields: {
+					operation:
+						message.kind === "initialize" ? "initialize" : message.intent.kind,
+				},
+			});
+			pending.set(id, {
+				resolve,
+				reject,
+				operation:
+					message.kind === "initialize" ? "initialize" : message.intent.kind,
+				intentKind: message.kind === "initialize" ? null : message.intent.kind,
+			});
 			let testCrashAfterTransition: 1 | 2 | undefined;
 			if (
 				__EONFOLK_E2E_CRASH_HOOKS__ &&
@@ -781,35 +1033,71 @@ export function createRiverholdRuntimeBridge(
 			return projection;
 		},
 		ready: async () => ready,
+		subscribe(listener, onFailure) {
+			subscribers.add(listener);
+			if (onFailure !== undefined) cadenceFailureSubscribers.add(onFailure);
+			return () => {
+				subscribers.delete(listener);
+				if (onFailure !== undefined)
+					cadenceFailureSubscribers.delete(onFailure);
+			};
+		},
 		async dispatch(intent) {
 			await ready;
 			const next = await request({ kind: "dispatch", intent });
+			let checkpoint: SavedCheckpoint | null = null;
 			if (intent.kind === "leave-checkpoint" && next.branch !== null) {
-				storage?.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						schemaVersion: "riverhold-checkpoint-v1",
-						branch: next.branch,
-						phase: "return-pending",
-					} satisfies SavedCheckpoint),
-				);
+				checkpoint = {
+					schemaVersion: "riverhold-checkpoint-v1",
+					branch: next.branch,
+					phase: "return-pending",
+				};
 			} else if (
 				(intent.kind === "confirm-advance" ||
 					intent.kind === "take-second-action") &&
 				next.branch !== null
 			) {
-				storage?.setItem(
-					STORAGE_KEY,
-					JSON.stringify({
-						schemaVersion: "riverhold-checkpoint-v1",
-						branch: next.branch,
-						phase: intent.kind === "confirm-advance" ? "return" : "chronicle",
-					} satisfies SavedCheckpoint),
-				);
+				checkpoint = {
+					schemaVersion: "riverhold-checkpoint-v1",
+					branch: next.branch,
+					phase: intent.kind === "confirm-advance" ? "return" : "chronicle",
+				};
+			}
+			if (checkpoint !== null && storage !== null) {
+				try {
+					storage.setItem(STORAGE_KEY, JSON.stringify(checkpoint));
+					diagnostics?.record({
+						category: "persistence",
+						name: "local-checkpoint-write-observed",
+						severity: "info",
+						outcome: "observed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							operation: "local-checkpoint-write",
+							phase: checkpoint.phase ?? "return-pending",
+						},
+					});
+				} catch (error) {
+					diagnostics?.record({
+						category: "persistence",
+						name: "local-checkpoint-write-failed",
+						severity: "error",
+						outcome: "failed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							code: "CHECKPOINT_WRITE_FAILED",
+							operation: "local-checkpoint-write",
+							phase: checkpoint.phase ?? "return-pending",
+						},
+					});
+					throw error;
+				}
 			}
 			return next;
 		},
 		clear() {
+			subscribers.clear();
+			cadenceFailureSubscribers.clear();
 			worker.terminate();
 		},
 	};

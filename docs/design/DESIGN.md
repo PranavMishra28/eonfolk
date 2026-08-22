@@ -1,8 +1,8 @@
 # Design system
 
-**Purpose:** Define the player-facing visual hierarchy and Living Woodcut grammar that the first implementation must exhibit.
+**Purpose:** Define the player-facing hierarchy and embodied Living Woodcut grammar that Founder Alpha must exhibit.
 
-**Status:** ACCEPTED FOR `001-foundation` — subject to measured browser and fresh-observer gates.
+**Status:** IMPLEMENTED CANDIDATE — exact frozen-candidate review and human observer evidence pending.
 
 **Authority boundary:** This document owns visual hierarchy, palette roles, typography behavior, and world/Chronicle continuity. [Art directions](ART_DIRECTIONS.md) owns selection and asset production; [interaction](INTERACTION.md) owns controls and information behavior.
 
@@ -10,9 +10,11 @@
 
 ## Owned decision
 
-EONFOLK should look like a living print making and revising its own historical record. The world remains the primary surface; UI is a temporary interpretive lens. Selection, intervention, causality, and return-from-absence all use the same carved marks, paper ground, citizen portraits, and limited inks.
+EONFOLK should feel like an embodied low-poly settlement whose record is cut into a living print. The world remains the primary surface; UI is a temporary interpretive lens. Physical activity, selection, intervention, causality, and return-from-absence share one restrained earth/ink/river palette and one factual Chronicle grammar.
 
 The visual goal is not “old book.” It is **legible life becoming evidence**.
+
+The higher-priority World-as-Product correction (`21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863`) rejects the current small-board/fixed-camera/permanent-rail composition. After onboarding, the continuous world must carry roughly 80–90% or more of perceptual emphasis; contextual decisions, selections, lenses, and Chronicle detail overlay it rather than shrinking it.
 
 ## Information hierarchy
 
@@ -67,7 +69,9 @@ Names, dates, causal types, acceptance/refusal, costs, uncertainty, and actions 
 
 ### First five seconds
 
-Show a useful semantic/static Riverhold shell immediately, then bridge, well, eight citizens, and three readable actions as Pixi loads. Mara is the single authored focal person. The only opening action is **Follow Mara** with **She acts for herself**; there is no candidate, creation, or roster suggestion.
+Show a useful fact-safe shell immediately, then lazy-load the PlayCanvas/WebGL2 settlement. Within ten seconds an unfamiliar observer must recognize a settlement, several full-limbed people, multiple activities, and an interaction/process without opening a dashboard. Mara is the single authored focal person. The only opening action is **Follow Mara** with **She acts for herself**; there is no candidate, creation, or roster suggestion.
+
+The implementation opens at the primary town/activity scale rather than the distant region scale, with every optional lens closed. Market stalls, carried props, a Reality-owned exchange pair, three travellers, repair/inspect work, and the one event callout establish activity without a feed. Settlement Overview moves outward; Follow Mara moves inward. The authored river, fields, roads, homes, market, mill, well, forest edge, unused land, and boundary hills prevent an accidental exposed board edge.
 
 ### Selection
 
@@ -127,7 +131,7 @@ Icons are supplemental. Every unfamiliar icon has a visible label until the play
 ## Rejected alternatives
 
 - **Persistent command dashboard:** Rejected because the product asks for rare, consequential intervention, not continuous optimization.
-- **Cinematic 3D camera:** Rejected for the first slice because it complicates composition, mobile controls, assets, performance, and evidence replay.
+- **Unbounded cinematic camera:** Rejected for the first slice. A bounded player-controlled multiscale camera is required: pan/drag, wheel/pinch zoom, bounded orbit, select/focus, Follow Mara, and return to overview, with region/town/citizen semantic detail rather than one scaled shot.
 - **Full-screen character sheet on selection:** Rejected because it erases the autonomous world the player is meant to observe.
 - **Logs as Chronicle:** Rejected because sequence alone cannot communicate consequence, causality, uncertainty, or changed relationships.
 - **Decorative authenticity over legibility:** Rejected; paper/ink texture must recede anywhere the player reads or acts.
@@ -145,24 +149,24 @@ Reopen the applied grammar if:
 
 ## Unproven assumptions
 
-- A deliberately sparse print can feel alive with limited motion.
+- Procedural low-poly bodies and props can feel intentionally alive rather than like an engine prototype.
 - One larger portrait plus world pose creates enough emotional attachment.
 - Players understand carved causal marks after one plain-language example.
 - The selected palette remains distinguishable under common color-vision deficiencies and low-quality displays.
 
 ## Resulting implementation behavior
 
-- Run the four-hour visual feasibility checkpoint before full simulation/persistence integration; five silent observers use the same manifest and a declared three-of-five legibility threshold.
+- Run the independent World Presence review on the exact candidate; the reviewer must answer YES that Riverhold visibly feels inhabited and alive.
 - Build one world-dominant layout before secondary surfaces.
 - Author all factual text in semantic DOM and keep the canvas reproducible from state.
 - Treat focus, reduced motion, contrast, zoom, and canvas loss as first-class states.
 - Capture browser evidence at 1728 × 1117, 1366 × 768, and 390 × 844 for arrival, selection, crisis, return, and Chronicle.
-- If the style misses a budget, remove line density, effects, atlas resolution, and motion before weakening performance or access gates.
+- If the style misses a budget, reduce pixel ratio, shadows, cosmetic motion, geometry, and distant detail before weakening performance or access gates.
 
 ## Constraint fit
 
-- **Solo / 40–60 hours:** One grammar serves world, UI, Chronicle, and share output; the system forbids parallel 3D, dashboard, and cinematic treatments.
-- **M4 Pro / no GPU:** The 2.5D scene and DOM surfaces are locally authorable and testable.
+- **Solo / 40–60 hours:** One renderer and procedural kit serve world and action proof; the system forbids a parallel renderer, dashboard, character creator, and cinematic treatment.
+- **M4 Pro / no GPU:** The PlayCanvas scene and DOM surfaces are locally authorable and testable.
 - **Approximately $0:** No paid font, marketplace UI, asset subscription, or hosted image generation is required.
 - **Free V1 / no commercial scope:** The hierarchy serves observation and consequence, with no store, pricing, currency-purchase, or account pressure.
 - **No training:** All visible state is authored or deterministically composed from simulation evidence.

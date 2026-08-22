@@ -111,7 +111,7 @@ packages/cognition/        Mind, Standing Plans, Standard Brain, decision record
 packages/persistence/      PersistencePort, run manifest, separate world/decision stores
 tests/fixtures/riverhold/  snapshot, branches, perturbations, expected hashes
 tests/e2e/                 critical journey and deterministic evidence fixtures
-docs/exec-plans/active/001-foundation.md  living progress/evidence log
+docs/exec-plans/completed/001-foundation.md  living progress/evidence log
 ```
 
 `protocol`/`sim` import no React/browser/Pixi/provider SDK and use no `Date.now()`, `Math.random()`, conserved floats, wall/frame/pointer state, or locale order.

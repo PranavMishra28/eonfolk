@@ -16,7 +16,7 @@
 | 2 | Q-002 | Rejectable/delayed counsel feels consequential rather than arbitrary | Show forecasts before counsel; test later interpretation and counterfactual understanding |
 | 3 | Q-003 | A deterministic Standard Brain can appear intentional for eight citizens | Blinded action/justification review after mechanics and visibility pass |
 | 4 | Q-004 | Factual Chronicle can be both trustworthy and emotionally compelling | Sentence trace plus five-second stranger comprehension and next-risk test |
-| 5 | Q-005 | Sparse Living Woodcut is readable, warm and within budgets | One authored PixiJS scene, three viewports, physical-device proxy and five silent observers |
+| 5 | Q-005 | Embodied Living Woodcut feels inhabited, readable, and within budgets | Exact PlayCanvas candidate, three viewports, temporal probes, physical-device proxy, and fresh silent observers |
 
 ## Experiment register
 
@@ -52,13 +52,13 @@
 - **Evidence required:** No unsupported sentence; 3/5 understand within five seconds and do not assign the player direct causal credit; player-loop evidence, not card polish, creates next action.
 - **Decision reopened:** D-004 and D-009; change mechanics before adding prose if the causal chain is trivial.
 
-### Q-005 — Is Living Woodcut feasible and legible?
+### Q-005 — Does Riverhold feel like inhabited place rather than simulation visualization?
 
-- **Why it matters:** The direction wins on distinctiveness and Chronicle integration but risks small-character readability, coldness and authoring cost.
-- **Current default:** Sparse PixiJS 2.5D, one atlas, eight silhouettes/portraits, limited poses and semantic DOM.
-- **Fastest falsification:** In the first four implementation hours, build semantic/Pixi projection; measure three viewports, eight citizens and 12-citizen stress; five silent observers.
-- **Evidence required:** 3/5 name three activities/interaction; 4/5 find Follow Mara/understand autonomy; budgets and mobile containment pass after at most one simplification.
-- **Decision reopened:** D-008; switch to stripped Weathered Atlas if it fails.
+- **Why it matters:** The former sparse/static renderer was technically correct but failed the product's physical-presence requirement.
+- **Current default:** One continuous metre-scale PlayCanvas/WebGL2 region context, eight full-limbed citizens, Reality-owned travel/tasks/slots, authored routes and affordances, region/town/follow camera bands, LOD0–LOD3 representation, selection-first contextual UI, Chronicle spatial focus, and a complete semantic DOM.
+- **Fastest falsification:** Put the exact clean desktop/laptop/mobile candidate before fresh observers with branding, lenses, captions, and raw feed initially hidden. Ask the ten-second place/activity questions, the thirty-second task/consequence narration, then the exact binding question.
+- **Evidence required:** 3/5 name three activities and the visible interaction/process; 4/5 find and follow Mara and understand autonomy; direct selection/camera/Chronicle focus work without a list; payload/frame/mobile/accessibility/temporal truth gates pass; the independent release reviewer answers **YES** to “Does this feel like watching real inhabitants of a place, rather than looking at a visualization of a simulation?”
+- **Decision reopened:** D-008; first repair truth, scale, choreography, camera, and composition. If one bounded correction still fails, cut product breadth or reopen renderer/scope before adding population, generalized navigation, or asset volume.
 
 ### Q-006 — Does succession feel like continuity rather than reset?
 
@@ -107,3 +107,35 @@
 - **Fastest falsification:** After both product gates and a separately reviewed export design, give one frozen authorized dataset plus schema to independent systems/research reviewers and ask them to reconstruct sampled decision/event chains and specify a repeated-run study without privileged hidden data.
 - **Evidence required:** Every sampled chain closes; privacy projections remain enforceable; the proposed study uses independent manifests/outcome distributions and does not claim human prediction. Failure removes/revises Observatory before adding infrastructure.
 - **Decision reopened:** D-001 and D-007; never weaken World/Chronicle factuality or expand Gate A/B to rescue research positioning.
+
+### Q-012 — Are diagnostics useful enough at their privacy and performance cost?
+
+- **Why it matters:** Founder Alpha needs actionable failure evidence, but recording can create a surveillance surface or harm frame/loading budgets.
+- **Current default:** First-party typed OFF/LOCAL/ALPHA recorder, Sentinel, native performance summaries, screenshots supplied only through explicit feedback, and disabled replay capture.
+- **Fastest falsification:** Inject one fault at each command/Worker/persistence/cognition/Chronicle boundary, reproduce from only the safe incident bundle, then run repeated OFF/LOCAL/ALPHA browser profiles and adversarial secret/private-state fixtures.
+- **Evidence required:** Every injected fault has a stable bounded reproduction ID and actionable trace; no prohibited bytes survive; no diagnostic dependency writes Reality; measured overhead stays within the Alpha budgets.
+- **Decision reopened:** D-011; remove event kinds or the recorder entirely before adding replay capture if cost exceeds diagnosis value.
+
+### Q-013 — Can the optional relay accept reports without duplicate delivery or hidden cost?
+
+- **Why it matters:** A feedback convenience must not become an abuse, credential, quota, privacy, or operations burden.
+- **Current default:** Local queue is complete; deploy-ready Worker/D1/Turnstile/private-GitHub-App seam is disabled and R2 is off.
+- **Fastest falsification:** Fake-adapter fault matrix for lost create/comment responses, duplicate retries, expired leases/tokens, marker reconciliation, 403/410/422/429/5xx, origin/schema violations, and daily/monthly cap exhaustion.
+- **Evidence required:** Accepted reports reconcile without uncontrolled duplicate issues/comments; rejected/outage states remain local and playable; secrets and bodies never enter logs; real quota/cost/CPU evidence is mandatory before deployment.
+- **Decision reopened:** D-012; keep feedback local-only if the relay cannot meet these conditions.
+
+### Q-014 — Does bounded planning improve behavior enough to keep?
+
+- **Why it matters:** A Planner can add maintenance and latency while making behavior less understandable.
+- **Current default:** Standard Brain only unless the frozen 64-context benchmark clears all hard gates and three named improvement cases.
+- **Fastest falsification:** Five deterministic repeats of the fixed corpus with exact proposal/outcome hashes, runtime distribution, hidden-fact mutations, malformed/absence fallback, and blinded coherence/diversity comparison.
+- **Evidence required:** No correctness/replay/hidden-fact regression, bounded runtime, stable output, and at least the predeclared improvement floor. Otherwise the Planner is rejected, not tuned indefinitely.
+- **Decision reopened:** D-013; retain Standard Brain and remove unused planner code.
+
+### Q-015 — Does standards-shaped provenance help a real reader?
+
+- **Why it matters:** JSON-LD/PROV-O can be valid yet provide no product or research value.
+- **Current default:** One read-only, versioned, authorized projection with a closed local validator and no graph service.
+- **Fastest falsification:** Ask an independent systems/research reader to reconstruct sampled authorized decision/event chains from the projection and compare it with the simpler native JSON evidence.
+- **Evidence required:** The standards-shaped projection improves or preserves reconstruction without leaking hidden facts or changing canonical bytes; otherwise keep only the native evidence form.
+- **Decision reopened:** D-014; remove or narrow the projection rather than add a graph stack.

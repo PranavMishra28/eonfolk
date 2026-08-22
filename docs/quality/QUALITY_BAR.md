@@ -6,7 +6,7 @@
 
 **Authority boundary:** owns cross-discipline pass/fail. [TESTING](TESTING.md), [EVALS](EVALS.md), [VISUAL_QA](VISUAL_QA.md), and [PERFORMANCE](PERFORMANCE.md) own detailed procedures.
 
-**Related documents:** [product](../product/PRODUCT.md), [ExecPlan](../exec-plans/active/001-foundation.md), [reviews](../reviews/PRODUCT_RED_TEAM.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md)
+**Related documents:** [product](../product/PRODUCT.md), [ExecPlan](../exec-plans/completed/001-foundation.md), [reviews](../reviews/PRODUCT_RED_TEAM.md), [player perspectives](../reviews/PLAYER_PERSPECTIVES.md)
 
 ## Owned decision
 
@@ -48,6 +48,7 @@ This permits only “bounded agency/attachment proof passed.” Delayed voluntar
 
 ## Blocking technical bar
 
+- World Presence passes before release: in ten seconds a fresh reviewer identifies a settlement, recognizable people, visible tasks, one interaction, and one production/social process; by 30 seconds they can describe several citizen activities without reading a raw event feed and answer **YES** to “Does Riverhold visibly feel inhabited and alive?” The PlayCanvas world dominates the viewport, all movement is continuous on valid authored paths, all displayed consequential actions link to canonical semantics, and the fully playable semantic DOM remains equivalent.
 - Byte-level determinism profile, golden hashes/PRNG/rounding/Unicode, repeated run, replay, snapshot range, and three divergent counsel terminal vectors pass.
 - Durable-before-visible commit, accepted/rejected receipts, ID collision, crash barriers, atomicity, quota abort, stale fencing, corrupt snapshot, and dual-tab transfer pass.
 - No backup/export/import/replacement route exists; same/unknown schema policy tests pass; the local-only/no-backup limitation appears before counsel.

@@ -3,16 +3,29 @@ import type { RiverholdProjection } from "../projection";
 export function SemanticWorld({
 	projection,
 	onCitizen,
+	compact = false,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly onCitizen: (citizenId: string) => void;
+	readonly compact?: boolean;
 }) {
 	return (
-		<section className="semantic-world" aria-labelledby="semantic-world-title">
+		<section
+			className={`semantic-world${compact ? " semantic-world--compact" : ""}`}
+			aria-labelledby={
+				compact ? "semantic-world-title-compact" : "semantic-world-title"
+			}
+		>
 			<div className="semantic-heading">
 				<div>
-					<p className="eyebrow">SEMANTIC WORLD</p>
-					<h2 id="semantic-world-title">Riverhold, in words</h2>
+					<p className="eyebrow">WORLD IN WORDS</p>
+					<h2
+						id={
+							compact ? "semantic-world-title-compact" : "semantic-world-title"
+						}
+					>
+						Riverhold, in words
+					</h2>
 				</div>
 				<p>
 					All facts and actions shown in the illustrated world are available
@@ -28,8 +41,19 @@ export function SemanticWorld({
 					</dd>
 				</div>
 				<div>
-					<dt>Named interaction or change</dt>
-					<dd>{projection.worldNotices[0]}</dd>
+					<dt>Visible interaction or world process</dt>
+					<dd>
+						{projection.spatial.interactions[0]?.semanticLabel ??
+							projection.worldNotices[0]}
+					</dd>
+				</div>
+				<div>
+					<dt>River Mill</dt>
+					<dd>
+						{projection.worldProcesses.millRepaired
+							? "The authoritative mill state is repaired."
+							: "The authoritative mill state still needs repair."}
+					</dd>
 				</div>
 			</dl>
 			<ul
@@ -49,6 +73,12 @@ export function SemanticWorld({
 								<span>
 									{citizen.activity} · {citizen.place}
 								</span>
+								<small>
+									Visible action: {citizen.canonicalAction.kind} ·{" "}
+									{citizen.canonicalAction.status === "committed"
+										? `canonical event ${citizen.canonicalAction.eventSequence}`
+										: "in progress; no result claimed"}
+								</small>
 							</span>
 						</button>
 					</li>

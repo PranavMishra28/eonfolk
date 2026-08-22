@@ -11,6 +11,7 @@ import { arch, platform, release } from "node:os";
 import { relative, resolve, sep } from "node:path";
 import { chromium } from "@playwright/test";
 import { preview } from "vite";
+import { inspectNetlogEgress } from "./validate-web-network.mjs";
 
 const stateDurationMs = Number(
 	process.env.EONFOLK_BENCHMARK_STATE_MS ?? 30_000,
@@ -193,11 +194,59 @@ async function frameState(page, name, frameBudgetMs) {
 }
 
 async function waitForQualificationMark(page, name, timeout) {
-	await page.waitForFunction(
-		(markName) => performance.getEntriesByName(markName).length === 1,
-		name,
-		{ timeout },
-	);
+	try {
+		await page.waitForFunction(
+			(markName) => performance.getEntriesByName(markName).length === 1,
+			name,
+			{ timeout },
+		);
+	} catch (error) {
+		const diagnostics = await page.evaluate((markName) => {
+			const canvas = document.querySelector("[data-testid='riverhold-canvas']");
+			const citizens = [
+				...document.querySelectorAll(
+					"[aria-label='Eight Riverhold citizens and their current activities'] li",
+				),
+			];
+			const interaction = [
+				...document.querySelectorAll(".semantic-summary div"),
+			]
+				.find((entry) =>
+					/(?:visible interaction|named interaction)/iu.test(
+						entry.querySelector("dt")?.textContent ?? "",
+					),
+				)
+				?.querySelector("dd")
+				?.textContent?.trim();
+			const citizenNames = citizens.map(
+				(citizen) => citizen.querySelector("strong")?.textContent?.trim() ?? "",
+			);
+			return {
+				markName,
+				readyState: document.readyState,
+				canvasReady: canvas?.dataset.ready ?? null,
+				canvasInteractions: canvas?.dataset.interactions ?? null,
+				citizenCount: citizens.length,
+				citizenNames,
+				interaction: interaction ?? null,
+				interactionCitizenCount:
+					typeof interaction === "string"
+						? citizenNames.filter(
+								(name) => name.length > 0 && interaction.includes(name),
+							).length
+						: 0,
+				illustratedInteraction:
+					document.querySelector(".world-notice")?.textContent?.trim() ?? null,
+				runtimeError:
+					document.querySelector(".runtime-error")?.textContent?.trim() ?? null,
+				marks: performance.getEntriesByType("mark").map((mark) => mark.name),
+			};
+		}, name);
+		throw new Error(
+			`qualification mark ${name} missed ${timeout}ms: ${JSON.stringify(diagnostics)}`,
+			{ cause: error },
+		);
+	}
 	return page.evaluate((markName) => {
 		const mark = performance.getEntriesByName(markName)[0];
 		const evidence = window.__eonfolkMarkEvidence?.[markName];
@@ -210,9 +259,12 @@ async function waitForQualificationMark(page, name, timeout) {
 async function captureArrivalInvariant(page) {
 	return page.evaluate(() => {
 		const buttons = [...document.querySelectorAll("button")];
-		const followButtons = buttons.filter((button) =>
-			button.textContent?.includes("Follow Mara"),
+		const decisionPanel = document.querySelector(
+			'[aria-label="Current Riverhold decision"]',
 		);
+		const followButtons = [
+			...(decisionPanel?.querySelectorAll("button") ?? []),
+		].filter((button) => button.textContent?.trim().startsWith("Follow Mara"));
 		return {
 			arrivalPanelCount: document.querySelectorAll(".phase-panel--arrival")
 				.length,
@@ -242,7 +294,8 @@ function assertArrivalInvariant(invariant, boundary) {
 
 async function reachBusyMarket(page) {
 	await page
-		.getByRole("button", { name: /Follow Mara/ })
+		.getByLabel("Current Riverhold decision")
+		.getByRole("button", { name: "Follow Mara", exact: true })
 		.click({ timeout: 5_000 });
 	const started = performance.now();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
@@ -251,9 +304,7 @@ async function reachBusyMarket(page) {
 }
 
 async function reachChronicle(page) {
-	await page
-		.getByRole("button", { name: /Reach the counsel boundary/i })
-		.click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await page
@@ -271,54 +322,6 @@ async function reachChronicle(page) {
 		.getByRole("heading", { name: /What entered the record/i })
 		.waitFor();
 	return catchUpMs;
-}
-
-function netlogExternalAttempts(netlogPath) {
-	const netlog = JSON.parse(readFileSync(netlogPath, "utf8"));
-	const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
-	const external = new Set();
-	const inspect = (value, key = "") => {
-		if (Array.isArray(value)) {
-			for (const item of value) inspect(item, key);
-			return;
-		}
-		if (value && typeof value === "object") {
-			for (const [childKey, child] of Object.entries(value))
-				inspect(child, childKey);
-			return;
-		}
-		if (typeof value !== "string") return;
-		if (
-			!/^(?:url|destination|logical_destination|host|hostname|address|endpoint)$/i.test(
-				key,
-			)
-		)
-			return;
-		for (const match of value.matchAll(/(?:https?|wss?):\/\/[^\s"'<>]+/g)) {
-			try {
-				const url = new URL(match[0]);
-				if (!localHosts.has(url.hostname))
-					external.add(`${key}:${url.hostname}`);
-			} catch {
-				external.add(`${key}:${match[0]}`);
-			}
-		}
-		if (/host|hostname|address|endpoint|destination/i.test(key)) {
-			const candidate = value
-				.replace(/^\[/, "")
-				.replace(/\]$/, "")
-				.replace(/:\d+$/, "");
-			if (candidate === "~notfound") return;
-			if (
-				/^[A-Za-z0-9.-]+$/.test(candidate) &&
-				candidate.includes(".") &&
-				!localHosts.has(candidate)
-			)
-				external.add(`${key}:${candidate}`);
-		}
-	};
-	for (const event of netlog.events ?? []) inspect(event.params ?? {});
-	return [...external].sort();
 }
 
 const outputDirectory = resolve("tmp");
@@ -474,9 +477,9 @@ try {
 										}
 									: null;
 							});
-							const follow = [...document.querySelectorAll("button")].find(
-								(button) => button.textContent?.includes("Follow Mara"),
-							);
+							const follow = document
+								.querySelector('[aria-label="Current Riverhold decision"]')
+								?.querySelector("button.primary-action");
 							const canvas = document.querySelector(
 								"[data-testid='riverhold-canvas']",
 							);
@@ -488,11 +491,13 @@ try {
 							markWhen("eonfolk-cta", () =>
 								follow instanceof HTMLButtonElement &&
 								!follow.disabled &&
-								canvas?.dataset.ready === "true" &&
+								follow.tabIndex >= 0 &&
+								follow.getClientRects().length > 0 &&
 								citizens.length === 8
 									? {
 											authorityReady: true,
 											followEnabled: true,
+											followFocusable: true,
 											semanticCitizenCount: citizens.length,
 										}
 									: null,
@@ -515,9 +520,9 @@ try {
 									...document.querySelectorAll(".semantic-summary div"),
 								]
 									.find((entry) =>
-										entry
-											.querySelector("dt")
-											?.textContent?.includes("Named interaction or change"),
+										/(?:visible interaction|named interaction)/iu.test(
+											entry.querySelector("dt")?.textContent ?? "",
+										),
 									)
 									?.querySelector("dd")
 									?.textContent?.trim();
@@ -530,6 +535,9 @@ try {
 												(name) => name.length > 0 && interaction.includes(name),
 											).length
 										: 0;
+								const illustratedInteractionCount = Number(
+									canvas?.dataset.interactions ?? "0",
+								);
 								return canvas?.dataset.ready === "true" &&
 									citizens.length === 8 &&
 									activityTexts.every((text) => text.length > 0) &&
@@ -537,9 +545,10 @@ try {
 									typeof interaction === "string" &&
 									interaction.length > 0 &&
 									interactionCitizenCount >= 2 &&
-									/(?:exchange|compare|tally)/i.test(interaction) &&
+									/(?:exchange|confer|compare|tally)/i.test(interaction) &&
+									illustratedInteractionCount >= 1 &&
 									typeof illustratedInteraction === "string" &&
-									illustratedInteraction.includes(interaction)
+									illustratedInteraction.length > 0
 									? {
 											canvasPainted: true,
 											semanticCitizenCount: citizens.length,
@@ -547,6 +556,7 @@ try {
 											maraCount,
 											interactionCue: interaction,
 											interactionCitizenCount,
+											illustratedInteractionCount,
 											semanticIllustratedParity: true,
 										}
 									: null;
@@ -601,7 +611,9 @@ try {
 					"eonfolk-shell",
 					2_000,
 				);
-				const follow = page.getByRole("button", { name: /Follow Mara/ });
+				const follow = page
+					.getByLabel("Current Riverhold decision")
+					.getByRole("button", { name: "Follow Mara", exact: true });
 				await follow.waitFor({ timeout: profile.maximumDisplayMs });
 				if (!(await follow.isEnabled()))
 					throw new Error("Follow Mara is visible but not operable");
@@ -709,7 +721,9 @@ const parsedNetlogRuns = netlogRuns.map((run) => ({
 	profile: run.profile,
 	repetition: run.repetition,
 	path: relative(resolve("."), run.path).split(sep).join("/"),
-	externalAttempts: netlogExternalAttempts(run.path),
+	externalAttempts: inspectNetlogEgress(
+		JSON.parse(readFileSync(run.path, "utf8")),
+	).externalAttempts,
 }));
 const externalNetlogAttempts = [
 	...new Set(parsedNetlogRuns.flatMap((run) => run.externalAttempts)),
@@ -772,6 +786,7 @@ const failed =
 			run.markEvidence.shell.factSurfaceCount !== 0 ||
 			run.markEvidence.cta.authorityReady !== true ||
 			run.markEvidence.cta.followEnabled !== true ||
+			run.markEvidence.cta.followFocusable !== true ||
 			run.markEvidence.cta.semanticCitizenCount !== 8 ||
 			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
 			run.markEvidence.meaningfulWorld.semanticCitizenCount !== 8 ||

@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns the amendment-review identity and findings trail. [DECISIONS](../decisions/DECISIONS.md) owns dispositions; the [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) owns future orchestration behavior; [FINAL_READINESS](FINAL_READINESS.md) owns the readiness declaration.
 
-**Related documents:** [Goal review trail](GOAL_PROMPT_REVIEW.md), [planning status](../../PLAN.md), [Observatory](../product/OBSERVATORY.md), [first ExecPlan](../exec-plans/active/001-foundation.md)
+**Related documents:** [Goal review trail](GOAL_PROMPT_REVIEW.md), [planning status](../../PLAN.md), [Observatory](../product/OBSERVATORY.md), [first ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Reviewed amendment
 

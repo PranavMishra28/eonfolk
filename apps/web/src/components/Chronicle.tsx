@@ -5,10 +5,12 @@ export function Chronicle({
 	beats,
 	reducedMotion,
 	onEvidence,
+	onShowInWorld,
 }: {
 	readonly beats: readonly ChronicleBeatProjection[];
 	readonly reducedMotion: boolean;
 	readonly onEvidence: (beat: ChronicleBeatProjection) => void;
+	readonly onShowInWorld: (beat: ChronicleBeatProjection) => void;
 }) {
 	const [index, setIndex] = useState(0);
 	const [playing, setPlaying] = useState(false);
@@ -32,12 +34,12 @@ export function Chronicle({
 		<section className="chronicle" aria-labelledby="chronicle-title">
 			<div className="chronicle-heading">
 				<div>
-					<p className="eyebrow">FACTUAL CHRONICLE · THREE BEATS</p>
+					<p className="eyebrow">THE CHRONICLE · THREE MOMENTS</p>
 					<h2 id="chronicle-title">What entered the record</h2>
 				</div>
 				<p className="chronicle-note">
-					Causal language comes from recorded typed relations, never from prose
-					order.
+					The order of the story does not prove what caused what. Open Evidence
+					for the exact recorded links.
 				</p>
 			</div>
 			<div className="replay-stage" aria-live="polite">
@@ -50,14 +52,23 @@ export function Chronicle({
 					</p>
 					<h3>{beat.title}</h3>
 					<p>{beat.body}</p>
-					<button
-						className="text-button"
-						type="button"
-						onClick={() => onEvidence(beat)}
-					>
-						Inspect {beat.evidence.length} evidence{" "}
-						{beat.evidence.length === 1 ? "record" : "records"}
-					</button>
+					<div className="chronicle-actions">
+						<button
+							className="text-button"
+							type="button"
+							onClick={() => onShowInWorld(beat)}
+						>
+							Show in Riverhold
+						</button>
+						<button
+							className="text-button"
+							type="button"
+							onClick={() => onEvidence(beat)}
+						>
+							Inspect {beat.evidence.length} evidence{" "}
+							{beat.evidence.length === 1 ? "record" : "records"}
+						</button>
+					</div>
 				</div>
 			</div>
 			<fieldset className="replay-track" aria-label="Replay beats">

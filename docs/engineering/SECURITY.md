@@ -65,6 +65,10 @@ These are requirements before—not implementation scope for—the hosted gate:
 
 Moderation visibility is independent of canonical factual state. Abusive prose can be hidden, quarantined, or removed from public presentation without altering that an authoritative action occurred. The public projection can show a safe factual template while preserving restricted original text in an access-controlled, retention-bounded store—or discard it if it has no canonical need.
 
+Founder Alpha feedback is local-first. A future relay is accepted only with exact Origin/method/content-type/schema/byte checks, source-redacted preview consent, Turnstile server verification when enabled, hard application quotas, D1 atomic reservation/dedup/lease/status, bounded retry, and one private fixed-repository GitHub App with Metadata read and Issues write. The browser receives no platform credential or arbitrary destination. GitHub issue/comment delivery is reconciled at-least-once with duplicate suppression; exactly-once is not claimed. Persisted Worker logs are disabled and never contain report bodies.
+
+R2 is disabled by default and cannot be activated without explicit cost/security/retention approval. Local queue and world operation remain complete through relay outage, token failure, quota exhaustion, and feedback deletion.
+
 ## Tool and supply-chain boundaries
 
 - Pin packages and actions by lockfile/version; do not use `@latest` in CI.

@@ -1,8 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { DiagnosticIncident } from "@eonfolk/diagnostics";
+import {
+	riverholdSpatialScene,
+	type SemanticScale,
+} from "@eonfolk/world-presentation";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Chronicle } from "./components/Chronicle";
-import { RiverholdWorld } from "./components/RiverholdWorld";
+import { FeedbackPanel } from "./components/FeedbackPanel";
+import type { WorldFocus } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
+import { browserDiagnostics } from "./diagnostics";
 import {
 	type ChronicleBeatProjection,
 	type CounselIntent,
@@ -12,25 +27,29 @@ import {
 } from "./projection";
 import { createRiverholdRuntimeBridge, RiverholdRuntimeError } from "./runtime";
 
+const RiverholdWorld = lazy(async () => {
+	const module = await import("./components/RiverholdWorld");
+	return { default: module.RiverholdWorld };
+});
+
 type Sheet =
 	| { readonly kind: "citizen"; readonly citizenId: string }
+	| { readonly kind: "place"; readonly placeId: string }
 	| { readonly kind: "evidence"; readonly beat: ChronicleBeatProjection }
 	| { readonly kind: "world" }
+	| { readonly kind: "research" }
 	| null;
 
+type WorldLens = "activity" | "resources" | "routes" | "none";
+
 interface RuntimeFailure {
-	readonly code: string | null;
-	readonly message: string;
+	readonly writeAuthorityTransferred: boolean;
 }
 
 function runtimeFailure(error: unknown): RuntimeFailure {
 	if (error instanceof RiverholdRuntimeError)
-		return { code: error.code, message: error.message };
-	return {
-		code: null,
-		message:
-			error instanceof Error ? error.message : "Riverhold runtime failed",
-	};
+		return { writeAuthorityTransferred: error.code === "STALE_FENCE" };
+	return { writeAuthorityTransferred: false };
 }
 
 function InkMark() {
@@ -157,7 +176,7 @@ function WorldHeader({
 				<InkMark />
 				<span>
 					<strong>EONFOLK</strong>
-					<small>RIVERHOLD · LOCAL PROOF</small>
+					<small>RIVERHOLD · FOUNDER ALPHA · LOCAL</small>
 				</span>
 			</a>
 			<div className="world-pulse" role="status" aria-label="World pulse">
@@ -184,6 +203,184 @@ function WorldHeader({
 				</button>
 			</div>
 		</header>
+	);
+}
+
+function WorldControls({
+	projection,
+	focus,
+	semanticScale,
+	lens,
+	onFocus,
+	onSelectCitizen,
+	onLens,
+	onResearch,
+}: {
+	readonly projection: RiverholdProjection;
+	readonly focus: WorldFocus;
+	readonly semanticScale: SemanticScale;
+	readonly lens: WorldLens;
+	readonly onFocus: (focus: WorldFocus) => void;
+	readonly onSelectCitizen: (citizenId: string) => void;
+	readonly onLens: (lens: WorldLens) => void;
+	readonly onResearch: () => void;
+}) {
+	const mara = projection.citizens.find((citizen) => citizen.slug === "mara");
+	const cameraIntent = (kind: string) =>
+		window.dispatchEvent(
+			new CustomEvent("eonfolk:camera-intent", { detail: { kind } }),
+		);
+	return (
+		<section
+			className="world-controls"
+			aria-label="Riverhold camera and lenses"
+		>
+			<div className="camera-controls camera-controls--primary">
+				<button
+					type="button"
+					onClick={() => onFocus({ kind: "overview" })}
+					aria-pressed={focus.kind === "overview"}
+				>
+					Town overview
+				</button>
+				{mara ? (
+					<button
+						type="button"
+						onClick={() =>
+							onFocus({ kind: "citizen", id: mara.id, follow: true })
+						}
+						aria-pressed={
+							focus.kind === "citizen" && focus.id === mara.id && focus.follow
+						}
+					>
+						Follow Mara
+					</button>
+				) : null}
+				<button
+					type="button"
+					aria-label="Zoom closer"
+					onClick={() => cameraIntent("zoom-in")}
+				>
+					＋
+				</button>
+				<button
+					type="button"
+					aria-label="Zoom farther"
+					onClick={() => cameraIntent("zoom-out")}
+				>
+					−
+				</button>
+				<span aria-live="polite">{semanticScale} scale · tap the world</span>
+			</div>
+			<details className="world-tools">
+				<summary>World tools</summary>
+				<div className="camera-controls camera-controls--secondary">
+					<button
+						type="button"
+						aria-label="Pan Riverhold left"
+						onClick={() => cameraIntent("pan-left")}
+					>
+						←
+					</button>
+					<button
+						type="button"
+						aria-label="Pan Riverhold right"
+						onClick={() => cameraIntent("pan-right")}
+					>
+						→
+					</button>
+					<button
+						type="button"
+						aria-label="Pan Riverhold up"
+						onClick={() => cameraIntent("pan-up")}
+					>
+						↑
+					</button>
+					<button
+						type="button"
+						aria-label="Pan Riverhold down"
+						onClick={() => cameraIntent("pan-down")}
+					>
+						↓
+					</button>
+				</div>
+				<section className="lens-controls" aria-label="World lenses">
+					{(["activity", "resources", "routes"] as const).map((value) => (
+						<button
+							key={value}
+							type="button"
+							aria-pressed={lens === value}
+							onClick={() => onLens(lens === value ? "none" : value)}
+						>
+							{value === "activity"
+								? "People"
+								: value === "resources"
+									? "Resources"
+									: "Routes"}
+						</button>
+					))}
+					<button type="button" onClick={onResearch}>
+						Research lens
+					</button>
+				</section>
+			</details>
+			{lens === "activity" ? (
+				<div className="world-lens world-lens--people">
+					<strong>People in motion</strong>
+					<ul>
+						{projection.citizens.map((citizen) => (
+							<li key={citizen.id}>
+								<button
+									type="button"
+									onClick={() => onSelectCitizen(citizen.id)}
+								>
+									<span>{citizen.name}</span>
+									<small>{citizen.activity}</small>
+								</button>
+							</li>
+						))}
+					</ul>
+				</div>
+			) : lens === "resources" ? (
+				<div className="world-lens">
+					<strong>Resources in Riverhold</strong>
+					<p>
+						{projection.resources.food} food · {projection.resources.water}{" "}
+						water · {projection.resources.wood} wood
+					</p>
+					<div className="place-focuses">
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "spring" })}
+						>
+							Low Spring
+						</button>
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "granary" })}
+						>
+							Granary
+						</button>
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "mill" })}
+						>
+							River Mill
+						</button>
+					</div>
+				</div>
+			) : lens === "routes" ? (
+				<div className="world-lens">
+					<strong>Selected route</strong>
+					<p>
+						{focus.kind === "citizen"
+							? (projection.citizens.find((citizen) => citizen.id === focus.id)
+									?.canonicalAction.destinationPlaceId ?? "No destination")
+							: "Select a citizen to inspect their route."}
+					</p>
+				</div>
+			) : null}
+		</section>
 	);
 }
 
@@ -235,7 +432,7 @@ function PhasePanel({
 		);
 	if (phase === "following")
 		return (
-			<div className="phase-panel">
+			<div className="phase-panel phase-panel--following">
 				<MaraDossier projection={projection} />
 				<div className="tension-card">
 					<p className="eyebrow">CURRENT TENSION</p>
@@ -247,7 +444,7 @@ function PhasePanel({
 					</p>
 				</div>
 				<aside className="local-disclosure">
-					<strong>Local proof</strong>
+					<strong>Browser-local Alpha</strong>
 					<span>{projection.localSaveNotice}</span>
 				</aside>
 				<button
@@ -263,7 +460,7 @@ function PhasePanel({
 	if (phase === "investigated")
 		return (
 			<div className="phase-panel">
-				<p className="eyebrow">AUTHORITATIVE INVESTIGATION</p>
+				<p className="eyebrow">MARA CHECKS THE COUNT</p>
 				<h2>Mara checks the public tally</h2>
 				<div className="count-comparison">
 					<div>
@@ -299,19 +496,48 @@ function PhasePanel({
 					disabled={pending}
 					onClick={() => onDispatch({ kind: "open-counsel" })}
 				>
-					Reach the counsel boundary
+					Review Mara's choices
 				</button>
 			</div>
 		);
 	if (phase === "counsel")
 		return (
 			<div className="phase-panel counsel-panel">
-				<p className="eyebrow">ONE BOUNDED COUNSEL OPPORTUNITY</p>
+				<p className="eyebrow">ONE CHANCE TO OFFER ADVICE</p>
 				<h2>What risk should Mara take?</h2>
-				<p className="panel-intro">
-					She knows the count differs. She trusts Toma. The council vote is
-					near. Mara will weigh your counsel against her own values and plan.
-				</p>
+				<section
+					className="counsel-context"
+					aria-labelledby="counsel-context-title"
+				>
+					<h3 className="sr-only" id="counsel-context-title">
+						What Mara knows and cares about
+					</h3>
+					<p>
+						<strong>What she saw:</strong> the public tally says{" "}
+						{projection.investigation.ledgerCount} food; the open bins hold{" "}
+						{projection.investigation.openBinCount} — a{" "}
+						{projection.investigation.mismatch}-unit gap.
+					</p>
+					<p>
+						<strong>What matters to her:</strong>{" "}
+						{projection.mara.values.join("; ")}.
+					</p>
+					<p>
+						<strong>Her plan:</strong> Reconcile the ledger before speaking (
+						{projection.mara.standingPlan}).
+					</p>
+					<p>
+						<strong>Her relationship:</strong> {projection.mara.relationship}.
+					</p>
+					<p>
+						<strong>Still uncertain:</strong> {projection.mara.belief} Toma's
+						reason is not known.
+					</p>
+				</section>
+				<aside className="local-disclosure local-disclosure--compact">
+					<strong>Saved on this device</strong>
+					<span>{projection.localSaveNotice}</span>
+				</aside>
 				<fieldset>
 					<legend className="sr-only">Choose counsel for Mara</legend>
 					{(["verify-private", "accuse-now", "abstain"] as const).map(
@@ -344,7 +570,7 @@ function PhasePanel({
 	if (phase === "consequence")
 		return (
 			<div className="phase-panel">
-				<p className="eyebrow">MARA'S DECISION RECEIPT</p>
+				<p className="eyebrow">MARA MADE HER CHOICE</p>
 				<h2>
 					{projection.interpretation?.disposition === "not-applicable"
 						? "She continued without your advice"
@@ -364,9 +590,9 @@ function PhasePanel({
 					<p>{projection.consequence}</p>
 				</div>
 				<p className="causal-note">
-					<strong>Your counsel:</strong> contributing input.{" "}
-					<strong>Mara's choice:</strong> direct cause of her action. Later
-					consequences retain their own typed mechanisms.
+					<strong>Your advice influenced her.</strong> Mara's own choice caused
+					her action. Open Evidence in the Chronicle for the exact recorded
+					links.
 				</p>
 				<button
 					className="primary-action"
@@ -387,7 +613,7 @@ function PhasePanel({
 				<p className="eyebrow">CHECKPOINT SEALED</p>
 				<h2>Riverhold can continue from here.</h2>
 				<p>
-					Your branch and local projection have been saved in this browser. No
+					Your branch and Riverhold's record have been saved in this browser. No
 					account, server, model, or network is involved.
 				</p>
 				<aside className="local-disclosure">
@@ -466,36 +692,79 @@ function PhasePanel({
 		);
 	return (
 		<div className="phase-panel chronicle-intro">
-			<p className="eyebrow">THE RECORD IS READY</p>
+			<p className="eyebrow">THE CHRONICLE IS READY</p>
 			<h2>
 				The Chronicle separates your advice, Mara's choice, and what followed.
 			</h2>
 			<p>{projection.tension}</p>
 			<p className="microcopy">
-				Every factual sentence below is already supplied as an authorized
-				projection with typed evidence. The interface does not infer causality.
+				The Chronicle separates what was seen, what was believed, and what
+				actually caused the later change. Open Evidence for the technical
+				record.
 			</p>
 		</div>
 	);
 }
 
 export function RiverholdApp() {
-	const bridge = useMemo(() => createRiverholdRuntimeBridge(), []);
+	const bridge = useMemo(
+		() => createRiverholdRuntimeBridge(undefined, browserDiagnostics),
+		[],
+	);
 	const [projection, setProjection] = useState<RiverholdProjection | null>(
 		null,
 	);
 	const [pending, setPending] = useState(true);
 	const [reducedMotion, setReducedMotion] = useState(
-		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+		() =>
+			window.localStorage.getItem("eonfolk:reduced-motion") === "true" ||
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 	);
+	const [worldView, setWorldView] = useState<"illustrated" | "words">(() =>
+		window.localStorage.getItem("eonfolk:world-view") === "words"
+			? "words"
+			: "illustrated",
+	);
+	const [rendererFailed, setRendererFailed] = useState(false);
+	const [worldFocus, setWorldFocus] = useState<WorldFocus>({
+		kind: "overview",
+	});
+	const [semanticScale, setSemanticScale] = useState<SemanticScale>("region");
+	const [worldLens, setWorldLens] = useState<WorldLens>("none");
 	const [sheet, setSheet] = useState<Sheet>(null);
 	const [runtimeError, setRuntimeError] = useState<RuntimeFailure | null>(null);
+	const [runtimeIncident, setRuntimeIncident] =
+		useState<DiagnosticIncident | null>(null);
 	const phaseFocus = useRef<HTMLElement>(null);
 	const pendingDispatch = useRef(true);
 	const dialog = useRef<HTMLElement>(null);
 	const dialogInvoker = useRef<HTMLElement | null>(null);
+	const showWords = useCallback((failed = false) => {
+		if (failed) setRendererFailed(true);
+		setWorldView("words");
+		window.localStorage.setItem("eonfolk:world-view", "words");
+	}, []);
+	const showIllustrated = useCallback(() => {
+		setRendererFailed(false);
+		setWorldView("illustrated");
+		window.localStorage.setItem("eonfolk:world-view", "illustrated");
+	}, []);
+	const captureFailure = (error: unknown) => {
+		const failure = runtimeFailure(error);
+		void browserDiagnostics
+			.captureRuntimeFailure({
+				code: failure.writeAuthorityTransferred
+					? "STALE_FENCE"
+					: "RUNTIME_FAILED",
+				component: "riverhold-app",
+				protectReality: () => bridge.clear(),
+			})
+			.then(setRuntimeIncident)
+			.finally(() => setRuntimeError(failure));
+	};
 
 	useEffect(() => {
+		const unsubscribe = bridge.subscribe(setProjection, captureFailure);
 		void bridge
 			.ready()
 			.then((next) => {
@@ -503,12 +772,34 @@ export function RiverholdApp() {
 				pendingDispatch.current = false;
 				setPending(false);
 			})
-			.catch((error: unknown) => setRuntimeError(runtimeFailure(error)));
-		return () => bridge.clear();
+			.catch(captureFailure);
+		return () => {
+			unsubscribe();
+			bridge.clear();
+		};
 	}, [bridge]);
+	useEffect(() => {
+		window.localStorage.setItem(
+			"eonfolk:reduced-motion",
+			reducedMotion ? "true" : "false",
+		);
+	}, [reducedMotion]);
 
 	useEffect(() => {
 		phaseFocus.current?.focus({ preventScroll: true });
+		if (
+			projection?.phase === "following" ||
+			projection?.phase === "consequence" ||
+			projection?.phase === "return-pending" ||
+			projection?.phase === "return" ||
+			projection?.phase === "chronicle"
+		) {
+			const mara = projection.citizens.find(
+				(citizen) => citizen.slug === "mara",
+			);
+			if (mara !== undefined)
+				setWorldFocus({ kind: "citizen", id: mara.id, follow: true });
+		}
 	}, [projection?.phase]);
 	useEffect(() => {
 		const close = () => setSheet(null);
@@ -522,6 +813,14 @@ export function RiverholdApp() {
 				: null;
 		window.history.pushState({ riverholdSheet: next.kind }, "");
 		setSheet(next);
+	};
+	const selectCitizen = (citizenId: string) => {
+		setWorldFocus({ kind: "citizen", id: citizenId, follow: false });
+		openSheet({ kind: "citizen", citizenId });
+	};
+	const selectPlace = (placeId: string) => {
+		setWorldFocus({ kind: "place", id: placeId });
+		openSheet({ kind: "place", placeId });
 	};
 	const closeSheet = () => {
 		if (sheet) window.history.back();
@@ -537,8 +836,22 @@ export function RiverholdApp() {
 		const focusable = () =>
 			[
 				...surface.querySelectorAll<HTMLElement>("button, [href], [tabindex]"),
-			].filter((element) => !element.hasAttribute("disabled"));
-		focusable()[0]?.focus({ preventScroll: true });
+			].filter(
+				(element) => !element.hasAttribute("disabled") && element.tabIndex >= 0,
+			);
+		const heading = surface.querySelector<HTMLElement>("#detail-title");
+		heading?.focus({ preventScroll: true });
+		const scrim = surface.parentElement;
+		const siblings = scrim?.parentElement
+			? [...scrim.parentElement.children].filter((node) => node !== scrim)
+			: [];
+		const priorOverflow = document.body.style.overflow;
+		for (const node of siblings) {
+			if (!(node instanceof HTMLElement)) continue;
+			node.inert = true;
+			node.setAttribute("aria-hidden", "true");
+		}
+		document.body.style.overflow = "hidden";
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
 				event.preventDefault();
@@ -550,7 +863,13 @@ export function RiverholdApp() {
 			if (candidates.length === 0) return;
 			const first = candidates[0]!;
 			const last = candidates.at(-1)!;
-			if (event.shiftKey && document.activeElement === first) {
+			if (!event.shiftKey && document.activeElement === heading) {
+				event.preventDefault();
+				first.focus();
+			} else if (event.shiftKey && document.activeElement === heading) {
+				event.preventDefault();
+				last.focus();
+			} else if (event.shiftKey && document.activeElement === first) {
 				event.preventDefault();
 				last.focus();
 			} else if (!event.shiftKey && document.activeElement === last) {
@@ -559,17 +878,33 @@ export function RiverholdApp() {
 			}
 		};
 		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
+		return () => {
+			document.removeEventListener("keydown", onKeyDown);
+			for (const node of siblings) {
+				if (!(node instanceof HTMLElement)) continue;
+				node.inert = false;
+				node.removeAttribute("aria-hidden");
+			}
+			document.body.style.overflow = priorOverflow;
+		};
 	}, [sheet]);
 	const dispatch = (intent: RiverholdIntent, delay = false) => {
 		if (pendingDispatch.current) return;
+		browserDiagnostics.record({
+			category: "ui",
+			name: "player-intent",
+			severity: "info",
+			outcome: "started",
+			scope: { component: "riverhold-app" },
+			fields: { operation: intent.kind, phase: projection?.phase ?? "loading" },
+		});
 		pendingDispatch.current = true;
 		setPending(true);
 		const execute = () => {
 			void bridge
 				.dispatch(intent)
 				.then(setProjection)
-				.catch((error: unknown) => setRuntimeError(runtimeFailure(error)))
+				.catch(captureFailure)
 				.finally(() => {
 					pendingDispatch.current = false;
 					setPending(false);
@@ -582,33 +917,39 @@ export function RiverholdApp() {
 		sheet?.kind === "citizen"
 			? projection?.citizens.find((citizen) => citizen.id === sheet.citizenId)
 			: null;
+	const selectedPlace =
+		sheet?.kind === "place"
+			? riverholdSpatialScene.places[sheet.placeId]
+			: null;
 
 	if (runtimeError !== null)
 		return (
 			<main className="runtime-failure" aria-labelledby="runtime-failure-title">
 				<InkMark />
-				<p className="eyebrow">LOCAL PROOF UNAVAILABLE</p>
+				<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
 				<h1 id="runtime-failure-title">
 					Riverhold stopped before showing further world state.
 				</h1>
 				<p>
 					No world state or Chronicle is being presented as authoritative. This
-					local proof requires a working Web Worker and browser storage.
+					Founder Alpha requires a working Web Worker and browser storage.
 				</p>
-				{runtimeError.code === "STALE_FENCE" && (
+				{runtimeError.writeAuthorityTransferred && (
 					<p role="alert">
 						<strong>Another Riverhold tab took write authority.</strong> This
 						tab was stopped with STALE_FENCE so it cannot overwrite the newer
 						world.
 					</p>
 				)}
-				<details>
-					<summary>Technical detail</summary>
-					<code>
-						{runtimeError.code === null ? "" : `${runtimeError.code}: `}
-						{runtimeError.message}
-					</code>
-				</details>
+				{runtimeIncident !== null && (
+					<aside aria-label="Local reproduction details">
+						<p>{runtimeIncident.safeSummary}</p>
+						<p>
+							Reproduction ID: <code>{runtimeIncident.incidentId}</code>
+						</p>
+					</aside>
+				)}
+				<FeedbackPanel />
 			</main>
 		);
 
@@ -616,7 +957,7 @@ export function RiverholdApp() {
 		return (
 			<main className="runtime-loading" aria-labelledby="runtime-loading-title">
 				<InkMark />
-				<p className="eyebrow">OPENING LOCAL AUTHORITY</p>
+				<p className="eyebrow">OPENING RIVERHOLD'S RECORD</p>
 				<h1 id="runtime-loading-title">Checking Riverhold's durable record…</h1>
 				<p>
 					No world facts or Chronicle will appear until the local authority has
@@ -640,46 +981,111 @@ export function RiverholdApp() {
 			/>
 			<main id="world" ref={phaseFocus} tabIndex={-1}>
 				<section
-					className="world-stage"
-					aria-label="Illustrated Riverhold world"
+					className={`world-stage${worldView === "words" ? " world-stage--words" : ""}`}
+					aria-label={
+						worldView === "words"
+							? "Riverhold world in words"
+							: "Illustrated Riverhold world"
+					}
 				>
-					<RiverholdWorld
-						projection={projection}
-						reducedMotion={reducedMotion}
-					/>
-					<div className="world-vignette" aria-hidden="true" />
-					<div className="world-caption">
-						<div>
-							<p className="eyebrow">RIVERHOLD · DAY {projection.day}</p>
-							<h2>{projection.headline}</h2>
-							<p>{projection.timeLabel}</p>
+					<button
+						className="world-view-toggle"
+						type="button"
+						aria-pressed={worldView === "words"}
+						onClick={() =>
+							worldView === "illustrated" ? showWords() : showIllustrated()
+						}
+					>
+						{worldView === "illustrated"
+							? "Use list view"
+							: "Use illustrated view"}
+					</button>
+					{worldView === "illustrated" ? (
+						<>
+							<Suspense
+								fallback={
+									<div className="world-renderer-loading" role="status">
+										Preparing the embodied Riverhold view…
+									</div>
+								}
+							>
+								<RiverholdWorld
+									projection={projection}
+									reducedMotion={reducedMotion}
+									onFailure={() => showWords(true)}
+									focus={worldFocus}
+									onSemanticScaleChange={setSemanticScale}
+									onCitizenSelect={selectCitizen}
+									onPlaceSelect={selectPlace}
+									onFocusChange={setWorldFocus}
+								/>
+							</Suspense>
+							<div className="world-vignette" aria-hidden="true" />
+						</>
+					) : (
+						<div className="world-words">
+							{rendererFailed && (
+								<p className="renderer-note" role="status">
+									The illustrated view could not start. Riverhold is fully
+									playable in this words view; no world fact or action has been
+									lost.
+								</p>
+							)}
+							<SemanticWorld
+								projection={projection}
+								onCitizen={selectCitizen}
+								compact
+							/>
 						</div>
-						<div
-							className="resource-ribbon"
-							role="status"
-							aria-label={`Resources: ${projection.resources.food} food, ${projection.resources.water} water, ${projection.resources.wood} wood`}
-						>
-							<span>
-								<i className="grain" />
-								{projection.resources.food}
-								<small>food</small>
-							</span>
-							<span>
-								<i className="drop" />
-								{projection.resources.water}
-								<small>water</small>
-							</span>
-							<span>
-								<i className="log" />
-								{projection.resources.wood}
-								<small>wood</small>
-							</span>
+					)}
+					{worldView === "illustrated" && (
+						<WorldControls
+							projection={projection}
+							focus={worldFocus}
+							semanticScale={semanticScale}
+							lens={worldLens}
+							onFocus={setWorldFocus}
+							onSelectCitizen={selectCitizen}
+							onLens={setWorldLens}
+							onResearch={() => openSheet({ kind: "research" })}
+						/>
+					)}
+					{worldView === "illustrated" && (
+						<div className="world-caption">
+							<div>
+								<p className="eyebrow">RIVERHOLD · DAY {projection.day}</p>
+								<h2>{projection.headline}</h2>
+								<p>{projection.timeLabel}</p>
+							</div>
+							<div
+								className="resource-ribbon"
+								role="status"
+								aria-label={`Resources: ${projection.resources.food} food, ${projection.resources.water} water, ${projection.resources.wood} wood`}
+							>
+								<span>
+									<i className="grain" />
+									{projection.resources.food}
+									<small>food</small>
+								</span>
+								<span>
+									<i className="drop" />
+									{projection.resources.water}
+									<small>water</small>
+								</span>
+								<span>
+									<i className="log" />
+									{projection.resources.wood}
+									<small>wood</small>
+								</span>
+							</div>
 						</div>
-					</div>
-					<div className="world-notice" role="status">
-						<span aria-hidden="true">✦</span>
-						{projection.worldNotices[0]}
-					</div>
+					)}
+					{worldView === "illustrated" && (
+						<div className="world-notice" role="status">
+							<span aria-hidden="true">✦</span>
+							{projection.worldNotices[0]}
+						</div>
+					)}
 				</section>
 				<aside
 					id="phase-panel"
@@ -699,28 +1105,44 @@ export function RiverholdApp() {
 						beats={projection.chronicle}
 						reducedMotion={reducedMotion}
 						onEvidence={(beat) => openSheet({ kind: "evidence", beat })}
+						onShowInWorld={(beat) => {
+							setWorldFocus({
+								kind: "chronicle",
+								beatId: beat.id,
+								placeId: beat.spatialFocus.placeId,
+								participantIds: beat.spatialFocus.participantIds,
+								targetIds: beat.spatialFocus.targetIds,
+							});
+							document.querySelector("#world")?.scrollIntoView({
+								behavior: reducedMotion ? "auto" : "smooth",
+							});
+						}}
 					/>
 					<StoryCard projection={projection} />
 				</>
 			)}
-			<SemanticWorld
-				projection={projection}
-				onCitizen={(citizenId) => openSheet({ kind: "citizen", citizenId })}
-			/>
+			{worldView === "illustrated" && (
+				<SemanticWorld projection={projection} onCitizen={selectCitizen} />
+			)}
+			<FeedbackPanel />
 			<footer>
 				<InkMark />
 				<p>
-					<strong>Riverhold local proof</strong>
+					<strong>Riverhold Founder Alpha · local and account-free</strong>
 					<span>
-						Reality should be trustworthy. Mara's beliefs may still be wrong.
+						The world record should be trustworthy. Mara's beliefs may still be
+						wrong.
 					</span>
 				</p>
 			</footer>
 			{sheet && (
-				<div className="sheet-scrim" role="presentation">
+				<div
+					className={`sheet-scrim${sheet.kind === "citizen" || sheet.kind === "place" ? " sheet-scrim--world-selection" : ""}`}
+					role="presentation"
+				>
 					<section
 						ref={dialog}
-						className="detail-sheet"
+						className={`detail-sheet${sheet.kind === "citizen" || sheet.kind === "place" ? " detail-sheet--world-selection" : ""}`}
 						role="dialog"
 						aria-modal="true"
 						aria-labelledby="detail-title"
@@ -736,7 +1158,9 @@ export function RiverholdApp() {
 						{sheet.kind === "citizen" && selectedCitizen && (
 							<>
 								<p className="eyebrow">RIVERHOLD CITIZEN</p>
-								<h2 id="detail-title">{selectedCitizen.name}</h2>
+								<h2 id="detail-title" tabIndex={-1}>
+									{selectedCitizen.name}
+								</h2>
 								<p className="sheet-role">{selectedCitizen.role}</p>
 								<dl>
 									<div>
@@ -746,8 +1170,8 @@ export function RiverholdApp() {
 									<div>
 										<dt>Visibility</dt>
 										<dd>
-											This public activity is visible in both world and semantic
-											projections.
+											This public activity is visible in both the illustrated
+											world and the words view.
 										</dd>
 									</div>
 									{selectedCitizen.focal && (
@@ -765,10 +1189,31 @@ export function RiverholdApp() {
 								</dl>
 							</>
 						)}
+						{sheet.kind === "place" && selectedPlace && (
+							<>
+								<p className="eyebrow">RIVERHOLD PLACE</p>
+								<h2 id="detail-title" tabIndex={-1}>
+									{selectedPlace.name}
+								</h2>
+								<p className="sheet-role">{selectedPlace.kind}</p>
+								<dl>
+									<div>
+										<dt>Place in the world</dt>
+										<dd>
+											The camera is centered here. Its visible activity and
+											resources remain projections of Riverhold's accepted
+											state.
+										</dd>
+									</div>
+								</dl>
+							</>
+						)}
 						{sheet.kind === "world" && (
 							<>
 								<p className="eyebrow">WORLD PULSE</p>
-								<h2 id="detail-title">Eight lives in motion</h2>
+								<h2 id="detail-title" tabIndex={-1}>
+									Eight lives in motion
+								</h2>
 								<dl>
 									<div>
 										<dt>Food · water · wood</dt>
@@ -782,7 +1227,7 @@ export function RiverholdApp() {
 										<dd>{projection.worldNotices[0]}</dd>
 									</div>
 									<div>
-										<dt>Canonical time</dt>
+										<dt>World time</dt>
 										<dd>
 											Day {projection.day}, {projection.timeLabel}
 										</dd>
@@ -794,10 +1239,55 @@ export function RiverholdApp() {
 								</dl>
 							</>
 						)}
+						{sheet.kind === "research" && (
+							<>
+								<p className="eyebrow">RESEARCH LENS · DELIBERATE DEPTH</p>
+								<h2 id="detail-title" tabIndex={-1}>
+									Why this view is trustworthy
+								</h2>
+								<p>
+									The world is the default. These protocol details are shown
+									only because you opened Research Lens.
+								</p>
+								<dl>
+									<div>
+										<dt>Reality head</dt>
+										<dd>
+											Revision {projection.spatial.source.revision}; accepted
+											through event {projection.spatial.source.throughSequence}
+										</dd>
+									</div>
+									<div>
+										<dt>Projection source</dt>
+										<dd>
+											Region {projection.spatial.source.regionId}; state
+											fingerprint{" "}
+											{projection.spatial.source.stateHash.slice(0, 12)}…
+										</dd>
+									</div>
+									<div>
+										<dt>Current distinction</dt>
+										<dd>
+											Mara’s beliefs may be wrong. Only accepted world events
+											determine resources, relationships, and consequences.
+										</dd>
+									</div>
+									<div>
+										<dt>Cognition</dt>
+										<dd>
+											Standard Brain proposes bounded actions; validation after
+											cognition decides whether they can enter Reality.
+										</dd>
+									</div>
+								</dl>
+							</>
+						)}
 						{sheet.kind === "evidence" && (
 							<>
 								<p className="eyebrow">AUTHORIZED EVENT EVIDENCE</p>
-								<h2 id="detail-title">{sheet.beat.title}</h2>
+								<h2 id="detail-title" tabIndex={-1}>
+									{sheet.beat.title}
+								</h2>
 								<p>{sheet.beat.body}</p>
 								<ul className="evidence-list">
 									{sheet.beat.evidence.map((item) => (
@@ -817,8 +1307,15 @@ export function RiverholdApp() {
 									))}
 								</ul>
 								<p className="microcopy">
-									An allegation is attributed content. A temporal predecessor is
-									not promoted to cause.
+									{sheet.beat.evidence.some(
+										(item) => item.relation === "allegation",
+									)
+										? "An allegation is attributed content; it is not presented as an established fact."
+										: sheet.beat.evidence.some(
+													(item) => item.relation === "temporal-predecessor",
+												)
+											? "A temporal predecessor is recorded without being promoted to a cause."
+											: "Contributing evidence is recorded separately from the direct cause of the later consequence."}
 								</p>
 							</>
 						)}

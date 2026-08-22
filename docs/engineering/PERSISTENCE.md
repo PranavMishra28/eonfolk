@@ -6,7 +6,7 @@
 
 **Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/active/001-foundation.md)
+**Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Owned decision
 

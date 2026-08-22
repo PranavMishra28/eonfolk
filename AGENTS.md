@@ -12,8 +12,8 @@ This repository is the system of record for EONFOLK planning, implementation, an
 
 ## Mission and constraints
 
-- Implement the accepted local Riverhold proof on `main` under the recorded operator bootstrap override. After stabilization, use focused branches and pull requests.
-- Preserve World/Chronicle/Observatory direction without expanding Gate A/B: typed Reality is sole authority; world, cognitive-decision, and experiment data stay distinct; no hidden chain-of-thought.
+- Implement Founder Alpha through the sole integration branch `feat/002-founder-alpha` and its one mega PR. `main` remains the protected integration target.
+- Preserve World/Reality/Epistemics/Truth/Brain/Chronicle/Experiment/Observatory boundaries: typed Reality is sole authority; diagnostics, feedback, cognition, ontology projections, and experiments never mutate it; no hidden chain-of-thought.
 - Optimize for a solo builder and a compelling 40–60-hour first implementation slice.
 - Target approximately $0 spend; incur no cost, deploy nothing, and add no credentials without explicit approval.
 - V1 is useful and free. Payments, revenue operations, model training, proprietary datasets, partnerships, regulated data, and enterprise sales are out of scope.

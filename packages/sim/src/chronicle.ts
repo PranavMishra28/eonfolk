@@ -69,6 +69,9 @@ export function projectChronicle(input: {
 		const safeParents = event.causalParents.filter((parent) =>
 			visibleIds.has(parent.eventId),
 		);
+		const safeRelated = event.relatedEvents.filter((related) =>
+			visibleIds.has(related.eventId),
+		);
 		switch (payload.kind) {
 			case "CounselIssued":
 				sentences.push({
@@ -78,7 +81,7 @@ export function projectChronicle(input: {
 					relation: "fact",
 				});
 				break;
-			case "CounselInterpreted":
+			case "CounselInterpreted": {
 				branch = payload.action;
 				if (payload.interventionId === null) {
 					sentences.push({
@@ -88,9 +91,23 @@ export function projectChronicle(input: {
 						relation: "fact",
 					});
 				}
+				const actionText =
+					payload.action === "verify-reserve"
+						? "verify before speaking"
+						: payload.action === "accuse-publicly"
+							? "make the allegation now"
+							: "continue the existing plan";
+				const interpretationText =
+					payload.disposition === "rejected"
+						? `independently rejected the counsel and chose to ${actionText}`
+						: payload.disposition === "reinterpreted"
+							? `independently reinterpreted the counsel and chose to ${actionText}`
+							: payload.disposition === "accepted"
+								? `independently accepted the counsel and chose to ${actionText}`
+								: `independently chose to ${actionText}`;
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
-					text: `${nameFor(payload.citizenId, input.citizenNames)} independently chose to ${payload.action === "verify-reserve" ? "verify before speaking" : payload.action === "accuse-publicly" ? "make the allegation now" : "continue the existing plan"}.`,
+					text: `${nameFor(payload.citizenId, input.citizenNames)} ${interpretationText}.`,
 					evidenceEventIds: [
 						event.eventId,
 						...safeParents.map((parent) => parent.eventId),
@@ -102,6 +119,7 @@ export function projectChronicle(input: {
 						: "fact",
 				});
 				break;
+			}
 			case "BeliefChanged":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
@@ -127,7 +145,10 @@ export function projectChronicle(input: {
 			case "RelationshipChanged":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
-					text: `${nameFor(payload.fromCitizenId, input.citizenNames)} and ${nameFor(payload.toCitizenId, input.citizenNames)} lost trust after the public accusation.`,
+					text:
+						payload.reasonCode === "private-verification-trust"
+							? `${nameFor(payload.fromCitizenId, input.citizenNames)}'s recorded trust in ${nameFor(payload.toCitizenId, input.citizenNames)} increased after the sourced recount.`
+							: `${nameFor(payload.fromCitizenId, input.citizenNames)} and ${nameFor(payload.toCitizenId, input.citizenNames)} lost trust after the public accusation.`,
 					evidenceEventIds: [
 						event.eventId,
 						...safeParents.map((parent) => parent.eventId),
@@ -138,12 +159,19 @@ export function projectChronicle(input: {
 			case "PetitionChanged":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
-					text: `Three recorded endorsements moved the petition toward a council vote.`,
+					text:
+						payload.reasonCode === "independent-unresolved-ledger-interest"
+							? "Six hours later, one citizen independently endorsed an audit petition while the mismatch remained unresolved."
+							: "Three recorded endorsements moved the petition toward a council vote.",
 					evidenceEventIds: [
 						event.eventId,
 						...safeParents.map((parent) => parent.eventId),
+						...safeRelated.map((related) => related.eventId),
 					],
-					relation: "trigger",
+					relation:
+						payload.reasonCode === "independent-unresolved-ledger-interest"
+							? "fact"
+							: "trigger",
 				});
 				break;
 			case "StandingPlanChanged":
@@ -183,14 +211,14 @@ export function projectChronicle(input: {
 			sentence.text.startsWith("No counsel was offered"),
 	);
 	const independentChoice = sentences.find((sentence) =>
-		sentence.text.includes("independently chose"),
+		sentence.text.includes("independently"),
 	);
 	const outcome = sentences.find((sentence) =>
 		branch === "accuse-publicly"
 			? sentence.text.includes("lost trust")
 			: branch === "verify-reserve"
-				? sentence.text.includes("recorded a sourced belief")
-				: sentence.text.includes("kept the existing Standing Plan"),
+				? sentence.text.includes("recorded trust")
+				: sentence.text.includes("independently endorsed"),
 	);
 	const chosen = [advice, independentChoice, outcome, ...sentences]
 		.filter((sentence): sentence is ChronicleSentence => sentence !== undefined)

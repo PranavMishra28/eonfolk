@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns review identity, outcome, and closure evidence for the Goal prompt. The [Goal prompt](../exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) owns future execution behavior; [DECISIONS](../decisions/DECISIONS.md) owns finding dispositions.
 
-**Related documents:** [001-foundation](../exec-plans/active/001-foundation.md), [Quality Bar](../quality/QUALITY_BAR.md), [final readiness](FINAL_READINESS.md), [planning status](../../PLAN.md)
+**Related documents:** [001-foundation](../exec-plans/completed/001-foundation.md), [Quality Bar](../quality/QUALITY_BAR.md), [final readiness](FINAL_READINESS.md), [planning status](../../PLAN.md)
 
 ## Outcome
 

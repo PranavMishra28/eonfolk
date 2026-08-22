@@ -57,20 +57,45 @@ export async function riverholdDecisionFixture(
 						subjectCitizenId: actor.citizenId,
 					},
 				};
-	const actorRecords: EpistemicRecord[] = Object.values(state.epistemicRecords)
-		.filter(
-			(record) =>
-				record.subjectCitizenId === citizenBySlug(state, "mara").citizenId,
-		)
+	const ownSeedRecords: EpistemicRecord[] =
+		actorSlug === "mara"
+			? Object.values(state.epistemicRecords).filter(
+					(record) => record.subjectCitizenId === actor.citizenId,
+				)
+			: [
+					{
+						recordId: `observation-${actorSlug}-market-reserve`,
+						kind: "observation",
+						subjectCitizenId: actor.citizenId,
+						proposition: `${actor.name} observed that the public reserve count needs verification.`,
+						confidence: 8_000,
+						sourceIds: [`${actorSlug}-own-observation`],
+						visibility: {
+							kind: "citizen-private",
+							subjectCitizenId: actor.citizenId,
+						},
+						createdRevision: 0,
+					},
+					{
+						recordId: `commitment-${actorSlug}-role-duty`,
+						kind: "commitment",
+						subjectCitizenId: actor.citizenId,
+						proposition: `${actor.name} promised to finish their own role duty.`,
+						confidence: null,
+						sourceIds: [`${actorSlug}-own-commitment`],
+						visibility: {
+							kind: "citizen-private",
+							subjectCitizenId: actor.citizenId,
+						},
+						createdRevision: 0,
+					},
+				];
+	const actorRecords: EpistemicRecord[] = ownSeedRecords
 		.filter(
 			(record) => !options.removeCommitment || record.kind !== "commitment",
 		)
 		.map((record) => ({
 			...record,
-			recordId:
-				actorSlug === "mara"
-					? record.recordId
-					: `${record.recordId}-${actorSlug}`,
 			subjectCitizenId: actor.citizenId,
 			confidence:
 				record.kind === "belief" || record.kind === "observation"

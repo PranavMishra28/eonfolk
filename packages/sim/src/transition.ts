@@ -21,7 +21,11 @@ import {
 import { assertWorldInvariants } from "./invariants.js";
 import { reducePayload } from "./reducer.js";
 import { scheduleAutonomousActions } from "./scheduler.js";
-import { citizenBySlug, type WorldState } from "./state.js";
+import {
+	citizenBySlug,
+	travelDurationSeconds,
+	type WorldState,
+} from "./state.js";
 
 interface PendingEvent {
 	readonly payload: WorldEventPayload;
@@ -316,6 +320,7 @@ function commandEvents(
 	state: WorldState,
 	command: WorldCommand,
 	eventIds: readonly string[],
+	authoritativeHistory: readonly WorldEventEnvelope[],
 ): readonly PendingEvent[] {
 	const payload = command.payload;
 	switch (payload.kind) {
@@ -333,13 +338,23 @@ function commandEvents(
 		case "MoveCitizen": {
 			const citizen = state.citizens[payload.citizenId];
 			if (!citizen) throw new Error("ACTION_UNAVAILABLE");
+			if (citizen.travel != null) throw new Error("ACTION_UNAVAILABLE");
+			const duration = travelDurationSeconds(
+				state,
+				citizen.placeId,
+				payload.toPlaceId,
+			);
 			return [
 				pending({
-					kind: "CitizenMoved",
+					kind: "TravelStarted",
 					citizenId: citizen.citizenId,
-					fromPlaceId: citizen.placeId,
-					toPlaceId: payload.toPlaceId,
-					behavior: "fulfill-plan",
+					travelId: `travel:${citizen.citizenId}:${state.simulationTime}`,
+					originPlaceId: citizen.placeId,
+					destinationPlaceId: payload.toPlaceId,
+					routeId: `${citizen.placeId}>${payload.toPlaceId}`,
+					departureSimulationTime: state.simulationTime,
+					expectedArrivalSimulationTime: state.simulationTime + duration,
+					task: "fulfill-plan",
 				}),
 			];
 		}
@@ -438,6 +453,22 @@ function commandEvents(
 					},
 					{ externalParents },
 				),
+				pending(
+					{
+						kind: "TimeAdvanced",
+						seconds: 21_600,
+						needIncrease: 0,
+					},
+					{
+						parentIndexes: [
+							{
+								index: 0,
+								relation: "direct",
+								mechanismId: "riverhold-delayed-resolution-v1",
+							},
+						],
+					},
+				),
 			];
 			if (payload.action === "verify-reserve") {
 				events.push(
@@ -457,6 +488,31 @@ function commandEvents(
 									index: 0,
 									relation: "direct",
 									mechanismId: "riverhold-private-verification-v1",
+								},
+							],
+							relatedEvents: [
+								{
+									eventId: eventIds[1]!,
+									relation: "temporal-predecessor",
+								},
+							],
+						},
+					),
+					pending(
+						{
+							kind: "RelationshipChanged",
+							fromCitizenId: payload.citizenId,
+							toCitizenId: citizenBySlug(state, "toma").citizenId,
+							trustDelta: 500,
+							strainDelta: -300,
+							reasonCode: "private-verification-trust",
+						},
+						{
+							parentIndexes: [
+								{
+									index: 2,
+									relation: "direct",
+									mechanismId: "riverhold-sourced-recount-trust-v1",
 								},
 							],
 						},
@@ -497,7 +553,7 @@ function commandEvents(
 						{
 							parentIndexes: [
 								{
-									index: 1,
+									index: 2,
 									relation: "direct",
 									mechanismId: "riverhold-public-accusation-trust-v1",
 								},
@@ -514,7 +570,7 @@ function commandEvents(
 							visibility: { kind: "public" },
 							parentIndexes: [
 								{
-									index: 1,
+									index: 2,
 									relation: "trigger",
 									mechanismId: "riverhold-petition-threshold-v1",
 								},
@@ -542,6 +598,26 @@ function commandEvents(
 							],
 						},
 					),
+					pending(
+						{
+							kind: "PetitionChanged",
+							endorsementDelta: 1,
+							reasonCode: "independent-unresolved-ledger-interest",
+						},
+						{
+							visibility: { kind: "public" },
+							relatedEvents: [
+								{
+									eventId: eventIds[1]!,
+									relation: "temporal-predecessor",
+								},
+								{
+									eventId: eventIds[2]!,
+									relation: "temporal-predecessor",
+								},
+							],
+						},
+					),
 				);
 			}
 			return events;
@@ -549,6 +625,39 @@ function commandEvents(
 		case "RespondOnReturn":
 			if (state.lastReturnResponse !== null)
 				throw new Error("ACTION_UNAVAILABLE");
+			{
+				const prior = authoritativeHistory.find(
+					(event) => event.eventId === payload.priorEventId,
+				);
+				const expectedKind =
+					state.selectedCounselBranch === "verify-reserve"
+						? "RelationshipChanged"
+						: state.selectedCounselBranch === "accuse-publicly"
+							? "PetitionChanged"
+							: state.selectedCounselBranch === "follow-plan"
+								? "PetitionChanged"
+								: null;
+				const expectedReasonCode =
+					state.selectedCounselBranch === "verify-reserve"
+						? "private-verification-trust"
+						: state.selectedCounselBranch === "accuse-publicly"
+							? "public-statement-endorsements"
+							: state.selectedCounselBranch === "follow-plan"
+								? "independent-unresolved-ledger-interest"
+								: null;
+				if (
+					prior === undefined ||
+					expectedKind === null ||
+					prior.runId !== state.runId ||
+					prior.regionId !== state.regionId ||
+					prior.sequence >= state.nextSequence ||
+					prior.provenance.kind !== "cognition" ||
+					prior.eventPayload.kind !== expectedKind ||
+					!("reasonCode" in prior.eventPayload) ||
+					prior.eventPayload.reasonCode !== expectedReasonCode
+				)
+					throw new Error("INVALID_COMMAND");
+			}
 			return [
 				pending(
 					{
@@ -713,6 +822,7 @@ export async function prepareTransition(
 	state: WorldState,
 	priorWorldHeadHash: string,
 	command: WorldCommand,
+	authoritativeHistory: readonly WorldEventEnvelope[] = [],
 ): Promise<PreparedTransition> {
 	assertWorldInvariants(state);
 	const priorStateHash = await stateHash(state);
@@ -765,9 +875,9 @@ export async function prepareTransition(
 		const provisionalCount =
 			command.payload.kind === "ResolveCounsel" &&
 			command.payload.action === "accuse-publicly"
-				? 4
+				? 5
 				: command.payload.kind === "ResolveCounsel"
-					? 2
+					? 4
 					: command.payload.kind === "Advance"
 						? 9
 						: 1;
@@ -777,7 +887,12 @@ export async function prepareTransition(
 				stableId("event", worldSeed, state.nextCreationSequence + offset),
 			),
 		);
-		const pendingEvents = commandEvents(state, command, eventIds);
+		const pendingEvents = commandEvents(
+			state,
+			command,
+			eventIds,
+			authoritativeHistory,
+		);
 		if (pendingEvents.length < 1 || pendingEvents.length > 32)
 			throw new Error("INVALID_COMMAND");
 		if (pendingEvents.length !== eventIds.length) {

@@ -2,11 +2,11 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** IMPLEMENTATION COMPLETE UNDER OPERATOR OVERRIDE — technical evidence retained; human product gates not run
+**Status:** FOUNDER ALPHA ACTIVE — 001 technical evidence retained; human product gates not run
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [first ExecPlan](exec-plans/active/001-foundation.md).
+**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md), [completed first slice](exec-plans/completed/001-foundation.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
@@ -17,7 +17,7 @@ Each concern has one authority. Research records evidence; reviews record object
 3. [Human loop](product/HUMAN_LOOP.md).
 4. [Distribution](product/DISTRIBUTION.md).
 5. [Architecture](engineering/ARCHITECTURE.md).
-6. [001-foundation ExecPlan](exec-plans/active/001-foundation.md).
+6. [002 Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md).
 
 ## Coordinator-owned shared authorities
 
@@ -68,12 +68,15 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Sole authority |
 |---|---|
 | Layers, packages, three-ledger authority, local-first runtime and future region-server seam | [ARCHITECTURE.md](engineering/ARCHITECTURE.md) |
-| UI stack, PixiJS/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
+| UI stack, embodied-world/DOM boundary, routing and asset delivery | [FRONTEND.md](engineering/FRONTEND.md) |
 | Determinism, scheduler, commands, events and catch-up | [SIMULATION.md](engineering/SIMULATION.md) |
 | IndexedDB world/decision stores, Experiment Manifest, atomic genesis, durable receipts/fencing, snapshots, replay, and version/no-backup policy | [PERSISTENCE.md](engineering/PERSISTENCE.md) |
 | Mind, Standard Brain, bounded proposals, raw decision records, viewer-safe trace projections and model ecology | [COGNITION.md](engineering/COGNITION.md) |
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
+| Flight Recorder modes, redaction, Sentinel, incidents, observer, replay-capture seam, and diagnostics overhead | [DIAGNOSTICS.md](engineering/DIAGNOSTICS.md) |
+| Local feedback queue, consent, optional relay, dedup, quotas, retention, and delivery semantics | [FEEDBACK.md](engineering/FEEDBACK.md) |
+| Founder Alpha local preview, CI evidence, credential gates, and release-status claims | [FOUNDER_ALPHA_RELEASE.md](engineering/FOUNDER_ALPHA_RELEASE.md) |
 | Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
 
 ## Quality authorities
@@ -100,6 +103,14 @@ Each concern has one authority. Research records evidence; reviews record object
 | Live tool/skill/plugin/MCP availability and risks | [PROPOSED_TOOLS.md](research/PROPOSED_TOOLS.md) |
 | Exact future direct/transitive dependency graph, integrity, licenses and lifecycle metadata | [DEPENDENCY_COHORT.md](research/DEPENDENCY_COHORT.md) |
 | Bounded codename collision screen | [NAMING_RESEARCH.md](research/NAMING_RESEARCH.md) |
+| Founder Alpha recorder, replay-capture, performance, and observer choices | [FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md](research/FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md) |
+| Founder Alpha planner, local-model seam, experiment manifest, and ontology choices | [FOUNDER_ALPHA_COGNITION_RESEARCH.md](research/FOUNDER_ALPHA_COGNITION_RESEARCH.md) |
+| Founder Alpha feedback relay, Cloudflare/GitHub controls, MCP boundary, and live repository probe | [FOUNDER_ALPHA_PLATFORM_RESEARCH.md](research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md) |
+| Founder Alpha spatial semantics, navigation, presentation clock, animation, and Living World evidence | [WORLD_PRESENCE_SPATIAL_RESEARCH.md](research/WORLD_PRESENCE_SPATIAL_RESEARCH.md) |
+| Founder Alpha PlayCanvas React/Pixi replacement measurements and renderer recommendation | [WORLD_PRESENCE_RENDERER_SPIKE.md](research/WORLD_PRESENCE_RENDERER_SPIKE.md) |
+| Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
+| World-as-Product city-simulation, camera, residency, task, and animation principles | [WORLD_AS_PRODUCT_RESEARCH.md](research/WORLD_AS_PRODUCT_RESEARCH.md) |
+| Frozen World-as-Product technical truth and bounded-delta audit | [WORLD_AS_PRODUCT_TECH_SPIKE.md](research/WORLD_AS_PRODUCT_TECH_SPIKE.md) |
 
 ## Reviews
 
@@ -116,6 +127,19 @@ Each concern has one authority. Research records evidence; reviews record object
 | Immutable zero-context Goal-prompt review trail and final confirmation | [GOAL_PROMPT_REVIEW.md](reviews/GOAL_PROMPT_REVIEW.md) |
 | Civilization amendment audit, dispositions and immutable final confirmation | [CIVILIZATION_AMENDMENT_REVIEW.md](reviews/CIVILIZATION_AMENDMENT_REVIEW.md) |
 | Frozen implementation review, P0/P1 reconciliation and confirmation | [IMPLEMENTATION_FINAL_REVIEW.md](reviews/IMPLEMENTATION_FINAL_REVIEW.md) |
+| Founder Alpha product/game frozen review | [FOUNDER_ALPHA_PRODUCT_GAME_REVIEW.md](reviews/FOUNDER_ALPHA_PRODUCT_GAME_REVIEW.md) |
+| Founder Alpha systems/correctness frozen review | [FOUNDER_ALPHA_SYSTEMS_CORRECTNESS_REVIEW.md](reviews/FOUNDER_ALPHA_SYSTEMS_CORRECTNESS_REVIEW.md) |
+| Founder Alpha visual/accessibility frozen review | [FOUNDER_ALPHA_VISUAL_ACCESSIBILITY_REVIEW.md](reviews/FOUNDER_ALPHA_VISUAL_ACCESSIBILITY_REVIEW.md) |
+| Founder Alpha diagnostics/privacy frozen review | [FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md](reviews/FOUNDER_ALPHA_DIAGNOSTICS_PRIVACY_REVIEW.md) |
+| Founder Alpha cognition/research frozen review | [FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md](reviews/FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md) |
+| Founder Alpha CI/evidence frozen review | [FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md](reviews/FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md) |
+| Founder Alpha first confirmation and seven repair findings | [FOUNDER_ALPHA_CONFIRMATION.md](reviews/FOUNDER_ALPHA_CONFIRMATION.md) |
+| Frozen pre-correction World-as-Product hostile baseline and exact-NO verdict | [WORLD_AS_PRODUCT_BASELINE.md](reviews/WORLD_AS_PRODUCT_BASELINE.md) |
+| Frozen World-as-Product product/game release review and exact-NO verdict | [WORLD_AS_PRODUCT_PRODUCT_REVIEW.md](reviews/WORLD_AS_PRODUCT_PRODUCT_REVIEW.md) |
+| Frozen World-as-Product systems/correctness release review | [WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md](reviews/WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md) |
+| Frozen World-as-Product visual/accessibility/performance release review and exact-NO verdict | [WORLD_AS_PRODUCT_VISUAL_REVIEW.md](reviews/WORLD_AS_PRODUCT_VISUAL_REVIEW.md) |
+| Frozen World-as-Product cross-discipline confirmation, exact-NO verdict, and opening-lifetime finding | [WORLD_AS_PRODUCT_CONFIRMATION.md](reviews/WORLD_AS_PRODUCT_CONFIRMATION.md) |
+| One permitted post-fix World-as-Product confirmation and exact-YES verdict | [WORLD_AS_PRODUCT_FINAL_CONFIRMATION.md](reviews/WORLD_AS_PRODUCT_FINAL_CONFIRMATION.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene
@@ -123,12 +147,15 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Retained artifact |
 |---|---|
 | ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
-| Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/active/001-foundation.md) |
+| Sole living Founder Alpha plan | [002-founder-alpha.md](exec-plans/active/002-founder-alpha.md) |
+| Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/completed/001-foundation.md) |
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
+| Founder Alpha diagnostics, headful zoom-equivalent, and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md), [headful reflow record](exec-plans/evidence/002/headful-zoom.json), and [physical-device status](exec-plans/evidence/002/physical-device.json) |
+| Founder Alpha world-presence operator override | [world-presence override](exec-plans/evidence/002/world-presence-override.md) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
 | Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
 | Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |
@@ -137,6 +164,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
 | Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
+| Founder Alpha setup, verification, diagnosis, limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |

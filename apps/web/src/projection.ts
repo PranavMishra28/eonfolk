@@ -1,3 +1,9 @@
+import type {
+	CanonicalActionRef,
+	PropKind,
+	SpatialProjection,
+} from "@eonfolk/world-presentation";
+
 export type CounselIntent = "verify-private" | "accuse-now" | "abstain";
 export type Phase =
 	| "orientation"
@@ -27,13 +33,15 @@ export type CausalRelation =
 
 export interface CitizenProjection {
 	readonly id: string;
+	readonly slug: string;
 	readonly name: string;
 	readonly role: string;
 	readonly activity: string;
 	readonly activityKind: ActivityKind;
+	readonly placeId: string;
 	readonly place: string;
-	readonly x: number;
-	readonly y: number;
+	readonly canonicalAction: CanonicalActionRef;
+	readonly carriedProp: PropKind | null;
 	readonly focal?: boolean;
 }
 
@@ -52,6 +60,12 @@ export interface ChronicleBeatProjection {
 	readonly title: string;
 	readonly body: string;
 	readonly evidence: readonly EvidenceProjection[];
+	readonly spatialFocus: Readonly<{
+		readonly placeId: string;
+		readonly participantIds: readonly string[];
+		readonly targetIds: readonly string[];
+		readonly sourceEventIds: readonly string[];
+	}>;
 }
 
 export interface MaraProjection {
@@ -92,7 +106,9 @@ export interface RiverholdProjection {
 	readonly headline: string;
 	readonly tension: string;
 	readonly citizens: readonly CitizenProjection[];
+	readonly spatial: SpatialProjection;
 	readonly resources: Readonly<{ food: number; water: number; wood: number }>;
+	readonly worldProcesses: Readonly<{ millRepaired: boolean }>;
 	readonly worldNotices: readonly string[];
 	readonly mara: MaraProjection;
 	readonly investigation: Readonly<{
@@ -130,6 +146,10 @@ export interface RiverholdRuntimeBridge {
 	getProjection(): RiverholdProjection;
 	ready(): Promise<RiverholdProjection>;
 	dispatch(intent: RiverholdIntent): Promise<RiverholdProjection>;
+	subscribe(
+		listener: (projection: RiverholdProjection) => void,
+		onFailure?: (error: Error) => void,
+	): () => void;
 	clear(): void;
 }
 

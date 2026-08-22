@@ -22,7 +22,28 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Classify conditional verification
+        id: classify
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${BASE_SHA}" ]] || [[ "${BASE_SHA}" =~ ^0+$ ]] || ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            echo "ui=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
+          if grep -Eq '^(apps/web/|tests/e2e/)' <<<"${changed_files}"; then
+            echo "ui=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ui=false" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -36,16 +57,245 @@ jobs:
           node-version: 22.23.1
           cache: pnpm
 
+      - name: Install Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Install pinned Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Fetch repository-pinned TLC
+        shell: bash
+        run: |
+          set -euo pipefail
+          tlc_url="$(node scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node scripts/formal-toolchain.mjs --sha256)"
+          curl --fail --location --silent --show-error \
+            "${tlc_url}" \
+            --output "${RUNNER_TEMP}/tla2tools.jar"
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
+
       - name: Run pull-request verification
         env:
           EONFOLK_ALLOW_LINUX_CI: "1"
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:pr
+
+      - name: Capture deterministic UI evidence
+        if: steps.classify.outputs.ui == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="tmp/founder-alpha-ui-evidence"
+          mkdir -p "${evidence_dir}"
+          pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort >"${evidence_dir}/preview.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "${preview_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:4174/ >/dev/null; then
+              break
+            fi
+            if ! kill -0 "${preview_pid}" 2>/dev/null; then
+              echo "Production preview exited before becoming ready" >&2
+              exit 1
+            fi
+            if [[ "${attempt}" == "40" ]]; then
+              echo "Production preview did not become ready" >&2
+              exit 1
+            fi
+            sleep 0.25
+          done
+          node --input-type=module <<'EOF'
+          import { writeFileSync } from "node:fs";
+          import { chromium } from "@playwright/test";
+
+          const browser = await chromium.launch({
+            args: [
+              "--disable-background-networking",
+              "--dns-prefetch-disable",
+              "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+            ],
+          });
+          const evidence = [];
+          try {
+            for (const viewport of [
+              { name: "desktop-1728x1117", width: 1728, height: 1117 },
+              { name: "laptop-1366x768", width: 1366, height: 768 },
+              { name: "mobile-390x844", width: 390, height: 844 },
+            ]) {
+              const context = await browser.newContext({
+                colorScheme: "light",
+                deviceScaleFactor: 1,
+                reducedMotion: "reduce",
+                viewport,
+              });
+              const page = await context.newPage();
+              const externalAttempts = [];
+              const pageErrors = [];
+              page.on("console", (message) => {
+                if (message.type() === "error") pageErrors.push(message.text());
+              });
+              page.on("pageerror", (error) => pageErrors.push(error.message));
+              await page.route("**/*", async (route) => {
+                const url = new URL(route.request().url());
+                if (url.hostname === "127.0.0.1") await route.continue();
+                else {
+                  externalAttempts.push(route.request().url());
+                  await route.abort("blockedbyclient");
+                }
+              });
+              await page.goto("http://127.0.0.1:4174/", {
+                waitUntil: "networkidle",
+              });
+              const world = page.getByTestId("riverhold-canvas");
+              await world.waitFor({ state: "visible", timeout: 15_000 });
+              await page.waitForFunction(
+                () =>
+                  document.querySelector('[data-testid="riverhold-canvas"]')
+                    ?.getAttribute("data-ready") === "true",
+                undefined,
+                { timeout: 15_000 },
+              );
+              const probe = await world.evaluate((host) => {
+                const canvas = host.querySelector("canvas");
+                const citizenTargets = JSON.parse(
+                  host.dataset.citizenPickTargets ?? "[]",
+                );
+                return {
+                  activeTaskCount: Number(host.dataset.activeTaskCount),
+                  animationClasses: (host.dataset.animationClasses ?? "")
+                    .split(",")
+                    .filter(Boolean),
+                  canvasHeight: canvas?.clientHeight ?? 0,
+                  canvasWidth: canvas?.clientWidth ?? 0,
+                  citizenTargets: citizenTargets.length,
+                  deviceType: host.dataset.deviceType,
+                  engine: host.dataset.engine,
+                  hostHeight: host.clientHeight,
+                  hostWidth: host.clientWidth,
+                  pixelRatio:
+                    canvas === null
+                      ? 0
+                      : canvas.width / Math.max(1, host.clientWidth),
+                  ready: host.dataset.ready,
+                  semanticCitizens: document.querySelectorAll(
+                    ".semantic-citizens > li",
+                  ).length,
+                };
+              });
+              const failures = [];
+              if (probe.ready !== "true") failures.push("renderer not ready");
+              if (probe.engine !== "playcanvas") failures.push("not PlayCanvas");
+              if (probe.deviceType !== "webgl2") failures.push("not WebGL2");
+              if (
+                probe.canvasWidth !== probe.hostWidth ||
+                probe.canvasHeight !== probe.hostHeight ||
+                probe.hostWidth <= 0 ||
+                probe.hostHeight <= 0
+              ) {
+                failures.push("canvas does not match its visible host");
+              }
+              if (probe.pixelRatio <= 0 || probe.pixelRatio > 1.51) {
+                failures.push(`pixel ratio ${probe.pixelRatio} is outside (0, 1.51]`);
+              }
+              if (probe.semanticCitizens !== 8 || probe.citizenTargets !== 8) {
+                failures.push(
+                  `citizen parity failed: semantic=${probe.semanticCitizens}, projected=${probe.citizenTargets}`,
+                );
+              }
+              if (probe.activeTaskCount < 1) {
+                failures.push("authoritative world exposes no active canonical task");
+              }
+              let camera = null;
+              if (viewport.name === "desktop-1728x1117") {
+                const initialDistance = Number(
+                  await world.getAttribute("data-camera-distance-m"),
+                );
+                await world.focus();
+                await page.keyboard.press("f");
+                await page.waitForFunction(
+                  () =>
+                    Number(
+                      document.querySelector('[data-testid="riverhold-canvas"]')
+                        ?.getAttribute("data-camera-distance-m"),
+                    ) <= 18.1,
+                  undefined,
+                  { timeout: 10_000 },
+                );
+                const focusedDistance = Number(
+                  await world.getAttribute("data-camera-distance-m"),
+                );
+                if (!(focusedDistance < initialDistance)) {
+                  failures.push("keyboard camera follow did not move closer");
+                }
+                camera = { initialDistance, focusedDistance, operation: "f" };
+              }
+              await page.screenshot({
+                animations: "disabled",
+                caret: "hide",
+                fullPage: true,
+                path: `tmp/founder-alpha-ui-evidence/${viewport.name}.png`,
+                scale: "css",
+              });
+              if (externalAttempts.length > 0) {
+                failures.push(`external requests: ${externalAttempts.join(", ")}`);
+              }
+              if (pageErrors.length > 0) {
+                failures.push(`browser errors: ${pageErrors.join(" | ")}`);
+              }
+              if (failures.length > 0) {
+                throw new Error(`${viewport.name}: ${failures.join("; ")}`);
+              }
+              evidence.push({
+                camera,
+                externalAttempts: externalAttempts.length,
+                pageErrors: pageErrors.length,
+                probe,
+                screenshot: `${viewport.name}.png`,
+                trace: "off",
+                viewport,
+              });
+              await context.close();
+            }
+          } finally {
+            await browser.close();
+          }
+          writeFileSync(
+            "tmp/founder-alpha-ui-evidence/renderer-smoke.json",
+            `${JSON.stringify(
+              {
+                evidence,
+                schemaVersion: "eonfolk-renderer-smoke-v1",
+                status: "PASS",
+              },
+              null,
+              2,
+            )}\n`,
+          );
+          EOF
+
+      - name: Retain accepted UI evidence
+        if: success() && steps.classify.outputs.ui == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: founder-alpha-ui-${{ github.run_id }}
+          path: tmp/founder-alpha-ui-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain accepted verification manifest
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verification-manifest-${{ github.run_id }}
+          path: tmp/eonfolk-verification-pr.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Retain failing browser evidence
         if: failure()
@@ -54,6 +304,8 @@ jobs:
           name: browser-failure-${{ github.run_id }}
           path: |
             tmp/riverhold-playwright
+            tmp/founder-alpha-ui-evidence
+            tmp/eonfolk-verification-pr.json
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14
@@ -82,10 +334,13 @@ jobs:
       - name: Fetch verified TLC 1.8.0
         shell: bash
         run: |
+          set -euo pipefail
+          tlc_url="$(node scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node scripts/formal-toolchain.mjs --sha256)"
           curl --fail --location --silent --show-error \
-            https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar \
+            "${tlc_url}" \
             --output "${RUNNER_TEMP}/tla2tools.jar"
-          echo "eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d329789085f8953a80533a  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
 
       - name: Check persistence protocol model
         env:
@@ -114,4 +369,9 @@ jobs:
 
       - name: Scan committed history
         run: |
-          "${RUNNER_TEMP}/gitleaks" git --no-banner --redact --exit-code 1 --log-opts=--all .
+          "${RUNNER_TEMP}/gitleaks" git --no-banner --redact --exit-code 1 --config .gitleaks.toml --log-opts=--all .
+
+      - name: Prove neighboring credentials remain blocked
+        env:
+          GITLEAKS_BIN: ${{ runner.temp }}/gitleaks
+        run: node scripts/check-gitleaks-neighbor.mjs

@@ -14,15 +14,18 @@ importers:
       '@phosphor-icons/react':
         specifier: 2.1.10
         version: 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@playcanvas/react':
+        specifier: 0.11.5
+        version: 0.11.5(playcanvas@2.21.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tailwindcss/vite':
         specifier: 4.3.3
         version: 4.3.3(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
       motion:
         specifier: 13.1.0
         version: 13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      pixi.js:
-        specifier: 8.19.0
-        version: 8.19.0
+      playcanvas:
+        specifier: 2.21.4
+        version: 2.21.4
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -60,6 +63,9 @@ importers:
       fast-check:
         specifier: 4.9.0
         version: 4.9.0
+      pixi.js:
+        specifier: 8.19.0
+        version: 8.19.0
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -70,11 +76,16 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
 
+  apps/feedback-worker: {}
+
   apps/web:
     dependencies:
       '@eonfolk/cognition':
         specifier: workspace:*
         version: link:../../packages/cognition
+      '@eonfolk/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
       '@eonfolk/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
@@ -84,9 +95,15 @@ importers:
       '@eonfolk/sim':
         specifier: workspace:*
         version: link:../../packages/sim
-      pixi.js:
-        specifier: 8.19.0
-        version: 8.19.0
+      '@eonfolk/world-presentation':
+        specifier: workspace:*
+        version: link:../../packages/world-presentation
+      '@playcanvas/react':
+        specifier: 0.11.5
+        version: 0.11.5(playcanvas@2.21.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      playcanvas:
+        specifier: 2.21.4
+        version: 2.21.4
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -125,6 +142,12 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/diagnostics:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/observatory:
     dependencies:
       '@eonfolk/sim':
@@ -140,6 +163,8 @@ importers:
       '@eonfolk/protocol':
         specifier: workspace:*
         version: link:../protocol
+
+  packages/world-presentation: {}
 
 packages:
 
@@ -295,6 +320,18 @@ packages:
 
   '@pixi/colord@2.9.6':
     resolution: {integrity: sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA==}
+
+  '@playcanvas/react@0.11.5':
+    resolution: {integrity: sha512-GlEyEJf9qCsQ9NoL8vXTFg7a6tsB99udia/AHgJmie1vl+dECPg8Itv8UU4iuiFWhqmF4binP/XPkCCARm6sGQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      playcanvas: ^2.11.8
+      react: ^18.3.1 || ^19.1.0
+      react-dom: ^18.3.1 || ^19.1.0
+      sync-ammo: ^0.1.2
+    peerDependenciesMeta:
+      sync-ammo:
+        optional: true
 
   '@playwright/test@1.62.1':
     resolution: {integrity: sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==}
@@ -514,6 +551,9 @@ packages:
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
+  '@types/webxr@0.5.24':
+    resolution: {integrity: sha512-h8fgEd/DpoS9CBrjEQXR+dIDraopAEfu4wYVNY2tEPwk60stPWhvZMf4Foo5FakuQ7HFZoa8WceaWFervK2Ovg==}
+
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
     engines: {node: '>=16.20.0'}
@@ -694,6 +734,7 @@ packages:
   '@xmldom/xmldom@0.8.14':
     resolution: {integrity: sha512-T4EDRUBVZYRldYApjEJiU0e1stYWaRAX7CuSnKzrpwdZKo53zGV8/pqfzV6FfwNl9YThD2OumQYvqtvjvgG7aQ==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
@@ -714,6 +755,14 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  dedent@1.7.2:
+    resolution: {integrity: sha512-WzMx3mW98SN+zn3hgemf4OzdmyNhhhKz5Ay0pUfQiMQ3e1g+xmTJWp/pKdwKVXhdSkAEGIIzqeuWrL3mV/AXbA==}
+    peerDependencies:
+      babel-plugin-macros: ^3.1.0
+    peerDependenciesMeta:
+      babel-plugin-macros:
+        optional: true
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -1010,6 +1059,10 @@ packages:
 
   pixi.js@8.19.0:
     resolution: {integrity: sha512-pq1O6emA/GFjjeF+8d3Pb5t7knD8FsnfWGqQcRjYjsqFZ7QdzG1XgjLDUu0DFJRbafjV5+g8iNLFBx0b9649lg==}
+
+  playcanvas@2.21.4:
+    resolution: {integrity: sha512-L4UGy3z/YT8AaNBEY4ITsZup548UFMabF7loh0YQ0DRwQLdjIW8grmZPoQ1+B83+N6sejRS0/XlXV2Vfb11+fw==}
+    engines: {node: '>=18.3.0'}
 
   playwright-core@1.62.1:
     resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
@@ -1333,6 +1386,15 @@ snapshots:
 
   '@pixi/colord@2.9.6': {}
 
+  '@playcanvas/react@0.11.5(playcanvas@2.21.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      dedent: 1.7.2
+      playcanvas: 2.21.4
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+
   '@playwright/test@1.62.1':
     dependencies:
       playwright: 1.62.1
@@ -1474,6 +1536,8 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
+  '@types/webxr@0.5.24': {}
+
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
 
@@ -1613,6 +1677,8 @@ snapshots:
   cookie-es@3.1.1: {}
 
   csstype@3.2.3: {}
+
+  dedent@1.7.2: {}
 
   detect-libc@2.1.2: {}
 
@@ -1837,6 +1903,11 @@ snapshots:
       ismobilejs: 1.1.1
       parse-svg-path: 0.2.0
       tiny-lru: 11.4.7
+
+  playcanvas@2.21.4:
+    dependencies:
+      '@types/webxr': 0.5.24
+      '@webgpu/types': 0.1.72
 
   playwright-core@1.62.1: {}
 

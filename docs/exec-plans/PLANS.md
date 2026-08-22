@@ -2,9 +2,9 @@
 
 **Purpose:** Define how implementation plans are written, maintained, evidenced, reviewed and closed.
 
-**Status:** ACCEPTED FOR FUTURE IMPLEMENTATION
+**Status:** ACTIVE FOR FOUNDER ALPHA
 
-**Authority boundary:** This file owns ExecPlan format and maintenance. [001-foundation](active/001-foundation.md) owns the first slice; the [Goal prompt](IMPLEMENTATION_GOAL_PROMPT.md) owns orchestration instructions.
+**Authority boundary:** This file owns ExecPlan format and maintenance. [002 Founder Alpha](active/002-founder-alpha.md) is the sole living plan; [001-foundation](completed/001-foundation.md) owns completed first-slice history.
 
 **Related documents:** [quality bar](../quality/QUALITY_BAR.md), [testing](../quality/TESTING.md), [visual QA](../quality/VISUAL_QA.md), [planning status](../../PLAN.md).
 

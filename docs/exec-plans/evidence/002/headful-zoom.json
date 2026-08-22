@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "eonfolk-headful-zoom-evidence-v1",
+  "status": "PASS_EQUIVALENT_REFLOW",
+  "claimBoundary": "A clean production build was rendered in headful Chrome with a CDP 200%-equivalent CSS viewport/DPR override. This proves reflow and action availability under equivalent page metrics; direct browser-UI zoom control was OS-denied and is NOT_RUN.",
+  "sourceCommit": "cb535f4",
+  "runtime": "Node 22.23.1 arm64",
+  "browser": "Chrome 151.0.7922.172 arm64, headful",
+  "origin": "http://127.0.0.1:4174/",
+  "method": {
+    "startingWindowCssPixels": [1200, 868],
+    "startingDevicePixelRatio": 2,
+    "equivalentCssPixels": [600, 434],
+    "equivalentDevicePixelRatio": 4,
+    "cdpCommand": "Emulation.setDeviceMetricsOverride",
+    "storage": "fresh origin storage before journey"
+  },
+  "arrival": {
+    "clientWidth": 585,
+    "scrollWidth": 585,
+    "horizontalOverflow": false,
+    "followMaraPresent": true,
+    "followMaraBounds": {
+      "x": 16,
+      "y": 519.8359375,
+      "width": 553,
+      "height": 50
+    }
+  },
+  "counsel": {
+    "clientWidth": 585,
+    "scrollWidth": 585,
+    "horizontalOverflow": false,
+    "radioCount": 3,
+    "offerCounselPresent": true,
+    "offerCounselBounds": {
+      "x": 18.3984375,
+      "y": 1892.9296875,
+      "width": 548.203125,
+      "height": 54
+    }
+  },
+  "unsupported": {
+    "directBrowserUiZoom": "NOT_RUN_OS_ACCESSIBILITY_PERMISSION_DENIED",
+    "screenReader": "NOT_RUN",
+    "physicalDevice": "NOT_RUN",
+    "humanComprehension": "NOT_RUN"
+  }
+}

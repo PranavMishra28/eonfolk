@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED AND VERIFIED — COMPLETE LOCAL BASELINE, PUSHED-CANDIDATE CI, FINAL PROTECTION PROBE, AND HARDENING GREEN
+**Status:** IMPLEMENTED — exact-YES confirmation, final implementation-head GitHub CI, and exact clean target-Mac DEEP passed; final docs-head CI and merge pending
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 
@@ -13,6 +13,8 @@
 Every relevant implementation PR runs a short, blocking baseline. Expensive horizons and matrices run nightly/manual. The repository uses a PR-based solo-maintainer workflow with no automatic merges and no invented enterprise ceremony. `.github/workflows/ci.yml` now implements Verify, Formal model, and Secret scan jobs with actions pinned by commit SHA.
 
 The exact local baseline is `pnpm verify`. At `4a677a743d4efcdc337c6ffc0c79d63edee69e8f` it passed 63 unit tests, two property tests, a real Chromium IndexedDB reload test, the fixed 20-warmup/200-cycle decision-trace timing analyzer, build/bundle checks, production dependency audit, eight Playwright journeys, 334 routed requests and 36,489 Chromium-netlog events with zero external attempts, and bounded TLC model checking (3,480 generated/350 distinct states, depth 10, five invariants). Gitleaks 8.30.1 separately scanned all then-existing local history with no leaks. Pushed candidate `7d857a216cb9fbd76f2a0afd64418822a84b9a2e` passed GitHub Verify, Formal model, and full-history Secret scan in [run 32481390293](https://github.com/PranavMishra28/eonfolk/actions/runs/32481390293). The [review reconciliation](../reviews/IMPLEMENTATION_FINAL_REVIEW.md) states what this does not prove.
+
+Final implementation head `f818d1069401a1f8e14d2ca6badec29841afbd81` passed protected GitHub `Verify`, `Formal model`, and full-history `Secret scan` in [run 32559456985](https://github.com/PranavMishra28/eonfolk/actions/runs/32559456985). Its Linux PR manifest recorded nineteen passing constituents, including two semantic injected-fault journeys, fourteen semantic product journeys, and a real trace-free PlayCanvas/WebGL2 renderer smoke at all three required viewports. The same exact clean source then completed target-Mac `pnpm verify:deep`: **26/26** ordered constituents passed with unchanged source/lockfile, **191 tests in 23 files**, all sixteen illustrated production journeys, all deep-only profiles, and output SHA-256 `21e85a3e875ca79d0d6e31b25d4ba19f1c871bb6c22c780cf777ba877cfb689d`. This closes implementation-head local and remote verification. The final docs-only Mega PR head must still pass the three protected checks before merge.
 
 ## Blocking PR baseline
 
@@ -36,10 +38,10 @@ When cognition, Mind schemas, proposal validators, or Standard Brain change, run
 - authorization, stale revision, hidden-fact, injection, and partial-mutation fixtures;
 - observation/knowledge/belief/memory/message-claim separation and provenance closure;
 - raw cognitive decision-record hash/context/plan/proposal/validation/receipt/event link integrity plus filtered trace authorization/nonexposure;
-- missing/throwing/timed-out/malformed fake `BrainPort` and deterministic fallback;
+- recursive proposal closure, byte/depth/count bounds, reference authorization, authored-template/hash checks, and Standard Brain-only liveness;
 - perturbation, transfer, baseline, ablation, hidden-fact noninterference, and fixed behavior regressions.
 
-If a real provider/model adapter is later added, additionally run provider timeout/429/revoke/malformed/absence and exact adapter/model/runtime/prompt regressions. No provider-specific route is required in V1.
+If a real provider/model adapter is later added, additionally run hung/late/cancel/process-kill, timeout/429/revoke/malformed/absence, and exact adapter/model/runtime/prompt regressions. No executable optional adapter or provider-specific route exists in Founder Alpha.
 
 When a major UI, renderer, asset, layout, motion, or design-token change occurs, capture deterministic desktop, laptop, and mobile screenshots, inspect them, and retain failing traces where practical. Screenshot pixel comparison is a diagnostic, not the sole visual reviewer.
 
@@ -74,6 +76,24 @@ Keep PR CI short enough for a solo loop. Use small seed sets and bounded fuzzing
 - repeated performance profiles to identify variance.
 
 A nightly failure blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR.
+
+## Founder Alpha verification lattice
+
+- **FAST:** runtime/cohort/architecture/docs/format/lint/typecheck plus focused unit/contract tests for changed packages.
+- **PR:** FAST plus all unit/property tests, deterministic replay, fail-closed real IndexedDB evidence, timing, production build/budgets/audit, critical headed player journeys, zero-egress validation, diagnostic/feedback security tests, and the exact-digest bounded formal model.
+- **DEEP:** 500-run/320-command deterministic property/fuzz profile; 30/90/365-day horizons; fail-closed persistence evidence; repeated source and browser OFF/LOCAL/ALPHA comparisons; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes.
+
+Each tier is a maintained command. A named but unimplemented or rejected check is removed from the promised surface. Results bind commit, environment, inputs, command, duration, pass/fail/not-run, and artifact hashes where material. A build or backend suite cannot substitute for a local game run and browser-visible evidence.
+
+The browser stage separates **two explicitly test-only crash-injection journeys** from production acceptance. On Linux CI it runs the two faults and fourteen product journeys through the fully playable semantic world, then requires a trace-free production PlayCanvas/WebGL2 renderer smoke at 1728×1117, 1366×768, and 390×844. This split responds to measured SwiftShader-plus-tracing stalls; it does not claim the semantic suite visually exercised the renderer. The smoke proves real renderer readiness, containment, pixel ratio, eight-citizen projection/semantic parity, visible active work, desktop keyboard camera movement, and zero browser errors/egress. Target-Mac PR/DEEP keeps all **sixteen illustrated production journeys**, including cadence and spatial picking. Both environments rebuild with the exact production configuration and inspect the existing `dist`; the wrapper fails closed if `dist` is empty or retains either crash-injection marker. PR artifacts hash only inspected production files. DEEP manifests additionally admit only the four benchmark outputs produced by that tier, so stale files cannot enter acceptance.
+
+The comparative browser diagnostics benchmark uses the current `Review Mara's choices` accessible control and runs the same arrival -> follow -> investigate -> counsel -> leave/return -> Chronicle path in OFF, LOCAL, and ALPHA builds. A dirty-tree `--smoke-only` run may prove path execution but cannot satisfy DEEP acceptance; only the clean-tree command can return `PASS`.
+
+The v2 tier manifest is produced by the same declared step list that executes acceptance. PR records nineteen ordered constituent results; DEEP is that exact ordered prefix plus seven DEEP-only results. Every row contains a stable ID, the executed command, duration, exit code, and PASS/FAIL status. Execution stops at the first failure and records no result for work it did not run. `verify:pr:checks` and `verify:deep:checks` remain convenient check-only entry points, but delegate to these runner-owned lists so the executable sequence and evidence schema cannot drift.
+
+The clean local DEEP run at `59edef3c768d9a3fe9409f07d77d49fded4b9554` passed all 26 ordered rows, but that invalidated historical Pixi candidate cannot release the PlayCanvas world. Release-valid exact final implementation head `f818d1069401a1f8e14d2ca6badec29841afbd81` passed the same 26-row lattice with 191 unit tests in 23 files, 8/8 targeted mutants, the 500-run/320-command property profile, two fault journeys, all sixteen illustrated production journeys, bounded TLC (3,480 generated/350 distinct states, depth 10, five invariants), exact browser-cohort validation, persistence/diagnostic measurements, and fifteen canonical performance journeys. Its protected remote run passed all three required jobs and retained accepted UI/manifest artifacts under the declared 30-day policy.
+
+Cognition changes additionally prove schema/authorization, hidden-fact noninterference, Standard Brain-only liveness, replay without cognition, control/ablation/transfer behavior, planner-promotion fail-closure, pre-run experiment identity/result-journal isolation, and authorized Chronicle-to-Observatory projection. Provider timeout/malformed/fallback checks become mandatory only when an executable adapter exists. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus actual 200% browser zoom, keyboard/dialog focus, reduced motion, selectable semantic fallback, and failing traces where practical.
 
 ## Dependabot and updates
 

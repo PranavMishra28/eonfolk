@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
 	type CrashPoint,
+	DEFAULT_PERSISTENCE_BOUNDS,
 	MemoryPersistence,
 	PersistenceError,
+	validateReceipt,
 } from "../../../packages/persistence/src/index.js";
 import {
 	catchUp,
@@ -26,6 +28,22 @@ class OneShotCrash {
 }
 
 describe("MemoryPersistence", () => {
+	it("rejects an empty interval on an accepted receipt", () => {
+		const head = genesis().head;
+		const receipt = transition(head, 1).receipt;
+		expect(() =>
+			validateReceipt(
+				{
+					...receipt,
+					toSequenceExclusive: receipt.fromSequenceInclusive,
+				},
+				RUN_ID,
+				REGION_ID,
+				DEFAULT_PERSISTENCE_BOUNDS,
+			),
+		).toThrow(/interval must be non-empty/u);
+	});
+
 	it("atomically creates one local genesis and detects run collisions", async () => {
 		const crash = new OneShotCrash();
 		const persistence = new MemoryPersistence({ crashInjector: crash });

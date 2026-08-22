@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { jcs } from "../../../packages/protocol/src/index.js";
+import {
+	DETERMINISM_VERSION,
+	ENGINE_VERSION,
+	jcs,
+	PROTOCOL_SCHEMA_VERSION,
+	REPLAY_VERSION,
+} from "../../../packages/protocol/src/index.js";
 import {
 	citizenBySlug,
 	createWorldCommand,
 	prepareTransition,
+	reducePayload,
 	replayLedger,
 	resourceTotals,
 } from "../../../packages/sim/src/index.js";
@@ -45,6 +52,274 @@ describe("Riverhold deterministic Reality", () => {
 		).toHaveLength(2);
 		expect(genesis.experimentManifest.provider).toBeNull();
 		expect(genesis.experimentManifest.runKind).toBe("canonical-local-proof");
+		expect(Object.keys(genesis.state.taskReservations)).toHaveLength(4);
+		expect(
+			Object.values(genesis.state.taskReservations).flatMap(
+				(reservation) => reservation.citizenIds,
+			),
+		).toHaveLength(5);
+		expect(
+			["sela", "rowan", "neri"].map((slug) => {
+				const citizen = citizenBySlug(genesis.state, slug);
+				return {
+					slug,
+					activeTaskId: citizen.activeTaskId,
+					origin: citizen.placeId,
+					destination: citizen.travel?.destinationPlaceId,
+				};
+			}),
+		).toEqual([
+			{
+				slug: "sela",
+				activeTaskId: null,
+				origin: "market",
+				destination: "spring",
+			},
+			{
+				slug: "rowan",
+				activeTaskId: null,
+				origin: "mill",
+				destination: "woods",
+			},
+			{
+				slug: "neri",
+				activeTaskId: null,
+				origin: "granary",
+				destination: "fields",
+			},
+		]);
+	});
+
+	it("keeps origin authoritative until deterministic arrival and replays the travel boundary", async () => {
+		const genesis = await riverholdFixture();
+		const mara = citizenBySlug(genesis.state, "mara");
+		const moveCommand = await command(genesis.state, "cmd_truthful_travel", {
+			kind: "MoveCitizen",
+			citizenId: mara.citizenId,
+			toPlaceId: "granary",
+		});
+		const started = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			moveCommand,
+		);
+		const repeated = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			moveCommand,
+		);
+		expect(jcs(repeated)).toBe(jcs(started));
+		expect(started.events.map((event) => event.eventPayload.kind)).toEqual([
+			"TravelStarted",
+		]);
+		expect(started.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "market",
+			activeTaskId: null,
+			travel: {
+				originPlaceId: "market",
+				destinationPlaceId: "granary",
+				routeId: "market>granary",
+				departureSimulationTime: 0,
+				expectedArrivalSimulationTime: 90,
+			},
+		});
+		expect(
+			Object.values(started.postState.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(mara.citizenId),
+			),
+		).toBe(false);
+
+		const inProgress = await prepareTransition(
+			started.postState,
+			started.resultingWorldHeadHash,
+			await command(started.postState, "cmd_truthful_travel_89", {
+				kind: "Advance",
+				seconds: 89,
+			}),
+		);
+		expect(inProgress.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "market",
+			travel: { expectedArrivalSimulationTime: 90 },
+		});
+		expect(
+			inProgress.events.some(
+				(event) =>
+					event.eventPayload.kind === "TravelArrived" &&
+					event.eventPayload.citizenId === mara.citizenId,
+			),
+		).toBe(false);
+
+		const arrived = await prepareTransition(
+			inProgress.postState,
+			inProgress.resultingWorldHeadHash,
+			await command(inProgress.postState, "cmd_truthful_travel_90", {
+				kind: "Advance",
+				seconds: 1,
+			}),
+		);
+		expect(arrived.postState.citizens[mara.citizenId]).toMatchObject({
+			placeId: "granary",
+			travel: null,
+			activeTaskId: null,
+		});
+		expect(
+			arrived.events.some(
+				(event) =>
+					event.eventPayload.kind === "TravelArrived" &&
+					event.eventPayload.citizenId === mara.citizenId,
+			),
+		).toBe(true);
+
+		const allEvents = [
+			...started.events,
+			...inProgress.events,
+			...arrived.events,
+		];
+		const replay = await replayLedger({
+			snapshotState: genesis.state,
+			snapshotStateHash: genesis.initialStateHash,
+			baseWorldHeadHash: genesis.genesisWorldHeadHash,
+			headers: [
+				started.batchHeader!,
+				inProgress.batchHeader!,
+				arrived.batchHeader!,
+			],
+			events: allEvents,
+			manifest: {
+				schemaVersion: "eonfolk-replay-manifest-v1",
+				runId: genesis.state.runId,
+				regionId: genesis.state.regionId,
+				worldSeedHex: genesis.state.worldSeedHex,
+				experimentManifestHash: genesis.experimentManifest.manifestHash,
+				snapshot: {
+					runId: genesis.state.runId,
+					regionId: genesis.state.regionId,
+					snapshotId: "snapshot_travel_genesis",
+					baseSequence: 0,
+					stateHash: genesis.initialStateHash,
+					baseWorldHeadHash: genesis.genesisWorldHeadHash,
+				},
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: 1 + allEvents.length,
+				engineVersion: ENGINE_VERSION,
+				worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+				determinismVersion: DETERMINISM_VERSION,
+				replayVersion: REPLAY_VERSION,
+				expectedFinalStateHash: arrived.finalStateHash,
+				expectedFinalWorldHeadHash: arrived.resultingWorldHeadHash,
+				presentation: { title: "travel boundary replay", branch: null },
+			},
+		});
+		expect(jcs(replay.state)).toBe(jcs(arrived.postState));
+		expect(replay.stateHash).toBe(arrived.finalStateHash);
+	});
+
+	it("owns work slots in Reality and rejects a conflicting reassignment", async () => {
+		const genesis = await riverholdFixture();
+		const toma = citizenBySlug(genesis.state, "toma");
+		const iven = citizenBySlug(genesis.state, "iven");
+		const mara = citizenBySlug(genesis.state, "mara");
+		const exchangeReservation = Object.values(
+			genesis.state.taskReservations,
+		).find((reservation) => reservation.affordanceId === "market-exchange");
+		expect(exchangeReservation?.citizenIds).toEqual([
+			toma.citizenId,
+			iven.citizenId,
+		]);
+		expect(toma.activeTaskId).toBe(exchangeReservation?.taskId);
+		expect(iven.activeTaskId).toBe(exchangeReservation?.taskId);
+
+		const conflict = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_conflicting_exchange", {
+				kind: "Exchange",
+				firstCitizenId: mara.citizenId,
+				secondCitizenId: toma.citizenId,
+				firstGives: { resource: "water", quantity: 1 },
+				secondGives: { resource: "food", quantity: 1 },
+			}),
+		);
+		expect(conflict.accepted).toBe(false);
+		expect(conflict.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(conflict.postState).toBe(genesis.state);
+		expect(conflict.events).toEqual([]);
+	});
+
+	it("keeps the opening exchange authoritative through mobile world readiness before settling once", async () => {
+		const genesis = await riverholdFixture();
+		let state = genesis.state;
+		let head = genesis.genesisWorldHeadHash;
+		for (let boundary = 1; boundary <= 3; boundary += 1) {
+			const transition = await prepareTransition(
+				state,
+				head,
+				await command(state, `cmd_exchange_visible_${boundary}`, {
+					kind: "Advance",
+					seconds: 60,
+				}),
+			);
+			expect(
+				transition.events.some(
+					(event) => event.eventPayload.kind === "ExchangeCompleted",
+				),
+			).toBe(false);
+			expect(
+				Object.values(transition.postState.taskReservations).some(
+					(reservation) => reservation.affordanceId === "market-exchange",
+				),
+			).toBe(true);
+			state = transition.postState;
+			head = transition.resultingWorldHeadHash;
+		}
+
+		const settled = await prepareTransition(
+			state,
+			head,
+			await command(state, "cmd_exchange_settle", {
+				kind: "Advance",
+				seconds: 60,
+			}),
+		);
+		expect(
+			settled.events.filter(
+				(event) => event.eventPayload.kind === "ExchangeCompleted",
+			),
+		).toHaveLength(1);
+		expect(
+			Object.values(settled.postState.taskReservations).some(
+				(reservation) => reservation.affordanceId === "market-exchange",
+			),
+		).toBe(false);
+		expect(resourceTotals(settled.postState)).toEqual(
+			genesis.state.conservation.baseline,
+		);
+	});
+
+	it("accepts the legacy atomic movement event while clearing obsolete occupancy", async () => {
+		const genesis = await riverholdFixture();
+		const mara = citizenBySlug(genesis.state, "mara");
+		const migrated = reducePayload(
+			genesis.state,
+			{
+				kind: "CitizenMoved",
+				citizenId: mara.citizenId,
+				fromPlaceId: "market",
+				toPlaceId: "granary",
+				behavior: "fulfill-plan",
+			},
+			{ eventId: "legacy-move-event", sequence: 1, finalRevision: 1 },
+		);
+		expect(migrated.citizens[mara.citizenId]).toMatchObject({
+			placeId: "granary",
+			travel: null,
+			activeTaskId: null,
+		});
+		expect(
+			Object.values(migrated.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(mara.citizenId),
+			),
+		).toBe(false);
 	});
 
 	it("advances eight citizens through four legible behavior families without creating resources", async () => {
@@ -58,7 +333,15 @@ describe("Riverhold deterministic Reality", () => {
 			}),
 		);
 		expect(first.accepted).toBe(true);
-		expect(first.events.length).toBeGreaterThanOrEqual(7);
+		expect(first.events.map((event) => event.eventPayload.kind)).toEqual(
+			expect.arrayContaining([
+				"TimeAdvanced",
+				"ExchangeCompleted",
+				"MillRepaired",
+				"TravelArrived",
+			]),
+		);
+		expect(first.events).toHaveLength(6);
 		const second = await prepareTransition(
 			first.postState,
 			first.resultingWorldHeadHash,
@@ -88,6 +371,103 @@ describe("Riverhold deterministic Reality", () => {
 				(event) => event.eventPayload.kind === "ExchangeCompleted",
 			),
 		).toBe(true);
+	});
+
+	it("moves gatherers through arrival, reserved work, atomic result, and plan resume", async () => {
+		const genesis = await riverholdFixture();
+		const sela = citizenBySlug(genesis.state, "sela");
+		const arrived = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_gather_arrival", {
+				kind: "Advance",
+				seconds: 150,
+			}),
+		);
+		const reservation = Object.values(arrived.postState.taskReservations).find(
+			(candidate) => candidate.affordanceId === "spring-water",
+		);
+		expect(arrived.postState.citizens[sela.citizenId]).toMatchObject({
+			placeId: "spring",
+			travel: null,
+			activeTaskId: reservation?.taskId,
+			currentBehavior: "acquire-resource",
+		});
+		expect(reservation?.citizenIds).toEqual([sela.citizenId]);
+		expect(arrived.postState.resourceSites.spring!.quantity).toBe(
+			genesis.state.resourceSites.spring!.quantity,
+		);
+
+		const completed = await prepareTransition(
+			arrived.postState,
+			arrived.resultingWorldHeadHash,
+			await command(arrived.postState, "cmd_gather_result", {
+				kind: "Advance",
+				seconds: 30,
+			}),
+		);
+		expect(
+			completed.events.filter(
+				(event) =>
+					event.eventPayload.kind === "ResourceGathered" &&
+					event.eventPayload.citizenId === sela.citizenId,
+			),
+		).toHaveLength(1);
+		expect(completed.postState.citizens[sela.citizenId]).toMatchObject({
+			activeTaskId: null,
+			currentBehavior: "fulfill-plan",
+		});
+		expect(completed.postState.resourceSites.spring!.quantity).toBe(
+			genesis.state.resourceSites.spring!.quantity - 1,
+		);
+		expect(resourceTotals(completed.postState)).toEqual(
+			genesis.state.conservation.baseline,
+		);
+	});
+
+	it("admits simultaneous arrivals while preserving a capacity-one work slot", async () => {
+		const genesis = await riverholdFixture();
+		const iven = citizenBySlug(genesis.state, "iven");
+		const toma = citizenBySlug(genesis.state, "toma");
+		const exchanged = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_capacity_exchange", {
+				kind: "Exchange",
+				firstCitizenId: iven.citizenId,
+				secondCitizenId: toma.citizenId,
+				firstGives: { resource: "wood", quantity: 1 },
+				secondGives: { resource: "food", quantity: 1 },
+			}),
+		);
+		const travelling = await prepareTransition(
+			exchanged.postState,
+			exchanged.resultingWorldHeadHash,
+			await command(exchanged.postState, "cmd_capacity_travel", {
+				kind: "MoveCitizen",
+				citizenId: iven.citizenId,
+				toPlaceId: "spring",
+			}),
+		);
+		const arrived = await prepareTransition(
+			travelling.postState,
+			travelling.resultingWorldHeadHash,
+			await command(travelling.postState, "cmd_capacity_arrival", {
+				kind: "Advance",
+				seconds: 150,
+			}),
+		);
+		const state = arrived.postState;
+		expect(
+			Object.values(state.taskReservations).filter(
+				(reservation) => reservation.affordanceId === "spring-water",
+			),
+		).toHaveLength(1);
+		expect(
+			Object.values(state.citizens).filter(
+				(citizen) => citizen.placeId === "spring" && citizen.travel === null,
+			).length,
+		).toBeGreaterThanOrEqual(2);
 	});
 
 	it("settles exchange atomically and rejects an impossible retry without mutation", async () => {
@@ -131,31 +511,39 @@ describe("Riverhold deterministic Reality", () => {
 		);
 	});
 
-	it("uses exactly two wood in the authored repair recipe", async () => {
+	it("commits the reserved mill repair once, releases Odo, and consumes exactly two settlement wood", async () => {
 		const genesis = await riverholdFixture();
-		const iven = citizenBySlug(genesis.state, "iven");
-		const moved = await prepareTransition(
+		const odo = citizenBySlug(genesis.state, "odo");
+		const repaired = await prepareTransition(
 			genesis.state,
 			genesis.genesisWorldHeadHash,
-			await command(genesis.state, "cmd_move_iven", {
-				kind: "MoveCitizen",
-				citizenId: iven.citizenId,
-				toPlaceId: "mill",
-			}),
-		);
-		const repaired = await prepareTransition(
-			moved.postState,
-			moved.resultingWorldHeadHash,
-			await command(moved.postState, "cmd_repair", {
-				kind: "RepairMill",
-				citizenId: iven.citizenId,
+			await command(genesis.state, "cmd_complete_reserved_repair", {
+				kind: "Advance",
+				seconds: 1,
 			}),
 		);
 		expect(repaired.accepted).toBe(true);
+		expect(
+			repaired.events.filter(
+				(event) => event.eventPayload.kind === "MillRepaired",
+			),
+		).toHaveLength(1);
 		expect(repaired.postState.mill).toMatchObject({
 			repaired: true,
 			woodConsumed: 2,
 		});
+		expect(repaired.postState.settlementInventory.wood).toBe(
+			genesis.state.settlementInventory.wood - 2,
+		);
+		expect(repaired.postState.citizens[odo.citizenId]).toMatchObject({
+			activeTaskId: null,
+			currentBehavior: "fulfill-plan",
+		});
+		expect(
+			Object.values(repaired.postState.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(odo.citizenId),
+			),
+		).toBe(false);
 		expect(resourceTotals(repaired.postState)).toEqual(
 			genesis.state.conservation.baseline,
 		);
@@ -197,6 +585,30 @@ describe("Riverhold deterministic Reality", () => {
 			baseWorldHeadHash: genesis.genesisWorldHeadHash,
 			headers: [first.batchHeader!, counsel.batchHeader!],
 			events: [...first.events, ...counsel.events],
+			manifest: {
+				schemaVersion: "eonfolk-replay-manifest-v1",
+				runId: genesis.state.runId,
+				regionId: genesis.state.regionId,
+				worldSeedHex: genesis.state.worldSeedHex,
+				experimentManifestHash: genesis.experimentManifest.manifestHash,
+				snapshot: {
+					runId: genesis.state.runId,
+					regionId: genesis.state.regionId,
+					snapshotId: "snapshot_genesis",
+					baseSequence: 0,
+					stateHash: genesis.initialStateHash,
+					baseWorldHeadHash: genesis.genesisWorldHeadHash,
+				},
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: 1 + first.events.length + counsel.events.length,
+				engineVersion: ENGINE_VERSION,
+				worldSchemaVersion: PROTOCOL_SCHEMA_VERSION,
+				determinismVersion: DETERMINISM_VERSION,
+				replayVersion: REPLAY_VERSION,
+				expectedFinalStateHash: counsel.finalStateHash,
+				expectedFinalWorldHeadHash: counsel.resultingWorldHeadHash,
+				presentation: { title: "test replay", branch: null },
+			},
 		});
 		expect(jcs(replay.state)).toBe(jcs(counsel.postState));
 		expect(replay.stateHash).toBe(counsel.finalStateHash);

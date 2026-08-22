@@ -8,9 +8,13 @@ const projects = [
 	"packages/cognition/tsconfig.json",
 	"packages/persistence/tsconfig.json",
 	"packages/observatory/tsconfig.json",
+	"packages/diagnostics/tsconfig.json",
+	"packages/world-presentation/tsconfig.json",
 	"tests/unit/systems/tsconfig.json",
 	"tests/unit/persistence/tsconfig.json",
 	"tests/unit/observatory/tsconfig.json",
+	"tests/unit/diagnostics/tsconfig.json",
+	"tests/unit/world-presentation/tsconfig.json",
 	"apps/web/tsconfig.json",
 ];
 
