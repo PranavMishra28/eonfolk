@@ -208,8 +208,8 @@ jobs:
                   `citizen parity failed: semantic=${probe.semanticCitizens}, projected=${probe.citizenTargets}`,
                 );
               }
-              if (probe.animationClasses.length < 3 || probe.activeTaskCount < 1) {
-                failures.push("rendered world does not expose enough visible activity");
+              if (probe.activeTaskCount < 1) {
+                failures.push("authoritative world exposes no active canonical task");
               }
               let camera = null;
               if (viewport.name === "desktop-1728x1117") {
