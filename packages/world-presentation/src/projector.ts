@@ -5,6 +5,7 @@ import type {
 	SpatialActorProjection,
 	SpatialCitizenInput,
 	SpatialInteractionProjection,
+	SpatialNode,
 	SpatialPointMm,
 	SpatialProjection,
 } from "./types";
@@ -20,7 +21,7 @@ const actionNodeByPlace: Readonly<Record<string, string>> = Object.freeze({
 	fields: "fields:work",
 });
 
-const point = (nodeId: string): SpatialPointMm => {
+const point = (nodeId: string): SpatialNode => {
 	const value = riverholdSpatialScene.nodes[nodeId];
 	if (value === undefined) throw new Error(`Missing spatial node ${nodeId}`);
 	return value;
@@ -116,7 +117,7 @@ function projectActor(
 			role: citizen.role,
 			placeId: citizen.placeId,
 			positionMm: Object.freeze(point(slotId)),
-			facingDegrees: citizen.slug === "toma" ? 90 : -90,
+			facingDegrees: point(slotId).facingDegrees,
 			routeNodeIds: Object.freeze([slotId]),
 			animationClass: "exchange",
 			prop: citizen.slug === "toma" ? "trade" : "logs",
@@ -164,7 +165,8 @@ function projectActor(
 		});
 	}
 	const actionNode = actionNodeByPlace[citizen.placeId] ?? defaultNode;
-	const positionMm = point(actionNode);
+	const actionAffordance = point(actionNode);
+	const positionMm = actionAffordance;
 	const routeNodeIds = Object.freeze([actionNode]);
 	const animationClass = citizen.canonicalAction.kind;
 	return Object.freeze({
@@ -174,8 +176,7 @@ function projectActor(
 		role: citizen.role,
 		placeId: citizen.placeId,
 		positionMm: Object.freeze(positionMm),
-		facingDegrees:
-			citizen.placeId === "market" ? 145 : citizen.placeId === "mill" ? 90 : 25,
+		facingDegrees: actionAffordance.facingDegrees,
 		routeNodeIds,
 		animationClass,
 		prop:
