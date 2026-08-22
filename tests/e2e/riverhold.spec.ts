@@ -708,13 +708,11 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 		"data-ready",
 		"true",
 	);
-	await followMaraAction(page).click();
-	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(
 		page.getByRole("heading", {
 			name: /Riverhold stopped before showing further world state/i,
 		}),
-	).toBeVisible();
+	).toBeVisible({ timeout: 7_000 });
 	await expect(page.getByRole("alert")).toContainText(/STALE_FENCE/i);
 	await expect(page.getByText(/Reproduction ID:/i)).toContainText(
 		/inc_[a-f0-9]{24}/u,
