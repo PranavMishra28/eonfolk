@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — world-presence architecture override is P1/release-blocking; prior clean-DEEP candidate invalidated
+**Status:** ACTIVE — World-as-Product steering override is P1/release-blocking; prior presentation candidates invalidated
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -175,6 +175,40 @@ Current progress:
 - [ ] Reconcile any P0/P1, rerun the relevant gate, and include the result in the final release review.
 
 No PR or merge may occur while any unchecked World Presence item remains.
+
+### M3P — Release-blocking World-as-Product correction
+
+Outcome: Riverhold reads as a continuous inhabited place whose visible consequential actions correspond to Reality, rather than as a simulation visualization, small board, or dashboard wrapped around a renderer.
+
+The operator attachment with SHA-256 `21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863` supersedes only the product/presentation target. It preserves all valid Reality, protocol, persistence, cognition, Chronicle, diagnostics, formal, verification, and Founder Alpha work. It invalidates `593e5ab` as a release presentation without erasing its historical evidence.
+
+Required implementation and evidence:
+
+- audit and use a coherent metre-scale world with believable citizens, doors, buildings, roads, trees, workplaces, river, forest, homes, market, mill, storage, well, civic place, unused land, and authored boundary concealment;
+- implement pan/drag, wheel/pinch zoom, bounded orbit, selection/focus, Follow Mara, and return-to-overview across region, town/activity, and citizen/follow semantic scales;
+- add an explicit World → Region → Cell → Place → entity presentation hierarchy and LOD0–LOD3 residency/visibility decisions that never affect Reality;
+- represent entrances, interaction/work/storage/rendezvous/resource points, destinations, semantic travel, carried resources, and targets without canonical footsteps;
+- derive meaningful movement, work, exchange, conversation, repair, props, and physical consequences from canonical events or current deterministic behavior, with cosmetic ambience clearly separate;
+- make the world the normal 80–90% perceptual surface after onboarding, replace the permanent rail with contextual overlays/sheets, and provide selection-first citizen/place/resource detail;
+- separate World, Human explanation, and deliberate Research evidence depths through bounded player and research lenses;
+- link important Chronicle beats back to relevant people/places and bounded replay focus;
+- retain the fully playable semantic DOM, keyboard, reduced-motion, weak-device, renderer-loss, mobile-sheet, and human-language paths;
+- extend ten-second deterministic Living World checks to travel, task stages, action/prop/target correspondence, occupancy, stuck/mismatch detection, zoom/pause/reload recovery, and rendering-independence; and
+- research the named city/villager simulations plus current PlayCanvas, navigation, culling/loading/instancing, and animation materials before freezing the implementation.
+
+Release requires all nineteen acceptance items in the override, fresh three-viewport performance/accessibility evidence under explicit budgets, the unfamiliar-observer ten/thirty-second and Mara protocols, and an independent reviewer answering exactly **YES** to: “Does this feel like watching real inhabitants of a place, rather than looking at a visualization of a simulation?” Anything else is P1 and blocks the mega PR.
+
+Current progress:
+
+- [x] Override read in full, content hash verified, prior release target invalidated, existing systems preserved.
+- [ ] Current primary-source research integrated and source-ledger rows verified.
+- [ ] Metre-scale world hierarchy, camera, semantic zoom/LOD, spatial affordances, choreography, and world-first UI implemented.
+- [ ] Automated temporal, spatial, camera, selection, Chronicle-focus, accessibility, and rendering-independence gates pass.
+- [ ] Fresh desktop/laptop/mobile browser and performance evidence captured from one frozen clean candidate.
+- [ ] Fresh independent exact-YES review and human World Presence protocol pass.
+- [ ] All P0/P1 findings reconciled and targeted confirmations pass.
+
+No PR or merge may occur while any M3P item remains unchecked.
 
 ### M4 — Cognition and experiment seams
 

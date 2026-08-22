@@ -2,7 +2,7 @@
 
 **Purpose:** Define the player-facing hierarchy and embodied Living Woodcut grammar that Founder Alpha must exhibit.
 
-**Status:** AMENDED BY WORLD PRESENCE OVERRIDE — implemented candidate, fresh-observer gate pending.
+**Status:** REOPENED BY WORLD-AS-PRODUCT OVERRIDE — release implementation and fresh-observer gate pending.
 
 **Authority boundary:** This document owns visual hierarchy, palette roles, typography behavior, and world/Chronicle continuity. [Art directions](ART_DIRECTIONS.md) owns selection and asset production; [interaction](INTERACTION.md) owns controls and information behavior.
 
@@ -13,6 +13,8 @@
 EONFOLK should feel like an embodied low-poly settlement whose record is cut into a living print. The world remains the primary surface; UI is a temporary interpretive lens. Physical activity, selection, intervention, causality, and return-from-absence share one restrained earth/ink/river palette and one factual Chronicle grammar.
 
 The visual goal is not “old book.” It is **legible life becoming evidence**.
+
+The higher-priority World-as-Product correction (`21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863`) rejects the current small-board/fixed-camera/permanent-rail composition. After onboarding, the continuous world must carry roughly 80–90% or more of perceptual emphasis; contextual decisions, selections, lenses, and Chronicle detail overlay it rather than shrinking it.
 
 ## Information hierarchy
 
@@ -127,7 +129,7 @@ Icons are supplemental. Every unfamiliar icon has a visible label until the play
 ## Rejected alternatives
 
 - **Persistent command dashboard:** Rejected because the product asks for rare, consequential intervention, not continuous optimization.
-- **Player-controlled/cinematic camera:** Rejected for the first slice. The fixed embodied 3D overview must preserve composition, mobile access, and evidence replay.
+- **Unbounded cinematic camera:** Rejected for the first slice. A bounded player-controlled multiscale camera is required: pan/drag, wheel/pinch zoom, bounded orbit, select/focus, Follow Mara, and return to overview, with region/town/citizen semantic detail rather than one scaled shot.
 - **Full-screen character sheet on selection:** Rejected because it erases the autonomous world the player is meant to observe.
 - **Logs as Chronicle:** Rejected because sequence alone cannot communicate consequence, causality, uncertainty, or changed relationships.
 - **Decorative authenticity over legibility:** Rejected; paper/ink texture must recede anywhere the player reads or acts.

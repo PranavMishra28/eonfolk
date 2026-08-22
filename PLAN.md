@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — world-presence architecture override is P1/release-blocking; prior clean-DEEP candidate invalidated
+**Status:** FOUNDER ALPHA ACTIVE — World-as-Product steering override is P1/release-blocking; all prior presentation candidates are release-invalid
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | World-presence rearchitecture active | Start SHA `74a8a7e`; the prior `fe7f1d0` candidate passed clean local DEEP but is release-invalid under the content-addressed world-presence override. PlayCanvas/spatial/asset spikes, embodied-world implementation, temporal gates, fresh review, remote CI, and merge remain. |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | World-as-Product correction active | Start SHA `74a8a7e`; the earlier `fe7f1d0` and `593e5ab` presentation candidates are release-invalid under two successively stronger operator overrides. Reality, protocol, persistence, cognition, Chronicle, diagnostics, formal work, and tests remain valid. Metre-scale world context, multiscale camera, semantic zoom/LOD, spatial affordances, physical task choreography, selection-first UI, Chronicle-to-space navigation, temporal gates, fresh review, remote CI, and merge remain. |
 
 ## Operator implementation override — 2026-08-21
 
@@ -103,6 +103,7 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | Integrated release-lattice probe | coordinator at `b286da8` | PR passed all nineteen rows; DEEP failed closed only when canonical performance exposed a second obsolete counsel selector. No partial performance sample or targeted-review verdict was accepted; both DEEP browser scripts now share a tested phase contract. |
 | Clean local release lattice | coordinator at `59edef3` | DEEP passed all 26 ordered rows from one clean, unchanged source and lockfile. It includes 165 unit tests, PR and deep properties, real IndexedDB, timing, fault-only and fourteen production journeys with zero egress, production build/budgets/audit, bounded TLC, 8/8 targeted mutants, exact browser cohort, persistence and diagnostics benchmarks, and fifteen canonical performance runs. Manifest output SHA-256: `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. |
 | World-presence operator override | attachment SHA-256 `bb1e6a7969d22477ce2ae12bc0fe57c40cd12e139370addf90d3c91dcc9245e1` | Prior `fe7f1d0` release candidate invalidated without erasing its evidence. Sparse Pixi is no longer an accepted Founder Alpha presentation; PlayCanvas/spatial architecture, embodied settlement, temporal Living World tests, performance/accessibility, and an independent inhabited/alive YES are release-blocking. |
+| World-as-Product steering override | attachment SHA-256 `21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863` | The `593e5ab` large-diorama/permanent-rail target is also release-invalid. The current Founder Alpha must present a coherent metre-scale continuous place, a three-scale navigable camera, zoom-dependent detail/residency, first-class spatial affordances and task choreography, world-first selection/context UI, Chronicle-to-space links, and a fresh exact-YES independent verdict. Earlier performance runs are diagnostic only. |
 
 ## Disposable spike evidence
 

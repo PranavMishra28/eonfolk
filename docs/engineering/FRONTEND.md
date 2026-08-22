@@ -2,11 +2,15 @@
 
 **Purpose:** lock the Founder Alpha presentation stack, WorldPresentation/SpatialProjection contract, navigation choice, asset boundary, and semantic fallback.
 
-**Status:** IMPLEMENTED CANDIDATE — PlayCanvas React/WebGL2; independent World Presence verdict still required
+**Status:** REOPENED — World-as-Product scale, camera, semantic zoom/LOD, and world-first UI are release-blocking
 
 **Authority boundary:** this file owns renderer/UI libraries, the spatial presentation boundary, navigation policy, and runtime asset delivery. [ART_DIRECTIONS](../design/ART_DIRECTIONS.md) owns visual production rules; [DESIGN](../design/DESIGN.md) owns applied composition; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
 
 **Related documents:** [spatial research](../research/WORLD_PRESENCE_SPATIAL_RESEARCH.md), [renderer spike](../research/WORLD_PRESENCE_RENDERER_SPIKE.md), [asset research](../research/WORLD_PRESENCE_ASSET_RESEARCH.md), [interaction](../design/INTERACTION.md), [mobile](../design/MOBILE.md), [visual QA](../quality/VISUAL_QA.md)
+
+## Steering correction
+
+The content-addressed World-as-Product override (`21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863`) preserves PlayCanvas and the pure presentation boundary but invalidates the fixed-camera 24×25 m diorama and permanent decision rail as a release target. Founder Alpha now requires a coherent metre-scale region context, three semantic camera scales, LOD0–LOD3 residency, selection-first contextual surfaces, and Chronicle-to-space focus. Rendering residency remains non-authoritative.
 
 ## Owned decision
 
