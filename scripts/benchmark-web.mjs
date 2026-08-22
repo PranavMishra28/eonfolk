@@ -193,11 +193,53 @@ async function frameState(page, name, frameBudgetMs) {
 }
 
 async function waitForQualificationMark(page, name, timeout) {
-	await page.waitForFunction(
-		(markName) => performance.getEntriesByName(markName).length === 1,
-		name,
-		{ timeout },
-	);
+	try {
+		await page.waitForFunction(
+			(markName) => performance.getEntriesByName(markName).length === 1,
+			name,
+			{ timeout },
+		);
+	} catch (error) {
+		const diagnostics = await page.evaluate((markName) => {
+			const canvas = document.querySelector("[data-testid='riverhold-canvas']");
+			const citizens = [
+				...document.querySelectorAll(
+					"[aria-label='Eight Riverhold citizens and their current activities'] li",
+				),
+			];
+			const interaction = [
+				...document.querySelectorAll(".semantic-summary div"),
+			]
+				.find((entry) =>
+					/(?:visible interaction|named interaction)/iu.test(
+						entry.querySelector("dt")?.textContent ?? "",
+					),
+				)
+				?.querySelector("dd")
+				?.textContent?.trim();
+			return {
+				markName,
+				readyState: document.readyState,
+				canvasReady: canvas?.dataset.ready ?? null,
+				canvasInteractions: canvas?.dataset.interactions ?? null,
+				citizenCount: citizens.length,
+				citizenNames: citizens.map(
+					(citizen) =>
+						citizen.querySelector("strong")?.textContent?.trim() ?? "",
+				),
+				interaction: interaction ?? null,
+				illustratedInteraction:
+					document.querySelector(".world-notice")?.textContent?.trim() ?? null,
+				runtimeError:
+					document.querySelector(".runtime-error")?.textContent?.trim() ?? null,
+				marks: performance.getEntriesByType("mark").map((mark) => mark.name),
+			};
+		}, name);
+		throw new Error(
+			`qualification mark ${name} missed ${timeout}ms: ${JSON.stringify(diagnostics)}`,
+			{ cause: error },
+		);
+	}
 	return page.evaluate((markName) => {
 		const mark = performance.getEntriesByName(markName)[0];
 		const evidence = window.__eonfolkMarkEvidence?.[markName];
