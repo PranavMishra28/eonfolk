@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** RELEASE CANDIDATE — World-as-Product exact-YES confirmation passed with zero P0/P1; clean DEEP, protected mega-PR CI, merge, and cleanup pending
+**Status:** RELEASE CANDIDATE — World-as-Product exact-YES confirmation and clean DEEP passed; protected Mega PR CI, merge, hardening, and cleanup pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -170,9 +170,9 @@ Current progress:
 - [x] Pure spatial package, canonical action window/origin/destination/target/result seam, authored graph, fixed clock, animation pose graph, mismatch inspector, and Flight Recorder category implemented.
 - [x] Procedural settlement, eight articulated citizens, paired opening interaction, props, distinctive Mara, cosmetic river motion, lazy renderer, host containment/pixel-ratio cap, and semantic fallback implemented.
 - [x] Unit and production-browser temporal regressions pass; exact clean commit `593e5ab` fits unchanged payload limits and passes all fifteen unchanged-production journeys, cohort, audit, and zero-egress checks [S-WP-022].
-- [ ] Rerun the canonical three-profile 15-run performance/egress battery from a clean candidate.
-- [ ] Capture exact desktop/laptop/mobile evidence and complete the independent inhabited/alive review.
-- [ ] Reconcile any P0/P1, rerun the relevant gate, and include the result in the final release review.
+- [x] Rerun the canonical three-profile 15-run performance/egress battery from clean `e349c5c`; all fifteen repetitions passed with stable AC, unchanged source/lockfile, and zero external attempts.
+- [x] Capture exact desktop/laptop/mobile automated evidence and complete the independent inhabited/alive review with exact **YES** and zero P0/P1. Unfamiliar-human/physical-device evidence remains `NOT RUN`.
+- [x] Reconcile all P0/P1, rerun the relevant gate, and include the result in the final release review.
 
 No PR or merge may occur while any unchecked World Presence item remains.
 
@@ -204,7 +204,7 @@ Current progress:
 - [x] Current primary-source research integrated and source-ledger rows verified.
 - [x] Metre-scale world hierarchy, camera, semantic zoom/LOD, spatial affordances, truthful choreography, and world-first UI implemented through `3477f79`.
 - [x] Unit and focused production-browser temporal, spatial, camera, direct-selection, Chronicle-focus, accessibility, and rendering-independence gates pass: 182/182 unit tests, 2/2 property tests, and the targeted embodied/direct-selection/mobile journeys are green.
-- [ ] Fresh desktop/laptop/mobile canonical 15-run performance evidence captured from one frozen clean candidate. The exact mobile qualification repair has one-repetition diagnostic evidence only.
+- [x] Fresh desktop/laptop/mobile canonical 15-run performance evidence captured from clean `e349c5c`: all display/frame/interaction/semantic/power/zero-egress gates passed; output SHA-256 `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`.
 - [x] Fresh independent exact-YES review. Frozen `90c0ad2` received exact **YES** with zero P0/P1 after `17b2a3d` exposed and `4c205e2` repaired the opening-lifetime failure. Human World Presence remains `NOT RUN` under the operator implementation override and may not be relabeled.
 - [x] All World-as-Product P0/P1 findings reconciled and the one permitted post-fix targeted confirmation passed.
 
@@ -312,7 +312,8 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Canonical DEEP attempts remained fail-closed: one lacked the explicit approved TLC path, one found the coordinator's stale loopback preview on port 4173, and the first uninterrupted attempt reached stage 26 before the meaningful-world predicate rejected the grammatically different `exchanging` label. No partial run was accepted. Qualification diagnostics then exposed a second identity mismatch: citizen rows used full names while the interaction cue used first names. Both in-progress and committed cues now use canonical full names plus the stable action noun `exchange`; direct spatial regressions lock participants, event linkage, and the no-result-claimed boundary before the full clean rerun.
 - 2026-08-21 — A complete 15-repetition performance attempt met every display/frame limit but remained non-accepted because macOS changed from AC to battery during mobile repetition five. The same interface transition emitted `NETWORK_MAC_OS_CONFIG_CHANGED` metadata containing old/new private addresses; the overbroad netlog scanner misclassified those interface facts as connection attempts even though all route logs and every connection record remained local or blocked. Both browser oracles now exclude only that named configuration-event type while continuing to inspect all connection/DNS/URL/endpoint records. Stable-source/stable-power/zero-egress evidence must be rerun; the failed metrics are not promoted.
 - 2026-08-21 — Frozen `afdc6e0` product, systems, and visual reviews were integrated only after all three completed. Their seven P1 mechanisms were repaired through `e1100f6` and `e6b4e95`; combined pinned FAST reached 190 tests and the 12-second production lifecycle passed. The final cross-discipline pass against `17b2a3d` closed those mechanisms but answered **NO** because the first watched boundary removed the only opening interaction before throttled mobile paint.
-- 2026-08-21 — Repair `4c205e2` keeps the canonical genesis exchange reserved through simulation time 180 and settles it once at 240. The one permitted post-fix confirmation against frozen `90c0ad2` answered the exact binding question **YES**, found zero P0/P1, measured unchanged throttled mobile meaningful world at 4,439.5 ms with a current illustrated interaction, and observed clean release/resume by time 360/reload. This is independent automated evidence; human Gate 0/A/B remain `NOT RUN`, and the full canonical battery remains pending.
+- 2026-08-21 — Repair `4c205e2` keeps the canonical genesis exchange reserved through simulation time 180 and settles it once at 240. The one permitted post-fix confirmation against frozen `90c0ad2` answered the exact binding question **YES**, found zero P0/P1, measured unchanged throttled mobile meaningful world at 4,439.5 ms with a current illustrated interaction, and observed clean release/resume by time 360/reload. This is independent automated evidence; human Gate 0/A/B remain `NOT RUN`. The full canonical battery was still pending at this checkpoint and is recorded in the next entry.
+- 2026-08-21 — Exact clean `e349c5c14dea9075d24ede602887e1f30f379a63` passed all 26 DEEP rows with unchanged source/lockfile and accepted AC power. It includes 191 tests in 23 files, sixteen production journeys, deep property/mutation/persistence/diagnostics/formal work, and fifteen fresh-browser canonical journeys. Worst p95 was 9.3 ms; meaningful display was at most 473.5 ms desktop, 474.9 ms laptop, and 4,430.6 ms mobile; all route/netlog external-attempt sets were empty. Verification output SHA-256 is `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`.
 
 ## Decision, risk, and deviation log
 
@@ -339,12 +340,12 @@ Exact availability and results are recorded below as implementation lands. A nam
 |---|---|---|
 | Start baseline | PASS | exact command and counts in Start-state freeze |
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
-| Diagnostics/Sentinel | AUTOMATED PASS; targeted confirmation pending | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
+| Diagnostics/Sentinel | AUTOMATED PASS | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source and browser benchmarks passed within the release-valid DEEP lattice at `e349c5c` |
 | Feedback/observer | AUTOMATED PASS; live path NOT RUN | browser-only queue/preview/delete/expiry, hostile-summary reconstruction, relay D1/quota/reconciliation/provider adversarial fixtures; live provider path NOT RUN |
-| Founder Alpha browser matrix | EXACT-YES CONFIRMED; CLEAN DEEP PENDING | The invalidated Pixi candidate passed two test-only injected-fault journeys and fourteen production journeys at `59edef3`. The World-as-Product candidate has sixteen production journeys; frozen `90c0ad2` received exact **YES** with zero P0/P1. Fresh clean DEEP and canonical zero-egress/performance evidence remain. |
+| Founder Alpha browser matrix | EXACT-YES AND CLEAN DEEP PASS | Frozen `90c0ad2` received exact **YES** with zero P0/P1. Clean `e349c5c` passed two fault journeys, sixteen unchanged-production journeys, and all fifteen canonical performance/zero-egress repetitions. |
 | Cognition experiments | BOUNDED AUTOMATED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; ordered per-execution result journal; unforgeable authorized Observatory artifact; no model/planner candidate run |
 | Performance OFF/LOCAL/ALPHA | CLEAN LOCAL DEEP PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the corrected three-mode browser comparison and fifteen-run canonical profile passed all assertions at `59edef3`; physical mobile remains `NOT RUN` |
-| Security/privacy review | FIRST CONFIRMATION REPAIRED; targeted confirmation pending | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions integrated; live relay NOT RUN |
+| Security/privacy review | AUTOMATED PASS; live path NOT RUN | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions passed the clean DEEP lattice; live relay NOT RUN |
 | Human Gate 0/A/B/Story Card | NOT RUN | no claim permitted |
 
 ## Definition of done

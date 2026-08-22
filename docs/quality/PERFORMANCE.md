@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** BUDGETS BINDING; EXACT MOBILE QUALIFICATION REPAIRED; FRESH CLEAN 15-RUN PLAYCANVAS EVIDENCE PENDING
+**Status:** BUDGETS BINDING; CLEAN 15-RUN PLAYCANVAS BATTERY PASSED
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -146,6 +146,12 @@ The production browser journey currently passes an automated temporal probe that
 
 The frozen `17b2a3d` confirmation then exposed a real throttled-mobile failure: canonical cadence settled the sole illustrated exchange before meaningful world paint. Repair `4c205e2` keeps that Reality-owned reservation through simulation time 180 and settles it exactly once at 240 without reading renderer state. The one permitted post-fix confirmation measured the unchanged 390×844/4× CPU/4G predicate at **4,439.5 ms** with eight activities, two named exchange participants, illustrated interaction count one, semantic parity, and zero egress. Its one-repetition short run is diagnostic closure of the mechanism, not the required five-repetition canonical battery.
 
+## Release-valid PlayCanvas measurement
+
+**VERIFIED CLEAN DEEP PASS:** exact clean commit `e349c5c14dea9075d24ede602887e1f30f379a63` completed five fresh-browser repetitions for each desktop, laptop, and throttled 390×844 mobile profile. Source commit and lockfile were identical at both boundaries; the tree remained clean; AC/normal mode was accepted at start and end while charging from 43% to 64%. Verification output SHA-256 is `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`; canonical performance artifact SHA-256 is `4b00a1a69eea84ba45489671da5ceee7e69fd20ec0a9017e38d877a53725efda`.
+
+Payload was **99,896 bytes gzip** critical shell, **644,463 bytes gzip** total JavaScript, and **0 bytes** external world assets. Maximum meaningful-world display was **473.5 ms desktop**, **474.9 ms laptop**, and **4,430.6 ms mobile**. The worst pooled or per-state p95 was **9.3 ms**; desktop pooled p95 was 8.8 ms, laptop 9.0 ms, and mobile 9.3 ms. Every meaningful mark contained all eight activities, two named exchange participants, one current illustrated interaction, and semantic parity. All 75 routed requests and fifteen independent browser netlogs reported zero external attempts. This is canonical automated emulation evidence, not physical-phone, thermal, screen-reader, or unfamiliar-human evidence.
+
 ## Resulting implementation behavior
 
 The semantic shell arrives first, the PlayCanvas renderer is lazy and must remain inside the route ceiling, and eight citizens are projected from one immutable spatial boundary. Quality tiers reduce pixel ratio, shadows, cosmetic motion, geometry, and distant detail before information or agency. A device that cannot sustain WebGL receives the complete local game through semantic view.
@@ -164,7 +170,7 @@ The semantic shell arrives first, the PlayCanvas renderer is lazy and must remai
 ## Unproven assumptions and reopen evidence
 
 - **VERIFIED FACT:** the procedural PlayCanvas candidate ships zero external world-asset bytes and fits the unchanged payload budgets at exact clean commit `593e5ab` [S-WP-022].
-- **UNRESOLVED:** the selected PlayCanvas application passes the fresh full 15-run display/frame/egress battery. Failure invokes the degradation order, then renderer/art reconsideration without a budget waiver.
+- **VERIFIED FACT:** the selected PlayCanvas application passed the fresh full 15-run display/frame/egress battery at clean `e349c5c`; reopen on any renderer, choreography, meaningful-world predicate, payload, browser-cohort, or quality-tier change.
 - **UNRESOLVED:** a physical mid-tier mobile meets display/frame/thermal targets. Reopen quality tiers after measured device evidence.
 - **UNRESOLVED:** the semantic fallback preserves world dominance and attachment. Reopen layout after fresh accessibility/player review.
 - **UNRESOLVED:** 90/365-day catch-up fits a humane wait. Set exact catch-up wall-time and event budgets only from the implementation benchmark.

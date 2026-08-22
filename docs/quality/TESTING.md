@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED — World-as-Product exact-YES confirmation passed; fresh clean DEEP and protected mega-PR CI pending
+**Status:** IMPLEMENTED — exact-YES confirmation and clean local DEEP passed; protected Mega PR CI pending
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 
@@ -13,6 +13,8 @@
 Every relevant implementation PR runs a short, blocking baseline. Expensive horizons and matrices run nightly/manual. The repository uses a PR-based solo-maintainer workflow with no automatic merges and no invented enterprise ceremony. `.github/workflows/ci.yml` now implements Verify, Formal model, and Secret scan jobs with actions pinned by commit SHA.
 
 The exact local baseline is `pnpm verify`. At `4a677a743d4efcdc337c6ffc0c79d63edee69e8f` it passed 63 unit tests, two property tests, a real Chromium IndexedDB reload test, the fixed 20-warmup/200-cycle decision-trace timing analyzer, build/bundle checks, production dependency audit, eight Playwright journeys, 334 routed requests and 36,489 Chromium-netlog events with zero external attempts, and bounded TLC model checking (3,480 generated/350 distinct states, depth 10, five invariants). Gitleaks 8.30.1 separately scanned all then-existing local history with no leaks. Pushed candidate `7d857a216cb9fbd76f2a0afd64418822a84b9a2e` passed GitHub Verify, Formal model, and full-history Secret scan in [run 32481390293](https://github.com/PranavMishra28/eonfolk/actions/runs/32481390293). The [review reconciliation](../reviews/IMPLEMENTATION_FINAL_REVIEW.md) states what this does not prove.
+
+The release-valid World-as-Product candidate completed clean `pnpm verify:deep` at `e349c5c14dea9075d24ede602887e1f30f379a63`: **26/26** ordered constituents passed with an unchanged clean source/lockfile, **191 tests in 23 files**, sixteen production journeys, all deep-only profiles, and output SHA-256 `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`. This closes local release verification. The exact Mega PR head must still pass protected GitHub `Verify`, `Formal model`, and `Secret scan` checks before merge.
 
 ## Blocking PR baseline
 
@@ -89,7 +91,7 @@ The comparative browser diagnostics benchmark uses the current `Review Mara's ch
 
 The v2 tier manifest is produced by the same declared step list that executes acceptance. PR records nineteen ordered constituent results; DEEP is that exact ordered prefix plus seven DEEP-only results. Every row contains a stable ID, the executed command, duration, exit code, and PASS/FAIL status. Execution stops at the first failure and records no result for work it did not run. `verify:pr:checks` and `verify:deep:checks` remain convenient check-only entry points, but delegate to these runner-owned lists so the executable sequence and evidence schema cannot drift.
 
-The clean local DEEP run at `59edef3c768d9a3fe9409f07d77d49fded4b9554` passed all 26 ordered rows with identical start/end commit and lockfile, a clean tree, production `dist` present, crash markers absent, and manifest output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. That invalidated historical Pixi candidate included 165 unit tests in 21 files, 8/8 targeted mutants, the 500-run/320-command property profile, two fault journeys, fourteen unchanged-production journeys, bounded TLC (3,480 generated/350 distinct states, depth 10, five invariants), exact browser-cohort validation, persistence/diagnostic measurements, and fifteen canonical performance journeys. The World Presence candidate adds a fifteenth production journey and must produce fresh clean evidence; the historical run cannot release it.
+The clean local DEEP run at `59edef3c768d9a3fe9409f07d77d49fded4b9554` passed all 26 ordered rows, but that invalidated historical Pixi candidate cannot release the PlayCanvas world. Release-valid clean `e349c5c14dea9075d24ede602887e1f30f379a63` passed the same 26-row lattice with 191 unit tests in 23 files, 8/8 targeted mutants, the 500-run/320-command property profile, two fault journeys, sixteen unchanged-production journeys, bounded TLC (3,480 generated/350 distinct states, depth 10, five invariants), exact browser-cohort validation, persistence/diagnostic measurements, and fifteen canonical performance journeys.
 
 Cognition changes additionally prove schema/authorization, hidden-fact noninterference, Standard Brain-only liveness, replay without cognition, control/ablation/transfer behavior, planner-promotion fail-closure, pre-run experiment identity/result-journal isolation, and authorized Chronicle-to-Observatory projection. Provider timeout/malformed/fallback checks become mandatory only when an executable adapter exists. Major UI changes capture deterministic 1728×1117, 1366×768, and 390×844 evidence plus actual 200% browser zoom, keyboard/dialog focus, reduced motion, selectable semantic fallback, and failing traces where practical.
 

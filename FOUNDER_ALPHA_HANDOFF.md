@@ -2,7 +2,7 @@
 
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
-**Status:** WORLD PRESENCE EXACT-YES CONFIRMED — fresh clean DEEP, protected mega-PR CI, merge, and cleanup pending
+**Status:** WORLD PRESENCE EXACT-YES AND CLEAN DEEP PASSED — protected Mega PR CI, merge, hardening, and cleanup pending
 
 **Authority boundary:** this file is an operational summary. [docs/INDEX.md](docs/INDEX.md) maps product and technical authority; [002-founder-alpha.md](docs/exec-plans/active/002-founder-alpha.md) owns execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) owns release boundaries.
 
@@ -61,7 +61,7 @@ The accepted TLC JAR SHA-256 is `eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d3297
 
 DEEP adds targeted mutations, the 500/320 property profile, exact browser-cohort validation, fail-closed persistence measurement, source and browser OFF/LOCAL/ALPHA comparisons, and the repeated canonical browser performance battery. Acceptance requires a clean, unchanged source tree; dirty success exits nonzero as `SMOKE_ONLY`.
 
-The clean DEEP evidence at `59edef3c768d9a3fe9409f07d77d49fded4b9554` is historical and release-invalid because it measured the sparse Pixi world. The current PlayCanvas/199-package candidate has passed the exact clean integration checkpoint at `593e5ab8bbf0bbe0f5977bc016b6c520a4877bf8`: production build and payload, fifteen unchanged-production browser journeys, zero-egress oracle, cohort, and audit are green [S-WP-022]. That checkpoint is valid integration evidence but not the canonical repeated performance battery. Rerun complete DEEP from the next clean evidence commit and record its exact manifest/results here before release.
+The clean DEEP evidence at `59edef3c768d9a3fe9409f07d77d49fded4b9554` remains historical and release-invalid because it measured sparse Pixi. Release-valid PlayCanvas evidence is exact clean commit `e349c5c14dea9075d24ede602887e1f30f379a63`: all 26 ordered DEEP rows passed, including 191 tests in 23 files, sixteen production journeys, the canonical 15-run performance/egress battery, and every deep-only constituent. Source and lockfile stayed unchanged; output SHA-256 is `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`; artifact-manifest SHA-256 is `f1448ef429955beb8e3695318b8780f42efe3c2e41c297f01a940fb5e4035a81`. Maximum meaningful-world display was 473.5 ms desktop, 474.9 ms laptop, and 4,430.6 ms mobile; worst p95 was 9.3 ms; all route/netlog external-attempt sets were empty; accepted AC power charged from 43% to 64%.
 
 ## Product and browser smoke
 

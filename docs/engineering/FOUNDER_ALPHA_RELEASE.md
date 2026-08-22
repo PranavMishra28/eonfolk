@@ -2,7 +2,7 @@
 
 **Purpose:** define the reproducible local production preview, CI evidence retention, and the credential-gated path from the inert feedback relay core to a future private alpha deployment.
 
-**Status:** WORLD PRESENCE EXACT-YES CONFIRMED; CLEAN DEEP, PROTECTED MEGA-PR CI, MERGE, AND CLEANUP PENDING; DEPLOYMENT NOT RUN
+**Status:** WORLD PRESENCE EXACT-YES AND CLEAN DEEP PASSED; PROTECTED MEGA-PR CI, MERGE, AND CLEANUP PENDING; DEPLOYMENT NOT RUN
 
 **Authority boundary:** this file owns Founder Alpha release procedure and release-status claims. It does not authorize deployment, spend, credentials, a public availability claim, or changes to Reality. [Feedback](FEEDBACK.md) owns relay behavior; [Testing](../quality/TESTING.md) owns verification policy; [Security](SECURITY.md) owns trust boundaries.
 
@@ -28,7 +28,7 @@ Open `http://127.0.0.1:4174/`. `verify:pr` builds the production assets before p
 
 The release candidate additionally requires `pnpm verify:deep`, an actual browser playtest, inspection of the generated Git diff and evidence, and reconciliation of every P0/P1 review finding. Human, physical-device, provider, and deployment evidence must remain `NOT RUN` until actually performed.
 
-Historical clean local DEEP passed all 26 ordered rows at commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, including two fault-only and fourteen production browser journeys. The World Presence override invalidated that sparse Pixi candidate for release while preserving its evidence. The current PlayCanvas candidate has sixteen production journeys and must produce a wholly fresh clean DEEP manifest, canonical 15-run performance/egress evidence, independent systems review, and an inhabited/alive YES before PR or merge. Historical success cannot substitute.
+Historical clean local DEEP passed all 26 ordered rows at commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, but the World Presence override invalidated that sparse Pixi candidate while preserving its evidence. The current PlayCanvas candidate then produced wholly fresh release-valid evidence: exact clean `e349c5c14dea9075d24ede602887e1f30f379a63` passed all 26 rows, sixteen production journeys, independent reviews, exact inhabited-place **YES**, and the canonical 15-run performance/egress battery. Verification output SHA-256 is `563e51968c74479c1910c277a07458d03770333ee89cabb1b27542c0d58b83ab`. Protected remote checks against the final Mega PR head remain mandatory before merge; historical success does not substitute for them.
 
 ## CI release surface
 

@@ -72,7 +72,7 @@ Vague answers reopen product/Chronicle presentation; a screenshot cannot pass th
 
 Rejected R3F spike `4bdef56` remains historical risk evidence. The bounded PlayCanvas spike passed the architectural feasibility threshold with eight articulated citizens, six action classes, interactions, WebGL2, and sub-10-ms headed p95 across three emulated profiles [S-WP-014].
 
-The integrated candidate now automates continuous clock advance, three-or-more moving citizens, four-or-more observed classes, an initial interaction, canonical-event linkage after consequential play, WebGL2, ≤1.51 pixel ratio, canvas/host containment, zero teleports, and zero contradictions. It also preserves keyboard, reduced-motion, semantic, renderer-failure, 200% reflow, mobile-first-viewport, and complete player-journey tests. Automation cannot answer the inhabited/alive question; a fresh independent visual/product reviewer must inspect the exact clean candidate at all three required viewports.
+The integrated candidate now automates continuous clock advance, three-or-more moving citizens, four-or-more observed classes, an initial interaction, canonical-event linkage after consequential play, WebGL2, ≤1.51 pixel ratio, canvas/host containment, zero teleports, and zero contradictions. It also preserves keyboard, reduced-motion, semantic, renderer-failure, 200% reflow, mobile-first-viewport, and complete player-journey tests. A fresh independent reviewer inspected the frozen repaired candidate and answered the binding inhabited-place question exactly **YES** with zero P0/P1; clean `e349c5c` subsequently passed the complete three-profile 15-run automated battery. This still does not substitute for unfamiliar-human or physical-device evidence.
 
 ## Fix and rerun loop
 
