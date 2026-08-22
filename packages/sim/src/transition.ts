@@ -21,7 +21,11 @@ import {
 import { assertWorldInvariants } from "./invariants.js";
 import { reducePayload } from "./reducer.js";
 import { scheduleAutonomousActions } from "./scheduler.js";
-import { citizenBySlug, type WorldState } from "./state.js";
+import {
+	citizenBySlug,
+	travelDurationSeconds,
+	type WorldState,
+} from "./state.js";
 
 interface PendingEvent {
 	readonly payload: WorldEventPayload;
@@ -335,6 +339,11 @@ function commandEvents(
 			const citizen = state.citizens[payload.citizenId];
 			if (!citizen) throw new Error("ACTION_UNAVAILABLE");
 			if (citizen.travel != null) throw new Error("ACTION_UNAVAILABLE");
+			const duration = travelDurationSeconds(
+				state,
+				citizen.placeId,
+				payload.toPlaceId,
+			);
 			return [
 				pending({
 					kind: "TravelStarted",
@@ -344,7 +353,7 @@ function commandEvents(
 					destinationPlaceId: payload.toPlaceId,
 					routeId: `${citizen.placeId}>${payload.toPlaceId}`,
 					departureSimulationTime: state.simulationTime,
-					expectedArrivalSimulationTime: state.simulationTime + 120,
+					expectedArrivalSimulationTime: state.simulationTime + duration,
 					task: "fulfill-plan",
 				}),
 			];

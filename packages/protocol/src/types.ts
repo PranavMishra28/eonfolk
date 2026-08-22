@@ -19,6 +19,29 @@ export type BehaviorFamily =
 	| "fulfill-plan"
 	| "respond-socially";
 
+export type AffordanceKind =
+	| "exchange"
+	| "gather-food"
+	| "gather-water"
+	| "gather-wood"
+	| "repair"
+	| "inspect";
+
+export interface AuthoritativeAffordance {
+	readonly affordanceId: string;
+	readonly placeId: string;
+	readonly kind: AffordanceKind;
+	readonly capacity: number;
+}
+
+export interface TaskReservation {
+	readonly taskId: string;
+	readonly affordanceId: string;
+	readonly citizenIds: readonly CitizenId[];
+	readonly behavior: BehaviorFamily;
+	readonly reservedAtSimulationTime: number;
+}
+
 export interface SemanticTravelState {
 	readonly travelId: string;
 	readonly originPlaceId: string;
