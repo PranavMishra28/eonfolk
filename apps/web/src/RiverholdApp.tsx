@@ -1,5 +1,8 @@
 import type { DiagnosticIncident } from "@eonfolk/diagnostics";
-import type { SemanticScale } from "@eonfolk/world-presentation";
+import {
+	riverholdSpatialScene,
+	type SemanticScale,
+} from "@eonfolk/world-presentation";
 import {
 	lazy,
 	Suspense,
@@ -11,9 +14,9 @@ import {
 } from "react";
 import { Chronicle } from "./components/Chronicle";
 import { FeedbackPanel } from "./components/FeedbackPanel";
+import type { WorldFocus } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
-import type { WorldFocus } from "./components/RiverholdWorld";
 import { browserDiagnostics } from "./diagnostics";
 import {
 	type ChronicleBeatProjection,
@@ -31,6 +34,7 @@ const RiverholdWorld = lazy(async () => {
 
 type Sheet =
 	| { readonly kind: "citizen"; readonly citizenId: string }
+	| { readonly kind: "place"; readonly placeId: string }
 	| { readonly kind: "evidence"; readonly beat: ChronicleBeatProjection }
 	| { readonly kind: "world" }
 	| { readonly kind: "research" }
@@ -227,7 +231,10 @@ function WorldControls({
 			new CustomEvent("eonfolk:camera-intent", { detail: { kind } }),
 		);
 	return (
-		<section className="world-controls" aria-label="Riverhold camera and lenses">
+		<section
+			className="world-controls"
+			aria-label="Riverhold camera and lenses"
+		>
 			<div className="camera-controls">
 				<button
 					type="button"
@@ -277,7 +284,21 @@ function WorldControls({
 				>
 					→
 				</button>
-				<span aria-live="polite">{semanticScale} scale</span>
+				<button
+					type="button"
+					aria-label="Pan Riverhold up"
+					onClick={() => cameraIntent("pan-up")}
+				>
+					↑
+				</button>
+				<button
+					type="button"
+					aria-label="Pan Riverhold down"
+					onClick={() => cameraIntent("pan-down")}
+				>
+					↓
+				</button>
+				<span aria-live="polite">{semanticScale} scale · tap the world</span>
 			</div>
 			<section className="lens-controls" aria-label="World lenses">
 				{(["activity", "resources", "routes"] as const).map((value) => (
@@ -782,6 +803,10 @@ export function RiverholdApp() {
 		setWorldFocus({ kind: "citizen", id: citizenId, follow: false });
 		openSheet({ kind: "citizen", citizenId });
 	};
+	const selectPlace = (placeId: string) => {
+		setWorldFocus({ kind: "place", id: placeId });
+		openSheet({ kind: "place", placeId });
+	};
 	const closeSheet = () => {
 		if (sheet) window.history.back();
 		else setSheet(null);
@@ -877,6 +902,10 @@ export function RiverholdApp() {
 		sheet?.kind === "citizen"
 			? projection?.citizens.find((citizen) => citizen.id === sheet.citizenId)
 			: null;
+	const selectedPlace =
+		sheet?.kind === "place"
+			? riverholdSpatialScene.places[sheet.placeId]
+			: null;
 
 	if (runtimeError !== null)
 		return (
@@ -971,6 +1000,9 @@ export function RiverholdApp() {
 									onFailure={() => showWords(true)}
 									focus={worldFocus}
 									onSemanticScaleChange={setSemanticScale}
+									onCitizenSelect={selectCitizen}
+									onPlaceSelect={selectPlace}
+									onFocusChange={setWorldFocus}
 								/>
 							</Suspense>
 							<div className="world-vignette" aria-hidden="true" />
@@ -1065,11 +1097,9 @@ export function RiverholdApp() {
 									? { kind: "place", id: beat.spatialFocus.placeId }
 									: { kind: "citizen", id: citizenId, follow: false },
 							);
-							document
-								.querySelector("#world")
-								?.scrollIntoView({
-									behavior: reducedMotion ? "auto" : "smooth",
-								});
+							document.querySelector("#world")?.scrollIntoView({
+								behavior: reducedMotion ? "auto" : "smooth",
+							});
 						}}
 					/>
 					<StoryCard projection={projection} />
@@ -1090,10 +1120,13 @@ export function RiverholdApp() {
 				</p>
 			</footer>
 			{sheet && (
-				<div className="sheet-scrim" role="presentation">
+				<div
+					className={`sheet-scrim${sheet.kind === "citizen" || sheet.kind === "place" ? " sheet-scrim--world-selection" : ""}`}
+					role="presentation"
+				>
 					<section
 						ref={dialog}
-						className="detail-sheet"
+						className={`detail-sheet${sheet.kind === "citizen" || sheet.kind === "place" ? " detail-sheet--world-selection" : ""}`}
 						role="dialog"
 						aria-modal="true"
 						aria-labelledby="detail-title"
@@ -1137,6 +1170,25 @@ export function RiverholdApp() {
 											</div>
 										</>
 									)}
+								</dl>
+							</>
+						)}
+						{sheet.kind === "place" && selectedPlace && (
+							<>
+								<p className="eyebrow">RIVERHOLD PLACE</p>
+								<h2 id="detail-title" tabIndex={-1}>
+									{selectedPlace.name}
+								</h2>
+								<p className="sheet-role">{selectedPlace.kind}</p>
+								<dl>
+									<div>
+										<dt>Place in the world</dt>
+										<dd>
+											The camera is centered here. Its visible activity and
+											resources remain projections of Riverhold's accepted
+											state.
+										</dd>
+									</div>
 								</dl>
 							</>
 						)}
