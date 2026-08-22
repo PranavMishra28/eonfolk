@@ -256,7 +256,7 @@ function main() {
 						formalToolIdentity: "repository-pinned TLC SHA-256",
 						propertyProfile: "PR: 50/32 deterministic runs",
 						browserJourney:
-							"two injected-fault plus fourteen production journeys",
+							"two injected-fault plus sixteen production journeys",
 					},
 		subcommands: execution.steps,
 		artifactAssertions,
