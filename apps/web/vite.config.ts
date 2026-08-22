@@ -4,8 +4,7 @@ import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 
 export function resolveBuildSha(
-	configured: string | undefined = process.env.GITHUB_SHA ??
-		process.env.EONFOLK_BUILD_SHA,
+	configured: string | undefined,
 	readGitHead: () => string = () =>
 		execFileSync("git", ["rev-parse", "HEAD"], {
 			encoding: "utf8",
@@ -42,7 +41,9 @@ export default defineConfig({
 	plugins: [react()],
 	define: {
 		__EONFOLK_APP_VERSION__: JSON.stringify(appVersion()),
-		__EONFOLK_BUILD_SHA__: JSON.stringify(resolveBuildSha()),
+		__EONFOLK_BUILD_SHA__: JSON.stringify(
+			resolveBuildSha(process.env.GITHUB_SHA ?? process.env.EONFOLK_BUILD_SHA),
+		),
 		__EONFOLK_DIAGNOSTICS_MODE__: JSON.stringify(
 			process.env.VITE_EONFOLK_DIAGNOSTICS_MODE ?? "off",
 		),
