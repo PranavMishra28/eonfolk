@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { parsePersistenceBenchmarkArguments } from "../../../scripts/benchmark-persistence.mjs";
 import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
+import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 import {
 	runVerificationSteps,
 	verificationStepsForTier,
@@ -21,6 +22,38 @@ describe("Founder Alpha CI evidence controls", () => {
 			expect(source).toContain("Review Mara's choices");
 			expect(source).not.toContain("Reach the counsel boundary");
 		}
+	});
+
+	it("does not misclassify macOS interface-change metadata as attempted egress", () => {
+		const evidence = inspectNetlogEgress({
+			constants: {
+				logEventTypes: { NETWORK_MAC_OS_CONFIG_CHANGED: 458 },
+			},
+			events: [
+				{
+					type: 458,
+					params: {
+						old_interfaces: [{ address: "10.103.2.54" }],
+						new_interfaces: [{ address: "192.168.5.71" }],
+					},
+				},
+				{ type: 1, params: { url: "http://127.0.0.1:4174/index.html" } },
+			],
+		});
+		expect(evidence).toEqual({ externalAttempts: [], localEvidence: 1 });
+	});
+
+	it("still rejects a real external connection field after interface filtering", () => {
+		const evidence = inspectNetlogEgress({
+			constants: {
+				logEventTypes: { NETWORK_MAC_OS_CONFIG_CHANGED: 458 },
+			},
+			events: [
+				{ type: 458, params: { new_interfaces: [{ address: "10.0.0.2" }] } },
+				{ type: 12, params: { destination: "example.com:443" } },
+			],
+		});
+		expect(evidence.externalAttempts).toEqual(["destination:example.com"]);
 	});
 
 	it("uses tier-specific artifact allowlists", () => {

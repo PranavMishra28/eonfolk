@@ -11,6 +11,7 @@ import { arch, platform, release } from "node:os";
 import { relative, resolve, sep } from "node:path";
 import { chromium } from "@playwright/test";
 import { preview } from "vite";
+import { inspectNetlogEgress } from "./validate-web-network.mjs";
 
 const stateDurationMs = Number(
 	process.env.EONFOLK_BENCHMARK_STATE_MS ?? 30_000,
@@ -317,54 +318,6 @@ async function reachChronicle(page) {
 		.getByRole("heading", { name: /What entered the record/i })
 		.waitFor();
 	return catchUpMs;
-}
-
-function netlogExternalAttempts(netlogPath) {
-	const netlog = JSON.parse(readFileSync(netlogPath, "utf8"));
-	const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
-	const external = new Set();
-	const inspect = (value, key = "") => {
-		if (Array.isArray(value)) {
-			for (const item of value) inspect(item, key);
-			return;
-		}
-		if (value && typeof value === "object") {
-			for (const [childKey, child] of Object.entries(value))
-				inspect(child, childKey);
-			return;
-		}
-		if (typeof value !== "string") return;
-		if (
-			!/^(?:url|destination|logical_destination|host|hostname|address|endpoint)$/i.test(
-				key,
-			)
-		)
-			return;
-		for (const match of value.matchAll(/(?:https?|wss?):\/\/[^\s"'<>]+/g)) {
-			try {
-				const url = new URL(match[0]);
-				if (!localHosts.has(url.hostname))
-					external.add(`${key}:${url.hostname}`);
-			} catch {
-				external.add(`${key}:${match[0]}`);
-			}
-		}
-		if (/host|hostname|address|endpoint|destination/i.test(key)) {
-			const candidate = value
-				.replace(/^\[/, "")
-				.replace(/\]$/, "")
-				.replace(/:\d+$/, "");
-			if (candidate === "~notfound") return;
-			if (
-				/^[A-Za-z0-9.-]+$/.test(candidate) &&
-				candidate.includes(".") &&
-				!localHosts.has(candidate)
-			)
-				external.add(`${key}:${candidate}`);
-		}
-	};
-	for (const event of netlog.events ?? []) inspect(event.params ?? {});
-	return [...external].sort();
 }
 
 const outputDirectory = resolve("tmp");
@@ -760,7 +713,9 @@ const parsedNetlogRuns = netlogRuns.map((run) => ({
 	profile: run.profile,
 	repetition: run.repetition,
 	path: relative(resolve("."), run.path).split(sep).join("/"),
-	externalAttempts: netlogExternalAttempts(run.path),
+	externalAttempts: inspectNetlogEgress(
+		JSON.parse(readFileSync(run.path, "utf8")),
+	).externalAttempts,
 }));
 const externalNetlogAttempts = [
 	...new Set(parsedNetlogRuns.flatMap((run) => run.externalAttempts)),
