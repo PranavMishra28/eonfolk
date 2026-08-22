@@ -491,11 +491,13 @@ try {
 							markWhen("eonfolk-cta", () =>
 								follow instanceof HTMLButtonElement &&
 								!follow.disabled &&
-								canvas?.dataset.ready === "true" &&
+								follow.tabIndex >= 0 &&
+								follow.getClientRects().length > 0 &&
 								citizens.length === 8
 									? {
 											authorityReady: true,
 											followEnabled: true,
+											followFocusable: true,
 											semanticCitizenCount: citizens.length,
 										}
 									: null,
@@ -784,6 +786,7 @@ const failed =
 			run.markEvidence.shell.factSurfaceCount !== 0 ||
 			run.markEvidence.cta.authorityReady !== true ||
 			run.markEvidence.cta.followEnabled !== true ||
+			run.markEvidence.cta.followFocusable !== true ||
 			run.markEvidence.cta.semanticCitizenCount !== 8 ||
 			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
 			run.markEvidence.meaningfulWorld.semanticCitizenCount !== 8 ||

@@ -6,11 +6,11 @@ import { describe, expect, it } from "vitest";
 import { parsePersistenceBenchmarkArguments } from "../../../scripts/benchmark-persistence.mjs";
 import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
-import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 import {
 	runVerificationSteps,
 	verificationStepsForTier,
 } from "../../../scripts/run-verification-tier.mjs";
+import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
 	it("keeps every DEEP browser journey on the current counsel phase contract", () => {
@@ -22,6 +22,21 @@ describe("Founder Alpha CI evidence controls", () => {
 			expect(source).toContain("Review Mara's choices");
 			expect(source).not.toContain("Reach the counsel boundary");
 		}
+	});
+
+	it("times the operable CTA independently from the meaningful WebGL world", () => {
+		const source = readFileSync(resolve("scripts/benchmark-web.mjs"), "utf8");
+		const ctaStart = source.indexOf('markWhen("eonfolk-cta"');
+		const worldStart = source.indexOf(
+			'markWhen("eonfolk-meaningful-world"',
+			ctaStart,
+		);
+		expect(ctaStart).toBeGreaterThan(-1);
+		expect(worldStart).toBeGreaterThan(ctaStart);
+		const ctaQualification = source.slice(ctaStart, worldStart);
+		expect(ctaQualification).toContain("follow.tabIndex >= 0");
+		expect(ctaQualification).toContain("follow.getClientRects().length > 0");
+		expect(ctaQualification).not.toContain("canvas");
 	});
 
 	it("does not misclassify macOS interface-change metadata as attempted egress", () => {
