@@ -13,6 +13,7 @@ export type SpatialMismatchCode =
 	| "invalid-event-link"
 	| "invalid-interaction-link"
 	| "missing-participant"
+	| "completed-action-loop"
 	| "teleport";
 
 export interface SpatialMismatch {
@@ -42,6 +43,27 @@ function completedLocomotion(actor: SpatialActorProjection): boolean {
 		actor.positionMm.x === destination.x &&
 		actor.positionMm.y === destination.y &&
 		actor.positionMm.z === destination.z
+	);
+}
+
+function waitingForAuthoritativeArrival(
+	actor: SpatialActorProjection,
+): boolean {
+	if (
+		!locomotion.has(actor.action.kind) ||
+		actor.action.status !== "in-progress" ||
+		actor.animationClass !== "idle"
+	)
+		return false;
+	const destinationNodeId = actor.routeNodeIds.at(-1);
+	if (destinationNodeId === undefined) return false;
+	const destination = currentSceneNode(destinationNodeId);
+	return (
+		destination !== null &&
+		Math.hypot(
+			actor.positionMm.x - destination.x,
+			actor.positionMm.z - destination.z,
+		) <= 1_050
 	);
 }
 
@@ -99,10 +121,26 @@ export function inspectSpatialProjection(
 			actor.action.kind !== "idle" &&
 			actor.animationClass !== actor.action.kind &&
 			!locomotion.has(actor.animationClass) &&
-			!completedLocomotion(actor)
+			!completedLocomotion(actor) &&
+			!waitingForAuthoritativeArrival(actor)
 		)
 			mismatches.push({
 				code: "action-animation-contradiction",
+				actorId: actor.citizenId,
+				actionKind: actor.action.kind,
+				displayedAnimation: actor.animationClass,
+				distanceMm: null,
+			});
+		if (
+			actor.action.status === "committed" &&
+			(actor.action.kind === "exchange" ||
+				actor.action.kind === "gather" ||
+				actor.action.kind === "repair") &&
+			actor.action.simulationEnd !== null &&
+			current.presentationTick - actor.action.simulationEnd * 30 > 48
+		)
+			mismatches.push({
+				code: "completed-action-loop",
 				actorId: actor.citizenId,
 				actionKind: actor.action.kind,
 				displayedAnimation: actor.animationClass,
@@ -135,18 +173,20 @@ export function inspectSpatialProjection(
 				distanceMm: null,
 			});
 	}
-	if (
-		previous !== null &&
-		previous.sceneVersion === current.sceneVersion &&
-		previous.source.stateHash === current.source.stateHash &&
-		current.presentationTick > previous.presentationTick
-	) {
+	if (previous !== null && previous.sceneVersion === current.sceneVersion) {
 		const previousActors = actorById(previous);
-		const elapsedTicks = current.presentationTick - previous.presentationTick;
+		const elapsedTicks = Math.max(
+			0,
+			current.presentationTick - previous.presentationTick,
+		);
 		const maximumDistanceMm = Math.ceil((elapsedTicks / 30) * 1_000) + 50;
 		for (const actor of current.actors) {
 			const prior = previousActors.get(actor.citizenId);
-			if (prior === undefined) continue;
+			if (
+				prior === undefined ||
+				prior.action.actionId !== actor.action.actionId
+			)
+				continue;
 			const distanceMm = Math.round(
 				Math.hypot(
 					actor.positionMm.x - prior.positionMm.x,

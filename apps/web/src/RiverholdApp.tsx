@@ -759,6 +759,7 @@ export function RiverholdApp() {
 	};
 
 	useEffect(() => {
+		const unsubscribe = bridge.subscribe(setProjection, captureFailure);
 		void bridge
 			.ready()
 			.then((next) => {
@@ -767,7 +768,10 @@ export function RiverholdApp() {
 				setPending(false);
 			})
 			.catch(captureFailure);
-		return () => bridge.clear();
+		return () => {
+			unsubscribe();
+			bridge.clear();
+		};
 	}, [bridge]);
 	useEffect(() => {
 		window.localStorage.setItem(

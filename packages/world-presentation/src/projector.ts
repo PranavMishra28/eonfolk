@@ -113,7 +113,6 @@ function projectActor(
 				})
 			: null;
 	if (
-		citizen.canonicalAction.kind === "exchange" &&
 		citizen.canonicalAction.affordanceId === "market-exchange" &&
 		(citizen.canonicalAction.affordanceSlotIndex === 0 ||
 			citizen.canonicalAction.affordanceSlotIndex === 1) &&
@@ -133,7 +132,7 @@ function projectActor(
 			positionMm: Object.freeze(point(slotId)),
 			facingDegrees: point(slotId).facingDegrees,
 			routeNodeIds: Object.freeze([slotId]),
-			animationClass: "exchange",
+			animationClass: citizen.canonicalAction.kind,
 			prop: citizen.carriedProp,
 			travelState: Object.freeze({
 				status: "stationary",
@@ -144,12 +143,18 @@ function projectActor(
 			}),
 			interactionTarget: partnerId,
 			action: citizen.canonicalAction,
-			semanticLabel: `${citizen.name} is completing the canonical market exchange`,
+			semanticLabel:
+				citizen.canonicalAction.kind === "exchange"
+					? `${citizen.name} is completing the canonical market exchange`
+					: `${citizen.name} is reacting after the canonical market exchange`,
 			focal: citizen.focal,
 		});
 	}
 	if (canonicalRoute !== null && canonicalRoute.length > 1) {
-		const requestedDistanceMm = presentationTick * 30;
+		const actionPresentationStart =
+			citizen.canonicalAction.simulationStart * 30;
+		const requestedDistanceMm =
+			Math.max(0, presentationTick - actionPresentationStart) * 30;
 		const initialSample = pointAlongRoute(canonicalRoute, requestedDistanceMm);
 		const stopDistanceMm =
 			citizen.canonicalAction.status === "in-progress"

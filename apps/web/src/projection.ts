@@ -146,6 +146,10 @@ export interface RiverholdRuntimeBridge {
 	getProjection(): RiverholdProjection;
 	ready(): Promise<RiverholdProjection>;
 	dispatch(intent: RiverholdIntent): Promise<RiverholdProjection>;
+	subscribe(
+		listener: (projection: RiverholdProjection) => void,
+		onFailure?: (error: Error) => void,
+	): () => void;
 	clear(): void;
 }
 

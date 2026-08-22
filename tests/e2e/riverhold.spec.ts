@@ -58,20 +58,26 @@ test.afterAll(() => {
 	writeFileSync(routeLogPath, `${JSON.stringify(routeLog)}\n`);
 });
 
-test("embodied world advances continuously without projection contradictions", async ({
+test("watched Reality completes and reloads a truthful ten-second lifecycle", async ({
 	page,
 }) => {
+	test.setTimeout(45_000);
 	const world = page.getByTestId("riverhold-canvas");
+	const openingLifecycle = await world.evaluate((host) => ({
+		interactions: Number(host.dataset.interactions),
+		transfer: host.dataset.exchangeTransfer,
+	}));
+	expect(openingLifecycle).toEqual({
+		interactions: 1,
+		transfer: "transferring",
+	});
 	await expect(world).toHaveAttribute("data-engine", "playcanvas");
 	await expect(world).toHaveAttribute("data-device-type", "webgl2");
 	await expect(world).toHaveAttribute("data-world-metres-per-unit", "1");
 	await expect(world).toHaveAttribute("data-citizen-height-m", "1.75");
 	await expect(world).toHaveAttribute("data-door-height-m", "2.05");
 	await expect(world).toHaveAttribute("data-cosmetic-processes", "river-flow");
-	await expect(world).toHaveAttribute(
-		"data-exchange-transfer",
-		"awaiting-result",
-	);
+	await expect(world).toHaveAttribute("data-exchange-transfer", "transferring");
 	await expect(world).toHaveAttribute(
 		"data-mill-state",
 		/^(?:needs-repair|repaired)$/u,
@@ -81,30 +87,72 @@ test("embodied world advances continuously without projection contradictions", a
 	const initialTick = Number(
 		await world.getAttribute("data-presentation-tick"),
 	);
+	const initialRevision = Number(
+		await world.getAttribute("data-world-revision"),
+	);
 	const seenClasses = new Set<string>();
 	let maximumMoving = 0;
-	let maximumInteractions = 0;
-	for (let sample = 0; sample < 8; sample += 1) {
-		for (const animation of (
-			(await world.getAttribute("data-animation-classes")) ?? ""
-		).split(",")) {
+	let maximumInteractions = openingLifecycle.interactions;
+	for (let sample = 0; sample < 48; sample += 1) {
+		const sampleState = await world.evaluate((host) => ({
+			animations: host.dataset.animationClasses ?? "",
+			moving: Number(host.dataset.movingCitizens),
+			interactions: Number(host.dataset.interactions),
+		}));
+		for (const animation of sampleState.animations.split(",")) {
 			if (animation) seenClasses.add(animation);
 		}
-		maximumMoving = Math.max(
-			maximumMoving,
-			Number(await world.getAttribute("data-moving-citizens")),
-		);
+		maximumMoving = Math.max(maximumMoving, sampleState.moving);
 		maximumInteractions = Math.max(
 			maximumInteractions,
-			Number(await world.getAttribute("data-interactions")),
+			sampleState.interactions,
 		);
 		await page.waitForTimeout(250);
 	}
 	const finalTick = Number(await world.getAttribute("data-presentation-tick"));
+	const finalRevision = Number(await world.getAttribute("data-world-revision"));
+	const finalSequence = Number(await world.getAttribute("data-world-sequence"));
+	const finalSimulationTime = Number(
+		await world.getAttribute("data-world-simulation-time"),
+	);
 	expect(finalTick).toBeGreaterThan(initialTick);
+	expect(finalRevision).toBeGreaterThanOrEqual(initialRevision + 5);
+	expect(finalSequence).toBeGreaterThan(finalRevision);
+	expect(finalSimulationTime).toBeGreaterThanOrEqual(360);
 	expect(maximumMoving).toBeGreaterThanOrEqual(3);
 	expect(maximumInteractions).toBeGreaterThanOrEqual(1);
 	expect(seenClasses.size).toBeGreaterThanOrEqual(4);
+	await expect(world).toHaveAttribute("data-mill-state", "repaired");
+	await expect(world).toHaveAttribute("data-interactions", "0");
+	await expect(world).toHaveAttribute("data-exchange-transfer", "none");
+	await expect(world).toHaveAttribute("data-active-task-count", "2");
+	await expect(world).toHaveAttribute("data-teleports", "0");
+	await expect(world).toHaveAttribute("data-contradictions", "0");
+	expect(
+		(await world.getAttribute("data-animation-classes")) ?? "",
+	).not.toMatch(/exchange|gather|repair/u);
+
+	await page.getByRole("button", { name: "Use list view" }).click();
+	const hiddenStart = finalRevision;
+	await page.waitForTimeout(2_200);
+	await page.getByRole("button", { name: "Use illustrated view" }).click();
+	await expect(world).toHaveAttribute("data-ready", "true");
+	const afterHiddenRevision = Number(
+		await world.getAttribute("data-world-revision"),
+	);
+	expect(afterHiddenRevision).toBeGreaterThan(hiddenStart);
+
+	await page.reload();
+	const reloaded = page.getByTestId("riverhold-canvas");
+	await expect(reloaded).toHaveAttribute("data-ready", "true");
+	await expect
+		.poll(async () =>
+			Number(await reloaded.getAttribute("data-world-revision")),
+		)
+		.toBeGreaterThanOrEqual(afterHiddenRevision);
+	await expect(reloaded).toHaveAttribute("data-teleports", "0");
+	await expect(reloaded).toHaveAttribute("data-contradictions", "0");
+	await expect(reloaded).toHaveAttribute("data-mill-state", "repaired");
 	const fit = await world.evaluate((host) => {
 		const canvas = host.querySelector("canvas");
 		return canvas === null
@@ -127,10 +175,7 @@ test("the world surface directly picks inhabitants and places and supports keybo
 	page,
 }) => {
 	const world = page.getByTestId("riverhold-canvas");
-	await expect(world).toHaveAttribute(
-		"data-exchange-transfer",
-		"awaiting-result",
-	);
+	await expect(world).toHaveAttribute("data-exchange-transfer", "transferring");
 	type PickTarget = {
 		readonly id: string;
 		readonly x: number;
