@@ -82,6 +82,7 @@ const physicalScale = Object.freeze({
 	treeHeight: metres(riverholdPhysicalScale.tree.matureHeightMm),
 	treeCanopy: metres(riverholdPhysicalScale.tree.canopyDiameterMm),
 	marketDiameter: metres(riverholdPhysicalScale.market.clearDiameterMm),
+	marketStallWidth: metres(riverholdPhysicalScale.market.stallWidthMm),
 	millWidth: metres(riverholdPhysicalScale.mill.widthMm),
 	millDepth: metres(riverholdPhysicalScale.mill.depthMm),
 	millRidgeHeight: metres(riverholdPhysicalScale.mill.ridgeHeightMm),
@@ -181,6 +182,64 @@ function Tree({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
 				]}
 				color={palette.leaf}
 			/>
+		</Entity>
+	);
+}
+
+function MarketStall({
+	x,
+	z,
+	rotation,
+	canopy,
+}: {
+	readonly x: number;
+	readonly z: number;
+	readonly rotation: number;
+	readonly canopy: StandardMaterial;
+}) {
+	const halfWidth = physicalScale.marketStallWidth / 2;
+	return (
+		<Entity position={[x, 0, z]} rotation={[0, rotation, 0]}>
+			<Primitive
+				position={[0, 0.82, 0]}
+				scale={[physicalScale.marketStallWidth, 0.18, 1.35]}
+				color={palette.timber}
+			/>
+			{[-halfWidth + 0.12, halfWidth - 0.12].map((postX) => (
+				<Primitive
+					key={postX}
+					position={[postX, 1.45, 0]}
+					scale={[0.14, 2.65, 0.14]}
+					color={palette.timber}
+				/>
+			))}
+			<Primitive
+				position={[0, 2.72, 0]}
+				scale={[physicalScale.marketStallWidth + 0.45, 0.22, 1.8]}
+				color={canopy}
+			/>
+			<Primitive
+				position={[0.75, 1.05, 0]}
+				scale={[0.48, 0.42, 0.48]}
+				color={palette.grain}
+			/>
+		</Entity>
+	);
+}
+
+function ConversationIndicator() {
+	return (
+		<Entity position={[0.25, 2.6, 2.2]}>
+			{[-0.38, 0, 0.38].map((x, index) => (
+				<Primitive
+					key={x}
+					type="sphere"
+					position={[x, index === 1 ? 0.14 : 0, 0]}
+					scale={[0.22, 0.22, 0.22]}
+					color={palette.linen}
+					castShadows={false}
+				/>
+			))}
 		</Entity>
 	);
 }
@@ -702,10 +761,11 @@ function CameraController({
 	const cameraState = useRef({
 		targetX: 0,
 		targetZ: -5,
-		distance: 118,
+		distance: 58,
 		yaw: 38,
 		pitch: 48,
 	});
+	const appliedInitialFocus = useRef(false);
 	const pointers = useRef(new Map<number, { x: number; y: number }>());
 	const pointerStarts = useRef(new Map<number, { x: number; y: number }>());
 	const priorPinch = useRef<number | null>(null);
@@ -718,9 +778,11 @@ function CameraController({
 		if (focus.kind === "overview") {
 			state.targetX = 0;
 			state.targetZ = -5;
-			state.distance = 118;
+			state.distance = appliedInitialFocus.current ? 118 : 58;
+			appliedInitialFocus.current = true;
 			return;
 		}
+		appliedInitialFocus.current = true;
 		if (focus.kind === "place") {
 			const place = riverholdSpatialScene.places[focus.id];
 			if (place !== undefined) {
@@ -1174,16 +1236,12 @@ function LivingLandscape({
 					]}
 					color={palette.earth}
 				/>
-				<Primitive
-					position={[-2.2, 1.05, 0]}
-					scale={[3.4, 1.5, 2]}
-					color={palette.timber}
-				/>
-				<Primitive
-					position={[2.4, 1.05, 0.3]}
-					scale={[3.2, 1.5, 2]}
-					color={palette.grain}
-				/>
+				<MarketStall x={-5.2} z={0} rotation={12} canopy={palette.roof} />
+				<MarketStall x={5.2} z={0} rotation={-10} canopy={palette.grain} />
+				<MarketStall x={0} z={-6.1} rotation={90} canopy={palette.mara} />
+				{projection.spatial.interactions.length > 0 ? (
+					<ConversationIndicator />
+				) : null}
 			</Entity>
 			<Entity position={[40, 0, 8]}>
 				<Primitive

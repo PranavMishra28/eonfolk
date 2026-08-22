@@ -725,7 +725,7 @@ export function RiverholdApp() {
 		kind: "overview",
 	});
 	const [semanticScale, setSemanticScale] = useState<SemanticScale>("region");
-	const [worldLens, setWorldLens] = useState<WorldLens>("activity");
+	const [worldLens, setWorldLens] = useState<WorldLens>("none");
 	const [sheet, setSheet] = useState<Sheet>(null);
 	const [runtimeError, setRuntimeError] = useState<RuntimeFailure | null>(null);
 	const [runtimeIncident, setRuntimeIncident] =
