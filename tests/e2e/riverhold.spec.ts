@@ -40,16 +40,31 @@ function followMaraAction(page: Page): Locator {
 		.getByRole("button", { name: "Follow Mara", exact: true });
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
 	pageErrors = [];
+	const faultMode = testInfo.title.includes("@fault");
+	if (faultMode) {
+		await page.addInitScript(() =>
+			localStorage.setItem("eonfolk:world-view", "words"),
+		);
+	}
 	await installPageOracles(page);
 	await page.goto("/");
-	await page.evaluate(() => localStorage.clear());
+	await page.evaluate((useWords) => {
+		localStorage.clear();
+		if (useWords) localStorage.setItem("eonfolk:world-view", "words");
+	}, faultMode);
 	await page.reload();
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-	);
+	if (faultMode) {
+		await expect(
+			page.getByRole("button", { name: "Use illustrated view" }),
+		).toBeVisible();
+	} else {
+		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+		);
+	}
 });
 
 test.afterEach(() => expect(pageErrors).toEqual([]));
