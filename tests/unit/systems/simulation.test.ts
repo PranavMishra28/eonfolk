@@ -52,12 +52,42 @@ describe("Riverhold deterministic Reality", () => {
 		).toHaveLength(2);
 		expect(genesis.experimentManifest.provider).toBeNull();
 		expect(genesis.experimentManifest.runKind).toBe("canonical-local-proof");
-		expect(Object.keys(genesis.state.taskReservations)).toHaveLength(7);
+		expect(Object.keys(genesis.state.taskReservations)).toHaveLength(4);
 		expect(
 			Object.values(genesis.state.taskReservations).flatMap(
 				(reservation) => reservation.citizenIds,
 			),
-		).toHaveLength(8);
+		).toHaveLength(5);
+		expect(
+			["sela", "rowan", "neri"].map((slug) => {
+				const citizen = citizenBySlug(genesis.state, slug);
+				return {
+					slug,
+					activeTaskId: citizen.activeTaskId,
+					origin: citizen.placeId,
+					destination: citizen.travel?.destinationPlaceId,
+				};
+			}),
+		).toEqual([
+			{
+				slug: "sela",
+				activeTaskId: null,
+				origin: "market",
+				destination: "spring",
+			},
+			{
+				slug: "rowan",
+				activeTaskId: null,
+				origin: "mill",
+				destination: "woods",
+			},
+			{
+				slug: "neri",
+				activeTaskId: null,
+				origin: "granary",
+				destination: "fields",
+			},
+		]);
 	});
 
 	it("keeps origin authoritative until deterministic arrival and replays the travel boundary", async () => {

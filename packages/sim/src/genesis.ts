@@ -58,7 +58,7 @@ const citizenSeeds: readonly CitizenSeed[] = [
 		slug: "sela",
 		name: "Sela Fen",
 		role: "water carrier",
-		place: "spring",
+		place: "market",
 		values: ["care", "duty", "prudence"],
 		need: [2_800, 1_000, 1_500],
 	},
@@ -66,7 +66,7 @@ const citizenSeeds: readonly CitizenSeed[] = [
 		slug: "rowan",
 		name: "Rowan Pike",
 		role: "woodcutter",
-		place: "woods",
+		place: "mill",
 		values: ["duty", "craft", "independence"],
 		need: [2_000, 2_300, 1_800],
 	},
@@ -74,7 +74,7 @@ const citizenSeeds: readonly CitizenSeed[] = [
 		slug: "neri",
 		name: "Neri Ash",
 		role: "forager",
-		place: "fields",
+		place: "granary",
 		values: ["care", "curiosity", "reciprocity"],
 		need: [1_900, 2_100, 2_000],
 	},
@@ -333,29 +333,35 @@ export async function createRiverholdGenesis(
 		"respond-socially",
 	);
 	reserveGenesisTask(
-		"task:genesis:spring-water",
-		"spring-water",
-		["sela"],
-		"acquire-resource",
-	);
-	reserveGenesisTask(
-		"task:genesis:woods-wood",
-		"woods-wood",
-		["rowan"],
-		"acquire-resource",
-	);
-	reserveGenesisTask(
-		"task:genesis:fields-food",
-		"fields-food",
-		["neri"],
-		"acquire-resource",
-	);
-	reserveGenesisTask(
 		"task:genesis:mill-repair",
 		"mill-repair",
 		["odo"],
 		"fulfill-plan",
 	);
+	const beginGenesisTravel = (
+		slug: "sela" | "rowan" | "neri",
+		destinationPlaceId: "spring" | "woods" | "fields",
+		expectedArrivalSimulationTime: number,
+	): void => {
+		const citizenId = slugToId.get(slug);
+		if (citizenId === undefined) throw new Error(`missing citizen ${slug}`);
+		const citizen = citizens[citizenId]!;
+		citizens[citizenId] = {
+			...citizen,
+			travel: {
+				travelId: `travel:genesis:${slug}`,
+				originPlaceId: citizen.placeId,
+				destinationPlaceId,
+				routeId: `${citizen.placeId}>${destinationPlaceId}`,
+				departureSimulationTime: 0,
+				expectedArrivalSimulationTime,
+				task: "acquire-resource",
+			},
+		};
+	};
+	beginGenesisTravel("sela", "spring", 150);
+	beginGenesisTravel("rowan", "woods", 180);
+	beginGenesisTravel("neri", "fields", 180);
 	reserveGenesisTask(
 		"task:genesis:granary-ledger",
 		"granary-ledger",

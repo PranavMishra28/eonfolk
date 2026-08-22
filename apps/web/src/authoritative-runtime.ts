@@ -519,6 +519,16 @@ function activityFor(citizen: WorldState["citizens"][string]): {
 	activity: string;
 	activityKind: RiverholdProjection["citizens"][number]["activityKind"];
 } {
+	if (citizen.travel != null)
+		return {
+			activity: `carrying supplies toward ${citizen.travel.destinationPlaceId}`,
+			activityKind:
+				citizen.slug === "sela"
+					? "water"
+					: citizen.slug === "neri"
+						? "food"
+						: "wood",
+		};
 	const byBehavior = {
 		"maintain-self": {
 			activity: "meeting an immediate need",
@@ -611,6 +621,20 @@ function defaultAnimationForBehavior(
 	if (behavior === "acquire-resource") return "gather";
 	if (behavior === "maintain-self") return "eat-rest";
 	return "inspect";
+}
+
+function defaultAnimationForAffordance(
+	affordanceId: string | null,
+	behavior: WorldState["citizens"][string]["currentBehavior"],
+): AnimationClass {
+	if (affordanceId === "mill-repair") return "repair";
+	if (
+		affordanceId === "spring-water" ||
+		affordanceId === "woods-wood" ||
+		affordanceId === "fields-food"
+	)
+		return "gather";
+	return defaultAnimationForBehavior(behavior);
 }
 
 function carriedPropForCitizen(
@@ -781,7 +805,10 @@ function canonicalActionForCitizen(input: {
 		eventId: null,
 		eventSequence: null,
 		status: "in-progress",
-		kind: defaultAnimationForBehavior(input.currentBehavior),
+		kind: defaultAnimationForAffordance(
+			input.affordanceId,
+			input.currentBehavior,
+		),
 		originPlaceId: input.placeId,
 		destinationPlaceId: input.placeId,
 		affordanceId: input.affordanceId,

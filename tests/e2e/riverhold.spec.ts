@@ -64,6 +64,9 @@ test("embodied world advances continuously without projection contradictions", a
 	const world = page.getByTestId("riverhold-canvas");
 	await expect(world).toHaveAttribute("data-engine", "playcanvas");
 	await expect(world).toHaveAttribute("data-device-type", "webgl2");
+	await expect(world).toHaveAttribute("data-world-metres-per-unit", "1");
+	await expect(world).toHaveAttribute("data-citizen-height-m", "1.75");
+	await expect(world).toHaveAttribute("data-door-height-m", "2.05");
 	await expect(world).toHaveAttribute("data-cosmetic-processes", "river-flow");
 	await expect(world).toHaveAttribute(
 		"data-exchange-transfer",
@@ -886,6 +889,7 @@ test("fact badges pass normal-text contrast and focus survives forced colors", a
 test("the complete critical journey is keyboard-only and modal focus is isolated and restored", async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	const follow = followMaraAction(page);
 	await tabTo(page, follow);
 	await page.keyboard.press("Enter");

@@ -4,6 +4,7 @@ import {
 	inspectSpatialProjection,
 	projectPresentationResidency,
 	projectSpatialScene,
+	riverholdPhysicalScale,
 	riverholdSpatialScene,
 	type SemanticScale,
 	type SpatialActorProjection,
@@ -68,6 +69,27 @@ const palette = {
 	stone: material("#77796f"),
 } as const;
 
+const metres = (millimetres: number) => millimetres / 1_000;
+const physicalScale = Object.freeze({
+	citizenHeight: metres(riverholdPhysicalScale.citizen.heightMm),
+	doorHeight: metres(riverholdPhysicalScale.door.heightMm),
+	doorWidth: metres(riverholdPhysicalScale.door.widthMm),
+	houseWidth: metres(riverholdPhysicalScale.house.widthMm),
+	houseDepth: metres(riverholdPhysicalScale.house.depthMm),
+	houseRidgeHeight: metres(riverholdPhysicalScale.house.ridgeHeightMm),
+	primaryRoadWidth: metres(riverholdPhysicalScale.road.primaryWidthMm),
+	footpathWidth: metres(riverholdPhysicalScale.road.footpathWidthMm),
+	treeHeight: metres(riverholdPhysicalScale.tree.matureHeightMm),
+	treeCanopy: metres(riverholdPhysicalScale.tree.canopyDiameterMm),
+	marketDiameter: metres(riverholdPhysicalScale.market.clearDiameterMm),
+	millWidth: metres(riverholdPhysicalScale.mill.widthMm),
+	millDepth: metres(riverholdPhysicalScale.mill.depthMm),
+	millRidgeHeight: metres(riverholdPhysicalScale.mill.ridgeHeightMm),
+	millWheelDiameter: metres(riverholdPhysicalScale.mill.wheelDiameterMm),
+});
+
+const CITIZEN_RIG_HEIGHT = 2.3;
+
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
 
 function Primitive({
@@ -108,26 +130,29 @@ function House({
 	readonly rotation?: number;
 	readonly wide?: boolean;
 }) {
+	const width = physicalScale.houseWidth * (wide ? 1.25 : 1);
+	const depth = physicalScale.houseDepth * (wide ? 1.12 : 1);
+	const wallHeight = physicalScale.houseRidgeHeight * 0.63;
 	return (
 		<Entity position={[x, 0, z]} rotation={[0, rotation, 0]}>
 			<Primitive
-				position={[0, 1.7, 0]}
-				scale={[wide ? 9 : 7, 3.4, wide ? 6 : 5]}
+				position={[0, wallHeight / 2, 0]}
+				scale={[width, wallHeight, depth]}
 				color={palette.wall}
 			/>
 			<Primitive
-				position={[0, 3.75, 0]}
-				scale={[wide ? 10 : 8, 0.45, wide ? 7 : 6]}
+				position={[0, physicalScale.houseRidgeHeight - 0.25, 0]}
+				scale={[width + 0.8, 0.5, depth + 0.7]}
 				color={palette.roof}
 				rotation={[0, 0, 10]}
 			/>
 			<Primitive
-				position={[0, 1, wide ? 3.02 : 2.52]}
-				scale={[1, 2, 0.16]}
+				position={[0, physicalScale.doorHeight / 2, depth / 2 + 0.02]}
+				scale={[physicalScale.doorWidth, physicalScale.doorHeight, 0.16]}
 				color={palette.ink}
 			/>
 			<Primitive
-				position={[wide ? 2.6 : 2.1, 2.05, wide ? 3.03 : 2.53]}
+				position={[width * 0.3, 2.05, depth / 2 + 0.03]}
 				scale={[1.05, 0.9, 0.12]}
 				color={palette.water}
 			/>
@@ -136,18 +161,24 @@ function House({
 }
 
 function Tree({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
+	const trunkHeight = physicalScale.treeHeight * 0.4;
+	const canopyHeight = physicalScale.treeHeight - trunkHeight;
 	return (
 		<Entity position={[x, 0, z]} scale={[scale, scale, scale]}>
 			<Primitive
 				type="cylinder"
-				position={[0, 2.2, 0]}
-				scale={[0.55, 4.4, 0.55]}
+				position={[0, trunkHeight / 2, 0]}
+				scale={[0.55, trunkHeight, 0.55]}
 				color={palette.timber}
 			/>
 			<Primitive
 				type="cone"
-				position={[0, 5.4, 0]}
-				scale={[2.5, 4.2, 2.5]}
+				position={[0, trunkHeight + canopyHeight / 2, 0]}
+				scale={[
+					physicalScale.treeCanopy,
+					canopyHeight,
+					physicalScale.treeCanopy,
+				]}
 				color={palette.leaf}
 			/>
 		</Entity>
@@ -384,7 +415,11 @@ function CitizenRig({
 		<Entity
 			ref={root}
 			name={`citizen:${actor.slug}`}
-			scale={[0.78, 0.78, 0.78]}
+			scale={[
+				physicalScale.citizenHeight / CITIZEN_RIG_HEIGHT,
+				physicalScale.citizenHeight / CITIZEN_RIG_HEIGHT,
+				physicalScale.citizenHeight / CITIZEN_RIG_HEIGHT,
+			]}
 		>
 			{actor.focal || semanticScale === "region" ? (
 				<Primitive
@@ -1092,18 +1127,18 @@ function LivingLandscape({
 			<CosmeticRiverMotion reducedMotion={reducedMotion} />
 			<Primitive
 				position={[0, -0.01, -5]}
-				scale={[9, 0.08, 142]}
+				scale={[physicalScale.primaryRoadWidth, 0.08, 142]}
 				color={palette.path}
 			/>
 			<Primitive
 				position={[24, -0.005, 7]}
-				scale={[82, 0.08, 7]}
+				scale={[82, 0.08, physicalScale.primaryRoadWidth]}
 				color={palette.path}
 				rotation={[0, -8, 0]}
 			/>
 			<Primitive
 				position={[-27, -0.005, 12]}
-				scale={[70, 0.08, 6]}
+				scale={[70, 0.08, physicalScale.footpathWidth]}
 				color={palette.path}
 				rotation={[0, 24, 0]}
 			/>
@@ -1132,7 +1167,11 @@ function LivingLandscape({
 				<Primitive
 					type="cylinder"
 					position={[0, 0.35, 0]}
-					scale={[5.8, 0.5, 5.8]}
+					scale={[
+						physicalScale.marketDiameter,
+						0.5,
+						physicalScale.marketDiameter,
+					]}
 					color={palette.earth}
 				/>
 				<Primitive
@@ -1148,26 +1187,42 @@ function LivingLandscape({
 			</Entity>
 			<Entity position={[40, 0, 8]}>
 				<Primitive
-					position={[0, 2.6, 0]}
-					scale={[10, 5.2, 8]}
+					position={[0, physicalScale.millRidgeHeight * 0.37, 0]}
+					scale={[
+						physicalScale.millWidth,
+						physicalScale.millRidgeHeight * 0.74,
+						physicalScale.millDepth,
+					]}
 					color={palette.wall}
 				/>
 				<Primitive
-					position={[0, 5.65, 0]}
-					scale={[11, 0.55, 9]}
+					position={[0, physicalScale.millRidgeHeight - 0.3, 0]}
+					scale={[
+						physicalScale.millWidth + 1,
+						0.6,
+						physicalScale.millDepth + 1,
+					]}
 					color={palette.roof}
 					rotation={[0, 0, 9]}
 				/>
 				<Primitive
 					type="cylinder"
-					position={[5.5, 3.4, 0]}
-					scale={[0.45, 7.4, 0.45]}
+					position={[
+						physicalScale.millWidth / 2 + 0.5,
+						physicalScale.millWheelDiameter / 2,
+						0,
+					]}
+					scale={[0.45, physicalScale.millWheelDiameter, 0.45]}
 					color={palette.timber}
 					rotation={[90, 0, 0]}
 				/>
 				<Primitive
-					position={[5.5, 3.4, 0]}
-					scale={[0.28, 7.2, 0.28]}
+					position={[
+						physicalScale.millWidth / 2 + 0.5,
+						physicalScale.millWheelDiameter / 2,
+						0,
+					]}
+					scale={[0.28, physicalScale.millWheelDiameter - 0.2, 0.28]}
 					color={
 						projection.worldProcesses.millRepaired
 							? palette.moss
@@ -1176,8 +1231,12 @@ function LivingLandscape({
 					rotation={[0, 0, reducedMotion ? 0 : 14]}
 				/>
 				<Primitive
-					position={[5.5, 3.4, 0]}
-					scale={[7.2, 0.28, 0.28]}
+					position={[
+						physicalScale.millWidth / 2 + 0.5,
+						physicalScale.millWheelDiameter / 2,
+						0,
+					]}
+					scale={[physicalScale.millWheelDiameter - 0.2, 0.28, 0.28]}
 					color={
 						projection.worldProcesses.millRepaired
 							? palette.moss
@@ -1428,6 +1487,9 @@ export function RiverholdWorld({
 			data-testid="riverhold-canvas"
 			data-ready="false"
 			data-engine="playcanvas"
+			data-world-metres-per-unit={riverholdSpatialScene.metresPerWorldUnit}
+			data-citizen-height-m={physicalScale.citizenHeight}
+			data-door-height-m={physicalScale.doorHeight}
 			data-cosmetic-processes="river-flow"
 			data-mill-state={
 				projection.worldProcesses.millRepaired ? "repaired" : "needs-repair"
