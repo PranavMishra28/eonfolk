@@ -256,7 +256,9 @@ function main() {
 						formalToolIdentity: "repository-pinned TLC SHA-256",
 						propertyProfile: "PR: 50/32 deterministic runs",
 						browserJourney:
-							"two injected-fault plus sixteen production journeys",
+							process.env.EONFOLK_ALLOW_LINUX_CI === "1"
+								? "two semantic injected-fault journeys plus fourteen semantic production journeys; relevant UI changes additionally require a three-viewport PlayCanvas/WebGL2 renderer smoke"
+								: "two semantic injected-fault journeys plus sixteen illustrated production journeys, including target-renderer lifecycle and spatial picking",
 					},
 		subcommands: execution.steps,
 		artifactAssertions,
