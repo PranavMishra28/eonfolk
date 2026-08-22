@@ -21,6 +21,15 @@ const actionNodeByPlace: Readonly<Record<string, string>> = Object.freeze({
 	fields: "fields:work",
 });
 
+const actionNodeByAffordance: Readonly<Record<string, string>> = Object.freeze({
+	"market-ledger": "market:tally",
+	"spring-water": "spring:work",
+	"woods-wood": "woods:work",
+	"fields-food": "fields:work",
+	"mill-repair": "mill:work",
+	"granary-ledger": "granary:desk",
+});
+
 const point = (nodeId: string): SpatialNode => {
 	const value = riverholdSpatialScene.nodes[nodeId];
 	if (value === undefined) throw new Error(`Missing spatial node ${nodeId}`);
@@ -105,10 +114,15 @@ function projectActor(
 			: null;
 	if (
 		citizen.canonicalAction.kind === "exchange" &&
-		(citizen.slug === "toma" || citizen.slug === "iven")
+		citizen.canonicalAction.affordanceId === "market-exchange" &&
+		(citizen.canonicalAction.affordanceSlotIndex === 0 ||
+			citizen.canonicalAction.affordanceSlotIndex === 1) &&
+		citizen.canonicalAction.targetId !== null
 	) {
 		const slotId =
-			citizen.slug === "toma" ? "market:exchange-west" : "market:exchange-east";
+			citizen.canonicalAction.affordanceSlotIndex === 0
+				? "market:exchange-west"
+				: "market:exchange-east";
 		const partnerId = citizen.canonicalAction.targetId;
 		return Object.freeze({
 			citizenId: citizen.citizenId,
@@ -120,7 +134,7 @@ function projectActor(
 			facingDegrees: point(slotId).facingDegrees,
 			routeNodeIds: Object.freeze([slotId]),
 			animationClass: "exchange",
-			prop: citizen.slug === "toma" ? "trade" : "logs",
+			prop: citizen.carriedProp,
 			travelState: Object.freeze({
 				status: "stationary",
 				originPlaceId: "market",
@@ -164,7 +178,12 @@ function projectActor(
 			focal: citizen.focal,
 		});
 	}
-	const actionNode = actionNodeByPlace[citizen.placeId] ?? defaultNode;
+	const actionNode =
+		(citizen.canonicalAction.affordanceId === null
+			? undefined
+			: actionNodeByAffordance[citizen.canonicalAction.affordanceId]) ??
+		actionNodeByPlace[citizen.placeId] ??
+		defaultNode;
 	const actionAffordance = point(actionNode);
 	const positionMm = actionAffordance;
 	const routeNodeIds = Object.freeze([actionNode]);
@@ -202,30 +221,41 @@ function projectActor(
 function interactions(
 	actors: readonly SpatialActorProjection[],
 ): readonly SpatialInteractionProjection[] {
-	const toma = actors.find((actor) => actor.slug === "toma");
-	const iven = actors.find((actor) => actor.slug === "iven");
-	if (toma === undefined || iven === undefined) return Object.freeze([]);
-	const exchange = [toma, iven].find(
-		(actor) => actor.action.kind === "exchange",
+	const participants = actors
+		.filter(
+			(actor) =>
+				actor.action.kind === "exchange" &&
+				actor.action.affordanceId === "market-exchange",
+		)
+		.sort(
+			(left, right) =>
+				(left.action.affordanceSlotIndex ?? 99) -
+				(right.action.affordanceSlotIndex ?? 99),
+		);
+	if (participants.length !== 2) return Object.freeze([]);
+	const [first, second] = participants;
+	if (first === undefined || second === undefined) return Object.freeze([]);
+	const exchange = participants.find(
+		(actor) => actor.action.eventId !== null,
 	)?.action;
 	const close =
 		Math.hypot(
-			toma.positionMm.x - iven.positionMm.x,
-			toma.positionMm.z - iven.positionMm.z,
+			first.positionMm.x - second.positionMm.x,
+			first.positionMm.z - second.positionMm.z,
 		) <= 1_800;
 	if (!close) return Object.freeze([]);
 	return Object.freeze([
 		Object.freeze({
 			interactionId: exchange?.actionId ?? "presentation:market-conversation",
-			participantIds: Object.freeze([toma.citizenId, iven.citizenId]),
+			participantIds: Object.freeze([first.citizenId, second.citizenId]),
 			kind: "exchange",
 			sourceEventId: exchange?.eventId ?? null,
 			sourceSequence: exchange?.eventSequence ?? null,
 			status: exchange?.status ?? "in-progress",
 			semanticLabel:
 				exchange?.eventId == null
-					? "Toma Reed and Iven Holt visibly perform a carried-goods exchange; no world result is claimed."
-					: "Toma Reed and Iven Holt visibly project the linked canonical exchange.",
+					? `${first.name} and ${second.name} visibly perform a carried-goods exchange; no world result is claimed.`
+					: `${first.name} and ${second.name} visibly project the linked canonical exchange.`,
 		}),
 	]);
 }

@@ -718,6 +718,9 @@ function spatialDetailsForEvent(
 function canonicalActionForCitizen(input: {
 	readonly citizenId: string;
 	readonly placeId: string;
+	readonly affordanceId: string | null;
+	readonly affordanceSlotIndex: number | null;
+	readonly taskTargetId: string | null;
 	readonly currentBehavior: WorldState["citizens"][string]["currentBehavior"];
 	readonly travel: WorldState["citizens"][string]["travel"];
 	readonly hasCarriedResource: boolean;
@@ -735,6 +738,8 @@ function canonicalActionForCitizen(input: {
 			kind: input.hasCarriedResource ? "carry" : "walk",
 			originPlaceId: input.travel.originPlaceId,
 			destinationPlaceId: input.travel.destinationPlaceId,
+			affordanceId: null,
+			affordanceSlotIndex: null,
 			targetId: input.travel.destinationPlaceId,
 			simulationStart: input.travel.departureSimulationTime,
 			simulationEnd: input.travel.expectedArrivalSimulationTime,
@@ -762,6 +767,8 @@ function canonicalActionForCitizen(input: {
 			kind: animationForEvent(event),
 			originPlaceId: spatial.originPlaceId,
 			destinationPlaceId: spatial.destinationPlaceId,
+			affordanceId: input.affordanceId,
+			affordanceSlotIndex: input.affordanceSlotIndex,
 			targetId: spatial.targetId,
 			simulationStart: event.simulationTime,
 			simulationEnd: event.simulationTime,
@@ -777,7 +784,9 @@ function canonicalActionForCitizen(input: {
 		kind: defaultAnimationForBehavior(input.currentBehavior),
 		originPlaceId: input.placeId,
 		destinationPlaceId: input.placeId,
-		targetId: null,
+		affordanceId: input.affordanceId,
+		affordanceSlotIndex: input.affordanceSlotIndex,
+		targetId: input.taskTargetId,
 		simulationStart: input.simulationTime,
 		simulationEnd: null,
 		resultEventId: null,
@@ -1439,30 +1448,45 @@ export class AuthoritativeRiverholdRuntime {
 				? null
 				: actionToBranch(state.selectedCounselBranch);
 		const base = baseProjection(this.#phase, branch, this.#secondAction);
-		const citizens = Object.values(state.citizens).map((citizen) => ({
-			id: citizen.citizenId,
-			slug: citizen.slug,
-			name: citizen.name,
-			role: citizen.role,
-			placeId: citizen.placeId,
-			place: state.places[citizen.placeId]?.name ?? citizen.placeId,
-			...activityFor(citizen),
-			carriedProp: carriedPropForCitizen(citizen),
-			canonicalAction: canonicalActionForCitizen({
-				citizenId: citizen.citizenId,
+		const citizens = Object.values(state.citizens).map((citizen) => {
+			const reservation =
+				citizen.activeTaskId === null
+					? undefined
+					: state.taskReservations[citizen.activeTaskId];
+			const slotIndex =
+				reservation?.citizenIds.indexOf(citizen.citizenId) ?? -1;
+			const taskTargetId =
+				reservation?.citizenIds.find(
+					(participantId) => participantId !== citizen.citizenId,
+				) ?? null;
+			return {
+				id: citizen.citizenId,
+				slug: citizen.slug,
+				name: citizen.name,
+				role: citizen.role,
 				placeId: citizen.placeId,
-				currentBehavior: citizen.currentBehavior,
-				travel: citizen.travel,
-				hasCarriedResource:
-					citizen.inventory.food > 0 ||
-					citizen.inventory.water > 0 ||
-					citizen.inventory.wood > 0,
-				simulationTime: state.simulationTime,
-				revision: state.revision,
-				events: this.#events,
-			}),
-			...(citizen.slug === "mara" ? { focal: true as const } : {}),
-		}));
+				place: state.places[citizen.placeId]?.name ?? citizen.placeId,
+				...activityFor(citizen),
+				carriedProp: carriedPropForCitizen(citizen),
+				canonicalAction: canonicalActionForCitizen({
+					citizenId: citizen.citizenId,
+					placeId: citizen.placeId,
+					affordanceId: reservation?.affordanceId ?? null,
+					affordanceSlotIndex: slotIndex < 0 ? null : slotIndex,
+					taskTargetId,
+					currentBehavior: citizen.currentBehavior,
+					travel: citizen.travel,
+					hasCarriedResource:
+						citizen.inventory.food > 0 ||
+						citizen.inventory.water > 0 ||
+						citizen.inventory.wood > 0,
+					simulationTime: state.simulationTime,
+					revision: state.revision,
+					events: this.#events,
+				}),
+				...(citizen.slug === "mara" ? { focal: true as const } : {}),
+			};
+		});
 		const spatial = projectSpatialScene({
 			source: {
 				runId: state.runId,

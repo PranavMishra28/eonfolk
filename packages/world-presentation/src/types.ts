@@ -166,6 +166,10 @@ export interface CanonicalActionRef {
 	readonly kind: AnimationClass;
 	readonly originPlaceId: string;
 	readonly destinationPlaceId: string;
+	/** Reality-owned semantic slot or task surface; never chosen by the camera. */
+	readonly affordanceId: string | null;
+	/** Stable index inside the Reality-owned reservation participant order. */
+	readonly affordanceSlotIndex: number | null;
 	readonly targetId: string | null;
 	readonly simulationStart: number;
 	readonly simulationEnd: number | null;

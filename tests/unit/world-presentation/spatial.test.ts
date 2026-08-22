@@ -72,7 +72,27 @@ const citizens: readonly SpatialCitizenInput[] = seeds.map(
 							: "inspect",
 			originPlaceId: placeId,
 			destinationPlaceId: placeId,
-			targetId: null,
+			affordanceId:
+				slug === "mara"
+					? "market-ledger"
+					: slug === "toma" || slug === "iven"
+						? "market-exchange"
+						: slug === "sela"
+							? "spring-water"
+							: slug === "rowan"
+								? "woods-wood"
+								: slug === "neri"
+									? "fields-food"
+									: slug === "odo"
+										? "mill-repair"
+										: "granary-ledger",
+			affordanceSlotIndex: slug === "toma" ? 0 : slug === "iven" ? 1 : 0,
+			targetId:
+				slug === "toma"
+					? "citizen:iven"
+					: slug === "iven"
+						? "citizen:toma"
+						: null,
 			simulationStart: 1_000,
 			simulationEnd: null,
 			resultEventId: null,
@@ -385,6 +405,8 @@ describe("world presentation", () => {
 							kind: "exchange" as const,
 							originPlaceId: "market",
 							destinationPlaceId: "market",
+							affordanceId: "market-exchange",
+							affordanceSlotIndex: citizen.slug === "toma" ? 0 : 1,
 							targetId:
 								citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
 							simulationStart: 1_050,
@@ -426,6 +448,8 @@ describe("world presentation", () => {
 							kind: "walk" as const,
 							originPlaceId: "spring",
 							destinationPlaceId: "mill",
+							affordanceId: null,
+							affordanceSlotIndex: null,
 							targetId: "mill",
 							simulationStart: 1_050,
 							simulationEnd: 1_050,

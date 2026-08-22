@@ -128,6 +128,8 @@ function staticCanonicalAction(input: {
 		kind: input.kind,
 		originPlaceId: input.placeId,
 		destinationPlaceId: input.placeId,
+		affordanceId: null,
+		affordanceSlotIndex: null,
 		targetId: null,
 		simulationStart: input.simulationTime,
 		simulationEnd: null,
