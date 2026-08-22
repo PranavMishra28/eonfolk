@@ -320,6 +320,22 @@ describe("authoritative Riverhold application runtime", () => {
 				.flatMap((beat) => beat.evidence)
 				.every((evidence) => evidence.eventId.startsWith("event_")),
 		).toBe(true);
+		const knownPlaces = new Set([
+			"market",
+			"granary",
+			"fields",
+			"spring",
+			"woods",
+			"mill",
+		]);
+		for (const beat of chronicle.chronicle) {
+			expect(knownPlaces.has(beat.spatialFocus.placeId)).toBe(true);
+			expect(beat.spatialFocus.sourceEventIds.length).toBeGreaterThan(0);
+			expect(new Set(beat.spatialFocus.sourceEventIds)).toEqual(
+				new Set(beat.evidence.map((evidence) => evidence.eventId)),
+			);
+			expect(beat.spatialFocus.participantIds.length).toBeGreaterThan(0);
+		}
 		expect(JSON.stringify(chronicle)).not.toContain("RV-");
 
 		const recovered = new AuthoritativeRiverholdRuntime({
@@ -329,6 +345,9 @@ describe("authoritative Riverhold application runtime", () => {
 		const replayed = await recovered.initialize();
 		expect(replayed.branch).toBe("verify-private");
 		expect(replayed.chronicle).toHaveLength(3);
+		expect(replayed.chronicle.map((beat) => beat.spatialFocus)).toEqual(
+			chronicle.chronicle.map((beat) => beat.spatialFocus),
+		);
 		expect(replayed.day).toBe(19);
 		expect(replayed.storyCard?.heading).toBe("YOU ADVISED: verify first");
 	});

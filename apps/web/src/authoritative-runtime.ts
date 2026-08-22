@@ -717,7 +717,6 @@ function spatialDetailsForEvent(
 
 function canonicalActionForCitizen(input: {
 	readonly citizenId: string;
-	readonly slug: string;
 	readonly placeId: string;
 	readonly currentBehavior: WorldState["citizens"][string]["currentBehavior"];
 	readonly travel: WorldState["citizens"][string]["travel"];
@@ -1451,7 +1450,6 @@ export class AuthoritativeRiverholdRuntime {
 			carriedProp: carriedPropForCitizen(citizen),
 			canonicalAction: canonicalActionForCitizen({
 				citizenId: citizen.citizenId,
-				slug: citizen.slug,
 				placeId: citizen.placeId,
 				currentBehavior: citizen.currentBehavior,
 				travel: citizen.travel,
