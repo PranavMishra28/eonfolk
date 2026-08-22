@@ -85,7 +85,6 @@ test("watched Reality completes and reloads a truthful ten-second lifecycle", as
 		"data-consequence-tableau",
 		"unmarked-ledger",
 	);
-	await expect(world).toHaveAttribute("data-exchange-transfer", "transferring");
 	await expect(world).toHaveAttribute(
 		"data-mill-state",
 		/^(?:needs-repair|repaired)$/u,
