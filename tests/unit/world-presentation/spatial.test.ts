@@ -4,11 +4,16 @@ import {
 	humanoidPose,
 	inspectSpatialProjection,
 	pointIntersectsBlockedVolume,
+	PRESENTATION_HZ,
+	projectPresentationResidency,
 	projectSpatialScene,
 	requiredAnimationClasses,
+	riverholdPhysicalScale,
 	riverholdSpatialScene,
+	semanticScaleForDistance,
 	type SpatialCitizenInput,
 	type SpatialProjection,
+	validateRiverholdSpatialScene,
 } from "../../../packages/world-presentation/src/index.js";
 import { describe, expect, it } from "vitest";
 
@@ -76,6 +81,87 @@ const citizens: readonly SpatialCitizenInput[] = seeds.map(
 );
 
 describe("world presentation", () => {
+	it("locks a measurable human-scale settlement and valid authored affordances", () => {
+		expect(validateRiverholdSpatialScene()).toEqual([]);
+		expect(riverholdPhysicalScale.citizen.heightMm).toBeGreaterThanOrEqual(
+			1_600,
+		);
+		expect(riverholdPhysicalScale.citizen.heightMm).toBeLessThanOrEqual(1_900);
+		expect(riverholdPhysicalScale.door.heightMm).toBeGreaterThanOrEqual(1_950);
+		expect(riverholdPhysicalScale.door.heightMm).toBeLessThanOrEqual(2_200);
+		expect(riverholdPhysicalScale.house.widthMm).toBeGreaterThan(
+			riverholdPhysicalScale.door.widthMm * 5,
+		);
+		expect(riverholdPhysicalScale.tree.matureHeightMm).toBeGreaterThan(
+			riverholdPhysicalScale.house.ridgeHeightMm,
+		);
+		expect(riverholdPhysicalScale.market.clearDiameterMm).toBeGreaterThan(
+			riverholdPhysicalScale.house.widthMm * 3,
+		);
+		expect(riverholdPhysicalScale.mill.wheelDiameterMm).toBeGreaterThan(
+			riverholdPhysicalScale.citizen.heightMm * 2,
+		);
+		expect(riverholdPhysicalScale.road.primaryWidthMm).toBeGreaterThan(
+			riverholdPhysicalScale.road.footpathWidthMm,
+		);
+
+		const exchangeWest = riverholdSpatialScene.nodes["market:exchange-west"];
+		const exchangeEast = riverholdSpatialScene.nodes["market:exchange-east"];
+		expect(exchangeWest).toBeDefined();
+		expect(exchangeEast).toBeDefined();
+		if (exchangeWest === undefined || exchangeEast === undefined) return;
+		expect(exchangeWest.capacity).toBe(1);
+		expect(exchangeEast.capacity).toBe(1);
+		expect(exchangeWest.facingDegrees).toBe(90);
+		expect(exchangeEast.facingDegrees).toBe(-90);
+		expect(exchangeWest.waitingNodeIds).toEqual(["market:queue"]);
+		expect(exchangeEast.waitingNodeIds).toEqual(["market:queue"]);
+		expect(
+			Math.hypot(
+				exchangeWest.x - exchangeEast.x,
+				exchangeWest.z - exchangeEast.z,
+			),
+		).toBe(riverholdPhysicalScale.interaction.faceToFaceSpacingMm);
+	});
+
+	it("keeps camera residency and semantic scale independent of canonical projection", () => {
+		const canonical = projectSpatialScene({
+			source,
+			citizens,
+			presentationTick: 45,
+		});
+		const canonicalSnapshot = structuredClone(canonical);
+		const citizenResidency = projectPresentationResidency({
+			targetMm: canonical.actors[0]?.positionMm ?? { x: 0, y: 0, z: 0 },
+			distanceMm: 18_000,
+			selectedCitizenId: "citizen:mara",
+		});
+		const townResidency = projectPresentationResidency({
+			targetMm: { x: 40_000, y: 0, z: 8_000 },
+			distanceMm: 64_000,
+			selectedCitizenId: "citizen:odo",
+		});
+		const regionResidency = projectPresentationResidency({
+			targetMm: { x: 0, y: 0, z: 0 },
+			distanceMm: 180_000,
+			selectedCitizenId: null,
+		});
+
+		expect(citizenResidency.semanticScale).toBe("citizen");
+		expect(townResidency.semanticScale).toBe("town");
+		expect(regionResidency.semanticScale).toBe("region");
+		expect(semanticScaleForDistance(28_000)).toBe("citizen");
+		expect(semanticScaleForDistance(28_001)).toBe("town");
+		expect(semanticScaleForDistance(92_001)).toBe("region");
+		expect(citizenResidency.selectedCitizenId).toBe("citizen:mara");
+		expect(townResidency.selectedCitizenId).toBe("citizen:odo");
+		expect(regionResidency.cells.every(({ resident }) => resident)).toBe(true);
+		expect(canonical).toEqual(canonicalSnapshot);
+		expect(
+			projectSpatialScene({ source, citizens, presentationTick: 45 }),
+		).toEqual(canonicalSnapshot);
+	});
+
 	it("projects a deterministic, truthful, blocked-volume-safe living settlement", () => {
 		const first = projectSpatialScene({
 			source,
@@ -160,6 +246,129 @@ describe("world presentation", () => {
 		expect(stationaryClasses.has("gather")).toBe(true);
 		expect(stationaryClasses.has("inspect")).toBe(true);
 		expect(stationaryClasses.has("repair")).toBe(true);
+	});
+
+	it("sustains ten deterministic seconds of truthful motion and activity", () => {
+		const temporalCitizens = citizens.map((citizen) => {
+			if (citizen.slug === "toma" || citizen.slug === "iven")
+				return {
+					...citizen,
+					canonicalAction: {
+						...citizen.canonicalAction,
+						actionId: "exchange:event-8",
+						sourceKind: "world-event" as const,
+						eventId: "event-8",
+						eventSequence: 8,
+						status: "committed" as const,
+						targetId: citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
+						simulationEnd: 1_050,
+						resultEventId: "event-8",
+					},
+				};
+			const travel =
+				citizen.slug === "mara"
+					? { origin: "market", destination: "granary", kind: "walk" as const }
+					: citizen.slug === "sela"
+						? {
+								origin: "spring",
+								destination: "market",
+								kind: "carry" as const,
+							}
+						: citizen.slug === "rowan"
+							? { origin: "woods", destination: "mill", kind: "carry" as const }
+							: null;
+			return travel === null
+				? citizen
+				: {
+						...citizen,
+						canonicalAction: {
+							...citizen.canonicalAction,
+							actionId: `travel:${citizen.slug}`,
+							kind: travel.kind,
+							originPlaceId: travel.origin,
+							destinationPlaceId: travel.destination,
+							targetId: travel.destination,
+						},
+					};
+		});
+		const actionClasses = new Set<string>();
+		const firstPositions = new Map<string, { x: number; z: number }>();
+		let previous: SpatialProjection | null = null;
+
+		for (let tick = 0; tick <= PRESENTATION_HZ * 10; tick += 1) {
+			const projection = projectSpatialScene({
+				source,
+				citizens: temporalCitizens,
+				presentationTick: tick,
+			});
+			const inspection = inspectSpatialProjection(projection, previous);
+			expect(
+				inspection.mismatches,
+				`presentation mismatch at tick ${tick}`,
+			).toEqual([]);
+			expect(projection.movingCitizenCount).toBe(3);
+			expect(projection.interactions).toEqual([
+				expect.objectContaining({
+					participantIds: ["citizen:toma", "citizen:iven"],
+					sourceEventId: "event-8",
+					sourceSequence: 8,
+					status: "committed",
+				}),
+			]);
+			for (const actor of projection.actors) {
+				actionClasses.add(actor.animationClass);
+				expect(pointIntersectsBlockedVolume(actor.positionMm)).toBe(false);
+				if (!firstPositions.has(actor.citizenId))
+					firstPositions.set(actor.citizenId, {
+						x: actor.positionMm.x,
+						z: actor.positionMm.z,
+					});
+			}
+			for (const [index, actor] of projection.actors.entries()) {
+				for (const other of projection.actors.slice(index + 1)) {
+					const separationMm = Math.hypot(
+						actor.positionMm.x - other.positionMm.x,
+						actor.positionMm.z - other.positionMm.z,
+					);
+					expect(
+						separationMm,
+						`${actor.citizenId} overlaps ${other.citizenId} at tick ${tick}`,
+					).toBeGreaterThanOrEqual(600);
+				}
+			}
+			previous = projection;
+		}
+
+		expect(actionClasses.size).toBeGreaterThanOrEqual(4);
+		expect([...actionClasses]).toEqual(
+			expect.arrayContaining([
+				"walk",
+				"carry",
+				"exchange",
+				"gather",
+				"repair",
+				"inspect",
+			]),
+		);
+		expect(
+			projectSpatialScene({
+				source,
+				citizens: temporalCitizens,
+				presentationTick: PRESENTATION_HZ * 10,
+			}),
+		).toEqual(previous);
+		for (const citizenId of ["citizen:mara", "citizen:sela", "citizen:rowan"]) {
+			const start = firstPositions.get(citizenId);
+			const finish = previous?.actors.find(
+				(actor) => actor.citizenId === citizenId,
+			)?.positionMm;
+			expect(start).toBeDefined();
+			expect(finish).toBeDefined();
+			if (start === undefined || finish === undefined) continue;
+			expect(
+				Math.hypot(finish.x - start.x, finish.z - start.z),
+			).toBeGreaterThanOrEqual(8_900);
+		}
 	});
 
 	it("binds a paired exchange to one canonical event", () => {

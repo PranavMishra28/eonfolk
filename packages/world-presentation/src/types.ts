@@ -40,6 +40,14 @@ export interface SpatialNode extends SpatialPointMm {
 		| "resource"
 		| "rest"
 		| "transit";
+	/** Maximum simultaneous actors the authored slot can legibly accommodate. */
+	readonly capacity: number;
+	/** Authored neutral facing before an interaction target overrides it. */
+	readonly facingDegrees: number;
+	/** Minimum centre-to-centre separation expected for occupants of this slot. */
+	readonly occupantSpacingMm: number;
+	/** Explicit overflow positions; presentation may not invent an implicit queue. */
+	readonly waitingNodeIds: readonly string[];
 }
 
 export type SemanticScale = "region" | "town" | "citizen";
@@ -70,6 +78,44 @@ export interface PlaceDefinition {
 	readonly affordanceNodeIds: readonly string[];
 }
 
+export interface PhysicalScaleManifest {
+	readonly citizen: Readonly<{
+		readonly heightMm: number;
+		readonly shoulderWidthMm: number;
+	}>;
+	readonly door: Readonly<{
+		readonly heightMm: number;
+		readonly widthMm: number;
+	}>;
+	readonly house: Readonly<{
+		readonly widthMm: number;
+		readonly depthMm: number;
+		readonly ridgeHeightMm: number;
+	}>;
+	readonly road: Readonly<{
+		readonly primaryWidthMm: number;
+		readonly footpathWidthMm: number;
+	}>;
+	readonly tree: Readonly<{
+		readonly matureHeightMm: number;
+		readonly canopyDiameterMm: number;
+	}>;
+	readonly market: Readonly<{
+		readonly clearDiameterMm: number;
+		readonly stallWidthMm: number;
+	}>;
+	readonly mill: Readonly<{
+		readonly widthMm: number;
+		readonly depthMm: number;
+		readonly ridgeHeightMm: number;
+		readonly wheelDiameterMm: number;
+	}>;
+	readonly interaction: Readonly<{
+		readonly faceToFaceSpacingMm: number;
+		readonly waitingSpacingMm: number;
+	}>;
+}
+
 export interface SpatialEdge {
 	readonly edgeId: string;
 	readonly fromNodeId: string;
@@ -95,6 +141,7 @@ export interface SpatialSceneDefinition {
 		readonly minZ: number;
 		readonly maxZ: number;
 	}>;
+	readonly physicalScale: PhysicalScaleManifest;
 	readonly cells: Readonly<Record<string, SpatialCellDefinition>>;
 	readonly places: Readonly<Record<string, PlaceDefinition>>;
 	readonly nodes: Readonly<Record<string, SpatialNode>>;
