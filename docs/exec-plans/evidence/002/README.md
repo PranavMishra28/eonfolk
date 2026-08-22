@@ -6,7 +6,7 @@
 
 **Authority boundary:** this directory records measurements. Numerical budgets remain owned by [Performance](../../../quality/PERFORMANCE.md); diagnostic modes remain owned by [Diagnostics](../../../engineering/DIAGNOSTICS.md).
 
-**Related documents:** [physical-device record](physical-device.json), [headful 200%-equivalent reflow](headful-zoom.json), [Founder Alpha plan](../../active/002-founder-alpha.md), and [testing](../../../quality/TESTING.md).
+**Related documents:** [World Presence clean checkpoint](world-presence-clean-checkpoint.md), [physical-device record](physical-device.json), [headful 200%-equivalent reflow](headful-zoom.json), [Founder Alpha plan](../../active/002-founder-alpha.md), and [testing](../../../quality/TESTING.md).
 
 ## Diagnostic overhead
 

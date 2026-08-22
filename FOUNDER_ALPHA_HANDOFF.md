@@ -61,7 +61,7 @@ The accepted TLC JAR SHA-256 is `eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d3297
 
 DEEP adds targeted mutations, the 500/320 property profile, exact browser-cohort validation, fail-closed persistence measurement, source and browser OFF/LOCAL/ALPHA comparisons, and the repeated canonical browser performance battery. Acceptance requires a clean, unchanged source tree; dirty success exits nonzero as `SMOKE_ONLY`.
 
-The clean DEEP evidence at `59edef3c768d9a3fe9409f07d77d49fded4b9554` is historical and release-invalid because it measured the sparse Pixi world. The current PlayCanvas/199-package candidate has passed FAST, focused unit, payload, audit, and fifteen production browser checks on a dirty integration checkpoint; these are not release evidence. Freeze a clean commit, rerun the complete DEEP lattice and canonical performance battery, and record the new exact manifest/results here before release.
+The clean DEEP evidence at `59edef3c768d9a3fe9409f07d77d49fded4b9554` is historical and release-invalid because it measured the sparse Pixi world. The current PlayCanvas/199-package candidate has passed the exact clean integration checkpoint at `593e5ab8bbf0bbe0f5977bc016b6c520a4877bf8`: production build and payload, fifteen unchanged-production browser journeys, zero-egress oracle, cohort, and audit are green [S-WP-022]. That checkpoint is valid integration evidence but not the canonical repeated performance battery. Rerun complete DEEP from the next clean evidence commit and record its exact manifest/results here before release.
 
 ## Product and browser smoke
 

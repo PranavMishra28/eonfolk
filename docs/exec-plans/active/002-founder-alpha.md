@@ -169,8 +169,8 @@ Current progress:
 - [x] PlayCanvas adopted; Recast deferred to a measured route-complexity trigger.
 - [x] Pure spatial package, canonical action window/origin/destination/target/result seam, authored graph, fixed clock, animation pose graph, mismatch inspector, and Flight Recorder category implemented.
 - [x] Procedural settlement, eight articulated citizens, paired opening interaction, props, distinctive Mara, cosmetic river motion, lazy renderer, host containment/pixel-ratio cap, and semantic fallback implemented.
-- [x] Unit and production-browser temporal regressions pass locally; current dirty-tree payload checkpoint fits unchanged limits.
-- [ ] Freeze a clean candidate and rerun the canonical three-profile 15-run performance/egress battery.
+- [x] Unit and production-browser temporal regressions pass; exact clean commit `593e5ab` fits unchanged payload limits and passes all fifteen unchanged-production journeys, cohort, audit, and zero-egress checks [S-WP-022].
+- [ ] Rerun the canonical three-profile 15-run performance/egress battery from a clean candidate.
 - [ ] Capture exact desktop/laptop/mobile evidence and complete the independent inhabited/alive review.
 - [ ] Reconcile any P0/P1, rerun the relevant gate, and include the result in the final release review.
 
@@ -271,6 +271,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Operator world-presence override SHA-256 `bb1e6a7969d22477ce2ae12bc0fe57c40cd12e139370addf90d3c91dcc9245e1` invalidated `fe7f1d0` as a release candidate despite its exact clean DEEP pass. The interrupted targeted reviewer returned no accepted verdict. Sparse Pixi is now a P1 presentation failure; PlayCanvas architecture evidence, embodied spatial projection, temporal Living World tests, unchanged semantic accessibility, repeated performance, and a fresh independent inhabited/alive YES are required before PR or merge. Reality/cognition/persistence/Chronicle authority and all honest `NOT RUN` boundaries remain unchanged.
 - 2026-08-21 — Three bounded scratch/research branches completed and were inspected before integration: spatial architecture `f15c5df`, renderer spike `95c2882`, and asset/provenance research `74ac403`. PlayCanvas React/WebGL2 was accepted; Recast and runtime CC0 assets were deferred. The scratch renderer demonstrated the required embodied direction and sub-10-ms headed p95 on emulated profiles, while the unoptimized KayKit subset exceeded the asset ceiling.
 - 2026-08-21 — Implemented `packages/world-presentation`, PlayCanvas world, authored path/slot graph, eleven-class procedural rig, visible props/paired interaction, semantic action provenance, bounded presentation diagnostics, lazy chunking, failure fallback, canvas containment, and temporal regressions. Typecheck, 173 unit tests, payload budget, dependency cohort/audit, and fifteen production browser journeys pass locally. This is an implementation checkpoint, not the clean performance or independent human World Presence pass.
+- 2026-08-21 — Exact clean integration checkpoint `593e5ab8bbf0bbe0f5977bc016b6c520a4877bf8` passed the production build, unchanged payload limits (95,581-byte critical shell; 632,154-byte total JavaScript; 512,155-byte lazy world chunk; zero world assets), all fifteen unchanged-production journeys, zero external attempts across 202 routed requests and 31,446 netlog events, frozen 199-package cohort, and production audit [S-WP-022]. Canonical repeated performance and independent aliveness remain open.
 
 ## Decision, risk, and deviation log
 
