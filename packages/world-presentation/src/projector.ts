@@ -149,8 +149,19 @@ function projectActor(
 		});
 	}
 	if (canonicalRoute !== null && canonicalRoute.length > 1) {
-		const routeSample = pointAlongRoute(canonicalRoute, presentationTick * 30);
-		const moving = presentationTick * 30 < routeSample.totalDistanceMm;
+		const requestedDistanceMm = presentationTick * 30;
+		const initialSample = pointAlongRoute(canonicalRoute, requestedDistanceMm);
+		const stopDistanceMm =
+			citizen.canonicalAction.status === "in-progress"
+				? Math.max(0, initialSample.totalDistanceMm - 1_000)
+				: initialSample.totalDistanceMm;
+		const routeSample =
+			requestedDistanceMm > stopDistanceMm
+				? pointAlongRoute(canonicalRoute, stopDistanceMm)
+				: initialSample;
+		const moving = requestedDistanceMm < stopDistanceMm;
+		const canonicallyArrived =
+			!moving && citizen.canonicalAction.status === "committed";
 		return Object.freeze({
 			citizenId: citizen.citizenId,
 			slug: citizen.slug,
@@ -164,7 +175,7 @@ function projectActor(
 			prop:
 				citizen.canonicalAction.kind === "carry" ? citizen.carriedProp : null,
 			travelState: Object.freeze({
-				status: moving ? "travelling" : "arrived",
+				status: canonicallyArrived ? "arrived" : "travelling",
 				originPlaceId: citizen.canonicalAction.originPlaceId,
 				destinationPlaceId: citizen.canonicalAction.destinationPlaceId,
 				routeId: canonicalRoute.join(">"),
@@ -174,7 +185,9 @@ function projectActor(
 			action: citizen.canonicalAction,
 			semanticLabel: moving
 				? `${citizen.name} is moving from ${citizen.canonicalAction.originPlaceId} to ${citizen.canonicalAction.destinationPlaceId}`
-				: `${citizen.name} completed the move to ${citizen.canonicalAction.destinationPlaceId}`,
+				: canonicallyArrived
+					? `${citizen.name} completed the move to ${citizen.canonicalAction.destinationPlaceId}`
+					: `${citizen.name} is waiting outside ${citizen.canonicalAction.destinationPlaceId} for authoritative arrival`,
 			focal: citizen.focal,
 		});
 	}

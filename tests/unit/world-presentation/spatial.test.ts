@@ -499,6 +499,41 @@ describe("world presentation", () => {
 		);
 	});
 
+	it("never presents arrival before Reality commits TravelArrived", () => {
+		const travelling = citizens.map((citizen) =>
+			citizen.slug === "mara"
+				? {
+						...citizen,
+						canonicalAction: {
+							...citizen.canonicalAction,
+							actionId: "travel:mara:truth-boundary",
+							kind: "walk" as const,
+							status: "in-progress" as const,
+							originPlaceId: "spring",
+							destinationPlaceId: "mill",
+							affordanceId: null,
+							affordanceSlotIndex: null,
+							targetId: "mill",
+							simulationEnd: 1_180,
+							resultEventId: null,
+						},
+					}
+				: citizen,
+		);
+		const projection = projectSpatialScene({
+			source,
+			citizens: travelling,
+			presentationTick: 50_000,
+		});
+		const mara = projection.actors.find((actor) => actor.slug === "mara");
+		expect(mara?.travelState.status).toBe("travelling");
+		expect(mara?.animationClass).toBe("idle");
+		expect(mara?.semanticLabel).toContain("waiting outside mill");
+		expect(mara?.positionMm).not.toEqual(
+			riverholdSpatialScene.nodes["mill:entry"],
+		);
+	});
+
 	it("starts with a legible paired exchange and covers the required pose graph", () => {
 		const initial = projectSpatialScene({
 			source,
