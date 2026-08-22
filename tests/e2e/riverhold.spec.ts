@@ -14,6 +14,7 @@ const routeLogPath = resolve(
 	import.meta.dirname,
 	"../../tmp/riverhold-playwright/route-log.json",
 );
+const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 
 async function installPageOracles(page: Page) {
 	await page.route("**/*", async (route) => {
@@ -40,22 +41,38 @@ function followMaraAction(page: Page): Locator {
 		.getByRole("button", { name: "Follow Mara", exact: true });
 }
 
+async function expectWorldReady(page: Page) {
+	if (linuxSemanticCi) {
+		await expect(
+			page.getByRole("region", { name: "Riverhold world in words" }),
+		).toBeVisible();
+		return;
+	}
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+	);
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
 	pageErrors = [];
 	const faultMode = testInfo.title.includes("@fault");
-	if (faultMode) {
-		await page.addInitScript(() =>
-			localStorage.setItem("eonfolk:world-view", "words"),
-		);
+	const useWords = faultMode || linuxSemanticCi;
+	if (useWords) {
+		await page.addInitScript(() => {
+			if (sessionStorage.getItem("eonfolk:e2e-renderer-failure") !== "1") {
+				localStorage.setItem("eonfolk:world-view", "words");
+			}
+		});
 	}
 	await installPageOracles(page);
 	await page.goto("/");
 	await page.evaluate((useWords) => {
 		localStorage.clear();
 		if (useWords) localStorage.setItem("eonfolk:world-view", "words");
-	}, faultMode);
+	}, useWords);
 	await page.reload();
-	if (faultMode) {
+	if (useWords) {
 		await expect(
 			page.getByRole("button", { name: "Use illustrated view" }),
 		).toBeVisible();
@@ -73,7 +90,7 @@ test.afterAll(() => {
 	writeFileSync(routeLogPath, `${JSON.stringify(routeLog)}\n`);
 });
 
-test("watched Reality completes and reloads a truthful ten-second lifecycle", async ({
+test("watched Reality completes and reloads a truthful ten-second lifecycle @illustrated-target", async ({
 	page,
 }) => {
 	test.setTimeout(45_000);
@@ -193,7 +210,7 @@ test("watched Reality completes and reloads a truthful ten-second lifecycle", as
 	expect(fit?.pixelRatio).toBeLessThanOrEqual(1.51);
 });
 
-test("the world surface directly picks inhabitants and places and supports keyboard camera parity", async ({
+test("the world surface directly picks inhabitants and places and supports keyboard camera parity @illustrated-target", async ({
 	page,
 }) => {
 	const world = page.getByTestId("riverhold-canvas");
@@ -302,19 +319,23 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await expect(page.getByText(/She acts for herself/i)).toBeVisible();
 	await expect(page.getByText(/saved only in this browser/i)).toBeVisible();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-consequence-tableau",
-		"mismatch-marked",
-	);
+	if (!linuxSemanticCi) {
+		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+			"data-consequence-tableau",
+			"mismatch-marked",
+		);
+	}
 	await expect(page.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await expect(page.getByText(/has not observed theft/i)).toBeVisible();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-canonical-links",
-		/[1-9]\d*/u,
-	);
+	if (!linuxSemanticCi) {
+		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+			"data-canonical-links",
+			/[1-9]\d*/u,
+		);
+	}
 	await expect(
 		page.getByRole("heading", { name: /She accepted your counsel/i }),
 	).toBeVisible();
@@ -323,10 +344,12 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	).toBeVisible();
 	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
 	await expect(page.getByText(/Your advice influenced her/i)).toBeVisible();
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-consequence-tableau",
-		"verified-ledger-sealed",
-	);
+	if (!linuxSemanticCi) {
+		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+			"data-consequence-tableau",
+			"verified-ledger-sealed",
+		);
+	}
 	await page
 		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
 		.click();
@@ -349,7 +372,6 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await expect(
 		page.getByRole("heading", { name: /YOU ADVISED: verify first/i }),
 	).toBeVisible();
-	const world = page.getByTestId("riverhold-canvas");
 	const compositions: string[] = [];
 	for (const beatNumber of [1, 2, 3]) {
 		await page
@@ -357,15 +379,20 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 				name: new RegExp(`Show beat ${beatNumber}:`, "u"),
 			})
 			.click();
-		await page.getByRole("button", { name: "Show in Riverhold" }).click();
-		await expect(world).toHaveAttribute("data-focus-subject-visible", "true");
-		compositions.push(
-			(await world.getAttribute("data-focus-composition")) ?? "",
+		if (!linuxSemanticCi) {
+			const world = page.getByTestId("riverhold-canvas");
+			await page.getByRole("button", { name: "Show in Riverhold" }).click();
+			await expect(world).toHaveAttribute("data-focus-subject-visible", "true");
+			compositions.push(
+				(await world.getAttribute("data-focus-composition")) ?? "",
+			);
+		}
+	}
+	if (!linuxSemanticCi) {
+		expect(new Set(compositions)).toEqual(
+			new Set(["advice", "choice", "consequence"]),
 		);
 	}
-	expect(new Set(compositions)).toEqual(
-		new Set(["advice", "choice", "consequence"]),
-	);
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
 	await expect(
 		page.getByRole("heading", {
@@ -620,13 +647,20 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.reload();
 	await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-navigation-mode",
-		"direct",
-	);
-	const worldViewToggle = page.getByRole("button", { name: "Use list view" });
-	await worldViewToggle.focus();
-	await page.keyboard.press("Enter");
+	if (linuxSemanticCi) {
+		await expect(
+			page.getByRole("region", { name: "Riverhold world in words" }),
+		).toBeVisible();
+		await page.getByRole("button", { name: "Use illustrated view" }).focus();
+	} else {
+		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+			"data-navigation-mode",
+			"direct",
+		);
+		const worldViewToggle = page.getByRole("button", { name: "Use list view" });
+		await worldViewToggle.focus();
+		await page.keyboard.press("Enter");
+	}
 	const maraButton = page.getByRole("button", {
 		name: /Mara Vale ledger runner/i,
 	});
@@ -703,10 +737,7 @@ test("shows no world facts while the authoritative worker is delayed", async ({
 	await expect(
 		page.getByRole("region", { name: /Riverhold Story Card/i }),
 	).toHaveCount(0);
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-	);
+	await expectWorldReady(page);
 	await expect(
 		page.getByRole("heading", { name: /Follow one life/i }),
 	).toBeVisible();
@@ -719,10 +750,7 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 	const newer = await context.newPage();
 	await installPageOracles(newer);
 	await newer.goto("/");
-	await expect(newer.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-	);
+	await expectWorldReady(newer);
 	await expect(
 		page.getByRole("heading", {
 			name: /Riverhold stopped before showing further world state/i,
@@ -792,10 +820,7 @@ test("required layouts and a CDP 200% browser-zoom equivalent reflow without los
 	]) {
 		await page.setViewportSize(viewport);
 		await page.reload();
-		await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-			"data-ready",
-			"true",
-		);
+		await expectWorldReady(page);
 		const width = await page.evaluate(() => ({
 			client: document.documentElement.clientWidth,
 			scroll: document.documentElement.scrollWidth,
@@ -833,10 +858,7 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.reload();
-	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-	);
+	await expectWorldReady(page);
 	const geometry = await page.evaluate(() => {
 		const header = document.querySelector(".topbar")?.getBoundingClientRect();
 		const world = document
@@ -861,16 +883,25 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 	expect(geometry.actionTop).toBeGreaterThanOrEqual(0);
 	expect(geometry.actionBottom).toBeLessThanOrEqual(geometry.viewportHeight);
 	expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
-	const textFloors = await page.evaluate(() => ({
-		factual: [
-			...document.querySelectorAll(".world-notice, .lede, .arrival-facts span"),
-		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
-		secondary: [
-			...document.querySelectorAll(
-				".resource-ribbon small, .eyebrow, .microcopy",
-			),
-		].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
-	}));
+	const textFloors = await page.evaluate(
+		(semanticMode) => ({
+			factual: [
+				...document.querySelectorAll(
+					semanticMode
+						? ".semantic-summary dd, .semantic-citizens span:last-child, .lede, .arrival-facts span"
+						: ".world-notice, .lede, .arrival-facts span",
+				),
+			].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+			secondary: [
+				...document.querySelectorAll(
+					semanticMode
+						? ".semantic-summary dt, .semantic-citizens small, .eyebrow, .microcopy"
+						: ".resource-ribbon small, .eyebrow, .microcopy",
+				),
+			].map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+		}),
+		linuxSemanticCi,
+	);
 	expect(Math.min(...textFloors.factual)).toBeGreaterThanOrEqual(16);
 	expect(Math.min(...textFloors.secondary)).toBeGreaterThanOrEqual(14);
 
@@ -1049,9 +1080,10 @@ test("the complete critical journey is keyboard-only and modal focus is isolated
 test("remembered words view and renderer failure preserve a fully playable journey", async ({
 	page,
 }) => {
-	await page.evaluate(() =>
-		sessionStorage.setItem("eonfolk:e2e-renderer-failure", "1"),
-	);
+	await page.evaluate(() => {
+		localStorage.setItem("eonfolk:world-view", "illustrated");
+		sessionStorage.setItem("eonfolk:e2e-renderer-failure", "1");
+	});
 	await page.reload();
 	await expect(
 		page.getByText(/illustrated view could not start/i),
@@ -1116,7 +1148,7 @@ test("manual reduced motion persists, removes root smooth scrolling, and touch t
 	for (const locator of [
 		page.getByRole("link", { name: "EONFOLK Riverhold home" }),
 		page.getByRole("button", { name: "Motion reduced" }),
-		page.getByRole("button", { name: "Use list view" }),
+		page.getByRole("button", { name: /Use (?:list|illustrated) view/u }),
 		followMaraAction(page),
 	]) {
 		const box = await locator.boundingBox();

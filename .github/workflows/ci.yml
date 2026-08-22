@@ -111,6 +111,7 @@ jobs:
             sleep 0.25
           done
           node --input-type=module <<'EOF'
+          import { writeFileSync } from "node:fs";
           import { chromium } from "@playwright/test";
 
           const browser = await chromium.launch({
@@ -120,6 +121,7 @@ jobs:
               "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
             ],
           });
+          const evidence = [];
           try {
             for (const viewport of [
               { name: "desktop-1728x1117", width: 1728, height: 1117 },
@@ -133,27 +135,148 @@ jobs:
                 viewport,
               });
               const page = await context.newPage();
+              const externalAttempts = [];
+              const pageErrors = [];
+              page.on("console", (message) => {
+                if (message.type() === "error") pageErrors.push(message.text());
+              });
+              page.on("pageerror", (error) => pageErrors.push(error.message));
               await page.route("**/*", async (route) => {
                 const url = new URL(route.request().url());
                 if (url.hostname === "127.0.0.1") await route.continue();
-                else await route.abort("blockedbyclient");
+                else {
+                  externalAttempts.push(route.request().url());
+                  await route.abort("blockedbyclient");
+                }
               });
               await page.goto("http://127.0.0.1:4174/", {
                 waitUntil: "networkidle",
               });
-              await page
-                .getByTestId("riverhold-canvas")
-                .waitFor({ state: "visible" });
+              const world = page.getByTestId("riverhold-canvas");
+              await world.waitFor({ state: "visible", timeout: 15_000 });
+              await page.waitForFunction(
+                () =>
+                  document.querySelector('[data-testid="riverhold-canvas"]')
+                    ?.getAttribute("data-ready") === "true",
+                undefined,
+                { timeout: 15_000 },
+              );
+              const probe = await world.evaluate((host) => {
+                const canvas = host.querySelector("canvas");
+                const citizenTargets = JSON.parse(
+                  host.dataset.citizenPickTargets ?? "[]",
+                );
+                return {
+                  activeTaskCount: Number(host.dataset.activeTaskCount),
+                  animationClasses: (host.dataset.animationClasses ?? "")
+                    .split(",")
+                    .filter(Boolean),
+                  canvasHeight: canvas?.clientHeight ?? 0,
+                  canvasWidth: canvas?.clientWidth ?? 0,
+                  citizenTargets: citizenTargets.length,
+                  deviceType: host.dataset.deviceType,
+                  engine: host.dataset.engine,
+                  hostHeight: host.clientHeight,
+                  hostWidth: host.clientWidth,
+                  pixelRatio:
+                    canvas === null
+                      ? 0
+                      : canvas.width / Math.max(1, host.clientWidth),
+                  ready: host.dataset.ready,
+                  semanticCitizens: document.querySelectorAll(
+                    ".semantic-citizens > li",
+                  ).length,
+                };
+              });
+              const failures = [];
+              if (probe.ready !== "true") failures.push("renderer not ready");
+              if (probe.engine !== "playcanvas") failures.push("not PlayCanvas");
+              if (probe.deviceType !== "webgl2") failures.push("not WebGL2");
+              if (
+                probe.canvasWidth !== probe.hostWidth ||
+                probe.canvasHeight !== probe.hostHeight ||
+                probe.hostWidth <= 0 ||
+                probe.hostHeight <= 0
+              ) {
+                failures.push("canvas does not match its visible host");
+              }
+              if (probe.pixelRatio <= 0 || probe.pixelRatio > 1.51) {
+                failures.push(`pixel ratio ${probe.pixelRatio} is outside (0, 1.51]`);
+              }
+              if (probe.semanticCitizens !== 8 || probe.citizenTargets !== 8) {
+                failures.push(
+                  `citizen parity failed: semantic=${probe.semanticCitizens}, projected=${probe.citizenTargets}`,
+                );
+              }
+              if (probe.animationClasses.length < 3 || probe.activeTaskCount < 1) {
+                failures.push("rendered world does not expose enough visible activity");
+              }
+              let camera = null;
+              if (viewport.name === "desktop-1728x1117") {
+                const initialDistance = Number(
+                  await world.getAttribute("data-camera-distance-m"),
+                );
+                await world.focus();
+                await page.keyboard.press("f");
+                await page.waitForFunction(
+                  () =>
+                    Number(
+                      document.querySelector('[data-testid="riverhold-canvas"]')
+                        ?.getAttribute("data-camera-distance-m"),
+                    ) <= 18.1,
+                  undefined,
+                  { timeout: 10_000 },
+                );
+                const focusedDistance = Number(
+                  await world.getAttribute("data-camera-distance-m"),
+                );
+                if (!(focusedDistance < initialDistance)) {
+                  failures.push("keyboard camera follow did not move closer");
+                }
+                camera = { initialDistance, focusedDistance, operation: "f" };
+              }
               await page.screenshot({
                 animations: "disabled",
+                caret: "hide",
                 fullPage: true,
                 path: `tmp/founder-alpha-ui-evidence/${viewport.name}.png`,
+                scale: "css",
+              });
+              if (externalAttempts.length > 0) {
+                failures.push(`external requests: ${externalAttempts.join(", ")}`);
+              }
+              if (pageErrors.length > 0) {
+                failures.push(`browser errors: ${pageErrors.join(" | ")}`);
+              }
+              if (failures.length > 0) {
+                throw new Error(`${viewport.name}: ${failures.join("; ")}`);
+              }
+              evidence.push({
+                camera,
+                externalAttempts: externalAttempts.length,
+                pageErrors: pageErrors.length,
+                probe,
+                screenshot: `${viewport.name}.png`,
+                trace: "off",
+                viewport,
               });
               await context.close();
             }
           } finally {
             await browser.close();
           }
+          writeFileSync(
+            "tmp/founder-alpha-ui-evidence/renderer-smoke.json",
+            `${JSON.stringify(
+              {
+                evidence,
+                schemaVersion: "eonfolk-renderer-smoke-v1",
+                status: "PASS",
+              },
+              null,
+              2,
+            )}\n`,
+          );
           EOF
 
       - name: Retain accepted UI evidence
