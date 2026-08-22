@@ -246,6 +246,56 @@ describe("Riverhold deterministic Reality", () => {
 		expect(conflict.events).toEqual([]);
 	});
 
+	it("keeps the opening exchange authoritative through mobile world readiness before settling once", async () => {
+		const genesis = await riverholdFixture();
+		let state = genesis.state;
+		let head = genesis.genesisWorldHeadHash;
+		for (let boundary = 1; boundary <= 3; boundary += 1) {
+			const transition = await prepareTransition(
+				state,
+				head,
+				await command(state, `cmd_exchange_visible_${boundary}`, {
+					kind: "Advance",
+					seconds: 60,
+				}),
+			);
+			expect(
+				transition.events.some(
+					(event) => event.eventPayload.kind === "ExchangeCompleted",
+				),
+			).toBe(false);
+			expect(
+				Object.values(transition.postState.taskReservations).some(
+					(reservation) => reservation.affordanceId === "market-exchange",
+				),
+			).toBe(true);
+			state = transition.postState;
+			head = transition.resultingWorldHeadHash;
+		}
+
+		const settled = await prepareTransition(
+			state,
+			head,
+			await command(state, "cmd_exchange_settle", {
+				kind: "Advance",
+				seconds: 60,
+			}),
+		);
+		expect(
+			settled.events.filter(
+				(event) => event.eventPayload.kind === "ExchangeCompleted",
+			),
+		).toHaveLength(1);
+		expect(
+			Object.values(settled.postState.taskReservations).some(
+				(reservation) => reservation.affordanceId === "market-exchange",
+			),
+		).toBe(false);
+		expect(resourceTotals(settled.postState)).toEqual(
+			genesis.state.conservation.baseline,
+		);
+	});
+
 	it("accepts the legacy atomic movement event while clearing obsolete occupancy", async () => {
 		const genesis = await riverholdFixture();
 		const mara = citizenBySlug(genesis.state, "mara");
@@ -377,21 +427,37 @@ describe("Riverhold deterministic Reality", () => {
 
 	it("admits simultaneous arrivals while preserving a capacity-one work slot", async () => {
 		const genesis = await riverholdFixture();
-		let state = genesis.state;
-		let head = genesis.genesisWorldHeadHash;
-		for (const [index, seconds] of [1, 1, 137, 13].entries()) {
-			const transition = await prepareTransition(
-				state,
-				head,
-				await command(state, `cmd_capacity_arrival_${index}`, {
-					kind: "Advance",
-					seconds,
-				}),
-			);
-			expect(transition.accepted).toBe(true);
-			state = transition.postState;
-			head = transition.resultingWorldHeadHash;
-		}
+		const iven = citizenBySlug(genesis.state, "iven");
+		const toma = citizenBySlug(genesis.state, "toma");
+		const exchanged = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_capacity_exchange", {
+				kind: "Exchange",
+				firstCitizenId: iven.citizenId,
+				secondCitizenId: toma.citizenId,
+				firstGives: { resource: "wood", quantity: 1 },
+				secondGives: { resource: "food", quantity: 1 },
+			}),
+		);
+		const travelling = await prepareTransition(
+			exchanged.postState,
+			exchanged.resultingWorldHeadHash,
+			await command(exchanged.postState, "cmd_capacity_travel", {
+				kind: "MoveCitizen",
+				citizenId: iven.citizenId,
+				toPlaceId: "spring",
+			}),
+		);
+		const arrived = await prepareTransition(
+			travelling.postState,
+			travelling.resultingWorldHeadHash,
+			await command(travelling.postState, "cmd_capacity_arrival", {
+				kind: "Advance",
+				seconds: 150,
+			}),
+		);
+		const state = arrived.postState;
 		expect(
 			Object.values(state.taskReservations).filter(
 				(reservation) => reservation.affordanceId === "spring-water",

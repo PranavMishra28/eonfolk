@@ -9,6 +9,10 @@ export interface ScheduledAction {
 	readonly payload: WorldEventPayload;
 }
 
+// Four watched-world boundaries keep the authored opening exchange observable
+// through the slowest accepted meaningful-display budget before it settles.
+const MINIMUM_EXCHANGE_TASK_SECONDS = 240;
+
 export function compareScheduledActions(
 	left: ScheduledAction,
 	right: ScheduledAction,
@@ -58,6 +62,8 @@ export function scheduleAutonomousActions(
 			if (
 				iven !== undefined &&
 				toma !== undefined &&
+				atSimulationTime - reservation.reservedAtSimulationTime >=
+					MINIMUM_EXCHANGE_TASK_SECONDS &&
 				iven.inventory.wood >= 1 &&
 				toma.inventory.food >= 1
 			)
