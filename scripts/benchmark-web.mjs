@@ -217,17 +217,23 @@ async function waitForQualificationMark(page, name, timeout) {
 				)
 				?.querySelector("dd")
 				?.textContent?.trim();
+			const citizenNames = citizens.map(
+				(citizen) => citizen.querySelector("strong")?.textContent?.trim() ?? "",
+			);
 			return {
 				markName,
 				readyState: document.readyState,
 				canvasReady: canvas?.dataset.ready ?? null,
 				canvasInteractions: canvas?.dataset.interactions ?? null,
 				citizenCount: citizens.length,
-				citizenNames: citizens.map(
-					(citizen) =>
-						citizen.querySelector("strong")?.textContent?.trim() ?? "",
-				),
+				citizenNames,
 				interaction: interaction ?? null,
+				interactionCitizenCount:
+					typeof interaction === "string"
+						? citizenNames.filter(
+								(name) => name.length > 0 && interaction.includes(name),
+							).length
+						: 0,
 				illustratedInteraction:
 					document.querySelector(".world-notice")?.textContent?.trim() ?? null,
 				runtimeError:

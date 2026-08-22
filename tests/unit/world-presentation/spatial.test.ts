@@ -164,6 +164,8 @@ describe("world presentation", () => {
 		expect(projection.interactions).toEqual([
 			expect.objectContaining({
 				kind: "exchange",
+				semanticLabel:
+					"Toma Reed and Iven Holt visibly project the linked canonical exchange.",
 				sourceEventId: "event-8",
 				status: "committed",
 			}),
@@ -246,7 +248,7 @@ describe("world presentation", () => {
 				kind: "exchange",
 				participantIds: ["citizen:toma", "citizen:iven"],
 				semanticLabel:
-					"Toma and Iven visibly perform a carried-goods exchange; no world result is claimed.",
+					"Toma Reed and Iven Holt visibly perform a carried-goods exchange; no world result is claimed.",
 				status: "in-progress",
 			}),
 		]);

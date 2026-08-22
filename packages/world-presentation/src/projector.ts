@@ -274,8 +274,8 @@ function interactions(
 			status: exchange?.status ?? "in-progress",
 			semanticLabel:
 				exchange === undefined
-					? "Toma and Iven visibly perform a carried-goods exchange; no world result is claimed."
-					: "Toma and Iven visibly project the linked canonical exchange.",
+					? "Toma Reed and Iven Holt visibly perform a carried-goods exchange; no world result is claimed."
+					: "Toma Reed and Iven Holt visibly project the linked canonical exchange.",
 		}),
 	]);
 }
