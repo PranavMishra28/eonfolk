@@ -25,15 +25,11 @@ export function compareScheduledActions(
 	);
 }
 
-function resourceAtPlace(state: WorldState, placeId: string) {
-	return Object.values(state.resourceSites).find(
-		(site) => site.placeId === placeId && site.quantity > 0,
-	);
-}
-
 function routeTarget(state: WorldState, slug: string, from: string): string {
 	if (slug === "mara") return from === "market" ? "granary" : "market";
-	if (slug === "odo") return from === "mill" ? "market" : "mill";
+	if (slug === "toma") return from === "market" ? "granary" : "market";
+	if (slug === "iven") return from === "market" ? "spring" : "market";
+	if (slug === "odo") return from;
 	if (slug === "els") return from === "granary" ? "market" : "granary";
 	return state.places[from]!.neighbors[0] ?? from;
 }
@@ -46,31 +42,83 @@ export function scheduleAutonomousActions(
 	const citizens = Object.values(state.citizens).filter(
 		(citizen) => citizen.alive,
 	);
-	const iven = citizens.find((citizen) => citizen.slug === "iven");
-	const toma = citizens.find((citizen) => citizen.slug === "toma");
-	const exchanged =
-		iven !== undefined &&
-		toma !== undefined &&
-		iven.travel == null &&
-		toma.travel == null &&
-		iven.placeId === toma.placeId &&
-		iven.inventory.wood >= 1 &&
-		toma.inventory.food >= 1;
-	if (exchanged && iven && toma) {
-		actions.push({
-			simulationTime: atSimulationTime,
-			priority: 10,
-			actorId: iven.citizenId,
-			localOrdinal: 0,
-			payload: {
-				kind: "ExchangeCompleted",
-				firstCitizenId: iven.citizenId,
-				secondCitizenId: toma.citizenId,
-				firstGives: { resource: "wood", quantity: 1 },
-				secondGives: { resource: "food", quantity: 1 },
-				behavior: "respond-socially",
-			},
-		});
+	for (const reservation of Object.values(state.taskReservations).sort(
+		(left, right) => left.taskId.localeCompare(right.taskId),
+	)) {
+		const participants = reservation.citizenIds.map(
+			(citizenId) => state.citizens[citizenId],
+		);
+		if (participants.some((citizen) => citizen === undefined)) continue;
+		if (
+			reservation.affordanceId === "market-exchange" &&
+			participants.length === 2
+		) {
+			const iven = participants.find((citizen) => citizen?.slug === "iven");
+			const toma = participants.find((citizen) => citizen?.slug === "toma");
+			if (
+				iven !== undefined &&
+				toma !== undefined &&
+				iven.inventory.wood >= 1 &&
+				toma.inventory.food >= 1
+			)
+				actions.push({
+					simulationTime: atSimulationTime,
+					priority: 10,
+					actorId: iven.citizenId,
+					localOrdinal: 0,
+					payload: {
+						kind: "ExchangeCompleted",
+						firstCitizenId: iven.citizenId,
+						secondCitizenId: toma.citizenId,
+						firstGives: { resource: "wood", quantity: 1 },
+						secondGives: { resource: "food", quantity: 1 },
+						behavior: "respond-socially",
+					},
+				});
+			continue;
+		}
+		if (reservation.affordanceId === "mill-repair") {
+			const citizen = participants[0];
+			if (
+				citizen !== undefined &&
+				!state.mill.repaired &&
+				(citizen.inventory.wood >= 2 || state.settlementInventory.wood >= 2)
+			)
+				actions.push({
+					simulationTime: atSimulationTime,
+					priority: 15,
+					actorId: citizen.citizenId,
+					localOrdinal: 0,
+					payload: {
+						kind: "MillRepaired",
+						citizenId: citizen.citizenId,
+						woodUsed: 2,
+						behavior: "fulfill-plan",
+					},
+				});
+			continue;
+		}
+		const site = Object.values(state.resourceSites).find(
+			(candidate) =>
+				`${candidate.siteId}-${candidate.resource}` ===
+				reservation.affordanceId,
+		);
+		const citizen = participants[0];
+		if (site !== undefined && citizen !== undefined && site.quantity > 0)
+			actions.push({
+				simulationTime: atSimulationTime,
+				priority: 20,
+				actorId: citizen.citizenId,
+				localOrdinal: 0,
+				payload: {
+					kind: "ResourceGathered",
+					citizenId: citizen.citizenId,
+					siteId: site.siteId,
+					resource: site.resource,
+					quantity: 1,
+					behavior: "acquire-resource",
+				},
+			});
 	}
 	for (const citizen of citizens) {
 		if (citizen.travel != null) {
@@ -91,12 +139,7 @@ export function scheduleAutonomousActions(
 			}
 			continue;
 		}
-		if (
-			exchanged &&
-			(citizen.citizenId === iven?.citizenId ||
-				citizen.citizenId === toma?.citizenId)
-		)
-			continue;
+		if (citizen.activeTaskId !== null) continue;
 		const urgent =
 			citizen.needs.thirst >= 7_000
 				? "water"
@@ -117,24 +160,6 @@ export function scheduleAutonomousActions(
 					need: urgent === "food" ? "hunger" : "thirst",
 					relief: 3_000,
 					behavior: "maintain-self",
-				},
-			});
-			continue;
-		}
-		const site = resourceAtPlace(state, citizen.placeId);
-		if (site !== undefined) {
-			actions.push({
-				simulationTime: atSimulationTime,
-				priority: 20,
-				actorId: citizen.citizenId,
-				localOrdinal: 0,
-				payload: {
-					kind: "ResourceGathered",
-					citizenId: citizen.citizenId,
-					siteId: site.siteId,
-					resource: site.resource,
-					quantity: 1,
-					behavior: "acquire-resource",
 				},
 			});
 			continue;

@@ -1,8 +1,8 @@
 import type { DiagnosticInput, WorldHeadSummary } from "@eonfolk/diagnostics";
 import {
-	projectSpatialScene,
 	type AnimationClass,
 	type CanonicalActionRef,
+	projectSpatialScene,
 } from "@eonfolk/world-presentation";
 import type {
 	ChronicleBeatProjection,
@@ -702,6 +702,7 @@ function createStaticRuntimeBridge(
 	return {
 		getProjection: () => projection,
 		ready: async () => projection,
+		subscribe: () => () => {},
 		async dispatch(intent: RiverholdIntent) {
 			switch (intent.kind) {
 				case "follow-mara":
@@ -760,6 +761,7 @@ function createStaticRuntimeBridge(
 
 interface WorkerResponse {
 	readonly id: number;
+	readonly kind?: "watched-cadence";
 	readonly ok: boolean;
 	readonly projection?: RiverholdProjection;
 	readonly worldHead?: WorldHeadSummary;
@@ -810,6 +812,8 @@ export function createRiverholdRuntimeBridge(
 		fields: { operation: "create" },
 	});
 	let nextRequestId = 1;
+	const subscribers = new Set<(value: RiverholdProjection) => void>();
+	const cadenceFailureSubscribers = new Set<(error: Error) => void>();
 	const pending = new Map<
 		number,
 		{
@@ -822,6 +826,44 @@ export function createRiverholdRuntimeBridge(
 	worker.addEventListener(
 		"message",
 		(message: MessageEvent<WorkerResponse>) => {
+			if (message.data.id === 0 && message.data.kind === "watched-cadence") {
+				if (message.data.ok && message.data.projection !== undefined) {
+					projection = message.data.projection;
+					if (message.data.worldHead !== undefined)
+						diagnostics?.setWorldHead(message.data.worldHead);
+					diagnostics?.record({
+						category: "worker",
+						name: "watched-cadence-committed",
+						severity: "info",
+						outcome: "observed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							operation: "watched-cadence",
+							revision: message.data.worldHead?.revision ?? 0,
+							sequence: message.data.worldHead?.sequence ?? 0,
+						},
+					});
+					for (const subscriber of subscribers) subscriber(projection);
+				} else {
+					const error = new RiverholdRuntimeError(
+						message.data.error ?? "watched-world cadence failed",
+						typeof message.data.code === "string" ? message.data.code : null,
+					);
+					diagnostics?.record({
+						category: "worker",
+						name: "watched-cadence-failed",
+						severity: "critical",
+						outcome: "failed",
+						scope: { component: "runtime-bridge" },
+						fields: {
+							code: error.code ?? "WATCHED_CADENCE_FAILED",
+							operation: "watched-cadence",
+						},
+					});
+					for (const subscriber of cadenceFailureSubscribers) subscriber(error);
+				}
+				return;
+			}
 			const request = pending.get(message.data.id);
 			if (request === undefined) return;
 			pending.delete(message.data.id);
@@ -991,6 +1033,15 @@ export function createRiverholdRuntimeBridge(
 			return projection;
 		},
 		ready: async () => ready,
+		subscribe(listener, onFailure) {
+			subscribers.add(listener);
+			if (onFailure !== undefined) cadenceFailureSubscribers.add(onFailure);
+			return () => {
+				subscribers.delete(listener);
+				if (onFailure !== undefined)
+					cadenceFailureSubscribers.delete(onFailure);
+			};
+		},
 		async dispatch(intent) {
 			await ready;
 			const next = await request({ kind: "dispatch", intent });
@@ -1045,6 +1096,8 @@ export function createRiverholdRuntimeBridge(
 			return next;
 		},
 		clear() {
+			subscribers.clear();
+			cadenceFailureSubscribers.clear();
 			worker.terminate();
 		},
 	};

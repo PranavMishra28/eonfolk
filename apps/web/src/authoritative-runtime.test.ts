@@ -9,6 +9,8 @@ import {
 	PersistenceError,
 	type WorldEventRecord,
 } from "@eonfolk/persistence";
+import type { WorldEventEnvelope } from "@eonfolk/protocol";
+import { inspectSpatialProjection } from "@eonfolk/world-presentation";
 import { describe, expect, it } from "vitest";
 import { AuthoritativeRiverholdRuntime } from "./authoritative-runtime";
 
@@ -175,6 +177,93 @@ async function reachCounsel(
 }
 
 describe("authoritative Riverhold application runtime", () => {
+	it("persists each watched-world boundary before publishing it and reloads the exact durable head", async () => {
+		const persistence = new BlockingTransitionPersistence();
+		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
+		const initial = await runtime.initialize();
+		expect(initial.spatial.source.revision).toBe(0);
+		const gate = persistence.blockNextTransition();
+		let published = false;
+		const pending = runtime.advanceWatchedWorld(30).then((projection) => {
+			published = true;
+			return projection;
+		});
+		await gate.entered;
+		expect(published).toBe(false);
+		expect(
+			(await persistence.getHead("run_riverhold_0001", "riverhold")).revision,
+		).toBe(0);
+		gate.release();
+		const first = await pending;
+		expect(first?.spatial.source.revision).toBe(1);
+		expect(first?.spatial.presentationTick).toBe(30 * 30);
+		expect(first?.worldProcesses.millRepaired).toBe(true);
+		expect(inspectSpatialProjection(first!.spatial).mismatches).toEqual([]);
+
+		for (let boundary = 2; boundary <= 8; boundary += 1)
+			await runtime.advanceWatchedWorld(30);
+		const durableHead = await persistence.getHead(
+			"run_riverhold_0001",
+			"riverhold",
+		);
+		const durableEvents = await persistence.getEventRange({
+			runId: "run_riverhold_0001",
+			regionId: "riverhold",
+			fromSequenceInclusive: 1,
+			toSequenceExclusive: durableHead.lastSequence + 1,
+		});
+		const eventKinds = durableEvents.map(
+			(record) =>
+				(record.data as unknown as WorldEventEnvelope).eventPayload.kind,
+		);
+		expect(eventKinds).toEqual(
+			expect.arrayContaining([
+				"ExchangeCompleted",
+				"MillRepaired",
+				"TravelArrived",
+				"ResourceGathered",
+			]),
+		);
+		expect(
+			eventKinds.filter((kind) => kind === "ExchangeCompleted"),
+		).toHaveLength(1);
+		expect(eventKinds.filter((kind) => kind === "MillRepaired")).toHaveLength(
+			1,
+		);
+
+		const recovered = new AuthoritativeRiverholdRuntime({ persistence });
+		const reloaded = await recovered.initialize();
+		expect(reloaded.spatial.source.revision).toBe(durableHead.revision);
+		expect(reloaded.spatial.source.throughSequence).toBe(
+			durableHead.lastSequence,
+		);
+		expect(reloaded.spatial.source.stateHash).toBe(durableHead.stateHash);
+		expect(reloaded.spatial.presentationTick).toBe(240 * 30);
+		expect(
+			reloaded.citizens
+				.filter(
+					(citizen) =>
+						citizen.canonicalAction.status === "in-progress" &&
+						(citizen.canonicalAction.kind === "exchange" ||
+							citizen.canonicalAction.kind === "repair" ||
+							citizen.canonicalAction.kind === "gather"),
+				)
+				.map((citizen) => citizen.slug),
+		).toEqual([]);
+	});
+
+	it("does not auto-advance an explicitly unconfirmed return boundary", async () => {
+		const persistence = new MemoryPersistence();
+		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
+		await runtime.initialize();
+		await reachCounsel(runtime, "verify-private");
+		await runtime.dispatch({ kind: "leave-checkpoint" });
+		await runtime.dispatch({ kind: "return-to-checkpoint" });
+		const before = runtime.diagnosticWorldHead();
+		expect(await runtime.advanceWatchedWorld(30)).toBeNull();
+		expect(runtime.diagnosticWorldHead()).toEqual(before);
+	});
+
 	it("safe-stops instead of publishing a stale candidate after an idempotent race", async () => {
 		const persistence = new BlockingTransitionPersistence();
 		const runtimeA = new AuthoritativeRiverholdRuntime({ persistence });
@@ -384,6 +473,45 @@ describe("authoritative Riverhold application runtime", () => {
 		);
 		expect(replayed.day).toBe(19);
 		expect(replayed.storyCard?.heading).toBe("YOU ADVISED: verify first");
+	});
+
+	it("keeps Chronicle focus at the event-time place after its participant travels and reloads", async () => {
+		const persistence = new MemoryPersistence();
+		const runtime = new AuthoritativeRiverholdRuntime({ persistence });
+		await runtime.initialize();
+		await reachCounsel(runtime, "verify-private");
+		for (let boundary = 0; boundary < 4; boundary += 1)
+			await runtime.advanceWatchedWorld(30);
+		await runtime.dispatch({ kind: "leave-checkpoint" });
+		await runtime.dispatch({ kind: "return-to-checkpoint" });
+		await runtime.dispatch({ kind: "confirm-advance" });
+		const chronicle = await runtime.dispatch({
+			kind: "take-second-action",
+			actionId: "publish-verified-count",
+		});
+		const mara = chronicle.citizens.find((citizen) => citizen.slug === "mara");
+		expect(mara?.placeId).toBe("granary");
+		const marketBeat = chronicle.chronicle.find(
+			(beat) =>
+				beat.spatialFocus.participantIds.includes(mara!.id) &&
+				beat.spatialFocus.placeId === "market",
+		);
+		expect(marketBeat).toBeDefined();
+		expect(marketBeat?.spatialFocus.sourceEventIds).toEqual(
+			marketBeat?.evidence.map((evidence) => evidence.eventId),
+		);
+
+		const recovered = new AuthoritativeRiverholdRuntime({
+			persistence,
+			initialPhase: "chronicle",
+		});
+		const replayed = await recovered.initialize();
+		expect(
+			replayed.citizens.find((citizen) => citizen.slug === "mara")?.placeId,
+		).toBe("granary");
+		expect(replayed.chronicle.map((beat) => beat.spatialFocus)).toEqual(
+			chronicle.chronicle.map((beat) => beat.spatialFocus),
+		);
 	});
 
 	it.each([

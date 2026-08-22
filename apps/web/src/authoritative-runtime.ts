@@ -47,6 +47,7 @@ import {
 import {
 	type AnimationClass,
 	type CanonicalActionRef,
+	PRESENTATION_HZ,
 	projectSpatialScene,
 } from "@eonfolk/world-presentation";
 import type {
@@ -590,13 +591,13 @@ function animationForEvent(event: WorldEventEnvelope): AnimationClass {
 		case "TravelArrived":
 			return "idle";
 		case "ResourceGathered":
-			return "gather";
+			return "react";
 		case "ResourceConsumed":
 			return "eat-rest";
 		case "ExchangeCompleted":
-			return "exchange";
+			return "react";
 		case "MillRepaired":
-			return "repair";
+			return "react";
 		case "StatementMade":
 			return "talk";
 		case "RelationshipChanged":
@@ -773,12 +774,32 @@ function canonicalActionForCitizen(input: {
 	const event = [...input.events]
 		.reverse()
 		.find((candidate) => eventActorIds(candidate).includes(input.citizenId));
-	if (event !== undefined && event.simulationTime === input.simulationTime) {
+	if (
+		event !== undefined &&
+		event.simulationTime === input.simulationTime &&
+		input.affordanceId === null
+	) {
 		const spatial = spatialDetailsForEvent(
 			event,
 			input.citizenId,
 			input.placeId,
 		);
+		const resultAffordance =
+			event.eventPayload.kind === "ExchangeCompleted"
+				? "market-exchange"
+				: event.eventPayload.kind === "ResourceGathered"
+					? `${event.eventPayload.siteId}-${event.eventPayload.resource}`
+					: event.eventPayload.kind === "MillRepaired"
+						? "mill-repair"
+						: input.affordanceId;
+		const resultSlot =
+			event.eventPayload.kind === "ExchangeCompleted"
+				? event.eventPayload.secondCitizenId === input.citizenId
+					? 0
+					: 1
+				: resultAffordance === null
+					? input.affordanceSlotIndex
+					: 0;
 		return Object.freeze({
 			actionId:
 				event.eventPayload.kind === "ExchangeCompleted"
@@ -791,8 +812,8 @@ function canonicalActionForCitizen(input: {
 			kind: animationForEvent(event),
 			originPlaceId: spatial.originPlaceId,
 			destinationPlaceId: spatial.destinationPlaceId,
-			affordanceId: input.affordanceId,
-			affordanceSlotIndex: input.affordanceSlotIndex,
+			affordanceId: resultAffordance,
+			affordanceSlotIndex: resultSlot,
 			targetId: spatial.targetId,
 			simulationStart: event.simulationTime,
 			simulationEnd: event.simulationTime,
@@ -843,6 +864,7 @@ export class AuthoritativeRiverholdRuntime {
 	#state: WorldState | null = null;
 	#head: WorldHead | null = null;
 	#events: WorldEventEnvelope[] = [];
+	#genesisPlaceByCitizen: Readonly<Record<string, string>> = Object.freeze({});
 	#interpretation: InterpretationProjection | null = null;
 	#requestedCounsel: CounselIntent | null = null;
 	#secondAction: string | null = null;
@@ -887,6 +909,14 @@ export class AuthoritativeRiverholdRuntime {
 			},
 		});
 		const snapshotState = assertSupportedGenesis(committed, genesis);
+		this.#genesisPlaceByCitizen = Object.freeze(
+			Object.fromEntries(
+				Object.values(snapshotState.citizens).map((citizen) => [
+					citizen.citizenId,
+					citizen.placeId,
+				]),
+			),
+		);
 		if (committed.head.revision === 0) {
 			this.#head = await this.#persistence.acquireFencingToken(
 				genesis.state.runId,
@@ -1453,6 +1483,24 @@ export class AuthoritativeRiverholdRuntime {
 		return this.#project();
 	}
 
+	async advanceWatchedWorld(
+		seconds: number,
+	): Promise<RiverholdProjection | null> {
+		this.#assertRunning();
+		if (!Number.isSafeInteger(seconds) || seconds <= 0 || seconds > 300)
+			throw new Error(
+				"watched-world cadence must be between 1 and 300 seconds",
+			);
+		if (this.#phase === "checkpoint" || this.#phase === "return-pending")
+			return null;
+		const transition = await this.#worldCommand("watched-cadence", {
+			kind: "Advance",
+			seconds,
+		});
+		await this.#commit(transition);
+		return this.#project();
+	}
+
 	diagnosticWorldHead() {
 		this.#assertRunning();
 		const state = this.#requireState();
@@ -1514,6 +1562,7 @@ export class AuthoritativeRiverholdRuntime {
 				...(citizen.slug === "mara" ? { focal: true as const } : {}),
 			};
 		});
+		const presentationTick = state.simulationTime * PRESENTATION_HZ;
 		const spatial = projectSpatialScene({
 			source: {
 				runId: state.runId,
@@ -1534,7 +1583,7 @@ export class AuthoritativeRiverholdRuntime {
 				carriedProp: citizen.carriedProp,
 				canonicalAction: citizen.canonicalAction,
 			})),
-			presentationTick: 0,
+			presentationTick,
 		});
 		const mara = citizenBySlug(state, "mara");
 		const relationship = state.relationships["relationship-mara-toma"];
@@ -1674,17 +1723,25 @@ export class AuthoritativeRiverholdRuntime {
 				return event === undefined ? [] : [event];
 			});
 			const participantIds = [...new Set(focusEvents.flatMap(eventActorIds))];
-			const firstParticipant = participantIds[0];
+			const firstFocusEvent = focusEvents[0];
+			const firstParticipant =
+				firstFocusEvent === undefined
+					? undefined
+					: eventActorIds(firstFocusEvent)[0];
 			const placeId =
-				firstParticipant === undefined
+				firstFocusEvent === undefined || firstParticipant === undefined
 					? "market"
-					: (state.citizens[firstParticipant]?.placeId ?? "market");
+					: this.#placeAtEvent(firstParticipant, firstFocusEvent.sequence);
 			const targetIds = [
 				...new Set(
 					focusEvents.flatMap((event) => {
 						const actorId = eventActorIds(event)[0] ?? "";
+						const eventPlaceId =
+							actorId === ""
+								? placeId
+								: this.#placeAtEvent(actorId, event.sequence);
 						return [
-							spatialDetailsForEvent(event, actorId, placeId).targetId,
+							spatialDetailsForEvent(event, actorId, eventPlaceId).targetId,
 						].filter((value): value is string => value !== null);
 					}),
 				),
@@ -1710,6 +1767,22 @@ export class AuthoritativeRiverholdRuntime {
 			};
 		});
 		return { beats, unresolvedTension: projected.unresolvedTension };
+	}
+
+	#placeAtEvent(citizenId: string, throughSequence: number): string {
+		let placeId = this.#genesisPlaceByCitizen[citizenId] ?? "market";
+		for (const event of this.#events) {
+			if (event.sequence > throughSequence) break;
+			const payload = event.eventPayload;
+			if (payload.kind === "CitizenMoved" && payload.citizenId === citizenId)
+				placeId = payload.toPlaceId;
+			else if (
+				payload.kind === "TravelArrived" &&
+				payload.citizenId === citizenId
+			)
+				placeId = payload.destinationPlaceId;
+		}
+		return placeId;
 	}
 
 	#requireState(): WorldState {

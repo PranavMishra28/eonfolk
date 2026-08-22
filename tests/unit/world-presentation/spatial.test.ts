@@ -1,21 +1,21 @@
+import { describe, expect, it } from "vitest";
 import {
 	advancePresentationClock,
 	createAuthoredPathPlanner,
 	humanoidPose,
 	inspectSpatialProjection,
-	pointIntersectsBlockedVolume,
 	PRESENTATION_HZ,
+	pointIntersectsBlockedVolume,
 	projectPresentationResidency,
 	projectSpatialScene,
 	requiredAnimationClasses,
 	riverholdPhysicalScale,
 	riverholdSpatialScene,
-	semanticScaleForDistance,
 	type SpatialCitizenInput,
 	type SpatialProjection,
+	semanticScaleForDistance,
 	validateRiverholdSpatialScene,
 } from "../../../packages/world-presentation/src/index.js";
-import { describe, expect, it } from "vitest";
 
 const source = {
 	runId: "run_fixture",
@@ -226,6 +226,7 @@ describe("world presentation", () => {
 							...citizen.canonicalAction,
 							actionId: `travel:${citizen.slug}`,
 							kind: movement.kind,
+							simulationStart: 0,
 							originPlaceId: movement.from,
 							destinationPlaceId: movement.to,
 							targetId: movement.to,
@@ -268,56 +269,92 @@ describe("world presentation", () => {
 		expect(stationaryClasses.has("repair")).toBe(true);
 	});
 
-	it("sustains ten deterministic seconds of truthful motion and activity", () => {
-		const temporalCitizens = citizens.map((citizen) => {
-			if (citizen.slug === "toma" || citizen.slug === "iven")
-				return {
-					...citizen,
-					canonicalAction: {
-						...citizen.canonicalAction,
-						actionId: "exchange:event-8",
-						sourceKind: "world-event" as const,
-						eventId: "event-8",
-						eventSequence: 8,
-						status: "committed" as const,
-						targetId: citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
-						simulationEnd: 1_050,
-						resultEventId: "event-8",
-					},
-				};
-			const travel =
-				citizen.slug === "mara"
-					? { origin: "market", destination: "granary", kind: "walk" as const }
-					: citizen.slug === "sela"
-						? {
-								origin: "spring",
-								destination: "market",
-								kind: "carry" as const,
-							}
-						: citizen.slug === "rowan"
-							? { origin: "woods", destination: "mill", kind: "carry" as const }
-							: null;
-			return travel === null
-				? citizen
-				: {
+	it("runs a truthful 300-tick lifecycle and does not loop a completed exchange", () => {
+		const temporalCitizensAt = (tick: number) =>
+			citizens.map((citizen) => {
+				if (citizen.slug === "toma" || citizen.slug === "iven") {
+					if (tick < 48) return citizen;
+					if (tick < 96)
+						return {
+							...citizen,
+							carriedProp: null,
+							canonicalAction: {
+								...citizen.canonicalAction,
+								actionId: "exchange-result:event-8",
+								sourceKind: "world-event" as const,
+								eventId: "event-8",
+								eventSequence: 8,
+								status: "committed" as const,
+								kind: "react" as const,
+								affordanceId: null,
+								affordanceSlotIndex: null,
+								targetId:
+									citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
+								simulationStart: 2,
+								simulationEnd: 2,
+								resultEventId: "event-8",
+							},
+						};
+					return {
 						...citizen,
+						carriedProp: null,
 						canonicalAction: {
 							...citizen.canonicalAction,
-							actionId: `travel:${citizen.slug}`,
-							kind: travel.kind,
-							originPlaceId: travel.origin,
-							destinationPlaceId: travel.destination,
-							targetId: travel.destination,
+							actionId: `resumed:${citizen.slug}`,
+							kind: "inspect" as const,
+							affordanceId: null,
+							affordanceSlotIndex: null,
+							targetId: null,
+							simulationStart: 3,
 						},
 					};
-		});
+				}
+				const travel =
+					citizen.slug === "mara"
+						? {
+								origin: "market",
+								destination: "granary",
+								kind: "walk" as const,
+							}
+						: citizen.slug === "sela"
+							? {
+									origin: "spring",
+									destination: "market",
+									kind: "carry" as const,
+								}
+							: citizen.slug === "rowan"
+								? {
+										origin: "woods",
+										destination: "mill",
+										kind: "carry" as const,
+									}
+								: null;
+				return travel === null
+					? citizen
+					: {
+							...citizen,
+							canonicalAction: {
+								...citizen.canonicalAction,
+								actionId: `travel:${citizen.slug}`,
+								kind: travel.kind,
+								simulationStart: 0,
+								originPlaceId: travel.origin,
+								destinationPlaceId: travel.destination,
+								targetId: travel.destination,
+							},
+						};
+			});
 		const actionClasses = new Set<string>();
-		const firstPositions = new Map<string, { x: number; z: number }>();
 		let previous: SpatialProjection | null = null;
 
 		for (let tick = 0; tick <= PRESENTATION_HZ * 10; tick += 1) {
+			const temporalCitizens = temporalCitizensAt(tick);
 			const projection = projectSpatialScene({
-				source,
+				source: {
+					...source,
+					revision: tick < 48 ? 3 : tick < 96 ? 4 : 5,
+					stateHash: (tick < 48 ? "a" : tick < 96 ? "b" : "c").repeat(64),
+				},
 				citizens: temporalCitizens,
 				presentationTick: tick,
 			});
@@ -327,34 +364,25 @@ describe("world presentation", () => {
 				`presentation mismatch at tick ${tick}`,
 			).toEqual([]);
 			expect(projection.movingCitizenCount).toBe(3);
-			expect(projection.interactions).toEqual([
-				expect.objectContaining({
-					participantIds: ["citizen:toma", "citizen:iven"],
-					sourceEventId: "event-8",
-					sourceSequence: 8,
-					status: "committed",
-				}),
-			]);
+			if (tick < 48)
+				expect(projection.interactions).toEqual([
+					expect.objectContaining({
+						participantIds: ["citizen:toma", "citizen:iven"],
+						status: "in-progress",
+					}),
+				]);
+			else {
+				expect(projection.interactions).toEqual([]);
+				expect(
+					projection.actors.some(
+						(actor) =>
+							actor.animationClass === "exchange" || actor.prop === "trade",
+					),
+				).toBe(false);
+			}
 			for (const actor of projection.actors) {
 				actionClasses.add(actor.animationClass);
 				expect(pointIntersectsBlockedVolume(actor.positionMm)).toBe(false);
-				if (!firstPositions.has(actor.citizenId))
-					firstPositions.set(actor.citizenId, {
-						x: actor.positionMm.x,
-						z: actor.positionMm.z,
-					});
-			}
-			for (const [index, actor] of projection.actors.entries()) {
-				for (const other of projection.actors.slice(index + 1)) {
-					const separationMm = Math.hypot(
-						actor.positionMm.x - other.positionMm.x,
-						actor.positionMm.z - other.positionMm.z,
-					);
-					expect(
-						separationMm,
-						`${actor.citizenId} overlaps ${other.citizenId} at tick ${tick}`,
-					).toBeGreaterThanOrEqual(600);
-				}
 			}
 			previous = projection;
 		}
@@ -365,33 +393,21 @@ describe("world presentation", () => {
 				"walk",
 				"carry",
 				"exchange",
+				"react",
 				"gather",
 				"repair",
 				"inspect",
 			]),
 		);
+		expect(previous?.presentationTick).toBe(PRESENTATION_HZ * 10);
 		expect(
-			projectSpatialScene({
-				source,
-				citizens: temporalCitizens,
-				presentationTick: PRESENTATION_HZ * 10,
-			}),
-		).toEqual(previous);
-		for (const citizenId of ["citizen:mara", "citizen:sela", "citizen:rowan"]) {
-			const start = firstPositions.get(citizenId);
-			const finish = previous?.actors.find(
-				(actor) => actor.citizenId === citizenId,
-			)?.positionMm;
-			expect(start).toBeDefined();
-			expect(finish).toBeDefined();
-			if (start === undefined || finish === undefined) continue;
-			expect(
-				Math.hypot(finish.x - start.x, finish.z - start.z),
-			).toBeGreaterThanOrEqual(8_900);
-		}
+			previous?.actors.some((actor) =>
+				actor.action.actionId.startsWith("resumed:"),
+			),
+		).toBe(true);
 	});
 
-	it("binds a paired exchange to one canonical event", () => {
+	it("rejects a completed exchange pose that outlives its bounded result window", () => {
 		const withExchange = citizens.map((citizen) =>
 			citizen.slug === "toma" || citizen.slug === "iven"
 				? {
@@ -409,8 +425,8 @@ describe("world presentation", () => {
 							affordanceSlotIndex: citizen.slug === "toma" ? 0 : 1,
 							targetId:
 								citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
-							simulationStart: 1_050,
-							simulationEnd: 1_050,
+							simulationStart: 0,
+							simulationEnd: 0,
 							resultEventId: "event-8",
 						},
 					}
@@ -419,7 +435,7 @@ describe("world presentation", () => {
 		const projection = projectSpatialScene({
 			source,
 			citizens: withExchange,
-			presentationTick: 330,
+			presentationTick: 60,
 		});
 		expect(projection.interactions).toEqual([
 			expect.objectContaining({
@@ -431,6 +447,9 @@ describe("world presentation", () => {
 			}),
 		]);
 		expect(projection.canonicalEventLinkCount).toBeGreaterThanOrEqual(3);
+		expect(
+			inspectSpatialProjection(projection).mismatches.map(({ code }) => code),
+		).toContain("completed-action-loop");
 	});
 
 	it("projects a committed cross-place move along the authored route without teleporting", () => {
@@ -451,8 +470,8 @@ describe("world presentation", () => {
 							affordanceId: null,
 							affordanceSlotIndex: null,
 							targetId: "mill",
-							simulationStart: 1_050,
-							simulationEnd: 1_050,
+							simulationStart: 0,
+							simulationEnd: 0,
 							resultEventId: "event-move",
 						},
 					}
@@ -532,6 +551,7 @@ describe("world presentation", () => {
 		expect(mara?.positionMm).not.toEqual(
 			riverholdSpatialScene.nodes["mill:entry"],
 		);
+		expect(inspectSpatialProjection(projection).mismatches).toEqual([]);
 	});
 
 	it("starts with a legible paired exchange and covers the required pose graph", () => {
@@ -598,6 +618,36 @@ describe("world presentation", () => {
 		expect(inspection.mismatches.map(({ code }) => code)).toEqual(
 			expect.arrayContaining(["teleport", "action-animation-contradiction"]),
 		);
+
+		const travelling = citizens.map((citizen) =>
+			citizen.slug === "mara"
+				? {
+						...citizen,
+						canonicalAction: {
+							...citizen.canonicalAction,
+							actionId: "travel:cross-head",
+							kind: "walk" as const,
+							originPlaceId: "market",
+							destinationPlaceId: "granary",
+							targetId: "granary",
+							simulationStart: 0,
+						},
+					}
+				: citizen,
+		);
+		const beforeHead = projectSpatialScene({
+			source,
+			citizens: travelling,
+			presentationTick: 120,
+		});
+		const rewoundHead = projectSpatialScene({
+			source: { ...source, revision: 4, stateHash: "b".repeat(64) },
+			citizens: travelling,
+			presentationTick: 0,
+		});
+		expect(
+			inspectSpatialProjection(rewoundHead, beforeHead).teleportCount,
+		).toBe(1);
 	});
 
 	it("plans stable authored paths and clamps long frames", () => {

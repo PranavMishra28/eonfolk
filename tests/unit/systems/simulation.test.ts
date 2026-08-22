@@ -283,7 +283,15 @@ describe("Riverhold deterministic Reality", () => {
 			}),
 		);
 		expect(first.accepted).toBe(true);
-		expect(first.events.length).toBeGreaterThanOrEqual(7);
+		expect(first.events.map((event) => event.eventPayload.kind)).toEqual(
+			expect.arrayContaining([
+				"TimeAdvanced",
+				"ExchangeCompleted",
+				"MillRepaired",
+				"TravelArrived",
+			]),
+		);
+		expect(first.events).toHaveLength(6);
 		const second = await prepareTransition(
 			first.postState,
 			first.resultingWorldHeadHash,
@@ -313,6 +321,87 @@ describe("Riverhold deterministic Reality", () => {
 				(event) => event.eventPayload.kind === "ExchangeCompleted",
 			),
 		).toBe(true);
+	});
+
+	it("moves gatherers through arrival, reserved work, atomic result, and plan resume", async () => {
+		const genesis = await riverholdFixture();
+		const sela = citizenBySlug(genesis.state, "sela");
+		const arrived = await prepareTransition(
+			genesis.state,
+			genesis.genesisWorldHeadHash,
+			await command(genesis.state, "cmd_gather_arrival", {
+				kind: "Advance",
+				seconds: 150,
+			}),
+		);
+		const reservation = Object.values(arrived.postState.taskReservations).find(
+			(candidate) => candidate.affordanceId === "spring-water",
+		);
+		expect(arrived.postState.citizens[sela.citizenId]).toMatchObject({
+			placeId: "spring",
+			travel: null,
+			activeTaskId: reservation?.taskId,
+			currentBehavior: "acquire-resource",
+		});
+		expect(reservation?.citizenIds).toEqual([sela.citizenId]);
+		expect(arrived.postState.resourceSites.spring!.quantity).toBe(
+			genesis.state.resourceSites.spring!.quantity,
+		);
+
+		const completed = await prepareTransition(
+			arrived.postState,
+			arrived.resultingWorldHeadHash,
+			await command(arrived.postState, "cmd_gather_result", {
+				kind: "Advance",
+				seconds: 30,
+			}),
+		);
+		expect(
+			completed.events.filter(
+				(event) =>
+					event.eventPayload.kind === "ResourceGathered" &&
+					event.eventPayload.citizenId === sela.citizenId,
+			),
+		).toHaveLength(1);
+		expect(completed.postState.citizens[sela.citizenId]).toMatchObject({
+			activeTaskId: null,
+			currentBehavior: "fulfill-plan",
+		});
+		expect(completed.postState.resourceSites.spring!.quantity).toBe(
+			genesis.state.resourceSites.spring!.quantity - 1,
+		);
+		expect(resourceTotals(completed.postState)).toEqual(
+			genesis.state.conservation.baseline,
+		);
+	});
+
+	it("admits simultaneous arrivals while preserving a capacity-one work slot", async () => {
+		const genesis = await riverholdFixture();
+		let state = genesis.state;
+		let head = genesis.genesisWorldHeadHash;
+		for (const [index, seconds] of [1, 1, 137, 13].entries()) {
+			const transition = await prepareTransition(
+				state,
+				head,
+				await command(state, `cmd_capacity_arrival_${index}`, {
+					kind: "Advance",
+					seconds,
+				}),
+			);
+			expect(transition.accepted).toBe(true);
+			state = transition.postState;
+			head = transition.resultingWorldHeadHash;
+		}
+		expect(
+			Object.values(state.taskReservations).filter(
+				(reservation) => reservation.affordanceId === "spring-water",
+			),
+		).toHaveLength(1);
+		expect(
+			Object.values(state.citizens).filter(
+				(citizen) => citizen.placeId === "spring" && citizen.travel === null,
+			).length,
+		).toBeGreaterThanOrEqual(2);
 	});
 
 	it("settles exchange atomically and rejects an impossible retry without mutation", async () => {
@@ -356,39 +445,39 @@ describe("Riverhold deterministic Reality", () => {
 		);
 	});
 
-	it("uses exactly two wood in the authored repair recipe", async () => {
+	it("commits the reserved mill repair once, releases Odo, and consumes exactly two settlement wood", async () => {
 		const genesis = await riverholdFixture();
-		const iven = citizenBySlug(genesis.state, "iven");
-		const moved = await prepareTransition(
+		const odo = citizenBySlug(genesis.state, "odo");
+		const repaired = await prepareTransition(
 			genesis.state,
 			genesis.genesisWorldHeadHash,
-			await command(genesis.state, "cmd_move_iven", {
-				kind: "MoveCitizen",
-				citizenId: iven.citizenId,
-				toPlaceId: "mill",
-			}),
-		);
-		const arrived = await prepareTransition(
-			moved.postState,
-			moved.resultingWorldHeadHash,
-			await command(moved.postState, "cmd_arrive_iven", {
+			await command(genesis.state, "cmd_complete_reserved_repair", {
 				kind: "Advance",
-				seconds: 120,
-			}),
-		);
-		const repaired = await prepareTransition(
-			arrived.postState,
-			arrived.resultingWorldHeadHash,
-			await command(arrived.postState, "cmd_repair", {
-				kind: "RepairMill",
-				citizenId: iven.citizenId,
+				seconds: 1,
 			}),
 		);
 		expect(repaired.accepted).toBe(true);
+		expect(
+			repaired.events.filter(
+				(event) => event.eventPayload.kind === "MillRepaired",
+			),
+		).toHaveLength(1);
 		expect(repaired.postState.mill).toMatchObject({
 			repaired: true,
 			woodConsumed: 2,
 		});
+		expect(repaired.postState.settlementInventory.wood).toBe(
+			genesis.state.settlementInventory.wood - 2,
+		);
+		expect(repaired.postState.citizens[odo.citizenId]).toMatchObject({
+			activeTaskId: null,
+			currentBehavior: "fulfill-plan",
+		});
+		expect(
+			Object.values(repaired.postState.taskReservations).some((reservation) =>
+				reservation.citizenIds.includes(odo.citizenId),
+			),
+		).toBe(false);
 		expect(resourceTotals(repaired.postState)).toEqual(
 			genesis.state.conservation.baseline,
 		);

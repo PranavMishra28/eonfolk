@@ -7,11 +7,11 @@ import {
 	projectSpatialScene,
 	riverholdPhysicalScale,
 	riverholdSpatialScene,
-	workToolForAction,
 	type SemanticScale,
 	type SpatialActorProjection,
 	type SpatialCitizenInput,
 	type SpatialProjection,
+	workToolForAction,
 } from "@eonfolk/world-presentation";
 import { Application, Entity } from "@playcanvas/react";
 import { Camera, Light, Render } from "@playcanvas/react/components";
@@ -875,7 +875,10 @@ function WorldController({
 	readonly rigs: RefObject<Map<string, ActorRig>>;
 	readonly exchangeProp: RefObject<PlayCanvasEntity | null>;
 }) {
-	const clock = useRef({ tick: 0, accumulatorMs: 0 });
+	const clock = useRef({
+		tick: projection.spatial.presentationTick,
+		accumulatorMs: 0,
+	});
 	const previousProjection = useRef<SpatialProjection | null>(null);
 	const recordedSource = useRef<string | null>(null);
 	const recordedMismatch = useRef<string | null>(null);
@@ -896,11 +899,16 @@ function WorldController({
 		[projection.citizens],
 	);
 	useEffect(() => {
-		clock.current = { tick: 0, accumulatorMs: 0 };
-		previousProjection.current = null;
+		clock.current = {
+			tick: Math.max(clock.current.tick, projection.spatial.presentationTick),
+			accumulatorMs: 0,
+		};
 		recordedSource.current = null;
 		recordedMismatch.current = null;
-	}, [projection.spatial.source.stateHash]);
+	}, [
+		projection.spatial.presentationTick,
+		projection.spatial.source.stateHash,
+	]);
 	useAppEvent("update", (dt) => {
 		clock.current = advancePresentationClock(
 			clock.current,
@@ -940,21 +948,26 @@ function WorldController({
 		const second = sampled.actors.find(
 			(actor) => actor.citizenId === exchange?.participantIds[1],
 		);
+		const exchangeStartTick = (first?.action.simulationStart ?? 0) * 30;
+		const exchangeElapsedTicks = Math.max(
+			0,
+			clock.current.tick - exchangeStartTick,
+		);
 		const exchangeTransferStatus =
 			exchange === undefined
 				? "none"
 				: exchange.status === "in-progress"
-					? "awaiting-result"
-					: clock.current.tick < 48
+					? exchangeElapsedTicks < 48
 						? "transferring"
-						: "settled";
+						: "awaiting-result"
+					: "settled";
 		if (
 			exchangeProp.current !== null &&
 			exchangeTransferStatus === "transferring" &&
 			first !== undefined &&
 			second !== undefined
 		) {
-			const progress = Math.min(1, clock.current.tick / 47);
+			const progress = Math.min(1, exchangeElapsedTicks / 47);
 			exchangeProp.current.setLocalPosition(
 				(first.positionMm.x +
 					(second.positionMm.x - first.positionMm.x) * progress) /
@@ -1965,6 +1978,16 @@ export function RiverholdWorld({
 					: projection.investigation.observed
 						? "mismatch-marked"
 						: "unmarked-ledger"
+			}
+			data-world-revision={projection.spatial.source.revision}
+			data-world-sequence={projection.spatial.source.throughSequence}
+			data-world-simulation-time={projection.spatial.presentationTick / 30}
+			data-active-task-count={
+				projection.citizens.filter(
+					(citizen) =>
+						citizen.canonicalAction.status === "in-progress" &&
+						citizen.canonicalAction.affordanceId !== null,
+				).length
 			}
 			data-mill-state={
 				projection.worldProcesses.millRepaired ? "repaired" : "needs-repair"
