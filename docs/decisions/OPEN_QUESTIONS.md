@@ -52,13 +52,13 @@
 - **Evidence required:** No unsupported sentence; 3/5 understand within five seconds and do not assign the player direct causal credit; player-loop evidence, not card polish, creates next action.
 - **Decision reopened:** D-004 and D-009; change mechanics before adding prose if the causal chain is trivial.
 
-### Q-005 — Does embodied Living Woodcut visibly feel inhabited and alive?
+### Q-005 — Does Riverhold feel like inhabited place rather than simulation visualization?
 
 - **Why it matters:** The former sparse/static renderer was technically correct but failed the product's physical-presence requirement.
-- **Current default:** PlayCanvas/WebGL2, procedural low-poly settlement, eight full-limbed citizens, authored paths/slots, eleven animation classes, five prop families, cosmetic river flow, and complete semantic DOM.
-- **Fastest falsification:** Put the exact clean three-viewport candidate before fresh observers with branding and raw feed hidden. Ask the ten-second recognition questions, thirty-second task description, and the single inhabited/alive verdict.
-- **Evidence required:** 3/5 name three activities and the visible interaction/process; 4/5 find Follow Mara/understand autonomy; the independent release reviewer answers YES; payload/frame/mobile containment and temporal mismatch gates pass.
-- **Decision reopened:** D-008; first adjust camera/scale/props/action staging, then test the bounded KayKit subset or a simpler renderer only if the gate still fails.
+- **Current default:** One continuous metre-scale PlayCanvas/WebGL2 region context, eight full-limbed citizens, Reality-owned travel/tasks/slots, authored routes and affordances, region/town/follow camera bands, LOD0–LOD3 representation, selection-first contextual UI, Chronicle spatial focus, and a complete semantic DOM.
+- **Fastest falsification:** Put the exact clean desktop/laptop/mobile candidate before fresh observers with branding, lenses, captions, and raw feed initially hidden. Ask the ten-second place/activity questions, the thirty-second task/consequence narration, then the exact binding question.
+- **Evidence required:** 3/5 name three activities and the visible interaction/process; 4/5 find and follow Mara and understand autonomy; direct selection/camera/Chronicle focus work without a list; payload/frame/mobile/accessibility/temporal truth gates pass; the independent release reviewer answers **YES** to “Does this feel like watching real inhabitants of a place, rather than looking at a visualization of a simulation?”
+- **Decision reopened:** D-008; first repair truth, scale, choreography, camera, and composition. If one bounded correction still fails, cut product breadth or reopen renderer/scope before adding population, generalized navigation, or asset volume.
 
 ### Q-006 — Does succession feel like continuity rather than reset?
 

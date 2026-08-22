@@ -109,6 +109,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha spatial semantics, navigation, presentation clock, animation, and Living World evidence | [WORLD_PRESENCE_SPATIAL_RESEARCH.md](research/WORLD_PRESENCE_SPATIAL_RESEARCH.md) |
 | Founder Alpha PlayCanvas React/Pixi replacement measurements and renderer recommendation | [WORLD_PRESENCE_RENDERER_SPIKE.md](research/WORLD_PRESENCE_RENDERER_SPIKE.md) |
 | Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
+| World-as-Product city-simulation, camera, residency, task, and animation principles | [WORLD_AS_PRODUCT_RESEARCH.md](research/WORLD_AS_PRODUCT_RESEARCH.md) |
+| Frozen World-as-Product technical truth and bounded-delta audit | [WORLD_AS_PRODUCT_TECH_SPIKE.md](research/WORLD_AS_PRODUCT_TECH_SPIKE.md) |
 
 ## Reviews
 
@@ -132,6 +134,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha cognition/research frozen review | [FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md](reviews/FOUNDER_ALPHA_COGNITION_RESEARCH_REVIEW.md) |
 | Founder Alpha CI/evidence frozen review | [FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md](reviews/FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md) |
 | Founder Alpha first confirmation and seven repair findings | [FOUNDER_ALPHA_CONFIRMATION.md](reviews/FOUNDER_ALPHA_CONFIRMATION.md) |
+| Frozen pre-correction World-as-Product hostile baseline and exact-NO verdict | [WORLD_AS_PRODUCT_BASELINE.md](reviews/WORLD_AS_PRODUCT_BASELINE.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene

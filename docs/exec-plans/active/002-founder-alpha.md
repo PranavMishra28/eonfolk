@@ -201,7 +201,7 @@ Release requires all nineteen acceptance items in the override, fresh three-view
 Current progress:
 
 - [x] Override read in full, content hash verified, prior release target invalidated, existing systems preserved.
-- [ ] Current primary-source research integrated and source-ledger rows verified.
+- [x] Current primary-source research integrated and source-ledger rows verified.
 - [ ] Metre-scale world hierarchy, camera, semantic zoom/LOD, spatial affordances, choreography, and world-first UI implemented.
 - [ ] Automated temporal, spatial, camera, selection, Chronicle-focus, accessibility, and rendering-independence gates pass.
 - [ ] Fresh desktop/laptop/mobile browser and performance evidence captured from one frozen clean candidate.
