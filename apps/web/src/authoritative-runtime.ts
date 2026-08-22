@@ -44,6 +44,11 @@ import {
 	replayLedger,
 	type WorldState,
 } from "@eonfolk/sim";
+import {
+	type AnimationClass,
+	type CanonicalActionRef,
+	projectSpatialScene,
+} from "@eonfolk/world-presentation";
 import type {
 	ChronicleBeatProjection,
 	CounselIntent,
@@ -99,7 +104,7 @@ function baseProjection(
 	phase: Phase,
 	branch: CounselIntent | null,
 	secondAction: string | null,
-): RiverholdProjection {
+): Omit<RiverholdProjection, "spatial"> {
 	const returned = ["return-pending", "return", "chronicle"].includes(phase);
 	const summaryVisible = phase === "return" || phase === "chronicle";
 	const strained = branch === "accuse-now";
@@ -122,6 +127,7 @@ function baseProjection(
 					: "The mismatch remained unresolved, and one citizen independently endorsed an audit petition.",
 		citizens: [],
 		resources: { food: 0, water: 0, wood: 0 },
+		worldProcesses: { millRepaired: false },
 		worldNotices:
 			branch === "accuse-now"
 				? ["Petition gained three endorsements", "Toma's trust strained"]
@@ -509,23 +515,6 @@ function returnResponseAction(actionId: string): ReturnResponseAction {
 	throw new Error("The return response is not in the closed action catalog");
 }
 
-const citizenPositions: Readonly<
-	Record<string, { readonly x: number; readonly y: number }>
-> = {
-	mara: { x: 45, y: 45 },
-	toma: { x: 60, y: 50 },
-	iven: { x: 70, y: 44 },
-	sela: { x: 28, y: 62 },
-	rowan: { x: 17, y: 37 },
-	neri: { x: 37, y: 73 },
-	odo: { x: 80, y: 67 },
-	els: { x: 87, y: 34 },
-};
-
-function positions(slug: string): { x: number; y: number } {
-	return citizenPositions[slug] ?? { x: 50, y: 50 };
-}
-
 function activityFor(citizen: WorldState["citizens"][string]): {
 	activity: string;
 	activityKind: RiverholdProjection["citizens"][number]["activityKind"];
@@ -552,6 +541,202 @@ function activityFor(citizen: WorldState["citizens"][string]): {
 		},
 	} as const;
 	return byBehavior[citizen.currentBehavior];
+}
+
+function eventActorIds(event: WorldEventEnvelope): readonly string[] {
+	const payload = event.eventPayload;
+	switch (payload.kind) {
+		case "CitizenMoved":
+		case "ResourceGathered":
+		case "ResourceConsumed":
+		case "MillRepaired":
+		case "CounselIssued":
+		case "CounselInterpreted":
+		case "ReturnResponseRecorded":
+		case "BeliefChanged":
+		case "StandingPlanChanged":
+			return [payload.citizenId];
+		case "ExchangeCompleted":
+			return [payload.firstCitizenId, payload.secondCitizenId];
+		case "StatementMade":
+			return [payload.speakerId, ...payload.recipientIds];
+		case "RelationshipChanged":
+			return [payload.fromCitizenId, payload.toCitizenId];
+		case "Observed":
+			return [payload.observerId];
+		case "PetitionChanged":
+		case "TimeAdvanced":
+			return [];
+	}
+}
+
+function animationForEvent(event: WorldEventEnvelope): AnimationClass {
+	switch (event.eventPayload.kind) {
+		case "CitizenMoved":
+			return "walk";
+		case "ResourceGathered":
+			return "gather";
+		case "ResourceConsumed":
+			return "eat-rest";
+		case "ExchangeCompleted":
+			return "exchange";
+		case "MillRepaired":
+			return "repair";
+		case "StatementMade":
+			return "talk";
+		case "RelationshipChanged":
+		case "CounselInterpreted":
+		case "PetitionChanged":
+			return "react";
+		case "Observed":
+		case "BeliefChanged":
+		case "StandingPlanChanged":
+		case "CounselIssued":
+		case "ReturnResponseRecorded":
+			return "inspect";
+		case "TimeAdvanced":
+			return "idle";
+	}
+}
+
+function defaultAnimationForCitizen(slug: string): AnimationClass {
+	const defaults: Readonly<Record<string, AnimationClass>> = {
+		mara: "inspect",
+		toma: "talk",
+		iven: "listen",
+		sela: "carry",
+		rowan: "gather",
+		neri: "gather",
+		odo: "repair",
+		els: "inspect",
+	};
+	return defaults[slug] ?? "idle";
+}
+
+function spatialDetailsForEvent(
+	event: WorldEventEnvelope,
+	citizenId: string,
+	currentPlaceId: string,
+): Readonly<{
+	originPlaceId: string;
+	destinationPlaceId: string;
+	targetId: string | null;
+}> {
+	const payload = event.eventPayload;
+	switch (payload.kind) {
+		case "CitizenMoved":
+			return {
+				originPlaceId: payload.fromPlaceId,
+				destinationPlaceId: payload.toPlaceId,
+				targetId: payload.toPlaceId,
+			};
+		case "Observed":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: payload.targetId,
+			};
+		case "ResourceGathered":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: payload.siteId,
+			};
+		case "ExchangeCompleted":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId:
+					payload.firstCitizenId === citizenId
+						? payload.secondCitizenId
+						: payload.firstCitizenId,
+			};
+		case "StatementMade":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: payload.recipientIds[0] ?? null,
+			};
+		case "RelationshipChanged":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId:
+					payload.fromCitizenId === citizenId
+						? payload.toCitizenId
+						: payload.fromCitizenId,
+			};
+		case "MillRepaired":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: "mill",
+			};
+		case "ResourceConsumed":
+		case "CounselIssued":
+		case "CounselInterpreted":
+		case "ReturnResponseRecorded":
+		case "BeliefChanged":
+		case "PetitionChanged":
+		case "StandingPlanChanged":
+		case "TimeAdvanced":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: null,
+			};
+	}
+}
+
+function canonicalActionForCitizen(input: {
+	readonly citizenId: string;
+	readonly slug: string;
+	readonly placeId: string;
+	readonly simulationTime: number;
+	readonly revision: number;
+	readonly events: readonly WorldEventEnvelope[];
+}): CanonicalActionRef {
+	const event = [...input.events]
+		.reverse()
+		.find((candidate) => eventActorIds(candidate).includes(input.citizenId));
+	if (event !== undefined && event.simulationTime === input.simulationTime) {
+		const spatial = spatialDetailsForEvent(
+			event,
+			input.citizenId,
+			input.placeId,
+		);
+		return Object.freeze({
+			actionId:
+				event.eventPayload.kind === "ExchangeCompleted"
+					? `exchange:${event.eventId}`
+					: `event:${event.eventId}`,
+			sourceKind: "world-event",
+			eventId: event.eventId,
+			eventSequence: event.sequence,
+			status: "committed",
+			kind: animationForEvent(event),
+			originPlaceId: spatial.originPlaceId,
+			destinationPlaceId: spatial.destinationPlaceId,
+			targetId: spatial.targetId,
+			simulationStart: event.simulationTime,
+			simulationEnd: event.simulationTime,
+			resultEventId: event.eventId,
+		});
+	}
+	return Object.freeze({
+		actionId: `behavior:${input.citizenId}:${input.revision}`,
+		sourceKind: "current-behavior",
+		eventId: null,
+		eventSequence: null,
+		status: "in-progress",
+		kind: defaultAnimationForCitizen(input.slug),
+		originPlaceId: input.placeId,
+		destinationPlaceId: input.placeId,
+		targetId: null,
+		simulationStart: input.simulationTime,
+		simulationEnd: null,
+		resultEventId: null,
+	});
 }
 
 function relationForEvent(
@@ -1203,6 +1388,7 @@ export class AuthoritativeRiverholdRuntime {
 
 	#project(): RiverholdProjection {
 		const state = this.#requireState();
+		const head = this.#requireHead();
 		const branch =
 			state.selectedCounselBranch === null
 				? null
@@ -1210,13 +1396,43 @@ export class AuthoritativeRiverholdRuntime {
 		const base = baseProjection(this.#phase, branch, this.#secondAction);
 		const citizens = Object.values(state.citizens).map((citizen) => ({
 			id: citizen.citizenId,
+			slug: citizen.slug,
 			name: citizen.name,
 			role: citizen.role,
+			placeId: citizen.placeId,
 			place: state.places[citizen.placeId]?.name ?? citizen.placeId,
 			...activityFor(citizen),
-			...positions(citizen.slug),
+			canonicalAction: canonicalActionForCitizen({
+				citizenId: citizen.citizenId,
+				slug: citizen.slug,
+				placeId: citizen.placeId,
+				simulationTime: state.simulationTime,
+				revision: state.revision,
+				events: this.#events,
+			}),
 			...(citizen.slug === "mara" ? { focal: true as const } : {}),
 		}));
+		const spatial = projectSpatialScene({
+			source: {
+				runId: state.runId,
+				regionId: state.regionId,
+				revision: state.revision,
+				throughSequence: head.lastSequence,
+				stateHash: head.stateHash,
+			},
+			citizens: citizens.map((citizen) => ({
+				citizenId: citizen.id,
+				slug: citizen.slug,
+				name: citizen.name,
+				role: citizen.role,
+				placeId: citizen.placeId,
+				activity: citizen.activity,
+				activityKind: citizen.activityKind,
+				focal: citizen.focal === true,
+				canonicalAction: citizen.canonicalAction,
+			})),
+			presentationTick: 0,
+		});
 		const mara = citizenBySlug(state, "mara");
 		const relationship = state.relationships["relationship-mara-toma"];
 		if (relationship === undefined)
@@ -1269,7 +1485,9 @@ export class AuthoritativeRiverholdRuntime {
 			...base,
 			day: Math.floor(state.simulationTime / 86_400) + 18,
 			citizens: Object.freeze(citizens),
+			spatial,
 			resources: Object.freeze({ ...state.settlementInventory }),
+			worldProcesses: Object.freeze({ millRepaired: state.mill.repaired }),
 			worldNotices: Object.freeze(worldNotices),
 			mara: Object.freeze({
 				...base.mara,

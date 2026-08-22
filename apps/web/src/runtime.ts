@@ -1,4 +1,9 @@
 import type { DiagnosticInput, WorldHeadSummary } from "@eonfolk/diagnostics";
+import {
+	projectSpatialScene,
+	type AnimationClass,
+	type CanonicalActionRef,
+} from "@eonfolk/world-presentation";
 import type {
 	ChronicleBeatProjection,
 	CounselIntent,
@@ -18,86 +23,117 @@ interface SavedCheckpoint {
 const baseCitizens = [
 	{
 		id: "citizen:mara",
-		name: "Mara",
-		role: "Market tally-keeper",
+		slug: "mara",
+		name: "Mara Vale",
+		role: "Ledger runner",
 		activity: "carrying water toward the market tally",
 		activityKind: "water",
+		placeId: "market",
 		place: "market",
-		x: 45,
-		y: 45,
+		canonicalActionKind: "inspect",
 		focal: true,
 	},
 	{
 		id: "citizen:toma",
-		name: "Toma",
+		slug: "toma",
+		name: "Toma Reed",
 		role: "Storekeeper",
 		activity: "settling a ration exchange with Iven",
 		activityKind: "trade",
+		placeId: "market",
 		place: "market",
-		x: 60,
-		y: 50,
+		canonicalActionKind: "talk",
 	},
 	{
 		id: "citizen:iven",
-		name: "Iven",
+		slug: "iven",
+		name: "Iven Holt",
 		role: "Miller",
 		activity: "trading repair wood for rations",
 		activityKind: "trade",
+		placeId: "market",
 		place: "market",
-		x: 70,
-		y: 44,
+		canonicalActionKind: "listen",
 	},
 	{
-		id: "citizen:sera",
-		name: "Sera",
+		id: "citizen:sela",
+		slug: "sela",
+		name: "Sela Fen",
 		role: "Water bearer",
 		activity: "drawing water at the old well",
 		activityKind: "water",
+		placeId: "spring",
 		place: "spring",
-		x: 28,
-		y: 62,
+		canonicalActionKind: "carry",
 	},
 	{
-		id: "citizen:nadi",
-		name: "Nadi",
+		id: "citizen:rowan",
+		slug: "rowan",
+		name: "Rowan Pike",
 		role: "Forester",
 		activity: "bundling windfall wood",
 		activityKind: "wood",
+		placeId: "woods",
 		place: "woods",
-		x: 17,
-		y: 37,
+		canonicalActionKind: "gather",
 	},
 	{
-		id: "citizen:owen",
-		name: "Owen",
-		role: "Millwright",
-		activity: "bracing the damaged mill wheel",
-		activityKind: "mill",
-		place: "mill",
-		x: 80,
-		y: 67,
-	},
-	{
-		id: "citizen:bela",
-		name: "Bela",
+		id: "citizen:neri",
+		slug: "neri",
+		name: "Neri Ash",
 		role: "Grower",
 		activity: "moving seed grain above the flood line",
 		activityKind: "food",
+		placeId: "fields",
 		place: "fields",
-		x: 37,
-		y: 73,
+		canonicalActionKind: "gather",
 	},
 	{
-		id: "citizen:corin",
-		name: "Corin",
-		role: "Carpenter",
-		activity: "hauling cut timber down the north path",
-		activityKind: "wood",
-		place: "north path",
-		x: 87,
-		y: 34,
+		id: "citizen:odo",
+		slug: "odo",
+		name: "Odo Bell",
+		role: "Millwright",
+		activity: "bracing the damaged mill wheel",
+		activityKind: "mill",
+		placeId: "mill",
+		place: "mill",
+		canonicalActionKind: "repair",
+	},
+	{
+		id: "citizen:els",
+		slug: "els",
+		name: "Els Wren",
+		role: "Council clerk",
+		activity: "checking the granary allocation board",
+		activityKind: "council",
+		placeId: "granary",
+		place: "granary",
+		canonicalActionKind: "inspect",
 	},
 ] as const;
+
+function staticCanonicalAction(input: {
+	readonly id: string;
+	readonly kind: AnimationClass;
+	readonly phase: RiverholdProjection["phase"];
+	readonly placeId: string;
+	readonly simulationTime: number;
+}): CanonicalActionRef {
+	return Object.freeze({
+		actionId: `static:${input.id}:${input.phase}`,
+		sourceKind: "current-behavior",
+		eventId: null,
+		eventSequence: null,
+		status: "in-progress",
+		kind: input.kind,
+		originPlaceId: input.placeId,
+		destinationPlaceId: input.placeId,
+		targetId: null,
+		simulationStart: input.simulationTime,
+		simulationEnd: null,
+		resultEventId: null,
+	});
+}
 
 const branchData = {
 	"verify-private": {
@@ -440,8 +476,7 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 						? "preparing the verified count for the square"
 						: "recounting the sealed reserve with Iven",
 					activityKind: "investigate" as const,
-					x: 67,
-					y: 48,
+					canonicalActionKind: "inspect" as const,
 				};
 			if (branch === "accuse-now")
 				return {
@@ -450,15 +485,15 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 						? "watching the audit notice go up"
 						: "speaking before the market council",
 					activityKind: "council" as const,
-					x: 57,
-					y: 43,
+					canonicalActionKind: returned
+						? ("react" as const)
+						: ("talk" as const),
 				};
 			return {
 				...citizen,
 				activity: "continuing her tally round",
 				activityKind: "investigate" as const,
-				x: 47,
-				y: 52,
+				canonicalActionKind: "inspect" as const,
 			};
 		}
 		if (citizen.id === "citizen:toma" && branch === "accuse-now")
@@ -468,8 +503,7 @@ function citizensFor(branch: CounselIntent | null, returned: boolean) {
 					? "working apart from Mara at the reserve"
 					: "answering the council audit",
 				activityKind: "council" as const,
-				x: 76,
-				y: 55,
+				canonicalActionKind: returned ? ("carry" as const) : ("talk" as const),
 			};
 		return citizen;
 	});
@@ -497,6 +531,45 @@ export function makeProjection(
 			: relationshipBand === "repairing"
 				? "Mara and Toma have begun a careful repair"
 				: "Mara trusts Toma";
+	const citizens = citizensFor(branch, returned).map((citizen) => ({
+		id: citizen.id,
+		slug: citizen.slug,
+		name: citizen.name,
+		role: citizen.role,
+		activity: citizen.activity,
+		activityKind: citizen.activityKind,
+		placeId: citizen.placeId,
+		place: citizen.place,
+		canonicalAction: staticCanonicalAction({
+			id: citizen.id,
+			kind: citizen.canonicalActionKind,
+			phase,
+			placeId: citizen.placeId,
+			simulationTime: returned ? 110_400 : 82_800,
+		}),
+		...(citizen.id === "citizen:mara" ? { focal: true as const } : {}),
+	}));
+	const spatial = projectSpatialScene({
+		source: {
+			runId: "run_riverhold_static_adapter",
+			regionId: "riverhold",
+			revision: branch === null ? 0 : 1,
+			throughSequence: 0,
+			stateHash: branch === null ? "0".repeat(64) : "1".repeat(64),
+		},
+		citizens: citizens.map((citizen) => ({
+			citizenId: citizen.id,
+			slug: citizen.slug,
+			name: citizen.name,
+			role: citizen.role,
+			placeId: citizen.placeId,
+			activity: citizen.activity,
+			activityKind: citizen.activityKind,
+			focal: citizen.focal === true,
+			canonicalAction: citizen.canonicalAction,
+		})),
+		presentationTick: 0,
+	});
 	return Object.freeze({
 		schemaVersion: "riverhold-view-v1",
 		phase,
@@ -518,12 +591,14 @@ export function makeProjection(
 					: branch === "abstain"
 						? "Mara protected the relationship, and carried the uncertainty forward."
 						: "Twelve food units appear in the public ledger but not in the open bins.",
-		citizens: Object.freeze(citizensFor(branch, returned)),
+		citizens: Object.freeze(citizens),
+		spatial,
 		resources: Object.freeze({
 			food: 28,
 			water: 30,
 			wood: 6,
 		}),
+		worldProcesses: Object.freeze({ millRepaired: false }),
 		worldNotices: Object.freeze(
 			branch === "accuse-now"
 				? ["Council audit open", "Repair reserve held", relationship]
@@ -542,9 +617,7 @@ export function makeProjection(
 							],
 		),
 		mara: Object.freeze({
-			activity:
-				citizensFor(branch, returned)[0]?.activity ??
-				"checking the market tally",
+			activity: citizens[0]?.activity ?? "checking the market tally",
 			values: Object.freeze([
 				"Tell the truth carefully",
 				"Protect earned trust",

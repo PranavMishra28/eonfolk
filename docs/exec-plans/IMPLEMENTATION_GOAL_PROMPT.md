@@ -1,12 +1,20 @@
 # Goal-mode prompt — implement EONFOLK 001 foundation
 
-**Purpose:** provide a complete zero-context Codex Goal-mode orchestration prompt for the accepted local Riverhold proof.
+**Purpose:** preserve the complete zero-context Codex Goal-mode orchestration prompt that produced the accepted local Riverhold foundation.
 
-**Status:** EXECUTION CONTRACT REQUIRING EXTERNAL BLOB APPROVAL. Presence in the planning repository is not implementation authority; an operator's future invocation must supply the approved exact Git blob in higher-authority Goal metadata and authorizes only the local actions and stops stated below.
+**Status:** HISTORICAL EXECUTED FOUNDATION CONTRACT. Its treatment oracle and evidence vectors are immutable. Current Founder Alpha implementation authority is the active ExecPlan plus later content-addressed operator overrides.
 
-**Authority boundary:** this file owns future orchestration behavior. The embedded product/technical contract is self-contained; during execution, `docs/exec-plans/completed/001-foundation.md` is the living evidence log.
+**Authority boundary:** this file owns the historical 001 orchestration contract and no longer selects the current renderer or dependency cohort. The active contract is [002-founder-alpha.md](active/002-founder-alpha.md).
 
-**Related documents:** [ExecPlan](completed/001-foundation.md), [authority index](../INDEX.md), [Observatory](../product/OBSERVATORY.md), [quality bar](../quality/QUALITY_BAR.md)
+**Related documents:** [historical ExecPlan](completed/001-foundation.md), [active Founder Alpha plan](active/002-founder-alpha.md), [authority index](../INDEX.md), [Observatory](../product/OBSERVATORY.md), [quality bar](../quality/QUALITY_BAR.md)
+
+## Current execution amendment — World Presence
+
+The frozen Gate 0 treatment, `pixi-semantic` observable oracle, screenshots, hashes, participant protocol, and 195-package dependency cohort below remain historical evidence and must not be edited or reinterpreted as current game logic. They prove what was run at Gate 0; they do not authorize the Founder Alpha production renderer.
+
+For current Founder Alpha work, the 2026-08-21 World Presence override and D-008 supersede every production-facing Pixi instruction below. The web application uses PlayCanvas React/WebGL2 and the pure `packages/world-presentation` boundary. Reality owns semantic actions, origin/destination, simulation timing, targets, and results; presentation owns deterministic authored paths, interpolation, animation poses, props, and cosmetic motion. The renderer never mutates Reality. Semantic DOM parity, reduced motion, complete failure fallback, temporal mismatch diagnostics, the three viewport budgets, and an independent **YES** to “Does Riverhold visibly feel inhabited and alive?” are release-blocking.
+
+The current reviewed cohort has 199 packages. Runtime adds exact `@playcanvas/react@0.11.5` and `playcanvas@2.21.4`; `pixi.js@8.19.0` is root development-only for the immutable historical harness. The current frozen files are `package.json.txt` 785 bytes/SHA-256 `1c0b91954799e37a87d63942d59d828989d07ad006101d0d07a03cd23741ee3e`, `pnpm-lock.yaml.txt` 67,376 bytes/SHA-256 `4a5ab93a8d9d87923ba01901a1c582585a2b214b91451655690ce39d7f6a32bc`, and `licenses.jcs.json` 40,011 bytes/SHA-256 `8eff2fa6802e8693c53326aa142a278a27770101b16d54dbe6222eb031fc989e`. The cohort validator, security audit, payload budget, current tests, active ExecPlan, and coordinator-inspected Git diff control integration. No production code may use the obsolete Pixi clauses below.
 
 ---
 

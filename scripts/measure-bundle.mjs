@@ -42,7 +42,7 @@ for (const path of (await walk(dist)).sort()) {
 const isCode = (row) =>
 	[".html", ".css", ".js", ".mjs"].includes(extname(row.path));
 const isDeferredRuntime = (row) =>
-	/^assets\/(?:runtime\.worker|webworker|canvas|filter|gpu|renderer|rendertarget|browserall|getpo2texture|gettexture|init-)/i.test(
+	/^assets\/(?:runtime\.worker|RiverholdWorld|webworker|canvas|filter|gpu|renderer|rendertarget|browserall|getpo2texture|gettexture|init-)/i.test(
 		row.path,
 	);
 const sum = (values, key) =>

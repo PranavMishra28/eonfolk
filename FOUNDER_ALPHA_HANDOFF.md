@@ -2,13 +2,13 @@
 
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
-**Status:** RELEASE CANDIDATE — seven confirmation P1 mechanisms repaired; clean local DEEP passed; targeted confirmation, remote CI, merge, and cleanup pending
+**Status:** WORLD PRESENCE CANDIDATE — automated temporal/browser checks pass; fresh clean DEEP, independent presence/systems review, remote CI, merge, and cleanup pending
 
 **Authority boundary:** this file is an operational summary. [docs/INDEX.md](docs/INDEX.md) maps product and technical authority; [002-founder-alpha.md](docs/exec-plans/active/002-founder-alpha.md) owns execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) owns release boundaries.
 
 ## What works
 
-Founder Alpha is an account-free local Riverhold build. Eight citizens act without a model. The player can follow Mara, inspect the reserve mismatch and her visible reasons, offer one of two counsels or abstain, see Mara accept/reject/reinterpret independently, advance through a typed six-hour consequence, leave/reload through controlled catch-up, inspect the factual Chronicle and provenance, take the branch-specific second action, create a Story Card, switch to the semantic words view, and save bounded feedback locally.
+Founder Alpha is an account-free local Riverhold build. Eight full-limbed citizens move along authored paths through a stylized low-poly settlement, visibly carry/work with props, and interact without a model. The player can follow Mara, inspect the reserve mismatch and her visible reasons, offer one of two counsels or abstain, see Mara accept/reject/reinterpret independently, advance through a typed six-hour consequence, leave/reload through controlled catch-up, inspect the factual Chronicle and provenance, take the branch-specific second action, create a Story Card, switch to the semantic words view, and save bounded feedback locally. PlayCanvas consumes a pure WorldPresentation projection and never mutates Reality.
 
 Authoritative Reality, cognition records, experiments, diagnostics, feedback, Chronicle, and Observatory projections remain separate. Standard Brain completes the loop. No model, Planner candidate, provider SDK, hosted inference, training, embedding/vector store, account, server, relay composition, deployment, public URL, credential, payment, or paid action ships.
 
@@ -57,22 +57,22 @@ gitleaks git --no-banner --redact --exit-code 1 --config .gitleaks.toml --log-op
 GITLEAKS_BIN="$(command -v gitleaks)" node scripts/check-gitleaks-neighbor.mjs
 ```
 
-The accepted TLC JAR SHA-256 is `eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d329789085f8953a80533a`; missing or wrong bytes fail before Java. PR verification records nineteen executed constituents individually. It runs two explicitly test-only crash journeys, rebuilds production, checks the 200/650 KiB gzip budgets, runs fourteen production journeys against that unchanged `dist`, proves both suites attempted no external request, audits production dependencies, and runs the bounded formal model. The final PR manifest may hash only production `apps/web/dist`; DEEP adds its four named benchmark artifacts.
+The accepted TLC JAR SHA-256 is `eabd140a70f49eb9305a3bd3f3df944eddf87e5a90d329789085f8953a80533a`; missing or wrong bytes fail before Java. PR verification records its executed constituents individually. It runs two explicitly test-only crash journeys, rebuilds production, checks the 200/650 KiB gzip budgets, runs fifteen production journeys against that unchanged `dist`, proves both suites attempted no external request, audits production dependencies, and runs the bounded formal model. The final PR manifest may hash only production `apps/web/dist`; DEEP adds its four named benchmark artifacts.
 
 DEEP adds targeted mutations, the 500/320 property profile, exact browser-cohort validation, fail-closed persistence measurement, source and browser OFF/LOCAL/ALPHA comparisons, and the repeated canonical browser performance battery. Acceptance requires a clean, unchanged source tree; dirty success exits nonzero as `SMOKE_ONLY`.
 
-The accepted local DEEP evidence currently binds clean commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`: 26/26 ordered rows passed, start/end source and lockfile matched, crash markers were absent from production `dist`, and the manifest output SHA-256 is `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. Canonical performance used fifteen fresh-browser journeys; worst per-state p95 was 10.0 ms, maximum throttled-mobile meaningful display was 2,354 ms, and route/netlog external attempts were zero. Re-run DEEP after any executable or dependency change.
+The clean DEEP evidence at `59edef3c768d9a3fe9409f07d77d49fded4b9554` is historical and release-invalid because it measured the sparse Pixi world. The current PlayCanvas/199-package candidate has passed FAST, focused unit, payload, audit, and fifteen production browser checks on a dirty integration checkpoint; these are not release evidence. Freeze a clean commit, rerun the complete DEEP lattice and canonical performance battery, and record the new exact manifest/results here before release.
 
 ## Product and browser smoke
 
 Use a fresh browser profile. Confirm:
 
-1. Follow Mara and identify at least three citizen activities plus the Toma–Iven exchange.
+1. In ten seconds identify the physical settlement, recognizable humans, several tasks, one interaction, and one production/social process; within 30 seconds describe several citizen activities without a raw feed. The independent verdict to “Does Riverhold visibly feel inhabited and alive?” must be **YES**.
 2. Inspect Mara's identity, values, plan, relationship, uncertainty, and the exact 48-versus-36 mismatch.
 3. Run verify, public-accusation, and abstain branches separately. Public accusation must be rejected by grounded visible reasons in the default fixture.
 4. Leave/reload, advance the bounded return, inspect the branch consequence, Chronicle, replay/provenance, second action, Story Card, and local feedback.
 5. Repeat with keyboard only, reduced motion, and the remembered semantic view.
-6. Check 1728×1117, 1366×768, and 390×844. Automated 200%-equivalent reflow exists; direct browser-UI zoom remains **NOT RUN**.
+6. Check 1728×1117, 1366×768, and 390×844 for world dominance, canvas containment, WebGL2, continuous movement, semantic parity, and the fixed weak-device fallback. Automated 200%-equivalent reflow exists; direct browser-UI zoom remains **NOT RUN**.
 
 A passing build or backend suite is never a substitute for this observable flow. Automated browser evidence is not a human Gate result.
 

@@ -1,10 +1,14 @@
 import {
 	advancePresentationClock,
 	createAuthoredPathPlanner,
+	humanoidPose,
+	inspectSpatialProjection,
 	pointIntersectsBlockedVolume,
 	projectSpatialScene,
+	requiredAnimationClasses,
 	riverholdSpatialScene,
 	type SpatialCitizenInput,
+	type SpatialProjection,
 } from "../../../packages/world-presentation/src/index.js";
 import { describe, expect, it } from "vitest";
 
@@ -44,6 +48,12 @@ const citizens: readonly SpatialCitizenInput[] = seeds.map(
 			eventSequence: null,
 			status: "in-progress",
 			kind: "idle",
+			originPlaceId: placeId,
+			destinationPlaceId: placeId,
+			targetId: null,
+			simulationStart: 1_000,
+			simulationEnd: null,
+			resultEventId: null,
 		},
 	}),
 );
@@ -135,6 +145,13 @@ describe("world presentation", () => {
 							eventSequence: 8,
 							status: "committed" as const,
 							kind: "exchange" as const,
+							originPlaceId: "market",
+							destinationPlaceId: "market",
+							targetId:
+								citizen.slug === "toma" ? "citizen:iven" : "citizen:toma",
+							simulationStart: 1_050,
+							simulationEnd: 1_050,
+							resultEventId: "event-8",
 						},
 					}
 				: citizen,
@@ -152,6 +169,134 @@ describe("world presentation", () => {
 			}),
 		]);
 		expect(projection.canonicalEventLinkCount).toBeGreaterThanOrEqual(3);
+	});
+
+	it("projects a committed cross-place move along the authored route without teleporting", () => {
+		const withMove = citizens.map((citizen) =>
+			citizen.slug === "mara"
+				? {
+						...citizen,
+						placeId: "mill",
+						canonicalAction: {
+							actionId: "event:event-move",
+							sourceKind: "world-event" as const,
+							eventId: "event-move",
+							eventSequence: 9,
+							status: "committed" as const,
+							kind: "walk" as const,
+							originPlaceId: "spring",
+							destinationPlaceId: "mill",
+							targetId: "mill",
+							simulationStart: 1_050,
+							simulationEnd: 1_050,
+							resultEventId: "event-move",
+						},
+					}
+				: citizen,
+		);
+		const first = projectSpatialScene({
+			source,
+			citizens: withMove,
+			presentationTick: 0,
+		});
+		const second = projectSpatialScene({
+			source,
+			citizens: withMove,
+			presentationTick: 1,
+		});
+		const mara = first.actors.find((actor) => actor.slug === "mara");
+		expect(mara?.routeNodeIds).toEqual([
+			"spring:entry",
+			"market:west",
+			"market:center",
+			"market:east",
+			"mill:entry",
+		]);
+		expect(mara?.positionMm).toEqual(
+			expect.objectContaining({ x: -6_000, y: 0, z: 2_800 }),
+		);
+		expect(inspectSpatialProjection(second, first)).toEqual(
+			expect.objectContaining({ teleportCount: 0, contradictionCount: 0 }),
+		);
+		const completed = projectSpatialScene({
+			source,
+			citizens: withMove,
+			presentationTick: 1_000,
+		});
+		const completedMara = completed.actors.find(
+			(actor) => actor.slug === "mara",
+		);
+		expect(completedMara?.animationClass).toBe("idle");
+		expect(completedMara?.positionMm).toEqual(
+			expect.objectContaining({ x: 5_600, y: 0, z: 1_600 }),
+		);
+		expect(inspectSpatialProjection(completed)).toEqual(
+			expect.objectContaining({ teleportCount: 0, contradictionCount: 0 }),
+		);
+	});
+
+	it("starts with a legible paired exchange and covers the required pose graph", () => {
+		const initial = projectSpatialScene({
+			source,
+			citizens,
+			presentationTick: 0,
+		});
+		expect(initial.interactions).toEqual([
+			expect.objectContaining({
+				kind: "exchange",
+				participantIds: ["citizen:toma", "citizen:iven"],
+				status: "in-progress",
+			}),
+		]);
+		const toma = initial.actors.find((actor) => actor.slug === "toma");
+		const iven = initial.actors.find((actor) => actor.slug === "iven");
+		expect(toma).toBeDefined();
+		expect(iven).toBeDefined();
+		if (toma !== undefined && iven !== undefined) {
+			const delta = Math.abs(toma.facingDegrees - iven.facingDegrees);
+			expect(Math.abs(180 - delta)).toBeLessThanOrEqual(1);
+		}
+		for (const animationClass of requiredAnimationClasses) {
+			const pose = humanoidPose(animationClass, 17);
+			expect(Object.values(pose).every(Number.isFinite)).toBe(true);
+		}
+	});
+
+	it("detects injected presentation contradictions and teleports", () => {
+		const previous = projectSpatialScene({
+			source,
+			citizens,
+			presentationTick: 1,
+		});
+		const normal = projectSpatialScene({
+			source,
+			citizens,
+			presentationTick: 2,
+		});
+		expect(inspectSpatialProjection(normal, previous)).toEqual(
+			expect.objectContaining({ teleportCount: 0, contradictionCount: 0 }),
+		);
+		const first = normal.actors[0];
+		expect(first).toBeDefined();
+		if (first === undefined) return;
+		const injected = {
+			...normal,
+			actors: [
+				{
+					...first,
+					positionMm: { ...first.positionMm, x: first.positionMm.x + 10_000 },
+					animationClass: "talk" as const,
+					action: { ...first.action, kind: "repair" as const },
+				},
+				...normal.actors.slice(1),
+			],
+		} satisfies SpatialProjection;
+		const inspection = inspectSpatialProjection(injected, previous);
+		expect(inspection.teleportCount).toBe(1);
+		expect(inspection.contradictionCount).toBeGreaterThanOrEqual(1);
+		expect(inspection.mismatches.map(({ code }) => code)).toEqual(
+			expect.arrayContaining(["teleport", "action-animation-contradiction"]),
+		);
 	});
 
 	it("plans stable authored paths and clamps long frames", () => {

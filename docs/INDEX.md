@@ -107,6 +107,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha planner, local-model seam, experiment manifest, and ontology choices | [FOUNDER_ALPHA_COGNITION_RESEARCH.md](research/FOUNDER_ALPHA_COGNITION_RESEARCH.md) |
 | Founder Alpha feedback relay, Cloudflare/GitHub controls, MCP boundary, and live repository probe | [FOUNDER_ALPHA_PLATFORM_RESEARCH.md](research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md) |
 | Founder Alpha spatial semantics, navigation, presentation clock, animation, and Living World evidence | [WORLD_PRESENCE_SPATIAL_RESEARCH.md](research/WORLD_PRESENCE_SPATIAL_RESEARCH.md) |
+| Founder Alpha PlayCanvas React/Pixi replacement measurements and renderer recommendation | [WORLD_PRESENCE_RENDERER_SPIKE.md](research/WORLD_PRESENCE_RENDERER_SPIKE.md) |
+| Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
 
 ## Reviews
 

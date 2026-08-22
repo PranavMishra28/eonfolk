@@ -3,25 +3,35 @@ import type { DiagnosticCategory } from "./types";
 
 const allAllowedKeys = new Set([
 	"artifactKind",
+	"actionKind",
+	"actorCount",
 	"attempt",
 	"byteLength",
 	"code",
 	"component",
 	"count",
 	"durationMs",
+	"displayedAction",
+	"distanceMm",
 	"eventCount",
 	"fingerprint",
 	"invariant",
 	"method",
+	"mismatchCode",
 	"mode",
 	"operation",
 	"originKind",
 	"phase",
+	"projectionVersion",
 	"recovery",
 	"resourceType",
+	"sceneVersion",
 	"revision",
 	"sequence",
+	"sourceSequence",
 	"status",
+	"clockTick",
+	"interactionCount",
 	"visibility",
 ]);
 
@@ -95,6 +105,19 @@ const categoryAllowedKeys: Readonly<
 		"resourceType",
 		"status",
 	]),
+	presentation: new Set([
+		"actionKind",
+		"actorCount",
+		"clockTick",
+		"displayedAction",
+		"distanceMm",
+		"interactionCount",
+		"mismatchCode",
+		"projectionVersion",
+		"sceneVersion",
+		"sourceSequence",
+		"status",
+	]),
 	ui: new Set(["code", "mode", "operation", "phase", "status", "visibility"]),
 	sentinel: new Set([
 		"attempt",
@@ -115,13 +138,18 @@ const forbiddenValue =
 	/(?:authorization|bearer|cookie|credential|password|prompt|reasoning|secret|sql|token|https?:|file:|chain.?of.?thought)/iu;
 
 const numericKeys = new Set([
+	"actorCount",
 	"attempt",
 	"byteLength",
 	"count",
 	"durationMs",
+	"distanceMm",
 	"eventCount",
+	"interactionCount",
 	"revision",
 	"sequence",
+	"sourceSequence",
+	"clockTick",
 ]);
 
 export interface RedactionLimits {

@@ -16,7 +16,7 @@ The 390 × 844 R3F spike showed controls overflowing and a panel dominating the 
 
 ## Initial portrait composition
 
-At first arrival, useful semantic/static content paints before Pixi:
+At first arrival, useful fact-safe semantic/static content paints before the lazy PlayCanvas world:
 
 - world: top 55–70%, including well, bridge/entry vector, Mara, and one visible interaction;
 - Mara's name/action appears by two seconds and **Follow Mara** is usable by three seconds without layout shift;
@@ -47,7 +47,7 @@ Chronicle opens as a deliberate reading surface with a small present-world thumb
 | Population | 8 default; practical at 12 | Larger populations excluded |
 | Pointer target | ≥ 44 × 44 CSS px | Blocking for consequential actions |
 
-The disposable R3F spike (`4bdef56`) measured 291.39 KB gzip initial JavaScript, 978/996/915 ms browser-reported load at desktop/laptop/mobile viewports, and 17.1/17.1/17.3 ms `requestAnimationFrame` p95. These are directional headless/browser results. They do not prove a meaningful world display on a real phone, 4G transfer, input latency, thermals, battery use, or PixiJS performance. Desktop p95 missed the strict 16.7 ms target; no budget is waived.
+The disposable R3F spike (`4bdef56`) remains historical risk evidence. The later PlayCanvas spike rendered the embodied settlement below 10 ms headed p95 across three emulated profiles, but neither proves a meaningful world display on a real phone, native DPR thermals, battery use, or the integrated player journey [S-WP-014]. No budget is waived.
 
 ## Touch and keyboard behavior
 
@@ -137,7 +137,7 @@ Reopen if the world cannot retain 55% of the initial portrait view while showing
 
 - Eight citizens and an interaction remain legible within the upper portrait field.
 - A bottom-sheet inspect flow can expose enough information without feeling like a dashboard.
-- PixiJS plus the authored atlas stays within 4 MB and 33.3 ms p95 on a realistic mid-tier phone.
+- PlayCanvas plus the final world assets stays within 4 MB and 33.3 ms p95 on a realistic mid-tier phone.
 - A semantic list/map view still feels like the same game.
 
 ## Resulting implementation behavior
@@ -150,7 +150,7 @@ Reopen if the world cannot retain 55% of the initial portrait view while showing
 
 ## Constraint fit
 
-- **Solo / 40–60 hours:** One responsive DOM system, one PixiJS world, one bottom sheet, and one semantic fallback avoid a separate mobile application.
+- **Solo / 40–60 hours:** One responsive DOM system, one PlayCanvas world, one bottom sheet, and one semantic fallback avoid a separate mobile application.
 - **M4 Pro / no GPU:** All development and emulation remain local; physical-device verification needs no owned GPU infrastructure.
 - **Approximately $0:** Browser tooling and a personally available test phone are sufficient; no device farm or paid performance service is assumed.
 - **Free V1 / no commercial scope:** Mobile requires no account, subscription, purchase, notification permission, or cross-device service.

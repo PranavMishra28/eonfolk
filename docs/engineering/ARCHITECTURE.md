@@ -46,7 +46,7 @@ sim <- application orchestration
 cognition <- application orchestration
 ```
 
-`sim` and `protocol` must not import React, browser storage, provider SDKs, Cloudflare bindings, Three.js, PixiJS, or any renderer. `cognition` may depend on protocol types but not provider SDKs in the first slice. The renderer consumes presentation projections and cannot feed frame time, wall time, or pointer state into Reality.
+`sim` and `protocol` must not import React, browser storage, provider SDKs, Cloudflare bindings, PlayCanvas, PixiJS, or any renderer. `cognition` may depend on protocol types but not provider SDKs in the first slice. `world-presentation` consumes immutable Reality projections and owns deterministic authored paths/interpolation contracts without importing a renderer. PlayCanvas consumes its output and cannot feed frame time, wall time, camera, or pointer state into Reality.
 
 ## Contract registry
 

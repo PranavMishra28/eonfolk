@@ -31,7 +31,7 @@ Remove direct movement, job queues, repeated feeding/healing, chat spam, schedul
 | Time | Observable outcome |
 |---|---|
 | 0–2 seconds | Useful semantic/static Riverhold shell: Mara, present action, suspicion, and autonomy line. |
-| By 3 seconds | **Follow Mara** is operable even if Pixi is still loading. |
+| By 3 seconds | **Follow Mara** is operable even if the lazy PlayCanvas world is still loading. |
 | By 10 seconds | Most fresh participants can state whom they followed and that she acts for herself. |
 | By 30 seconds | Three activities and one interaction are legible; **Check why Mara doubts the count** is visible. |
 | By 45–60 seconds | Mara performs one authoritative state-changing investigation; player knows next action. |

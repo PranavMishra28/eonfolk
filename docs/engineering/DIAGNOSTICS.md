@@ -20,6 +20,8 @@ Every snapshot and observer projection carries one bounded identity block: diagn
 
 The caller selects a typed constructor; only allowlisted primitives are copied and length-bounded; routes lose query/fragment; stack input becomes at most three approved module/function tokens; schema validation happens before the record reaches a ring, freeze, observer, preview, disk, or relay. Incident summaries are closed outcome/invariant codes, never arbitrary exception text. Regex cleanup is defense in depth, never the primary boundary.
 
+World Presence adds the closed `presentation` category. It records only bounded source linkage and aggregate spatial state: projection/scene versions, presentation clock tick, source sequence, displayed action, action kind, actor/interaction counts, integer distance, and a closed mismatch code. It may report blocked-volume intersection, invalid or future event linkage, missing interaction participants, action/animation disagreement, or over-speed/teleport evidence. It cannot record coordinates, raw Reality objects, citizen prose, camera/pointer data, frame-dependent world decisions, or mutate/repair canonical state. A mismatch freezes evidence and leaves Reality untouched.
+
 ## Modes and hard budgets
 
 These are ceilings to tighten with integrated measurement:

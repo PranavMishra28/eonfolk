@@ -46,6 +46,29 @@ describe("Founder Alpha diagnostics", () => {
 		expect(JSON.stringify(sanitized)).not.toContain("invariant");
 	});
 
+	it("records only bounded presentation mismatch diagnostics", () => {
+		const sanitized = sanitizeDiagnosticFieldsForCategory("presentation", {
+			mismatchCode: "action-animation-contradiction",
+			actionKind: "repair",
+			displayedAction: "talk",
+			distanceMm: 420,
+			clockTick: 91,
+			actorCount: 8,
+			interactionCount: 1,
+			prompt: "must-not-survive",
+			position: { x: 1, y: 2 },
+		});
+		expect(sanitized).toEqual({
+			actionKind: "repair",
+			actorCount: 8,
+			clockTick: 91,
+			displayedAction: "talk",
+			distanceMm: 420,
+			interactionCount: 1,
+			mismatchCode: "action-animation-contradiction",
+		});
+	});
+
 	it("fails closed for wrong field types, cyclic arrays, and throwing getters", () => {
 		const cyclic: unknown[] = [];
 		cyclic.push(cyclic);

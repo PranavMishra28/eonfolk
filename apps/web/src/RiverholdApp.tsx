@@ -1,8 +1,15 @@
 import type { DiagnosticIncident } from "@eonfolk/diagnostics";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Chronicle } from "./components/Chronicle";
 import { FeedbackPanel } from "./components/FeedbackPanel";
-import { RiverholdWorld } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
 import { browserDiagnostics } from "./diagnostics";
@@ -14,6 +21,11 @@ import {
 	type RiverholdProjection,
 } from "./projection";
 import { createRiverholdRuntimeBridge, RiverholdRuntimeError } from "./runtime";
+
+const RiverholdWorld = lazy(async () => {
+	const module = await import("./components/RiverholdWorld");
+	return { default: module.RiverholdWorld };
+});
 
 type Sheet =
 	| { readonly kind: "citizen"; readonly citizenId: string }
@@ -769,11 +781,19 @@ export function RiverholdApp() {
 					</button>
 					{worldView === "illustrated" ? (
 						<>
-							<RiverholdWorld
-								projection={projection}
-								reducedMotion={reducedMotion}
-								onFailure={() => showWords(true)}
-							/>
+							<Suspense
+								fallback={
+									<div className="world-renderer-loading" role="status">
+										Preparing the embodied Riverhold view…
+									</div>
+								}
+							>
+								<RiverholdWorld
+									projection={projection}
+									reducedMotion={reducedMotion}
+									onFailure={() => showWords(true)}
+								/>
+							</Suspense>
 							<div className="world-vignette" aria-hidden="true" />
 						</>
 					) : (

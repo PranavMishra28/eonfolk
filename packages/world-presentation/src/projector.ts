@@ -39,14 +39,14 @@ const routines: Readonly<
 		end: "market:exchange-west",
 		action: "talk",
 		prop: "trade",
-		offset: 210,
+		offset: 120,
 	},
 	iven: {
 		start: "market:east",
 		end: "market:exchange-east",
 		action: "listen",
 		prop: "logs",
-		offset: 210,
+		offset: 120,
 	},
 	sela: {
 		start: "spring:entry",
@@ -104,6 +104,50 @@ const interpolate = (
 const facing = (from: SpatialPointMm, to: SpatialPointMm): number =>
 	Math.round((Math.atan2(to.x - from.x, to.z - from.z) * 180) / Math.PI);
 
+const distance = (from: SpatialPointMm, to: SpatialPointMm): number =>
+	Math.round(Math.hypot(to.x - from.x, to.z - from.z));
+
+function pointAlongRoute(
+	routeNodeIds: readonly string[],
+	distanceMm: number,
+): Readonly<{
+	positionMm: SpatialPointMm;
+	facingDegrees: number;
+	totalDistanceMm: number;
+}> {
+	const points = routeNodeIds.map(point);
+	const segments = points.slice(0, -1).map((from, index) => {
+		const to = points[index + 1];
+		if (to === undefined)
+			throw new Error("Spatial route segment is incomplete");
+		return { from, to, distanceMm: distance(from, to) };
+	});
+	const totalDistanceMm = segments.reduce(
+		(total, segment) => total + segment.distanceMm,
+		0,
+	);
+	let remainingMm = Math.max(0, Math.min(distanceMm, totalDistanceMm));
+	for (const segment of segments) {
+		if (remainingMm <= segment.distanceMm) {
+			const progress =
+				segment.distanceMm === 0 ? 1 : remainingMm / segment.distanceMm;
+			return Object.freeze({
+				positionMm: interpolate(segment.from, segment.to, progress),
+				facingDegrees: facing(segment.from, segment.to),
+				totalDistanceMm,
+			});
+		}
+		remainingMm -= segment.distanceMm;
+	}
+	const last = points.at(-1) ?? point("market:center");
+	const prior = points.at(-2) ?? last;
+	return Object.freeze({
+		positionMm: last,
+		facingDegrees: facing(prior, last),
+		totalDistanceMm,
+	});
+}
+
 function actionFor(
 	citizen: SpatialCitizenInput,
 	baseAction: AnimationClass,
@@ -125,6 +169,41 @@ function projectActor(
 		prop: null,
 		offset: 0,
 	};
+	const canonicalRoute =
+		citizen.canonicalAction.originPlaceId !==
+			citizen.canonicalAction.destinationPlaceId &&
+		(citizen.canonicalAction.kind === "walk" ||
+			citizen.canonicalAction.kind === "carry")
+			? planner.plan({
+					fromNodeId:
+						placeDefaultNode[citizen.canonicalAction.originPlaceId] ??
+						defaultNode,
+					toNodeId:
+						placeDefaultNode[citizen.canonicalAction.destinationPlaceId] ??
+						defaultNode,
+				})
+			: null;
+	if (canonicalRoute !== null && canonicalRoute.length > 1) {
+		const routeSample = pointAlongRoute(canonicalRoute, presentationTick * 30);
+		const moving = presentationTick * 30 < routeSample.totalDistanceMm;
+		return Object.freeze({
+			citizenId: citizen.citizenId,
+			slug: citizen.slug,
+			name: citizen.name,
+			role: citizen.role,
+			placeId: citizen.placeId,
+			positionMm: Object.freeze(routeSample.positionMm),
+			facingDegrees: routeSample.facingDegrees,
+			routeNodeIds: canonicalRoute,
+			animationClass: moving ? citizen.canonicalAction.kind : "idle",
+			prop: citizen.canonicalAction.kind === "carry" ? profile.prop : null,
+			action: citizen.canonicalAction,
+			semanticLabel: moving
+				? `${citizen.name} is moving from ${citizen.canonicalAction.originPlaceId} to ${citizen.canonicalAction.destinationPlaceId}`
+				: `${citizen.name} completed the move to ${citizen.canonicalAction.destinationPlaceId}`,
+			focal: citizen.focal,
+		});
+	}
 	const start =
 		riverholdSpatialScene.nodes[profile.start]?.placeId === citizen.placeId
 			? profile.start
@@ -189,16 +268,44 @@ function interactions(
 		Object.freeze({
 			interactionId: exchange?.actionId ?? "presentation:market-conversation",
 			participantIds: Object.freeze([toma.citizenId, iven.citizenId]),
-			kind: exchange === undefined ? "conversation" : "exchange",
+			kind: "exchange",
 			sourceEventId: exchange?.eventId ?? null,
 			sourceSequence: exchange?.eventSequence ?? null,
 			status: exchange?.status ?? "in-progress",
 			semanticLabel:
 				exchange === undefined
-					? "Toma and Iven are visibly conferring; no world result is claimed."
+					? "Toma and Iven are visibly exchanging carried goods; no world result is claimed."
 					: "Toma and Iven visibly project the linked canonical exchange.",
 		}),
 	]);
+}
+
+function orientInteractionActors(
+	actors: readonly SpatialActorProjection[],
+	actorInteractions: readonly SpatialInteractionProjection[],
+): readonly SpatialActorProjection[] {
+	const interaction = actorInteractions[0];
+	if (interaction === undefined || interaction.participantIds.length !== 2)
+		return actors;
+	const [firstId, secondId] = interaction.participantIds;
+	const first = actors.find((actor) => actor.citizenId === firstId);
+	const second = actors.find((actor) => actor.citizenId === secondId);
+	if (first === undefined || second === undefined) return actors;
+	return Object.freeze(
+		actors.map((actor) => {
+			if (actor.citizenId === first.citizenId)
+				return Object.freeze({
+					...actor,
+					facingDegrees: facing(first.positionMm, second.positionMm),
+				});
+			if (actor.citizenId === second.citizenId)
+				return Object.freeze({
+					...actor,
+					facingDegrees: facing(second.positionMm, first.positionMm),
+				});
+			return actor;
+		}),
+	);
 }
 
 export function projectSpatialScene(input: {
@@ -211,12 +318,13 @@ export function projectSpatialScene(input: {
 		input.presentationTick < 0
 	)
 		throw new Error("presentationTick must be a non-negative safe integer");
-	const actors = Object.freeze(
+	const projectedActors = Object.freeze(
 		[...input.citizens]
 			.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
 			.map((citizen) => projectActor(citizen, input.presentationTick)),
 	);
-	const actorInteractions = interactions(actors);
+	const actorInteractions = interactions(projectedActors);
+	const actors = orientInteractionActors(projectedActors, actorInteractions);
 	const animationClasses = Object.freeze(
 		[...new Set(actors.map((actor) => actor.animationClass))].sort(),
 	);

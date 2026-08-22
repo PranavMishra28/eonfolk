@@ -16,7 +16,7 @@
 | 2 | Q-002 | Rejectable/delayed counsel feels consequential rather than arbitrary | Show forecasts before counsel; test later interpretation and counterfactual understanding |
 | 3 | Q-003 | A deterministic Standard Brain can appear intentional for eight citizens | Blinded action/justification review after mechanics and visibility pass |
 | 4 | Q-004 | Factual Chronicle can be both trustworthy and emotionally compelling | Sentence trace plus five-second stranger comprehension and next-risk test |
-| 5 | Q-005 | Sparse Living Woodcut is readable, warm and within budgets | One authored PixiJS scene, three viewports, physical-device proxy and five silent observers |
+| 5 | Q-005 | Embodied Living Woodcut feels inhabited, readable, and within budgets | Exact PlayCanvas candidate, three viewports, temporal probes, physical-device proxy, and fresh silent observers |
 
 ## Experiment register
 
@@ -52,13 +52,13 @@
 - **Evidence required:** No unsupported sentence; 3/5 understand within five seconds and do not assign the player direct causal credit; player-loop evidence, not card polish, creates next action.
 - **Decision reopened:** D-004 and D-009; change mechanics before adding prose if the causal chain is trivial.
 
-### Q-005 — Is Living Woodcut feasible and legible?
+### Q-005 — Does embodied Living Woodcut visibly feel inhabited and alive?
 
-- **Why it matters:** The direction wins on distinctiveness and Chronicle integration but risks small-character readability, coldness and authoring cost.
-- **Current default:** Sparse PixiJS 2.5D, one atlas, eight silhouettes/portraits, limited poses and semantic DOM.
-- **Fastest falsification:** In the first four implementation hours, build semantic/Pixi projection; measure three viewports, eight citizens and 12-citizen stress; five silent observers.
-- **Evidence required:** 3/5 name three activities/interaction; 4/5 find Follow Mara/understand autonomy; budgets and mobile containment pass after at most one simplification.
-- **Decision reopened:** D-008; switch to stripped Weathered Atlas if it fails.
+- **Why it matters:** The former sparse/static renderer was technically correct but failed the product's physical-presence requirement.
+- **Current default:** PlayCanvas/WebGL2, procedural low-poly settlement, eight full-limbed citizens, authored paths/slots, eleven animation classes, five prop families, cosmetic river flow, and complete semantic DOM.
+- **Fastest falsification:** Put the exact clean three-viewport candidate before fresh observers with branding and raw feed hidden. Ask the ten-second recognition questions, thirty-second task description, and the single inhabited/alive verdict.
+- **Evidence required:** 3/5 name three activities and the visible interaction/process; 4/5 find Follow Mara/understand autonomy; the independent release reviewer answers YES; payload/frame/mobile containment and temporal mismatch gates pass.
+- **Decision reopened:** D-008; first adjust camera/scale/props/action staging, then test the bounded KayKit subset or a simpler renderer only if the gate still fails.
 
 ### Q-006 — Does succession feel like continuity rather than reset?
 

@@ -71,6 +71,12 @@ export interface CanonicalActionRef {
 	readonly eventSequence: number | null;
 	readonly status: "in-progress" | "committed";
 	readonly kind: AnimationClass;
+	readonly originPlaceId: string;
+	readonly destinationPlaceId: string;
+	readonly targetId: string | null;
+	readonly simulationStart: number;
+	readonly simulationEnd: number | null;
+	readonly resultEventId: string | null;
 }
 
 export interface SpatialCitizenInput {

@@ -77,7 +77,7 @@ pnpm build
 pnpm budget:check
 ```
 
-The build transformed 753 modules. Deterministic level-9 gzip used by the repository measured the full application, including shell, Worker, and current Pixi path. Existing canonical headed evidence in [Performance](../quality/PERFORMANCE.md#founder-alpha-clean-candidate-measurement) provides the comparable frame/display result; this spike did not rerun the 15-run canonical suite.
+The build transformed 753 modules. Deterministic level-9 gzip used by the repository measured the full application, including shell, Worker, and the then-current Pixi path. The comparable headed result is retained only as [invalidated pre-override evidence](../quality/PERFORMANCE.md#invalidated-pre-override-founder-alpha-measurement); this spike did not rerun the 15-run canonical suite.
 
 ### PlayCanvas build and browser sample
 
@@ -237,9 +237,9 @@ The coordinator alone may add these rows to the shared ledger.
 |---|---|---|---|---|---|---|
 | S-WP-001 | PlayCanvas React provides the official declarative React API over PlayCanvas entities/components/hooks. | <https://developer.playcanvas.com/user-manual/react/> | 2026-08-21 | A | High | Frontend, architecture, this report |
 | S-WP-002 | The React API includes Application, Entity, GLB, animation, render, collision, and lifecycle hooks. | <https://developer.playcanvas.com/user-manual/react/api/> | 2026-08-21 | A | High | Frontend, implementation plan |
-| S-WP-003 | Script/update-loop integration supports imperative performance-sensitive behavior outside React rerenders. | <https://developer.playcanvas.com/user-manual/react/api/script/> | 2026-08-21 | A | High | Frontend, diagnostics |
-| S-WP-004 | Recast Navigation JS supports generation, queries, crowds, workers, and a PlayCanvas integration. | <https://github.com/isaac-mason/recast-navigation-js> | 2026-08-21 | B | High | Frontend, simulation research |
+| S-WP-012 | Script/update-loop integration supports imperative performance-sensitive behavior outside React rerenders. | <https://developer.playcanvas.com/user-manual/react/api/script/> | 2026-08-21 | A | High | Frontend, diagnostics |
+| S-WP-006 | Recast Navigation JS supports generation, queries, crowds, workers, and a PlayCanvas integration. | <https://github.com/isaac-mason/recast-navigation-js> | 2026-08-21 | A | High | Frontend, simulation research |
 
 ## Resulting implementation behavior
 
-Use PlayCanvas React with WebGL2 as the mandatory baseline and WebGPU only as an optional later capability. Mount stable scene/entity structure through React; drive fixed-step/interpolated transforms and animation imperatively from immutable spatial projections. Keep Reality, protocol, cognition, persistence, Chronicle, experiments, and diagnostics authority unchanged. Remove Pixi when the replacement lands. Treat bundle, native-DPR/mobile performance, navigation correctness, semantic parity, and independent world-presence recognition as blocking evidence gates—not polish.
+Use PlayCanvas React with WebGL2 as the mandatory baseline and WebGPU only as an optional later capability. Mount stable scene/entity structure through React; drive fixed-step/interpolated transforms and animation imperatively from immutable spatial projections. Keep Reality, protocol, cognition, persistence, Chronicle, experiments, and diagnostics authority unchanged. Remove Pixi from production imports while retaining it development-only for immutable historical evidence. Treat bundle, native-DPR/mobile performance, navigation correctness, semantic parity, and independent world-presence recognition as blocking evidence gates—not polish.

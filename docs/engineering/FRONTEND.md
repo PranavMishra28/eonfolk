@@ -1,59 +1,73 @@
-# Frontend, renderer, and asset pipeline
+# Frontend, renderer, and spatial presentation
 
-**Purpose:** lock one implementable presentation stack, runtime asset delivery, and its boundary from authoritative simulation.
+**Purpose:** lock the Founder Alpha presentation stack, WorldPresentation/SpatialProjection contract, navigation choice, asset boundary, and semantic fallback.
 
-**Status:** ACCEPTED AFTER RED TEAM — PixiJS 2.5D only
+**Status:** IMPLEMENTED CANDIDATE — PlayCanvas React/WebGL2; independent World Presence verdict still required
 
-**Authority boundary:** this file owns renderer/UI libraries, projection boundary, runtime atlas delivery, and first visual feasibility checkpoint. [ART_DIRECTIONS](../design/ART_DIRECTIONS.md) alone owns source-art pipeline and inventory; [DESIGN](../design/DESIGN.md) owns visual language; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
+**Authority boundary:** this file owns renderer/UI libraries, the spatial presentation boundary, navigation policy, and runtime asset delivery. [ART_DIRECTIONS](../design/ART_DIRECTIONS.md) owns visual production rules; [DESIGN](../design/DESIGN.md) owns applied composition; [PERFORMANCE](../quality/PERFORMANCE.md) owns budgets.
 
-**Related documents:** [interaction](../design/INTERACTION.md), [mobile](../design/MOBILE.md), [visual QA](../quality/VISUAL_QA.md), [rendering research](../research/DESIGN_RESEARCH.md)
+**Related documents:** [spatial research](../research/WORLD_PRESENCE_SPATIAL_RESEARCH.md), [renderer spike](../research/WORLD_PRESENCE_RENDERER_SPIKE.md), [asset research](../research/WORLD_PRESENCE_ASSET_RESEARCH.md), [interaction](../design/INTERACTION.md), [mobile](../design/MOBILE.md), [visual QA](../quality/VISUAL_QA.md)
 
 ## Owned decision
 
-Use React Router/Vite for the shell, one PixiJS renderer for the Living Woodcut world, and parallel semantic DOM for every fact and consequential action. Do not install or import React Three Fiber, Three.js, WebGL model loaders, Blender/glTF/GLB/KTX2 pipeline code, or a second renderer.
+Use React Router/Vite for the shell, one lazy `@playcanvas/react`/PlayCanvas renderer with WebGL2 as the compatibility baseline, and parallel semantic DOM for every fact and consequential action [S-WP-001] [S-WP-002] [S-WP-003]. Do not add Three/R3F, a second production renderer, WebGPU-only behavior, Recast, or runtime model/asset loaders unless a recorded reopen trigger passes.
 
-## Projection boundary
+Pixi is a root development dependency only because frozen Gate 0 evidence still imports it. `apps/web` does not depend on or import Pixi.
 
-Reality emits immutable presentation projections. Pixi and DOM render the same versioned projection; neither reads mutable simulation objects or feeds wall time, frame time, camera, focus, pointer, or quality level back into Reality. Renderer crash or semantic-mode switch cannot alter canonical state.
+## WorldPresentation / SpatialProjection boundary
 
-The semantic view is fully playable: eight named citizens/actions, interaction pair, visible resources/places, Mara identity/tension/relationships/beliefs/plan, counsel options, interpretation receipt, catch-up confirmation, Chronicle beats, evidence details, and replay controls.
+Reality and presentation are separated by the pure `packages/world-presentation` package:
 
-## First four-hour feasibility checkpoint
+- Reality supplies immutable citizen identity/place/activity and `CanonicalActionRef` with source kind, action/event identity, status, semantic kind, origin, destination, target, simulation start/end, and result event.
+- `CanonicalPresentationSource` binds every projection to run, region, revision, sequence, and state hash.
+- `SpatialProjection` adds scene version, integer-millimetre positions, authored route nodes, facing, animation class, prop, semantic labels, interactions, and bounded counters.
+- the renderer advances a clamped deterministic 30 Hz presentation clock, reprojects from immutable inputs, and applies interpolation/pose only to PlayCanvas entities.
+- frame time, wall time, camera, pointer, quality, and PlayCanvas state never enter Reality or canonical hashes.
 
-Before full simulation or persistence integration, build a disposable presentation fixture with:
+Committed events are factual results. Current-behavior actions are explicitly in progress and claim no result. A renderer crash or list-view switch cannot change world state.
 
-- a useful static/semantic Riverhold shell by two seconds and operable **Follow Mara** by three seconds;
-- eight citizens, three distinct actions, Mara/Toma, one interaction, one selected/peek state, and one Chronicle beat;
-- the same authored projection at 1728×1117, 1366×768, and 390×844;
-- reduced-motion and semantic modes; and
-- measured payload, frame, overflow, 200% zoom, keyboard, and hit-target behavior.
+## Spatial scene and navigation
 
-Five silent unfamiliar observers review the named commit/seed/time. At least three of five identify Mara, three activities, and the interaction without a log; at least four of five find **Follow Mara** within ten seconds and understand “she acts for herself.” A miss triggers one simplification pass, then stripped Weathered Atlas or stop before expensive integration. It cannot be waived later by polish.
+Founder Alpha uses a versioned authored waypoint/interaction-slot graph for Market Green, Low Spring, Alder Woods, North Fields, River Mill, and Granary. Stable path selection and integer coordinates are deterministic. Tests sample every tick across a full cycle, reject blocked-volume entry, and cap ordinary displacement.
 
-## UI/component policy
+Recast/navigation-js was evaluated and deferred. Its navmesh/crowd path is capable, but adds a material WASM/loader payload plus a custom fixed-step interpolation adapter [S-WP-006] [S-WP-007] [S-WP-008] [S-WP-009] [S-WP-010]. Adopt it only if a required gate action cannot be represented by the authored graph after one bounded graph revision. It may never make navigation authoritative or allow ordinary teleport.
 
-Use custom DOM UI with Tailwind, Base UI primitives where needed, Phosphor icons, and Motion only if measured. Avoid shadcn-default identity, GSAP, Storybook, component-marketplace code, 21st.dev items, and copied registry components without item-level license/source review. No dependency is required merely because planning considered it.
+## Embodied action presentation
 
-Arrival is one state machine: `orientation → Follow Mara → peek → inspect → investigate → decide`. The first CTA is **Follow Mara** with **She acts for herself**. Other citizens remain inspectable under **People**; there is no create, roster, candidate, mind picker, or ambiguous sponsorship step.
+Every citizen has a head, torso, two arms, and two legs. The renderer-neutral state graph covers:
 
-## Runtime atlas delivery
+- idle, walk, and carry;
+- gather, inspect, talk, listen, exchange, and repair;
+- eat/rest and emotional reaction.
 
-Implement the exact source-art inventory/pipeline in [Art directions](../design/ART_DIRECTIONS.md) as deterministic atlas metadata plus optimized PNG/WebP/AVIF as supported, then Pixi sprites/meshes. Generated concepts are references only. No runtime 3D model, ambience/share-only illustration, or production generated pixel enters the build. Source creation, export, optimization, provenance, integration, and correction all count against the art budget owned by that authority.
+Toma and Iven begin at paired market slots, face one another, use talk/listen poses, and pass a visible trade prop so an unfamiliar observer sees an exchange immediately; a linked committed exchange uses the same pair with event provenance. Citizens carry visible water, grain, logs, trade goods, or tools where appropriate. Odo reaches the mill with a tool, and the mill's brace/blade presentation changes only when canonical `mill.repaired` is true. Mara is identifiable by teal clothing, rust scarf, and distinct headwear without a giant marker. River stripes are cosmetic motion and are labeled as such in instrumentation; they make no production or repair claim.
 
-## Mobile interaction rules
+## Flight Recorder and contradiction checks
 
-The world stays at least 55% of usable portrait viewport until deliberate full Inspect. First tap opens a non-scrolling peek no taller than 35%, with name, one action, one tension, local-save notice, and one primary action. Inspect owns one natural scroll with sticky Close; Decide is separate with sticky Back/Continue. Browser Back closes one UI level before navigation.
+The renderer reports one bounded `presentation` diagnostic per source head and one per distinct mismatch, never per frame. Allowed fields include projection/scene versions, source sequence, actor/interaction counts, clock tick, mismatch code, action/display class, and integer distance. It records no coordinates, free text, hidden reasoning, URLs, or world mutation.
 
-Canvas targets are at least 44 CSS px but never resolve overlap silently: pointer-down freezes target ordering; the top visible target wins or a named chooser opens. A persistent **People** control is fallback. At 200% text zoom there is no horizontal overflow, nested scroll, hidden confirmation, or unexpected page exit.
+`inspectSpatialProjection` detects blocked-volume occupancy, invalid/missing event links, events beyond the source head, missing interaction participants, action/animation contradictions, and speed-impossible displacement. Browser probes expose only aggregate test attributes: tick, moving count, class set, interaction count, canonical-link count, teleport count, contradiction count, engine/device, pixel ratio, and cosmetic-process name.
 
-## Rejected alternatives
+## UI and semantic parity
 
-R3F/Three, mixed renderers, a 3D asset pipeline, canvas-only actions, permanent dashboard, portrait-cropped desktop layout, production generated images, and a component marketplace as visual identity.
+The world occupies the larger desktop/laptop column and 55% of the initial mobile viewport. DOM UI is contextual support. The semantic view remains fully playable and names all eight citizens, resources, places, current action, action provenance/status, interaction/process, Mara facts, counsel, return confirmation, Chronicle, evidence, and replay controls.
 
-## Reopen evidence
+The PlayCanvas chunk is dynamically imported after the critical shell. Failure switches to the remembered semantic view without a page error. A `ResizeObserver` keeps the canvas inside its host and caps rendered pixel ratio at 1.5. Reduced motion keeps deterministic spatial facts while slowing pose cadence and stopping cosmetic river motion.
 
-Reopen Living Woodcut only if the early checkpoint misses legibility or budgets after one simplification pass. Reopen Pixi only for measured platform failure; fallback is simpler atlas/semantic presentation, not R3F.
+## Runtime assets
 
-## Constraint fit
+Founder Alpha ships repository-authored procedural primitives and zero external production art bytes. This proved embodied presence without committing a conversion/rigging pipeline or violating the 4/6 MB limits. Generated concepts remain references only.
 
-One 2.5D atlas pipeline is materially smaller than 3D for a solo 52-hour plan, runs on the M4 and ordinary mobile hardware, costs $0, and needs no production asset license, GPU service, account, model, or deployment.
+If procedural readability fails the independent gate, the only pre-reviewed escalation is a pruned, optimized KayKit CC0 subset with exact archive/license hashes and renewed traversal/script/external-URI checks [S-WP-015] [S-WP-016] [S-WP-017] [S-WP-018] [S-WP-021]. The measured unoptimized subset exceeds the runtime budget, so no archive may be copied wholesale.
+
+## Rejected alternatives and remaining uncertainty
+
+Rejected: sparse Pixi markers, mixed renderers, WebGPU-only execution, renderer-owned world logic, canvas-only actions, permanent dashboard, ordinary teleport, generalized Recast crowd work, unreviewed marketplace assets, and production generated images.
+
+Unproven: physical mid-tier mobile thermals/battery, long-session GPU behavior, and unaided human recognition of several tasks. The independent reviewer must still answer YES to “Does Riverhold visibly feel inhabited and alive?”
+
+## Reopen evidence and constraint fit
+
+Reopen the renderer only for a blocking three-viewport payload/frame/display miss after the defined degradation pass, or a failed independent World Presence review after one bounded composition/readability correction. Reopen navigation only for a concrete gate route the authored graph cannot express. Reopen assets only for a documented recognition failure.
+
+This path is local, account-free, model-free, training-free, and $0. One renderer, one pure projection package, authored paths, procedural art, and four net external packages remain proportionate for a solo builder and do not broaden Gate A/B mechanics.

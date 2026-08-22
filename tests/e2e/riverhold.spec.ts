@@ -52,6 +52,65 @@ test.afterAll(() => {
 	writeFileSync(routeLogPath, `${JSON.stringify(routeLog)}\n`);
 });
 
+test("embodied world advances continuously without projection contradictions", async ({
+	page,
+}) => {
+	const world = page.getByTestId("riverhold-canvas");
+	await expect(world).toHaveAttribute("data-engine", "playcanvas");
+	await expect(world).toHaveAttribute("data-device-type", "webgl2");
+	await expect(world).toHaveAttribute("data-cosmetic-processes", "river-flow");
+	await expect(world).toHaveAttribute("data-exchange-transfer", "visible");
+	await expect(world).toHaveAttribute(
+		"data-mill-state",
+		/^(?:needs-repair|repaired)$/u,
+	);
+	await expect(world).toHaveAttribute("data-teleports", "0");
+	await expect(world).toHaveAttribute("data-contradictions", "0");
+	const initialTick = Number(
+		await world.getAttribute("data-presentation-tick"),
+	);
+	const seenClasses = new Set<string>();
+	let maximumMoving = 0;
+	let maximumInteractions = 0;
+	for (let sample = 0; sample < 8; sample += 1) {
+		for (const animation of (
+			(await world.getAttribute("data-animation-classes")) ?? ""
+		).split(",")) {
+			if (animation) seenClasses.add(animation);
+		}
+		maximumMoving = Math.max(
+			maximumMoving,
+			Number(await world.getAttribute("data-moving-citizens")),
+		);
+		maximumInteractions = Math.max(
+			maximumInteractions,
+			Number(await world.getAttribute("data-interactions")),
+		);
+		await page.waitForTimeout(250);
+	}
+	const finalTick = Number(await world.getAttribute("data-presentation-tick"));
+	expect(finalTick).toBeGreaterThan(initialTick);
+	expect(maximumMoving).toBeGreaterThanOrEqual(3);
+	expect(maximumInteractions).toBeGreaterThanOrEqual(1);
+	expect(seenClasses.size).toBeGreaterThanOrEqual(4);
+	const fit = await world.evaluate((host) => {
+		const canvas = host.querySelector("canvas");
+		return canvas === null
+			? null
+			: {
+					hostWidth: host.clientWidth,
+					hostHeight: host.clientHeight,
+					canvasWidth: canvas.clientWidth,
+					canvasHeight: canvas.clientHeight,
+					pixelRatio: canvas.width / Math.max(1, host.clientWidth),
+				};
+	});
+	expect(fit).not.toBeNull();
+	expect(fit?.canvasWidth).toBe(fit?.hostWidth);
+	expect(fit?.canvasHeight).toBe(fit?.hostHeight);
+	expect(fit?.pixelRatio).toBeLessThanOrEqual(1.51);
+});
+
 test("complete verify path survives reload and reaches Chronicle and Story Card", async ({
 	context,
 	page,
@@ -74,6 +133,10 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-canonical-links",
+		/[1-9]\d*/u,
+	);
 	await expect(
 		page.getByRole("heading", { name: /She accepted your counsel/i }),
 	).toBeVisible();

@@ -1,3 +1,8 @@
+import type {
+	CanonicalActionRef,
+	SpatialProjection,
+} from "@eonfolk/world-presentation";
+
 export type CounselIntent = "verify-private" | "accuse-now" | "abstain";
 export type Phase =
 	| "orientation"
@@ -27,13 +32,14 @@ export type CausalRelation =
 
 export interface CitizenProjection {
 	readonly id: string;
+	readonly slug: string;
 	readonly name: string;
 	readonly role: string;
 	readonly activity: string;
 	readonly activityKind: ActivityKind;
+	readonly placeId: string;
 	readonly place: string;
-	readonly x: number;
-	readonly y: number;
+	readonly canonicalAction: CanonicalActionRef;
 	readonly focal?: boolean;
 }
 
@@ -92,7 +98,9 @@ export interface RiverholdProjection {
 	readonly headline: string;
 	readonly tension: string;
 	readonly citizens: readonly CitizenProjection[];
+	readonly spatial: SpatialProjection;
 	readonly resources: Readonly<{ food: number; water: number; wood: number }>;
+	readonly worldProcesses: Readonly<{ millRepaired: boolean }>;
 	readonly worldNotices: readonly string[];
 	readonly mara: MaraProjection;
 	readonly investigation: Readonly<{

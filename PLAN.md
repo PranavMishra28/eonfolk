@@ -22,7 +22,7 @@
 |---|---|---|
 | 1. Private repository and evidence spine | Complete | Private `PranavMishra28/eonfolk`; `main`; source ledger; authority skeleton |
 | 2. Independent research and zero-anchor challenge | Complete | Competition/player/distribution, systems/model/tools, ECHOHOUSE challenge |
-| 3. Product, game, design, engineering and quality synthesis | Complete | Bounded-region winner, Living Woodcut/PixiJS, local-first Standard-Brain architecture |
+| 3. Product, game, design, engineering and quality synthesis | Amended | Bounded-region winner, embodied Living Woodcut/PlayCanvas world, local-first Standard-Brain architecture |
 | 4. Matched visual concepts and disposable spikes | Complete | Fifteen selected concepts; simulation, rendering and cognition evidence; scratch code not merged |
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
@@ -111,7 +111,10 @@ Scratch worktrees/branches were not merged. Their SHAs are preserved by remote a
 | Spike | Local SHA | Result | Decision consequence |
 |---|---|---|---|
 | Deterministic simulation | `cd5eea0` | 24h/7d repeated and replay hashes matched; discrete scheduling was 3.66×/2.69× faster than ticks in the fixture | Preserve deterministic reducer/scheduler/contracts; extend to 30/90/365 days during implementation |
-| Rejected R3F rendering | `4bdef56` | 291.39 KB gzip JS; ~1s load; p95 17.1 ms desktop/laptop and 17.3 ms mobile viewport; mobile panel overflow | Exposed budget/layout risk; Living Woodcut selects PixiJS and requires a new early authored proof |
+| Rejected R3F rendering | `4bdef56` | 291.39 KB gzip JS; ~1s load; p95 17.1 ms desktop/laptop and 17.3 ms mobile viewport; mobile panel overflow | Historical risk evidence; does not govern the later PlayCanvas override |
+| World-presence renderer | `95c2882` | Eight articulated humanoids, settlement, six action classes/two interactions, WebGL2; headed p95 below 10 ms on three emulated profiles; standalone 568,064 bytes gzip | Adopt PlayCanvas with lazy integrated chunk and unchanged total budget; fresh clean integrated evidence still required |
+| Spatial/navigation | `f15c5df` | Pure projection boundary and authored graph fit eight citizens; Recast adds payload/adapter complexity | Implement deterministic authored paths; defer Recast to a concrete route-complexity trigger |
+| World-presence assets | `74ac403` | Reviewed CC0 candidates; unoptimized KayKit subset 7,001,351 bytes and over budget | Ship procedural primitives first; keep pruned KayKit as conditional reviewed fallback |
 | Bounded cognition | `780bf84` | qwen3-coder 30B: 8,064 ms cold/855 ms warm; schema/auth/fallback passed; public copy failed quality | Boundary shape valid; no model runtime ships; Standard Brain remains complete |
 
 ## GitHub capability probe — 2026-08-20
@@ -140,7 +143,7 @@ The final immutable execution-contract target is commit `b2e755c37a836ccb1660cfa
 
 `git diff --check` passed. Markdown lint reported 62 files and zero issues. Offline link/anchor validation checked 1,089 links (268 unique) with zero errors. The source audit found 128 unique dated ledger rows, all 128 referenced and no missing source IDs. Every retained Markdown artifact is nonempty and indexed; `AGENTS.md` is 47 lines. The final tree has 84 tracked files, including 15 selected PNG concepts, and the only worktree is the repository root.
 
-The fourteen published determinism preimages in Simulation and Goal, both displayed IDs, V2 PRNG state, synthetic/operational Gate B assignments, synthetic/operational Gate A option orders, Williams balance, 40/52/65 task sums, 52-hour milestone sum and 60-hour ceiling were independently reproduced. The contradiction scan agrees on Gate protocols, World/Chronicle/Observatory identity, three data forms, typed private epistemics, event provenance, batch-header/event replay, final-only multi-event revision, catch-up recovery, no-model fallback, local persistence, Pixi renderer, budgets, CI and scope.
+The fourteen published determinism preimages in Simulation and Goal, both displayed IDs, V2 PRNG state, synthetic/operational Gate B assignments, synthetic/operational Gate A option orders, Williams balance, 40/52/65 task sums, 52-hour milestone sum and 60-hour ceiling were independently reproduced. The contradiction scan agrees on Gate protocols, World/Chronicle/Observatory identity, three data forms, typed private epistemics, event provenance, batch-header/event replay, final-only multi-event revision, catch-up recovery, no-model fallback, local persistence, current PlayCanvas/WorldPresentation renderer authority, budgets, CI and scope. Historical Gate 0 Pixi oracle bytes remain evidence, not current renderer authority.
 
 The tracked tree contains no production source, executable dependency/lock manifest, workflow, deployment configuration, license, credential, unfinished marker or empty retained artifact. GitHub remains private with default `main`; Actions are enabled, rulesets are empty, `main` is unprotected, Dependabot/automated fixes/secret scanning/code scanning remain disabled or unevidenced, and no setting was changed. Exactly one draft PR remains open and unmerged.
 

@@ -2,7 +2,7 @@
 
 **Purpose:** Define a restrained motion and sound language that communicates autonomous life, decision boundaries, and factual consequence without obscuring state or exceeding scope.
 
-**Status:** ACCEPTED FOR `001-foundation` — sound is a small enhancement; comprehension never depends on it.
+**Status:** AMENDED FOR WORLD PRESENCE — embodied motion implemented; sound remains deferred.
 
 **Authority boundary:** This document owns motion priorities, reduced-motion behavior, auditory roles, and implementation ceilings. [Design](DESIGN.md) owns visual appearance; [interaction](INTERACTION.md) owns controls and state transitions.
 
@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Animate Living Woodcut as a restrained print coming alive: clear pose changes, route movement, registration shifts, and carved causal reveals. Use no cinematic camera system. Sound, if included, is a bounded local ambience and feedback layer; no voice, generative audio, adaptive score system, or required headphones.
+Animate embodied Riverhold with clear locomotion, carried props, paired interactions, and action-specific full-limb poses; retain restrained registration/causal reveals in Chronicle. Use no player-controlled or cinematic camera system. Sound, if included, is a bounded local ambience and feedback layer; no voice, generative audio, adaptive score system, or required headphones.
 
 Motion proves autonomy and consequence. It does not decorate inactivity.
 
@@ -29,8 +29,8 @@ Lower-priority motion stops before cadence or clarity of higher-priority motion 
 
 ## Motion grammar
 
-- **Routine action:** two clear poses or a small prop/state swap at a calm cadence.
-- **Locomotion:** readable translation with one cut-paper bob at most; no foot-level fidelity requirement.
+- **Routine action:** the renderer-neutral state graph selects one of eleven named full-limb classes and a visible prop/state at a calm cadence.
+- **Locomotion:** fixed-step authored-path translation plus walk/carry gait; foot placement is presentational and never authoritative.
 - **Interaction:** both participants orient, pause, and exchange one visible prop/gesture so the event reads without a feed.
 - **Selection:** immediate cut-ring and hatch quieting; no looping pulse.
 - **Decision boundary:** a brief held pose, then a distinct acceptance, refusal, delay, or reinterpretation mark. Do not use a generic success animation.
@@ -45,7 +45,7 @@ Motion duration is subordinate to response: selection feedback begins within 100
 When `prefers-reduced-motion: reduce` is active, or the player enables reduced motion:
 
 - disable camera movement, parallax, autoplay replay, weather movement, nonessential particles, paper shimmer, and looping selection animation;
-- replace citizen locomotion tweening with discrete position updates or short opacity crossfades;
+- slow pose cadence, stop cosmetic river motion, and retain the same route/state; list view provides a no-motion equivalent;
 - retain authoritative before/after state and manually stepable Chronicle frames;
 - show acceptance/refusal/delay/reinterpretation through text, pose, and static marks;
 - do not remove time, state, or consequence information; and
@@ -86,7 +86,7 @@ Audio rules:
 ## Rejected alternatives
 
 - **Cinematic arrival and crisis cameras:** Rejected for scope, motion access, and because they trade observable systemic space for authored spectacle.
-- **Full sprite-animation set:** Rejected because eight custom rigs/cycles would consume the proof budget.
+- **Imported full animation library by default:** Rejected because binding/pruning/asset payload would consume the proof budget; the procedural rig covers the gate.
 - **Constant ambient movement:** Rejected because it makes consequential change harder to notice and wastes mobile frame time.
 - **Voice acting or generated dialogue:** Rejected for cost, provenance, latency, safety, accessibility, and scope.
 - **Dynamic generative score:** Rejected; it adds a runtime/model system without proving attachment.
@@ -97,7 +97,7 @@ Reopen if fresh observers cannot notice a two-citizen interaction without readin
 
 ## Unproven assumptions
 
-- Two-pose cycles and held poses can make eight citizens feel intentional rather than mechanical.
+- Procedural full-limb poses can make eight citizens feel intentional rather than mechanical.
 - Quiet or absent sound will not undermine initial attachment.
 - A cut-shaped Chronicle reveal communicates sequence without suggesting unsupported causality.
 
@@ -110,7 +110,7 @@ Reopen if fresh observers cannot notice a two-citizen interaction without readin
 
 ## Constraint fit
 
-- **Solo / 40–60 hours:** A tiny reusable pose/cue vocabulary avoids rigs, cinematics, voice, and adaptive scoring.
+- **Solo / 40–60 hours:** One reusable procedural rig and eleven pose classes avoid imported rigging/retargeting, cinematics, voice, and adaptive scoring.
 - **M4 Pro / no GPU:** No offline render pipeline or audio generation is required.
 - **Approximately $0:** Silence is a valid shipping state; any sound requires locally verifiable rights and no spend.
 - **Free V1 / no commercial scope:** Audio does not gate play or form a purchasable content system.

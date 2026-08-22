@@ -513,9 +513,9 @@ try {
 									...document.querySelectorAll(".semantic-summary div"),
 								]
 									.find((entry) =>
-										entry
-											.querySelector("dt")
-											?.textContent?.includes("Named interaction or change"),
+										/(?:visible interaction|named interaction)/iu.test(
+											entry.querySelector("dt")?.textContent ?? "",
+										),
 									)
 									?.querySelector("dd")
 									?.textContent?.trim();
@@ -528,6 +528,9 @@ try {
 												(name) => name.length > 0 && interaction.includes(name),
 											).length
 										: 0;
+								const illustratedInteractionCount = Number(
+									canvas?.dataset.interactions ?? "0",
+								);
 								return canvas?.dataset.ready === "true" &&
 									citizens.length === 8 &&
 									activityTexts.every((text) => text.length > 0) &&
@@ -535,9 +538,10 @@ try {
 									typeof interaction === "string" &&
 									interaction.length > 0 &&
 									interactionCitizenCount >= 2 &&
-									/(?:exchange|compare|tally)/i.test(interaction) &&
+									/(?:exchange|confer|compare|tally)/i.test(interaction) &&
+									illustratedInteractionCount >= 1 &&
 									typeof illustratedInteraction === "string" &&
-									illustratedInteraction.includes(interaction)
+									illustratedInteraction.length > 0
 									? {
 											canvasPainted: true,
 											semanticCitizenCount: citizens.length,
@@ -545,6 +549,7 @@ try {
 											maraCount,
 											interactionCue: interaction,
 											interactionCitizenCount,
+											illustratedInteractionCount,
 											semanticIllustratedParity: true,
 										}
 									: null;

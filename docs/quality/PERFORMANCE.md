@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** PROVISIONAL BUDGETS ACCEPTED; CANONICAL 15-RUN CLEAN-COMMIT LAB PASSES ALL NUMERICAL AND EGRESS GATES
+**Status:** BUDGETS BINDING; PRIOR PIXI CANDIDATE INVALIDATED; PLAYCANVAS CANDIDATE REQUIRES FRESH CLEAN 15-RUN EVIDENCE
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -18,7 +18,7 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 |---|---:|
 | Critical shell HTML/CSS/JavaScript | **<=200 KB gzip** |
 | Total initial-route JavaScript, including lazy world renderer | **<=650 KB gzip** |
-| Compressed first-world 2.5D atlas/assets | **<=6 MB desktop; <=4 MB mobile** |
+| Compressed first-world 3D assets | **<=6 MB desktop; <=4 MB mobile** |
 | Meaningful world display on target M4 Pro/laptop profile | **<=3 seconds** |
 | Meaningful world display on realistic mid-tier mobile/4G profile | **<=5 seconds** |
 
@@ -61,11 +61,13 @@ Interpretation:
 - 17.3 ms is directionally inside the mobile frame gate, but the emulated profile and mobile overflow prevent a pass;
 - no Pixi implementation, production simulation, Chronicle, full UI, atlas payload, thermal soak, or physical mid-tier mobile was measured.
 
-The scratch result is feasibility evidence, not permission to reserve all remaining bundle/frame budget.
+The scratch result is historical feasibility evidence, not permission to reserve all remaining bundle/frame budget.
+
+The later bounded PlayCanvas spike [S-WP-014] rendered eight articulated citizens, six action classes, interaction pairs, and a recognizable primitive settlement under 10 ms headed p95 across the three emulated profiles. Its standalone renderer was 568,064 bytes gzip and the conservative integration estimate narrowly exceeded the total-JS ceiling, so adoption required real code splitting and an integrated build rather than a waiver.
 
 ## Integrated implementation evidence
 
-**AUTOMATED TECHNICAL MEASUREMENT — NOT A MEASURED HUMAN PASS:** the repaired production build measures **123,027 bytes gzip** for the classified critical shell, **250,885 bytes gzip** for all emitted JavaScript, and zero external world-asset bytes. The [bundle record](../exec-plans/evidence/001/implementation/bundle.json) lists every emitted file and fixed limit.
+**HISTORICAL PIXI EVIDENCE — RELEASE INVALIDATED BY WORLD PRESENCE OVERRIDE:** the prior repaired production build measured **123,027 bytes gzip** for the classified critical shell, **250,885 bytes gzip** for all emitted JavaScript, and zero external world-asset bytes. The [bundle record](../exec-plans/evidence/001/implementation/bundle.json) preserves that old renderer result; it is not evidence for the PlayCanvas candidate.
 
 The headed harness ran five fresh browser/context/netlog triples for each required profile. Every context disabled cache/service workers, loaded authoritative Worker/IndexedDB state, marked shell/CTA/meaningful world, proved the arrival control stable across its long sample, went network-offline, completed the full arrival → investigation → counsel → return/catch-up → Chronicle journey, and sampled arrival, busy market, and Chronicle for 30 seconds after a 5-second warmup.
 
@@ -87,7 +89,7 @@ The mobile profile is canonical emulation on the target M4 Pro, not a physical p
 When `prefers-reduced-motion` is set or the in-product control is enabled:
 
 - disable camera fly-throughs, nonessential particles, parallax, weather sway that conveys no state, and autoplay cinematic motion;
-- replace animated spatial transitions with immediate state plus focus management/status text;
+- preserve essential path locomotion at a steady bounded rate while removing camera travel, cosmetic river motion, and high-amplitude pose cadence; equivalent status text names the same action/result;
 - keep Chronicle/replay manually stepable with previous/next/play-pause controls; default to paused when motion would be substantial;
 - preserve authoritative time and outcomes—only presentation motion changes;
 - do not use flashing or rapid motion as the only urgency signal.
@@ -132,13 +134,19 @@ OFF may regress p95 frame time by at most 1%; LOCAL and ALPHA by at most 3%. A m
 
 The short `pnpm benchmark:diagnostics` workload is a fail-fast source-level check, not that integrated browser measurement. It deterministically applies the same call sequence to OFF, LOCAL, and ALPHA over seven repetitions; binds commit, lockfile, runtime, source hashes, mode/schema/redaction identity, and workload hash; and enforces the **0.5 ms OFF / 1 ms LOCAL** record-call ceilings plus all live ring ceilings. ALPHA uses the stricter LOCAL 1 ms call threshold for this harness because its authoritative budget does not grant a slower record call. Modeled serialization at 60 calls/minute is reported but not called a gate because no bytes/minute authority ceiling exists. Browser frame regression, long tasks, input latency, meaningful display, heap, upload, and physical-device results remain explicitly unsupported or not run. The protocol and current `NOT_RUN` physical record are under [Founder Alpha performance evidence](../exec-plans/evidence/002/README.md).
 
-## Founder Alpha clean-candidate measurement
+## Invalidated pre-override Founder Alpha measurement
 
-At clean commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, the canonical headed harness ran five fresh browsers for each of desktop, laptop, and throttled mobile emulation. The maximum meaningful-world mark was 203.3 ms desktop, 194.6 ms laptop, and 2,354 ms mobile emulation. Worst per-state p95 frame time was 9.6 ms desktop, 9.5 ms laptop, and 10.0 ms mobile emulation; pooled p95 was 9.5/9.4/9.7 ms respectively. All 210 routed requests and all fifteen independent netlogs recorded zero external attempts. Critical-shell JavaScript was 136,273 bytes gzip, total JavaScript 265,055 bytes gzip, and world assets zero bytes, within the 200/650 KiB and 6/4 MiB limits. The run used AC power at 100% and the pinned Chromium cohort. Mobile remains throttled emulation, not a physical-device claim; isolated worst frames and dropped-frame counts remain recorded rather than hidden.
+At clean commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, the canonical headed harness ran five fresh browsers for each profile and passed the then-current Pixi build. The 2026-08-21 World Presence override invalidated it as a release candidate without deleting the evidence. None of its renderer payload/frame/display results may be used to release the PlayCanvas candidate.
+
+## Current PlayCanvas integration checkpoint
+
+**LOCAL DIRTY-TREE CHECKPOINT — NOT RELEASE EVIDENCE:** the current integrated production build reports **95,578 bytes gzip** critical shell, **632,151 bytes gzip** total JavaScript, and zero external world-asset bytes. The lazy PlayCanvas world chunk is **512,154 bytes gzip**. All remain under the unchanged limits, but only a clean named commit plus a fresh canonical 15-run battery can close the gate.
+
+The production browser journey currently passes an automated temporal probe that samples the 30 Hz projection clock, observes at least three moving citizens, at least four animation classes and one interaction, requires WebGL2, enforces a ≤1.51 canvas pixel ratio, confirms canvas/host containment, and reports zero teleports/contradictions. Unit tests cover the complete eleven-class pose graph, tick-by-tick route continuity, blocked geometry, canonical exchange linkage, and injected mismatch detection. These prove instrumentation and deterministic behavior, not human aliveness or physical-device thermals.
 
 ## Resulting implementation behavior
 
-The semantic shell arrives first, the Pixi renderer is lazy but inside the route ceiling, and eight citizens remain readable. Quality tiers reduce decoration before information or agency. A device that cannot sustain canvas receives the complete local game through semantic view.
+The semantic shell arrives first, the PlayCanvas renderer is lazy and must remain inside the route ceiling, and eight citizens are projected from one immutable spatial boundary. Quality tiers reduce pixel ratio, shadows, cosmetic motion, geometry, and distant detail before information or agency. A device that cannot sustain WebGL receives the complete local game through semantic view.
 
 ## Rejected alternatives
 
@@ -153,8 +161,8 @@ The semantic shell arrives first, the Pixi renderer is lazy but inside the route
 
 ## Unproven assumptions and reopen evidence
 
-- **UNRESOLVED:** the selected atlas fits 6/4 MB without losing the intended language. Reopen asset style/quantity after real optimized atlas output.
-- **UNRESOLVED:** the selected Pixi application passes the early feasibility and full-load budgets. Failure changes art density or uses the semantic/Weathered Atlas fallback, not R3F.
+- **VERIFIED FACT:** the procedural PlayCanvas candidate ships zero external world-asset bytes and fits the local dirty-tree payload checkpoint; freeze exact clean evidence before release.
+- **UNRESOLVED:** the selected PlayCanvas application passes the fresh full 15-run display/frame/egress battery. Failure invokes the degradation order, then renderer/art reconsideration without a budget waiver.
 - **UNRESOLVED:** a physical mid-tier mobile meets display/frame/thermal targets. Reopen quality tiers after measured device evidence.
 - **UNRESOLVED:** the semantic fallback preserves world dominance and attachment. Reopen layout after fresh accessibility/player review.
 - **UNRESOLVED:** 90/365-day catch-up fits a humane wait. Set exact catch-up wall-time and event budgets only from the implementation benchmark.

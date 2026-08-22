@@ -79,6 +79,7 @@ export type DiagnosticCategory =
 	| "chronicle"
 	| "network"
 	| "performance"
+	| "presentation"
 	| "ui"
 	| "sentinel";
 

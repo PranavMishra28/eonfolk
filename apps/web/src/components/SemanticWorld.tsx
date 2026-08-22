@@ -41,8 +41,19 @@ export function SemanticWorld({
 					</dd>
 				</div>
 				<div>
-					<dt>Named interaction or change</dt>
-					<dd>{projection.worldNotices[0]}</dd>
+					<dt>Visible interaction or world process</dt>
+					<dd>
+						{projection.spatial.interactions[0]?.semanticLabel ??
+							projection.worldNotices[0]}
+					</dd>
+				</div>
+				<div>
+					<dt>River Mill</dt>
+					<dd>
+						{projection.worldProcesses.millRepaired
+							? "The authoritative mill state is repaired."
+							: "The authoritative mill state still needs repair."}
+					</dd>
 				</div>
 			</dl>
 			<ul
@@ -62,6 +73,12 @@ export function SemanticWorld({
 								<span>
 									{citizen.activity} · {citizen.place}
 								</span>
+								<small>
+									Visible action: {citizen.canonicalAction.kind} ·{" "}
+									{citizen.canonicalAction.status === "committed"
+										? `canonical event ${citizen.canonicalAction.eventSequence}`
+										: "in progress; no result claimed"}
+								</small>
 							</span>
 						</button>
 					</li>

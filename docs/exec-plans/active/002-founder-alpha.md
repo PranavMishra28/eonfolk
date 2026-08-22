@@ -85,7 +85,7 @@ Outcome: the exact starting system and current external choices are evidenced be
 
 Included:
 
-- primary-source review of current Codex orchestration, GitHub private-repository controls, Cloudflare Worker/D1/R2/Turnstile, rrweb 2.x scoped packages, MCP security, PixiJS, MLX, llama.cpp, RDF 1.2/JSON-LD/PROV-O/SHACL, TLC, and every changed dependency;
+- primary-source review of current Codex orchestration, GitHub private-repository controls, Cloudflare Worker/D1/R2/Turnstile, rrweb 2.x scoped packages, MCP security, PixiJS, PlayCanvas React/WebGL2, recast-navigation-js, candidate CC0 assets, MLX, llama.cpp, RDF 1.2/JSON-LD/PROV-O/SHACL, TLC, and every changed dependency;
 - EONFOLK skill lock entries for any agent skill treated as a code dependency;
 - bounded keep/reject decisions for rrweb, Cloudflare feedback relay, Planner Brain, search, model seam, ontology projection, mutation testing, and formal expansion;
 - threat model and data inventory before feedback/diagnostics implementation.
@@ -126,7 +126,7 @@ Done when local success/failure/offline/outage/retry/dedup paths work, attachmen
 
 Outcome: the complete Mara loop is immediately legible, emotionally coherent, and shareable across required viewports.
 
-Preserve Living Woodcut unless measured evidence requires simplification. Improve hierarchy, authored world marks, citizen/action readability, relationship change, Chronicle flow, return tension, second-action clarity, Story Card framing, safe provenance display, mobile composition, empty/loading/failure states, focus, copy feedback, and reduced-motion behavior. Avoid dashboard smell and generic AI styling.
+Preserve Living Woodcut's material/Chronicle grammar while implementing the binding embodied low-poly World Presence override. Improve hierarchy, citizen/action readability, relationship change, Chronicle flow, return tension, second-action clarity, Story Card framing, safe provenance display, mobile composition, empty/loading/failure states, focus, copy feedback, and reduced-motion behavior. Avoid dashboard smell and generic AI styling.
 
 Browser-visible acceptance covers:
 
@@ -139,6 +139,42 @@ Browser-visible acceptance covers:
 - multi-tab fencing, worker/persistence failure, no-Worker failure, offline/network outage, denied clipboard, and unavailable diagnostics/feedback.
 
 A passing build or backend suite cannot substitute for actual local play and visual evidence.
+
+### M3W — Release-blocking World Presence rearchitecture
+
+Outcome: Riverhold is an embodied physical settlement whose visible people, locomotion, work, interaction, and props project Reality without becoming authority.
+
+Required implementation:
+
+- adopt PlayCanvas React/WebGL2 after a bounded Pixi comparison unless a material blocker appears;
+- add pure `WorldPresentation`/`SpatialProjection` contracts with canonical source/action/timing/origin/destination/target/result references;
+- use deterministic fixed-step authored paths, work/rendezvous/interaction slots, blocked volumes, and no ordinary teleport; defer Recast unless the authored graph fails a concrete gate route;
+- render eight recognizable full-limbed humanoids, including a distinctive Mara, with idle/walk/carry/gather/inspect/talk/listen/exchange/repair/eat-rest/reaction states;
+- visibly stage water, grain, logs, trade goods, tools, a paired interaction, and explicitly cosmetic environmental motion;
+- keep the world dominant and preserve fully playable semantic DOM, keyboard, reduced-motion, renderer-loss, mobile, and weak-device behavior;
+- instrument aggregate presentation source/clock/action/mismatch evidence through Flight Recorder; and
+- add deterministic unit and browser temporal tests for movement, class coverage, canonical links, continuity, blocked geometry, mismatch injection, containment, and WebGL2.
+
+World Presence Gate:
+
+1. In ten seconds an unfamiliar observer recognizes a physical settlement, recognizable humans, multiple activities, and one meaningful interaction/process without opening a dashboard.
+2. In thirty seconds the observer can describe several visible tasks.
+3. Fresh desktop/laptop/mobile performance evidence passes unchanged budgets.
+4. Semantic list view exposes equivalent facts and all consequential actions.
+5. An independent visual/product reviewer answers **YES** to “Does Riverhold visibly feel inhabited and alive?”
+
+Current progress:
+
+- [x] PlayCanvas/Recast/spatial and CC0 asset spikes researched and coordinator-inspected.
+- [x] PlayCanvas adopted; Recast deferred to a measured route-complexity trigger.
+- [x] Pure spatial package, canonical action window/origin/destination/target/result seam, authored graph, fixed clock, animation pose graph, mismatch inspector, and Flight Recorder category implemented.
+- [x] Procedural settlement, eight articulated citizens, paired opening interaction, props, distinctive Mara, cosmetic river motion, lazy renderer, host containment/pixel-ratio cap, and semantic fallback implemented.
+- [x] Unit and production-browser temporal regressions pass locally; current dirty-tree payload checkpoint fits unchanged limits.
+- [ ] Freeze a clean candidate and rerun the canonical three-profile 15-run performance/egress battery.
+- [ ] Capture exact desktop/laptop/mobile evidence and complete the independent inhabited/alive review.
+- [ ] Reconcile any P0/P1, rerun the relevant gate, and include the result in the final release review.
+
+No PR or merge may occur while any unchecked World Presence item remains.
 
 ### M4 — Cognition and experiment seams
 
@@ -233,6 +269,8 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Exact clean PR passed all nineteen rows at `b286da8`. The first integrated DEEP attempt then correctly failed closed only at canonical performance because that second harness retained the obsolete counsel label already repaired in the diagnostics harness. No partial sample is accepted. Both DEEP browser scripts now use the current `Review Mara's choices` phase contract, protected by one direct source regression; the invalidated targeted-review candidate remains tagged as failed-run evidence and received no review verdict.
 - 2026-08-21 — Exact clean DEEP passed all 26 ordered rows at `59edef3c768d9a3fe9409f07d77d49fded4b9554`, with unchanged source/lockfile, production-only `dist`, four admitted DEEP artifacts, and output SHA-256 `b4bb47f0395b8c122678416aee62db632575b16e05729f3d64a9a3b3af9a83d2`. Fifteen fresh-browser canonical journeys kept worst per-state p95 at 10.0 ms or better, meaningful-world display at 2,354 ms or better, and route/netlog external attempts at zero. This is automated local evidence; targeted confirmation, protected remote checks, human gates, physical mobile, screen reader, live providers, and deployment remain pending or `NOT RUN` as applicable.
 - 2026-08-21 — Operator world-presence override SHA-256 `bb1e6a7969d22477ce2ae12bc0fe57c40cd12e139370addf90d3c91dcc9245e1` invalidated `fe7f1d0` as a release candidate despite its exact clean DEEP pass. The interrupted targeted reviewer returned no accepted verdict. Sparse Pixi is now a P1 presentation failure; PlayCanvas architecture evidence, embodied spatial projection, temporal Living World tests, unchanged semantic accessibility, repeated performance, and a fresh independent inhabited/alive YES are required before PR or merge. Reality/cognition/persistence/Chronicle authority and all honest `NOT RUN` boundaries remain unchanged.
+- 2026-08-21 — Three bounded scratch/research branches completed and were inspected before integration: spatial architecture `f15c5df`, renderer spike `95c2882`, and asset/provenance research `74ac403`. PlayCanvas React/WebGL2 was accepted; Recast and runtime CC0 assets were deferred. The scratch renderer demonstrated the required embodied direction and sub-10-ms headed p95 on emulated profiles, while the unoptimized KayKit subset exceeded the asset ceiling.
+- 2026-08-21 — Implemented `packages/world-presentation`, PlayCanvas world, authored path/slot graph, eleven-class procedural rig, visible props/paired interaction, semantic action provenance, bounded presentation diagnostics, lazy chunking, failure fallback, canvas containment, and temporal regressions. Typecheck, 173 unit tests, payload budget, dependency cohort/audit, and fifteen production browser journeys pass locally. This is an implementation checkpoint, not the clean performance or independent human World Presence pass.
 
 ## Decision, risk, and deviation log
 
@@ -261,7 +299,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
 | Diagnostics/Sentinel | AUTOMATED PASS; targeted confirmation pending | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
 | Feedback/observer | AUTOMATED PASS; live path NOT RUN | browser-only queue/preview/delete/expiry, hostile-summary reconstruction, relay D1/quota/reconciliation/provider adversarial fixtures; live provider path NOT RUN |
-| Founder Alpha browser matrix | CLEAN LOCAL DEEP PASS; remote CI pending | Two test-only injected-fault journeys and fourteen unchanged-production journeys passed separately with zero-egress validation; the production rebuild is budgeted and artifact-bound after fault testing; clean DEEP passed 26/26 rows at `59edef3` |
+| Founder Alpha browser matrix | WORLD PRESENCE CLEAN DEEP PENDING | The invalidated Pixi candidate passed two test-only injected-fault journeys and fourteen production journeys at `59edef3`. The World Presence candidate now has fifteen production journeys and requires a fresh clean DEEP result, zero-egress evidence, and independent presence review. |
 | Cognition experiments | BOUNDED AUTOMATED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; ordered per-execution result journal; unforgeable authorized Observatory artifact; no model/planner candidate run |
 | Performance OFF/LOCAL/ALPHA | CLEAN LOCAL DEEP PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the corrected three-mode browser comparison and fifteen-run canonical profile passed all assertions at `59edef3`; physical mobile remains `NOT RUN` |
 | Security/privacy review | FIRST CONFIRMATION REPAIRED; targeted confirmation pending | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions integrated; live relay NOT RUN |

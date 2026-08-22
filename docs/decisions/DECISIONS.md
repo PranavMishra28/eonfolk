@@ -19,7 +19,7 @@
 | 5 | D-005 | Make the deterministic Standard Brain the complete V1 cognition path | Free, fast, replayable, device-inclusive operation is binding |
 | 6 | D-006 | Run V1 locally in a Web Worker with IndexedDB behind `PersistencePort` | Fits solo/$0 constraints while preserving a later region-server seam |
 | 7 | D-007 | Lock world, cognitive-decision, experiment, replay and persistence contracts before UI work | Prevents presentation, models, or research tooling from becoming authority |
-| 8 | D-008 | Use a sparse Living Woodcut language with one PixiJS 2.5D renderer | Strongest distinctiveness/Chronicle fit within the asset and performance ceiling |
+| 8 | D-008 | Use one embodied low-poly PlayCanvas world with Living Woodcut material/Chronicle language | The World Presence override and measured spike made visible people, tasks, and settlement life release-blocking |
 | 9 | D-009 | Treat the factual Story Card/replay as private comprehension evidence in V1 | No public route exists, so distribution remains post-proof |
 | 10 | D-010 | Keep V1 free, account-free, model-free and noncommercial | Avoids spend, operations and business scope before fun is proven |
 
@@ -135,21 +135,21 @@
 
 **Reopen trigger.** Contract changes require a recorded migration decision and replay fixtures; any inability to preserve deterministic equivalence blocks Gate A.
 
-## D-008 — Living Woodcut on PixiJS
+## D-008 — Embodied Living Woodcut on PlayCanvas
 
-**Decision.** Select Living Woodcut, Weathered Atlas as runner-up/fallback, and Hearthscale only as warmth/readability reference. Implement a deliberately sparse 2.5D scene with one PixiJS renderer and semantic DOM; generated concepts are references, never production pixels.
+**Decision.** The 2026-08-21 World Presence override supersedes the sparse Pixi implementation choice while retaining Living Woodcut's palette, graphic restraint, and Chronicle grammar. Founder Alpha uses one PlayCanvas React/WebGL2 world: a stylized low-poly settlement, eight full-limbed humanoids, authored routes, carried props, visible action states, and a parallel fully playable semantic DOM. `packages/world-presentation` is the pure boundary between Reality and the renderer. Pixi remains development-only for immutable Gate 0 historical evidence and is not imported by the production web app.
 
-**Evidence.** Branding-removed review scored Living Woodcut 38/45, Weathered Atlas 33/45 and Hearthscale 28/45. The R3F spike fit payload/load ceilings but missed desktop p95 at 17.1 ms and exposed a mobile panel overflow [S-SPIKE-002].
+**Evidence.** The bounded PlayCanvas spike rendered eight moving humanoids, six action classes, two interaction classes, and a recognizable settlement with headed p95 frame intervals below 10 ms on three emulated profiles [S-WP-001] [S-WP-003] [S-WP-014]. The integrated build stays within the unchanged 200/650 KiB gzip budgets after deferring the world chunk. The Recast evaluation found a roughly 191 KiB gzip loader/WASM burden and an EONFOLK-owned interpolation adapter requirement, while the eight-citizen authored graph already supplies deterministic collision-free routes [S-WP-006] [S-WP-009] [S-WP-010].
 
-**Rejected alternatives.** R3F/Three for V1, dual renderers, 3D asset pipeline, literal engraved detail, generated shipping assets, painterly scene production and mixed art languages.
+**Rejected alternatives.** Sparse/static Pixi markers fail the release-blocking presence requirement. R3F/Three remains rejected for the measured first-slice path; dual renderers, custom WebGPU, generalized navmesh/crowd machinery, unreviewed asset packs, generated shipping assets, and a production Blender pipeline exceed the proof scope. Recast is deferred until authored topology demonstrably cannot express a required route.
 
-**Remaining uncertainty.** Sparse authored woodcut assets may lose warmth/readability; PixiJS performance and asset effort remain unmeasured.
+**Remaining uncertainty.** Procedural primitives may still feel prototype-like, real mid-tier mobile/GPU/thermal behavior remains unmeasured, and the final independent inhabited/alive verdict is not yet recorded. KayKit CC0 assets are a conditional reviewed fallback, not a default dependency or committed payload [S-WP-015] [S-WP-016] [S-WP-021].
 
-**Resulting behavior.** One small authored atlas, fixed oblique composition, eight silhouettes/portraits, limited poses, paper/ink grammar and causal marks. DOM owns all facts/actions. Simplify effects/cadence/markers before any budget waiver.
+**Resulting behavior.** Reality owns action kind, origin, destination, target, simulation window, and result event. Presentation owns fixed-step interpolation, rig pose, camera, and explicitly cosmetic river motion; it never mutates Reality. The humanoid state graph covers idle, walk, carry, gather, inspect, talk, listen, exchange, repair, eat/rest, and reaction. Toma and Iven begin at interaction slots; Mara has a teal silhouette, rust scarf, and distinct headwear. Props make logs, water, grain, trade goods, and tools visible. Flight Recorder records bounded projection acceptance/mismatch data, and deterministic tests reject teleport, blocked-volume entry, missing event links, or action/animation contradiction.
 
-**Constraint fit.** One atlas and renderer reduce asset, tooling and performance burden for one builder on an M4 at $0.
+**Constraint fit.** One renderer, procedural primitives, no production asset download, a four-package graph increase, and authored waypoints keep the change local, $0, solo-maintainable, and inside Founder Alpha rather than introducing generalized engine systems.
 
-**Reopen trigger.** After one simplification pass, switch to stripped Weathered Atlas if three of five observers cannot identify three activities and one interaction, budgets miss, or the asset inventory exceeds eight focused hours.
+**Reopen trigger.** Reopen only if integrated three-viewport measurements miss blocking payload/frame/display budgets after the degradation order, authored paths cannot express a required Gate A/B action, or the independent reviewer cannot answer YES that Riverhold feels inhabited and alive after one bounded composition/readability pass.
 
 ## D-009 — Consequence-led distribution
 
@@ -407,9 +407,9 @@ The frozen-state findings are accepted as historical critiques unless explicitly
 | ER-009 | P1 | ACCEPT — MITIGATED | Product/visual kill gates and ugly loop precede full world; 52 planned + ≤8 fixes, hard 60. | 001 |
 | ER-010 | P1 | ACCEPT — MITIGATED BY REMOVAL | No fictional provider-specific path or executable fake-adapter claim remains. Standard Brain is the complete path; hung/timeout/revoke/malformed/provider checks become blocking only if a real optional adapter is later proposed. | COGNITION, TESTING |
 | ER-011 | P1 | ACCEPT — MITIGATED | 30/90/365 must reach exact terminal time under explicit time/event/storage caps; named desktop/mobile profiles. | SIMULATION, PERFORMANCE |
-| ER-012 | P1 | ACCEPT — MITIGATED | FRONTEND selects Pixi-only 2.5D atlas and forbids Three/R3F/3D pipeline. | FRONTEND, PERFORMANCE |
+| ER-012 | P1 | ACCEPT — SUPERSEDED | The earlier Pixi-only mitigation was release-invalidated by the World Presence override. D-008 now selects one PlayCanvas/WebGL2 renderer and still forbids a mixed renderer stack. | FRONTEND, PERFORMANCE |
 | ER-013 | P1 | ACCEPT — MITIGATED | Typed DecisionExplanation supplies reason codes/references/terms; authored justification is testimony, not fact. | COGNITION, AGENT_LIFE |
-| DR-001 | P1 | ACCEPT — MITIGATED | Renderer authority now unambiguously Pixi/atlas; all R3F language is historical rejected-spike evidence. | FRONTEND, PERFORMANCE |
+| DR-001 | P1 | ACCEPT — SUPERSEDED | Renderer authority is now unambiguously PlayCanvas plus the pure WorldPresentation boundary; Pixi is historical evidence only. | FRONTEND, PERFORMANCE |
 | DR-002 | P1 | ACCEPT — MITIGATED | Single orientation → Follow Mara → peek → inspect/investigate → decide state machine. | INTERACTION, MOBILE |
 | DR-003 | P1 | ACCEPT — MITIGATED | Four-hour visual checkpoint occurs before full sim/persistence integration. | FRONTEND, 001 |
 | DR-004 | P1 | ACCEPT — MITIGATED | Exact five-observer manifest and 3/5, 4/5 thresholds replace singular observer. | VISUAL_QA, QUALITY_BAR |
