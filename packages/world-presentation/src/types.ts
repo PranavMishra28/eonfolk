@@ -13,6 +13,12 @@ export type AnimationClass =
 
 export type PropKind = "grain" | "logs" | "trade" | "tool" | "water";
 
+/**
+ * Authored equipment that makes a Reality-owned action readable. Equipment is
+ * presentation, not inventory: it may only be selected from the typed action.
+ */
+export type WorkToolKind = "axe" | "basket" | "bucket" | "ledger" | "mallet";
+
 export type ActivityKind =
 	| "water"
 	| "wood"

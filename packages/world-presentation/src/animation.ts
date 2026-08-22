@@ -1,4 +1,4 @@
-import type { AnimationClass } from "./types";
+import type { AnimationClass, CanonicalActionRef, WorkToolKind } from "./types";
 
 export interface HumanoidPose {
 	readonly leftArmDegrees: number;
@@ -20,6 +20,28 @@ export const requiredAnimationClasses = Object.freeze([
 	"eat-rest",
 	"react",
 ] as const satisfies readonly AnimationClass[]);
+
+/**
+ * Selects only the equipment implied by the accepted typed action. This never
+ * claims inventory, production, arrival, or an action result.
+ */
+export function workToolForAction(
+	action: CanonicalActionRef,
+): WorkToolKind | null {
+	if (
+		action.kind === "inspect" &&
+		(action.affordanceId === "market-ledger" ||
+			action.affordanceId === "granary-ledger")
+	)
+		return "ledger";
+	if (action.kind === "repair" && action.affordanceId === "mill-repair")
+		return "mallet";
+	if (action.originPlaceId === action.destinationPlaceId) return null;
+	if (action.destinationPlaceId === "spring") return "bucket";
+	if (action.destinationPlaceId === "woods") return "axe";
+	if (action.destinationPlaceId === "fields") return "basket";
+	return null;
+}
 
 export function humanoidPose(
 	animationClass: AnimationClass,

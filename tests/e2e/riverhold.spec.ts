@@ -69,6 +69,14 @@ test("embodied world advances continuously without projection contradictions", a
 	await expect(world).toHaveAttribute("data-door-height-m", "2.05");
 	await expect(world).toHaveAttribute("data-cosmetic-processes", "river-flow");
 	await expect(world).toHaveAttribute(
+		"data-opening-choreography",
+		"ledger,exchange,water-route,wood-route,field-route,mill-repair",
+	);
+	await expect(world).toHaveAttribute(
+		"data-consequence-tableau",
+		"unmarked-ledger",
+	);
+	await expect(world).toHaveAttribute(
 		"data-exchange-transfer",
 		"awaiting-result",
 	);
@@ -181,6 +189,7 @@ test("the world surface directly picks inhabitants and places and supports keybo
 	);
 	await expect(page.getByRole("dialog")).toBeVisible();
 	await page.getByRole("button", { name: "Close details" }).click();
+	await page.getByText("World tools", { exact: true }).click();
 	await page.getByRole("button", { name: "Resources", exact: true }).click();
 	await page.getByRole("button", { name: "Low Spring", exact: true }).click();
 	await page.getByRole("button", { name: "Resources", exact: true }).click();
@@ -234,6 +243,10 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await expect(page.getByText(/She acts for herself/i)).toBeVisible();
 	await expect(page.getByText(/saved only in this browser/i)).toBeVisible();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-consequence-tableau",
+		"mismatch-marked",
+	);
 	await expect(page.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await expect(page.getByText(/has not observed theft/i)).toBeVisible();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
@@ -251,6 +264,10 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	).toBeVisible();
 	await expect(page.getByText("Advice aligned", { exact: true })).toBeVisible();
 	await expect(page.getByText(/Your advice influenced her/i)).toBeVisible();
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-consequence-tableau",
+		"verified-ledger-sealed",
+	);
 	await page
 		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
 		.click();
@@ -273,6 +290,23 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await expect(
 		page.getByRole("heading", { name: /YOU ADVISED: verify first/i }),
 	).toBeVisible();
+	const world = page.getByTestId("riverhold-canvas");
+	const compositions: string[] = [];
+	for (const beatNumber of [1, 2, 3]) {
+		await page
+			.getByRole("button", {
+				name: new RegExp(`Show beat ${beatNumber}:`, "u"),
+			})
+			.click();
+		await page.getByRole("button", { name: "Show in Riverhold" }).click();
+		await expect(world).toHaveAttribute("data-focus-subject-visible", "true");
+		compositions.push(
+			(await world.getAttribute("data-focus-composition")) ?? "",
+		);
+	}
+	expect(new Set(compositions)).toEqual(
+		new Set(["advice", "choice", "consequence"]),
+	);
 	await page.getByRole("button", { name: /Show beat 2/i }).click();
 	await expect(
 		page.getByRole("heading", {
