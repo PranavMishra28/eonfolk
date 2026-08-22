@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — World-as-Product steering override is P1/release-blocking; all prior presentation candidates are release-invalid
+**Status:** FOUNDER ALPHA ACTIVE — frozen World-as-Product candidate received two exact-NO verdicts and seven implementation P1s; bounded repair is active
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | World-as-Product candidate implemented; release evidence active | Start SHA `74a8a7e`; the earlier `fe7f1d0` and `593e5ab` presentation candidates remain release-invalid. The current candidate through `3477f79` implements metre-scale world context, semantic travel/tasks, multiscale camera/LOD/residency, direct selection, world-first UI, Chronicle-to-space navigation, and temporal truth gates. Clean DEEP/performance evidence, identical-SHA reviews, remote CI, merge, and cleanup remain. |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Frozen review failed; bounded repair active | Start SHA `74a8a7e`; the earlier `fe7f1d0` and `593e5ab` presentation candidates remain release-invalid. Frozen candidate `afdc6e0` received exact-NO product and visual verdicts plus four systems P1s. Repair must close label-dependent activity, visible consequence, Chronicle/camera, canonical cadence, task lifecycle, travel continuity, temporal-gate, and stable-power evidence failures before a new candidate may be reviewed. |
 
 ## Operator implementation override — 2026-08-21
 
@@ -105,6 +105,9 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | World-presence operator override | attachment SHA-256 `bb1e6a7969d22477ce2ae12bc0fe57c40cd12e139370addf90d3c91dcc9245e1` | Prior `fe7f1d0` release candidate invalidated without erasing its evidence. Sparse Pixi is no longer an accepted Founder Alpha presentation; PlayCanvas/spatial architecture, embodied settlement, temporal Living World tests, performance/accessibility, and an independent inhabited/alive YES are release-blocking. |
 | World-as-Product steering override | attachment SHA-256 `21ca7da6f308cbd01510409707760bc7f36fd9e3c08c0a7a681044601e49a863` | The `593e5ab` large-diorama/permanent-rail target is also release-invalid. The current Founder Alpha must present a coherent metre-scale continuous place, a three-scale navigable camera, zoom-dependent detail/residency, first-class spatial affordances and task choreography, world-first selection/context UI, Chronicle-to-space links, and a fresh exact-YES independent verdict. Earlier performance runs are diagnostic only. |
 | World-as-Product implementation | `53c1a2d`–`3477f79` | Integrated a 250×210 m PlayCanvas world, one-metre scale manifest, authored cells/places/affordances, Reality-owned reservations and semantic travel, no-premature-arrival projection, three semantic camera scales/LOD, direct canvas selection and mobile sheet parity, Chronicle spatial targets, an inhabited opening composition, and focused browser/unit truth gates. Full frozen-candidate evidence remains pending. |
+| Frozen World-as-Product product review | `afdc6e0` reviewed at `b60e8f8`, integrated as `c78de7c` | Exact answer **NO**; three P1s record label-dependent task/interaction legibility, a text-first Mara consequence, and occluded/non-specific return/Chronicle framing. Human Gate 0/A/B remain `NOT RUN`. |
+| Frozen World-as-Product systems review | `afdc6e0` reviewed at `d1eb0eb`, integrated as `2441af5` | Zero P0, four P1, one P2. Canonical watched-world cadence, truthful task completion/resume, cross-head travel continuity, and the claimed ten-second lifecycle gate require direct repair and confirmation. |
+| Frozen World-as-Product visual review | `afdc6e0` reviewed at `9ad927e`, integrated as `b02874e` | Exact answer **NO**; opening activity legibility and Chronicle occlusion independently reproduced. The numerical 15-run battery passed its budgets but remained failed evidence because Battery Power ended at 49%. |
 
 ## Disposable spike evidence
 

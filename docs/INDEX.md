@@ -135,6 +135,9 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha CI/evidence frozen review | [FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md](reviews/FOUNDER_ALPHA_CI_EVIDENCE_REVIEW.md) |
 | Founder Alpha first confirmation and seven repair findings | [FOUNDER_ALPHA_CONFIRMATION.md](reviews/FOUNDER_ALPHA_CONFIRMATION.md) |
 | Frozen pre-correction World-as-Product hostile baseline and exact-NO verdict | [WORLD_AS_PRODUCT_BASELINE.md](reviews/WORLD_AS_PRODUCT_BASELINE.md) |
+| Frozen World-as-Product product/game release review and exact-NO verdict | [WORLD_AS_PRODUCT_PRODUCT_REVIEW.md](reviews/WORLD_AS_PRODUCT_PRODUCT_REVIEW.md) |
+| Frozen World-as-Product systems/correctness release review | [WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md](reviews/WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md) |
+| Frozen World-as-Product visual/accessibility/performance release review and exact-NO verdict | [WORLD_AS_PRODUCT_VISUAL_REVIEW.md](reviews/WORLD_AS_PRODUCT_VISUAL_REVIEW.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene
