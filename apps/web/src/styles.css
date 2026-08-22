@@ -2057,3 +2057,278 @@ em {
 		outline-offset: 4px;
 	}
 }
+
+/* World-as-product shell: Riverhold owns the viewport; context floats above it. */
+#world {
+	position: relative;
+	display: block;
+	height: min(1080px, calc(100svh - 76px));
+	min-height: 620px;
+}
+
+#world .world-stage {
+	position: absolute;
+	inset: 0;
+	border-right: 0;
+}
+
+.decision-rail {
+	position: absolute;
+	z-index: 12;
+	right: clamp(0.75rem, 2vw, 2rem);
+	top: clamp(0.75rem, 2vw, 2rem);
+	bottom: clamp(0.75rem, 2vw, 2rem);
+	width: min(430px, calc(100% - 1.5rem));
+	max-height: calc(100% - 1.5rem);
+	border: 1px solid rgba(30, 33, 28, 0.34);
+	box-shadow: 0 22px 70px rgba(19, 23, 18, 0.3);
+	background: color-mix(in srgb, var(--paper-light) 94%, transparent);
+	backdrop-filter: blur(12px);
+}
+
+.app-shell:not(.phase-orientation) .decision-rail {
+	top: auto;
+	bottom: 1rem;
+	right: 1rem;
+	width: min(390px, calc(100% - 2rem));
+	max-height: min(68%, 650px);
+}
+
+.app-shell:not(.phase-orientation) .phase-panel {
+	min-height: auto;
+	padding: 1.15rem 1.25rem;
+}
+
+.world-controls {
+	position: absolute;
+	z-index: 11;
+	top: 1rem;
+	left: 1rem;
+	display: grid;
+	gap: 0.55rem;
+	max-width: min(500px, calc(100% - 470px));
+	color: #f8efdc;
+}
+
+.camera-controls,
+.lens-controls {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	width: fit-content;
+	padding: 0.38rem;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(24, 29, 24, 0.88);
+	box-shadow: 5px 5px 0 rgba(79, 51, 31, 0.22);
+	backdrop-filter: blur(10px);
+}
+
+.camera-controls button,
+.lens-controls button,
+.place-focuses button {
+	min-height: 38px;
+	padding: 0.48rem 0.68rem;
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	background: transparent;
+	color: inherit;
+	font-size: 0.72rem;
+	font-weight: 760;
+	cursor: pointer;
+}
+
+.camera-controls button[aria-pressed="true"],
+.lens-controls button[aria-pressed="true"] {
+	color: var(--ink);
+	background: #efd9a8;
+}
+
+.camera-controls > span {
+	padding: 0 0.45rem;
+	color: #c8c7b5;
+	font-size: 0.64rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.world-lens {
+	width: min(330px, 100%);
+	padding: 0.8rem;
+	color: var(--ink);
+	background: rgba(247, 239, 217, 0.94);
+	border-left: 4px solid var(--ochre);
+	box-shadow: 7px 7px 0 rgba(32, 37, 31, 0.2);
+	backdrop-filter: blur(10px);
+}
+
+.world-lens p {
+	margin: 0.35rem 0 0;
+	font-size: 0.75rem;
+}
+
+.world-lens ul {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.3rem;
+	max-height: 210px;
+	margin: 0.55rem 0 0;
+	padding: 0;
+	overflow: auto;
+	list-style: none;
+}
+
+.world-lens li button {
+	width: 100%;
+	min-height: 48px;
+	padding: 0.42rem 0.5rem;
+	text-align: left;
+	border: 1px solid var(--line);
+	background: rgba(255, 255, 255, 0.38);
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.world-lens li span,
+.world-lens li small {
+	display: block;
+}
+
+.world-lens li small {
+	margin-top: 0.12rem;
+	color: var(--ink-soft);
+	font-size: 0.58rem;
+}
+
+.place-focuses {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin-top: 0.55rem;
+}
+
+.place-focuses button {
+	color: var(--ink);
+	border-color: var(--line);
+}
+
+.world-caption {
+	left: 1rem;
+	right: auto;
+	bottom: 1rem;
+	width: min(520px, calc(100% - 440px));
+	padding: 0.8rem 0.95rem;
+}
+
+.world-caption h2 {
+	font-size: clamp(1.1rem, 1.6vw, 1.65rem);
+}
+
+.world-notice {
+	top: auto;
+	left: 1rem;
+	bottom: 8.4rem;
+}
+
+.world-view-toggle {
+	top: 1rem;
+	right: calc(min(430px, calc(100% - 1.5rem)) + 3rem);
+}
+
+.world-canvas {
+	touch-action: none;
+	cursor: grab;
+}
+
+.world-canvas:active {
+	cursor: grabbing;
+}
+
+.chronicle-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+}
+
+@media (max-width: 900px) {
+	#world {
+		height: calc(100svh - 62px);
+		min-height: 620px;
+	}
+
+	.world-controls {
+		max-width: calc(100% - 1.5rem);
+		top: 0.65rem;
+		left: 0.65rem;
+	}
+
+	.world-lens--people {
+		display: none;
+	}
+
+	.decision-rail,
+	.app-shell:not(.phase-orientation) .decision-rail {
+		position: absolute;
+		top: auto;
+		right: 0.65rem;
+		bottom: 0.65rem;
+		left: 0.65rem;
+		width: auto;
+		max-height: 43%;
+		border-radius: 14px 14px 0 0;
+	}
+
+	.phase-orientation .decision-rail {
+		max-height: 58%;
+	}
+
+	.decision-rail .phase-panel {
+		min-height: auto;
+		padding: 1rem;
+	}
+
+	.world-caption {
+		left: 0.65rem;
+		bottom: calc(43% + 1.2rem);
+		width: min(460px, calc(100% - 1.3rem));
+	}
+
+	.phase-orientation .world-caption {
+		display: none;
+	}
+
+	.world-notice {
+		display: none;
+	}
+
+	.world-view-toggle {
+		top: auto;
+		right: 0.75rem;
+		bottom: calc(43% + 1rem);
+	}
+}
+
+@media (max-width: 520px) {
+	.camera-controls > span,
+	.lens-controls button:nth-child(3) {
+		display: none;
+	}
+
+	.camera-controls button,
+	.lens-controls button {
+		min-height: 34px;
+		padding: 0.35rem 0.48rem;
+		font-size: 0.64rem;
+	}
+
+	.world-lens:not(.world-lens--people) {
+		max-width: calc(100vw - 1.3rem);
+	}
+
+	.world-caption {
+		display: none;
+	}
+
+	.world-view-toggle {
+		bottom: calc(43% + 0.8rem);
+	}
+}

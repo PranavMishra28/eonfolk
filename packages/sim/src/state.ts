@@ -7,6 +7,7 @@ import type {
 	RelationshipState,
 	ReturnResponseAction,
 	ResourceKind,
+	SemanticTravelState,
 	StandingPlan,
 	ValuePriority,
 } from "../../protocol/src/index.js";
@@ -31,6 +32,7 @@ export interface CitizenState {
 	readonly role: string;
 	readonly alive: boolean;
 	readonly placeId: string;
+	readonly travel?: SemanticTravelState | null;
 	readonly inventory: Readonly<Record<ResourceKind, number>>;
 	readonly needs: NeedState;
 	readonly values: readonly ValuePriority[];

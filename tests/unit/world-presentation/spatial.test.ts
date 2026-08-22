@@ -41,13 +41,30 @@ const citizens: readonly SpatialCitizenInput[] = seeds.map(
 		activity: slug === "mara" ? "checking the tally" : `serving as ${role}`,
 		activityKind,
 		focal: slug === "mara",
+		carriedProp:
+			slug === "iven" || slug === "rowan"
+				? "logs"
+				: slug === "sela"
+					? "water"
+					: slug === "toma"
+						? "grain"
+						: slug === "odo"
+							? "tool"
+							: null,
 		canonicalAction: {
 			actionId: `behavior:${slug}:3`,
 			sourceKind: "current-behavior",
 			eventId: null,
 			eventSequence: null,
 			status: "in-progress",
-			kind: "idle",
+			kind:
+				slug === "toma" || slug === "iven"
+					? "exchange"
+					: slug === "sela" || slug === "rowan" || slug === "neri"
+						? "gather"
+						: slug === "odo"
+							? "repair"
+							: "inspect",
 			originPlaceId: placeId,
 			destinationPlaceId: placeId,
 			targetId: null,
@@ -59,7 +76,7 @@ const citizens: readonly SpatialCitizenInput[] = seeds.map(
 );
 
 describe("world presentation", () => {
-	it("projects a deterministic, moving, blocked-volume-safe living settlement", () => {
+	it("projects a deterministic, truthful, blocked-volume-safe living settlement", () => {
 		const first = projectSpatialScene({
 			source,
 			citizens,
@@ -70,28 +87,13 @@ describe("world presentation", () => {
 			citizens,
 			presentationTick: 120,
 		});
-		const windowSamples = [30, 60, 90, 120, 180, 240, 300].map(
-			(presentationTick) =>
-				projectSpatialScene({ source, citizens, presentationTick }),
-		);
 		expect(
 			projectSpatialScene({ source, citizens, presentationTick: 120 }),
 		).toEqual(later);
 		expect(later.actors).toHaveLength(8);
 		expect(later.teleportCount).toBe(0);
 		expect(later.contradictionCount).toBe(0);
-		expect(
-			first.actors.filter((actor, index) =>
-				windowSamples.some((sample) => {
-					const candidate = sample.actors[index];
-					return (
-						candidate !== undefined &&
-						(candidate.positionMm.x !== actor.positionMm.x ||
-							candidate.positionMm.z !== actor.positionMm.z)
-					);
-				}),
-			),
-		).toHaveLength(8);
+		expect(first.movingCitizenCount).toBe(0);
 		expect(
 			later.actors.some((actor) =>
 				pointIntersectsBlockedVolume(actor.positionMm),
@@ -101,15 +103,38 @@ describe("world presentation", () => {
 
 	it("keeps ordinary movement continuous and executes several meaningful classes", () => {
 		const seen = new Set<string>();
+		const movingCitizens = citizens.map((citizen) => {
+			const movement =
+				citizen.slug === "mara"
+					? { from: "market", to: "granary", kind: "walk" as const }
+					: citizen.slug === "sela"
+						? { from: "spring", to: "market", kind: "carry" as const }
+						: citizen.slug === "rowan"
+							? { from: "woods", to: "mill", kind: "carry" as const }
+							: null;
+			return movement === null
+				? citizen
+				: {
+						...citizen,
+						canonicalAction: {
+							...citizen.canonicalAction,
+							actionId: `travel:${citizen.slug}`,
+							kind: movement.kind,
+							originPlaceId: movement.from,
+							destinationPlaceId: movement.to,
+							targetId: movement.to,
+						},
+					};
+		});
 		let previous = projectSpatialScene({
 			source,
-			citizens,
+			citizens: movingCitizens,
 			presentationTick: 0,
 		});
 		for (let tick = 1; tick <= 360; tick += 1) {
 			const next = projectSpatialScene({
 				source,
-				citizens,
+				citizens: movingCitizens,
 				presentationTick: tick,
 			});
 			for (const [index, actor] of next.actors.entries()) {
@@ -128,9 +153,13 @@ describe("world presentation", () => {
 		}
 		expect(seen.has("walk")).toBe(true);
 		expect(seen.has("carry")).toBe(true);
-		expect(seen.has("gather")).toBe(true);
-		expect(seen.has("inspect")).toBe(true);
-		expect(seen.has("repair")).toBe(true);
+		const stationaryClasses = new Set(
+			projectSpatialScene({ source, citizens, presentationTick: 0 })
+				.animationClasses,
+		);
+		expect(stationaryClasses.has("gather")).toBe(true);
+		expect(stationaryClasses.has("inspect")).toBe(true);
+		expect(stationaryClasses.has("repair")).toBe(true);
 	});
 
 	it("binds a paired exchange to one canonical event", () => {
@@ -215,7 +244,7 @@ describe("world presentation", () => {
 			"mill:entry",
 		]);
 		expect(mara?.positionMm).toEqual(
-			expect.objectContaining({ x: -6_000, y: 0, z: 2_800 }),
+			expect.objectContaining({ x: -39_000, y: 0, z: 18_000 }),
 		);
 		expect(inspectSpatialProjection(second, first)).toEqual(
 			expect.objectContaining({ teleportCount: 0, contradictionCount: 0 }),
@@ -223,14 +252,14 @@ describe("world presentation", () => {
 		const completed = projectSpatialScene({
 			source,
 			citizens: withMove,
-			presentationTick: 1_000,
+			presentationTick: 5_000,
 		});
 		const completedMara = completed.actors.find(
 			(actor) => actor.slug === "mara",
 		);
 		expect(completedMara?.animationClass).toBe("idle");
 		expect(completedMara?.positionMm).toEqual(
-			expect.objectContaining({ x: 5_600, y: 0, z: 1_600 }),
+			expect.objectContaining({ x: 35_000, y: 0, z: 8_000 }),
 		);
 		expect(inspectSpatialProjection(completed)).toEqual(
 			expect.objectContaining({ teleportCount: 0, contradictionCount: 0 }),

@@ -72,6 +72,55 @@ export function reducePayload(
 			});
 			break;
 		}
+		case "TravelStarted": {
+			if (!state.places[payload.destinationPlaceId])
+				throw new Error("ACTION_UNAVAILABLE");
+			state = updateCitizen(state, payload.citizenId, (citizen) => {
+				if (
+					citizen.travel != null ||
+					citizen.placeId !== payload.originPlaceId ||
+					!state.places[citizen.placeId]!.neighbors.includes(
+						payload.destinationPlaceId,
+					) ||
+					payload.departureSimulationTime !== state.simulationTime ||
+					payload.expectedArrivalSimulationTime <= state.simulationTime
+				)
+					throw new Error("ACTION_UNAVAILABLE");
+				return {
+					...citizen,
+					travel: {
+						travelId: payload.travelId,
+						originPlaceId: payload.originPlaceId,
+						destinationPlaceId: payload.destinationPlaceId,
+						routeId: payload.routeId,
+						departureSimulationTime: payload.departureSimulationTime,
+						expectedArrivalSimulationTime:
+							payload.expectedArrivalSimulationTime,
+						task: payload.task,
+					},
+					currentBehavior: payload.task,
+				};
+			});
+			break;
+		}
+		case "TravelArrived": {
+			state = updateCitizen(state, payload.citizenId, (citizen) => {
+				if (
+					citizen.travel == null ||
+					citizen.travel.travelId !== payload.travelId ||
+					citizen.travel.destinationPlaceId !== payload.destinationPlaceId ||
+					state.simulationTime < citizen.travel.expectedArrivalSimulationTime
+				)
+					throw new Error("ACTION_UNAVAILABLE");
+				return {
+					...citizen,
+					placeId: payload.destinationPlaceId,
+					travel: null,
+					currentBehavior: payload.behavior,
+				};
+			});
+			break;
+		}
 		case "ResourceGathered": {
 			const site = state.resourceSites[payload.siteId];
 			const citizen = state.citizens[payload.citizenId];

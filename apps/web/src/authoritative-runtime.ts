@@ -547,6 +547,8 @@ function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 	const payload = event.eventPayload;
 	switch (payload.kind) {
 		case "CitizenMoved":
+		case "TravelStarted":
+		case "TravelArrived":
 		case "ResourceGathered":
 		case "ResourceConsumed":
 		case "MillRepaired":
@@ -573,7 +575,10 @@ function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 function animationForEvent(event: WorldEventEnvelope): AnimationClass {
 	switch (event.eventPayload.kind) {
 		case "CitizenMoved":
+		case "TravelStarted":
 			return "walk";
+		case "TravelArrived":
+			return "idle";
 		case "ResourceGathered":
 			return "gather";
 		case "ResourceConsumed":
@@ -599,18 +604,28 @@ function animationForEvent(event: WorldEventEnvelope): AnimationClass {
 	}
 }
 
-function defaultAnimationForCitizen(slug: string): AnimationClass {
-	const defaults: Readonly<Record<string, AnimationClass>> = {
-		mara: "inspect",
-		toma: "talk",
-		iven: "listen",
-		sela: "carry",
-		rowan: "gather",
-		neri: "gather",
-		odo: "repair",
-		els: "inspect",
-	};
-	return defaults[slug] ?? "idle";
+function defaultAnimationForBehavior(
+	behavior: WorldState["citizens"][string]["currentBehavior"],
+): AnimationClass {
+	if (behavior === "respond-socially") return "exchange";
+	if (behavior === "acquire-resource") return "gather";
+	if (behavior === "maintain-self") return "eat-rest";
+	return "inspect";
+}
+
+function carriedPropForCitizen(
+	citizen: WorldState["citizens"][string],
+): "grain" | "logs" | "trade" | "water" | null {
+	if (citizen.currentBehavior === "respond-socially") {
+		if (citizen.inventory.wood > 0) return "logs";
+		if (citizen.inventory.food > 0) return "grain";
+		return "trade";
+	}
+	if (citizen.travel == null) return null;
+	if (citizen.inventory.wood > 0) return "logs";
+	if (citizen.inventory.water > 0) return "water";
+	if (citizen.inventory.food > 0) return "grain";
+	return null;
 }
 
 function spatialDetailsForEvent(
@@ -629,6 +644,18 @@ function spatialDetailsForEvent(
 				originPlaceId: payload.fromPlaceId,
 				destinationPlaceId: payload.toPlaceId,
 				targetId: payload.toPlaceId,
+			};
+		case "TravelStarted":
+			return {
+				originPlaceId: payload.originPlaceId,
+				destinationPlaceId: payload.destinationPlaceId,
+				targetId: payload.destinationPlaceId,
+			};
+		case "TravelArrived":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: payload.destinationPlaceId,
+				targetId: payload.destinationPlaceId,
 			};
 		case "Observed":
 			return {
@@ -692,10 +719,29 @@ function canonicalActionForCitizen(input: {
 	readonly citizenId: string;
 	readonly slug: string;
 	readonly placeId: string;
+	readonly currentBehavior: WorldState["citizens"][string]["currentBehavior"];
+	readonly travel: WorldState["citizens"][string]["travel"];
+	readonly hasCarriedResource: boolean;
 	readonly simulationTime: number;
 	readonly revision: number;
 	readonly events: readonly WorldEventEnvelope[];
 }): CanonicalActionRef {
+	if (input.travel != null) {
+		return Object.freeze({
+			actionId: input.travel.travelId,
+			sourceKind: "current-behavior",
+			eventId: null,
+			eventSequence: null,
+			status: "in-progress",
+			kind: input.hasCarriedResource ? "carry" : "walk",
+			originPlaceId: input.travel.originPlaceId,
+			destinationPlaceId: input.travel.destinationPlaceId,
+			targetId: input.travel.destinationPlaceId,
+			simulationStart: input.travel.departureSimulationTime,
+			simulationEnd: input.travel.expectedArrivalSimulationTime,
+			resultEventId: null,
+		});
+	}
 	const event = [...input.events]
 		.reverse()
 		.find((candidate) => eventActorIds(candidate).includes(input.citizenId));
@@ -729,7 +775,7 @@ function canonicalActionForCitizen(input: {
 		eventId: null,
 		eventSequence: null,
 		status: "in-progress",
-		kind: defaultAnimationForCitizen(input.slug),
+		kind: defaultAnimationForBehavior(input.currentBehavior),
 		originPlaceId: input.placeId,
 		destinationPlaceId: input.placeId,
 		targetId: null,
@@ -1402,10 +1448,17 @@ export class AuthoritativeRiverholdRuntime {
 			placeId: citizen.placeId,
 			place: state.places[citizen.placeId]?.name ?? citizen.placeId,
 			...activityFor(citizen),
+			carriedProp: carriedPropForCitizen(citizen),
 			canonicalAction: canonicalActionForCitizen({
 				citizenId: citizen.citizenId,
 				slug: citizen.slug,
 				placeId: citizen.placeId,
+				currentBehavior: citizen.currentBehavior,
+				travel: citizen.travel,
+				hasCarriedResource:
+					citizen.inventory.food > 0 ||
+					citizen.inventory.water > 0 ||
+					citizen.inventory.wood > 0,
 				simulationTime: state.simulationTime,
 				revision: state.revision,
 				events: this.#events,
@@ -1429,6 +1482,7 @@ export class AuthoritativeRiverholdRuntime {
 				activity: citizen.activity,
 				activityKind: citizen.activityKind,
 				focal: citizen.focal === true,
+				carriedProp: citizen.carriedProp,
 				canonicalAction: citizen.canonicalAction,
 			})),
 			presentationTick: 0,
@@ -1566,6 +1620,26 @@ export class AuthoritativeRiverholdRuntime {
 					} satisfies EvidenceProjection,
 				];
 			});
+			const focusEvents = beat.evidenceEventIds.flatMap((eventId) => {
+				const event = eventsById.get(eventId);
+				return event === undefined ? [] : [event];
+			});
+			const participantIds = [...new Set(focusEvents.flatMap(eventActorIds))];
+			const firstParticipant = participantIds[0];
+			const placeId =
+				firstParticipant === undefined
+					? "market"
+					: (state.citizens[firstParticipant]?.placeId ?? "market");
+			const targetIds = [
+				...new Set(
+					focusEvents.flatMap((event) => {
+						const actorId = eventActorIds(event)[0] ?? "";
+						return [
+							spatialDetailsForEvent(event, actorId, placeId).targetId,
+						].filter((value): value is string => value !== null);
+					}),
+				),
+			];
 			return {
 				id: `beat:${index + 1}`,
 				timeLabel: `00:${String(index * 6).padStart(2, "0")}`,
@@ -1578,6 +1652,12 @@ export class AuthoritativeRiverholdRuntime {
 							? "This is an in-world allegation, not proof. The attributed statement and its effects remain distinct."
 							: "This sentence is derived from the authorized events listed below.",
 				evidence,
+				spatialFocus: Object.freeze({
+					placeId,
+					participantIds: Object.freeze(participantIds),
+					targetIds: Object.freeze(targetIds),
+					sourceEventIds: Object.freeze([...beat.evidenceEventIds]),
+				}),
 			};
 		});
 		return { beats, unresolvedTension: projected.unresolvedTension };

@@ -149,10 +149,18 @@ describe("Riverhold deterministic Reality", () => {
 				toPlaceId: "mill",
 			}),
 		);
-		const repaired = await prepareTransition(
+		const arrived = await prepareTransition(
 			moved.postState,
 			moved.resultingWorldHeadHash,
-			await command(moved.postState, "cmd_repair", {
+			await command(moved.postState, "cmd_arrive_iven", {
+				kind: "Advance",
+				seconds: 120,
+			}),
+		);
+		const repaired = await prepareTransition(
+			arrived.postState,
+			arrived.resultingWorldHeadHash,
+			await command(arrived.postState, "cmd_repair", {
 				kind: "RepairMill",
 				citizenId: iven.citizenId,
 			}),

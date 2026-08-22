@@ -334,13 +334,18 @@ function commandEvents(
 		case "MoveCitizen": {
 			const citizen = state.citizens[payload.citizenId];
 			if (!citizen) throw new Error("ACTION_UNAVAILABLE");
+			if (citizen.travel != null) throw new Error("ACTION_UNAVAILABLE");
 			return [
 				pending({
-					kind: "CitizenMoved",
+					kind: "TravelStarted",
 					citizenId: citizen.citizenId,
-					fromPlaceId: citizen.placeId,
-					toPlaceId: payload.toPlaceId,
-					behavior: "fulfill-plan",
+					travelId: `travel:${citizen.citizenId}:${state.simulationTime}`,
+					originPlaceId: citizen.placeId,
+					destinationPlaceId: payload.toPlaceId,
+					routeId: `${citizen.placeId}>${payload.toPlaceId}`,
+					departureSimulationTime: state.simulationTime,
+					expectedArrivalSimulationTime: state.simulationTime + 120,
+					task: "fulfill-plan",
 				}),
 			];
 		}

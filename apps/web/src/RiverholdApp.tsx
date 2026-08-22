@@ -1,4 +1,5 @@
 import type { DiagnosticIncident } from "@eonfolk/diagnostics";
+import type { SemanticScale } from "@eonfolk/world-presentation";
 import {
 	lazy,
 	Suspense,
@@ -12,6 +13,7 @@ import { Chronicle } from "./components/Chronicle";
 import { FeedbackPanel } from "./components/FeedbackPanel";
 import { SemanticWorld } from "./components/SemanticWorld";
 import { StoryCard } from "./components/StoryCard";
+import type { WorldFocus } from "./components/RiverholdWorld";
 import { browserDiagnostics } from "./diagnostics";
 import {
 	type ChronicleBeatProjection,
@@ -31,7 +33,10 @@ type Sheet =
 	| { readonly kind: "citizen"; readonly citizenId: string }
 	| { readonly kind: "evidence"; readonly beat: ChronicleBeatProjection }
 	| { readonly kind: "world" }
+	| { readonly kind: "research" }
 	| null;
+
+type WorldLens = "activity" | "resources" | "routes" | "none";
 
 interface RuntimeFailure {
 	readonly writeAuthorityTransferred: boolean;
@@ -194,6 +199,162 @@ function WorldHeader({
 				</button>
 			</div>
 		</header>
+	);
+}
+
+function WorldControls({
+	projection,
+	focus,
+	semanticScale,
+	lens,
+	onFocus,
+	onSelectCitizen,
+	onLens,
+	onResearch,
+}: {
+	readonly projection: RiverholdProjection;
+	readonly focus: WorldFocus;
+	readonly semanticScale: SemanticScale;
+	readonly lens: WorldLens;
+	readonly onFocus: (focus: WorldFocus) => void;
+	readonly onSelectCitizen: (citizenId: string) => void;
+	readonly onLens: (lens: WorldLens) => void;
+	readonly onResearch: () => void;
+}) {
+	const mara = projection.citizens.find((citizen) => citizen.slug === "mara");
+	const cameraIntent = (kind: string) =>
+		window.dispatchEvent(
+			new CustomEvent("eonfolk:camera-intent", { detail: { kind } }),
+		);
+	return (
+		<section className="world-controls" aria-label="Riverhold camera and lenses">
+			<div className="camera-controls">
+				<button
+					type="button"
+					onClick={() => onFocus({ kind: "overview" })}
+					aria-pressed={focus.kind === "overview"}
+				>
+					Town overview
+				</button>
+				{mara ? (
+					<button
+						type="button"
+						onClick={() =>
+							onFocus({ kind: "citizen", id: mara.id, follow: true })
+						}
+						aria-pressed={
+							focus.kind === "citizen" && focus.id === mara.id && focus.follow
+						}
+					>
+						Follow Mara
+					</button>
+				) : null}
+				<button
+					type="button"
+					aria-label="Zoom closer"
+					onClick={() => cameraIntent("zoom-in")}
+				>
+					＋
+				</button>
+				<button
+					type="button"
+					aria-label="Zoom farther"
+					onClick={() => cameraIntent("zoom-out")}
+				>
+					−
+				</button>
+				<button
+					type="button"
+					aria-label="Pan Riverhold left"
+					onClick={() => cameraIntent("pan-left")}
+				>
+					←
+				</button>
+				<button
+					type="button"
+					aria-label="Pan Riverhold right"
+					onClick={() => cameraIntent("pan-right")}
+				>
+					→
+				</button>
+				<span aria-live="polite">{semanticScale} scale</span>
+			</div>
+			<section className="lens-controls" aria-label="World lenses">
+				{(["activity", "resources", "routes"] as const).map((value) => (
+					<button
+						key={value}
+						type="button"
+						aria-pressed={lens === value}
+						onClick={() => onLens(lens === value ? "none" : value)}
+					>
+						{value === "activity"
+							? "People"
+							: value === "resources"
+								? "Resources"
+								: "Routes"}
+					</button>
+				))}
+				<button type="button" onClick={onResearch}>
+					Research lens
+				</button>
+			</section>
+			{lens === "activity" ? (
+				<div className="world-lens world-lens--people">
+					<strong>People in motion</strong>
+					<ul>
+						{projection.citizens.map((citizen) => (
+							<li key={citizen.id}>
+								<button
+									type="button"
+									onClick={() => onSelectCitizen(citizen.id)}
+								>
+									<span>{citizen.name}</span>
+									<small>{citizen.activity}</small>
+								</button>
+							</li>
+						))}
+					</ul>
+				</div>
+			) : lens === "resources" ? (
+				<div className="world-lens">
+					<strong>Resources in Riverhold</strong>
+					<p>
+						{projection.resources.food} food · {projection.resources.water}{" "}
+						water · {projection.resources.wood} wood
+					</p>
+					<div className="place-focuses">
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "spring" })}
+						>
+							Low Spring
+						</button>
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "granary" })}
+						>
+							Granary
+						</button>
+						<button
+							type="button"
+							onClick={() => onFocus({ kind: "place", id: "mill" })}
+						>
+							River Mill
+						</button>
+					</div>
+				</div>
+			) : lens === "routes" ? (
+				<div className="world-lens">
+					<strong>Selected route</strong>
+					<p>
+						{focus.kind === "citizen"
+							? (projection.citizens.find((citizen) => citizen.id === focus.id)
+									?.canonicalAction.destinationPlaceId ?? "No destination")
+							: "Select a citizen to inspect their route."}
+					</p>
+				</div>
+			) : null}
+		</section>
 	);
 }
 
@@ -539,6 +700,11 @@ export function RiverholdApp() {
 			: "illustrated",
 	);
 	const [rendererFailed, setRendererFailed] = useState(false);
+	const [worldFocus, setWorldFocus] = useState<WorldFocus>({
+		kind: "overview",
+	});
+	const [semanticScale, setSemanticScale] = useState<SemanticScale>("region");
+	const [worldLens, setWorldLens] = useState<WorldLens>("activity");
 	const [sheet, setSheet] = useState<Sheet>(null);
 	const [runtimeError, setRuntimeError] = useState<RuntimeFailure | null>(null);
 	const [runtimeIncident, setRuntimeIncident] =
@@ -591,6 +757,13 @@ export function RiverholdApp() {
 
 	useEffect(() => {
 		phaseFocus.current?.focus({ preventScroll: true });
+		if (projection?.phase === "following") {
+			const mara = projection.citizens.find(
+				(citizen) => citizen.slug === "mara",
+			);
+			if (mara !== undefined)
+				setWorldFocus({ kind: "citizen", id: mara.id, follow: true });
+		}
 	}, [projection?.phase]);
 	useEffect(() => {
 		const close = () => setSheet(null);
@@ -604,6 +777,10 @@ export function RiverholdApp() {
 				: null;
 		window.history.pushState({ riverholdSheet: next.kind }, "");
 		setSheet(next);
+	};
+	const selectCitizen = (citizenId: string) => {
+		setWorldFocus({ kind: "citizen", id: citizenId, follow: false });
+		openSheet({ kind: "citizen", citizenId });
 	};
 	const closeSheet = () => {
 		if (sheet) window.history.back();
@@ -792,6 +969,8 @@ export function RiverholdApp() {
 									projection={projection}
 									reducedMotion={reducedMotion}
 									onFailure={() => showWords(true)}
+									focus={worldFocus}
+									onSemanticScaleChange={setSemanticScale}
 								/>
 							</Suspense>
 							<div className="world-vignette" aria-hidden="true" />
@@ -807,12 +986,22 @@ export function RiverholdApp() {
 							)}
 							<SemanticWorld
 								projection={projection}
-								onCitizen={(citizenId) =>
-									openSheet({ kind: "citizen", citizenId })
-								}
+								onCitizen={selectCitizen}
 								compact
 							/>
 						</div>
+					)}
+					{worldView === "illustrated" && (
+						<WorldControls
+							projection={projection}
+							focus={worldFocus}
+							semanticScale={semanticScale}
+							lens={worldLens}
+							onFocus={setWorldFocus}
+							onSelectCitizen={selectCitizen}
+							onLens={setWorldLens}
+							onResearch={() => openSheet({ kind: "research" })}
+						/>
 					)}
 					{worldView === "illustrated" && (
 						<div className="world-caption">
@@ -869,15 +1058,25 @@ export function RiverholdApp() {
 						beats={projection.chronicle}
 						reducedMotion={reducedMotion}
 						onEvidence={(beat) => openSheet({ kind: "evidence", beat })}
+						onShowInWorld={(beat) => {
+							const citizenId = beat.spatialFocus.participantIds[0];
+							setWorldFocus(
+								citizenId === undefined
+									? { kind: "place", id: beat.spatialFocus.placeId }
+									: { kind: "citizen", id: citizenId, follow: false },
+							);
+							document
+								.querySelector("#world")
+								?.scrollIntoView({
+									behavior: reducedMotion ? "auto" : "smooth",
+								});
+						}}
 					/>
 					<StoryCard projection={projection} />
 				</>
 			)}
 			{worldView === "illustrated" && (
-				<SemanticWorld
-					projection={projection}
-					onCitizen={(citizenId) => openSheet({ kind: "citizen", citizenId })}
-				/>
+				<SemanticWorld projection={projection} onCitizen={selectCitizen} />
 			)}
 			<FeedbackPanel />
 			<footer>
@@ -968,6 +1167,49 @@ export function RiverholdApp() {
 									<div>
 										<dt>Storage</dt>
 										<dd>{projection.localSaveNotice}</dd>
+									</div>
+								</dl>
+							</>
+						)}
+						{sheet.kind === "research" && (
+							<>
+								<p className="eyebrow">RESEARCH LENS · DELIBERATE DEPTH</p>
+								<h2 id="detail-title" tabIndex={-1}>
+									Why this view is trustworthy
+								</h2>
+								<p>
+									The world is the default. These protocol details are shown
+									only because you opened Research Lens.
+								</p>
+								<dl>
+									<div>
+										<dt>Reality head</dt>
+										<dd>
+											Revision {projection.spatial.source.revision}; accepted
+											through event {projection.spatial.source.throughSequence}
+										</dd>
+									</div>
+									<div>
+										<dt>Projection source</dt>
+										<dd>
+											Region {projection.spatial.source.regionId}; state
+											fingerprint{" "}
+											{projection.spatial.source.stateHash.slice(0, 12)}…
+										</dd>
+									</div>
+									<div>
+										<dt>Current distinction</dt>
+										<dd>
+											Mara’s beliefs may be wrong. Only accepted world events
+											determine resources, relationships, and consequences.
+										</dd>
+									</div>
+									<div>
+										<dt>Cognition</dt>
+										<dd>
+											Standard Brain proposes bounded actions; validation after
+											cognition decides whether they can enter Reality.
+										</dd>
 									</div>
 								</dl>
 							</>

@@ -259,11 +259,25 @@ function dataFor(branch: CounselIntent | null) {
 	return branch ? branchData[branch] : null;
 }
 
+function withFixtureSpatialFocus(
+	beats: readonly Omit<ChronicleBeatProjection, "spatialFocus">[],
+): readonly ChronicleBeatProjection[] {
+	return beats.map((beat) => ({
+		...beat,
+		spatialFocus: {
+			placeId: "market",
+			participantIds: ["citizen:mara", "citizen:toma"],
+			targetIds: beat.id === "beat:result" ? ["granary"] : ["market:tally"],
+			sourceEventIds: beat.evidence.map((item) => item.eventId),
+		},
+	}));
+}
+
 function chronicleFor(
 	branch: CounselIntent,
 ): readonly ChronicleBeatProjection[] {
 	if (branch === "verify-private") {
-		return [
+		return withFixtureSpatialFocus([
 			{
 				id: "beat:counsel",
 				timeLabel: "00:00",
@@ -319,10 +333,10 @@ function chronicleFor(
 					},
 				],
 			},
-		];
+		]);
 	}
 	if (branch === "accuse-now") {
-		return [
+		return withFixtureSpatialFocus([
 			{
 				id: "beat:counsel",
 				timeLabel: "00:00",
@@ -385,9 +399,9 @@ function chronicleFor(
 					},
 				],
 			},
-		];
+		]);
 	}
-	return [
+	return withFixtureSpatialFocus([
 		{
 			id: "beat:counsel",
 			timeLabel: "00:00",
@@ -436,7 +450,7 @@ function chronicleFor(
 				},
 			],
 		},
-	];
+	]);
 }
 
 function parseCheckpoint(storage: Storage | null): SavedCheckpoint | null {
@@ -540,6 +554,8 @@ export function makeProjection(
 		activityKind: citizen.activityKind,
 		placeId: citizen.placeId,
 		place: citizen.place,
+		carriedProp:
+			citizen.canonicalActionKind === "carry" ? ("trade" as const) : null,
 		canonicalAction: staticCanonicalAction({
 			id: citizen.id,
 			kind: citizen.canonicalActionKind,
@@ -566,6 +582,7 @@ export function makeProjection(
 			activity: citizen.activity,
 			activityKind: citizen.activityKind,
 			focal: citizen.focal === true,
+			carriedProp: citizen.carriedProp,
 			canonicalAction: citizen.canonicalAction,
 		})),
 		presentationTick: 0,

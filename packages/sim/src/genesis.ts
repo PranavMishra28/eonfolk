@@ -177,6 +177,7 @@ export async function createRiverholdGenesis(
 			role: seed.role,
 			alive: true,
 			placeId: seed.place,
+			travel: null,
 			inventory: {
 				food: seed.slug === "toma" ? 8 : seed.slug === "iven" ? 1 : 2,
 				water: seed.slug === "sela" ? 8 : 2,
@@ -186,7 +187,14 @@ export async function createRiverholdGenesis(
 			values: rankedValues(seed.values),
 			recordIds: [],
 			standingPlan: plan(planId, citizenId, seed.slug),
-			currentBehavior: "fulfill-plan",
+			currentBehavior:
+				seed.slug === "toma" || seed.slug === "iven"
+					? "respond-socially"
+					: seed.slug === "sela" ||
+							seed.slug === "rowan" ||
+							seed.slug === "neri"
+						? "acquire-resource"
+						: "fulfill-plan",
 			actionBudget: 1,
 		};
 	}

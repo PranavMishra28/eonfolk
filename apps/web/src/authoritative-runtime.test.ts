@@ -255,7 +255,7 @@ describe("authoritative Riverhold application runtime", () => {
 		const initial = await runtime.initialize();
 		expect(initial.citizens).toHaveLength(8);
 		expect(initial.worldNotices[0]).toMatch(
-			/Mara Vale.*Toma Reed.*market tally/i,
+			/Iven Holt.*Toma Reed.*bilateral exchange/i,
 		);
 		expect(initial.investigation).toMatchObject({
 			ledgerCount: 40,

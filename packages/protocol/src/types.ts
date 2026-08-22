@@ -19,6 +19,16 @@ export type BehaviorFamily =
 	| "fulfill-plan"
 	| "respond-socially";
 
+export interface SemanticTravelState {
+	readonly travelId: string;
+	readonly originPlaceId: string;
+	readonly destinationPlaceId: string;
+	readonly routeId: string;
+	readonly departureSimulationTime: number;
+	readonly expectedArrivalSimulationTime: number;
+	readonly task: BehaviorFamily;
+}
+
 export const PROTOCOL_SCHEMA_VERSION = "1" as const;
 export const ENGINE_VERSION = "1" as const;
 export const DETERMINISM_VERSION = "eonfolk-determinism-v2" as const;
@@ -155,6 +165,17 @@ export type WorldEventPayload =
 			readonly citizenId: CitizenId;
 			readonly fromPlaceId: string;
 			readonly toPlaceId: string;
+			readonly behavior: BehaviorFamily;
+	  }
+	| ({
+			readonly kind: "TravelStarted";
+			readonly citizenId: CitizenId;
+	  } & SemanticTravelState)
+	| {
+			readonly kind: "TravelArrived";
+			readonly citizenId: CitizenId;
+			readonly travelId: string;
+			readonly destinationPlaceId: string;
 			readonly behavior: BehaviorFamily;
 	  }
 	| {

@@ -1,5 +1,6 @@
 import type {
 	CanonicalActionRef,
+	PropKind,
 	SpatialProjection,
 } from "@eonfolk/world-presentation";
 
@@ -40,6 +41,7 @@ export interface CitizenProjection {
 	readonly placeId: string;
 	readonly place: string;
 	readonly canonicalAction: CanonicalActionRef;
+	readonly carriedProp: PropKind | null;
 	readonly focal?: boolean;
 }
 
@@ -58,6 +60,12 @@ export interface ChronicleBeatProjection {
 	readonly title: string;
 	readonly body: string;
 	readonly evidence: readonly EvidenceProjection[];
+	readonly spatialFocus: Readonly<{
+		readonly placeId: string;
+		readonly participantIds: readonly string[];
+		readonly targetIds: readonly string[];
+		readonly sourceEventIds: readonly string[];
+	}>;
 }
 
 export interface MaraProjection {

@@ -51,6 +51,8 @@ export function scheduleAutonomousActions(
 	const exchanged =
 		iven !== undefined &&
 		toma !== undefined &&
+		iven.travel == null &&
+		toma.travel == null &&
 		iven.placeId === toma.placeId &&
 		iven.inventory.wood >= 1 &&
 		toma.inventory.food >= 1;
@@ -71,6 +73,24 @@ export function scheduleAutonomousActions(
 		});
 	}
 	for (const citizen of citizens) {
+		if (citizen.travel != null) {
+			if (atSimulationTime >= citizen.travel.expectedArrivalSimulationTime) {
+				actions.push({
+					simulationTime: atSimulationTime,
+					priority: 5,
+					actorId: citizen.citizenId,
+					localOrdinal: 0,
+					payload: {
+						kind: "TravelArrived",
+						citizenId: citizen.citizenId,
+						travelId: citizen.travel.travelId,
+						destinationPlaceId: citizen.travel.destinationPlaceId,
+						behavior: citizen.travel.task,
+					},
+				});
+			}
+			continue;
+		}
 		if (
 			exchanged &&
 			(citizen.citizenId === iven?.citizenId ||
@@ -127,11 +147,15 @@ export function scheduleAutonomousActions(
 				actorId: citizen.citizenId,
 				localOrdinal: 0,
 				payload: {
-					kind: "CitizenMoved",
+					kind: "TravelStarted",
 					citizenId: citizen.citizenId,
-					fromPlaceId: citizen.placeId,
-					toPlaceId,
-					behavior: "fulfill-plan",
+					travelId: `travel:${citizen.citizenId}:${atSimulationTime}`,
+					originPlaceId: citizen.placeId,
+					destinationPlaceId: toPlaceId,
+					routeId: `${citizen.placeId}>${toPlaceId}`,
+					departureSimulationTime: atSimulationTime,
+					expectedArrivalSimulationTime: atSimulationTime + 120,
+					task: "fulfill-plan",
 				},
 			});
 		}

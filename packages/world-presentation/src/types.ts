@@ -31,6 +31,43 @@ export interface SpatialPointMm {
 export interface SpatialNode extends SpatialPointMm {
 	readonly nodeId: string;
 	readonly placeId: string;
+	readonly affordance:
+		| "entrance"
+		| "interaction"
+		| "work"
+		| "storage"
+		| "rendezvous"
+		| "resource"
+		| "rest"
+		| "transit";
+}
+
+export type SemanticScale = "region" | "town" | "citizen";
+export type FidelityClass = "LOD0" | "LOD1" | "LOD2" | "LOD3";
+
+export interface SpatialCellDefinition {
+	readonly cellId: string;
+	readonly regionId: "riverhold";
+	readonly centerMm: SpatialPointMm;
+	readonly radiusMm: number;
+	readonly placeIds: readonly string[];
+}
+
+export interface PlaceDefinition {
+	readonly placeId: string;
+	readonly cellId: string;
+	readonly name: string;
+	readonly kind:
+		| "market"
+		| "water"
+		| "forest"
+		| "field"
+		| "mill"
+		| "storage"
+		| "home"
+		| "civic";
+	readonly centerMm: SpatialPointMm;
+	readonly affordanceNodeIds: readonly string[];
 }
 
 export interface SpatialEdge {
@@ -49,8 +86,17 @@ export interface BlockedVolume {
 }
 
 export interface SpatialSceneDefinition {
-	readonly schemaVersion: "riverhold-spatial-scene-v1";
+	readonly schemaVersion: "riverhold-spatial-scene-v2";
 	readonly sceneVersion: string;
+	readonly metresPerWorldUnit: 1;
+	readonly regionExtentMm: Readonly<{
+		readonly minX: number;
+		readonly maxX: number;
+		readonly minZ: number;
+		readonly maxZ: number;
+	}>;
+	readonly cells: Readonly<Record<string, SpatialCellDefinition>>;
+	readonly places: Readonly<Record<string, PlaceDefinition>>;
 	readonly nodes: Readonly<Record<string, SpatialNode>>;
 	readonly edges: readonly SpatialEdge[];
 	readonly blockedVolumes: readonly BlockedVolume[];
@@ -88,6 +134,7 @@ export interface SpatialCitizenInput {
 	readonly activity: string;
 	readonly activityKind: ActivityKind;
 	readonly focal: boolean;
+	readonly carriedProp: PropKind | null;
 	readonly canonicalAction: CanonicalActionRef;
 }
 
@@ -102,6 +149,14 @@ export interface SpatialActorProjection {
 	readonly routeNodeIds: readonly string[];
 	readonly animationClass: AnimationClass;
 	readonly prop: PropKind | null;
+	readonly travelState: Readonly<{
+		readonly status: "stationary" | "travelling" | "arrived";
+		readonly originPlaceId: string;
+		readonly destinationPlaceId: string;
+		readonly routeId: string;
+		readonly targetId: string | null;
+	}>;
+	readonly interactionTarget: string | null;
 	readonly action: CanonicalActionRef;
 	readonly semanticLabel: string;
 	readonly focal: boolean;
@@ -129,6 +184,16 @@ export interface SpatialProjection {
 	readonly canonicalEventLinkCount: number;
 	readonly teleportCount: number;
 	readonly contradictionCount: number;
+}
+
+export interface PresentationResidency {
+	readonly semanticScale: SemanticScale;
+	readonly cells: readonly Readonly<{
+		readonly cellId: string;
+		readonly fidelity: FidelityClass;
+		readonly resident: boolean;
+	}>[];
+	readonly selectedCitizenId: string | null;
 }
 
 export interface PresentationSample {

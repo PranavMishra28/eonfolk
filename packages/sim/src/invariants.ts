@@ -71,6 +71,19 @@ export function assertWorldInvariants(state: WorldState): void {
 	for (const citizen of Object.values(state.citizens)) {
 		if (!state.places[citizen.placeId])
 			throw new Error(`citizen ${citizen.citizenId} has no place`);
+		if (citizen.travel != null) {
+			if (
+				citizen.travel.originPlaceId !== citizen.placeId ||
+				!state.places[citizen.travel.destinationPlaceId] ||
+				!state.places[citizen.placeId]!.neighbors.includes(
+					citizen.travel.destinationPlaceId,
+				) ||
+				citizen.travel.expectedArrivalSimulationTime <=
+					citizen.travel.departureSimulationTime ||
+				citizen.travel.departureSimulationTime > state.simulationTime
+			)
+				throw new Error(`citizen ${citizen.citizenId} has invalid travel`);
+		}
 		for (const resource of ["food", "water", "wood"] as const) {
 			checkedQuantity(
 				citizen.inventory[resource],

@@ -5,7 +5,10 @@ import {
 	advancePresentationClock,
 	humanoidPose,
 	inspectSpatialProjection,
+	projectPresentationResidency,
 	projectSpatialScene,
+	riverholdSpatialScene,
+	type SemanticScale,
 	type SpatialActorProjection,
 	type SpatialCitizenInput,
 	type SpatialProjection,
@@ -24,6 +27,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { RiverholdProjection } from "../projection";
 import { browserDiagnostics } from "../diagnostics";
@@ -106,24 +110,24 @@ function House({
 	return (
 		<Entity position={[x, 0, z]} rotation={[0, rotation, 0]}>
 			<Primitive
-				position={[0, 0.85, 0]}
-				scale={[wide ? 3.2 : 2.45, 1.7, 2]}
+				position={[0, 1.7, 0]}
+				scale={[wide ? 9 : 7, 3.4, wide ? 6 : 5]}
 				color={palette.wall}
 			/>
 			<Primitive
-				position={[0, 1.86, 0]}
-				scale={[wide ? 3.6 : 2.85, 0.25, 2.4]}
+				position={[0, 3.75, 0]}
+				scale={[wide ? 10 : 8, 0.45, wide ? 7 : 6]}
 				color={palette.roof}
 				rotation={[0, 0, 10]}
 			/>
 			<Primitive
-				position={[0, 0.58, 1.02]}
-				scale={[0.55, 1.14, 0.12]}
+				position={[0, 1, wide ? 3.02 : 2.52]}
+				scale={[1, 2, 0.16]}
 				color={palette.ink}
 			/>
 			<Primitive
-				position={[0.88, 1.15, 1.03]}
-				scale={[0.4, 0.44, 0.1]}
+				position={[wide ? 2.6 : 2.1, 2.05, wide ? 3.03 : 2.53]}
+				scale={[1.05, 0.9, 0.12]}
 				color={palette.water}
 			/>
 		</Entity>
@@ -135,14 +139,14 @@ function Tree({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
 		<Entity position={[x, 0, z]} scale={[scale, scale, scale]}>
 			<Primitive
 				type="cylinder"
-				position={[0, 0.75, 0]}
-				scale={[0.22, 1.5, 0.22]}
+				position={[0, 2.2, 0]}
+				scale={[0.55, 4.4, 0.55]}
 				color={palette.timber}
 			/>
 			<Primitive
 				type="cone"
-				position={[0, 2.05, 0]}
-				scale={[1.12, 1.95, 1.12]}
+				position={[0, 5.4, 0]}
+				scale={[2.5, 4.2, 2.5]}
 				color={palette.leaf}
 			/>
 		</Entity>
@@ -162,8 +166,8 @@ function CosmeticRiverMotion({
 		elapsed.current += Math.min(dt, 0.1);
 		for (const [index, stripe] of [first.current, second.current].entries()) {
 			if (stripe === null) continue;
-			const z = ((elapsed.current * 0.7 + index * 10) % 20) - 10;
-			stripe.setLocalPosition(-8.8, 0.05, z);
+			const z = ((elapsed.current * 2.1 + index * 58) % 116) - 58;
+			stripe.setLocalPosition(-72, 0.05, z);
 		}
 	});
 	return (
@@ -171,7 +175,7 @@ function CosmeticRiverMotion({
 			<Entity ref={first}>
 				<Primitive
 					position={[0, 0, 0]}
-					scale={[1.65, 0.025, 1.25]}
+					scale={[14, 0.025, 4]}
 					color={palette.waterLight}
 					castShadows={false}
 				/>
@@ -179,7 +183,7 @@ function CosmeticRiverMotion({
 			<Entity ref={second}>
 				<Primitive
 					position={[0, 0, 0]}
-					scale={[1.65, 0.025, 1.25]}
+					scale={[14, 0.025, 4]}
 					color={palette.waterLight}
 					castShadows={false}
 				/>
@@ -188,10 +192,22 @@ function CosmeticRiverMotion({
 	);
 }
 
-function WorldProps() {
+function WorldProps({
+	projection,
+}: {
+	readonly projection: RiverholdProjection;
+}) {
+	const woodScale = Math.max(
+		0.35,
+		Math.min(1.4, projection.resources.wood / 10),
+	);
+	const foodScale = Math.max(
+		0.35,
+		Math.min(1.4, projection.resources.food / 30),
+	);
 	return (
 		<>
-			<Entity position={[7.8, 0, 5.3]}>
+			<Entity position={[40, 0, 13]} scale={[woodScale, woodScale, woodScale]}>
 				<Primitive
 					type="cylinder"
 					position={[-0.3, 0.24, 0]}
@@ -207,7 +223,7 @@ function WorldProps() {
 					color={palette.timber}
 				/>
 			</Entity>
-			<Entity position={[-7.5, 0, 4.3]}>
+			<Entity position={[-47, 0, 26]}>
 				<Primitive
 					type="cylinder"
 					position={[0, 0.45, 0]}
@@ -220,7 +236,10 @@ function WorldProps() {
 					color={palette.timber}
 				/>
 			</Entity>
-			<Entity position={[-5.2, 0, -9.9]}>
+			<Entity
+				position={[-16, 0, -28]}
+				scale={[foodScale, foodScale, foodScale]}
+			>
 				<Primitive
 					position={[-0.4, 0.35, 0]}
 					scale={[0.7, 0.7, 0.7]}
@@ -232,7 +251,7 @@ function WorldProps() {
 					color={palette.grain}
 				/>
 			</Entity>
-			<Entity position={[7.5, 0, 1.3]}>
+			<Entity position={[43, 0, 5]}>
 				<Primitive
 					position={[0, 0.42, 0]}
 					scale={[1.5, 0.22, 0.75]}
@@ -257,6 +276,11 @@ interface ActorRig {
 	readonly rightLeg: PlayCanvasEntity;
 	readonly prop: PlayCanvasEntity | null;
 }
+
+export type WorldFocus =
+	| { readonly kind: "overview" }
+	| { readonly kind: "citizen"; readonly id: string; readonly follow: boolean }
+	| { readonly kind: "place"; readonly id: string };
 
 const citizenMaterials: Readonly<Record<string, StandardMaterial>> = {
 	mara: palette.mara,
@@ -323,9 +347,11 @@ function CitizenProp({ actor }: { readonly actor: SpatialActorProjection }) {
 function CitizenRig({
 	actor,
 	register,
+	semanticScale,
 }: {
 	readonly actor: SpatialActorProjection;
 	readonly register: (citizenId: string, rig: ActorRig | null) => void;
+	readonly semanticScale: SemanticScale;
 }) {
 	const root = useRef<PlayCanvasEntity>(null);
 	const leftArm = useRef<PlayCanvasEntity>(null);
@@ -357,8 +383,17 @@ function CitizenRig({
 		<Entity
 			ref={root}
 			name={`citizen:${actor.slug}`}
-			scale={[1.16, 1.16, 1.16]}
+			scale={[0.78, 0.78, 0.78]}
 		>
+			{actor.focal || semanticScale === "region" ? (
+				<Primitive
+					type="cylinder"
+					position={[0, 0.03, 0]}
+					scale={[actor.focal ? 1.5 : 0.85, 0.04, actor.focal ? 1.5 : 0.85]}
+					color={actor.focal ? palette.maraScarf : palette.linen}
+					castShadows={false}
+				/>
+			) : null}
 			<Primitive
 				type="sphere"
 				position={[0, 1.84, 0]}
@@ -460,6 +495,7 @@ function WorldController({
 				activity: citizen.activity,
 				activityKind: citizen.activityKind,
 				focal: citizen.focal === true,
+				carriedProp: citizen.carriedProp,
 				canonicalAction: citizen.canonicalAction,
 			})),
 		[projection.citizens],
@@ -596,6 +632,233 @@ function WorldController({
 	return null;
 }
 
+function CameraController({
+	host,
+	rigs,
+	focus,
+	reducedMotion,
+	onSemanticScale,
+}: {
+	readonly host: RefObject<HTMLDivElement | null>;
+	readonly rigs: RefObject<Map<string, ActorRig>>;
+	readonly focus: WorldFocus;
+	readonly reducedMotion: boolean;
+	readonly onSemanticScale: (scale: SemanticScale) => void;
+}) {
+	const camera = useRef<PlayCanvasEntity>(null);
+	const cameraState = useRef({
+		targetX: 0,
+		targetZ: -5,
+		distance: 118,
+		yaw: 38,
+		pitch: 48,
+	});
+	const pointers = useRef(new Map<number, { x: number; y: number }>());
+	const priorPinch = useRef<number | null>(null);
+	const previousScale = useRef<SemanticScale | null>(null);
+
+	useEffect(() => {
+		const state = cameraState.current;
+		if (focus.kind === "overview") {
+			state.targetX = 0;
+			state.targetZ = -5;
+			state.distance = 118;
+			return;
+		}
+		if (focus.kind === "place") {
+			const place = riverholdSpatialScene.places[focus.id];
+			if (place !== undefined) {
+				state.targetX = place.centerMm.x / 1_000;
+				state.targetZ = place.centerMm.z / 1_000;
+				state.distance = 52;
+			}
+			return;
+		}
+		const rig = rigs.current.get(focus.id);
+		if (rig !== undefined) {
+			const position = rig.root.getPosition();
+			state.targetX = position.x;
+			state.targetZ = position.z;
+		}
+		state.distance = 18;
+	}, [focus, rigs]);
+
+	useEffect(() => {
+		const surface = host.current;
+		if (surface === null) return;
+		const clampTarget = () => {
+			const state = cameraState.current;
+			state.targetX = Math.max(-92, Math.min(92, state.targetX));
+			state.targetZ = Math.max(-78, Math.min(78, state.targetZ));
+			state.distance = Math.max(12, Math.min(165, state.distance));
+			state.pitch = Math.max(28, Math.min(67, state.pitch));
+		};
+		const onWheel = (event: WheelEvent) => {
+			event.preventDefault();
+			cameraState.current.distance *= Math.exp(event.deltaY * 0.0012);
+			clampTarget();
+		};
+		const onPointerDown = (event: PointerEvent) => {
+			surface.setPointerCapture(event.pointerId);
+			pointers.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+		};
+		const onPointerMove = (event: PointerEvent) => {
+			const prior = pointers.current.get(event.pointerId);
+			if (prior === undefined) return;
+			pointers.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+			const active = [...pointers.current.values()];
+			if (active.length >= 2) {
+				const first = active[0]!;
+				const second = active[1]!;
+				const pinch = Math.hypot(first.x - second.x, first.y - second.y);
+				if (priorPinch.current !== null && pinch > 0)
+					cameraState.current.distance *= priorPinch.current / pinch;
+				priorPinch.current = pinch;
+				clampTarget();
+				return;
+			}
+			const dx = event.clientX - prior.x;
+			const dy = event.clientY - prior.y;
+			const state = cameraState.current;
+			if (event.altKey || event.button === 2 || (event.buttons & 2) !== 0) {
+				state.yaw -= dx * 0.28;
+				state.pitch += dy * 0.2;
+			} else {
+				const unitsPerPixel = state.distance * 0.0018;
+				const yaw = (state.yaw * Math.PI) / 180;
+				state.targetX +=
+					(-dx * Math.cos(yaw) + dy * Math.sin(yaw)) * unitsPerPixel;
+				state.targetZ +=
+					(dx * Math.sin(yaw) + dy * Math.cos(yaw)) * unitsPerPixel;
+			}
+			clampTarget();
+		};
+		const onPointerUp = (event: PointerEvent) => {
+			pointers.current.delete(event.pointerId);
+			priorPinch.current = null;
+		};
+		const stopMenu = (event: MouseEvent) => event.preventDefault();
+		const applyCameraIntent = (kind: string) => {
+			const state = cameraState.current;
+			if (kind === "zoom-in") state.distance *= 0.78;
+			else if (kind === "zoom-out") state.distance *= 1.28;
+			else if (kind === "pan-left") state.targetX -= 8;
+			else if (kind === "pan-right") state.targetX += 8;
+			else if (kind === "pan-up") state.targetZ -= 8;
+			else if (kind === "pan-down") state.targetZ += 8;
+			else if (kind === "orbit-left") state.yaw -= 12;
+			else if (kind === "orbit-right") state.yaw += 12;
+			clampTarget();
+		};
+		const onCameraIntent = (event: Event) => {
+			const custom = event as CustomEvent<{ readonly kind?: string }>;
+			if (typeof custom.detail?.kind === "string")
+				applyCameraIntent(custom.detail.kind);
+		};
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement ||
+				event.target instanceof HTMLSelectElement
+			)
+				return;
+			const kind =
+				event.key === "+" || event.key === "="
+					? "zoom-in"
+					: event.key === "-"
+						? "zoom-out"
+						: event.key === "ArrowLeft"
+							? "pan-left"
+							: event.key === "ArrowRight"
+								? "pan-right"
+								: event.key === "ArrowUp"
+									? "pan-up"
+									: event.key === "ArrowDown"
+										? "pan-down"
+										: null;
+			if (kind !== null) {
+				event.preventDefault();
+				applyCameraIntent(kind);
+			}
+		};
+		surface.addEventListener("wheel", onWheel, { passive: false });
+		surface.addEventListener("pointerdown", onPointerDown);
+		surface.addEventListener("pointermove", onPointerMove);
+		surface.addEventListener("pointerup", onPointerUp);
+		surface.addEventListener("pointercancel", onPointerUp);
+		surface.addEventListener("contextmenu", stopMenu);
+		window.addEventListener("eonfolk:camera-intent", onCameraIntent);
+		window.addEventListener("keydown", onKeyDown);
+		return () => {
+			surface.removeEventListener("wheel", onWheel);
+			surface.removeEventListener("pointerdown", onPointerDown);
+			surface.removeEventListener("pointermove", onPointerMove);
+			surface.removeEventListener("pointerup", onPointerUp);
+			surface.removeEventListener("pointercancel", onPointerUp);
+			surface.removeEventListener("contextmenu", stopMenu);
+			window.removeEventListener("eonfolk:camera-intent", onCameraIntent);
+			window.removeEventListener("keydown", onKeyDown);
+		};
+	}, [host]);
+
+	useAppEvent("update", () => {
+		const entity = camera.current;
+		if (entity === null) return;
+		const state = cameraState.current;
+		if (focus.kind === "citizen" && focus.follow) {
+			const rig = rigs.current.get(focus.id);
+			if (rig !== undefined) {
+				const position = rig.root.getPosition();
+				const blend = reducedMotion ? 1 : 0.09;
+				state.targetX += (position.x - state.targetX) * blend;
+				state.targetZ += (position.z - state.targetZ) * blend;
+			}
+		}
+		const yaw = (state.yaw * Math.PI) / 180;
+		const pitch = (state.pitch * Math.PI) / 180;
+		const horizontal = Math.cos(pitch) * state.distance;
+		entity.setPosition(
+			state.targetX + Math.sin(yaw) * horizontal,
+			Math.sin(pitch) * state.distance,
+			state.targetZ + Math.cos(yaw) * horizontal,
+		);
+		entity.lookAt(state.targetX, 0.9, state.targetZ);
+		const residency = projectPresentationResidency({
+			targetMm: {
+				x: Math.round(state.targetX * 1_000),
+				y: 0,
+				z: Math.round(state.targetZ * 1_000),
+			},
+			distanceMm: Math.round(state.distance * 1_000),
+			selectedCitizenId: focus.kind === "citizen" ? focus.id : null,
+		});
+		if (host.current !== null) {
+			host.current.dataset.semanticScale = residency.semanticScale;
+			host.current.dataset.residentCells = residency.cells
+				.filter((cell) => cell.resident)
+				.map((cell) => `${cell.cellId}:${cell.fidelity}`)
+				.join(",");
+			host.current.dataset.cameraDistanceM = state.distance.toFixed(1);
+		}
+		if (previousScale.current !== residency.semanticScale) {
+			previousScale.current = residency.semanticScale;
+			onSemanticScale(residency.semanticScale);
+		}
+	});
+
+	return (
+		<Entity ref={camera} position={[74, 87, 92]}>
+			<Camera clearColor="#a9c0b4" fov={42} farClip={420} nearClip={0.2} />
+		</Entity>
+	);
+}
+
 function SceneProbe({
 	host,
 }: {
@@ -631,17 +894,231 @@ function SceneProbe({
 	return null;
 }
 
+const treePositions = [
+	[-112, -78, 1.2],
+	[-104, -52, 1],
+	[-108, -20, 1.15],
+	[-108, 18, 0.95],
+	[-104, 52, 1.2],
+	[-94, 78, 1.05],
+	[-82, 90, 1.2],
+	[-58, 88, 0.9],
+	[-24, 92, 1.05],
+	[12, 91, 0.95],
+	[44, 88, 1.1],
+	[70, 81, 1.2],
+	[92, 70, 1.1],
+	[107, 48, 1.25],
+	[112, 15, 1],
+	[108, -18, 1.15],
+	[102, -52, 1],
+	[91, -79, 1.2],
+	[65, -91, 1.05],
+	[31, -94, 1.15],
+	[-3, -93, 1],
+	[-35, -91, 1.15],
+	[-67, -88, 1],
+	[-92, -75, 1.2],
+	[49, 30, 1],
+	[57, 38, 1.1],
+	[64, 45, 0.92],
+	[72, 35, 1.16],
+	[54, 54, 1.05],
+	[79, 53, 1.2],
+	[87, 34, 0.95],
+	[46, 61, 1.1],
+] as const;
+
+function LivingLandscape({
+	projection,
+	reducedMotion,
+	semanticScale,
+}: {
+	readonly projection: RiverholdProjection;
+	readonly reducedMotion: boolean;
+	readonly semanticScale: SemanticScale;
+}) {
+	return (
+		<>
+			<Primitive
+				position={[0, -0.3, 0]}
+				scale={[250, 0.5, 210]}
+				color={palette.grass}
+			/>
+			<Primitive
+				position={[-72, -0.01, 0]}
+				scale={[18, 0.08, 220]}
+				color={palette.water}
+				castShadows={false}
+			/>
+			<CosmeticRiverMotion reducedMotion={reducedMotion} />
+			<Primitive
+				position={[0, -0.01, -5]}
+				scale={[9, 0.08, 142]}
+				color={palette.path}
+			/>
+			<Primitive
+				position={[24, -0.005, 7]}
+				scale={[82, 0.08, 7]}
+				color={palette.path}
+				rotation={[0, -8, 0]}
+			/>
+			<Primitive
+				position={[-27, -0.005, 12]}
+				scale={[70, 0.08, 6]}
+				color={palette.path}
+				rotation={[0, 24, 0]}
+			/>
+			<Primitive
+				position={[-38, -0.01, -57]}
+				scale={[36, 0.08, 30]}
+				color={palette.field}
+			/>
+			{[-49, -42, -35, -28].map((x) => (
+				<Primitive
+					key={x}
+					position={[x, 0.05, -57]}
+					scale={[1.2, 0.08, 26]}
+					color={palette.grain}
+					castShadows={false}
+				/>
+			))}
+			<House x={-22} z={-5} rotation={8} wide />
+			<House x={17} z={-12} rotation={-7} />
+			<House x={-7} z={19} rotation={12} />
+			<House x={22} z={19} rotation={-10} wide />
+			<House x={-29} z={14} rotation={20} />
+			<House x={9} z={32} rotation={-4} wide />
+			<House x={-14} z={-26} rotation={3} wide />
+			<Entity position={[1, 0, 1]}>
+				<Primitive
+					type="cylinder"
+					position={[0, 0.35, 0]}
+					scale={[5.8, 0.5, 5.8]}
+					color={palette.earth}
+				/>
+				<Primitive
+					position={[-2.2, 1.05, 0]}
+					scale={[3.4, 1.5, 2]}
+					color={palette.timber}
+				/>
+				<Primitive
+					position={[2.4, 1.05, 0.3]}
+					scale={[3.2, 1.5, 2]}
+					color={palette.grain}
+				/>
+			</Entity>
+			<Entity position={[40, 0, 8]}>
+				<Primitive
+					position={[0, 2.6, 0]}
+					scale={[10, 5.2, 8]}
+					color={palette.wall}
+				/>
+				<Primitive
+					position={[0, 5.65, 0]}
+					scale={[11, 0.55, 9]}
+					color={palette.roof}
+					rotation={[0, 0, 9]}
+				/>
+				<Primitive
+					type="cylinder"
+					position={[5.5, 3.4, 0]}
+					scale={[0.45, 7.4, 0.45]}
+					color={palette.timber}
+					rotation={[90, 0, 0]}
+				/>
+				<Primitive
+					position={[5.5, 3.4, 0]}
+					scale={[0.28, 7.2, 0.28]}
+					color={
+						projection.worldProcesses.millRepaired
+							? palette.moss
+							: palette.timber
+					}
+					rotation={[0, 0, reducedMotion ? 0 : 14]}
+				/>
+				<Primitive
+					position={[5.5, 3.4, 0]}
+					scale={[7.2, 0.28, 0.28]}
+					color={
+						projection.worldProcesses.millRepaired
+							? palette.moss
+							: palette.timber
+					}
+				/>
+			</Entity>
+			<Entity position={[-47, 0, 26]}>
+				<Primitive
+					type="cylinder"
+					position={[0, 0.65, 0]}
+					scale={[2.3, 1.25, 2.3]}
+					color={palette.stone}
+				/>
+				<Primitive
+					type="cylinder"
+					position={[0, 1.2, 0]}
+					scale={[1.55, 1.1, 1.55]}
+					color={palette.water}
+				/>
+				<Primitive
+					position={[0, 2.5, 0]}
+					scale={[4.5, 0.25, 0.25]}
+					color={palette.timber}
+				/>
+			</Entity>
+			<WorldProps projection={projection} />
+			{treePositions.map(([x, z, scale]) => (
+				<Tree key={`${x}:${z}`} x={x} z={z} scale={scale} />
+			))}
+			{semanticScale !== "region"
+				? [
+						[39, 26, 0.85],
+						[48, 20, 0.9],
+						[64, 27, 0.82],
+						[69, 45, 0.88],
+						[58, 58, 0.9],
+					].map(([x, z, scale]) => (
+						<Tree key={`detail:${x}:${z}`} x={x!} z={z!} scale={scale!} />
+					))
+				: null}
+			{[
+				[-118, -94, 16],
+				[-94, 98, 20],
+				[-5, 105, 18],
+				[88, 98, 22],
+				[120, 58, 17],
+				[118, -82, 20],
+				[42, -105, 18],
+			].map(([x, z, scale]) => (
+				<Primitive
+					key={`hill:${x}:${z}`}
+					type="cone"
+					position={[x!, scale! * 0.35, z!]}
+					scale={[scale!, scale! * 0.7, scale!]}
+					color={palette.moss}
+					castShadows={false}
+				/>
+			))}
+		</>
+	);
+}
+
 function Settlement({
 	projection,
 	reducedMotion,
 	host,
+	focus,
+	onSemanticScaleChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
+	readonly focus: WorldFocus;
+	readonly onSemanticScaleChange: (scale: SemanticScale) => void;
 }) {
 	const rigs = useRef(new Map<string, ActorRig>());
 	const exchangeProp = useRef<PlayCanvasEntity>(null);
+	const [semanticScale, setSemanticScale] = useState<SemanticScale>("region");
 	const register = useMemo(
 		() => (citizenId: string, rig: ActorRig | null) => {
 			if (rig === null) rigs.current.delete(citizenId);
@@ -649,14 +1126,10 @@ function Settlement({
 		},
 		[],
 	);
-	const trees = [
-		[-10, -5, 1.05],
-		[-9, 4, 0.9],
-		[9.5, -4.5, 1.05],
-		[10, 5.5, 0.9],
-		[7, 9, 0.85],
-		[-6.8, 8, 1.1],
-	] as const;
+	const updateSemanticScale = (scale: SemanticScale) => {
+		setSemanticScale(scale);
+		onSemanticScaleChange(scale);
+	};
 	return (
 		<Application
 			deviceTypes={[DEVICETYPE_WEBGL2]}
@@ -670,105 +1143,30 @@ function Settlement({
 				rigs={rigs}
 				exchangeProp={exchangeProp}
 			/>
-			<Entity position={[14, 14, 18]} rotation={[-31, 38, 0]}>
-				<Camera clearColor="#afc5c1" fov={41} farClip={90} />
-			</Entity>
-			<Entity rotation={[42, -35, 0]}>
+			<CameraController
+				host={host}
+				rigs={rigs}
+				focus={focus}
+				reducedMotion={reducedMotion}
+				onSemanticScale={updateSemanticScale}
+			/>
+			<Entity rotation={[48, -32, 0]}>
 				<Light
 					type="directional"
 					color="#ffedca"
-					intensity={1.55}
+					intensity={1.35}
 					castShadows
 					shadowResolution={1024}
 				/>
 			</Entity>
-			<Entity position={[0, 8, 0]}>
-				<Light type="omni" color="#86aee2" intensity={0.24} range={35} />
+			<Entity position={[0, 28, 0]}>
+				<Light type="omni" color="#89a9cb" intensity={0.18} range={180} />
 			</Entity>
-			<Primitive
-				position={[0, -0.24, 0]}
-				scale={[24, 0.4, 25]}
-				color={palette.grass}
+			<LivingLandscape
+				projection={projection}
+				reducedMotion={reducedMotion}
+				semanticScale={semanticScale}
 			/>
-			<Primitive
-				position={[0, -0.01, 0]}
-				scale={[4.2, 0.08, 22]}
-				color={palette.path}
-			/>
-			<Primitive
-				position={[-8.8, 0, 0]}
-				scale={[2.3, 0.08, 25]}
-				color={palette.water}
-				castShadows={false}
-			/>
-			<CosmeticRiverMotion reducedMotion={reducedMotion} />
-			<Primitive
-				position={[-4.8, -0.01, -10]}
-				scale={[6.8, 0.08, 4.7]}
-				color={palette.field}
-			/>
-			<House x={-2.7} z={-7} rotation={-6} wide />
-			<House x={2.8} z={-3.8} rotation={7} />
-			<House x={-3.4} z={3.4} rotation={10} />
-			<House x={3.6} z={4.3} rotation={-8} />
-			<Entity position={[0.8, 0, 0.5]}>
-				<Primitive
-					type="cylinder"
-					position={[0, 0.42, 0]}
-					scale={[2.2, 0.46, 2.2]}
-					color={palette.earth}
-				/>
-				<Primitive
-					position={[0, 1.08, 0]}
-					scale={[2.6, 0.17, 1.35]}
-					color={palette.timber}
-				/>
-				<Primitive
-					position={[0, 1.42, 0]}
-					scale={[1.2, 0.62, 0.92]}
-					color={palette.grain}
-				/>
-			</Entity>
-			<Entity position={[6.7, 0, 0]}>
-				<Primitive
-					position={[0, 1.05, 0]}
-					scale={[1.7, 2.1, 1.7]}
-					color={palette.wall}
-				/>
-				<Primitive
-					type="cylinder"
-					position={[0, 2.75, 0]}
-					scale={[0.72, 1.75, 0.72]}
-					color={palette.wall}
-				/>
-				<Primitive
-					position={[0, 2.75, 0.86]}
-					scale={[0.15, 3.5, 0.15]}
-					color={palette.timber}
-					rotation={[0, 0, reducedMotion ? 0 : 12]}
-				/>
-				<Primitive
-					position={[0, 2.75, 0.86]}
-					scale={[3.5, 0.15, 0.15]}
-					color={
-						projection.worldProcesses.millRepaired
-							? palette.moss
-							: palette.timber
-					}
-					rotation={[
-						0,
-						0,
-						projection.worldProcesses.millRepaired || reducedMotion ? 0 : 12,
-					]}
-				/>
-				{projection.worldProcesses.millRepaired ? (
-					<Primitive
-						position={[0, 1.25, 0.9]}
-						scale={[1.2, 0.18, 0.18]}
-						color={palette.moss}
-					/>
-				) : null}
-			</Entity>
 			<Entity ref={exchangeProp} scale={[0, 0, 0]}>
 				<Primitive
 					position={[0, 0, 0]}
@@ -776,12 +1174,13 @@ function Settlement({
 					color={palette.earth}
 				/>
 			</Entity>
-			<WorldProps />
-			{trees.map(([x, z, scale]) => (
-				<Tree key={`${x}:${z}`} x={x} z={z} scale={scale} />
-			))}
 			{projection.spatial.actors.map((actor) => (
-				<CitizenRig key={actor.citizenId} actor={actor} register={register} />
+				<CitizenRig
+					key={actor.citizenId}
+					actor={actor}
+					register={register}
+					semanticScale={semanticScale}
+				/>
 			))}
 		</Application>
 	);
@@ -808,11 +1207,15 @@ function CheckedSettlement({
 	reducedMotion,
 	host,
 	onFailure,
+	focus,
+	onSemanticScaleChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly onFailure: () => void;
+	readonly focus: WorldFocus;
+	readonly onSemanticScaleChange: (scale: SemanticScale) => void;
 }) {
 	const injectedFailure =
 		sessionStorage.getItem("eonfolk:e2e-renderer-failure") === "1";
@@ -825,6 +1228,8 @@ function CheckedSettlement({
 			projection={projection}
 			reducedMotion={reducedMotion}
 			host={host}
+			focus={focus}
+			onSemanticScaleChange={onSemanticScaleChange}
 		/>
 	);
 }
@@ -833,10 +1238,14 @@ export function RiverholdWorld({
 	projection,
 	reducedMotion,
 	onFailure,
+	focus,
+	onSemanticScaleChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
 	readonly onFailure: () => void;
+	readonly focus?: WorldFocus;
+	readonly onSemanticScaleChange?: (scale: SemanticScale) => void;
 }) {
 	const host = useRef<HTMLDivElement>(null);
 	return (
@@ -858,6 +1267,8 @@ export function RiverholdWorld({
 					reducedMotion={reducedMotion}
 					host={host}
 					onFailure={onFailure}
+					focus={focus ?? { kind: "overview" }}
+					onSemanticScaleChange={onSemanticScaleChange ?? (() => undefined)}
 				/>
 			</RendererBoundary>
 		</div>
