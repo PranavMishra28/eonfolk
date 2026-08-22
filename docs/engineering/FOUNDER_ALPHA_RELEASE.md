@@ -2,7 +2,7 @@
 
 **Purpose:** define the reproducible local production preview, CI evidence retention, and the credential-gated path from the inert feedback relay core to a future private alpha deployment.
 
-**Status:** WORLD PRESENCE CANDIDATE UNDER VERIFICATION; PRIOR PIXI CLEAN DEEP INVALIDATED FOR RELEASE; CLOUDFLARE, TURNSTILE, GITHUB APP, PUBLIC ROUTE, AND DEPLOYMENT NOT RUN
+**Status:** WORLD PRESENCE EXACT-YES CONFIRMED; CLEAN DEEP, PROTECTED MEGA-PR CI, MERGE, AND CLEANUP PENDING; DEPLOYMENT NOT RUN
 
 **Authority boundary:** this file owns Founder Alpha release procedure and release-status claims. It does not authorize deployment, spend, credentials, a public availability claim, or changes to Reality. [Feedback](FEEDBACK.md) owns relay behavior; [Testing](../quality/TESTING.md) owns verification policy; [Security](SECURITY.md) owns trust boundaries.
 

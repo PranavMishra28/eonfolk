@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** BUDGETS BINDING; PRIOR PIXI CANDIDATE INVALIDATED; PLAYCANVAS CANDIDATE REQUIRES FRESH CLEAN 15-RUN EVIDENCE
+**Status:** BUDGETS BINDING; EXACT MOBILE QUALIFICATION REPAIRED; FRESH CLEAN 15-RUN PLAYCANVAS EVIDENCE PENDING
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -143,6 +143,8 @@ At clean commit `59edef3c768d9a3fe9409f07d77d49fded4b9554`, the canonical headed
 **VERIFIED CLEAN INTEGRATION CHECKPOINT — CANONICAL BATTERY STILL PENDING:** at exact clean commit `593e5ab8bbf0bbe0f5977bc016b6c520a4877bf8`, the integrated production build reports **95,581 bytes gzip** critical shell, **632,154 bytes gzip** total JavaScript, and zero external world-asset bytes. The lazy PlayCanvas world chunk is **512,155 bytes gzip**. All fifteen unchanged-production journeys, the frozen 199-package cohort, and the production dependency audit pass; 202 routed requests and 31,446 netlog events contain zero external attempt [S-WP-022]. This closes the clean integration checkpoint, not the fresh five-repetition-per-profile performance battery or human inhabited/alive gate.
 
 The production browser journey currently passes an automated temporal probe that samples the 30 Hz projection clock, observes at least three moving citizens, at least four animation classes and one interaction, requires WebGL2, enforces a ≤1.51 canvas pixel ratio, confirms canvas/host containment, and reports zero teleports/contradictions. Unit tests cover the complete eleven-class pose graph, tick-by-tick route continuity, blocked geometry, canonical exchange linkage, and injected mismatch detection. These prove instrumentation and deterministic behavior, not human aliveness or physical-device thermals.
+
+The frozen `17b2a3d` confirmation then exposed a real throttled-mobile failure: canonical cadence settled the sole illustrated exchange before meaningful world paint. Repair `4c205e2` keeps that Reality-owned reservation through simulation time 180 and settles it exactly once at 240 without reading renderer state. The one permitted post-fix confirmation measured the unchanged 390×844/4× CPU/4G predicate at **4,439.5 ms** with eight activities, two named exchange participants, illustrated interaction count one, semantic parity, and zero egress. Its one-repetition short run is diagnostic closure of the mechanism, not the required five-repetition canonical battery.
 
 ## Resulting implementation behavior
 

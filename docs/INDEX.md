@@ -138,6 +138,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Frozen World-as-Product product/game release review and exact-NO verdict | [WORLD_AS_PRODUCT_PRODUCT_REVIEW.md](reviews/WORLD_AS_PRODUCT_PRODUCT_REVIEW.md) |
 | Frozen World-as-Product systems/correctness release review | [WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md](reviews/WORLD_AS_PRODUCT_SYSTEMS_REVIEW.md) |
 | Frozen World-as-Product visual/accessibility/performance release review and exact-NO verdict | [WORLD_AS_PRODUCT_VISUAL_REVIEW.md](reviews/WORLD_AS_PRODUCT_VISUAL_REVIEW.md) |
+| Frozen World-as-Product cross-discipline confirmation, exact-NO verdict, and opening-lifetime finding | [WORLD_AS_PRODUCT_CONFIRMATION.md](reviews/WORLD_AS_PRODUCT_CONFIRMATION.md) |
+| One permitted post-fix World-as-Product confirmation and exact-YES verdict | [WORLD_AS_PRODUCT_FINAL_CONFIRMATION.md](reviews/WORLD_AS_PRODUCT_FINAL_CONFIRMATION.md) |
 | Twelve readiness answers and final exit evidence | [FINAL_READINESS.md](reviews/FINAL_READINESS.md) |
 
 ## Execution and repository hygiene

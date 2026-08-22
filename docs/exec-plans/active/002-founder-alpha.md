@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** ACTIVE — World-as-Product steering override is P1/release-blocking; prior presentation candidates invalidated
+**Status:** RELEASE CANDIDATE — World-as-Product exact-YES confirmation passed with zero P0/P1; clean DEEP, protected mega-PR CI, merge, and cleanup pending
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 
@@ -204,9 +204,9 @@ Current progress:
 - [x] Current primary-source research integrated and source-ledger rows verified.
 - [x] Metre-scale world hierarchy, camera, semantic zoom/LOD, spatial affordances, truthful choreography, and world-first UI implemented through `3477f79`.
 - [x] Unit and focused production-browser temporal, spatial, camera, direct-selection, Chronicle-focus, accessibility, and rendering-independence gates pass: 182/182 unit tests, 2/2 property tests, and the targeted embodied/direct-selection/mobile journeys are green.
-- [ ] Fresh desktop/laptop/mobile browser and performance evidence captured from one frozen clean candidate.
-- [ ] Fresh independent exact-YES review; the first frozen review wave returned two exact-NO verdicts. Human World Presence remains `NOT RUN` under the operator implementation override and may not be relabeled.
-- [ ] All P0/P1 findings reconciled and targeted confirmations pass.
+- [ ] Fresh desktop/laptop/mobile canonical 15-run performance evidence captured from one frozen clean candidate. The exact mobile qualification repair has one-repetition diagnostic evidence only.
+- [x] Fresh independent exact-YES review. Frozen `90c0ad2` received exact **YES** with zero P0/P1 after `17b2a3d` exposed and `4c205e2` repaired the opening-lifetime failure. Human World Presence remains `NOT RUN` under the operator implementation override and may not be relabeled.
+- [x] All World-as-Product P0/P1 findings reconciled and the one permitted post-fix targeted confirmation passed.
 
 No PR or merge may occur while any M3P item remains unchecked.
 
@@ -311,6 +311,8 @@ Exact availability and results are recorded below as implementation lands. A nam
 - 2026-08-21 — Frozen candidate `afdc6e0e68afb54a79445324cd473e9f2a434cda` received three independent release reviews. Product and visual answered the binding inhabited-place question exactly **NO**. Across the wave, seven implementation P1 mechanisms and the failed stable-power evidence boundary remain: unlabelled activity legibility, visible Mara consequence, return/Chronicle framing, canonical watched-world cadence, truthful task completion/resume, cross-head travel continuity, and a real ten-second lifecycle gate. The reviews are immutable records; repair proceeds on a new candidate. Human World Presence remains `NOT RUN`.
 - 2026-08-21 — Canonical DEEP attempts remained fail-closed: one lacked the explicit approved TLC path, one found the coordinator's stale loopback preview on port 4173, and the first uninterrupted attempt reached stage 26 before the meaningful-world predicate rejected the grammatically different `exchanging` label. No partial run was accepted. Qualification diagnostics then exposed a second identity mismatch: citizen rows used full names while the interaction cue used first names. Both in-progress and committed cues now use canonical full names plus the stable action noun `exchange`; direct spatial regressions lock participants, event linkage, and the no-result-claimed boundary before the full clean rerun.
 - 2026-08-21 — A complete 15-repetition performance attempt met every display/frame limit but remained non-accepted because macOS changed from AC to battery during mobile repetition five. The same interface transition emitted `NETWORK_MAC_OS_CONFIG_CHANGED` metadata containing old/new private addresses; the overbroad netlog scanner misclassified those interface facts as connection attempts even though all route logs and every connection record remained local or blocked. Both browser oracles now exclude only that named configuration-event type while continuing to inspect all connection/DNS/URL/endpoint records. Stable-source/stable-power/zero-egress evidence must be rerun; the failed metrics are not promoted.
+- 2026-08-21 — Frozen `afdc6e0` product, systems, and visual reviews were integrated only after all three completed. Their seven P1 mechanisms were repaired through `e1100f6` and `e6b4e95`; combined pinned FAST reached 190 tests and the 12-second production lifecycle passed. The final cross-discipline pass against `17b2a3d` closed those mechanisms but answered **NO** because the first watched boundary removed the only opening interaction before throttled mobile paint.
+- 2026-08-21 — Repair `4c205e2` keeps the canonical genesis exchange reserved through simulation time 180 and settles it once at 240. The one permitted post-fix confirmation against frozen `90c0ad2` answered the exact binding question **YES**, found zero P0/P1, measured unchanged throttled mobile meaningful world at 4,439.5 ms with a current illustrated interaction, and observed clean release/resume by time 360/reload. This is independent automated evidence; human Gate 0/A/B remain `NOT RUN`, and the full canonical battery remains pending.
 
 ## Decision, risk, and deviation log
 
@@ -339,7 +341,7 @@ Exact availability and results are recorded below as implementation lands. A nam
 | GitHub privacy | PASS after P0 correction | authoritative `gh repo view` / REST result on 2026-08-21 |
 | Diagnostics/Sentinel | AUTOMATED PASS; targeted confirmation pending | redaction, bounds, Sentinel authority, HMR-stable observer, native performance and injected-fault tests; clean source benchmark at `279e1c6` |
 | Feedback/observer | AUTOMATED PASS; live path NOT RUN | browser-only queue/preview/delete/expiry, hostile-summary reconstruction, relay D1/quota/reconciliation/provider adversarial fixtures; live provider path NOT RUN |
-| Founder Alpha browser matrix | WORLD PRESENCE CLEAN DEEP PENDING | The invalidated Pixi candidate passed two test-only injected-fault journeys and fourteen production journeys at `59edef3`. The World-as-Product candidate now has sixteen production journeys and requires a fresh clean DEEP result, zero-egress evidence, and independent presence review. |
+| Founder Alpha browser matrix | EXACT-YES CONFIRMED; CLEAN DEEP PENDING | The invalidated Pixi candidate passed two test-only injected-fault journeys and fourteen production journeys at `59edef3`. The World-as-Product candidate has sixteen production journeys; frozen `90c0ad2` received exact **YES** with zero P0/P1. Fresh clean DEEP and canonical zero-egress/performance evidence remain. |
 | Cognition experiments | BOUNDED AUTOMATED PASS / promotion disabled | controls/ablations/transfer and proposal validation pass; self-attested corpus claims removed; ordered per-execution result journal; unforgeable authorized Observatory artifact; no model/planner candidate run |
 | Performance OFF/LOCAL/ALPHA | CLEAN LOCAL DEEP PASS | `pnpm benchmark:diagnostics` passed absolute source ceilings; the corrected three-mode browser comparison and fifteen-run canonical profile passed all assertions at `59edef3`; physical mobile remains `NOT RUN` |
 | Security/privacy review | FIRST CONFIRMATION REPAIRED; targeted confirmation pending | closed summaries/safe-stop/storage/quota/retention/fingerprint/capability and hostile-storage regressions integrated; live relay NOT RUN |

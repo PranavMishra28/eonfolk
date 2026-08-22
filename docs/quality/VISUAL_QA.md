@@ -2,7 +2,7 @@
 
 **Purpose:** define deterministic browser evidence, manual interaction review, observer walkthroughs, and the visual fix loop.
 
-**Status:** ACTIVE RELEASE GATE — automated PlayCanvas checks pass; independent inhabited/alive verdict pending
+**Status:** AUTOMATED RELEASE GATE PASSED — independent exact-YES confirmation complete; unfamiliar-human gates remain NOT RUN
 
 **Authority boundary:** owns viewport/browser evidence and visual review process. Visual language is owned by future `docs/design/DESIGN.md`; numerical limits by [performance](PERFORMANCE.md); CI retention by [testing](TESTING.md).
 

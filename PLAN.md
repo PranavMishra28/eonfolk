@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA ACTIVE — frozen World-as-Product candidate received two exact-NO verdicts and seven implementation P1s; bounded repair is active
+**Status:** FOUNDER ALPHA RELEASE CANDIDATE — World-as-Product repairs received the required exact-YES confirmation with zero P0/P1; clean DEEP, protected CI, mega-PR merge, and cleanup remain
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Frozen review failed; bounded repair active | Start SHA `74a8a7e`; the earlier `fe7f1d0` and `593e5ab` presentation candidates remain release-invalid. Frozen candidate `afdc6e0` received exact-NO product and visual verdicts plus four systems P1s. Repair must close label-dependent activity, visible consequence, Chronicle/camera, canonical cadence, task lifecycle, travel continuity, temporal-gate, and stable-power evidence failures before a new candidate may be reviewed. |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Release candidate; local/remote release lattice pending | Start SHA `74a8a7e`; earlier `fe7f1d0`, `593e5ab`, `afdc6e0`, and `17b2a3d` presentation candidates remain immutable failed evidence. Integrated visual and systems repairs closed the frozen P1s; the final cross-discipline pass found one opening-lifetime mechanism, repaired at `4c205e2`; the one post-fix confirmation answered the binding question exactly **YES** with zero P0/P1 at frozen `90c0ad2`. Human Gate 0/A/B remain `NOT RUN`. |
 
 ## Operator implementation override — 2026-08-21
 
@@ -108,6 +108,10 @@ Research branches were not pushed. The coordinator staged explicit paths and int
 | Frozen World-as-Product product review | `afdc6e0` reviewed at `b60e8f8`, integrated as `c78de7c` | Exact answer **NO**; three P1s record label-dependent task/interaction legibility, a text-first Mara consequence, and occluded/non-specific return/Chronicle framing. Human Gate 0/A/B remain `NOT RUN`. |
 | Frozen World-as-Product systems review | `afdc6e0` reviewed at `d1eb0eb`, integrated as `2441af5` | Zero P0, four P1, one P2. Canonical watched-world cadence, truthful task completion/resume, cross-head travel continuity, and the claimed ten-second lifecycle gate require direct repair and confirmation. |
 | Frozen World-as-Product visual review | `afdc6e0` reviewed at `9ad927e`, integrated as `b02874e` | Exact answer **NO**; opening activity legibility and Chronicle occlusion independently reproduced. The numerical 15-run battery passed its budgets but remained failed evidence because Battery Power ended at 49%. |
+| World-as-Product visual/product repair | `0d5913b` integrated as `e1100f6` | Typed action equipment, visible ledger consequence states, world-first controls, and three distinct subject-visible Chronicle compositions; combined pinned FAST later passed 191 unit tests. |
+| World-as-Product systems repair | `c6f595c` integrated/resolved as `e6b4e95`, coordinator tests `81694ec`/`17b2a3d` | Commit-before-publish watched cadence, truthful task release/resume, cross-head route continuity, event-time Chronicle focus, 12-second lifecycle/reload gate, and automatic stale-writer fencing. |
+| Final cross-discipline World-as-Product review | `17b2a3d` reviewed at `b479042`, integrated as `90c0ad2` | Exact answer **NO**; all earlier systems/consequence/Chronicle findings closed, but the two-second first boundary removed the only opening interaction before throttled mobile meaningful paint. |
+| Opening-lifetime repair and final confirmation | repair `4c205e2`; frozen candidate `90c0ad2`; confirmation `1da2c8a`, integrated as `40e2154` | Reality—not the renderer—keeps the market exchange reserved through simulation time 180 and settles it once at 240. The unchanged throttled predicate qualified at 4,439.5 ms with a current illustrated interaction; exact answer **YES**, zero P0/P1. Canonical five-repetition DEEP remains pending. |
 
 ## Disposable spike evidence
 
