@@ -259,9 +259,12 @@ async function waitForQualificationMark(page, name, timeout) {
 async function captureArrivalInvariant(page) {
 	return page.evaluate(() => {
 		const buttons = [...document.querySelectorAll("button")];
-		const followButtons = buttons.filter((button) =>
-			button.textContent?.includes("Follow Mara"),
+		const decisionPanel = document.querySelector(
+			'[aria-label="Current Riverhold decision"]',
 		);
+		const followButtons = [
+			...(decisionPanel?.querySelectorAll("button") ?? []),
+		].filter((button) => button.textContent?.trim().startsWith("Follow Mara"));
 		return {
 			arrivalPanelCount: document.querySelectorAll(".phase-panel--arrival")
 				.length,
@@ -291,7 +294,8 @@ function assertArrivalInvariant(invariant, boundary) {
 
 async function reachBusyMarket(page) {
 	await page
-		.getByRole("button", { name: /Follow Mara/ })
+		.getByLabel("Current Riverhold decision")
+		.getByRole("button", { name: "Follow Mara", exact: true })
 		.click({ timeout: 5_000 });
 	const started = performance.now();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
@@ -473,9 +477,9 @@ try {
 										}
 									: null;
 							});
-							const follow = [...document.querySelectorAll("button")].find(
-								(button) => button.textContent?.includes("Follow Mara"),
-							);
+							const follow = document
+								.querySelector('[aria-label="Current Riverhold decision"]')
+								?.querySelector("button.primary-action");
 							const canvas = document.querySelector(
 								"[data-testid='riverhold-canvas']",
 							);
@@ -605,7 +609,9 @@ try {
 					"eonfolk-shell",
 					2_000,
 				);
-				const follow = page.getByRole("button", { name: /Follow Mara/ });
+				const follow = page
+					.getByLabel("Current Riverhold decision")
+					.getByRole("button", { name: "Follow Mara", exact: true });
 				await follow.waitFor({ timeout: profile.maximumDisplayMs });
 				if (!(await follow.isEnabled()))
 					throw new Error("Follow Mara is visible but not operable");

@@ -123,7 +123,10 @@ async function runMode(mode, browserExecutable) {
 		});
 		const journeyStarted = performance.now();
 		await page.goto(origin, { waitUntil: "domcontentloaded" });
-		await page.getByRole("button", { name: /Follow Mara/ }).click();
+		await page
+			.getByLabel("Current Riverhold decision")
+			.getByRole("button", { name: "Follow Mara", exact: true })
+			.click();
 		const arrival = await sampleFrames(page);
 		await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 		await page.getByText("OBSERVED", { exact: true }).waitFor();
