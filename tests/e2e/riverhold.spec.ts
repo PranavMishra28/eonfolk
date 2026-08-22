@@ -34,6 +34,12 @@ async function installPageOracles(page: Page) {
 	page.on("pageerror", (error) => pageErrors.push(error.message));
 }
 
+function followMaraAction(page: Page): Locator {
+	return page
+		.getByLabel("Current Riverhold decision")
+		.getByRole("button", { name: "Follow Mara", exact: true });
+}
+
 test.beforeEach(async ({ page }) => {
 	pageErrors = [];
 	await installPageOracles(page);
@@ -59,7 +65,10 @@ test("embodied world advances continuously without projection contradictions", a
 	await expect(world).toHaveAttribute("data-engine", "playcanvas");
 	await expect(world).toHaveAttribute("data-device-type", "webgl2");
 	await expect(world).toHaveAttribute("data-cosmetic-processes", "river-flow");
-	await expect(world).toHaveAttribute("data-exchange-transfer", "visible");
+	await expect(world).toHaveAttribute(
+		"data-exchange-transfer",
+		"awaiting-result",
+	);
 	await expect(world).toHaveAttribute(
 		"data-mill-state",
 		/^(?:needs-repair|repaired)$/u,
@@ -111,6 +120,100 @@ test("embodied world advances continuously without projection contradictions", a
 	expect(fit?.pixelRatio).toBeLessThanOrEqual(1.51);
 });
 
+test("the world surface directly picks inhabitants and places and supports keyboard camera parity", async ({
+	page,
+}) => {
+	const world = page.getByTestId("riverhold-canvas");
+	await expect(world).toHaveAttribute(
+		"data-exchange-transfer",
+		"awaiting-result",
+	);
+	type PickTarget = {
+		readonly id: string;
+		readonly x: number;
+		readonly y: number;
+	};
+	const visibleTarget = async (kind: "citizen" | "place") =>
+		world.evaluate((host, requestedKind) => {
+			const attribute =
+				requestedKind === "citizen"
+					? host.dataset.citizenPickTargets
+					: host.dataset.placePickTargets;
+			const targets = JSON.parse(attribute ?? "[]") as PickTarget[];
+			const citizenTargets = JSON.parse(
+				host.dataset.citizenPickTargets ?? "[]",
+			) as PickTarget[];
+			const bounds = host.getBoundingClientRect();
+			return (
+				targets
+					.map((target) => ({
+						...target,
+						clientX: bounds.left + target.x,
+						clientY: bounds.top + target.y,
+					}))
+					.find((target) => {
+						const top = document.elementFromPoint(
+							target.clientX,
+							target.clientY,
+						);
+						const separatedFromCitizen =
+							requestedKind === "citizen" ||
+							citizenTargets.every(
+								(citizen) =>
+									Math.hypot(citizen.x - target.x, citizen.y - target.y) > 32,
+							);
+						return top !== null && host.contains(top) && separatedFromCitizen;
+					}) ?? null
+			);
+		}, kind);
+
+	await expect(world).toHaveAttribute("data-citizen-pick-targets", /"id"/u);
+	const citizen = await visibleTarget("citizen");
+	expect(citizen).not.toBeNull();
+	if (citizen === null) throw new Error("No unobscured citizen pick target");
+	await page.mouse.click(citizen.clientX, citizen.clientY);
+	await expect(world).toHaveAttribute(
+		"data-last-world-pick",
+		`citizen:${citizen.id}`,
+	);
+	await expect(page.getByRole("dialog")).toBeVisible();
+	await page.getByRole("button", { name: "Close details" }).click();
+	await page.getByRole("button", { name: "Resources", exact: true }).click();
+	await page.getByRole("button", { name: "Low Spring", exact: true }).click();
+	await page.getByRole("button", { name: "Resources", exact: true }).click();
+	await expect(world).toHaveAttribute("data-camera-distance-m", "52.0");
+
+	const place = await visibleTarget("place");
+	expect(place).not.toBeNull();
+	if (place === null) throw new Error("No unobscured place pick target");
+	await page.mouse.click(place.clientX, place.clientY);
+	await expect(world).toHaveAttribute(
+		"data-last-world-pick",
+		`place:${place.id}`,
+	);
+	await expect(page.getByRole("dialog")).toBeVisible();
+	await page.getByRole("button", { name: "Close details" }).click();
+
+	await world.focus();
+	const initialDistance = Number(
+		await world.getAttribute("data-camera-distance-m"),
+	);
+	await page.keyboard.press("+");
+	await expect
+		.poll(async () =>
+			Number(await world.getAttribute("data-camera-distance-m")),
+		)
+		.toBeLessThan(initialDistance);
+	await page.keyboard.press("f");
+	await expect
+		.poll(async () =>
+			Number(await world.getAttribute("data-camera-distance-m")),
+		)
+		.toBeLessThanOrEqual(18.1);
+	await page.keyboard.press("Home");
+	await expect(world).toHaveAttribute("data-camera-distance-m", "118.0");
+});
+
 test("complete verify path survives reload and reaches Chronicle and Story Card", async ({
 	context,
 	page,
@@ -124,7 +227,7 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 			.getByRole("listitem"),
 	).toHaveCount(8);
 
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await expect(page.getByText(/She acts for herself/i)).toBeVisible();
 	await expect(page.getByText(/saved only in this browser/i)).toBeVisible();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
@@ -301,7 +404,7 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 });
 
 async function reachVerifyCounsel(page: Page) {
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Verify the count privately", { exact: true }).click();
@@ -371,7 +474,7 @@ test("browser rehydrates the durable decision receipt after a resolve commit fai
 test("public-accusation advice is visibly rejected for grounded reasons", async ({
 	page,
 }) => {
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByText("Raise the mismatch in public", { exact: true }).click();
@@ -421,6 +524,10 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.reload();
 	await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+	await expect(page.getByTestId("riverhold-canvas")).toHaveAttribute(
+		"data-navigation-mode",
+		"direct",
+	);
 	const worldViewToggle = page.getByRole("button", { name: "Use list view" });
 	await worldViewToggle.focus();
 	await page.keyboard.press("Enter");
@@ -429,6 +536,11 @@ test("mobile, keyboard, semantic parity, Back, and reduced motion remain functio
 	});
 	await maraButton.click();
 	await expect(page.getByRole("dialog", { name: "Mara Vale" })).toBeVisible();
+	const selectionSheet = page.locator(".detail-sheet--world-selection");
+	const selectionHeight = await selectionSheet.evaluate(
+		(element) => element.getBoundingClientRect().height,
+	);
+	expect(selectionHeight).toBeLessThanOrEqual(844 * 0.35 + 1);
 	await expect(page.getByRole("heading", { name: "Mara Vale" })).toBeFocused();
 	await page.keyboard.press("Tab");
 	await expect(
@@ -515,7 +627,7 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 		"data-ready",
 		"true",
 	);
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(
 		page.getByRole("heading", {
@@ -531,7 +643,7 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 			name: "Report issue / Save feedback locally",
 		}),
 	).toBeVisible();
-	await newer.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(newer).click();
 	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(newer.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await newer.close();
@@ -595,9 +707,7 @@ test("required layouts and a CDP 200% browser-zoom equivalent reflow without los
 			scroll: document.documentElement.scrollWidth,
 		}));
 		expect(width.scroll).toBeLessThanOrEqual(width.client);
-		await expect(
-			page.getByRole("button", { name: /Follow Mara/ }),
-		).toBeVisible();
+		await expect(followMaraAction(page)).toBeVisible();
 	}
 	const cdp = await page.context().newCDPSession(page);
 	await cdp.send("Emulation.setDeviceMetricsOverride", {
@@ -607,7 +717,7 @@ test("required layouts and a CDP 200% browser-zoom equivalent reflow without los
 		mobile: false,
 	});
 	await page.reload();
-	await expect(page.getByRole("button", { name: /Follow Mara/ })).toBeVisible();
+	await expect(followMaraAction(page)).toBeVisible();
 	const zoomed = await page.evaluate(() => ({
 		client: document.documentElement.clientWidth,
 		scroll: document.documentElement.scrollWidth,
@@ -670,7 +780,7 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 	expect(Math.min(...textFloors.factual)).toBeGreaterThanOrEqual(16);
 	expect(Math.min(...textFloors.secondary)).toBeGreaterThanOrEqual(14);
 
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	const peek = page.locator(".phase-panel--following");
 	await expect(peek).toBeVisible();
 	const peekHeight = await peek.evaluate(
@@ -691,7 +801,7 @@ test("counsel presents its grounding and all three stakes in one state", async (
 	page,
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	const panel = page.getByLabel("Current Riverhold decision");
@@ -737,7 +847,7 @@ test("counsel presents its grounding and all three stakes in one state", async (
 test("fact badges pass normal-text contrast and focus survives forced colors", async ({
 	page,
 }) => {
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	const ratios = await page
 		.locator(".fact-badge, .belief-badge, .claim-badge")
@@ -776,7 +886,7 @@ test("fact badges pass normal-text contrast and focus survives forced colors", a
 test("the complete critical journey is keyboard-only and modal focus is isolated and restored", async ({
 	page,
 }) => {
-	const follow = page.getByRole("button", { name: /Follow Mara/ });
+	const follow = followMaraAction(page);
 	await tabTo(page, follow);
 	await page.keyboard.press("Enter");
 	const investigate = page.getByRole("button", {
@@ -863,7 +973,7 @@ test("remembered words view and renderer failure preserve a fully playable journ
 		page.getByRole("button", { name: "Use illustrated view" }),
 	).toBeVisible();
 
-	await page.getByRole("button", { name: /Follow Mara/ }).click();
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByRole("radio", { name: /Offer no advice/i }).check();
@@ -912,7 +1022,7 @@ test("manual reduced motion persists, removes root smooth scrolling, and touch t
 		page.getByRole("link", { name: "EONFOLK Riverhold home" }),
 		page.getByRole("button", { name: "Motion reduced" }),
 		page.getByRole("button", { name: "Use list view" }),
-		page.getByRole("button", { name: /Follow Mara/ }),
+		followMaraAction(page),
 	]) {
 		const box = await locator.boundingBox();
 		expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

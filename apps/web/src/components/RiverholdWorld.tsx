@@ -1,6 +1,3 @@
-import { Application, Entity } from "@playcanvas/react";
-import { Camera, Light, Render } from "@playcanvas/react/components";
-import { useApp, useAppEvent } from "@playcanvas/react/hooks";
 import {
 	advancePresentationClock,
 	humanoidPose,
@@ -13,11 +10,15 @@ import {
 	type SpatialCitizenInput,
 	type SpatialProjection,
 } from "@eonfolk/world-presentation";
+import { Application, Entity } from "@playcanvas/react";
+import { Camera, Light, Render } from "@playcanvas/react/components";
+import { useApp, useAppEvent } from "@playcanvas/react/hooks";
 import {
 	Color,
 	DEVICETYPE_WEBGL2,
 	type Entity as PlayCanvasEntity,
 	StandardMaterial,
+	Vec3,
 } from "playcanvas";
 import {
 	Component,
@@ -29,8 +30,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { RiverholdProjection } from "../projection";
 import { browserDiagnostics } from "../diagnostics";
+import type { RiverholdProjection } from "../projection";
 
 function material(hex: string): StandardMaterial {
 	const value = Number.parseInt(hex.slice(1), 16);
@@ -476,7 +477,7 @@ function WorldController({
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
-	readonly host: RefObject<HTMLDivElement | null>;
+	readonly host: RefObject<HTMLButtonElement | null>;
 	readonly rigs: RefObject<Map<string, ActorRig>>;
 	readonly exchangeProp: RefObject<PlayCanvasEntity | null>;
 }) {
@@ -545,13 +546,21 @@ function WorldController({
 		const second = sampled.actors.find(
 			(actor) => actor.citizenId === exchange?.participantIds[1],
 		);
+		const exchangeTransferStatus =
+			exchange === undefined
+				? "none"
+				: exchange.status === "in-progress"
+					? "awaiting-result"
+					: clock.current.tick < 48
+						? "transferring"
+						: "settled";
 		if (
 			exchangeProp.current !== null &&
-			exchange !== undefined &&
+			exchangeTransferStatus === "transferring" &&
 			first !== undefined &&
 			second !== undefined
 		) {
-			const progress = (clock.current.tick % 90) / 90;
+			const progress = Math.min(1, clock.current.tick / 47);
 			exchangeProp.current.setLocalPosition(
 				(first.positionMm.x +
 					(second.positionMm.x - first.positionMm.x) * progress) /
@@ -574,8 +583,7 @@ function WorldController({
 				sampled.canonicalEventLinkCount,
 			);
 			host.current.dataset.interactions = String(sampled.interactions.length);
-			host.current.dataset.exchangeTransfer =
-				exchange === undefined ? "none" : "visible";
+			host.current.dataset.exchangeTransfer = exchangeTransferStatus;
 			host.current.dataset.teleports = String(inspection.teleportCount);
 			host.current.dataset.contradictions = String(
 				inspection.contradictionCount,
@@ -638,12 +646,22 @@ function CameraController({
 	focus,
 	reducedMotion,
 	onSemanticScale,
+	onCitizenSelect,
+	onPlaceSelect,
+	onOverview,
+	onFollowCitizen,
+	focalCitizenId,
 }: {
-	readonly host: RefObject<HTMLDivElement | null>;
+	readonly host: RefObject<HTMLButtonElement | null>;
 	readonly rigs: RefObject<Map<string, ActorRig>>;
 	readonly focus: WorldFocus;
 	readonly reducedMotion: boolean;
 	readonly onSemanticScale: (scale: SemanticScale) => void;
+	readonly onCitizenSelect: (citizenId: string) => void;
+	readonly onPlaceSelect: (placeId: string) => void;
+	readonly onOverview: () => void;
+	readonly onFollowCitizen: (citizenId: string) => void;
+	readonly focalCitizenId: string | null;
 }) {
 	const camera = useRef<PlayCanvasEntity>(null);
 	const cameraState = useRef({
@@ -654,8 +672,11 @@ function CameraController({
 		pitch: 48,
 	});
 	const pointers = useRef(new Map<number, { x: number; y: number }>());
+	const pointerStarts = useRef(new Map<number, { x: number; y: number }>());
 	const priorPinch = useRef<number | null>(null);
+	const multiPointerGesture = useRef(false);
 	const previousScale = useRef<SemanticScale | null>(null);
+	const pickTargetSample = useRef(0);
 
 	useEffect(() => {
 		const state = cameraState.current;
@@ -699,11 +720,15 @@ function CameraController({
 			clampTarget();
 		};
 		const onPointerDown = (event: PointerEvent) => {
+			if (event.pointerType === "mouse" && event.button !== 0) return;
 			surface.setPointerCapture(event.pointerId);
-			pointers.current.set(event.pointerId, {
+			const point = {
 				x: event.clientX,
 				y: event.clientY,
-			});
+			};
+			pointers.current.set(event.pointerId, point);
+			pointerStarts.current.set(event.pointerId, point);
+			if (pointers.current.size > 1) multiPointerGesture.current = true;
 		};
 		const onPointerMove = (event: PointerEvent) => {
 			const prior = pointers.current.get(event.pointerId);
@@ -739,10 +764,76 @@ function CameraController({
 			}
 			clampTarget();
 		};
-		const onPointerUp = (event: PointerEvent) => {
-			pointers.current.delete(event.pointerId);
-			priorPinch.current = null;
+		const pickAt = (clientX: number, clientY: number, pointerType: string) => {
+			const entity = camera.current;
+			if (entity?.camera === undefined) return;
+			const bounds = surface.getBoundingClientRect();
+			const screenX = clientX - bounds.left;
+			const screenY = clientY - bounds.top;
+			const citizenThreshold = pointerType === "touch" ? 42 : 28;
+			const placeThreshold = pointerType === "touch" ? 52 : 38;
+			const citizen = [...rigs.current.entries()]
+				.map(([citizenId, rig]) => {
+					const point = entity.camera?.worldToScreen(rig.root.getPosition());
+					return {
+						citizenId,
+						distance:
+							point === undefined
+								? Number.POSITIVE_INFINITY
+								: Math.hypot(point.x - screenX, point.y - screenY),
+					};
+				})
+				.sort((left, right) => left.distance - right.distance)[0];
+			if (citizen !== undefined && citizen.distance <= citizenThreshold) {
+				surface.dataset.lastWorldPick = `citizen:${citizen.citizenId}`;
+				onCitizenSelect(citizen.citizenId);
+				return;
+			}
+			const place = Object.values(riverholdSpatialScene.places)
+				.map((candidate) => {
+					const point = entity.camera?.worldToScreen(
+						new Vec3(
+							candidate.centerMm.x / 1_000,
+							0,
+							candidate.centerMm.z / 1_000,
+						),
+					);
+					return {
+						placeId: candidate.placeId,
+						distance:
+							point === undefined
+								? Number.POSITIVE_INFINITY
+								: Math.hypot(point.x - screenX, point.y - screenY),
+					};
+				})
+				.sort((left, right) => left.distance - right.distance)[0];
+			if (place !== undefined && place.distance <= placeThreshold) {
+				surface.dataset.lastWorldPick = `place:${place.placeId}`;
+				onPlaceSelect(place.placeId);
+			}
 		};
+		const finishPointer = (event: PointerEvent, allowPick: boolean) => {
+			const start = pointerStarts.current.get(event.pointerId);
+			const isOnlyPointer = pointers.current.size === 1;
+			const distance =
+				start === undefined
+					? Number.POSITIVE_INFINITY
+					: Math.hypot(event.clientX - start.x, event.clientY - start.y);
+			if (
+				allowPick &&
+				isOnlyPointer &&
+				!multiPointerGesture.current &&
+				distance <= 7
+			)
+				pickAt(event.clientX, event.clientY, event.pointerType);
+			pointers.current.delete(event.pointerId);
+			pointerStarts.current.delete(event.pointerId);
+			priorPinch.current = null;
+			if (pointers.current.size === 0) multiPointerGesture.current = false;
+		};
+		const onPointerUp = (event: PointerEvent) => finishPointer(event, true);
+		const onPointerCancel = (event: PointerEvent) =>
+			finishPointer(event, false);
 		const stopMenu = (event: MouseEvent) => event.preventDefault();
 		const applyCameraIntent = (kind: string) => {
 			const state = cameraState.current;
@@ -768,6 +859,19 @@ function CameraController({
 				event.target instanceof HTMLSelectElement
 			)
 				return;
+			if (event.target !== surface) return;
+			if (event.key === "Home" || event.key === "0") {
+				event.preventDefault();
+				onOverview();
+				return;
+			}
+			if (event.key.toLowerCase() === "f") {
+				if (focalCitizenId !== null) {
+					event.preventDefault();
+					onFollowCitizen(focalCitizenId);
+				}
+				return;
+			}
 			const kind =
 				event.key === "+" || event.key === "="
 					? "zoom-in"
@@ -791,21 +895,29 @@ function CameraController({
 		surface.addEventListener("pointerdown", onPointerDown);
 		surface.addEventListener("pointermove", onPointerMove);
 		surface.addEventListener("pointerup", onPointerUp);
-		surface.addEventListener("pointercancel", onPointerUp);
+		surface.addEventListener("pointercancel", onPointerCancel);
 		surface.addEventListener("contextmenu", stopMenu);
 		window.addEventListener("eonfolk:camera-intent", onCameraIntent);
-		window.addEventListener("keydown", onKeyDown);
+		surface.addEventListener("keydown", onKeyDown);
 		return () => {
 			surface.removeEventListener("wheel", onWheel);
 			surface.removeEventListener("pointerdown", onPointerDown);
 			surface.removeEventListener("pointermove", onPointerMove);
 			surface.removeEventListener("pointerup", onPointerUp);
-			surface.removeEventListener("pointercancel", onPointerUp);
+			surface.removeEventListener("pointercancel", onPointerCancel);
 			surface.removeEventListener("contextmenu", stopMenu);
 			window.removeEventListener("eonfolk:camera-intent", onCameraIntent);
-			window.removeEventListener("keydown", onKeyDown);
+			surface.removeEventListener("keydown", onKeyDown);
 		};
-	}, [host]);
+	}, [
+		focalCitizenId,
+		host,
+		onCitizenSelect,
+		onFollowCitizen,
+		onOverview,
+		onPlaceSelect,
+		rigs,
+	]);
 
 	useAppEvent("update", () => {
 		const entity = camera.current;
@@ -845,6 +957,32 @@ function CameraController({
 				.map((cell) => `${cell.cellId}:${cell.fidelity}`)
 				.join(",");
 			host.current.dataset.cameraDistanceM = state.distance.toFixed(1);
+			host.current.dataset.cameraTarget = `${state.targetX.toFixed(1)},${state.targetZ.toFixed(1)}`;
+			host.current.dataset.navigationMode = reducedMotion
+				? "direct"
+				: "animated";
+			const cameraComponent = entity.camera;
+			pickTargetSample.current = (pickTargetSample.current + 1) % 6;
+			if (
+				cameraComponent !== undefined &&
+				(pickTargetSample.current === 0 ||
+					host.current.dataset.citizenPickTargets === undefined)
+			) {
+				host.current.dataset.citizenPickTargets = JSON.stringify(
+					[...rigs.current.entries()].map(([citizenId, rig]) => {
+						const point = cameraComponent.worldToScreen(rig.root.getPosition());
+						return { id: citizenId, x: point.x, y: point.y };
+					}),
+				);
+				host.current.dataset.placePickTargets = JSON.stringify(
+					Object.values(riverholdSpatialScene.places).map((place) => {
+						const point = cameraComponent.worldToScreen(
+							new Vec3(place.centerMm.x / 1_000, 0, place.centerMm.z / 1_000),
+						);
+						return { id: place.placeId, x: point.x, y: point.y };
+					}),
+				);
+			}
 		}
 		if (previousScale.current !== residency.semanticScale) {
 			previousScale.current = residency.semanticScale;
@@ -862,7 +1000,7 @@ function CameraController({
 function SceneProbe({
 	host,
 }: {
-	readonly host: RefObject<HTMLDivElement | null>;
+	readonly host: RefObject<HTMLButtonElement | null>;
 }) {
 	const app = useApp();
 	const ready = useRef(false);
@@ -1109,12 +1247,18 @@ function Settlement({
 	host,
 	focus,
 	onSemanticScaleChange,
+	onCitizenSelect,
+	onPlaceSelect,
+	onFocusChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
-	readonly host: RefObject<HTMLDivElement | null>;
+	readonly host: RefObject<HTMLButtonElement | null>;
 	readonly focus: WorldFocus;
 	readonly onSemanticScaleChange: (scale: SemanticScale) => void;
+	readonly onCitizenSelect: (citizenId: string) => void;
+	readonly onPlaceSelect: (placeId: string) => void;
+	readonly onFocusChange: (focus: WorldFocus) => void;
 }) {
 	const rigs = useRef(new Map<string, ActorRig>());
 	const exchangeProp = useRef<PlayCanvasEntity>(null);
@@ -1149,6 +1293,15 @@ function Settlement({
 				focus={focus}
 				reducedMotion={reducedMotion}
 				onSemanticScale={updateSemanticScale}
+				onCitizenSelect={onCitizenSelect}
+				onPlaceSelect={onPlaceSelect}
+				onOverview={() => onFocusChange({ kind: "overview" })}
+				onFollowCitizen={(citizenId) =>
+					onFocusChange({ kind: "citizen", id: citizenId, follow: true })
+				}
+				focalCitizenId={
+					projection.citizens.find((citizen) => citizen.focal)?.id ?? null
+				}
 			/>
 			<Entity rotation={[48, -32, 0]}>
 				<Light
@@ -1209,13 +1362,19 @@ function CheckedSettlement({
 	onFailure,
 	focus,
 	onSemanticScaleChange,
+	onCitizenSelect,
+	onPlaceSelect,
+	onFocusChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
-	readonly host: RefObject<HTMLDivElement | null>;
+	readonly host: RefObject<HTMLButtonElement | null>;
 	readonly onFailure: () => void;
 	readonly focus: WorldFocus;
 	readonly onSemanticScaleChange: (scale: SemanticScale) => void;
+	readonly onCitizenSelect: (citizenId: string) => void;
+	readonly onPlaceSelect: (placeId: string) => void;
+	readonly onFocusChange: (focus: WorldFocus) => void;
 }) {
 	const injectedFailure =
 		sessionStorage.getItem("eonfolk:e2e-renderer-failure") === "1";
@@ -1230,6 +1389,9 @@ function CheckedSettlement({
 			host={host}
 			focus={focus}
 			onSemanticScaleChange={onSemanticScaleChange}
+			onCitizenSelect={onCitizenSelect}
+			onPlaceSelect={onPlaceSelect}
+			onFocusChange={onFocusChange}
 		/>
 	);
 }
@@ -1240,19 +1402,29 @@ export function RiverholdWorld({
 	onFailure,
 	focus,
 	onSemanticScaleChange,
+	onCitizenSelect,
+	onPlaceSelect,
+	onFocusChange,
 }: {
 	readonly projection: RiverholdProjection;
 	readonly reducedMotion: boolean;
 	readonly onFailure: () => void;
 	readonly focus?: WorldFocus;
 	readonly onSemanticScaleChange?: (scale: SemanticScale) => void;
+	readonly onCitizenSelect?: (citizenId: string) => void;
+	readonly onPlaceSelect?: (placeId: string) => void;
+	readonly onFocusChange?: (focus: WorldFocus) => void;
 }) {
-	const host = useRef<HTMLDivElement>(null);
+	const host = useRef<HTMLButtonElement>(null);
 	return (
-		<div
+		<button
 			ref={host}
 			className="world-canvas"
-			aria-hidden="true"
+			type="button"
+			onClick={(event) => {
+				if (event.detail === 0) onFocusChange?.({ kind: "overview" });
+			}}
+			aria-label="Interactive Riverhold world. Drag to pan, pinch or use plus and minus to zoom, Home for overview, and F to follow Mara. Tap an inhabitant or place for details."
 			data-testid="riverhold-canvas"
 			data-ready="false"
 			data-engine="playcanvas"
@@ -1269,8 +1441,11 @@ export function RiverholdWorld({
 					onFailure={onFailure}
 					focus={focus ?? { kind: "overview" }}
 					onSemanticScaleChange={onSemanticScaleChange ?? (() => undefined)}
+					onCitizenSelect={onCitizenSelect ?? (() => undefined)}
+					onPlaceSelect={onPlaceSelect ?? (() => undefined)}
+					onFocusChange={onFocusChange ?? (() => undefined)}
 				/>
 			</RendererBoundary>
-		</div>
+		</button>
 	);
 }

@@ -436,6 +436,13 @@ main {
 .world-canvas {
 	position: absolute;
 	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	background: transparent;
 }
 .world-canvas canvas {
 	width: 100%;
@@ -2243,6 +2250,11 @@ em {
 	cursor: grabbing;
 }
 
+.world-canvas:focus-visible {
+	outline: 3px solid #f2cf7d;
+	outline-offset: -5px;
+}
+
 .chronicle-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -2273,12 +2285,50 @@ em {
 		bottom: 0.65rem;
 		left: 0.65rem;
 		width: auto;
-		max-height: 43%;
+		max-height: 35%;
+		overflow: auto;
 		border-radius: 14px 14px 0 0;
 	}
 
 	.phase-orientation .decision-rail {
 		max-height: 58%;
+	}
+
+	.sheet-scrim--world-selection {
+		align-items: end;
+		justify-items: stretch;
+		background: rgba(11, 14, 11, 0.16);
+		backdrop-filter: none;
+	}
+
+	.detail-sheet--world-selection {
+		width: 100%;
+		height: min(35svh, 300px);
+		padding: 1rem 4.25rem 1rem 1.1rem;
+		border-top: 1px solid rgba(30, 33, 28, 0.45);
+		border-radius: 16px 16px 0 0;
+		box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.25);
+		animation-name: world-selection-sheet-in;
+	}
+
+	.detail-sheet--world-selection h2,
+	.detail-sheet--world-selection p {
+		margin-block: 0.2rem;
+	}
+
+	.detail-sheet--world-selection dl {
+		margin-top: 0.5rem;
+	}
+
+	.detail-sheet--world-selection dl div {
+		padding: 0.55rem 0;
+	}
+
+	@keyframes world-selection-sheet-in {
+		from {
+			transform: translateY(24px);
+			opacity: 0;
+		}
 	}
 
 	.decision-rail .phase-panel {
@@ -2288,7 +2338,7 @@ em {
 
 	.world-caption {
 		left: 0.65rem;
-		bottom: calc(43% + 1.2rem);
+		bottom: calc(35% + 1.2rem);
 		width: min(460px, calc(100% - 1.3rem));
 	}
 
@@ -2303,7 +2353,7 @@ em {
 	.world-view-toggle {
 		top: auto;
 		right: 0.75rem;
-		bottom: calc(43% + 1rem);
+		bottom: calc(35% + 1rem);
 	}
 }
 
@@ -2329,6 +2379,12 @@ em {
 	}
 
 	.world-view-toggle {
-		bottom: calc(43% + 0.8rem);
+		bottom: calc(35% + 0.8rem);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.detail-sheet--world-selection {
+		animation: none;
 	}
 }
