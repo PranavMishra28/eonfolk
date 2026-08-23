@@ -6,7 +6,8 @@ import {
 	proposalHash,
 	sha256Hex,
 } from "../../protocol/src/index.js";
-import type { BrainPort } from "./brain-port.js";
+import type { IntentProposalBrainPort } from "./brain-port.js";
+import type { LocalProcessBrainContract } from "./experiment.js";
 
 export const MODEL_CHOICE_SCHEMA_VERSION = "eonfolk-model-choice-v1" as const;
 export const MODEL_PROMPT_TEMPLATE_VERSION = "eonfolk-model-prompt-v1" as const;
@@ -77,6 +78,11 @@ export interface ModelChoiceRequest {
  */
 export interface ModelChoiceTransport {
 	invoke(request: ModelChoiceRequest, signal?: AbortSignal): Promise<string>;
+}
+
+export interface ContractBoundModelChoiceTransport
+	extends ModelChoiceTransport {
+	readonly contractHash: string;
 }
 
 export interface ModelBrainConfiguration {
@@ -205,10 +211,57 @@ function requestFor(context: DecisionContext): ModelChoiceRequest {
 	};
 }
 
+export async function modelChoiceContractDigests(): Promise<{
+	readonly promptTemplateHash: string;
+	readonly proposalSchemaHash: string;
+}> {
+	return {
+		promptTemplateHash: await domainHash("EONFOLK:MODEL-PROMPT-TEMPLATE:v1", {
+			version: MODEL_PROMPT_TEMPLATE_VERSION,
+			promptTemplate,
+		}),
+		proposalSchemaHash: await domainHash(
+			"EONFOLK:MODEL-CHOICE-SCHEMA:v1",
+			responseSchema,
+		),
+	};
+}
+
+/**
+ * Binds an executable local transport to the immutable contract whose digest
+ * is retained in proposal provenance. The transport still has no authority:
+ * its one choice passes through the same closed parser and authority gateway.
+ */
+export async function createContractBoundModelBrain(
+	contract: LocalProcessBrainContract,
+	transport: ContractBoundModelChoiceTransport,
+): Promise<IntentProposalBrainPort> {
+	if (transport.contractHash !== contract.contractHash)
+		throw new Error("model transport contract hash mismatch");
+	const digests = await modelChoiceContractDigests();
+	if (
+		contract.promptTemplateHash !== digests.promptTemplateHash ||
+		contract.proposalSchemaHash !== digests.proposalSchemaHash
+	)
+		throw new Error(
+			"model contract does not bind the active prompt and schema",
+		);
+	return createModelBrain(
+		{
+			provider: `local-process-contract:${contract.contractHash}`,
+			model: contract.model.artifactId,
+			modelVersion: `sha256:${contract.model.sha256}`,
+			maxRequestBytes: contract.limits.maxRequestBytes,
+			maxResponseBytes: contract.limits.maxStdoutBytes,
+		},
+		transport,
+	);
+}
+
 export function createModelBrain(
 	configuration: ModelBrainConfiguration,
 	transport: ModelChoiceTransport,
-): BrainPort {
+): IntentProposalBrainPort {
 	assertBoundedLabel(configuration.provider, "provider");
 	assertBoundedLabel(configuration.model, "model");
 	assertBoundedLabel(configuration.modelVersion, "modelVersion");
@@ -231,6 +284,7 @@ export function createModelBrain(
 			if (catalogEntry === undefined)
 				throw new TypeError("model selected an unavailable action");
 			const artifactHash = await sha256Hex(artifactBytes);
+			const contractDigests = await modelChoiceContractDigests();
 			const withoutHash = {
 				schemaVersion: "eonfolk-intent-proposal-v1" as const,
 				proposalId: `proposal-model-${artifactHash.slice(0, 24)}`,
@@ -247,14 +301,8 @@ export function createModelBrain(
 					provider: configuration.provider,
 					model: configuration.model,
 					modelVersion: configuration.modelVersion,
-					promptTemplateHash: await domainHash(
-						"EONFOLK:MODEL-PROMPT-TEMPLATE:v1",
-						{ version: MODEL_PROMPT_TEMPLATE_VERSION, promptTemplate },
-					),
-					proposalSchemaHash: await domainHash(
-						"EONFOLK:MODEL-CHOICE-SCHEMA:v1",
-						responseSchema,
-					),
+					promptTemplateHash: contractDigests.promptTemplateHash,
+					proposalSchemaHash: contractDigests.proposalSchemaHash,
 					artifactHash,
 				},
 				publicJustification: choice.publicJustification,

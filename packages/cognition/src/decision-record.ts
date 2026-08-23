@@ -17,6 +17,14 @@ import {
 	type WorldEventEnvelope,
 } from "../../protocol/src/index.js";
 
+function deepFreeze<T>(value: T): T {
+	if (typeof value !== "object" || value === null || Object.isFrozen(value))
+		return value;
+	for (const child of Object.values(value as Record<string, unknown>))
+		deepFreeze(child);
+	return Object.freeze(value);
+}
+
 export async function createCognitiveDecisionRecord(input: {
 	readonly decisionId: string;
 	readonly decisionBoundaryId: string;
@@ -96,6 +104,67 @@ export async function createCognitiveDecisionRecord(input: {
 		...withoutHash,
 		decisionRecordHash: await decisionRecordHash(withoutHash),
 	};
+}
+
+/**
+ * Rehydrates the exact accepted proposal recorded at the original decision
+ * boundary. Replay has no BrainPort parameter and therefore cannot rerun model
+ * inference or substitute a contemporary model response.
+ */
+export async function restoreRecordedIntentProposal(input: {
+	readonly context: DecisionContext;
+	readonly record: CognitiveDecisionRecord;
+	readonly validate: (
+		context: DecisionContext,
+		proposal: unknown,
+	) => Promise<"accepted" | "ACTION_UNAVAILABLE">;
+}): Promise<IntentProposal> {
+	const { decisionRecordHash: recordedDecisionHash, ...recordWithoutHash } =
+		input.record;
+	if ((await decisionRecordHash(recordWithoutHash)) !== recordedDecisionHash)
+		throw new Error("recorded cognitive decision hash mismatch");
+	if (
+		input.record.proposalCanonicalBytes === null ||
+		input.record.proposalHash === null ||
+		input.record.failureCode !== null
+	)
+		throw new Error("recorded cognitive decision has no accepted proposal");
+	if (
+		input.record.contextHash !== input.context.contextHash ||
+		input.record.actorId !== input.context.actorId ||
+		input.record.revision !== input.context.revision
+	)
+		throw new Error("recorded cognitive decision context mismatch");
+	if (
+		new TextEncoder().encode(input.record.proposalCanonicalBytes).byteLength >
+		64 * 1_024
+	)
+		throw new RangeError("recorded proposal exceeds its replay byte budget");
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(input.record.proposalCanonicalBytes);
+	} catch {
+		throw new TypeError("recorded proposal is not JSON");
+	}
+	if (
+		typeof parsed !== "object" ||
+		parsed === null ||
+		Array.isArray(parsed) ||
+		jcs(parsed) !== input.record.proposalCanonicalBytes
+	)
+		throw new TypeError("recorded proposal is not canonical JSON");
+	const proposal = parsed as IntentProposal;
+	const { proposalHash, ...proposalWithoutHash } = proposal;
+	if (
+		proposalHash !== input.record.proposalHash ||
+		(await hashProposal(proposalWithoutHash)) !== proposalHash
+	)
+		throw new Error("recorded proposal hash mismatch");
+	if ((await input.validate(input.context, proposal)) !== "accepted")
+		throw new Error(
+			"recorded proposal violates the current authority contract",
+		);
+	return deepFreeze(proposal);
 }
 
 export interface DecisionTraceInput {

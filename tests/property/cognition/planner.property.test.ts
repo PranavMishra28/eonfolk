@@ -2,7 +2,9 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import {
-	createModelBrain,
+	createContractBoundModelBrain,
+	createLocalProcessBrainContract,
+	modelChoiceContractDigests,
 	planRoutine,
 	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
@@ -62,6 +64,58 @@ async function modelContext(): Promise<DecisionContext> {
 		.context;
 }
 
+async function contractBoundBrain(output: () => string) {
+	const digest = "a".repeat(64);
+	const artifact = {
+		artifactId: "property-fixture",
+		byteLength: 1,
+		licenseId: "MIT",
+		licenseTextSha256: digest,
+		sha256: digest,
+		version: "fixture-v1",
+	};
+	const digests = await modelChoiceContractDigests();
+	const contract = await createLocalProcessBrainContract({
+		adapterHash: digest,
+		adapterId: "property-adapter",
+		adapterVersion: "fixture-v1",
+		chatTemplate: artifact,
+		environmentNames: [],
+		generation: {
+			contextTokens: 2_048,
+			maxOutputTokens: 128,
+			seed: 0,
+			temperatureBasisPoints: 0,
+		},
+		limits: {
+			coldTimeoutMs: 1_000,
+			maxRequestBytes: 16_384,
+			maxStderrBytes: 2_048,
+			maxStdoutBytes: 2_048,
+			retries: 0,
+			warmTimeoutMs: 1_000,
+		},
+		model: artifact,
+		modelConfiguration: artifact,
+		modelSource: "preprovisioned-local",
+		networkPolicy: "deny-all-required",
+		promptTemplateHash: digests.promptTemplateHash,
+		proposalSchemaHash: digests.proposalSchemaHash,
+		runtime: {
+			executable: artifact,
+			kind: "other-local",
+			sourceCommit: "b".repeat(40),
+		},
+		tokenizer: artifact,
+		transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
+		trustRemoteCode: false,
+	});
+	return createContractBoundModelBrain(contract, {
+		contractHash: contract.contractHash,
+		invoke: async () => output(),
+	});
+}
+
 describe("bounded cognition properties", () => {
 	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
 
@@ -108,18 +162,11 @@ describe("bounded cognition properties", () => {
 
 	it("never turns arbitrary untrusted text into an accepted model proposal", async () => {
 		const context = await modelContext();
+		let artifact = "";
+		const brain = await contractBoundBrain(() => artifact);
 		await fc.assert(
-			fc.asyncProperty(fc.string({ maxLength: 1_024 }), async (artifact) => {
-				const brain = createModelBrain(
-					{
-						provider: "property-transport",
-						model: "arbitrary-text",
-						modelVersion: "v1",
-						maxRequestBytes: 32_768,
-						maxResponseBytes: 2_048,
-					},
-					{ invoke: async () => artifact },
-				);
+			fc.asyncProperty(fc.string({ maxLength: 1_024 }), async (value) => {
+				artifact = value;
 				try {
 					const proposal = await brain.propose(context);
 					expect(await validateIntentProposal(context, proposal)).not.toBe(

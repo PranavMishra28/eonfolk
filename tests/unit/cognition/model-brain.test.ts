@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	createCognitiveDecisionRecord,
 	createModelBrain,
+	restoreRecordedIntentProposal,
 	runDecisionGateway,
 	standardBrain,
 	validateIntentProposal,
@@ -127,5 +129,51 @@ describe("closed model brain adapter", () => {
 		const controller = new AbortController();
 		await brain.propose(context, controller.signal);
 		expect(observedSignal).toBe(controller.signal);
+	});
+
+	it("restores historical model decisions without invoking inference again", async () => {
+		const { context } = await setup();
+		let invocations = 0;
+		const brain = createModelBrain(
+			{
+				provider: "local-process-contract-fixture",
+				model: "fixture-model",
+				modelVersion: "fixture-v1",
+				maxRequestBytes: 32_768,
+				maxResponseBytes: 2_048,
+			},
+			{
+				invoke: async () => {
+					invocations += 1;
+					return validArtifact();
+				},
+			},
+		);
+		const proposal = await brain.propose(context);
+		const record = await createCognitiveDecisionRecord({
+			acceptedEventInterval: null,
+			context,
+			decisionBoundaryId: "boundary-model-replay",
+			decisionId: "decision-model-replay",
+			failureCode: null,
+			proposal,
+			proposedCommandId: "command-model-replay",
+			receiptRef: "command-model-replay",
+			validator: {
+				outcome: "accepted",
+				reason: "accepted",
+				stage: "committed",
+			},
+			wholePreStateHash: "d".repeat(64),
+		});
+
+		const restored = await restoreRecordedIntentProposal({
+			context,
+			record,
+			validate: validateIntentProposal,
+		});
+		expect(restored).toEqual(proposal);
+		expect(Object.isFrozen(restored)).toBe(true);
+		expect(invocations).toBe(1);
 	});
 });

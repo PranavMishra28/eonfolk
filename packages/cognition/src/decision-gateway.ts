@@ -31,6 +31,15 @@ function assertTimeout(value: number): void {
 	}
 }
 
+function thrownFailure(error: unknown): PrimaryFailure {
+	return typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		(error as { readonly code?: unknown }).code === "timeout"
+		? "timeout"
+		: "threw";
+}
+
 async function proposeWithinTimeout(
 	brain: BrainPort,
 	context: DecisionContext,
@@ -95,11 +104,11 @@ export async function runDecisionGateway(
 			input.context,
 			input.primaryTimeoutMilliseconds,
 		);
-	} catch {
+	} catch (error) {
 		return {
 			proposal: await validatedFallback(input),
 			selectedSource: "deterministic-fallback",
-			primaryFailure: "threw",
+			primaryFailure: thrownFailure(error),
 			primaryAttempts: 1,
 		};
 	}

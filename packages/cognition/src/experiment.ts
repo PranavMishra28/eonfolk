@@ -406,6 +406,19 @@ export async function createLocalProcessBrainContract(
 	return deepFreeze(contract);
 }
 
+export async function verifyLocalProcessBrainContract(
+	contract: LocalProcessBrainContract,
+): Promise<boolean> {
+	try {
+		const { schemaVersion, contractHash, ...input } = contract;
+		if (schemaVersion !== LOCAL_PROCESS_BRAIN_CONTRACT_VERSION) return false;
+		const rebuilt = await createLocalProcessBrainContract(input);
+		return rebuilt.contractHash === contractHash;
+	} catch {
+		return false;
+	}
+}
+
 function assertBrainConfiguration(brain: ExperimentBrainConfiguration): void {
 	switch (brain.kind) {
 		case "standard":
