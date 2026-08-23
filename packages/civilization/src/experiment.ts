@@ -492,7 +492,7 @@ async function stateHash(
 	state: CivilizationState,
 	worldStateHash: string,
 ): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v2", {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v3", {
 		civilization: state,
 		worldStateHash,
 	});
@@ -516,7 +516,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v2",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v3",
 		body,
 	);
 	return {
@@ -607,7 +607,7 @@ export async function runCivilizationExperiment(input: {
 	let state = bootstrapCivilization(input.world, conditions);
 	let world = input.world;
 	let worldStateHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v2",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
 		world,
 	);
 	assertCivilizationInvariants(state);
@@ -903,7 +903,7 @@ export async function runCivilizationExperiment(input: {
 				foundedAtSimulationTime: atSimulationTime,
 			});
 			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v2",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
 				world,
 			);
 			state = recordFoundingMaterialization(
@@ -935,7 +935,7 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v2",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v3",
 				stepBody,
 			),
 		});
@@ -992,7 +992,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		...matrixBody,
 		runs,
 		matrixHash: await domainHash(
-			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v2",
+			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v3",
 			matrixBody,
 		),
 	};
