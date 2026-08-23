@@ -1,6 +1,5 @@
 import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
 import {
-	type ComponentType,
 	lazy,
 	Suspense,
 	useEffect,
@@ -411,10 +410,6 @@ function GeneratedContextPanel({
 	);
 }
 
-const ReleaseFeedbackPanel = FeedbackPanel as ComponentType<{
-	readonly contextLabel?: string;
-}>;
-
 function GeneratedWorld({
 	experience,
 }: {
@@ -703,7 +698,7 @@ function GeneratedWorld({
 				<summary>Release Genesis feedback</summary>
 				<div>
 					<p className="v1-kicker">RELEASE GENESIS FEEDBACK</p>
-					<ReleaseFeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
+					<FeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
 				</div>
 			</details>
 

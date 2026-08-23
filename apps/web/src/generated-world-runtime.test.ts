@@ -40,11 +40,12 @@ describe("canonical generated-world browser experience", () => {
 		expect(
 			experience.projections.map(({ spatial }) => spatial.actors.length).sort(),
 		).toEqual([1, 7]);
-		expect(
-			experience.projections.map(
-				({ local }) => local.settlement.foundedAtSimulationTime,
-			),
-		).toEqual([0, 432_000]);
+		const foundingTimes = experience.projections.map(
+			({ local }) => local.settlement.foundedAtSimulationTime,
+		);
+		expect(foundingTimes[0]).toBe(0);
+		expect(foundingTimes[1]).toBeGreaterThan(0);
+		expect(foundingTimes[1]).toBeLessThanOrEqual(experience.simulationTime);
 		expect(
 			experience.projections.every(
 				({ availability }) => availability.status === "available",

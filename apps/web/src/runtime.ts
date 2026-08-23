@@ -951,6 +951,7 @@ export function createRiverholdRuntimeBridge(
 		},
 	);
 	worker.addEventListener("error", (event) => {
+		event.preventDefault();
 		diagnostics?.record({
 			category: "worker",
 			name: "authority-worker-crashed",
@@ -961,10 +962,7 @@ export function createRiverholdRuntimeBridge(
 		});
 		for (const request of pending.values())
 			request.reject(
-				new RiverholdRuntimeError(
-					event.message || "Riverhold worker failed",
-					null,
-				),
+				new RiverholdRuntimeError("Riverhold worker failed", null),
 			);
 		pending.clear();
 	});

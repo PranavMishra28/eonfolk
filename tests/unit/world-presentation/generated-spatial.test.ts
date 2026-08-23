@@ -59,18 +59,23 @@ function withCitizens(
 			].sort(),
 		},
 		citizens: Object.fromEntries(
-			citizenIds.map((citizenId) => [
-				citizenId,
-				{
-					schemaVersion: "eonfolk-civilization-social-v1" as const,
+			citizenIds.map((citizenId, index) => {
+				const canonical = run.state.citizens[citizenId];
+				return [
 					citizenId,
-					settlementId: originSettlementId,
-					siteId,
-					householdId: null,
-					primaryRoleId: "builder",
-					residenceState: "resident" as const,
-				},
-			]),
+					{
+						schemaVersion: "eonfolk-civilization-social-v1" as const,
+						citizenId,
+						name: canonical?.name ?? `Fixture Citizen ${index + 1}`,
+						valueIds: canonical?.valueIds ?? ["craft"],
+						settlementId: originSettlementId,
+						siteId,
+						householdId: null,
+						primaryRoleId: "builder",
+						residenceState: "resident" as const,
+					},
+				];
+			}),
 		),
 	};
 }
@@ -192,6 +197,8 @@ describe("generated civilization spatial adapter", () => {
 		expect(founded.availability).toEqual({ status: "available", reasons: [] });
 		expect(founded.spatial.actors).toHaveLength(1);
 		expect(founded.spatial.actors[0]?.citizenId).toBe("citizen-01");
+		expect(founded.spatial.actors[0]?.name).toBe("Mara Vale");
+		expect(founded.spatial.actors[0]?.role).toBe("expedition-steward");
 		const camp =
 			founded.scene.nodes["settlement-second:founding-site:camp-slot"];
 		expect(founded.spatial.actors[0]?.positionMm).toEqual({
@@ -229,7 +236,7 @@ describe("generated civilization spatial adapter", () => {
 		});
 		expect(projection.spatial.actors).toHaveLength(1);
 		expect(projection.spatial.actors[0]?.citizenId).toBe(citizen.citizenId);
-		expect(projection.spatial.actors[0]?.name).toBe(citizen.citizenId);
+		expect(projection.spatial.actors[0]?.name).toBe(citizen.name);
 		expect(projection.spatial.actors[0]?.action).toEqual(
 			groundedActivity.canonicalAction,
 		);

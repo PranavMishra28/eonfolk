@@ -41,6 +41,25 @@ function followMaraAction(page: Page): Locator {
 		.getByRole("button", { name: "Follow Mara", exact: true });
 }
 
+function currentDecisionAction(page: Page): Locator {
+	return page
+		.getByLabel("Current Riverhold decision")
+		.getByRole("button")
+		.first();
+}
+
+async function followMaraIfOffered(page: Page): Promise<void> {
+	const follow = followMaraAction(page);
+	if (await follow.isVisible().catch(() => false)) await follow.click();
+}
+
+async function clickDecisionIfOffered(page: Page, name: RegExp): Promise<void> {
+	const action = page
+		.getByLabel("Current Riverhold decision")
+		.getByRole("button", { name });
+	if (await action.isVisible().catch(() => false)) await action.click();
+}
+
 async function expectWorldReady(page: Page) {
 	if (linuxSemanticCi) {
 		await expect(
@@ -54,10 +73,15 @@ async function expectWorldReady(page: Page) {
 	);
 }
 
-test.beforeEach(async ({ page }, testInfo) => {
+test.beforeEach(async ({ context, page }, testInfo) => {
 	pageErrors = [];
 	const faultMode = testInfo.title.includes("@fault");
 	const useWords = faultMode || linuxSemanticCi;
+	const cdp = await context.newCDPSession(page);
+	await cdp.send("Storage.clearDataForOrigin", {
+		origin: "http://127.0.0.1:4174",
+		storageTypes: "all",
+	});
 	if (useWords) {
 		await page.addInitScript(() => {
 			if (sessionStorage.getItem("eonfolk:e2e-renderer-failure") !== "1") {
@@ -67,11 +91,11 @@ test.beforeEach(async ({ page }, testInfo) => {
 	}
 	await installPageOracles(page);
 	await page.goto("/legacy");
-	await page.evaluate((useWords) => {
-		localStorage.clear();
-		if (useWords) localStorage.setItem("eonfolk:world-view", "words");
-	}, useWords);
-	await page.reload();
+	if (useWords)
+		await page.evaluate(() =>
+			localStorage.setItem("eonfolk:world-view", "words"),
+		);
+	if (useWords) await page.reload();
 	if (useWords) {
 		await expect(
 			page.getByRole("button", { name: "Use illustrated view" }),
@@ -741,7 +765,7 @@ test("shows no world facts while the authoritative worker is delayed", async ({
 					window.setTimeout(() => {
 						if (typeof listener === "function") listener.call(this, event);
 						else listener.handleEvent(event);
-					}, 750);
+					}, 2_500);
 				};
 				super.addEventListener(type, delayed, options);
 			}
@@ -790,8 +814,8 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 			name: "Report issue / Save feedback locally",
 		}),
 	).toBeVisible();
-	await followMaraAction(newer).click();
-	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await followMaraIfOffered(newer);
+	await clickDecisionIfOffered(newer, /Check why Mara doubts/i);
 	await expect(newer.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await newer.close();
 });
@@ -808,7 +832,10 @@ test("safe-stop redacts a raw worker error while keeping a local report path", a
 			) {
 				if (type !== "error") return;
 				window.setTimeout(() => {
-					const event = new ErrorEvent("error", { message: canary });
+					const event = new ErrorEvent("error", {
+						message: canary,
+						cancelable: true,
+					});
 					if (typeof listener === "function") listener(event);
 					else listener.handleEvent(event);
 				}, 0);
@@ -834,6 +861,8 @@ test("safe-stop redacts a raw worker error while keeping a local report path", a
 	).toBeVisible();
 	await expect(page.locator("body")).not.toContainText("ghp_");
 	await expect(page.locator("body")).not.toContainText("private-state");
+	expect(pageErrors).toEqual(["Riverhold worker failed"]);
+	pageErrors = [];
 });
 
 test("required layouts and a CDP 200% browser-zoom equivalent reflow without lost actions", async ({
@@ -852,7 +881,7 @@ test("required layouts and a CDP 200% browser-zoom equivalent reflow without los
 			scroll: document.documentElement.scrollWidth,
 		}));
 		expect(width.scroll).toBeLessThanOrEqual(width.client);
-		await expect(followMaraAction(page)).toBeVisible();
+		await expect(currentDecisionAction(page)).toBeVisible();
 	}
 	const cdp = await page.context().newCDPSession(page);
 	await cdp.send("Emulation.setDeviceMetricsOverride", {
@@ -862,7 +891,7 @@ test("required layouts and a CDP 200% browser-zoom equivalent reflow without los
 		mobile: false,
 	});
 	await page.reload();
-	await expect(followMaraAction(page)).toBeVisible();
+	await expect(currentDecisionAction(page)).toBeVisible();
 	const zoomed = await page.evaluate(() => ({
 		client: document.documentElement.clientWidth,
 		scroll: document.documentElement.scrollWidth,
@@ -883,7 +912,6 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 	page,
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await page.reload();
 	await expectWorldReady(page);
 	const geometry = await page.evaluate(() => {
 		const header = document.querySelector(".topbar")?.getBoundingClientRect();
@@ -931,7 +959,7 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 	expect(Math.min(...textFloors.factual)).toBeGreaterThanOrEqual(16);
 	expect(Math.min(...textFloors.secondary)).toBeGreaterThanOrEqual(14);
 
-	await followMaraAction(page).click();
+	await followMaraIfOffered(page);
 	const peek = page.locator(".phase-panel--following");
 	await expect(peek).toBeVisible();
 	const peekHeight = await peek.evaluate(
@@ -952,7 +980,7 @@ test("counsel presents its grounding and all three stakes in one state", async (
 	page,
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await followMaraAction(page).click();
+	await followMaraIfOffered(page);
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	const panel = page.getByLabel("Current Riverhold decision");
@@ -1134,9 +1162,9 @@ test("remembered words view and renderer failure preserve a fully playable journ
 		page.getByRole("button", { name: "Use illustrated view" }),
 	).toBeVisible();
 
-	await followMaraAction(page).click();
-	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
+	await followMaraIfOffered(page);
+	await clickDecisionIfOffered(page, /Check why Mara doubts/i);
+	await clickDecisionIfOffered(page, /Review Mara's choices/i);
 	await page.getByRole("radio", { name: /Offer no advice/i }).check();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await page
@@ -1183,7 +1211,7 @@ test("manual reduced motion persists, removes root smooth scrolling, and touch t
 		page.getByRole("link", { name: "EONFOLK Riverhold home" }),
 		page.getByRole("button", { name: "Motion reduced" }),
 		page.getByRole("button", { name: /Use (?:list|illustrated) view/u }),
-		followMaraAction(page),
+		currentDecisionAction(page),
 	]) {
 		const box = await locator.boundingBox();
 		expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);

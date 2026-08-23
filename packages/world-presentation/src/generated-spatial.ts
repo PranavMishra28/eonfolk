@@ -43,6 +43,8 @@ const ANIMATION_CLASSES = new Set<AnimationClass>([
 interface CivilizationCitizenInput {
 	readonly schemaVersion: "eonfolk-civilization-social-v1";
 	readonly citizenId: string;
+	readonly name: string;
+	readonly valueIds: readonly string[];
 	readonly settlementId: string;
 	readonly siteId: string;
 	readonly householdId: string | null;
@@ -841,7 +843,7 @@ function activityActor(input: {
 	return Object.freeze({
 		citizenId: citizen.citizenId,
 		slug: citizen.citizenId,
-		name: citizen.citizenId,
+		name: citizen.name,
 		role: citizen.primaryRoleId ?? "unassigned",
 		placeId: citizen.siteId,
 		positionMm: position,
@@ -864,7 +866,7 @@ function activityActor(input: {
 		}),
 		interactionTarget: activity.canonicalAction.targetId,
 		action: canonicalAction,
-		semanticLabel: `${citizen.citizenId} is ${activity.canonicalAction.kind} at ${activity.canonicalAction.destinationPlaceId}`,
+		semanticLabel: `${citizen.name} is ${activity.canonicalAction.kind} at ${activity.canonicalAction.destinationPlaceId}`,
 		focal: activity.focal,
 	});
 }

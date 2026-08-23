@@ -6,22 +6,22 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 469 files excluding this generated file; SHA-256 `0769b9489e2fbd3cd71a80b384af9bc97ebef4b7809fc06515448c73985de2a3`.
+**File-set identity:** 470 files excluding this generated file; SHA-256 `2519e51ad46ac6a83aadc2621c46d2d04c51df4b9b3019fc95d94b9e3ffe5d8d`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 60 |
+| Application code | 62 |
 | Documentation | 62 |
 | Frozen execution evidence | 33 |
 | GitHub automation | 3 |
-| Other tracked assets | 5 |
+| Other tracked assets | 3 |
 | Packages | 94 |
 | Repository tooling | 29 |
 | Research and reviews | 48 |
 | Root controls and configuration | 23 |
-| Tests and fixtures | 112 |
+| Tests and fixtures | 113 |
 
 ## Workspaces
 
@@ -49,7 +49,7 @@
 | `tests/property` | 17 |
 | `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 61 |
+| `tests/unit` | 62 |
 
 ## Root controls and configuration
 

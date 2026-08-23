@@ -8,6 +8,9 @@ export default defineConfig({
 	outputDir: resolve(import.meta.dirname, "../../tmp/riverhold-playwright"),
 	grepInvert: linuxCi ? /@fault|@illustrated-target/u : /@fault/u,
 	fullyParallel: false,
+	// Chromium netlog is a single release-evidence artifact. Multiple browser
+	// workers would interleave writes and can leave syntactically invalid JSON.
+	workers: 1,
 	retries: 0,
 	reporter: "line",
 	use: {
