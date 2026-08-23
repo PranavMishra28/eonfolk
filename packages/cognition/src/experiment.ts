@@ -418,7 +418,7 @@ export async function createLocalProcessBrainContract(
 		input.limits.warmTimeoutMs,
 		"limits.warmTimeoutMs",
 		1,
-		3_000,
+		4_000,
 	);
 	if (input.limits.warmTimeoutMs > input.limits.coldTimeoutMs)
 		throw new RangeError("warm timeout cannot exceed cold timeout");

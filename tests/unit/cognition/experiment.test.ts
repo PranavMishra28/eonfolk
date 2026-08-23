@@ -214,6 +214,13 @@ describe("BrainPort experiment contracts", () => {
 			createLocalProcessBrainContract({
 				...base,
 				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				limits: { ...base.limits, warmTimeoutMs: 4_001 },
+			}),
+		).rejects.toThrow("limits.warmTimeoutMs is outside its integer budget");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
 				networkPolicy: "loopback-single-port-required",
 				localEndpoint: null,
 			}),
