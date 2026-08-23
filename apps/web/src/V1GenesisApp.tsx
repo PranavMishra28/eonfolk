@@ -235,9 +235,7 @@ function WorldError({
 			<h1 id="v1-error-title">No incomplete world is shown as fact.</h1>
 			<details>
 				<summary>Technical detail</summary>
-				<code>
-					{generatedFaultHooks ? error.message : "LOCAL_RUNTIME_FAILURE"}
-				</code>
+				<code>{boundaryFault?.code ?? "LOCAL_RUNTIME_FAILURE"}</code>
 			</details>
 			{!generatedFaultHooks || boundaryFault === null ? null : (
 				<button className="v1-text-link" type="button" onClick={retry}>

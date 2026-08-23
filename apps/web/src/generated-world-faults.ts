@@ -4,6 +4,8 @@ import {
 	runDecisionGateway,
 	validateIntentProposal,
 } from "@eonfolk/cognition";
+import type { DiagnosticInput } from "@eonfolk/diagnostics";
+import { browserDiagnostics } from "./diagnostics";
 import { GENERATED_FOLK_BINARY_ASSET } from "./generated-presentation/assets";
 import type { GeneratedWorldBuildOptions } from "./generated-world-runtime";
 import type { BrowserPersistenceBoundaryPoint } from "./persistence/browser-versioned";
@@ -24,6 +26,15 @@ export const GENERATED_WORLD_FAULT_KINDS = Object.freeze([
 
 export type GeneratedWorldFaultKind =
 	(typeof GENERATED_WORLD_FAULT_KINDS)[number];
+
+export type GeneratedFaultDiagnosticBoundary = Extract<
+	GeneratedWorldFaultKind,
+	| "model-provider"
+	| "persistence"
+	| "checkpoint"
+	| "authoritative-invariant"
+	| "latency"
+>;
 
 export interface GeneratedWorldFaultSpec {
 	readonly kind: GeneratedWorldFaultKind;
@@ -92,6 +103,106 @@ const FAULT_SPECS: Readonly<
 			"Canonical reality is still advancing. World facts remain hidden until the authoritative result is complete.",
 	}),
 });
+
+const GENERATED_FAULT_DIAGNOSTIC_INPUTS: Readonly<
+	Record<GeneratedFaultDiagnosticBoundary, DiagnosticInput>
+> = Object.freeze({
+	"model-provider": Object.freeze({
+		category: "cognition",
+		name: "generated-fault-outcome",
+		severity: "error",
+		outcome: "recovered",
+		scope: Object.freeze({ component: "generated-world-authority" }),
+		fields: Object.freeze({
+			code: "GENERATED_MODEL_PROVIDER_UNAVAILABLE",
+			operation: "decision-boundary",
+			phase: "head-preserved",
+			status: "standard-brain-fallback",
+		}),
+	}),
+	persistence: Object.freeze({
+		category: "persistence",
+		name: "generated-fault-outcome",
+		severity: "error",
+		outcome: "recovered",
+		scope: Object.freeze({ component: "generated-world-authority" }),
+		fields: Object.freeze({
+			code: "GENERATED_PERSISTENCE_UNAVAILABLE",
+			operation: "authority-open",
+			phase: "head-preserved",
+			status: "admitted-deterministic-view",
+		}),
+	}),
+	checkpoint: Object.freeze({
+		category: "sentinel",
+		name: "generated-fault-outcome",
+		severity: "critical",
+		outcome: "rejected",
+		scope: Object.freeze({ component: "generated-world-authority" }),
+		fields: Object.freeze({
+			code: "GENERATED_CHECKPOINT_REJECTED",
+			operation: "checkpoint-admission",
+			phase: "head-preserved",
+			recovery: "safe-stop",
+			status: "candidate-rejected",
+		}),
+	}),
+	"authoritative-invariant": Object.freeze({
+		category: "sentinel",
+		name: "generated-fault-outcome",
+		severity: "critical",
+		outcome: "rejected",
+		scope: Object.freeze({ component: "generated-world-authority" }),
+		fields: Object.freeze({
+			code: "GENERATED_AUTHORITY_INVARIANT_FAILED",
+			operation: "authority-admission",
+			phase: "head-preserved",
+			recovery: "safe-stop",
+			status: "candidate-rejected",
+		}),
+	}),
+	latency: Object.freeze({
+		category: "performance",
+		name: "generated-fault-outcome",
+		severity: "error",
+		outcome: "recovered",
+		scope: Object.freeze({ component: "generated-world-authority" }),
+		fields: Object.freeze({
+			operation: "authority-advance",
+			phase: "committed-after-wait",
+			status: "completed",
+		}),
+	}),
+});
+
+export function generatedWorldFaultDiagnosticInput(
+	boundary: GeneratedFaultDiagnosticBoundary,
+): DiagnosticInput {
+	return GENERATED_FAULT_DIAGNOSTIC_INPUTS[boundary];
+}
+
+export function recordGeneratedWorldFaultOutcome(
+	boundary: GeneratedFaultDiagnosticBoundary,
+): void {
+	try {
+		browserDiagnostics.record(generatedWorldFaultDiagnosticInput(boundary));
+	} catch {
+		// Fault diagnostics cannot alter the injected authority boundary.
+	}
+}
+
+if (typeof window !== "undefined") {
+	try {
+		Object.defineProperty(window, "__EONFOLK_OBSERVER__", {
+			configurable: true,
+			enumerable: false,
+			writable: false,
+			value: () => browserDiagnostics.observer(),
+		});
+	} catch {
+		// A blocked observer hook cannot become a runtime failure.
+	}
+}
 
 export function parseGeneratedWorldFault(
 	value: unknown,
@@ -185,6 +296,7 @@ export function generatedWorldBuildOptionsForFault(
 	switch (fault.kind) {
 		case "model-provider": {
 			let firstAttempt = true;
+			let outcomeRecorded = false;
 			const primary = Object.freeze({
 				propose: (_context: unknown, signal?: AbortSignal) => {
 					if (!firstAttempt)
@@ -228,6 +340,13 @@ export function generatedWorldBuildOptionsForFault(
 				attempts += boundary.primaryAttempts;
 				if (boundary.selectedSource === "deterministic-fallback")
 					fallbacks += 1;
+				if (
+					boundary.selectedSource === "deterministic-fallback" &&
+					!outcomeRecorded
+				) {
+					outcomeRecorded = true;
+					recordGeneratedWorldFaultOutcome("model-provider");
+				}
 				if (boundary.primaryFailure !== null)
 					failures.push(boundary.primaryFailure);
 				kinds.push(boundary.proposal.provenance.cognitionKind);
@@ -260,20 +379,31 @@ export function generatedWorldBuildOptionsForFault(
 				persistenceBoundaryInjector:
 					generatedPersistenceBoundaryFailure("open"),
 			});
-		case "checkpoint":
+		case "checkpoint": {
+			let outcomeRecorded = false;
 			return Object.freeze({
 				checkpointTransform: (checkpoint: CivilizationExperimentRun) => {
 					recordCandidateCheckpoint();
+					if (!outcomeRecorded) {
+						outcomeRecorded = true;
+						recordGeneratedWorldFaultOutcome("checkpoint");
+					}
 					return Object.freeze({
 						...checkpoint,
 						finalStateHash: "0".repeat(64),
 					});
 				},
 			});
-		case "authoritative-invariant":
+		}
+		case "authoritative-invariant": {
+			let outcomeRecorded = false;
 			return Object.freeze({
 				checkpointTransform: (checkpoint: CivilizationExperimentRun) => {
 					recordCandidateCheckpoint();
+					if (!outcomeRecorded) {
+						outcomeRecorded = true;
+						recordGeneratedWorldFaultOutcome("authoritative-invariant");
+					}
 					return Object.freeze({
 						...checkpoint,
 						metrics: Object.freeze({
@@ -285,10 +415,16 @@ export function generatedWorldBuildOptionsForFault(
 					});
 				},
 			});
+		}
 		case "latency":
 			return Object.freeze({
 				beforeAuthorityAdvance: () =>
-					new Promise<void>((resolve) => globalThis.setTimeout(resolve, 1_200)),
+					new Promise<void>((resolve) =>
+						globalThis.setTimeout(() => {
+							recordGeneratedWorldFaultOutcome("latency");
+							resolve();
+						}, 1_200),
+					),
 			});
 		case "asset":
 		case "navigation":
@@ -310,8 +446,10 @@ export function generatedPersistenceBoundaryFailure(
 ): Readonly<{ hit(candidate: BrowserPersistenceBoundaryPoint): void }> {
 	return Object.freeze({
 		hit(candidate: BrowserPersistenceBoundaryPoint) {
-			if (candidate === point)
+			if (candidate === point) {
+				recordGeneratedWorldFaultOutcome("persistence");
 				throw new Error(`Injected IndexedDB ${point} boundary failure`);
+			}
 		},
 	});
 }

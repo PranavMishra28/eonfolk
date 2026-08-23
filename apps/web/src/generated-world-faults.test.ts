@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { BrowserDiagnostics, browserDiagnostics } from "./diagnostics";
 import {
 	clearGeneratedWorldFault,
 	GENERATED_WORLD_FAULT_KINDS,
@@ -6,9 +7,11 @@ import {
 	generatedPersistenceBoundaryFailure,
 	generatedWorldAssetFetcherForFault,
 	generatedWorldBuildOptionsForFault,
+	generatedWorldFaultDiagnosticInput,
 	generatedWorldPresentationFault,
 	parseGeneratedWorldFault,
 	readGeneratedWorldFault,
+	recordGeneratedWorldFaultOutcome,
 } from "./generated-world-faults";
 
 describe("generated-world fault boundary", () => {
@@ -125,5 +128,93 @@ describe("generated-world fault boundary", () => {
 		const removed: string[] = [];
 		clearGeneratedWorldFault({ removeItem: (key) => removed.push(key) });
 		expect(removed).toEqual([GENERATED_WORLD_FAULT_STORAGE_KEY]);
+	});
+
+	it("emits closed fault outcomes without accepting exception or state payloads", () => {
+		const expected = {
+			"model-provider": {
+				category: "cognition",
+				code: "GENERATED_MODEL_PROVIDER_UNAVAILABLE",
+				phase: "head-preserved",
+				status: "standard-brain-fallback",
+			},
+			persistence: {
+				category: "persistence",
+				code: "GENERATED_PERSISTENCE_UNAVAILABLE",
+				phase: "head-preserved",
+				status: "admitted-deterministic-view",
+			},
+			checkpoint: {
+				category: "sentinel",
+				code: "GENERATED_CHECKPOINT_REJECTED",
+				phase: "head-preserved",
+				status: "candidate-rejected",
+			},
+			"authoritative-invariant": {
+				category: "sentinel",
+				code: "GENERATED_AUTHORITY_INVARIANT_FAILED",
+				phase: "head-preserved",
+				status: "candidate-rejected",
+			},
+			latency: {
+				category: "performance",
+				code: null,
+				phase: "committed-after-wait",
+				status: "completed",
+			},
+		} as const;
+		for (const [boundary, outcome] of Object.entries(expected)) {
+			const project = generatedWorldFaultDiagnosticInput as (
+				boundary: keyof typeof expected,
+				unsafe?: unknown,
+			) => ReturnType<typeof generatedWorldFaultDiagnosticInput>;
+			const input = project(boundary as keyof typeof expected, {
+				error: new Error("Injected IndexedDB secret state"),
+				prompt: "private model prompt",
+				stateHash: "f".repeat(64),
+			});
+			const diagnostics = new BrowserDiagnostics("local");
+			diagnostics.setWorldHead({
+				runId: "run_release_genesis",
+				regionId: "region_release_genesis",
+				revision: 9,
+				sequence: 41,
+				simulationTime: 365,
+				status: "healthy",
+			});
+			diagnostics.record(input);
+			const observer = diagnostics.observer();
+			const event = observer.trace.find(
+				(candidate) => candidate.name === "generated-fault-outcome",
+			);
+			expect(event).toMatchObject({
+				category: outcome.category,
+				fields: { phase: outcome.phase, status: outcome.status },
+			});
+			expect(event?.fields.code ?? null).toBe(outcome.code);
+			expect(event?.fields.recovery ?? null).toBe(
+				boundary === "checkpoint" || boundary === "authoritative-invariant"
+					? "safe-stop"
+					: null,
+			);
+			expect(observer.worldHead).toMatchObject({ revision: 9, sequence: 41 });
+			const serialized = JSON.stringify(observer);
+			expect(serialized).not.toContain("Injected IndexedDB");
+			expect(serialized).not.toContain("private model prompt");
+			expect(serialized).not.toContain("stateHash");
+			expect(serialized).not.toContain("f".repeat(64));
+		}
+	});
+
+	it("keeps diagnostic recorder failure non-authoritative", () => {
+		const recorder = vi
+			.spyOn(browserDiagnostics, "record")
+			.mockImplementationOnce(() => {
+				throw new Error("Injected diagnostic recorder failure");
+			});
+		expect(() =>
+			recordGeneratedWorldFaultOutcome("authoritative-invariant"),
+		).not.toThrow();
+		recorder.mockRestore();
 	});
 });

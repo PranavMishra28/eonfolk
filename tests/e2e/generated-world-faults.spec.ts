@@ -145,6 +145,36 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 	});
 }
 
+async function generatedFaultDiagnostic(page: Page): Promise<{
+	readonly observer: {
+		readonly worldHead: unknown;
+		readonly trace: readonly {
+			readonly name: string;
+			readonly category: string;
+			readonly outcome: string;
+			readonly fields: Readonly<Record<string, unknown>>;
+		}[];
+	};
+	readonly outcome: {
+		readonly name: string;
+		readonly category: string;
+		readonly outcome: string;
+		readonly fields: Readonly<Record<string, unknown>>;
+	};
+}> {
+	return page.evaluate(() => {
+		const observer = window.__EONFOLK_OBSERVER__?.();
+		if (observer === undefined)
+			throw new Error("Bounded fault observer is unavailable");
+		const outcome = observer.trace.find(
+			(event) => event.name === "generated-fault-outcome",
+		);
+		if (outcome === undefined)
+			throw new Error("Closed generated-fault outcome is unavailable");
+		return { observer, outcome };
+	});
+}
+
 test.describe
 	.serial("generated Release Genesis fault matrix @fault", () => {
 		test.setTimeout(90_000);
@@ -184,6 +214,27 @@ test.describe
 			).toContainText("deterministic Standard Brain remains authoritative");
 			await page.waitForTimeout(250);
 			await expect(world).toHaveAttribute("data-state-hash", hash);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "cognition",
+				outcome: "recovered",
+				fields: {
+					code: "GENERATED_MODEL_PROVIDER_UNAVAILABLE",
+					phase: "head-preserved",
+					status: "standard-brain-fallback",
+				},
+			});
+			const observerBefore = JSON.stringify(diagnostic.observer.worldHead);
+			await page.waitForTimeout(50);
+			expect(
+				JSON.stringify(
+					(await generatedFaultDiagnostic(page)).observer.worldHead,
+				),
+			).toBe(observerBefore);
+			expect(JSON.stringify(diagnostic.observer)).not.toContain(
+				"Injected cognition provider unavailable",
+			);
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 			expect(externalRequests).toEqual([]);
 		});
 
@@ -196,6 +247,20 @@ test.describe
 				"data-persistence",
 				"unavailable",
 			);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "persistence",
+				outcome: "recovered",
+				fields: {
+					code: "GENERATED_PERSISTENCE_UNAVAILABLE",
+					phase: "head-preserved",
+					status: "admitted-deterministic-view",
+				},
+			});
+			expect(JSON.stringify(diagnostic.observer)).not.toContain(
+				"Injected IndexedDB",
+			);
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 			await page.evaluate((key) => sessionStorage.removeItem(key), FAULT_KEY);
 			await page.reload({ waitUntil: "domcontentloaded" });
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
@@ -242,6 +307,29 @@ test.describe
 						"data-fault-error-code",
 						"STALE_STATE",
 					);
+				const diagnostic = await generatedFaultDiagnostic(page);
+				expect(diagnostic.outcome).toMatchObject({
+					category: "sentinel",
+					outcome: "rejected",
+					fields: {
+						code:
+							kind === "checkpoint"
+								? "GENERATED_CHECKPOINT_REJECTED"
+								: "GENERATED_AUTHORITY_INVARIANT_FAILED",
+						phase: "head-preserved",
+						recovery: "safe-stop",
+						status: "candidate-rejected",
+					},
+				});
+				await expect(error.locator("details code")).toHaveText(
+					kind === "checkpoint"
+						? "GENERATED_CHECKPOINT_REJECTED"
+						: "GENERATED_AUTHORITY_INVARIANT_FAILED",
+				);
+				expect(JSON.stringify(diagnostic.observer)).not.toContain(
+					"injected-pre-commit-authority-invariant",
+				);
+				expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 				await expect(page.locator("main.v1-world")).toHaveCount(0);
 				expect(await authorityFingerprint(page)).toEqual(before);
 				await expect(
@@ -395,6 +483,17 @@ test.describe
 				/^[0-9a-f]{64}$/u,
 				{ timeout: 30_000 },
 			);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "performance",
+				outcome: "recovered",
+				fields: {
+					operation: "authority-advance",
+					phase: "committed-after-wait",
+					status: "completed",
+				},
+			});
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 			expect(externalRequests).toEqual([]);
 		});
 
