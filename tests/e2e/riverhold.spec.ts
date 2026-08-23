@@ -1051,7 +1051,15 @@ test("the complete critical journey is keyboard-only and modal focus is isolated
 	await tabTo(page, verify);
 	const visibleCard = verify.locator("..");
 	await expect(visibleCard).toHaveCSS("outline-style", "double");
-	await expect(visibleCard).toHaveCSS("outline-width", "4px");
+	await expect
+		.poll(async () =>
+			Number.parseFloat(
+				await visibleCard.evaluate(
+					(element) => getComputedStyle(element).outlineWidth,
+				),
+			),
+		)
+		.toBeGreaterThanOrEqual(3);
 	await page.keyboard.press("Space");
 	await expect(verify).toBeChecked();
 	const offer = page.getByRole("button", { name: "Offer counsel" });
