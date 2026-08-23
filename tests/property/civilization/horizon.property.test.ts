@@ -77,6 +77,48 @@ describe("civilization long-horizon properties", () => {
 								),
 							).toBe(0);
 
+						for (const activity of first.activities) {
+							const routineRoute = activity.routine.route;
+							if (activity.location.kind === "route") {
+								expect(routineRoute).not.toBeNull();
+								const route =
+									first.world.routes[activity.location.routeId]?.value;
+								expect(route).toBeDefined();
+								expect(routineRoute).toMatchObject({
+									routeId: route?.routeId,
+									fromSiteId: route?.fromSiteId,
+									toSiteId: route?.toSiteId,
+								});
+								expect(first.state.citizens[activity.citizenId]?.siteId).toBe(
+									route?.fromSiteId,
+								);
+								expect(activity.canonicalAction.originPlaceId).toBe(
+									route?.fromSiteId,
+								);
+								expect(activity.canonicalAction.status).toBe("in-progress");
+								expect(["walk", "carry"]).toContain(
+									activity.canonicalAction.kind,
+								);
+								expect(
+									activity.location.progressBasisPoints,
+								).toBeGreaterThanOrEqual(1);
+								expect(
+									activity.location.progressBasisPoints,
+								).toBeLessThanOrEqual(9_999);
+							} else if (
+								routineRoute !== null &&
+								first.state.citizens[activity.citizenId]?.siteId !==
+									routineRoute.fromSiteId
+							) {
+								expect(activity.canonicalAction.originPlaceId).toBe(
+									first.state.citizens[activity.citizenId]?.siteId,
+								);
+								expect(activity.canonicalAction.destinationPlaceId).toBe(
+									first.state.citizens[activity.citizenId]?.siteId,
+								);
+							}
+						}
+
 						const founding =
 							first.state.foundings["founding-second-settlement"];
 						if (first.seedConditions.expansionEligible) {

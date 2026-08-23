@@ -228,18 +228,63 @@ describe("deterministic civilization experiment", () => {
 				(activity) =>
 					activity.canonicalAction.sourceKind === "current-behavior" &&
 					activity.canonicalAction.eventId === null &&
-					activity.location.kind === "interaction-slot" &&
 					activity.routine.schemaVersion === "eonfolk-civilization-routine-v1",
 			),
 		).toBe(true);
+		const routedCarrier = first.activities.find(
+			(activity) => activity.location.kind === "route",
+		);
+		expect(routedCarrier).toBeDefined();
+		if (
+			routedCarrier === undefined ||
+			routedCarrier.location.kind !== "route" ||
+			routedCarrier.routine.route === null
+		)
+			throw new Error("the release genesis lacks a grounded route carrier");
+		const route = first.world.routes[routedCarrier.location.routeId]?.value;
+		expect(route).toBeDefined();
+		expect(routedCarrier.routine.kind).toBe("transport");
+		expect(routedCarrier.canonicalAction).toMatchObject({
+			kind: "carry",
+			status: "in-progress",
+			originPlaceId: route?.fromSiteId,
+			destinationPlaceId: route?.toSiteId,
+		});
+		expect(routedCarrier.carriedProp).toBe("grain");
+		expect(routedCarrier.routine.route).toMatchObject({
+			routeId: route?.routeId,
+			fromSiteId: route?.fromSiteId,
+			toSiteId: route?.toSiteId,
+		});
+		expect(first.state.citizens[routedCarrier.citizenId]?.siteId).toBe(
+			route?.fromSiteId,
+		);
+		expect(routedCarrier.location.progressBasisPoints).toBeGreaterThanOrEqual(
+			1,
+		);
+		expect(routedCarrier.location.progressBasisPoints).toBeLessThanOrEqual(
+			9_999,
+		);
 		expect(
-			first.activities.some(
-				(activity) =>
-					activity.routine.kind === "transport" &&
-					activity.routine.route !== null &&
-					first.world.routes[activity.routine.route.routeId] !== undefined,
-			),
-		).toBe(true);
+			second.activities.find(
+				(activity) => activity.citizenId === routedCarrier.citizenId,
+			)?.location,
+		).toEqual(routedCarrier.location);
+
+		const mismatchedCarrier = first.activities.find(
+			(activity) =>
+				activity.routine.route !== null &&
+				first.state.citizens[activity.citizenId]?.siteId !==
+					activity.routine.route.fromSiteId,
+		);
+		expect(mismatchedCarrier).toBeDefined();
+		expect(mismatchedCarrier?.location.kind).toBe("interaction-slot");
+		expect(mismatchedCarrier?.canonicalAction.originPlaceId).toBe(
+			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
+		);
+		expect(mismatchedCarrier?.canonicalAction.destinationPlaceId).toBe(
+			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
+		);
 		expect(first.state.citizens["citizen-01"]).toMatchObject({
 			name: "Mara Vale",
 			valueIds: ["stewardship", "curiosity"],

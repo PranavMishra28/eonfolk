@@ -297,10 +297,16 @@ export interface CivilizationScheduledActivity {
 		readonly simulationEnd: null;
 		readonly resultEventId: null;
 	}>;
-	readonly location: Readonly<{
-		readonly kind: "interaction-slot";
-		readonly interactionSlotId: string;
-	}>;
+	readonly location:
+		| Readonly<{
+				readonly kind: "interaction-slot";
+				readonly interactionSlotId: string;
+		  }>
+		| Readonly<{
+				readonly kind: "route";
+				readonly routeId: string;
+				readonly progressBasisPoints: number;
+		  }>;
 	readonly projectId: string | null;
 	readonly carriedProp: "grain" | "logs" | "trade" | "tool" | "water" | null;
 	readonly focal: boolean;
@@ -338,7 +344,7 @@ export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
 	"The experiment materializes an undeveloped second settlement and founding ground; the origin has one agreement-gated institution project, not a generalized construction economy.",
 	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
 	"Terrain-derived source stocks feed audited daily transport, production, and consumption; birth, death, ecology, and replenishment beyond the bounded horizon remain excluded.",
-	"Scheduler routines expose canonical route and task inputs, but visual route traversal still requires downstream temporal-location authority and must not be inferred by presentation.",
+	"Scheduler-owned activities expose one deterministic in-progress sample for a physically grounded route routine; they do not mutate a citizen's canonical site or model a complete trip.",
 	"Three opening daily decision boundaries use deterministic Standard Brain, bounded Standing Plans, and actor-visible memory; later stable daily spans use the same resolved scheduler policy without a model.",
 	"The experiment invokes no model, cognition provider, training, or inference path; captured decision evidence replays without rerunning any Brain.",
 ]);
@@ -1149,10 +1155,32 @@ function preferredActivityKinds(
 	}
 }
 
+function carriedPropForRoutine(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	routine: SchedulerRoutineAssignment,
+): CivilizationScheduledActivity["carriedProp"] {
+	if (routine.kind !== "transport") return null;
+	const lane = policy.transportLanes.find(
+		(candidate) => candidate.laneId === routine.subjectId,
+	);
+	const resourceTypeId =
+		lane === undefined
+			? undefined
+			: state.stocks[lane.fromStockId]?.resourceTypeId;
+	if (resourceTypeId === "grain") return "grain";
+	if (resourceTypeId === "water" || resourceTypeId === "spring-water")
+		return "water";
+	if (resourceTypeId === "timber" || resourceTypeId === "standing-timber")
+		return "logs";
+	return "trade";
+}
+
 function scheduleActivities(
 	state: CivilizationState,
 	world: GeneratedWorldState,
 	routines: readonly SchedulerRoutineAssignment[],
+	policy: GeneralizedSchedulerPolicy,
 ): readonly CivilizationScheduledActivity[] {
 	const slots = values(world.interactionSlots).sort((left, right) =>
 		left.interactionSlotId.localeCompare(right.interactionSlotId),
@@ -1161,11 +1189,58 @@ function scheduleActivities(
 	return Object.values(state.citizens)
 		.filter((citizen) => citizen.residenceState === "resident")
 		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
-		.flatMap((citizen, index) => {
+		.flatMap((citizen, index): CivilizationScheduledActivity[] => {
 			const routine = required(
 				routines.find((candidate) => candidate.citizenId === citizen.citizenId),
 				`routine for ${citizen.citizenId}`,
 			);
+			const route =
+				routine.route === null
+					? undefined
+					: world.routes[routine.route.routeId]?.value;
+			const isGroundedRoute =
+				routine.route !== null &&
+				route !== undefined &&
+				citizen.siteId === route.fromSiteId &&
+				routine.route.fromSiteId === route.fromSiteId &&
+				routine.route.toSiteId === route.toSiteId;
+			if (isGroundedRoute && routine.route !== null && route !== undefined) {
+				const isTransport = routine.kind === "transport";
+				return [
+					{
+						schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
+						citizenId: citizen.citizenId,
+						routine,
+						canonicalAction: {
+							actionId: `scheduled:${state.revision}:${citizen.citizenId}:${route.routeId}`,
+							sourceKind: "current-behavior" as const,
+							eventId: null,
+							eventSequence: null,
+							status: "in-progress" as const,
+							kind: isTransport ? ("carry" as const) : ("walk" as const),
+							originPlaceId: route.fromSiteId,
+							destinationPlaceId: route.toSiteId,
+							affordanceId: route.routeId,
+							affordanceSlotIndex: 0,
+							targetId: routine.subjectId,
+							simulationStart: state.simulationTime,
+							simulationEnd: null,
+							resultEventId: null,
+						},
+						location: {
+							kind: "route" as const,
+							routeId: route.routeId,
+							progressBasisPoints:
+								1 +
+								((state.revision + index + routine.route.traversalUnits) %
+									9_999),
+						},
+						projectId: null,
+						carriedProp: carriedPropForRoutine(state, policy, routine),
+						focal: index === 0,
+					},
+				];
+			}
 			const siteSlots = slots.filter((slot) => slot.siteId === citizen.siteId);
 			const preferred = preferredActivityKinds(routine);
 			const available = (candidate: (typeof siteSlots)[number]) =>
@@ -1793,7 +1868,7 @@ export async function runCivilizationExperiment(input: {
 		world,
 	);
 	let routines = initialRoutineAssignments(state);
-	let activities = scheduleActivities(state, world, routines);
+	let activities = scheduleActivities(state, world, routines, schedulerPolicy);
 	let cognitionRuntime = await initializeCognitionRuntime(
 		state,
 		schedulerPolicy,
@@ -1813,7 +1888,7 @@ export async function runCivilizationExperiment(input: {
 		kind: CivilizationExperimentEventKind,
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
-		activities = scheduleActivities(state, world, routines);
+		activities = scheduleActivities(state, world, routines, schedulerPolicy);
 		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const event = await eventRecord({
 			eventIndex: events.length,
@@ -2088,7 +2163,7 @@ export async function runCivilizationExperiment(input: {
 
 		assertCivilizationInvariants(state);
 		state = checkpointCivilizationAccounting(state);
-		activities = scheduleActivities(state, world, routines);
+		activities = scheduleActivities(state, world, routines, schedulerPolicy);
 		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const eventHashes = events
 			.slice(beforeEventIndex)
