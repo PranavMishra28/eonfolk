@@ -18,7 +18,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.deleteDatabase("eonfolk-v1-civilization");
+				const request = indexedDB.deleteDatabase("eonfolk-generated-authority");
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
@@ -31,15 +31,13 @@ async function inspectGeneratedCheckpoint(page: Page) {
 	return page.evaluate(
 		() =>
 			new Promise<{
-				readonly initializedHorizonDays: number;
-				readonly horizonDays: number;
+				readonly eventCount: number;
+				readonly operationCount: number;
 				readonly receiptCount: number;
-				readonly firstFrom: number | null;
-				readonly firstTo: number | null;
-				readonly modelInvocations: number;
-				readonly recordHash: string;
+				readonly snapshotCount: number;
+				readonly headHash: string;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-v1-civilization", 1);
+				const request = indexedDB.open("eonfolk-generated-authority", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -48,33 +46,36 @@ async function inspectGeneratedCheckpoint(page: Page) {
 					() => {
 						const database = request.result;
 						const transaction = database.transaction(
-							"canonical-checkpoints",
+							[
+								"authorityStreams",
+								"authorityOperations",
+								"authorityEvents",
+								"authorityReceipts",
+								"authoritySnapshots",
+							],
 							"readonly",
 						);
-						const get = transaction
-							.objectStore("canonical-checkpoints")
-							.get("release-genesis:eonfolk-genesis-world-v1");
-						get.addEventListener(
-							"success",
+						const requests = {
+							streams: transaction.objectStore("authorityStreams").getAll(),
+							operations: transaction
+								.objectStore("authorityOperations")
+								.count(),
+							events: transaction.objectStore("authorityEvents").count(),
+							receipts: transaction.objectStore("authorityReceipts").count(),
+							snapshots: transaction.objectStore("authoritySnapshots").count(),
+						};
+						transaction.addEventListener(
+							"complete",
 							() => {
-								const value = get.result as {
-									initializedHorizonDays: number;
-									horizonDays: number;
-									catchUpReceipts: Array<{
-										fromHorizonDays: number;
-										toHorizonDays: number;
-									}>;
-									checkpoint: { metrics: { modelInvocations: number } };
-									recordHash: string;
+								const stream = requests.streams.result[0] as {
+									head: { headHash: string };
 								};
 								resolve({
-									initializedHorizonDays: value.initializedHorizonDays,
-									horizonDays: value.horizonDays,
-									receiptCount: value.catchUpReceipts.length,
-									firstFrom: value.catchUpReceipts[0]?.fromHorizonDays ?? null,
-									firstTo: value.catchUpReceipts[0]?.toHorizonDays ?? null,
-									modelInvocations: value.checkpoint.metrics.modelInvocations,
-									recordHash: value.recordHash,
+									eventCount: requests.events.result,
+									operationCount: requests.operations.result,
+									receiptCount: requests.receipts.result,
+									snapshotCount: requests.snapshots.result,
+									headHash: stream.head.headHash,
 								});
 								database.close();
 							},
@@ -115,7 +116,7 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	await expect(world).toHaveAttribute("data-projection-status", "available");
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb");
 	await expect(world).toHaveAttribute("data-persistence-restored", "true");
-	await expect(world).toHaveAttribute("data-catch-up-receipts", "1");
+	await expect(world).toHaveAttribute("data-catch-up-receipts", "5");
 	const canvas = page.getByTestId("generated-world-canvas");
 	await expect(canvas).toHaveAttribute("data-engine", "playcanvas");
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
@@ -141,20 +142,18 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	).toBeVisible();
 	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
 	expect(firstCheckpoint).toMatchObject({
-		initializedHorizonDays: 1,
-		horizonDays: 365,
-		receiptCount: 1,
-		firstFrom: 1,
-		firstTo: 365,
-		modelInvocations: 0,
+		eventCount: 5,
+		operationCount: 6,
+		receiptCount: 5,
+		snapshotCount: 2,
 	});
 	await page.reload();
 	await expect(page.locator("main.v1-world")).toHaveAttribute(
 		"data-persistence-restored",
 		"true",
 	);
-	expect((await inspectGeneratedCheckpoint(page)).recordHash).toBe(
-		firstCheckpoint.recordHash,
+	expect((await inspectGeneratedCheckpoint(page)).headHash).toBe(
+		firstCheckpoint.headHash,
 	);
 	expect(externalRequests).toEqual([]);
 });
