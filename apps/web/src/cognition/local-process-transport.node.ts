@@ -1,8 +1,8 @@
+import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 import {
 	type ContractBoundModelChoiceTransport,
@@ -57,6 +57,23 @@ export interface MacOsLocalProcessTransportConfiguration {
 	readonly runtimeArguments: readonly string[];
 	readonly environment: Readonly<Record<string, string>>;
 	readonly cohort: "cold" | "warm";
+	/**
+	 * Omitted by default. This host-only exception permits one loopback TCP port
+	 * while the macOS kernel denies every other network destination.
+	 */
+	readonly localEndpoint?: {
+		readonly kind: "ollama-loopback";
+		readonly port: number;
+	};
+}
+
+export interface MacOsLoopbackOllamaTransportConfiguration
+	extends Omit<
+		MacOsLocalProcessTransportConfiguration,
+		"localEndpoint" | "runtimeArguments"
+	> {
+	readonly adapterPath: string;
+	readonly ollamaPort: number;
 }
 
 interface InvocationEnvelope {
@@ -114,6 +131,25 @@ function assertArguments(arguments_: readonly string[]): void {
 	}
 }
 
+function assertTcpPort(value: number): void {
+	if (!Number.isSafeInteger(value) || value < 1 || value > 65_535)
+		throw new RangeError("loopback endpoint port is invalid");
+}
+
+function sandboxProfileFor(
+	localEndpoint: MacOsLocalProcessTransportConfiguration["localEndpoint"],
+): string {
+	if (localEndpoint === undefined) return ZERO_EGRESS_PROFILE;
+	assertTcpPort(localEndpoint.port);
+	return [
+		"(version 1)",
+		"(allow default)",
+		`(deny network-outbound (require-not (remote ip "localhost:${localEndpoint.port}")))`,
+		"(deny network-inbound)",
+		"(deny network-bind)",
+	].join(" ");
+}
+
 function assertEnvironment(
 	contract: LocalProcessBrainContract,
 	environment: Readonly<Record<string, string>>,
@@ -157,6 +193,21 @@ async function verifyArtifact(
 		throw failure("artifact-mismatch", `${label} byte identity does not match`);
 	if ((await sha256File(canonicalPath)) !== identity.sha256)
 		throw failure("artifact-mismatch", `${label} digest does not match`);
+	return canonicalPath;
+}
+
+async function verifyAdapter(
+	path: string,
+	expectedSha256: string,
+): Promise<string> {
+	assertSafeAbsolutePath(path, "adapter");
+	const canonicalPath = await realpath(path);
+	const metadata = await stat(canonicalPath);
+	if (
+		!metadata.isFile() ||
+		(await sha256File(canonicalPath)) !== expectedSha256
+	)
+		throw failure("artifact-mismatch", "adapter digest does not match");
 	return canonicalPath;
 }
 
@@ -228,6 +279,7 @@ async function invokeProcess(input: {
 	readonly maxStderrBytes: number;
 	readonly timeoutMs: number;
 	readonly signal?: AbortSignal;
+	readonly sandboxProfile: string;
 }): Promise<string> {
 	if (input.signal?.aborted)
 		throw failure("aborted", "local model invocation was cancelled");
@@ -236,7 +288,7 @@ async function invokeProcess(input: {
 			MACOS_SANDBOX_EXECUTABLE,
 			[
 				"-p",
-				ZERO_EGRESS_PROFILE,
+				input.sandboxProfile,
 				input.runtimeExecutable,
 				...input.runtimeArguments,
 			],
@@ -351,6 +403,7 @@ export async function createMacOsLocalProcessTransport(
 		throw failure("artifact-mismatch", "local model contract hash is invalid");
 	assertArguments(configuration.runtimeArguments);
 	assertEnvironment(configuration.contract, configuration.environment);
+	const sandboxProfile = sandboxProfileFor(configuration.localEndpoint);
 
 	const checks = [
 		[
@@ -430,6 +483,7 @@ export async function createMacOsLocalProcessTransport(
 					maxStdoutBytes: configuration.contract.limits.maxStdoutBytes,
 					maxStderrBytes: configuration.contract.limits.maxStderrBytes,
 					timeoutMs,
+					sandboxProfile,
 					...(signal === undefined ? {} : { signal }),
 				});
 			} finally {
@@ -437,4 +491,42 @@ export async function createMacOsLocalProcessTransport(
 			}
 		},
 	};
+}
+
+/**
+ * Pins the repository-owned Ollama adapter to one loopback port. The adapter is
+ * digest-verified separately from the runtime, receives no ambient environment,
+ * and cannot be redirected through caller-provided arguments.
+ */
+export async function createMacOsLoopbackOllamaTransport(
+	configuration: MacOsLoopbackOllamaTransportConfiguration,
+): Promise<ContractBoundModelChoiceTransport> {
+	assertTcpPort(configuration.ollamaPort);
+	if (configuration.contract.runtime.kind !== "other-local")
+		throw failure("artifact-mismatch", "the Ollama adapter runtime is invalid");
+	if (
+		configuration.contract.environmentNames.length !== 0 ||
+		Object.keys(configuration.environment).length !== 0
+	)
+		throw new Error("the Ollama adapter accepts no ambient environment");
+	const adapterPath = await verifyAdapter(
+		configuration.adapterPath,
+		configuration.contract.adapterHash,
+	);
+	const {
+		adapterPath: _adapterPath,
+		ollamaPort: _ollamaPort,
+		...base
+	} = configuration;
+	return createMacOsLocalProcessTransport({
+		...base,
+		localEndpoint: {
+			kind: "ollama-loopback",
+			port: configuration.ollamaPort,
+		},
+		runtimeArguments: [
+			adapterPath,
+			`--ollama-port=${configuration.ollamaPort}`,
+		],
+	});
 }
