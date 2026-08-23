@@ -24,7 +24,7 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(source).toContain("canonicalPopulation === 8");
 		expect(source).toContain("visibleInteractionCount >= 1");
 		expect(source).toContain(
-			'page.locator("fieldset.generated-residents button").first()',
+			'page.locator("ul.v1-presence-roster button").first()',
 		);
 		expect(source).toContain("verifyGeneratedPersistenceReload");
 		expect(source).toContain(

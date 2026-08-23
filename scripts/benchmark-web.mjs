@@ -207,7 +207,7 @@ async function waitForQualificationMark(page, name, timeout) {
 				"[data-testid='generated-world-canvas']",
 			);
 			const residents = document.querySelectorAll(
-				"fieldset.generated-residents button",
+				"ul.v1-presence-roster button",
 			);
 			const canonicalPopulation = [
 				...document.querySelectorAll("[aria-label='Settlements'] button small"),
@@ -256,7 +256,7 @@ async function captureWorldInvariant(page) {
 			"[data-testid='generated-world-canvas']",
 		);
 		const residentButtons = [
-			...document.querySelectorAll("fieldset.generated-residents button"),
+			...document.querySelectorAll("ul.v1-presence-roster button"),
 		];
 		const canonicalPopulation = [
 			...document.querySelectorAll("[aria-label='Settlements'] button small"),
@@ -306,7 +306,7 @@ function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 
 async function focusCanonicalResident(page) {
 	const started = performance.now();
-	const resident = page.locator("fieldset.generated-residents button").first();
+	const resident = page.locator("ul.v1-presence-roster button").first();
 	await resident.click({ timeout: 5_000 });
 	await page
 		.getByTestId("generated-world-canvas")
@@ -517,9 +517,7 @@ try {
 								"[data-testid='generated-world-canvas']",
 							);
 							const residents = [
-								...document.querySelectorAll(
-									"fieldset.generated-residents button",
-								),
+								...document.querySelectorAll("ul.v1-presence-roster button"),
 							];
 							const canonicalPopulation = [
 								...document.querySelectorAll(
