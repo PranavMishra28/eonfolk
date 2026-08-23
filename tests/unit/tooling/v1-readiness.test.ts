@@ -44,6 +44,50 @@ const selfHashed = <T extends object>(value: T) => ({
 	outputSha256: hash(JSON.stringify(value)),
 });
 
+function trustedRunRecord({
+	runId,
+	purpose,
+	sourceSha,
+	candidateSha = sourceSha,
+	payloadSha256,
+	reviewerAgentId = null,
+	reviewerSessionId = null,
+}: {
+	runId: number;
+	purpose: string;
+	sourceSha: string;
+	candidateSha?: string;
+	payloadSha256: string;
+	reviewerAgentId?: string | null;
+	reviewerSessionId?: string | null;
+}) {
+	return {
+		actor: "release-operator",
+		artifactArchiveSha256: "9".repeat(64),
+		artifactId: runId + 100,
+		artifactName: `v1-evidence-${runId}`,
+		candidateSha,
+		conclusion: "success",
+		event: "workflow_dispatch",
+		payloadSha256,
+		provider: "github-actions-live-api",
+		purpose,
+		repository: "owner/repo",
+		reviewerAgentId,
+		reviewerSessionId,
+		runnerLabels:
+			purpose === "target-mac-deep" ? ["self-hosted"] : ["ubuntu-24.04"],
+		runnerName:
+			purpose === "target-mac-deep" ? "ephemeral-mac" : "GitHub Actions",
+		runAttempt: 1,
+		runId,
+		sourceSha,
+		workflowId: 42,
+		workflowPath: ".github/workflows/v1-evidence.yml",
+		workflowSourceSha: "e".repeat(40),
+	};
+}
+
 function rawBenchmark(id: string, head: string) {
 	const modes = ["off", "local", "alpha"];
 	switch (id) {
@@ -198,7 +242,7 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 		recordedAt: "2026-08-23T00:00:00.000Z",
 		inputs: {},
 		integrityClaim: "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
-		trustedRun: { attestationId: "deep-run" },
+		trustedRun: { runId: 1 },
 		verificationContractSha256: verificationContractSha256(tier),
 		source: {
 			start: { commit: head, clean: true, trackedTree },
@@ -239,17 +283,13 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 	const { outputSha256: _output, trustedRun: _run, ...payload } = report;
 	const trustedRuns = new Map([
 		[
-			"deep-run",
-			{
-				attestationId: "deep-run",
-				provider: "github-actions",
-				repository: "owner/repo",
+			1,
+			trustedRunRecord({
 				runId: 1,
-				runAttempt: 1,
 				purpose: "target-mac-deep",
 				sourceSha: head,
 				payloadSha256: hash(JSON.stringify(payload)),
-			},
+			}),
 		],
 	]);
 	return { report, stored, trustedRuns };
@@ -282,7 +322,7 @@ function reviewEvidence(
 	deepEvidenceOutputSha256 = "d".repeat(64),
 ) {
 	const stored = new Map<string, Uint8Array>();
-	const trustedRuns = new Map<string, any>();
+	const trustedRuns = new Map<number, any>();
 	const binding = {
 		baseSha: initialReviewSha,
 		baseTreeSha: "1".repeat(40),
@@ -300,6 +340,8 @@ function reviewEvidence(
 	];
 	const reviews = disciplines.map((discipline, index) => {
 		const reviewId = reviewIds[index];
+		const reviewerAgentId = `review-agent-${index}`;
+		const reviewerSessionId = `review-session-${index}`;
 		const findingId = `${reviewId}-P1-001`;
 		const findings = {
 			p0: [],
@@ -315,9 +357,11 @@ function reviewEvidence(
 		const storedArtifact = artifact(
 			`docs/reviews/${reviewId}.json`,
 			JSON.stringify({
-				schemaVersion: "eonfolk-v1-structured-review-v1",
+				schemaVersion: "eonfolk-v1-structured-review-v2",
 				reviewId,
 				discipline,
+				reviewerAgentId,
+				reviewerSessionId,
 				sourceSha: initialReviewSha,
 				completedAt: `2026-08-23T00:0${index}:00.000Z`,
 				conclusion: "FINDINGS",
@@ -325,25 +369,29 @@ function reviewEvidence(
 			}),
 		);
 		stored.set(storedArtifact.reference.path, storedArtifact.bytes);
-		const attestationId = `review-run-${index}`;
-		trustedRuns.set(attestationId, {
-			attestationId,
-			provider: "github-actions",
-			repository: "owner/repo",
-			runId: index + 10,
-			runAttempt: 1,
-			purpose: `review:${reviewId}`,
-			sourceSha: initialReviewSha,
-			payloadSha256: storedArtifact.reference.sha256,
-		});
+		const runId = index + 10;
+		trustedRuns.set(
+			runId,
+			trustedRunRecord({
+				runId,
+				purpose: `review:${reviewId}`,
+				sourceSha: initialReviewSha,
+				candidateSha: frozenSoftwareSha,
+				payloadSha256: storedArtifact.reference.sha256,
+				reviewerAgentId,
+				reviewerSessionId,
+			}),
+		);
 		return {
 			reviewId,
 			discipline,
+			reviewerAgentId,
+			reviewerSessionId,
 			sourceSha: initialReviewSha,
 			status: "COMPLETE",
 			findings,
 			artifact: storedArtifact.reference,
-			trustedRun: { attestationId },
+			trustedRun: { runId },
 		};
 	});
 	const findingIds = reviews.flatMap((review) =>
@@ -372,9 +420,11 @@ function reviewEvidence(
 	const confirmationArtifact = artifact(
 		"docs/reviews/V1_CONFIRMATION.json",
 		JSON.stringify({
-			schemaVersion: "eonfolk-v1-final-confirmation-v1",
+			schemaVersion: "eonfolk-v1-final-confirmation-v2",
 			status: "PASS",
 			sourceSha: frozenSoftwareSha,
+			reviewerAgentId: "confirmation-agent",
+			reviewerSessionId: "confirmation-session",
 			completedAt: "2026-08-23T02:00:00.000Z",
 			deepEvidenceOutputSha256,
 			reconciliationSha256: reconciliationArtifact.reference.sha256,
@@ -387,20 +437,22 @@ function reviewEvidence(
 		confirmationArtifact,
 	])
 		stored.set(storedArtifact.reference.path, storedArtifact.bytes);
-	trustedRuns.set("confirmation-run", {
-		attestationId: "confirmation-run",
-		provider: "github-actions",
-		repository: "owner/repo",
-		runId: 99,
-		runAttempt: 1,
-		purpose: "final-confirmation",
-		sourceSha: frozenSoftwareSha,
-		payloadSha256: confirmationArtifact.reference.sha256,
-	});
+	trustedRuns.set(
+		99,
+		trustedRunRecord({
+			runId: 99,
+			purpose: "final-confirmation",
+			sourceSha: frozenSoftwareSha,
+			payloadSha256: confirmationArtifact.reference.sha256,
+			reviewerAgentId: "confirmation-agent",
+			reviewerSessionId: "confirmation-session",
+		}),
+	);
 	const report = {
-		schemaVersion: "eonfolk-v1-review-confirmation-v3",
+		schemaVersion: "eonfolk-v1-review-confirmation-v4",
 		status: "PASS",
-		integrityClaim: "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
+		integrityClaim:
+			"REPOSITORY_COMPUTABLE_PLUS_LIVE_GITHUB_RECEIPTS; REVIEWER_AGENT_IDENTITY_SELF_REPORTED",
 		initialReviewSha,
 		frozenSoftwareSha,
 		reviews,
@@ -419,7 +471,9 @@ function reviewEvidence(
 		},
 		confirmation: {
 			artifact: confirmationArtifact.reference,
-			trustedRun: { attestationId: "confirmation-run" },
+			reviewerAgentId: "confirmation-agent",
+			reviewerSessionId: "confirmation-session",
+			trustedRun: { runId: 99 },
 		},
 	};
 	const signed = {
@@ -539,7 +593,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		);
 		expect(result.status).not.toBe(0);
 		expect(result.stderr).toContain(
-			"ready mode requires --trusted-attestations from the external GitHub trust root",
+			"ready mode requires --trusted-attestations from live GitHub verification",
 		);
 	});
 
@@ -847,6 +901,21 @@ describe("V1 readiness and generated inventory tooling", () => {
 			ok: false,
 			failures: ["GOAL requirement ID roster differs from the canonical base"],
 		});
+		expect(
+			evaluateV1Readiness({
+				rows: shrunk,
+				canonicalRows: canonical,
+				mode: "draft",
+				head: "a".repeat(40),
+			}),
+		).toMatchObject({
+			releaseEvidence: {
+				status: "INVALID",
+				failures: [
+					"GOAL requirement ID roster differs from the canonical base",
+				],
+			},
+		});
 		const stateOnlySource = goal("VERIFIED");
 		expect(
 			validateCanonicalGoalRoster(
@@ -880,7 +949,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		shared.report.reconciliation.dispositions.push(
 			shared.report.reconciliation.dispositions[0],
 		);
-		shared.report.reviews[2].trustedRun = { attestationId: "manufactured" };
+		shared.report.reviews[2].trustedRun = { runId: 777 };
 		const { outputSha256: _old, ...withoutHash } = shared.report;
 		shared.report.outputSha256 = hash(JSON.stringify(withoutHash));
 		const failures = validateReviewConfirmationEvidence(
@@ -892,8 +961,35 @@ describe("V1 readiness and generated inventory tooling", () => {
 			"finding disposition is unknown, duplicated, or malformed",
 		);
 		expect(failures).toContain(
-			"review V1-RV-VISUAL is not bound to an externally trusted GitHub run",
+			"review V1-RV-VISUAL is not bound to a live-verified GitHub workflow run and artifact",
 		);
+	});
+
+	it("rejects a duplicated reviewer session despite distinct runs", () => {
+		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
+		fixture.report.reviews[1].reviewerSessionId =
+			fixture.report.reviews[0].reviewerSessionId;
+		const artifactReference = fixture.report.reviews[1].artifact;
+		const parsed = JSON.parse(
+			Buffer.from(
+				fixture.context.readArtifact(artifactReference.path),
+			).toString("utf8"),
+		);
+		parsed.reviewerSessionId = fixture.report.reviews[0].reviewerSessionId;
+		const bytes = Buffer.from(JSON.stringify(parsed));
+		artifactReference.bytes = bytes.byteLength;
+		artifactReference.sha256 = hash(bytes);
+		const runId = fixture.report.reviews[1].trustedRun.runId;
+		fixture.context.trustedRuns.get(runId).payloadSha256 = hash(bytes);
+		const originalReadArtifact = fixture.context.readArtifact;
+		fixture.context.readArtifact = (path: string) =>
+			path === artifactReference.path ? bytes : originalReadArtifact(path);
+		const { outputSha256: _old, ...withoutHash } = fixture.report;
+		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		expect(
+			validateReviewConfirmationEvidence(fixture.report, fixture.context)
+				.failures,
+		).toContain("reviewer sessions are missing or duplicated");
 	});
 
 	it("requires an explicit structured no-P0/P1 conclusion", () => {

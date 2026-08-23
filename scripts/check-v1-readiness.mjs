@@ -146,19 +146,28 @@ function validateTrustedRun(reference, expected, label, failures, context) {
 		typeof reference !== "object" ||
 		Array.isArray(reference) ||
 		Object.keys(reference).length !== 1 ||
-		typeof reference.attestationId !== "string" ||
-		reference.attestationId.length === 0
+		!Number.isSafeInteger(reference.runId) ||
+		reference.runId <= 0
 	) {
 		failures.push(`${label} trusted-run reference is invalid`);
 		return;
 	}
-	const trusted = context?.trustedRuns?.get(reference.attestationId);
+	const trusted = context?.trustedRuns?.get(reference.runId);
 	if (
-		trusted?.provider !== "github-actions" ||
-		trusted?.attestationId !== reference.attestationId ||
+		trusted?.provider !== "github-actions-live-api" ||
+		trusted?.runId !== reference.runId ||
 		trusted?.sourceSha !== expected.sourceSha ||
+		trusted?.candidateSha !== expected.candidateSha ||
 		trusted?.purpose !== expected.purpose ||
 		trusted?.payloadSha256 !== expected.payloadSha256 ||
+		trusted?.reviewerAgentId !== (expected.reviewerAgentId ?? null) ||
+		trusted?.reviewerSessionId !== (expected.reviewerSessionId ?? null) ||
+		trusted?.conclusion !== "success" ||
+		trusted?.event !== "workflow_dispatch" ||
+		trusted?.workflowPath !== ".github/workflows/v1-evidence.yml" ||
+		!SHA_PATTERN.test(trusted?.workflowSourceSha ?? "") ||
+		typeof trusted?.actor !== "string" ||
+		trusted.actor.length === 0 ||
 		typeof trusted?.repository !== "string" ||
 		(typeof context?.repository === "string" &&
 			trusted.repository !== context.repository) ||
@@ -167,7 +176,9 @@ function validateTrustedRun(reference, expected, label, failures, context) {
 		!Number.isSafeInteger(trusted?.runAttempt) ||
 		trusted.runAttempt <= 0
 	)
-		failures.push(`${label} is not bound to an externally trusted GitHub run`);
+		failures.push(
+			`${label} is not bound to a live-verified GitHub workflow run and artifact`,
+		);
 }
 
 function isFiniteMeasurements(value) {
@@ -481,6 +492,7 @@ export function validateTargetMacDeepEvidence(
 		validateTrustedRun(
 			report.trustedRun,
 			{
+				candidateSha: frozenSoftwareSha,
 				payloadSha256: attestablePayloadSha256(report),
 				purpose: "target-mac-deep",
 				sourceSha: frozenSoftwareSha,
@@ -574,7 +586,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	const failures = [];
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["review evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v3")
+	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v4")
 		failures.push("unsupported review evidence schema");
 	if (
 		!exactKeys(report, [
@@ -589,9 +601,12 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"status",
 		])
 	)
-		failures.push("review evidence does not match the exact v3 envelope");
+		failures.push("review evidence does not match the exact v4 envelope");
 	if (report.status !== "PASS") failures.push("review evidence is not PASS");
-	if (report.integrityClaim !== "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY")
+	if (
+		report.integrityClaim !==
+		"REPOSITORY_COMPUTABLE_PLUS_LIVE_GITHUB_RECEIPTS; REVIEWER_AGENT_IDENTITY_SELF_REPORTED"
+	)
 		failures.push(
 			"review evidence integrity boundary is missing or overstated",
 		);
@@ -613,7 +628,9 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	const disciplines = new Set();
 	const artifactPaths = new Set();
 	const artifactHashes = new Set();
-	const attestationIds = new Set();
+	const runIds = new Set();
+	const reviewerAgentIds = new Set();
+	const reviewerSessionIds = new Set();
 	const allFindings = [];
 	const reviewTimes = [];
 	for (const review of reviews) {
@@ -623,6 +640,8 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 				"artifact",
 				"discipline",
 				"findings",
+				"reviewerAgentId",
+				"reviewerSessionId",
 				"reviewId",
 				"sourceSha",
 				"status",
@@ -647,9 +666,23 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			failures.push("review artifacts are duplicated");
 		artifactPaths.add(review?.artifact?.path);
 		artifactHashes.add(review?.artifact?.sha256);
-		if (attestationIds.has(review?.trustedRun?.attestationId))
+		if (runIds.has(review?.trustedRun?.runId))
 			failures.push("review trusted runs are not independent");
-		attestationIds.add(review?.trustedRun?.attestationId);
+		runIds.add(review?.trustedRun?.runId);
+		if (
+			typeof review?.reviewerAgentId !== "string" ||
+			review.reviewerAgentId.length < 3 ||
+			reviewerAgentIds.has(review.reviewerAgentId)
+		)
+			failures.push("reviewer agent identities are missing or duplicated");
+		else reviewerAgentIds.add(review.reviewerAgentId);
+		if (
+			typeof review?.reviewerSessionId !== "string" ||
+			review.reviewerSessionId.length < 3 ||
+			reviewerSessionIds.has(review.reviewerSessionId)
+		)
+			failures.push("reviewer sessions are missing or duplicated");
+		else reviewerSessionIds.add(review.reviewerSessionId);
 		const contents = validateArtifactReference(
 			review?.artifact,
 			label,
@@ -691,12 +724,16 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 				"conclusion",
 				"discipline",
 				"findings",
+				"reviewerAgentId",
+				"reviewerSessionId",
 				"reviewId",
 				"schemaVersion",
 				"sourceSha",
 			]) ||
-			artifact?.schemaVersion !== "eonfolk-v1-structured-review-v1" ||
+			artifact?.schemaVersion !== "eonfolk-v1-structured-review-v2" ||
 			artifact?.reviewId !== review?.reviewId ||
+			artifact?.reviewerAgentId !== review?.reviewerAgentId ||
+			artifact?.reviewerSessionId !== review?.reviewerSessionId ||
 			artifact?.discipline !== review?.discipline ||
 			artifact?.sourceSha !== report.initialReviewSha ||
 			artifact?.conclusion !== expectedConclusion ||
@@ -710,8 +747,11 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		validateTrustedRun(
 			review?.trustedRun,
 			{
+				candidateSha: report.frozenSoftwareSha,
 				payloadSha256: review?.artifact?.sha256,
 				purpose: `review:${review?.reviewId}`,
+				reviewerAgentId: review?.reviewerAgentId,
+				reviewerSessionId: review?.reviewerSessionId,
 				sourceSha: report.initialReviewSha,
 			},
 			label,
@@ -723,6 +763,13 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		failures.push("review IDs are not unique");
 	if (disciplines.size !== REQUIRED_REVIEW_DISCIPLINES.size)
 		failures.push("required review disciplines are incomplete");
+	if (
+		reviewerAgentIds.size !== REQUIRED_REVIEW_DISCIPLINES.size ||
+		reviewerSessionIds.size !== REQUIRED_REVIEW_DISCIPLINES.size
+	)
+		failures.push(
+			"six independent reviewer agent/session identities are required",
+		);
 
 	const dispositions = Array.isArray(report.reconciliation?.dispositions)
 		? report.reconciliation.dispositions
@@ -882,18 +929,28 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		failures,
 	);
 	if (
-		!exactKeys(report.confirmation, ["artifact", "trustedRun"]) ||
+		!exactKeys(report.confirmation, [
+			"artifact",
+			"reviewerAgentId",
+			"reviewerSessionId",
+			"trustedRun",
+		]) ||
 		!exactKeys(confirmation, [
 			"completedAt",
 			"deepEvidenceOutputSha256",
 			"finalDiffSha256",
 			"reconciliationSha256",
+			"reviewerAgentId",
+			"reviewerSessionId",
 			"schemaVersion",
 			"sourceSha",
 			"status",
 		]) ||
-		confirmation?.schemaVersion !== "eonfolk-v1-final-confirmation-v1" ||
+		confirmation?.schemaVersion !== "eonfolk-v1-final-confirmation-v2" ||
 		confirmation?.status !== "PASS" ||
+		confirmation?.reviewerAgentId !== report.confirmation?.reviewerAgentId ||
+		confirmation?.reviewerSessionId !==
+			report.confirmation?.reviewerSessionId ||
 		confirmation?.sourceSha !== report.frozenSoftwareSha ||
 		confirmation?.deepEvidenceOutputSha256 !==
 			context.deepEvidenceOutputSha256 ||
@@ -911,13 +968,27 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		failures.push(
 			"fresh confirmation structure, binding, or ordering is invalid",
 		);
-	if (attestationIds.has(report.confirmation?.trustedRun?.attestationId))
+	if (runIds.has(report.confirmation?.trustedRun?.runId))
 		failures.push("fresh confirmation run is not independent");
+	if (
+		reviewerAgentIds.has(report.confirmation?.reviewerAgentId) ||
+		reviewerSessionIds.has(report.confirmation?.reviewerSessionId) ||
+		typeof report.confirmation?.reviewerAgentId !== "string" ||
+		report.confirmation.reviewerAgentId.length < 3 ||
+		typeof report.confirmation?.reviewerSessionId !== "string" ||
+		report.confirmation.reviewerSessionId.length < 3
+	)
+		failures.push(
+			"fresh confirmation reviewer agent/session is not independent",
+		);
 	validateTrustedRun(
 		report.confirmation?.trustedRun,
 		{
+			candidateSha: report.frozenSoftwareSha,
 			payloadSha256: report.confirmation?.artifact?.sha256,
 			purpose: "final-confirmation",
+			reviewerAgentId: report.confirmation?.reviewerAgentId,
+			reviewerSessionId: report.confirmation?.reviewerSessionId,
 			sourceSha: report.frozenSoftwareSha,
 		},
 		"fresh confirmation",
@@ -1067,6 +1138,10 @@ export function evaluateV1Readiness({
 			rows.filter((row) => row.state === state).length,
 		]),
 	);
+	const goalRosterResult = validateCanonicalGoalRoster(rows, canonicalRows, {
+		canonicalSource: canonicalGoalSource,
+		source: goalSource,
+	});
 	if (mode === "draft") {
 		return {
 			schemaVersion: "eonfolk-v1-readiness-v3",
@@ -1076,8 +1151,13 @@ export function evaluateV1Readiness({
 			testedIdentity,
 			requiredRows: rows.length,
 			stateCounts: counts,
+			goalRosterSha256: goalRosterResult.rosterSha256,
 			incomplete: incomplete.map((row) => row.requirement),
-			releaseEvidence: { status: "NOT_REQUIRED_FOR_DRAFT", eligible: false },
+			releaseEvidence: {
+				status: goalRosterResult.ok ? "NOT_REQUIRED_FOR_DRAFT" : "INVALID",
+				eligible: false,
+				failures: goalRosterResult.failures,
+			},
 			claimBoundary:
 				"Draft CI may pass while work remains, but it makes no V1 readiness claim.",
 		};
@@ -1112,10 +1192,6 @@ export function evaluateV1Readiness({
 		testedIdentity ?? {},
 		reviewValidationContext,
 	);
-	const goalRosterResult = validateCanonicalGoalRoster(rows, canonicalRows, {
-		canonicalSource: canonicalGoalSource,
-		source: goalSource,
-	});
 	const evidenceFailures = [
 		...goalRosterResult.failures,
 		...reviewResult.failures,
@@ -1185,7 +1261,7 @@ function inspectPostFreeze(frozenSoftwareSha, head) {
 function loadTrustedRuns(path) {
 	if (path === null)
 		throw new Error(
-			"ready mode requires --trusted-attestations from the external GitHub trust root",
+			"ready mode requires --trusted-attestations from live GitHub verification",
 		);
 	const root = realpathSync(resolve("."));
 	const absolute = resolve(path);
@@ -1201,31 +1277,58 @@ function loadTrustedRuns(path) {
 		);
 	const registry = JSON.parse(readFileSync(real, "utf8"));
 	if (
-		!exactKeys(registry, ["runs", "schemaVersion", "trustBoundary"]) ||
-		registry?.schemaVersion !== "eonfolk-trusted-github-runs-v1" ||
-		registry?.trustBoundary !== "EXTERNAL_GITHUB_CONFIGURATION" ||
+		!exactKeys(registry, [
+			"outputSha256",
+			"runs",
+			"schemaVersion",
+			"trustBoundary",
+			"verifiedAt",
+		]) ||
+		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v1" ||
+		registry?.trustBoundary !==
+			"LIVE_GITHUB_API_METADATA_AND_DOWNLOADED_ARTIFACT_BYTES; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
+		!validTimestamp(registry?.verifiedAt) ||
 		!Array.isArray(registry?.runs)
 	)
 		throw new Error("trusted GitHub run registry schema is invalid");
+	const { outputSha256, ...unsigned } = registry;
+	if (outputSha256 !== sha256(JSON.stringify(unsigned)))
+		throw new Error("trusted GitHub run registry hash is invalid");
 	const runs = new Map();
 	for (const run of registry.runs) {
 		if (
 			!exactKeys(run, [
-				"attestationId",
+				"actor",
+				"artifactArchiveSha256",
+				"artifactId",
+				"artifactName",
+				"candidateSha",
+				"conclusion",
+				"event",
 				"payloadSha256",
 				"provider",
 				"purpose",
 				"repository",
+				"reviewerAgentId",
+				"reviewerSessionId",
+				"runnerLabels",
+				"runnerName",
 				"runAttempt",
 				"runId",
 				"sourceSha",
+				"workflowId",
+				"workflowPath",
+				"workflowSourceSha",
 			]) ||
-			typeof run?.attestationId !== "string" ||
-			runs.has(run.attestationId)
+			!Number.isSafeInteger(run?.runId) ||
+			run.runId <= 0 ||
+			runs.has(run.runId)
 		)
 			throw new Error("trusted GitHub run IDs are missing or duplicated");
-		runs.set(run.attestationId, run);
+		runs.set(run.runId, run);
 	}
+	if (runs.size !== 8)
+		throw new Error("trusted GitHub run registry must contain eight runs");
 	return runs;
 }
 
@@ -1324,15 +1427,12 @@ function main() {
 	};
 	const goalSource = readFileSync(goalPath, "utf8");
 	const rows = parseRequiredStateRows(goalSource);
-	let canonicalGoalSource = goalSource;
-	if (mode === "ready")
-		canonicalGoalSource = execFileSync(
-			"git",
-			["show", `${testedIdentity.baseSha}:GOAL.md`],
-			{ encoding: "utf8" },
-		);
-	const canonicalRows =
-		mode === "ready" ? parseRequiredStateRows(canonicalGoalSource) : rows;
+	const canonicalGoalSource = execFileSync(
+		"git",
+		["show", `${testedIdentity.baseSha}:GOAL.md`],
+		{ encoding: "utf8" },
+	);
+	const canonicalRows = parseRequiredStateRows(canonicalGoalSource);
 	const trustedRuns =
 		mode === "ready"
 			? loadTrustedRuns(argument("--trusted-attestations"))
@@ -1359,7 +1459,11 @@ function main() {
 		postFreeze,
 	});
 	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-	if (mode === "ready" && result.status !== "V1 READY") process.exitCode = 1;
+	if (
+		(mode === "ready" && result.status !== "V1 READY") ||
+		(mode === "draft" && result.releaseEvidence.status === "INVALID")
+	)
+		process.exitCode = 1;
 }
 
 if (fileURLToPath(import.meta.url) === resolve(process.argv[1] ?? "")) main();

@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { classifyConditionalPaths } from "../../../scripts/run-verification-tier.mjs";
+import {
+	classifyConditionalPaths,
+	verificationStepsForTier,
+} from "../../../scripts/run-verification-tier.mjs";
 
 describe("V1 CI hardening", () => {
 	it("classifies cognition separately from ordinary UI and documentation", () => {
@@ -108,13 +111,36 @@ describe("V1 CI hardening", () => {
 		expect(workflow).toContain('--base-head "' + "$" + '{V1_BASE_HEAD}"');
 		expect(workflow).toContain('V1_TESTED_KIND="pull-request-merge"');
 		expect(workflow).toContain('V1_TESTED_KIND="main-push"');
-		expect(workflow).toContain("V1_TRUSTED_ATTESTATIONS_JSON");
+		expect(workflow).toContain("V1_EVIDENCE_RUN_IDS_JSON");
+		expect(workflow).toContain("it is not a trust assertion");
 		expect(workflow).toContain(
-			'--trusted-attestations "' + "$" + '{trusted_attestations}"',
+			'git show "' + "$" + '{V1_BASE_HEAD}:scripts/v1-github-evidence.mjs"',
+		);
+		expect(workflow).toContain(
+			'--trusted-attestations "' + "$" + '{verified_registry}"',
 		);
 		expect(workflow.match(/--tested-kind/g)).toHaveLength(2);
 		expect(workflow.match(/--tested-head/g)).toHaveLength(2);
 		expect(workflow.match(/--base-head/g)).toHaveLength(2);
+	});
+
+	it("keeps the protected-main producer manual and the DEEP roster exact", () => {
+		const workflow = readFileSync(
+			resolve(".github/workflows/v1-evidence.yml"),
+			"utf8",
+		);
+		expect(verificationStepsForTier("deep")).toHaveLength(30);
+		expect(workflow).toContain("workflow_dispatch:");
+		expect(workflow).not.toContain("pull_request:");
+		expect(workflow).not.toContain("push:");
+		expect(workflow).toContain(
+			"runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]",
+		);
+		expect(workflow).toContain("runs-on: ubuntu-24.04");
+		expect(workflow).toContain("without executing candidate code");
+		expect(workflow).toContain(
+			"node ../control/scripts/run-verification-tier.mjs deep",
+		);
 	});
 
 	it("validates the frozen dependency graph before either dependency fetch", () => {

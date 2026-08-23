@@ -1,0 +1,214 @@
+name: V1 release evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      purpose:
+        description: Exact release-evidence purpose
+        required: true
+        type: choice
+        options:
+          - target-mac-deep
+          - review:V1-RV-PRODUCT
+          - review:V1-RV-SYSTEMS
+          - review:V1-RV-VISUAL
+          - review:V1-RV-COGNITION
+          - review:V1-RV-PERSISTENCE
+          - review:V1-RV-CI
+          - final-confirmation
+      candidate_sha:
+        description: Full candidate SHA in this repository
+        required: true
+        type: string
+      artifact_path:
+        description: Candidate-relative structured review/confirmation artifact path
+        required: false
+        default: ""
+        type: string
+      reviewer_agent_id:
+        description: Human-entered independent reviewer-agent identity (not cryptographic identity)
+        required: false
+        default: ""
+        type: string
+      reviewer_session_id:
+        description: Human-entered unique reviewer session/task identity
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v1-evidence-${{ inputs.purpose }}-${{ inputs.candidate_sha }}
+  cancel-in-progress: false
+
+jobs:
+  target-mac-deep:
+    name: Target-Mac exact 30-step DEEP
+    if: github.ref == 'refs/heads/main' && inputs.purpose == 'target-mac-deep'
+    runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]
+    timeout-minutes: 240
+    steps:
+      - name: Check out protected-main control plane
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out exact candidate without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require full immutable candidate SHA and empty review inputs
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+          REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
+          REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ -z "${ARTIFACT_PATH}" && -z "${REVIEWER_AGENT_ID}" && -z "${REVIEWER_SESSION_ID}" ]]
+          [[ "$(git -C candidate rev-parse HEAD)" == "${CANDIDATE_SHA}" ]]
+
+      - name: Validate dependency cohort before fetch
+        working-directory: candidate
+        run: node ../control/scripts/validate-dependency-cohort.mjs
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.15.1
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+          cache-dependency-path: candidate/pnpm-lock.yaml
+
+      - name: Install Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install exact candidate dependencies
+        working-directory: candidate
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install pinned Playwright Chromium in the disposable runner
+        working-directory: candidate
+        run: pnpm exec playwright install chromium
+
+      - name: Fetch repository-pinned TLC
+        shell: bash
+        working-directory: candidate
+        run: |
+          set -euo pipefail
+          tlc_url="$(node ../control/scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node ../control/scripts/formal-toolchain.mjs --sha256)"
+          curl --fail --location --silent --show-error \
+            "${tlc_url}" \
+            --output "${RUNNER_TEMP}/tla2tools.jar"
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | shasum -a 256 --check
+
+      - name: Run protected-control exact 30-step DEEP against candidate
+        working-directory: candidate
+        env:
+          EONFOLK_TRUSTED_RUN_ID: ${{ github.run_id }}
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: node ../control/scripts/run-verification-tier.mjs deep
+
+      - name: Prepare hash-bound DEEP receipt with protected-main control
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          node control/scripts/v1-github-evidence.mjs prepare \
+            --purpose target-mac-deep \
+            --candidate-root candidate \
+            --candidate-sha "${CANDIDATE_SHA}" \
+            --payload tmp/eonfolk-verification-deep.json \
+            --output "${RUNNER_TEMP}/v1-evidence"
+
+      - name: Upload exact DEEP receipt and payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: v1-evidence-target-mac-deep-${{ github.run_id }}
+          path: ${{ runner.temp }}/v1-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  review-or-confirmation:
+    name: Review or confirmation receipt
+    if: github.ref == 'refs/heads/main' && inputs.purpose != 'target-mac-deep'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out protected-main control plane
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out exact candidate as inert evidence bytes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Require exact inputs without executing candidate code
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+          REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
+          REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${ARTIFACT_PATH}" =~ ^docs/(reviews|exec-plans/evidence/003/release)/[^./][A-Za-z0-9._/-]*\.json$ ]]
+          [[ "${REVIEWER_AGENT_ID}" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$ ]]
+          [[ "${REVIEWER_SESSION_ID}" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$ ]]
+          [[ "$(git -C candidate rev-parse HEAD)" == "${CANDIDATE_SHA}" ]]
+
+      - name: Prepare structured receipt with protected-main control only
+        id: receipt
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          PURPOSE: ${{ inputs.purpose }}
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+          REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
+          REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+        run: |
+          node control/scripts/v1-github-evidence.mjs prepare \
+            --purpose "${PURPOSE}" \
+            --candidate-root candidate \
+            --candidate-sha "${CANDIDATE_SHA}" \
+            --payload "${ARTIFACT_PATH}" \
+            --reviewer-agent-id "${REVIEWER_AGENT_ID}" \
+            --reviewer-session-id "${REVIEWER_SESSION_ID}" \
+            --output "${RUNNER_TEMP}/v1-evidence"
+          purpose_slug="$(node control/scripts/v1-github-evidence.mjs purpose-slug --purpose "${PURPOSE}")"
+          echo "artifact-name=v1-evidence-${purpose_slug}-${GITHUB_RUN_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload exact review or confirmation receipt and payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.receipt.outputs.artifact-name }}
+          path: ${{ runner.temp }}/v1-evidence
+          if-no-files-found: error
+          retention-days: 30

@@ -17,6 +17,7 @@ on:
           - extended
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -129,7 +130,8 @@ jobs:
           V1_BASE_HEAD: ${{ github.event.pull_request.base.sha || github.event.before }}
           V1_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
           V1_TESTED_HEAD: ${{ github.sha }}
-          V1_TRUSTED_ATTESTATIONS_JSON: ${{ vars.V1_TRUSTED_ATTESTATIONS_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}
+          V1_EVIDENCE_RUN_IDS_JSON: ${{ vars.V1_EVIDENCE_RUN_IDS_JSON }}
         run: |
           set -euo pipefail
           V1_READINESS_MODE="draft"
@@ -145,19 +147,29 @@ jobs:
             V1_TESTED_KIND="main-push"
           fi
           if [[ "${V1_READINESS_MODE}" == "ready" ]]; then
-            if [[ -z "${V1_TRUSTED_ATTESTATIONS_JSON}" ]]; then
-              echo "V1_TRUSTED_ATTESTATIONS_JSON repository variable is required for externally trusted release evidence" >&2
+            if [[ -z "${V1_EVIDENCE_RUN_IDS_JSON}" ]]; then
+              echo "V1_EVIDENCE_RUN_IDS_JSON must enumerate the eight producer run IDs; it is not a trust assertion" >&2
               exit 1
             fi
-            trusted_attestations="${RUNNER_TEMP}/v1-trusted-attestations.json"
-            printf '%s' "${V1_TRUSTED_ATTESTATIONS_JSON}" > "${trusted_attestations}"
-            node scripts/check-v1-readiness.mjs \
+            run_ids="${RUNNER_TEMP}/v1-evidence-run-ids.json"
+            verified_registry="${RUNNER_TEMP}/v1-live-verified-runs.json"
+            control_dir="${RUNNER_TEMP}/v1-protected-main-control"
+            mkdir -p "${control_dir}"
+            git show "${V1_BASE_HEAD}:scripts/v1-github-evidence.mjs" > "${control_dir}/v1-github-evidence.mjs"
+            git show "${V1_BASE_HEAD}:scripts/check-v1-readiness.mjs" > "${control_dir}/check-v1-readiness.mjs"
+            git show "${V1_BASE_HEAD}:scripts/run-verification-tier.mjs" > "${control_dir}/run-verification-tier.mjs"
+            printf '%s' "${V1_EVIDENCE_RUN_IDS_JSON}" > "${run_ids}"
+            node "${control_dir}/v1-github-evidence.mjs" verify \
+              --run-ids-config "${run_ids}" \
+              --repository "${GITHUB_REPOSITORY}" \
+              --output "${verified_registry}"
+            node "${control_dir}/check-v1-readiness.mjs" \
               --mode ready \
               --head "${V1_BRANCH_HEAD}" \
               --base-head "${V1_BASE_HEAD}" \
               --tested-head "${V1_TESTED_HEAD}" \
               --tested-kind "${V1_TESTED_KIND}" \
-              --trusted-attestations "${trusted_attestations}" \
+              --trusted-attestations "${verified_registry}" \
               --deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json \
               --review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json
           else

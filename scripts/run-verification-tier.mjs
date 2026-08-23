@@ -1030,7 +1030,7 @@ async function main() {
 		integrityClaim: "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
 		trustedRun:
 			tier === "deep"
-				? { attestationId: process.env.EONFOLK_TRUSTED_RUN_ID ?? "" }
+				? { runId: Number(process.env.EONFOLK_TRUSTED_RUN_ID ?? 0) }
 				: null,
 		verificationContractSha256: verificationContractSha256(tier),
 		claimBoundary: claimBoundaryForTier(tier, status),
