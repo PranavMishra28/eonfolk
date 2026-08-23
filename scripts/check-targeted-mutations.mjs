@@ -62,6 +62,48 @@ const mutants = [
 		to: "if (false)",
 		tests: ["tests/unit/systems/properties.test.ts"],
 	},
+	{
+		name: "world generator inverts settlement water exclusion",
+		file: "packages/worldgen/src/index.ts",
+		from: 'cell.terrain !== "water",',
+		to: 'cell.terrain === "water",',
+		tests: ["tests/property/worldgen/generator.property.test.ts"],
+	},
+	{
+		name: "routine planner reads unsupported hidden facts",
+		file: "packages/cognition/src/routine-planner.ts",
+		from: "affordance.requiredVisibleRecordIds.every((id) => visibleIds.has(id))",
+		to: "true",
+		tests: ["tests/unit/cognition/routine-planner.test.ts"],
+	},
+	{
+		name: "routine planner ignores action prerequisites",
+		file: "packages/cognition/src/routine-planner.ts",
+		from: "!affordance.prerequisiteActionIds.every((id) => selected.has(id))",
+		to: "false",
+		tests: ["tests/unit/cognition/routine-planner.test.ts"],
+	},
+	{
+		name: "routine planner ignores expansion budget",
+		file: "packages/cognition/src/routine-planner.ts",
+		from: "expansions += 1;",
+		to: "expansions += 0;",
+		tests: ["tests/unit/cognition/routine-planner.test.ts"],
+	},
+	{
+		name: "standing plan accepts multiple active steps",
+		file: "packages/cognition/src/standing-plan.ts",
+		from: 'if (plan.status === "active" && active.length !== 1)',
+		to: 'if (plan.status === "active" && false)',
+		tests: ["tests/unit/cognition/routine-planner.test.ts"],
+	},
+	{
+		name: "standing plan retry budget never decreases",
+		file: "packages/cognition/src/standing-plan.ts",
+		from: "retriesRemaining: plan.retriesRemaining - 1,",
+		to: "retriesRemaining: plan.retriesRemaining,",
+		tests: ["tests/unit/cognition/routine-planner.test.ts"],
+	},
 ];
 
 function targetIsClean(file) {
@@ -119,6 +161,8 @@ execFileSync(
 		"tests/unit/systems/visibility.test.ts",
 		"tests/unit/persistence",
 		"tests/unit/systems/properties.test.ts",
+		"tests/property/worldgen/generator.property.test.ts",
+		"tests/unit/cognition/routine-planner.test.ts",
 		"apps/web/src/diagnostics.test.ts",
 		"--reporter=dot",
 	],

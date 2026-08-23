@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	abandonStandingPlan,
 	advanceStandingPlan,
+	assertStandingPlan,
 	interruptStandingPlan,
 	planProjectWork,
 	planRoutine,
@@ -176,6 +177,27 @@ describe("bounded routine and project planning", () => {
 		).toThrow("ACTION_UNAVAILABLE");
 	});
 
+	it("fails closed when the bounded search budget cannot reach the goal", () => {
+		expect(() =>
+			planRoutine({
+				planId: "plan-budget",
+				citizenId: "citizen-builder",
+				boundary: 0,
+				visibleRecords: records,
+				affordances: affordances(),
+				goal: {
+					goalType: "advance-project",
+					desiredEffectCodes: [effects.milestone],
+					targetIds: ["hall"],
+					commitmentId: null,
+					maximumSteps: 4,
+					expiryBoundary: 86_400,
+				},
+				maximumExpansions: 1,
+			}),
+		).toThrow("ACTION_UNAVAILABLE");
+	});
+
 	it("plans only the active visible milestone for the named project", () => {
 		const plan = planProjectWork({
 			planId: "plan-project-wrapper",
@@ -264,5 +286,34 @@ describe("bounded routine and project planning", () => {
 				(step) => step.status === "abandoned" || step.status === "completed",
 			),
 		).toBe(true);
+	});
+
+	it("rejects multiple active steps before lifecycle mutation", () => {
+		const initial = planRoutine({
+			planId: "plan-invalid-active",
+			citizenId: "citizen-builder",
+			boundary: 0,
+			visibleRecords: records,
+			affordances: affordances(),
+			goal: {
+				goalType: "advance-project",
+				desiredEffectCodes: [effects.milestone],
+				targetIds: ["hall"],
+				commitmentId: null,
+				maximumSteps: 4,
+				expiryBoundary: 86_400,
+			},
+			maximumExpansions: 64,
+		});
+		const invalid = {
+			...initial,
+			steps: initial.steps.map((step) => ({
+				...step,
+				status: "active" as const,
+			})),
+		};
+		expect(() => assertStandingPlan(invalid)).toThrow(
+			/active plan requires exactly one active step/u,
+		);
 	});
 });
