@@ -3,6 +3,7 @@ import {
 	advanceGeneralizedScheduler,
 	deriveCivilizationSchedulerPolicy,
 	projectCivilizationScheduledActivities,
+	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	runCivilizationExperiment,
 	type CivilizationState,
 } from "../../../packages/civilization/src/index.js";
@@ -81,22 +82,19 @@ async function fixture(crash?: OneShotCrash) {
 	});
 	const civilization = replay.state
 		.civilization as unknown as CivilizationState;
-	const citizenId = Object.values(civilization.minds)
-		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
-		.find((mind) => {
-			const citizen = civilization.citizens[mind.citizenId];
-			return mind.snapshot.relationships.some(
-				(relationship) =>
-					civilization.citizens[relationship.toCitizenId]?.residenceState ===
-						"resident" &&
-					civilization.citizens[relationship.toCitizenId]?.settlementId ===
-						citizen?.settlementId &&
-					civilization.citizens[relationship.toCitizenId]?.siteId ===
-						citizen?.siteId,
-			);
-		})?.citizenId;
-	if (citizenId === undefined)
-		throw new Error("fixture has no locally counsel-capable citizen");
+	const citizenId = RELEASE_GENESIS_MARA_CITIZEN_ID;
+	const citizen = civilization.citizens[citizenId];
+	const mind = civilization.minds[citizenId];
+	const counselCapable = mind?.snapshot.relationships.some((relationship) => {
+		const target = civilization.citizens[relationship.toCitizenId];
+		return (
+			target?.residenceState === "resident" &&
+			target.settlementId === citizen?.settlementId &&
+			target.siteId === citizen.siteId
+		);
+	});
+	if (citizen?.residenceState !== "resident" || !counselCapable)
+		throw new Error("canonical Mara fixture is not locally counsel-capable");
 	const payload = {
 		kind: "EstablishSponsorship" as const,
 		covenantId: `covenant:${citizenId}`,
@@ -584,9 +582,9 @@ describe("unified civilization sponsor authority", () => {
 			beforeBoundary.minds[value.citizenId]?.snapshot.standingPlan;
 		expect(activePlan).toMatchObject({
 			citizenId: value.citizenId,
-			goalType: "routine:transport",
+			goalType: "routine:construct",
 			status: "active",
-			targetIds: ["lane-building-timber"],
+			targetIds: ["project-expedition-kit"],
 		});
 		expect(activePlan!.startBoundary).toBeLessThanOrEqual(
 			beforeBoundary.simulationTime,
@@ -620,8 +618,8 @@ describe("unified civilization sponsor authority", () => {
 		expect(boundary.fact).toMatchObject({
 			causalRelation: "contributing-condition",
 			consequenceKind: "routine-reassigned",
-			planRoutineKind: "transport",
-			planRoutineSubjectId: "lane-building-timber",
+			planRoutineKind: "construct",
+			planRoutineSubjectId: "project-expedition-kit",
 			routineKind: "social-maintenance",
 			effect: { kind: "reserve-inspection" },
 			counterfactual: {
@@ -644,17 +642,20 @@ describe("unified civilization sponsor authority", () => {
 			abstentionActivities.find(
 				(activity) => activity.citizenId === value.citizenId,
 			)?.routine.kind,
-		).toBe("transport");
-		expect(selected.stocks["stock-source-standing-timber"]?.quantity).toBe(512);
-		expect(
+		).toBe("construct");
+		expect(selected.projects["project-expedition-kit"]?.state).toBe("proposed");
+		expect(abstention.state.projects["project-expedition-kit"]?.state).toBe(
+			"completed",
+		);
+		expect(selected.stocks["stock-source-standing-timber"]?.quantity).toBe(
 			abstention.state.stocks["stock-source-standing-timber"]?.quantity,
-		).toBe(504);
+		);
 		expect(
 			Object.values(selected.processes).some(
 				(process) =>
 					process.processId === "scheduled:job-building-timber:172800",
 			),
-		).toBe(false);
+		).toBe(true);
 		expect(
 			Object.values(abstention.state.processes).some(
 				(process) =>
@@ -818,7 +819,7 @@ describe("unified civilization sponsor authority", () => {
 		});
 		expect(resolved.transition.events[0]?.eventPayload).toMatchObject({
 			action: "follow-plan",
-			disposition: "delayed",
+			disposition: "rejected",
 		});
 		const replay = await replayCivilizationHistory(value.port, {
 			runId: value.runId,

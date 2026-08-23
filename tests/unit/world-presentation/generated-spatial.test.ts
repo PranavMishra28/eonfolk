@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import {
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
+	runCivilizationExperiment,
+} from "../../../packages/civilization/src/index.js";
 import {
 	createReleaseGenesis,
 	jcs,
@@ -197,9 +200,11 @@ describe("generated civilization spatial adapter", () => {
 		});
 		expect(founded.availability).toEqual({ status: "available", reasons: [] });
 		expect(founded.spatial.actors).toHaveLength(1);
-		expect(founded.spatial.actors[0]?.citizenId).toBe("citizen-01");
-		expect(founded.spatial.actors[0]?.name).toBe("Mara Vale");
-		expect(founded.spatial.actors[0]?.role).toBe("expedition-steward");
+		expect(founded.spatial.actors[0]?.citizenId).toBe(
+			RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
+		);
+		expect(founded.spatial.actors[0]?.name).toBe("Orin Ash");
+		expect(founded.spatial.actors[0]?.role).toBe("forester");
 		const camp =
 			founded.scene.nodes["settlement-second:founding-site:camp-slot"];
 		expect(founded.spatial.actors[0]?.positionMm).toEqual({

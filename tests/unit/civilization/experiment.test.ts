@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	assertCivilizationInvariants,
 	deriveCivilizationSeedConditions,
+	RELEASE_GENESIS_MARA_CITIZEN_ID,
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
 	runCivilizationExperimentMatrix,
 } from "../../../packages/civilization/src/index.js";
@@ -286,10 +288,19 @@ describe("deterministic civilization experiment", () => {
 		expect(mismatchedCarrier?.canonicalAction.destinationPlaceId).toBe(
 			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
 		);
-		expect(first.state.citizens["citizen-01"]).toMatchObject({
-			name: "Mara Vale",
-			valueIds: ["stewardship", "curiosity"],
-			primaryRoleId: "expedition-steward",
+		expect(first.state.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID]).toMatchObject(
+			{
+				name: "Mara Vale",
+				valueIds: ["stewardship", "curiosity"],
+				primaryRoleId: "expedition-steward",
+				settlementId: first.seedConditions.originSettlementId,
+				residenceState: "resident",
+			},
+		);
+		expect(
+			first.state.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+		).toMatchObject({
+			name: "Orin Ash",
 			settlementId: "settlement-second",
 			siteId: "settlement-second:founding-site",
 			residenceState: "resident",

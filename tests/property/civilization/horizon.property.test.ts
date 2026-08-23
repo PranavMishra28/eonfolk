@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
 	auditCivilizationState,
+	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "../../../packages/civilization/src/index.js";
 import {
@@ -128,6 +129,34 @@ describe("civilization long-horizon properties", () => {
 							expect(Object.keys(first.world.settlements)).toHaveLength(2);
 						}
 						if (founding?.state === "viable") {
+							const founderCitizenId = founding.founderCitizenIds[0];
+							const mara =
+								first.state.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
+							const migration =
+								first.state.migrations["migration-founding-party"];
+							expect(founderCitizenId).toBeDefined();
+							if (founderCitizenId === undefined)
+								throw new Error("viable founding has no canonical founder");
+							expect(founderCitizenId).not.toBe(
+								RELEASE_GENESIS_MARA_CITIZEN_ID,
+							);
+							expect(mara).toMatchObject({
+								residenceState: "resident",
+								settlementId: first.seedConditions.originSettlementId,
+							});
+							expect(
+								first.world.settlements["settlement-second"]?.value
+									.residentCitizenIds,
+							).toEqual([founderCitizenId]);
+							expect(first.state.citizens[founderCitizenId]).toMatchObject({
+								residenceState: "resident",
+								settlementId: "settlement-second",
+							});
+							for (const stockId of migration?.carriedStockIds ?? [])
+								expect(first.state.stocks[stockId]?.owner).toEqual({
+									kind: "citizen",
+									citizenId: founderCitizenId,
+								});
 							expect(first.seedConditions.expansionEligible).toBe(true);
 							expect(
 								first.state.projects["project-expedition-kit"]?.state,

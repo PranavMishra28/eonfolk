@@ -3,6 +3,7 @@ import {
 	type CivilizationExperimentRun,
 	type CivilizationScheduledActivity,
 	type CivilizationState,
+	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import {
@@ -289,22 +290,13 @@ export async function buildGeneratedWorldExperience(
 			? generatedWorld
 			: (authorityState.world as unknown as GeneratedWorldState);
 	const sponsorCivilization = durableCivilization ?? run.state;
-	const sponsorCitizenId = Object.values(sponsorCivilization.minds)
-		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
-		.find((mind) => {
-			const citizen = sponsorCivilization.citizens[mind.citizenId];
-			return mind.snapshot.relationships.some(
-				(relationship) =>
-					sponsorCivilization.citizens[relationship.toCitizenId]
-						?.residenceState === "resident" &&
-					sponsorCivilization.citizens[relationship.toCitizenId]
-						?.settlementId === citizen?.settlementId &&
-					sponsorCivilization.citizens[relationship.toCitizenId]?.siteId ===
-						citizen?.siteId,
-			);
-		})?.citizenId;
-	if (sponsorCitizenId === undefined)
-		throw new Error("The generated world has no counsel-capable citizen");
+	const sponsorCitizenId = RELEASE_GENESIS_MARA_CITIZEN_ID;
+	const sponsorCitizen = sponsorCivilization.citizens[sponsorCitizenId];
+	if (
+		sponsorCitizen?.residenceState !== "resident" ||
+		sponsorCivilization.minds[sponsorCitizenId] === undefined
+	)
+		throw new Error("Citizen missing");
 	const activeCounsel = Object.values(sponsorCivilization.counsels).find(
 		(counsel) =>
 			counsel.citizenId === sponsorCitizenId && counsel.resolution === null,

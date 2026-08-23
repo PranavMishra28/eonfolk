@@ -83,6 +83,9 @@ export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
+/** Stable Reality identity for the Release Genesis focal citizen. */
+export const RELEASE_GENESIS_MARA_CITIZEN_ID = "citizen-01" as const;
+export const RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID = "citizen-04" as const;
 const PROJECT_TIMBER = 6;
 const MIGRATION_GRAIN = 18;
 const MIGRATION_WATER = 18;
@@ -654,7 +657,7 @@ function bootstrapCivilization(
 		supplyRoute.fromSiteId === workSite.siteId
 			? supplyRoute.toSiteId
 			: supplyRoute.fromSiteId;
-	const migrant = citizenId(0);
+	const migrant = RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID;
 	let state = createCivilizationState({
 		citizenIds: Array.from({ length: POPULATION }, (_, index) =>
 			citizenId(index),
@@ -700,12 +703,14 @@ function bootstrapCivilization(
 		const id = citizenId(index);
 		const identity = required(CITIZEN_IDENTITIES[index], `identity for ${id}`);
 		const site =
-			index >= POPULATION - 2 && communalSite !== undefined
-				? communalSite
-				: required(
-						originSites[index % originSites.length],
-						"an origin citizen site",
-					);
+			id === RELEASE_GENESIS_MARA_CITIZEN_ID || id === citizenId(1)
+				? workSite
+				: index >= POPULATION - 2 && communalSite !== undefined
+					? communalSite
+					: required(
+							originSites[index % originSites.length],
+							"an origin citizen site",
+						);
 		state = registerCitizen(state, {
 			schemaVersion: "eonfolk-civilization-social-v1",
 			citizenId: id,
@@ -728,7 +733,7 @@ function bootstrapCivilization(
 	}
 	for (let index = 1; index < POPULATION; index += 2) {
 		const memberCitizenIds = [citizenId(index), citizenId(index + 1)].filter(
-			(id) => state.citizens[id] !== undefined,
+			(id) => id !== migrant && state.citizens[id] !== undefined,
 		);
 		state = formHousehold(state, {
 			householdId: `household-${String(Math.trunc(index / 2) + 1).padStart(2, "0")}`,
@@ -2208,7 +2213,7 @@ export async function runCivilizationExperiment(input: {
 				state,
 				{
 					migrationId: "migration-founding-party",
-					citizenIds: [citizenId(0)],
+					citizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
 					originSettlementId: conditions.originSettlementId,
 					destinationTerritoryId: conditions.destination.territoryId,
 					destinationSettlementId: null,
@@ -2240,7 +2245,7 @@ export async function runCivilizationExperiment(input: {
 					migrationId: "migration-founding-party",
 					proposedSettlementId: "settlement-second",
 					territoryId: conditions.destination.territoryId,
-					founderCitizenIds: [citizenId(0)],
+					founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
 					requiredProjectIds: ["project-expedition-kit"],
 					requiredStockIds: [
 						"stock-migrant-grain",
@@ -2367,8 +2372,8 @@ export async function runCivilizationExperiment(input: {
 				name: "Second Founding",
 				territoryId: conditions.destination.territoryId,
 				anchorCellId: conditions.route.destinationCellId,
-				founderCitizenIds: [citizenId(0)],
-				residentCitizenIds: [citizenId(0)],
+				founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+				residentCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
 				migrationId: "migration-founding-party",
 				foundedAtSimulationTime: atSimulationTime,
 			});
