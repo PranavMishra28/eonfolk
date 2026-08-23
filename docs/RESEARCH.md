@@ -19,6 +19,8 @@
 
 ## Primary research spine
 
+<!-- bibliography-keys: park2023generative sumers2024coala wang2023voyager altera2024projectsid piao2026agentsociety nau2003shop2 silver2010pomcp lamport2002specifying -->
+
 | Area | Primary sources | EONFOLK use and limit |
 |---|---|---|
 | Agent memory and reflection | `park2023generative`, `sumers2024coala` | Motivates typed episodic/semantic/social memory and reflection; does not establish human fidelity or authorize prose as truth |
