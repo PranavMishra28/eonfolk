@@ -191,19 +191,6 @@ export function recordGeneratedWorldFaultOutcome(
 	}
 }
 
-if (typeof window !== "undefined") {
-	try {
-		Object.defineProperty(window, "__EONFOLK_OBSERVER__", {
-			configurable: true,
-			enumerable: false,
-			writable: false,
-			value: () => browserDiagnostics.observer(),
-		});
-	} catch {
-		// A blocked observer hook cannot become a runtime failure.
-	}
-}
-
 export function parseGeneratedWorldFault(
 	value: unknown,
 ): GeneratedWorldFaultSpec | null {
