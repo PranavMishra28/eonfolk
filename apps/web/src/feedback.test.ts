@@ -3,12 +3,12 @@ import { BrowserDiagnostics } from "./diagnostics.js";
 import {
 	composeFeedbackText,
 	createLocalFeedbackReport,
+	LEGACY_LOCAL_FEEDBACK_STORAGE_KEY,
+	LOCAL_FEEDBACK_STORAGE_KEY,
 	LocalFeedbackQueue,
 	sanitizeFeedbackText,
 	validateFeedbackAttachmentInput,
 } from "./feedback.js";
-
-const STORAGE_KEY = "eonfolk:founder-alpha-feedback:v1";
 
 class MemoryStorage implements Storage {
 	readonly #values = new Map<string, string>();
@@ -32,7 +32,7 @@ class MemoryStorage implements Storage {
 	}
 }
 
-describe("Founder Alpha feedback", () => {
+describe("EONFOLK local feedback", () => {
 	it("bounds text and redacts likely credentials and contact details", () => {
 		expect(
 			sanitizeFeedbackText(
@@ -167,14 +167,14 @@ describe("Founder Alpha feedback", () => {
 		const hostile = JSON.parse(JSON.stringify(valid));
 		hostile.diagnostics.incidents[0].safeSummary =
 			"Bearer attacker-token ghp_abcdefghijklmnopqrstuvwxyz123456";
-		storage.setItem(STORAGE_KEY, JSON.stringify([hostile]));
+		storage.setItem(LOCAL_FEEDBACK_STORAGE_KEY, JSON.stringify([hostile]));
 
 		const reports = new LocalFeedbackQueue(storage, () => now).list();
 		expect(reports).toHaveLength(1);
 		expect(reports[0]?.diagnostics?.incidents[0]?.safeSummary).toBe(
 			"The world paused before showing further state. Your durable local record was not replaced.",
 		);
-		const rewritten = storage.getItem(STORAGE_KEY) ?? "";
+		const rewritten = storage.getItem(LOCAL_FEEDBACK_STORAGE_KEY) ?? "";
 		expect(rewritten).not.toContain("Bearer");
 		expect(rewritten).not.toContain("ghp_");
 		expect(rewritten).toBe(JSON.stringify(reports));
@@ -193,7 +193,7 @@ describe("Founder Alpha feedback", () => {
 			createdAtMs: now,
 		});
 		storage.setItem(
-			STORAGE_KEY,
+			LOCAL_FEEDBACK_STORAGE_KEY,
 			JSON.stringify([
 				valid,
 				{ ...valid, reportId: "alpha_future", createdAtMs: now + 31536000000 },
@@ -220,10 +220,49 @@ describe("Founder Alpha feedback", () => {
 		expect(reports.map((report) => report.reportId)).toEqual([
 			"alpha_valid_report",
 		]);
-		expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? "[]")).toHaveLength(1);
+		expect(
+			JSON.parse(storage.getItem(LOCAL_FEEDBACK_STORAGE_KEY) ?? "[]"),
+		).toHaveLength(1);
 
-		storage.setItem(STORAGE_KEY, "x".repeat(4 * 1024 * 1024 + 1));
+		storage.setItem(
+			LOCAL_FEEDBACK_STORAGE_KEY,
+			"x".repeat(4 * 1024 * 1024 + 1),
+		);
 		expect(new LocalFeedbackQueue(storage, () => now).list()).toEqual([]);
-		expect(storage.getItem(STORAGE_KEY)).toBeNull();
+		expect(storage.getItem(LOCAL_FEEDBACK_STORAGE_KEY)).toBeNull();
+	});
+
+	it("migrates and deduplicates the bounded Founder Alpha queue", () => {
+		const storage = new MemoryStorage();
+		const now = 10_000;
+		const report = (reportId: string, createdAtMs: number) =>
+			createLocalFeedbackReport({
+				category: "story",
+				whatHappened: reportId,
+				whatExpected: "",
+				diagnostics: null,
+				attachment: null,
+				reportId,
+				createdAtMs,
+			});
+		storage.setItem(
+			LEGACY_LOCAL_FEEDBACK_STORAGE_KEY,
+			JSON.stringify([
+				report("alpha_legacy_1", 1),
+				report("alpha_shared_1", 2),
+			]),
+		);
+		storage.setItem(
+			LOCAL_FEEDBACK_STORAGE_KEY,
+			JSON.stringify([report("alpha_shared_1", 2), report("genesis_new_1", 3)]),
+		);
+
+		const migrated = new LocalFeedbackQueue(storage, () => now).list();
+		expect(migrated.map(({ reportId }) => reportId)).toEqual([
+			"alpha_legacy_1",
+			"alpha_shared_1",
+			"genesis_new_1",
+		]);
+		expect(storage.getItem(LEGACY_LOCAL_FEEDBACK_STORAGE_KEY)).toBeNull();
 	});
 });

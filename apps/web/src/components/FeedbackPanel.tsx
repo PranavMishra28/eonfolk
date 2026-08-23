@@ -73,7 +73,7 @@ export function FeedbackPanel({
 				whatExpected,
 				diagnostics: includeDiagnostics ? browserDiagnostics.observer() : null,
 				attachment,
-				reportId: `alpha_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
+				reportId: `feedback_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
 				createdAtMs: Date.now(),
 			});
 			setQueuedReports(queue.save(report));
@@ -205,7 +205,7 @@ export function FeedbackPanel({
 						/>
 						<span>
 							Include bounded structured diagnostics in this report (optional;
-							off until checked). Checking this turns on Alpha capture in this
+							off until checked). Checking this turns on bounded capture in this
 							tab. It never includes raw world state, prompts, hidden reasoning,
 							credentials, or browser history.
 						</span>

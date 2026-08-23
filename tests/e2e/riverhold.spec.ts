@@ -532,7 +532,7 @@ test("feedback stays local, sanitizes its image, requires consent for diagnostic
 		panel.getByRole("button", { name: /Delete queued feedback \(1\)/i }),
 	).toBeVisible();
 	const stored = await page.evaluate(() =>
-		localStorage.getItem("eonfolk:founder-alpha-feedback:v1"),
+		localStorage.getItem("eonfolk:release-genesis-feedback:v1"),
 	);
 	expect(stored).not.toContain("player@example.com");
 	expect(stored).not.toContain("ghp_");
