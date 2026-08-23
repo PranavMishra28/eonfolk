@@ -307,6 +307,23 @@ function decodeTelemetry(
 	return value as unknown as LocalProcessInvocationTelemetry;
 }
 
+function decodeAdapterFailure(chunks: readonly Buffer[]): string | null {
+	try {
+		const text = decodeCanonicalOutput(chunks);
+		const value = JSON.parse(text) as Record<string, unknown>;
+		if (
+			Object.keys(value).sort().join(",") !== "code,schemaVersion" ||
+			value.schemaVersion !== "eonfolk-local-model-error-v1" ||
+			typeof value.code !== "string" ||
+			!/^[a-z][a-z-]{0,63}$/u.test(value.code)
+		)
+			return null;
+		return value.code;
+	} catch {
+		return null;
+	}
+}
+
 function terminateProcess(child: ChildProcessWithoutNullStreams): void {
 	if (child.pid === undefined) return;
 	try {
@@ -428,7 +445,15 @@ async function invokeProcess(input: {
 				return;
 			}
 			if (code !== 0 || signal !== null) {
-				settle(failure("process-failed", "local model process failed"));
+				const adapterFailure = decodeAdapterFailure(stderr);
+				settle(
+					failure(
+						"process-failed",
+						adapterFailure === null
+							? "local model process failed"
+							: `local model adapter failed: ${adapterFailure}`,
+					),
+				);
 				return;
 			}
 			settle();

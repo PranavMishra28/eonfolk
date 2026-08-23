@@ -377,7 +377,7 @@ describe("bounded Ollama loopback adapter", () => {
 					}),
 				);
 			},
-			"process-failed",
+			"choice-json-invalid",
 		],
 		[
 			"oversized response",
@@ -385,7 +385,7 @@ describe("bounded Ollama loopback adapter", () => {
 				response.setHeader("content-type", "application/json");
 				response.end(JSON.stringify({ padding: "x".repeat(70_000) }));
 			},
-			"process-failed",
+			"response-oversized",
 		],
 		[
 			"HTTP failure",
@@ -394,14 +394,15 @@ describe("bounded Ollama loopback adapter", () => {
 				response.statusCode = 503;
 				response.end(JSON.stringify({ error: "unavailable" }));
 			},
-			"process-failed",
+			"ollama-http-failure",
 		],
-	])("fails closed after %s", async (_label, handler, code) => {
+	])("fails closed after %s", async (_label, handler, adapterCode) => {
 		const { port } = await startServer(handler);
 		const test = await ollamaHarness(port);
 
 		await expect(test.brain.propose(test.context)).rejects.toMatchObject({
-			code,
+			code: "process-failed",
+			message: `local model adapter failed: ${adapterCode}`,
 		});
 	});
 

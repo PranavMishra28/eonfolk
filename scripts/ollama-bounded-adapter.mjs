@@ -18,20 +18,29 @@ const CHOICE_KEYS = [
 	"visibleRecordIdsRead",
 ].sort();
 const TELEMETRY_SCHEMA_VERSION = "eonfolk-local-model-telemetry-v1";
+const ERROR_SCHEMA_VERSION = "eonfolk-local-model-error-v1";
 
-function fail(message) {
-	throw new Error(message);
+class AdapterFailure extends Error {
+	constructor(code) {
+		super(code);
+		this.name = "AdapterFailure";
+		this.code = code;
+	}
+}
+
+function fail(code) {
+	throw new AdapterFailure(code);
 }
 
 function canonicalJson(value) {
 	if (value === null || typeof value === "boolean" || typeof value === "string")
 		return JSON.stringify(value);
 	if (typeof value === "number") {
-		if (!Number.isFinite(value)) fail("non-finite JSON number");
+		if (!Number.isFinite(value)) fail("internal");
 		return JSON.stringify(value);
 	}
 	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-	if (typeof value !== "object") fail("unsupported JSON value");
+	if (typeof value !== "object") fail("internal");
 	return `{${Object.keys(value)
 		.sort()
 		.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
@@ -72,12 +81,12 @@ function metric(value) {
 }
 
 function parsePort(arguments_) {
-	if (arguments_.length !== 1) fail("adapter requires one port argument");
+	if (arguments_.length !== 1) fail("adapter-configuration-invalid");
 	const match = /^--ollama-port=([1-9][0-9]{0,4})$/u.exec(arguments_[0]);
-	if (match === null) fail("adapter port argument is invalid");
+	if (match === null) fail("adapter-configuration-invalid");
 	const port = Number(match[1]);
 	if (!Number.isSafeInteger(port) || port < 1 || port > 65_535)
-		fail("adapter port is outside the TCP range");
+		fail("adapter-configuration-invalid");
 	return port;
 }
 
@@ -86,12 +95,12 @@ async function readInvocation() {
 	let byteLength = 0;
 	for await (const chunk of process.stdin) {
 		byteLength += chunk.byteLength;
-		if (byteLength > MAX_FRAME_BYTES + 4) fail("invocation frame is oversized");
+		if (byteLength > MAX_FRAME_BYTES + 4) fail("invocation-oversized");
 		chunks.push(chunk);
 	}
 	const frame = Buffer.concat(chunks);
 	if (frame.byteLength < 5 || frame.readUInt32BE(0) !== frame.byteLength - 4)
-		fail("invocation frame length is invalid");
+		fail("invocation-invalid");
 	let frameText;
 	let envelope;
 	try {
@@ -100,7 +109,7 @@ async function readInvocation() {
 		);
 		envelope = JSON.parse(frameText);
 	} catch {
-		fail("invocation frame is not UTF-8 JSON");
+		fail("invocation-invalid");
 	}
 	if (
 		canonicalJson(envelope) !== frameText ||
@@ -115,7 +124,7 @@ async function readInvocation() {
 		Array.isArray(envelope.choiceRequest) ||
 		envelope.choiceRequest.schemaVersion !== "eonfolk-model-choice-request-v1"
 	)
-		fail("invocation envelope is invalid");
+		fail("invocation-invalid");
 	return envelope;
 }
 
@@ -142,13 +151,13 @@ function prepareOllamaRequest(envelope) {
 		!Array.isArray(context.relationships) ||
 		!Array.isArray(context.values)
 	)
-		fail("choice context is invalid");
+		fail("request-invalid");
 	const actionIds = context.actionCatalog.map((entry) => entry?.actionId);
 	if (
 		actionIds.some((id) => !safeString(id, 128)) ||
 		new Set(actionIds).size !== actionIds.length
 	)
-		fail("action catalog is not a closed unique set");
+		fail("request-invalid");
 	const visibleRecordIds = context.visibleRecords.map(
 		(record) => record?.recordId,
 	);
@@ -161,11 +170,11 @@ function prepareOllamaRequest(envelope) {
 			ids.some((id) => !safeString(id, 256)) ||
 			new Set(ids).size !== ids.length
 		)
-			fail("context reference IDs are invalid");
+			fail("request-invalid");
 	}
 	const commitmentId = context.activeStandingPlan?.commitmentId;
 	if (commitmentId !== null && !safeString(commitmentId, 256))
-		fail("standing-plan commitment ID is invalid");
+		fail("request-invalid");
 	const commitmentIds = commitmentId === null ? [] : [commitmentId];
 	const schema = {
 		type: "object",
@@ -212,7 +221,7 @@ function prepareOllamaRequest(envelope) {
 		think: "low",
 	});
 	if (Buffer.byteLength(requestBody, "utf8") > MAX_OLLAMA_BODY_BYTES)
-		fail("Ollama request body is oversized");
+		fail("request-oversized");
 	return {
 		actionIds: new Set(actionIds),
 		commitmentIds: new Set(commitmentIds),
@@ -291,12 +300,12 @@ function validateChoice(ollamaResponse, references) {
 		ollamaResponse.done !== true ||
 		Buffer.byteLength(ollamaResponse.message.content, "utf8") > MAX_CHOICE_BYTES
 	)
-		fail("Ollama response envelope is invalid");
+		fail("response-envelope-invalid");
 	let choice;
 	try {
 		choice = JSON.parse(ollamaResponse.message.content);
 	} catch {
-		fail("Ollama choice is not JSON");
+		fail("choice-json-invalid");
 	}
 	if (
 		typeof choice !== "object" ||
@@ -324,7 +333,7 @@ function validateChoice(ollamaResponse, references) {
 			choice.counselDisposition,
 		)
 	)
-		fail("Ollama choice violates the closed schema");
+		fail("choice-schema-invalid");
 	return {
 		choice: canonicalJson(choice),
 		telemetry: canonicalJson({
@@ -352,7 +361,20 @@ async function main() {
 	process.stdout.write(validated.choice);
 }
 
-main().catch(() => {
-	process.stderr.write("bounded Ollama adapter failed closed\n");
+main().catch((error) => {
+	const code =
+		error instanceof AdapterFailure
+			? error.code
+			: error instanceof Error &&
+					error.message === "Ollama response is oversized"
+				? "response-oversized"
+				: error instanceof Error &&
+						(error.message === "Ollama returned a non-success status" ||
+							error.message === "Ollama response is not UTF-8 JSON")
+					? "ollama-http-failure"
+					: "internal";
+	process.stderr.write(
+		canonicalJson({ code, schemaVersion: ERROR_SCHEMA_VERSION }),
+	);
 	process.exitCode = 1;
 });

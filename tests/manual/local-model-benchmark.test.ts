@@ -175,7 +175,7 @@ function runnerRssBytes(): number {
 	});
 	return output
 		.split("\n")
-		.filter((line) => /ollama runner/u.test(line))
+		.filter((line) => /(?:ollama runner|llama-server)/u.test(line))
 		.reduce((maximum, line) => {
 			const rssKiB = Number(line.trim().split(/\s+/u)[0]);
 			return Number.isSafeInteger(rssKiB)
@@ -696,7 +696,7 @@ function summary(
 			duration !== null &&
 			duration !== undefined &&
 			duration > 0
-			? [(count * 1_000_000_000) / duration]
+			? [Math.round((count * 1_000_000_000) / duration)]
 			: [];
 	});
 	let hiddenPairMatches = 0;
@@ -730,10 +730,13 @@ function summary(
 		executions: results.length,
 		primaryAccepted: primary.length,
 		fallbacks: results.length - primary.length,
-		invalidOrUnavailableRate:
-			(results.length - primary.length) / results.length,
-		preferredAgreementRate:
-			results.filter((item) => item.preferredAgreement).length / results.length,
+		invalidOrUnavailableBasisPoints: Math.round(
+			((results.length - primary.length) * 10_000) / results.length,
+		),
+		preferredAgreementBasisPoints: Math.round(
+			(results.filter((item) => item.preferredAgreement).length * 10_000) /
+				results.length,
+		),
 		hiddenPairMatches,
 		hiddenPairs: VISIBLE_CONTEXTS * MODEL_SEEDS.length,
 		warmLatencyMs: {
