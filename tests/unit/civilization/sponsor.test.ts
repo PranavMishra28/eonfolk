@@ -218,7 +218,11 @@ async function command<
 	P extends Extract<
 		WorldCommandPayload,
 		{
-			kind: "EstablishSponsorship" | "IssueCounsel" | "ResolveCounsel";
+			kind:
+				| "EstablishSponsorship"
+				| "RecordPatronAbstention"
+				| "IssueCounsel"
+				| "ResolveCounsel";
 		}
 	>,
 >(
@@ -516,6 +520,78 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(second.receipt.rejectionCode).toBe("NO_OP");
 		expect(second.events).toEqual([]);
 		expect(second.postState).toBe(first.postState);
+	});
+
+	it("records patron abstention as durable authority with a factual Chronicle beat", async () => {
+		const initial = fixture();
+		const followed = await establish(initial);
+		const abstention = await prepareCivilizationSponsorTransition({
+			state: followed.postState,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: followed.resultingWorldHeadHash,
+			nextSequence: 1,
+			snapshotBoundary: await boundary(
+				followed.postState,
+				followed.resultingWorldHeadHash,
+				1,
+			),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			command: await command(
+				"command-abstain",
+				followed.postState.revision,
+				PATRON,
+				{
+					kind: "RecordPatronAbstention",
+					abstentionId: "abstention-one",
+					citizenId: ACTOR,
+					reason: "withhold-counsel",
+				},
+			),
+			authoritativeHistory: [],
+		});
+		expect(abstention.accepted).toBe(true);
+		expect(abstention.events[0]?.eventPayload.kind).toBe("PatronAbstained");
+		expect(abstention.events[0]?.causalParents).toEqual([
+			{
+				eventId: followed.events[0]!.eventId,
+				relation: "direct",
+				mechanismId: "sponsor.covenant.authorizes-abstention.v1",
+			},
+		]);
+		expect(
+			abstention.postState.patronAbstentions["abstention-one"],
+		).toMatchObject({
+			citizenId: ACTOR,
+			patronPrincipalId: PATRON.principalId,
+			sourceEventId: abstention.events[0]!.eventId,
+		});
+		const chronicle = projectCivilizationChronicle({
+			events: [...followed.events, ...abstention.events],
+			eventRevisions: {
+				[followed.events[0]!.eventId]: followed.postState.revision,
+				[abstention.events[0]!.eventId]: abstention.postState.revision,
+			},
+			viewer: { kind: "participant", principalId: PATRON.principalId },
+			purpose: "chronicle-private",
+			atRevision: abstention.postState.revision,
+			visibilityContext: {
+				policyVersion: VISIBILITY_POLICY_VERSION,
+				covenants: [
+					{
+						patronPrincipalId: PATRON.principalId,
+						beneficiaryCitizenId: ACTOR,
+						grantRevision: followed.postState.revision,
+						revokeRevision: null,
+					},
+				],
+				localOwnerPrincipalId: PATRON.principalId,
+				nonproduction: false,
+			},
+			citizenNames: { [ACTOR]: "Iri" },
+		});
+		expect(chronicle.storyCard).toContain("withheld counsel for Iri");
 	});
 
 	it("persists establish -> issue -> resolve and replays without cognition", async () => {
@@ -834,7 +910,9 @@ describe("canonical civilization sponsor reducer", () => {
 	});
 
 	it("continues exactly from a compacted snapshot", async () => {
-		const followed = await establish(fixture(6_000, true, 0));
+		const followed = await establish(
+			fixture(0, true, 8_000, ["curiosity", "fairness"], true),
+		);
 		const snapshot = structuredClone(followed.postState);
 		const counsel = await issue(
 			{ ...followed, postState: snapshot },
@@ -842,8 +920,8 @@ describe("canonical civilization sponsor reducer", () => {
 		);
 		const interpreted = await resolve(
 			counsel,
-			{ kind: "FollowStandingPlan", planId: "plan-standing" },
-			"follow-plan",
+			{ kind: "AccusePublicly", targetCitizenId: TARGET },
+			"accuse-publicly",
 		);
 		const replayed = await replayCivilizationSponsorEvents({
 			snapshotState: snapshot,

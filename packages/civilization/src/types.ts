@@ -70,6 +70,18 @@ export interface CivilizationSponsorshipState {
 	readonly sourceEventId: string;
 }
 
+export interface CivilizationPatronAbstentionState {
+	readonly schemaVersion: "eonfolk-civilization-patron-abstention-v1";
+	readonly abstentionId: string;
+	readonly covenantId: string;
+	readonly patronPrincipalId: string;
+	readonly citizenId: CitizenId;
+	readonly reason: "withhold-counsel";
+	readonly recordedAtSimulationTime: number;
+	readonly recordedAtRevision: number;
+	readonly sourceEventId: string;
+}
+
 /** Persisted typed Mind state. Reality may authorize against it but never invent it. */
 export interface CivilizationMindState {
 	readonly schemaVersion: "eonfolk-civilization-mind-v1";
@@ -94,6 +106,41 @@ export interface CivilizationCounselState {
 		readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
 		readonly disposition: "accepted" | "delayed" | "rejected" | "reinterpreted";
 	} | null;
+}
+
+export type CivilizationCounselOutcomeEffect =
+	| {
+			readonly kind: "reserve-inspection";
+			readonly observationRecordId: string;
+			readonly stockObservations: readonly {
+				readonly stockId: string;
+				readonly resourceTypeId: string;
+				readonly quantity: number;
+			}[];
+	  }
+	| {
+			readonly kind: "public-allegation";
+			readonly statementRecordId: string;
+			readonly targetCitizenId: CitizenId;
+			readonly relationshipId: string;
+			readonly trustDeltaBasisPoints: number;
+			readonly strainDeltaBasisPoints: number;
+	  }
+	| {
+			readonly kind: "plan-continuation";
+			readonly planId: string;
+	  };
+
+export interface CivilizationCounselOutcomeState {
+	readonly schemaVersion: "eonfolk-civilization-counsel-outcome-v1";
+	readonly outcomeId: string;
+	readonly interventionId: string;
+	readonly citizenId: CitizenId;
+	readonly interpretationEventId: string;
+	readonly recordedAtSimulationTime: number;
+	readonly recordedAtRevision: number;
+	readonly sourceEventId: string;
+	readonly effect: CivilizationCounselOutcomeEffect;
 }
 
 export interface GroundedPressureState {
@@ -214,7 +261,7 @@ export interface MigrationJourneyState {
 }
 
 export interface CivilizationState {
-	readonly schemaVersion: "eonfolk-civilization-kernel-v4";
+	readonly schemaVersion: "eonfolk-civilization-kernel-v5";
 	readonly revision: number;
 	readonly simulationTime: number;
 	readonly references: CivilizationReferences;
@@ -232,8 +279,14 @@ export interface CivilizationState {
 		Record<string, CivilizationRelationshipState>
 	>;
 	readonly sponsorships: Readonly<Record<string, CivilizationSponsorshipState>>;
+	readonly patronAbstentions: Readonly<
+		Record<string, CivilizationPatronAbstentionState>
+	>;
 	readonly minds: Readonly<Record<CitizenId, CivilizationMindState>>;
 	readonly counsels: Readonly<Record<string, CivilizationCounselState>>;
+	readonly counselOutcomes: Readonly<
+		Record<string, CivilizationCounselOutcomeState>
+	>;
 	readonly households: Readonly<Record<string, HouseholdState>>;
 	readonly institutions: Readonly<Record<string, InstitutionState>>;
 	readonly agreements: Readonly<Record<string, AgreementState>>;

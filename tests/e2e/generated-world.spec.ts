@@ -25,7 +25,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v3",
+					"eonfolk-generated-authority-v4",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -47,7 +47,7 @@ async function inspectGeneratedCheckpoint(page: Page) {
 				readonly stateHash: string;
 				readonly simulationTime: number;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v3", 1);
+				const request = indexedDB.open("eonfolk-generated-authority-v4", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -179,8 +179,10 @@ async function selectSponsorCandidate(page: Page): Promise<string> {
 	for (let index = 0; index < (await residents.count()); index += 1) {
 		const resident = residents.nth(index);
 		await resident.click();
-		const sponsor = page.getByRole("button", { name: "Sponsor this person" });
-		if (await sponsor.isEnabled()) {
+		const sponsor = page.getByRole("button", {
+			name: /Sponsor this person|Consider an intervention|Return at the next decision boundary|Review Chronicle/u,
+		});
+		if ((await sponsor.count()) === 1 && (await sponsor.isEnabled())) {
 			const citizenId = await resident.getAttribute("data-citizen-id");
 			if (citizenId === null) throw new Error("sponsor candidate lacks an id");
 			return citizenId;
@@ -396,7 +398,7 @@ test("entry fails closed when canonical IndexedDB cannot open @generated-world",
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v3", 2);
+				const request = indexedDB.open("eonfolk-generated-authority-v4", 2);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -519,12 +521,17 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(page.getByRole("button", { name: "Abstain" })).toBeVisible();
 	const beforeAbstention = await inspectGeneratedCheckpoint(page);
 	await page.getByRole("button", { name: "Abstain" }).click();
-	await expect(page.getByRole("status")).toContainText(
-		"No canonical command was issued",
-	);
+	await expect
+		.poll(async () => (await inspectGeneratedCheckpoint(page)).eventCount, {
+			timeout: 30_000,
+		})
+		.toBe(beforeAbstention.eventCount + 1);
 	const afterAbstention = await inspectGeneratedCheckpoint(page);
-	expect(afterAbstention.headHash).toBe(beforeAbstention.headHash);
-	expect(afterAbstention.eventCount).toBe(beforeAbstention.eventCount);
+	await expect(
+		page.getByText(/Canonical Chronicle: the patron withheld counsel/u),
+	).toBeVisible({ timeout: 30_000 });
+	expect(afterAbstention.headHash).not.toBe(beforeAbstention.headHash);
+	expect(afterAbstention.eventCount).toBe(beforeAbstention.eventCount + 1);
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page
 		.getByRole("button", {
@@ -542,8 +549,9 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(boundaryCanvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	expect(await selectSponsorCandidate(page)).toBe(citizenId);
-	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await page
+		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
+		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible({ timeout: 20_000 });
@@ -551,13 +559,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
 	await expect(
-		page.getByRole("button", { name: "Counsel recorded" }),
+		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: 60_000 });
 	await expect(page.getByRole("status")).toContainText(
 		"the counsel and chose to",
 	);
 	await expect(page.getByRole("status")).toContainText(
-		"replaced the active transport assignment",
+		"later inspection recorded",
 	);
 	await expect(
 		page.getByRole("heading", { name: "Share this factual trace" }),
@@ -584,9 +592,29 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeEnabled({ timeout: 60_000 });
+	await page.reload();
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 20_000 },
+	);
+	await page
+		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
+		.click();
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeVisible();
+	await page
+		.getByRole("button", { name: "Return at the next decision boundary" })
+		.click();
+	await expect(
+		page.getByRole("button", { name: "Review Chronicle" }),
+	).toBeVisible({ timeout: 60_000 });
+	await expect(page.getByRole("status")).toContainText("public allegation");
+	await expect(page.getByRole("status")).toContainText("recorded trust");
 	const committed = await inspectGeneratedCheckpoint(page);
-	expect(committed).toMatchObject({ eventCount: 10, receiptCount: 10 });
-	expect(committed.simulationTime).toBe(366 * 86_400);
+	expect(committed).toMatchObject({ eventCount: 13, receiptCount: 13 });
+	expect(committed.simulationTime).toBe(367 * 86_400);
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: 30_000,
@@ -625,22 +653,21 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	).toBe(committed.stateHash);
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-simulation-time"),
-	).toBe(String(366 * 86_400));
-	const reloadedCitizenId = await selectSponsorCandidate(page);
-	expect(reloadedCitizenId).toBe(citizenId);
+	).toBe(String(367 * 86_400));
+	await page
+		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
+		.click();
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
 		"speaking at Commons",
 	);
-	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await page.getByRole("button", { name: "Review Chronicle" }).click();
 	await expect(
-		page.getByRole("button", { name: "Counsel recorded" }),
+		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: 20_000 });
 	await expect(page.getByRole("status")).toContainText(
 		"the counsel and chose to",
 	);
-	await expect(page.getByRole("status")).toContainText(
-		"received counsel to accuse publicly",
-	);
+	await expect(page.getByRole("status")).toContainText("A public allegation");
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-state-hash"),
 	).toBe(committed.stateHash);

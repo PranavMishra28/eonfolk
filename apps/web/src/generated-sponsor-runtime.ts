@@ -32,7 +32,13 @@ import { GENERATED_CIVILIZATION_RUN_ID } from "./persistence/generated-civilizat
 
 type SponsorPayload = Extract<
 	WorldCommandPayload,
-	{ kind: "EstablishSponsorship" | "IssueCounsel" | "ResolveCounsel" }
+	{
+		kind:
+			| "EstablishSponsorship"
+			| "RecordPatronAbstention"
+			| "IssueCounsel"
+			| "ResolveCounsel";
+	}
 >;
 
 export interface GeneratedSponsorshipResult {
@@ -43,7 +49,8 @@ export interface GeneratedSponsorshipResult {
 	readonly authorityStateHash: string;
 	readonly civilizationStateHash: string;
 	readonly revision: number;
-	readonly phase: "sponsored" | "counseled" | "resolved";
+	readonly phase: "sponsored" | "abstained" | "counseled" | "resolved";
+	readonly activeIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly disposition:
 		| "accepted"
 		| "delayed"
@@ -70,7 +77,7 @@ export async function sponsorGeneratedCitizen(input: {
 	readonly regionId: string;
 	readonly databaseName: string;
 	readonly indexedDbFactory?: IDBFactory;
-	readonly step: "establish" | "counsel" | "resolve";
+	readonly step: "establish" | "abstain" | "counsel" | "resolve";
 	readonly intent?: "verify-reserve" | "accuse-publicly";
 }): Promise<GeneratedSponsorshipResult> {
 	const port = await BrowserVersionedPersistence.open({
@@ -82,8 +89,35 @@ export async function sponsorGeneratedCitizen(input: {
 		regionId: input.regionId,
 	};
 	const covenantId = `covenant:${input.citizenId}`;
-	const intent = input.intent ?? "verify-reserve";
+	const initialHead = await port.loadHead(scope);
+	const initialSnapshot = await port.loadLatestSnapshot(scope);
+	const initialReplay = await replayCivilizationHistory(port, {
+		...scope,
+		snapshotId: initialSnapshot.snapshotId,
+		toSequenceExclusive: initialHead.lastSequence + 1,
+	});
+	if (initialReplay.state.civilization === null)
+		throw new Error("SP:NO_CIVILIZATION");
+	const initialCivilization = initialReplay.state
+		.civilization as unknown as CivilizationState;
+	const unresolved = Object.values(initialCivilization.counsels)
+		.filter(
+			(counsel) =>
+				counsel.citizenId === input.citizenId && counsel.resolution === null,
+		)
+		.sort((left, right) =>
+			left.sourceEventId.localeCompare(right.sourceEventId),
+		)[0];
+	if (
+		input.step === "resolve" &&
+		input.intent !== undefined &&
+		unresolved?.intent !== input.intent
+	)
+		throw new Error("SP:UNRESOLVED_COUNSEL_MISMATCH");
+	const intent = unresolved?.intent ?? input.intent ?? "verify-reserve";
 	const interventionId = `intervention:${input.citizenId}:${intent}`;
+	if (input.step === "resolve" && unresolved?.interventionId !== interventionId)
+		throw new Error("SP:NO_UNRESOLVED_COUNSEL");
 	const decisionId = `decision:${scope.runId}:${input.regionId}:${interventionId}`;
 	const proposalId = `proposal:${scope.runId}:${input.regionId}:${interventionId}`;
 	const committedEvents: CivilizationSponsorEventEnvelope[] = [];
@@ -344,6 +378,23 @@ export async function sponsorGeneratedCitizen(input: {
 				citizenId: input.citizenId,
 			},
 		);
+		if (input.step === "abstain") {
+			const abstentionId = `abstention:${input.citizenId}:${String(initialReplay.state.scheduler.completedDay)}`;
+			finalCivilization = await commit(
+				`abstain:${input.citizenId}:${String(initialReplay.state.scheduler.completedDay)}`,
+				{
+					kind: "patron",
+					principalId: "patron:local",
+					beneficiaryCitizenId: input.citizenId,
+				},
+				{
+					kind: "RecordPatronAbstention",
+					abstentionId,
+					citizenId: input.citizenId,
+					reason: "withhold-counsel",
+				},
+			);
+		}
 		if (input.step === "counsel" || input.step === "resolve") {
 			finalCivilization = await commit(
 				`counsel:${input.citizenId}:${intent}`,
@@ -421,7 +472,7 @@ export async function sponsorGeneratedCitizen(input: {
 		const durableEventRevisions: Record<string, number> = {};
 		const durableBoundaries: Array<{
 			readonly eventId: string;
-			readonly parentEventId: string;
+			readonly parentEventIds: readonly string[];
 			readonly createdRevision: number;
 			readonly visibility: CivilizationSponsorEventEnvelope["visibility"];
 			readonly fact: CivilizationCounselBoundaryFact;
@@ -446,7 +497,7 @@ export async function sponsorGeneratedCitizen(input: {
 				if (stored === null) throw new Error("SP:BOUNDARY_RECEIPT_MISSING");
 				durableBoundaries.push({
 					eventId: outer.eventId,
-					parentEventId: parent.eventId,
+					parentEventIds: outer.causalParents.map(({ eventId }) => eventId),
 					createdRevision: stored.revision,
 					visibility:
 						outer.visibility as CivilizationSponsorEventEnvelope["visibility"],
@@ -500,13 +551,28 @@ export async function sponsorGeneratedCitizen(input: {
 			),
 			boundaries: durableBoundaries,
 		});
-		const resolution = finalCivilization.counsels[interventionId]?.resolution;
+		const activeUnresolved = Object.values(finalCivilization.counsels).find(
+			(counsel) =>
+				counsel.citizenId === input.citizenId && counsel.resolution === null,
+		);
+		const selectedCounsel =
+			activeUnresolved ??
+			Object.values(finalCivilization.counsels)
+				.filter((counsel) => counsel.citizenId === input.citizenId)
+				.sort(
+					(left, right) =>
+						right.issuedAtSimulationTime - left.issuedAtSimulationTime ||
+						right.sourceEventId.localeCompare(left.sourceEventId),
+				)[0];
+		const resolution = selectedCounsel?.resolution;
 		const phase =
-			resolution !== null && resolution !== undefined
-				? ("resolved" as const)
-				: finalCivilization.counsels[interventionId] !== undefined
-					? ("counseled" as const)
-					: ("sponsored" as const);
+			activeUnresolved !== undefined
+				? ("counseled" as const)
+				: resolution !== null && resolution !== undefined
+					? ("resolved" as const)
+					: input.step === "abstain"
+						? ("abstained" as const)
+						: ("sponsored" as const);
 		const shareArtifact = phase === "resolved" ? chronicle.storyCard : null;
 		return {
 			citizenId: input.citizenId,
@@ -521,6 +587,7 @@ export async function sponsorGeneratedCitizen(input: {
 			civilizationStateHash: await stateHash(replayedCivilization),
 			revision: replayedCivilization.revision,
 			phase,
+			activeIntent: activeUnresolved?.intent ?? selectedCounsel?.intent ?? null,
 			disposition: resolution?.disposition ?? null,
 			shareArtifact,
 			simulationTime: finalReplay.state.scheduler.simulationTime,

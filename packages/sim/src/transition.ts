@@ -328,6 +328,7 @@ function commandEvents(
 	const payload = command.payload;
 	switch (payload.kind) {
 		case "EstablishSponsorship":
+		case "RecordPatronAbstention":
 			throw new Error("ACTION_UNAVAILABLE");
 		case "Observe":
 			return [

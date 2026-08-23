@@ -573,6 +573,7 @@ function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 	const payload = event.eventPayload;
 	switch (payload.kind) {
 		case "SponsorshipEstablished":
+		case "PatronAbstained":
 			return [payload.citizenId];
 		case "CitizenMoved":
 		case "TravelStarted":
@@ -603,6 +604,7 @@ function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 function animationForEvent(event: WorldEventEnvelope): AnimationClass {
 	switch (event.eventPayload.kind) {
 		case "SponsorshipEstablished":
+		case "PatronAbstained":
 			return "inspect";
 		case "CitizenMoved":
 		case "TravelStarted":
@@ -684,6 +686,7 @@ function spatialDetailsForEvent(
 	const payload = event.eventPayload;
 	switch (payload.kind) {
 		case "SponsorshipEstablished":
+		case "PatronAbstained":
 			return {
 				originPlaceId: currentPlaceId,
 				destinationPlaceId: currentPlaceId,

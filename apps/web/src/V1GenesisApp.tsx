@@ -340,6 +340,8 @@ function GeneratedContextPanel({
 	authorityRegionId,
 	authorityDatabaseName,
 	sponsorCitizenId,
+	sponsorPhase,
+	activeCounselIntent,
 	persistenceAvailable,
 	onAuthorityCommitted,
 }: {
@@ -355,6 +357,13 @@ function GeneratedContextPanel({
 	readonly authorityRegionId: string;
 	readonly authorityDatabaseName: string;
 	readonly sponsorCitizenId: string;
+	readonly sponsorPhase:
+		| "idle"
+		| "sponsored"
+		| "abstained"
+		| "counseled"
+		| "resolved";
+	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly persistenceAvailable: boolean;
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 }) {
@@ -389,8 +398,13 @@ function GeneratedContextPanel({
 		setCopyStatus("");
 		setAuthorityRefreshing(false);
 	}, [selectedCitizenId]);
+	useEffect(() => {
+		if (selectedCitizenId !== sponsorCitizenId) return;
+		setSponsorStatus(sponsorPhase);
+		setActiveIntent(activeCounselIntent ?? "verify-reserve");
+	}, [activeCounselIntent, selectedCitizenId, sponsorCitizenId, sponsorPhase]);
 	const commitSponsor = (
-		step: "establish" | "counsel" | "resolve",
+		step: "establish" | "abstain" | "counsel" | "resolve",
 		intent = activeIntent,
 	) => {
 		if (selectedActor === undefined) return;
@@ -416,6 +430,7 @@ function GeneratedContextPanel({
 				setShareArtifact(result.shareArtifact ?? "");
 				setChronicleBeats(result.chronicleBeats);
 				setSponsorStatus(result.phase);
+				setActiveIntent(result.activeIntent ?? intent);
 				if (!result.idempotent || step === "resolve") {
 					setAuthorityRefreshing(true);
 					await onAuthorityCommitted(result.authorityStateHash);
@@ -430,7 +445,7 @@ function GeneratedContextPanel({
 							? `${reason.message}; prior state preserved.`
 							: "Action unavailable; prior state preserved.",
 					);
-				setSponsorStatus(step === "establish" ? "failed" : "sponsored");
+				setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
 			});
 	};
 	const activityCounts = new Map<string, number>();
@@ -505,26 +520,35 @@ function GeneratedContextPanel({
 									sponsorStatus === "counseling" ||
 									sponsorStatus === "returning" ||
 									sponsorStatus === "confirming" ||
-									sponsorStatus === "resolved" ||
 									sponsorStatus === "counseled"
 								}
 								onClick={() =>
-									sponsorStatus === "sponsored"
-										? setSponsorStatus("confirming")
-										: commitSponsor("establish")
+									sponsorStatus === "resolved"
+										? commitSponsor("establish")
+										: sponsorStatus === "sponsored" ||
+												sponsorStatus === "abstained"
+											? setSponsorStatus("confirming")
+											: commitSponsor("establish")
 								}
 							>
 								{sponsorStatus === "saving"
 									? "Establishing…"
 									: sponsorStatus === "counseling"
 										? "Considering…"
-										: sponsorStatus === "sponsored"
+										: sponsorStatus === "sponsored" ||
+												sponsorStatus === "abstained"
 											? "Consider an intervention"
 											: sponsorStatus === "resolved"
-												? "Counsel recorded"
+												? "Review Chronicle"
 												: "Sponsor this person"}
 							</button>
 						</div>
+						{sponsorStatus === "abstained" ? (
+							<p>
+								Canonical Chronicle: the patron withheld counsel at this
+								boundary; the citizen continued without intervention.
+							</p>
+						) : null}
 						{canSponsor ? null : (
 							<p>
 								This resident has no local counsel relationship at this
@@ -563,10 +587,7 @@ function GeneratedContextPanel({
 									type="button"
 									disabled={authorityRefreshing}
 									onClick={() => {
-										setChronicleTrace(
-											"You withheld counsel. No canonical command was issued.",
-										);
-										setSponsorStatus("sponsored");
+										commitSponsor("abstain");
 									}}
 								>
 									Abstain
@@ -999,6 +1020,8 @@ function GeneratedWorld({
 						authorityRegionId={experience.authorityRegionId}
 						authorityDatabaseName={experience.authorityDatabaseName}
 						sponsorCitizenId={experience.sponsorCitizenId}
+						sponsorPhase={experience.sponsorPhase}
+						activeCounselIntent={experience.activeCounselIntent}
 						persistenceAvailable={experience.persistence.kind === "indexeddb"}
 						onAuthorityCommitted={onAuthorityRefresh}
 					/>

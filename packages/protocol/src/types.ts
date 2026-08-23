@@ -113,6 +113,12 @@ export type WorldCommandPayload =
 			readonly intent: "verify-reserve" | "accuse-publicly";
 	  }
 	| {
+			readonly kind: "RecordPatronAbstention";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
+	  }
+	| {
 			readonly kind: "ResolveCounsel";
 			readonly citizenId: CitizenId;
 			readonly interventionId: string | null;
@@ -262,6 +268,12 @@ export type WorldEventPayload =
 			readonly interventionId: string;
 			readonly citizenId: CitizenId;
 			readonly intent: "verify-reserve" | "accuse-publicly";
+	  }
+	| {
+			readonly kind: "PatronAbstained";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
 	  }
 	| {
 			readonly kind: "CounselInterpreted";

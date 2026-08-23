@@ -152,7 +152,12 @@ async function fixture(crash?: OneShotCrash) {
 async function appendCounselCommand(
 	value: Awaited<ReturnType<typeof fixture>>,
 	input:
-		| { readonly kind: "issue"; readonly interventionId: string }
+		| { readonly kind: "abstain"; readonly abstentionId: string }
+		| {
+				readonly kind: "issue";
+				readonly interventionId: string;
+				readonly intent?: "verify-reserve" | "accuse-publicly";
+		  }
 		| { readonly kind: "resolve"; readonly interventionId: string },
 ) {
 	const head = await value.port.loadHead({
@@ -166,14 +171,22 @@ async function appendCounselCommand(
 		toSequenceExclusive: head.lastSequence + 1,
 	});
 	const state = replay.state.civilization as unknown as CivilizationState;
-	const decisionId = `decision:${input.interventionId}`;
-	const proposalId = `proposal:${input.interventionId}`;
+	const operationId =
+		input.kind === "abstain" ? input.abstentionId : input.interventionId;
+	const decisionId = `decision:${operationId}`;
+	const proposalId = `proposal:${operationId}`;
 	let payload:
+		| {
+				readonly kind: "RecordPatronAbstention";
+				readonly abstentionId: string;
+				readonly citizenId: string;
+				readonly reason: "withhold-counsel";
+		  }
 		| {
 				readonly kind: "IssueCounsel";
 				readonly interventionId: string;
 				readonly citizenId: string;
-				readonly intent: "verify-reserve";
+				readonly intent: "verify-reserve" | "accuse-publicly";
 		  }
 		| {
 				readonly kind: "ResolveCounsel";
@@ -183,22 +196,29 @@ async function appendCounselCommand(
 				readonly proposalId: string;
 				readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
 		  } =
-		input.kind === "issue"
+		input.kind === "abstain"
 			? ({
-					kind: "IssueCounsel",
-					interventionId: input.interventionId,
+					kind: "RecordPatronAbstention",
+					abstentionId: input.abstentionId,
 					citizenId: value.citizenId,
-					intent: "verify-reserve",
+					reason: "withhold-counsel",
 				} as const)
-			: ({
-					kind: "ResolveCounsel",
-					citizenId: value.citizenId,
-					interventionId: input.interventionId,
-					decisionId,
-					proposalId,
-					action: "follow-plan",
-				} as const);
-	const commandId = `${input.kind}:${input.interventionId}`;
+			: input.kind === "issue"
+				? ({
+						kind: "IssueCounsel",
+						interventionId: input.interventionId,
+						citizenId: value.citizenId,
+						intent: input.intent ?? "verify-reserve",
+					} as const)
+				: ({
+						kind: "ResolveCounsel",
+						citizenId: value.citizenId,
+						interventionId: input.interventionId,
+						decisionId,
+						proposalId,
+						action: "follow-plan",
+					} as const);
+	const commandId = `${input.kind}:${operationId}`;
 	let resolution: ValidatedStandardBrainResolution | undefined;
 	if (input.kind === "resolve") {
 		const context = await buildCivilizationCounselDecisionContext({
@@ -260,7 +280,7 @@ async function appendCounselCommand(
 		payloadFingerprint: await payloadFingerprint(payload),
 		expectedRevision: state.revision,
 		principal:
-			input.kind === "issue"
+			input.kind === "issue" || input.kind === "abstain"
 				? ({
 						kind: "patron",
 						principalId: "patron:local",
@@ -337,6 +357,31 @@ describe("unified civilization sponsor authority", () => {
 				} as never,
 			}),
 		).rejects.toMatchObject({ code: "IDEMPOTENCY_COLLISION" });
+	});
+
+	it("atomically persists and reloads canonical patron abstention", async () => {
+		const value = await fixture();
+		await value.port.appendEventBatch(value.append.request);
+		const abstained = await appendCounselCommand(value, {
+			kind: "abstain",
+			abstentionId: `abstention:${value.citizenId}:1`,
+		});
+		expect(abstained.transition.events[0]?.eventPayload.kind).toBe(
+			"PatronAbstained",
+		);
+		const reloaded = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: abstained.committed.head.lastSequence + 1,
+		});
+		expect(
+			(reloaded.state.civilization as unknown as CivilizationState)
+				.patronAbstentions[`abstention:${value.citizenId}:1`],
+		).toMatchObject({
+			citizenId: value.citizenId,
+			patronPrincipalId: "patron:local",
+		});
 	});
 
 	it("atomically persists a rejected command without changing civilization", async () => {
@@ -578,12 +623,23 @@ describe("unified civilization sponsor authority", () => {
 			planRoutineKind: "transport",
 			planRoutineSubjectId: "lane-building-timber",
 			routineKind: "social-maintenance",
+			effect: { kind: "reserve-inspection" },
+			counterfactual: {
+				policy: "patron-non-intervention",
+				abstentionEventId: null,
+			},
 		});
 		expect(
 			selectedActivities.find(
 				(activity) => activity.citizenId === value.citizenId,
-			)?.routine.kind,
-		).toBe("social-maintenance");
+			),
+		).toMatchObject({
+			routine: { kind: "social-maintenance" },
+			canonicalAction: { kind: "inspect" },
+		});
+		expect(
+			selected.counselOutcomes[`outcome:${interventionId}`]?.effect.kind,
+		).toBe("reserve-inspection");
 		expect(
 			abstentionActivities.find(
 				(activity) => activity.citizenId === value.citizenId,
@@ -639,6 +695,164 @@ describe("unified civilization sponsor authority", () => {
 		expect(
 			(await value.port.appendEventBatch(boundary.request)).idempotent,
 		).toBe(true);
+	});
+
+	it("commits a public allegation with a distinct social effect and replays it", async () => {
+		const value = await fixture();
+		await value.port.appendEventBatch(value.append.request);
+		const inspectionId = `intervention:${value.citizenId}:inspection-first`;
+		await appendCounselCommand(value, {
+			kind: "issue",
+			interventionId: inspectionId,
+			intent: "verify-reserve",
+		});
+		const inspected = await appendCounselCommand(value, {
+			kind: "resolve",
+			interventionId: inspectionId,
+		});
+		const inspectedReplay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: inspected.committed.head.lastSequence + 1,
+		});
+		const inspectionBoundary = await createCivilizationCounselBoundaryAppend({
+			state: inspectedReplay.state,
+			head: inspected.committed.head,
+			citizenId: value.citizenId,
+			interventionId: inspectionId,
+		});
+		await value.port.appendEventBatch(inspectionBoundary.request);
+		const interventionId = `intervention:${value.citizenId}:public`;
+		await appendCounselCommand(value, {
+			kind: "issue",
+			interventionId,
+			intent: "accuse-publicly",
+		});
+		const resolved = await appendCounselCommand(value, {
+			kind: "resolve",
+			interventionId,
+		});
+		expect(resolved.transition.events[0]?.eventPayload).toMatchObject({
+			kind: "CounselInterpreted",
+			action: "accuse-publicly",
+			disposition: "accepted",
+		});
+		const replay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: resolved.committed.head.lastSequence + 1,
+		});
+		const before = replay.state.civilization as unknown as CivilizationState;
+		const boundary = await createCivilizationCounselBoundaryAppend({
+			state: replay.state,
+			head: resolved.committed.head,
+			citizenId: value.citizenId,
+			interventionId,
+		});
+		expect(boundary.fact).toMatchObject({
+			causalRelation: "contributing-condition",
+			effect: {
+				kind: "public-allegation",
+				trustDeltaBasisPoints: -250,
+				strainDeltaBasisPoints: 400,
+			},
+		});
+		const effect = boundary.fact.effect;
+		if (effect.kind !== "public-allegation")
+			throw new Error("expected a public allegation effect");
+		const after = boundary.state.civilization as unknown as CivilizationState;
+		expect(after.relationships[effect.relationshipId]?.trustBasisPoints).toBe(
+			(before.relationships[effect.relationshipId]?.trustBasisPoints ?? 0) -
+				250,
+		);
+		expect(
+			after.minds[value.citizenId]?.snapshot.records.find(
+				(record) => record.recordId === effect.statementRecordId,
+			),
+		).toMatchObject({
+			kind: "message-claim",
+			confidence: null,
+			visibility: { kind: "public" },
+		});
+		expect(
+			(
+				boundary.state.scheduler.activities as unknown as readonly {
+					readonly citizenId: string;
+					readonly canonicalAction: { readonly kind: string };
+				}[]
+			).find((activity) => activity.citizenId === value.citizenId)
+				?.canonicalAction.kind,
+		).toBe("talk");
+		const committed = await value.port.appendEventBatch(boundary.request);
+		const reloaded = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: committed.head.lastSequence + 1,
+		});
+		expect(reloaded.stateHash).toBe(committed.head.stateHash);
+		expect(
+			(reloaded.state.civilization as unknown as CivilizationState)
+				.counselOutcomes[`outcome:${interventionId}`]?.effect.kind,
+		).toBe("public-allegation");
+	});
+
+	it("preserves a follow-plan boundary as a temporal predecessor", async () => {
+		const value = await fixture();
+		await value.port.appendEventBatch(value.append.request);
+		const abstention = await appendCounselCommand(value, {
+			kind: "abstain",
+			abstentionId: `abstention:${value.citizenId}:before-defer`,
+		});
+		const interventionId = `intervention:${value.citizenId}:defer`;
+		await appendCounselCommand(value, {
+			kind: "issue",
+			interventionId,
+			intent: "accuse-publicly",
+		});
+		const resolved = await appendCounselCommand(value, {
+			kind: "resolve",
+			interventionId,
+		});
+		expect(resolved.transition.events[0]?.eventPayload).toMatchObject({
+			action: "follow-plan",
+			disposition: "delayed",
+		});
+		const replay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: resolved.committed.head.lastSequence + 1,
+		});
+		const boundary = await createCivilizationCounselBoundaryAppend({
+			state: replay.state,
+			head: resolved.committed.head,
+			citizenId: value.citizenId,
+			interventionId,
+		});
+		expect(boundary.fact).toMatchObject({
+			causalRelation: "temporal-predecessor",
+			effect: { kind: "plan-continuation" },
+			counterfactual: {
+				abstentionEventId: abstention.transition.events[0]!.eventId,
+			},
+		});
+		expect(boundary.request.events[0]?.causalParents[0]).toMatchObject({
+			eventId: resolved.transition.events[0]!.eventId,
+			relation: "temporal-predecessor",
+		});
+		expect(boundary.request.events[0]?.causalParents[1]).toEqual({
+			eventId: abstention.transition.events[0]!.eventId,
+			relation: "temporal-predecessor",
+		});
+		await expect(
+			reduceCivilizationAuthorityEvent(
+				replay.state,
+				boundary.request.events[0]!,
+			),
+		).resolves.toEqual(boundary.state);
 	});
 
 	it("rejects a rehashed substituted cognition record during authority replay", async () => {

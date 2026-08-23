@@ -7,14 +7,15 @@ import {
 	type Visibility,
 	type WorldEventEnvelope,
 } from "../../protocol/src/index.js";
+import type { CivilizationCounselOutcomeEffect } from "../../civilization/src/types.js";
 
 export interface CivilizationChronicleBoundary {
 	readonly eventId: string;
-	readonly parentEventId: string;
+	readonly parentEventIds: readonly string[];
 	readonly createdRevision: number;
 	readonly visibility: Visibility;
 	readonly fact: {
-		readonly schemaVersion: "eonfolk-counsel-boundary-fact-v3";
+		readonly schemaVersion: "eonfolk-counsel-boundary-fact-v4";
 		readonly citizenId: string;
 		readonly interventionId: string;
 		readonly interpretationAction:
@@ -38,6 +39,7 @@ export interface CivilizationChronicleBoundary {
 		readonly consumedNeedUnits: number;
 		readonly unmetNeedUnits: number;
 		readonly sourceStockIds: readonly string[];
+		readonly effect: CivilizationCounselOutcomeEffect;
 	};
 }
 
@@ -45,7 +47,12 @@ export interface CivilizationChronicleBeat {
 	readonly beat: number;
 	readonly text: string;
 	readonly evidenceEventIds: readonly string[];
-	readonly relation: "fact" | "direct" | "trigger" | "contributing";
+	readonly relation:
+		| "fact"
+		| "direct"
+		| "trigger"
+		| "contributing-condition"
+		| "temporal-predecessor";
 }
 
 export interface CivilizationChronicleProjection {
@@ -72,7 +79,7 @@ function relationFor(
 	);
 	if (parents.some(({ relation }) => relation === "trigger")) return "trigger";
 	if (parents.some(({ relation }) => relation === "contributing"))
-		return "contributing";
+		return "contributing-condition";
 	return parents.length > 0 ? "direct" : "fact";
 }
 
@@ -112,6 +119,9 @@ export function projectCivilizationChronicle(input: {
 		let text: string | null = null;
 		if (payload.kind === "SponsorshipEstablished") {
 			text = `${citizenName(payload.citizenId, input.citizenNames)} entered a sponsorship covenant with ${payload.patronPrincipalId}.`;
+		} else if (payload.kind === "PatronAbstained") {
+			text = `The patron withheld counsel for ${citizenName(payload.citizenId, input.citizenNames)} at this boundary.`;
+			unresolvedTension = `What will ${citizenName(payload.citizenId, input.citizenNames)} do without intervention?`;
 		} else if (payload.kind === "CounselIssued") {
 			text = `${citizenName(payload.citizenId, input.citizenNames)} received counsel to ${payload.intent.replace("-", " ")}.`;
 			unresolvedTension = `How will ${citizenName(payload.citizenId, input.citizenNames)} interpret that counsel?`;
@@ -138,7 +148,7 @@ export function projectCivilizationChronicle(input: {
 	}
 	for (const boundary of input.boundaries ?? []) {
 		if (
-			boundary.fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v3" ||
+			boundary.fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v4" ||
 			boundary.createdRevision < 0 ||
 			canRead(
 				input.viewer,
@@ -154,26 +164,22 @@ export function projectCivilizationChronicle(input: {
 			continue;
 		const fact = boundary.fact;
 		const interpreted = fact.interpretationAction.replaceAll("-", " ");
-		const routine = fact.routineKind.replaceAll("-", " ");
-		const plannedRoutine = fact.planRoutineKind.replaceAll("-", " ");
 		const consequence =
-			fact.consequenceKind === "routine-reassigned"
-				? `As a contributing condition, that interpretation replaced the active ${plannedRoutine} assignment at ${fact.planRoutineSubjectId} with ${routine} at ${fact.routineSubjectId}.`
-				: `The interpretation preceded the active ${routine} assignment continuing at ${fact.routineSubjectId}.`;
+			fact.effect.kind === "reserve-inspection"
+				? `The later inspection recorded ${fact.effect.stockObservations.map((item) => `${item.stockId}=${String(item.quantity)}`).join(", ")}.`
+				: fact.effect.kind === "public-allegation"
+					? `A public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust by ${String(-fact.effect.trustDeltaBasisPoints)} and increased strain by ${String(fact.effect.strainDeltaBasisPoints)} basis points.`
+					: `The interpretation temporally preceded the standing plan ${fact.effect.planId} continuing.`;
 		beats.push({
 			beat: beats.length + 1,
 			text: `${citizenName(fact.citizenId, input.citizenNames)} reached the later decision boundary after choosing to ${interpreted}. ${consequence} The authoritative need ledger recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} units consumed and ${fact.unmetNeedUnits} unmet.`,
 			evidenceEventIds: [
 				boundary.eventId,
-				...(visibleEventIds.has(boundary.parentEventId)
-					? [boundary.parentEventId]
-					: []),
+				...boundary.parentEventIds.filter((eventId) =>
+					visibleEventIds.has(eventId),
+				),
 			],
-			relation:
-				visibleEventIds.has(boundary.parentEventId) &&
-				fact.causalRelation === "contributing-condition"
-					? "contributing"
-					: "fact",
+			relation: fact.causalRelation,
 		});
 		unresolvedTension = `Will ${citizenName(fact.citizenId, input.citizenNames)} and the settlement cover the next daily boundary?`;
 	}

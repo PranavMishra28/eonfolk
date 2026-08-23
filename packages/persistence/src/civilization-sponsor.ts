@@ -3,10 +3,12 @@ import {
 	assertCivilizationInvariants,
 	deriveCivilizationSchedulerPolicy,
 	projectCivilizationScheduledActivities,
+	type CivilizationCounselOutcomeEffect,
 	type CivilizationState,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
 import {
+	applyCivilizationCounselOutcome,
 	applyCivilizationSponsorEvent,
 	applyCounselStandingPlanBoundary,
 	parseCivilizationSponsorEvent,
@@ -48,7 +50,7 @@ export interface CivilizationSponsorRejectionAppend {
 }
 
 export interface CivilizationCounselBoundaryFact {
-	readonly schemaVersion: "eonfolk-counsel-boundary-fact-v3";
+	readonly schemaVersion: "eonfolk-counsel-boundary-fact-v4";
 	readonly citizenId: string;
 	readonly interventionId: string;
 	readonly interpretationEventId: string;
@@ -73,6 +75,15 @@ export interface CivilizationCounselBoundaryFact {
 	readonly consumedNeedUnits: number;
 	readonly unmetNeedUnits: number;
 	readonly sourceStockIds: readonly string[];
+	readonly effect: CivilizationCounselOutcomeEffect;
+	readonly counterfactual: {
+		readonly schemaVersion: "eonfolk-counsel-counterfactual-v1";
+		readonly policy: "patron-non-intervention";
+		readonly abstentionEventId: string | null;
+		readonly routineKind: SchedulerRoutineDecision["kind"];
+		readonly routineSubjectId: string;
+		readonly schedulerActionKinds: readonly string[];
+	};
 }
 
 function fail(
@@ -317,21 +328,28 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 					covenantId: eventPayload.covenantId,
 					citizenId: eventPayload.citizenId,
 				}
-			: kind === "CounselIssued"
+			: kind === "PatronAbstained"
 				? {
-						kind: "IssueCounsel" as const,
-						interventionId: eventPayload.interventionId,
+						kind: "RecordPatronAbstention" as const,
+						abstentionId: eventPayload.abstentionId,
 						citizenId: eventPayload.citizenId,
-						intent: eventPayload.intent,
+						reason: eventPayload.reason,
 					}
-				: {
-						kind: "ResolveCounsel" as const,
-						citizenId: eventPayload.citizenId,
-						interventionId: eventPayload.interventionId,
-						decisionId: provenance.decisionId,
-						proposalId: provenance.proposalId,
-						action: eventPayload.action,
-					};
+				: kind === "CounselIssued"
+					? {
+							kind: "IssueCounsel" as const,
+							interventionId: eventPayload.interventionId,
+							citizenId: eventPayload.citizenId,
+							intent: eventPayload.intent,
+						}
+					: {
+							kind: "ResolveCounsel" as const,
+							citizenId: eventPayload.citizenId,
+							interventionId: eventPayload.interventionId,
+							decisionId: provenance.decisionId,
+							proposalId: provenance.proposalId,
+							action: eventPayload.action,
+						};
 	const principal = record(receipt.principal, "sponsor receipt principal");
 	const covenant = Object.values(civilization.sponsorships).find(
 		(item) => item.beneficiaryCitizenId === eventPayload.citizenId,
@@ -341,7 +359,7 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			? principal.kind === "patron" &&
 				principal.principalId === eventPayload.patronPrincipalId &&
 				principal.beneficiaryCitizenId === eventPayload.citizenId
-			: kind === "CounselIssued"
+			: kind === "PatronAbstained" || kind === "CounselIssued"
 				? principal.kind === "patron" &&
 					principal.principalId === covenant?.patronPrincipalId &&
 					principal.beneficiaryCitizenId === eventPayload.citizenId
@@ -532,7 +550,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 							: step.kind === "Away"
 								? "away"
 								: "social-maintenance";
-	const relationshipTarget = [...mind!.snapshot.relationships]
+	const relationship = [...mind!.snapshot.relationships]
 		.sort((left, right) =>
 			left.relationshipId.localeCompare(right.relationshipId),
 		)
@@ -543,7 +561,8 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 					"resident" &&
 				civilization.citizens[relationship.toCitizenId]?.settlementId ===
 					civilization.citizens[input.citizenId]?.settlementId,
-		)?.toCitizenId;
+		);
+	const relationshipTarget = relationship?.toCitizenId;
 	if (resolution.action !== "follow-plan" && relationshipTarget === undefined)
 		fail("INVALID_INPUT", "CSP");
 	const routineDecision: SchedulerRoutineDecision = {
@@ -565,6 +584,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 	const policy = deriveCivilizationSchedulerPolicy(
 		current.world as unknown as GeneratedWorldState,
 	);
+	const counterfactual = advanceGeneralizedScheduler(civilization, policy, []);
 	let derived: ReturnType<typeof advanceGeneralizedScheduler>;
 	try {
 		derived = advanceGeneralizedScheduler(
@@ -587,6 +607,55 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 	} catch {
 		fail("INVALID_INPUT", "CSP");
 	}
+	const appendId = `boundary:${input.interventionId}:1`;
+	const batchId = `batch:${appendId}`;
+	const eventId = `event:${appendId}`;
+	let effect: CivilizationCounselOutcomeEffect;
+	if (resolution.action === "verify-reserve") {
+		const stockObservations = Object.values(derivedState.stocks)
+			.filter(
+				(stock) =>
+					stock.owner.kind === "settlement" &&
+					stock.owner.settlementId ===
+						derivedState.citizens[input.citizenId]?.settlementId,
+			)
+			.map((stock) => ({
+				stockId: stock.stockId,
+				resourceTypeId: stock.resourceTypeId,
+				quantity: stock.quantity,
+			}))
+			.sort((left, right) => left.stockId.localeCompare(right.stockId));
+		if (stockObservations.length === 0) fail("INVALID_INPUT", "CSP");
+		effect = {
+			kind: "reserve-inspection",
+			observationRecordId: `record:${input.interventionId}:reserve-inspection`,
+			stockObservations,
+		};
+	} else if (resolution.action === "accuse-publicly") {
+		if (relationship === undefined) fail("INVALID_INPUT", "CSP");
+		effect = {
+			kind: "public-allegation",
+			statementRecordId: `record:${input.interventionId}:public-allegation`,
+			targetCitizenId: relationship.toCitizenId,
+			relationshipId: relationship.relationshipId,
+			trustDeltaBasisPoints: -Math.min(250, relationship.trust),
+			strainDeltaBasisPoints: Math.min(400, 10_000 - relationship.strain),
+		};
+	} else {
+		effect = { kind: "plan-continuation", planId: plan.planId };
+	}
+	try {
+		derivedState = applyCivilizationCounselOutcome({
+			state: derivedState,
+			citizenId: input.citizenId,
+			interventionId: input.interventionId,
+			interpretationEventId: resolution.sourceEventId,
+			sourceEventId: eventId,
+			effect,
+		});
+	} catch {
+		fail("INVALID_INPUT", "CSP");
+	}
 	const outcome = derivedState.needOutcomes
 		.filter(
 			(candidate) =>
@@ -596,7 +665,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		.at(-1);
 	if (outcome === undefined) fail("INVALID_INPUT", "CSP");
 	const fact: CivilizationCounselBoundaryFact = {
-		schemaVersion: "eonfolk-counsel-boundary-fact-v3",
+		schemaVersion: "eonfolk-counsel-boundary-fact-v4",
 		citizenId: input.citizenId,
 		interventionId: input.interventionId,
 		interpretationEventId: resolution.sourceEventId,
@@ -626,7 +695,52 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 			outcome.foodConsumedUnits +
 			(outcome.waterRequiredUnits - outcome.waterConsumedUnits),
 		sourceStockIds: [...outcome.sourceStockIds].sort(),
+		effect,
+		counterfactual: {
+			schemaVersion: "eonfolk-counsel-counterfactual-v1",
+			policy: "patron-non-intervention",
+			abstentionEventId:
+				Object.values(civilization.patronAbstentions)
+					.filter((item) => item.citizenId === input.citizenId)
+					.sort(
+						(left, right) => right.recordedAtRevision - left.recordedAtRevision,
+					)[0]?.sourceEventId ?? null,
+			routineKind:
+				counterfactual.routines.find(
+					(candidate) => candidate.citizenId === input.citizenId,
+				)?.kind ?? "social-maintenance",
+			routineSubjectId:
+				counterfactual.routines.find(
+					(candidate) => candidate.citizenId === input.citizenId,
+				)?.subjectId ?? input.citizenId,
+			schedulerActionKinds: [
+				...new Set(counterfactual.actions.map(({ kind }) => kind)),
+			].sort(),
+		},
 	};
+	const projectedActivities = projectCivilizationScheduledActivities({
+		state: derivedState,
+		world: current.world as unknown as GeneratedWorldState,
+		routines: derived.routines,
+	}).map((activity) =>
+		activity.citizenId !== input.citizenId ||
+		resolution.action === "follow-plan"
+			? activity
+			: {
+					...activity,
+					canonicalAction: {
+						...activity.canonicalAction,
+						actionId: `counsel-outcome:${input.interventionId}`,
+						kind: resolution.action === "verify-reserve" ? "inspect" : "talk",
+						targetId:
+							resolution.action === "verify-reserve"
+								? effect.kind === "reserve-inspection"
+									? (effect.stockObservations[0]?.stockId ?? null)
+									: null
+								: (relationshipTarget ?? null),
+					},
+				},
+	);
 	const next: ReleaseGenesisCivilizationState = {
 		...current,
 		civilization: json(derivedState, "boundary civilization"),
@@ -634,19 +748,23 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 			completedDay: current.scheduler.completedDay + 1,
 			simulationTime: derived.state.simulationTime,
 			modelInvocations: 0,
-			activities: json(
-				projectCivilizationScheduledActivities({
-					state: derivedState,
-					world: current.world as unknown as GeneratedWorldState,
-					routines: derived.routines,
-				}),
-				"boundary activities",
-			),
+			activities: json(projectedActivities, "boundary activities"),
 		},
 	};
-	const appendId = `boundary:${input.interventionId}:1`;
-	const batchId = `batch:${appendId}`;
-	const eventId = `event:${appendId}`;
+	const causalParents = [
+		{
+			eventId: resolution.sourceEventId,
+			relation: fact.causalRelation,
+		},
+		...(fact.counterfactual.abstentionEventId === null
+			? []
+			: [
+					{
+						eventId: fact.counterfactual.abstentionEventId,
+						relation: "temporal-predecessor" as const,
+					},
+				]),
+	];
 	const event = await createAuthorityEvent({
 		runId: input.head.runId,
 		regionId: input.head.regionId,
@@ -658,12 +776,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		sequence: input.head.lastSequence + 1,
 		simulationTime: derived.state.simulationTime,
 		eventType: "CivilizationCounselBoundaryCommitted",
-		causalParents: [
-			{
-				eventId: resolution.sourceEventId,
-				relation: fact.causalRelation,
-			},
-		],
+		causalParents,
 		visibility: {
 			kind: "patron-visible-through-covenant",
 			subjectCitizenId: input.citizenId,

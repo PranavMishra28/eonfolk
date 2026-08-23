@@ -21,7 +21,7 @@ export function auditCivilizationState(
 	state: CivilizationState,
 ): AccountingAudit {
 	const issues: string[] = [];
-	if (state.schemaVersion !== "eonfolk-civilization-kernel-v4")
+	if (state.schemaVersion !== "eonfolk-civilization-kernel-v5")
 		issues.push(
 			`unsupported civilization schema ${String(state.schemaVersion)}`,
 		);
@@ -231,6 +231,27 @@ export function auditCivilizationState(
 		sponsoredCitizens.add(sponsorship.beneficiaryCitizenId);
 		sponsorPrincipals.add(sponsorship.patronPrincipalId);
 	}
+	for (const [abstentionId, abstention] of Object.entries(
+		state.patronAbstentions,
+	)) {
+		const sponsorship = state.sponsorships[abstention.covenantId];
+		if (
+			abstention.schemaVersion !==
+				"eonfolk-civilization-patron-abstention-v1" ||
+			abstention.abstentionId !== abstentionId ||
+			abstention.reason !== "withhold-counsel" ||
+			sponsorship?.beneficiaryCitizenId !== abstention.citizenId ||
+			sponsorship.patronPrincipalId !== abstention.patronPrincipalId ||
+			abstention.recordedAtSimulationTime > state.simulationTime ||
+			abstention.recordedAtRevision > state.revision ||
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === abstention.sourceEventId &&
+					provenance.mechanismId === "sponsor.patron.abstained.v1",
+			)
+		)
+			issues.push(`patron abstention ${abstentionId} is not authoritative`);
+	}
 	for (const [interventionId, counsel] of Object.entries(state.counsels)) {
 		const sponsorship = state.sponsorships[counsel.covenantId];
 		if (
@@ -287,6 +308,55 @@ export function auditCivilizationState(
 			)
 		)
 			issues.push(`counsel ${interventionId} lacks resolution provenance`);
+	}
+	for (const [outcomeId, outcome] of Object.entries(state.counselOutcomes)) {
+		const counsel = state.counsels[outcome.interventionId];
+		if (
+			outcome.schemaVersion !== "eonfolk-civilization-counsel-outcome-v1" ||
+			outcome.outcomeId !== outcomeId ||
+			counsel?.citizenId !== outcome.citizenId ||
+			counsel.resolution?.sourceEventId !== outcome.interpretationEventId ||
+			outcome.recordedAtSimulationTime > state.simulationTime ||
+			outcome.recordedAtRevision > state.revision ||
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === outcome.sourceEventId &&
+					provenance.mechanismId ===
+						"civilization.scheduler.counsel-outcome.v1",
+			)
+		)
+			issues.push(`counsel outcome ${outcomeId} is not authoritative`);
+		if (outcome.effect.kind === "reserve-inspection") {
+			const effect = outcome.effect;
+			const record = state.minds[outcome.citizenId]?.snapshot.records.find(
+				(candidate) => candidate.recordId === effect.observationRecordId,
+			);
+			if (
+				record?.kind !== "observation" ||
+				!record.sourceIds.includes(outcome.sourceEventId) ||
+				effect.stockObservations.length === 0 ||
+				effect.stockObservations.some(
+					(observation) =>
+						state.stocks[observation.stockId]?.resourceTypeId !==
+							observation.resourceTypeId || observation.quantity < 0,
+				)
+			)
+				issues.push(`counsel outcome ${outcomeId} has invalid inspection`);
+		} else if (outcome.effect.kind === "public-allegation") {
+			const effect = outcome.effect;
+			const relationship = state.relationships[effect.relationshipId];
+			const record = state.minds[outcome.citizenId]?.snapshot.records.find(
+				(candidate) => candidate.recordId === effect.statementRecordId,
+			);
+			if (
+				record?.kind !== "message-claim" ||
+				record.visibility.kind !== "public" ||
+				relationship?.fromCitizenId !== outcome.citizenId ||
+				relationship.toCitizenId !== effect.targetCitizenId ||
+				!relationship.sourceEventIds.includes(outcome.sourceEventId)
+			)
+				issues.push(`counsel outcome ${outcomeId} has invalid allegation`);
+		}
 	}
 	for (const [institutionId, institution] of Object.entries(
 		state.institutions,

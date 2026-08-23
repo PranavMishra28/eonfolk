@@ -34,8 +34,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-/** Exact v3 namespace: earlier authority bytes remain untouched and cannot be misread. */
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v3";
+/** Exact v4 namespace: earlier authority bytes remain untouched and cannot be misread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v4";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "unavailable";
@@ -60,6 +60,13 @@ export interface GeneratedWorldExperience {
 	readonly authorityRegionId: string;
 	readonly authorityDatabaseName: string;
 	readonly sponsorCitizenId: string;
+	readonly sponsorPhase:
+		| "idle"
+		| "sponsored"
+		| "abstained"
+		| "counseled"
+		| "resolved";
+	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -248,6 +255,20 @@ export async function buildGeneratedWorldExperience(
 		})?.citizenId;
 	if (sponsorCitizenId === undefined)
 		throw new Error("The generated world has no counsel-capable citizen");
+	const activeCounsel = Object.values(sponsorCivilization.counsels).find(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution === null,
+	);
+	const hasResolvedCounsel = Object.values(sponsorCivilization.counsels).some(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution !== null,
+	);
+	const hasSponsorship = Object.values(sponsorCivilization.sponsorships).some(
+		(covenant) => covenant.beneficiaryCitizenId === sponsorCitizenId,
+	);
+	const hasAbstention = Object.values(
+		sponsorCivilization.patronAbstentions,
+	).some((abstention) => abstention.citizenId === sponsorCitizenId);
 	const durableActivities =
 		authorityState === null
 			? null
@@ -261,8 +282,8 @@ export async function buildGeneratedWorldExperience(
 		authorityStateHash === null
 			? null
 			: {
-					schemaVersion: "eonfolk-civilization-experiment-v7" as const,
-					runnerVersion: "eonfolk-civilization-runner-v7" as const,
+					schemaVersion: "eonfolk-civilization-experiment-v8" as const,
+					runnerVersion: "eonfolk-civilization-runner-v8" as const,
 					worldIdentityHash: generatedWorld.identity.identityHash,
 					horizonDays: durableHorizon,
 					finalStateHash: authorityStateHash,
@@ -332,6 +353,17 @@ export async function buildGeneratedWorldExperience(
 		authorityRegionId: run.world.identity.worldId,
 		authorityDatabaseName: databaseName,
 		sponsorCitizenId,
+		sponsorPhase:
+			activeCounsel !== undefined
+				? "counseled"
+				: hasResolvedCounsel
+					? "resolved"
+					: hasAbstention
+						? "abstained"
+						: hasSponsorship
+							? "sponsored"
+							: "idle",
+		activeCounselIntent: activeCounsel?.intent ?? null,
 	});
 }
 

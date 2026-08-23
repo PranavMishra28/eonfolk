@@ -249,7 +249,7 @@ export function civilizationCounselAffordances(input: {
 						tags: ["candor", "evidence", "risk", "counsel"],
 						evidenceRecordIds: input.accusationRecordIds,
 						relationshipId: input.relationshipId,
-						risk: 500,
+						risk: 400,
 						counselAffinity: "accuse-publicly",
 					},
 				];

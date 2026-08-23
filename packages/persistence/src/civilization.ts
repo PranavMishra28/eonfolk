@@ -3,10 +3,12 @@ import {
 	assertCivilizationInvariants,
 	deriveCivilizationSchedulerPolicy,
 	projectCivilizationScheduledActivities,
+	type CivilizationCounselOutcomeEffect,
 	type CivilizationState,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
 import {
+	applyCivilizationCounselOutcome,
 	applyCivilizationSponsorEvent,
 	applyCounselStandingPlanBoundary,
 	parseCivilizationSponsorEvent,
@@ -38,11 +40,11 @@ import {
 } from "./versioned-types.js";
 
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
-	"eonfolk-release-genesis-civilization-state-v6" as const;
+	"eonfolk-release-genesis-civilization-state-v7" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v5" as const;
+	"eonfolk-release-genesis-civilization-transition-v6" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v7" as const;
+	"eonfolk-release-genesis-civilization-engine-v8" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -50,11 +52,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v7" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v7" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v8" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v8" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v7" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v7" as const;
+	"eonfolk-civilization-experiment-event-v8" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v8" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
@@ -186,6 +188,58 @@ function integer(value: unknown, label: string): number {
 	if (!Number.isSafeInteger(value) || (value as number) < 0)
 		fail("INVALID_INPUT", `${label} must be a non-negative safe integer`);
 	return value as number;
+}
+
+function counselOutcomeEffect(
+	value: unknown,
+): CivilizationCounselOutcomeEffect {
+	const effect = record(value, "counsel boundary effect");
+	if (
+		effect.kind === "reserve-inspection" &&
+		exactKeys(effect, ["kind", "observationRecordId", "stockObservations"]) &&
+		typeof effect.observationRecordId === "string" &&
+		array(effect.stockObservations, "reserve observations").every((entry) => {
+			const observation = record(entry, "reserve observation");
+			return (
+				exactKeys(observation, ["stockId", "resourceTypeId", "quantity"]) &&
+				typeof observation.stockId === "string" &&
+				typeof observation.resourceTypeId === "string" &&
+				Number.isSafeInteger(observation.quantity) &&
+				Number(observation.quantity) >= 0
+			);
+		})
+	)
+		return cloneValue(
+			effect as JsonValue,
+		) as unknown as CivilizationCounselOutcomeEffect;
+	if (
+		effect.kind === "public-allegation" &&
+		exactKeys(effect, [
+			"kind",
+			"statementRecordId",
+			"targetCitizenId",
+			"relationshipId",
+			"trustDeltaBasisPoints",
+			"strainDeltaBasisPoints",
+		]) &&
+		typeof effect.statementRecordId === "string" &&
+		typeof effect.targetCitizenId === "string" &&
+		typeof effect.relationshipId === "string" &&
+		Number.isSafeInteger(effect.trustDeltaBasisPoints) &&
+		Number.isSafeInteger(effect.strainDeltaBasisPoints)
+	)
+		return cloneValue(
+			effect as JsonValue,
+		) as unknown as CivilizationCounselOutcomeEffect;
+	if (
+		effect.kind === "plan-continuation" &&
+		exactKeys(effect, ["kind", "planId"]) &&
+		typeof effect.planId === "string"
+	)
+		return cloneValue(
+			effect as JsonValue,
+		) as unknown as CivilizationCounselOutcomeEffect;
+	fail("INVALID_INPUT", "CIVP");
 }
 
 function string(value: unknown, label: string): string {
@@ -1032,8 +1086,10 @@ export async function reduceCivilizationAuthorityEvent(
 				"consumedNeedUnits",
 				"unmetNeedUnits",
 				"sourceStockIds",
+				"effect",
+				"counterfactual",
 			]) ||
-			fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v3" ||
+			fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v4" ||
 			typeof fact.citizenId !== "string" ||
 			typeof fact.interventionId !== "string" ||
 			typeof fact.interpretationEventId !== "string" ||
@@ -1074,7 +1130,7 @@ export async function reduceCivilizationAuthorityEvent(
 			array(fact.schedulerActionKinds, "boundary scheduler action kinds").some(
 				(kind) => typeof kind !== "string" || kind.length === 0,
 			) ||
-			event.causalParents.length !== 1 ||
+			(event.causalParents.length !== 1 && event.causalParents.length !== 2) ||
 			event.causalParents[0]?.eventId !== fact.interpretationEventId ||
 			event.causalParents[0]?.relation !== fact.causalRelation ||
 			event.provenance.mechanismId !==
@@ -1087,6 +1143,38 @@ export async function reduceCivilizationAuthorityEvent(
 		const currentCivilization =
 			current.civilization as unknown as CivilizationState;
 		assertCivilizationInvariants(currentCivilization);
+		const effect = counselOutcomeEffect(fact.effect);
+		const counterfactual = record(
+			fact.counterfactual,
+			"counsel boundary counterfactual",
+		);
+		if (
+			!exactKeys(counterfactual, [
+				"schemaVersion",
+				"policy",
+				"abstentionEventId",
+				"routineKind",
+				"routineSubjectId",
+				"schedulerActionKinds",
+			]) ||
+			counterfactual.schemaVersion !== "eonfolk-counsel-counterfactual-v1" ||
+			counterfactual.policy !== "patron-non-intervention" ||
+			(counterfactual.abstentionEventId !== null &&
+				typeof counterfactual.abstentionEventId !== "string") ||
+			typeof counterfactual.routineKind !== "string" ||
+			typeof counterfactual.routineSubjectId !== "string" ||
+			array(
+				counterfactual.schedulerActionKinds,
+				"counterfactual action kinds",
+			).some((kind) => typeof kind !== "string") ||
+			(counterfactual.abstentionEventId === null
+				? event.causalParents.length !== 1
+				: event.causalParents.length !== 2 ||
+					event.causalParents[1]?.eventId !==
+						counterfactual.abstentionEventId ||
+					event.causalParents[1]?.relation !== "temporal-predecessor")
+		)
+			fail("INVALID_INPUT", "CIVP");
 		const counsel = currentCivilization.counsels[String(fact.interventionId)];
 		const resolution = counsel?.resolution;
 		const plan =
@@ -1165,6 +1253,11 @@ export async function reduceCivilizationAuthorityEvent(
 		const policy = deriveCivilizationSchedulerPolicy(
 			current.world as unknown as GeneratedWorldState,
 		);
+		const derivedCounterfactual = advanceGeneralizedScheduler(
+			currentCivilization,
+			policy,
+			[],
+		);
 		let derived: ReturnType<typeof advanceGeneralizedScheduler>;
 		try {
 			derived = advanceGeneralizedScheduler(currentCivilization, policy, [
@@ -1185,6 +1278,27 @@ export async function reduceCivilizationAuthorityEvent(
 		} catch {
 			fail("INVALID_INPUT", "CIVP");
 		}
+		try {
+			derivedState = applyCivilizationCounselOutcome({
+				state: derivedState,
+				citizenId: String(fact.citizenId),
+				interventionId: String(fact.interventionId),
+				interpretationEventId: String(fact.interpretationEventId),
+				sourceEventId: event.eventId,
+				effect,
+			});
+		} catch {
+			fail("INVALID_INPUT", "CIVP");
+		}
+		const counterfactualRoutine = derivedCounterfactual.routines.find(
+			(candidate) => candidate.citizenId === fact.citizenId,
+		);
+		const expectedAbstentionEventId =
+			Object.values(currentCivilization.patronAbstentions)
+				.filter((item) => item.citizenId === fact.citizenId)
+				.sort(
+					(left, right) => right.recordedAtRevision - left.recordedAtRevision,
+				)[0]?.sourceEventId ?? null;
 		if (
 			canonicalJson(derived.actions as unknown as JsonValue) !==
 				canonicalJson(payload.schedulerActions as JsonValue) ||
@@ -1196,6 +1310,17 @@ export async function reduceCivilizationAuthorityEvent(
 				canonicalJson(
 					[
 						...new Set(derived.actions.map(({ kind }) => kind)),
+					].sort() as JsonValue,
+				) ||
+			counterfactual.abstentionEventId !== expectedAbstentionEventId ||
+			counterfactual.routineKind !==
+				(counterfactualRoutine?.kind ?? "social-maintenance") ||
+			counterfactual.routineSubjectId !==
+				(counterfactualRoutine?.subjectId ?? fact.citizenId) ||
+			canonicalJson(counterfactual.schedulerActionKinds as JsonValue) !==
+				canonicalJson(
+					[
+						...new Set(derivedCounterfactual.actions.map(({ kind }) => kind)),
 					].sort() as JsonValue,
 				)
 		)
@@ -1226,7 +1351,25 @@ export async function reduceCivilizationAuthorityEvent(
 			state: derivedState,
 			world: current.world as unknown as GeneratedWorldState,
 			routines: derived.routines,
-		});
+		}).map((activity) =>
+			activity.citizenId !== fact.citizenId ||
+			resolution.action === "follow-plan"
+				? activity
+				: {
+						...activity,
+						canonicalAction: {
+							...activity.canonicalAction,
+							actionId: `counsel-outcome:${String(fact.interventionId)}`,
+							kind: resolution.action === "verify-reserve" ? "inspect" : "talk",
+							targetId:
+								resolution.action === "verify-reserve"
+									? effect.kind === "reserve-inspection"
+										? (effect.stockObservations[0]?.stockId ?? null)
+										: null
+									: (relationshipTarget ?? null),
+						},
+					},
+		);
 		const next: ReleaseGenesisCivilizationState = {
 			...current,
 			civilization: cloneValue(derivedState as unknown as JsonValue),

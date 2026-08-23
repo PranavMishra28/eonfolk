@@ -3,6 +3,7 @@ import {
 	buildDecisionContext,
 	civilizationCounselAffordances,
 	interruptStandingPlan,
+	replanStandingPlan,
 	retryStandingPlan,
 	validateIntentProposal,
 } from "@eonfolk/cognition";
@@ -33,18 +34,34 @@ import {
 
 import { assertCivilizationInvariants } from "./audit.js";
 import { deepFreeze, replaceCivilizationMind } from "./state.js";
-import type { CivilizationCounselState, CivilizationState } from "./types.js";
+import type {
+	CivilizationCounselOutcomeEffect,
+	CivilizationCounselState,
+	CivilizationState,
+} from "./types.js";
 
 export const CIVILIZATION_SPONSOR_MECHANISM_VERSION =
-	"eonfolk-civilization-sponsor-v2" as const;
+	"eonfolk-civilization-sponsor-v3" as const;
 
 type SponsorCommandPayload = Extract<
 	WorldCommandPayload,
-	{ kind: "EstablishSponsorship" | "IssueCounsel" | "ResolveCounsel" }
+	{
+		kind:
+			| "EstablishSponsorship"
+			| "RecordPatronAbstention"
+			| "IssueCounsel"
+			| "ResolveCounsel";
+	}
 >;
 export type CivilizationSponsorEventPayload = Extract<
 	WorldEventPayload,
-	{ kind: "SponsorshipEstablished" | "CounselIssued" | "CounselInterpreted" }
+	{
+		kind:
+			| "SponsorshipEstablished"
+			| "PatronAbstained"
+			| "CounselIssued"
+			| "CounselInterpreted";
+	}
 >;
 export type CivilizationAuthorityEventEnvelope = WorldEventEnvelope;
 export type CivilizationSponsorEventEnvelope =
@@ -77,10 +94,19 @@ export function applyCounselStandingPlanBoundary(input: {
 		step.status !== "active"
 	)
 		throw new Error("ACTION_UNAVAILABLE");
+	const interrupted =
+		input.action === "follow-plan" ? null : interruptStandingPlan(plan);
 	const advancedPlan =
 		input.action === "follow-plan"
 			? advanceStandingPlan(plan, step.stepId)
-			: retryStandingPlan(interruptStandingPlan(plan));
+			: interrupted!.retriesRemaining > 0
+				? retryStandingPlan(interrupted!)
+				: replanStandingPlan(interrupted!, {
+						...plan,
+						startBoundary: input.state.simulationTime,
+						expiryBoundary:
+							input.state.simulationTime + CIVILIZATION_DAY_SECONDS,
+					});
 	// Completing the final step at the real daily scheduler boundary rolls the
 	// same routine intent into its next bounded day; it does not manufacture a
 	// new target or change the citizen's chosen goal.
@@ -106,6 +132,195 @@ export function applyCounselStandingPlanBoundary(input: {
 		snapshot: { ...mind.snapshot, standingPlan: nextPlan },
 		committedAtRevision: input.state.revision,
 		committedAtSimulationTime: input.state.simulationTime,
+	});
+	assertCivilizationInvariants(next);
+	return next;
+}
+
+/**
+ * Applies the typed, event-derived consequence at the later counsel boundary.
+ * The caller supplies a fully typed effect, but Reality re-derives every value
+ * from the current state before admitting it.
+ */
+export function applyCivilizationCounselOutcome(input: {
+	readonly state: CivilizationState;
+	readonly citizenId: string;
+	readonly interventionId: string;
+	readonly interpretationEventId: string;
+	readonly sourceEventId: string;
+	readonly effect: CivilizationCounselOutcomeEffect;
+}): CivilizationState {
+	assertCivilizationInvariants(input.state);
+	const citizen = input.state.citizens[input.citizenId];
+	const mind = input.state.minds[input.citizenId];
+	const counsel = input.state.counsels[input.interventionId];
+	const outcomeId = `outcome:${input.interventionId}`;
+	if (
+		citizen === undefined ||
+		mind === undefined ||
+		counsel?.resolution?.sourceEventId !== input.interpretationEventId ||
+		input.state.counselOutcomes[outcomeId] !== undefined ||
+		!identifier(input.sourceEventId)
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	const revision = input.state.revision + 1;
+	let relationships = input.state.relationships;
+	let snapshot = mind.snapshot;
+	if (input.effect.kind === "reserve-inspection") {
+		const expected = Object.values(input.state.stocks)
+			.filter(
+				(stock) =>
+					counsel.resolution?.action === "verify-reserve" &&
+					stock.owner.kind === "settlement" &&
+					stock.owner.settlementId === citizen.settlementId,
+			)
+			.map((stock) => ({
+				stockId: stock.stockId,
+				resourceTypeId: stock.resourceTypeId,
+				quantity: stock.quantity,
+			}))
+			.sort((left, right) => left.stockId.localeCompare(right.stockId));
+		if (
+			expected.length === 0 ||
+			jcs(expected) !== jcs(input.effect.stockObservations) ||
+			input.effect.observationRecordId !==
+				`record:${input.interventionId}:reserve-inspection`
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		snapshot = {
+			...snapshot,
+			records: [
+				...snapshot.records,
+				{
+					recordId: input.effect.observationRecordId,
+					kind: "observation",
+					subjectCitizenId: input.citizenId,
+					proposition: "I inspected the settlement reserve at this boundary.",
+					confidence: 10_000,
+					sourceIds: [input.sourceEventId],
+					visibility: {
+						kind: "citizen-private",
+						subjectCitizenId: input.citizenId,
+					},
+					createdRevision: revision,
+				},
+			],
+		};
+	} else if (input.effect.kind === "public-allegation") {
+		const relationship = input.state.relationships[input.effect.relationshipId];
+		const expectedTrustDelta = -Math.min(
+			250,
+			relationship?.trustBasisPoints ?? 0,
+		);
+		const expectedStrainDelta = Math.min(
+			400,
+			10_000 - (relationship?.strainBasisPoints ?? 10_000),
+		);
+		if (
+			counsel.resolution?.action !== "accuse-publicly" ||
+			relationship?.fromCitizenId !== input.citizenId ||
+			relationship.toCitizenId !== input.effect.targetCitizenId ||
+			input.effect.statementRecordId !==
+				`record:${input.interventionId}:public-allegation` ||
+			input.effect.trustDeltaBasisPoints !== expectedTrustDelta ||
+			input.effect.strainDeltaBasisPoints !== expectedStrainDelta
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		const updatedRelationship = {
+			...relationship,
+			trustBasisPoints:
+				relationship.trustBasisPoints + input.effect.trustDeltaBasisPoints,
+			strainBasisPoints:
+				relationship.strainBasisPoints + input.effect.strainDeltaBasisPoints,
+			lastInteractionSimulationTime: input.state.simulationTime,
+			sourceEventIds: appendUnique(
+				relationship.sourceEventIds,
+				input.sourceEventId,
+			),
+		};
+		relationships = {
+			...relationships,
+			[relationship.relationshipId]: updatedRelationship,
+		};
+		snapshot = {
+			...snapshot,
+			relationships: snapshot.relationships.map((candidate) =>
+				candidate.relationshipId === relationship.relationshipId
+					? {
+							...candidate,
+							trust: updatedRelationship.trustBasisPoints,
+							strain: updatedRelationship.strainBasisPoints,
+							lastMaterialEventId: input.sourceEventId,
+						}
+					: candidate,
+			),
+			records: [
+				...snapshot.records,
+				{
+					recordId: input.effect.statementRecordId,
+					kind: "message-claim",
+					subjectCitizenId: input.citizenId,
+					proposition: `I publicly alleged misconduct by ${input.effect.targetCitizenId}.`,
+					confidence: null,
+					sourceIds: [input.sourceEventId],
+					visibility: { kind: "public" },
+					createdRevision: revision,
+				},
+			],
+		};
+	} else if (
+		counsel.resolution?.action !== "follow-plan" ||
+		input.effect.planId !== snapshot.standingPlan.planId
+	) {
+		throw new Error("ACTION_UNAVAILABLE");
+	}
+	const next: CivilizationState = deepFreeze({
+		...input.state,
+		revision,
+		citizens: {
+			...input.state.citizens,
+			[input.citizenId]: {
+				...citizen,
+				sourceEventIds: appendUnique(
+					citizen.sourceEventIds,
+					input.sourceEventId,
+				),
+			},
+		},
+		relationships,
+		minds: {
+			...input.state.minds,
+			[input.citizenId]: {
+				...mind,
+				snapshot,
+				committedAtRevision: input.state.revision,
+				committedAtSimulationTime: input.state.simulationTime,
+			},
+		},
+		counselOutcomes: {
+			...input.state.counselOutcomes,
+			[outcomeId]: {
+				schemaVersion: "eonfolk-civilization-counsel-outcome-v1" as const,
+				outcomeId,
+				interventionId: input.interventionId,
+				citizenId: input.citizenId,
+				interpretationEventId: input.interpretationEventId,
+				recordedAtSimulationTime: input.state.simulationTime,
+				recordedAtRevision: revision,
+				sourceEventId: input.sourceEventId,
+				effect: input.effect,
+			},
+		},
+		provenance: [
+			...input.state.provenance,
+			{
+				eventId: input.sourceEventId,
+				mechanismId: "civilization.scheduler.counsel-outcome.v1",
+				causeEventIds: [input.interpretationEventId],
+				actorVisibleSourceEventIds: [input.interpretationEventId],
+				modelDecisionId: null,
+			},
+		],
 	});
 	assertCivilizationInvariants(next);
 	return next;
@@ -265,6 +480,18 @@ function validCommand(command: WorldCommand<SponsorCommandPayload>): boolean {
 				"beneficiaryCitizenId",
 			])
 		);
+	if (payload.kind === "RecordPatronAbstention")
+		return (
+			exactKeys(payload, ["kind", "abstentionId", "citizenId", "reason"]) &&
+			identifier(payload.abstentionId) &&
+			payload.reason === "withhold-counsel" &&
+			command.principal.kind === "patron" &&
+			exactKeys(command.principal, [
+				"kind",
+				"principalId",
+				"beneficiaryCitizenId",
+			])
+		);
 	if (payload.kind === "IssueCounsel")
 		return (
 			exactKeys(payload, ["kind", "interventionId", "citizenId", "intent"]) &&
@@ -354,6 +581,21 @@ function validSponsorEnvelopeShape(
 			event.visibility.kind === "public" &&
 			exactKeys(event.provenance, ["kind", "commandId"])
 		);
+	if (payload.kind === "PatronAbstained")
+		return (
+			event.causalParents.length === 1 &&
+			event.causalParents[0]?.relation === "direct" &&
+			event.causalParents[0]?.mechanismId ===
+				"sponsor.covenant.authorizes-abstention.v1" &&
+			exactKeys(payload, ["kind", "abstentionId", "citizenId", "reason"]) &&
+			identifier(payload.abstentionId) &&
+			identifier(payload.citizenId) &&
+			payload.reason === "withhold-counsel" &&
+			exactKeys(event.visibility, ["kind", "subjectCitizenId"]) &&
+			event.visibility.kind === "patron-visible-through-covenant" &&
+			event.visibility.subjectCitizenId === payload.citizenId &&
+			exactKeys(event.provenance, ["kind", "commandId", "interventionId"])
+		);
 	if (payload.kind === "CounselIssued")
 		return (
 			event.causalParents.length === 1 &&
@@ -414,6 +656,12 @@ function validEventProvenance(event: WorldEventEnvelope): boolean {
 			event.provenance.kind === "patron-intervention" &&
 			identifier(event.provenance.commandId) &&
 			event.provenance.interventionId === undefined
+		);
+	if (event.eventPayload.kind === "PatronAbstained")
+		return (
+			event.provenance.kind === "patron-intervention" &&
+			identifier(event.provenance.commandId) &&
+			event.provenance.interventionId === event.eventPayload.abstentionId
 		);
 	if (event.eventPayload.kind === "CounselIssued")
 		return (
@@ -594,6 +842,7 @@ async function validHistory(
 			!validEventProvenance(event) ||
 			([
 				"SponsorshipEstablished",
+				"PatronAbstained",
 				"CounselIssued",
 				"CounselInterpreted",
 			].includes(event.eventPayload.kind) &&
@@ -645,6 +894,7 @@ function applyPayload(
 	if (citizen === undefined || citizen.residenceState !== "resident")
 		throw new Error("ACTION_UNAVAILABLE");
 	let sponsorships = state.sponsorships;
+	let patronAbstentions = state.patronAbstentions;
 	let counsels = state.counsels;
 	let minds = state.minds;
 	let mechanismId: string;
@@ -673,6 +923,32 @@ function applyPayload(
 			},
 		};
 		mechanismId = "sponsor.covenant.established.v1";
+	} else if (payload.kind === "PatronAbstained") {
+		const covenant = Object.values(state.sponsorships).find(
+			(item) => item.beneficiaryCitizenId === payload.citizenId,
+		);
+		if (
+			covenant === undefined ||
+			event.causalParents.length !== 1 ||
+			event.causalParents[0]?.eventId !== covenant.sourceEventId ||
+			state.patronAbstentions[payload.abstentionId] !== undefined
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		patronAbstentions = {
+			...patronAbstentions,
+			[payload.abstentionId]: {
+				schemaVersion: "eonfolk-civilization-patron-abstention-v1",
+				abstentionId: payload.abstentionId,
+				covenantId: covenant.covenantId,
+				patronPrincipalId: covenant.patronPrincipalId,
+				citizenId: payload.citizenId,
+				reason: payload.reason,
+				recordedAtSimulationTime: state.simulationTime,
+				recordedAtRevision: state.revision + (finalInBatch ? 1 : 0),
+				sourceEventId: event.eventId,
+			},
+		};
+		mechanismId = "sponsor.patron.abstained.v1";
 	} else if (payload.kind === "CounselIssued") {
 		const covenant = Object.values(state.sponsorships).find(
 			(item) => item.beneficiaryCitizenId === payload.citizenId,
@@ -781,6 +1057,7 @@ function applyPayload(
 			},
 		},
 		sponsorships,
+		patronAbstentions,
 		minds,
 		counsels,
 		provenance: [
@@ -1306,6 +1583,36 @@ async function pending(
 	const covenant = Object.values(state.sponsorships).find(
 		(item) => item.beneficiaryCitizenId === actor.citizenId,
 	);
+	if (command.payload.kind === "RecordPatronAbstention") {
+		if (
+			command.principal.kind !== "patron" ||
+			command.principal.beneficiaryCitizenId !== actor.citizenId ||
+			covenant?.patronPrincipalId !== command.principal.principalId ||
+			covenant.settlementId !== actor.settlementId
+		)
+			return "INVALID_PRINCIPAL";
+		if (state.patronAbstentions[command.payload.abstentionId] !== undefined)
+			return "NO_OP";
+		return {
+			payload: {
+				kind: "PatronAbstained",
+				abstentionId: command.payload.abstentionId,
+				citizenId: actor.citizenId,
+				reason: command.payload.reason,
+			},
+			visibility: {
+				kind: "patron-visible-through-covenant",
+				subjectCitizenId: actor.citizenId,
+			},
+			causalParents: [
+				{
+					eventId: covenant.sourceEventId,
+					relation: "direct",
+					mechanismId: "sponsor.covenant.authorizes-abstention.v1",
+				},
+			],
+		};
+	}
 	if (command.payload.kind === "IssueCounsel") {
 		if (
 			command.principal.kind !== "patron" ||
@@ -1563,7 +1870,9 @@ export async function prepareCivilizationSponsorTransition(
 					commandId: input.command.commandId,
 					...(input.command.payload.kind === "IssueCounsel"
 						? { interventionId: input.command.payload.interventionId }
-						: {}),
+						: input.command.payload.kind === "RecordPatronAbstention"
+							? { interventionId: input.command.payload.abstentionId }
+							: {}),
 				};
 	const postState = applyPayload(
 		input.state,

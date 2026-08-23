@@ -42,7 +42,14 @@ function actionSupportsValue(
 			"reliability",
 		].includes(valueId);
 	if (action.kind === "AccusePublicly")
-		return ["curiosity", "fairness", "solidarity"].includes(valueId);
+		return [
+			"curiosity",
+			"fairness",
+			"solidarity",
+			"stewardship",
+			"continuity",
+			"reliability",
+		].includes(valueId);
 	if (action.kind === "FollowStandingPlan")
 		return ["continuity", "craft", "reliability"].includes(valueId);
 	return false;
