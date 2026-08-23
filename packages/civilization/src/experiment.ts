@@ -41,13 +41,13 @@ import { createCivilizationState, evolve } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v2" as const;
+	"eonfolk-civilization-experiment-v3" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v2" as const;
+	"eonfolk-civilization-runner-v3" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v2" as const;
+	"eonfolk-civilization-experiment-event-v3" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v2" as const;
+	"eonfolk-civilization-experiment-step-v3" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
@@ -180,7 +180,7 @@ export interface CivilizationExperimentRun {
 }
 
 export interface CivilizationExperimentMatrix {
-	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v2";
+	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v3";
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
 	readonly horizons: readonly [30, 90, 365];
 	readonly runs: readonly CivilizationExperimentRun[];
@@ -976,7 +976,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		for (const horizonDays of horizons)
 			runs.push(await runCivilizationExperiment({ world, horizonDays }));
 	const matrixBody = {
-		schemaVersion: "eonfolk-civilization-experiment-matrix-v2" as const,
+		schemaVersion: "eonfolk-civilization-experiment-matrix-v3" as const,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
 		horizons,
 		runs: runs.map((run) => ({

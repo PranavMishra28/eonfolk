@@ -148,7 +148,7 @@ export function createCivilizationState(
 ): CivilizationState {
 	simulationTime(initialSimulationTime);
 	return deepFreeze({
-		schemaVersion: "eonfolk-civilization-kernel-v2",
+		schemaVersion: "eonfolk-civilization-kernel-v3",
 		revision: 0,
 		simulationTime: initialSimulationTime,
 		references: normalizeReferences(references),
@@ -159,6 +159,8 @@ export function createCivilizationState(
 		processes: {},
 		processBindings: {},
 		projects: {},
+		citizens: {},
+		relationships: {},
 		households: {},
 		institutions: {},
 		agreements: {},

@@ -3,6 +3,7 @@ export * from "./context.js";
 export * from "./decision-record.js";
 export * from "./decision-gateway.js";
 export * from "./experiment.js";
+export * from "./memory.js";
 export * from "./model-brain.js";
 export * from "./planner-benchmark.js";
 export * from "./project-planner.js";

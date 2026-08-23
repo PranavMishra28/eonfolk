@@ -2,6 +2,7 @@ import type {
 	AgreementState,
 	CapabilityId,
 	CivilizationEventProvenance,
+	CitizenId,
 	FoundingId,
 	HouseholdState,
 	InstitutionState,
@@ -17,6 +18,82 @@ import type {
 	StockState,
 	StorageState,
 } from "@eonfolk/protocol";
+
+export const CIVILIZATION_SOCIAL_SCHEMA_VERSION =
+	"eonfolk-civilization-social-v1" as const;
+
+export type CitizenResidenceState = "resident" | "travelling" | "departed";
+
+/** Canonical person state. Names and generated-seed labels are deliberately absent. */
+export interface CivilizationCitizenState {
+	readonly schemaVersion: typeof CIVILIZATION_SOCIAL_SCHEMA_VERSION;
+	readonly citizenId: CitizenId;
+	readonly settlementId: string;
+	readonly siteId: string;
+	readonly householdId: string | null;
+	readonly primaryRoleId: string | null;
+	readonly residenceState: CitizenResidenceState;
+	readonly arrivedAtSimulationTime: number;
+	readonly departedAtSimulationTime: number | null;
+	readonly foodRequiredUnitsPerDay: number;
+	readonly waterRequiredUnitsPerDay: number;
+	readonly laborCapacitySecondsPerDay: number;
+	readonly committedLaborSecondsPerDay: number;
+	readonly lastSocialSimulationTime: number;
+	readonly sourceEventIds: readonly string[];
+}
+
+export interface CivilizationRelationshipState {
+	readonly schemaVersion: typeof CIVILIZATION_SOCIAL_SCHEMA_VERSION;
+	readonly relationshipId: string;
+	readonly fromCitizenId: CitizenId;
+	readonly toCitizenId: CitizenId;
+	readonly kind: "kin" | "household" | "friend" | "colleague" | "rival";
+	readonly familiarityBasisPoints: number;
+	readonly trustBasisPoints: number;
+	readonly strainBasisPoints: number;
+	readonly lastInteractionSimulationTime: number;
+	readonly sourceEventIds: readonly string[];
+}
+
+export interface GroundedPressureState {
+	readonly schemaVersion: "eonfolk-grounded-pressure-v1";
+	readonly dataClass: "canonical-derived" | "actor-estimate";
+	readonly subjectCitizenId: CitizenId;
+	readonly kind: "food" | "water" | "housing" | "labor" | "travel" | "social";
+	readonly severityBasisPoints: number;
+	readonly observedAtSimulationTime: number;
+	readonly sourceStockIds: readonly string[];
+	readonly sourceReferenceIds: readonly string[];
+	readonly provenanceVersion: "grounded-pressure-v1";
+}
+
+export interface ActorStockObservation {
+	readonly stockId: string;
+	readonly estimatedQuantity: number;
+	readonly observedAtSimulationTime: number;
+	readonly sourceEventIds: readonly string[];
+}
+
+export interface PressureDerivationPolicy {
+	readonly foodResourceTypeIds: readonly string[];
+	readonly waterResourceTypeIds: readonly string[];
+	readonly habitableBuildingIds: readonly string[];
+	readonly quantityObservationGranularity: number;
+	readonly socialIntervalSeconds: number;
+}
+
+export interface CollectiveProjectAffordance {
+	readonly actionId: string;
+	readonly actorCitizenId: CitizenId;
+	readonly institutionId: string;
+	readonly projectId: string;
+	readonly milestoneId: string;
+	readonly siteId: string;
+	readonly authorityRoleId: string;
+	readonly policyAgreementId: string;
+	readonly evidenceSourceEventIds: readonly string[];
+}
 
 export interface CivilizationReferences {
 	readonly citizenIds: readonly string[];
@@ -71,7 +148,7 @@ export interface MigrationJourneyState {
 }
 
 export interface CivilizationState {
-	readonly schemaVersion: "eonfolk-civilization-kernel-v2";
+	readonly schemaVersion: "eonfolk-civilization-kernel-v3";
 	readonly revision: number;
 	readonly simulationTime: number;
 	readonly references: CivilizationReferences;
@@ -84,6 +161,10 @@ export interface CivilizationState {
 	readonly processes: Readonly<Record<string, ProductionProcess>>;
 	readonly processBindings: Readonly<Record<string, ProcessBinding>>;
 	readonly projects: Readonly<Record<ProjectId, ProjectState>>;
+	readonly citizens: Readonly<Record<CitizenId, CivilizationCitizenState>>;
+	readonly relationships: Readonly<
+		Record<string, CivilizationRelationshipState>
+	>;
 	readonly households: Readonly<Record<string, HouseholdState>>;
 	readonly institutions: Readonly<Record<string, InstitutionState>>;
 	readonly agreements: Readonly<Record<string, AgreementState>>;

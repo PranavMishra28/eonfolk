@@ -639,6 +639,21 @@ export function registerInstitution(
 	const roleIds = institution.roles.map((role) => role.roleId);
 	if (new Set(roleIds).size !== roleIds.length)
 		throw new CivilizationError("INVALID_INPUT", "institution repeats a role");
+	for (const role of institution.roles) {
+		identifier(role.roleId, "roleId");
+		positiveQuantity(role.capacity, "role capacity");
+		if (
+			new Set(role.authorityKinds).size !== role.authorityKinds.length ||
+			role.authorityKinds.length === 0
+		)
+			throw new CivilizationError(
+				"INVALID_INPUT",
+				"institution role needs unique authority kinds",
+			);
+		for (const authorityKind of role.authorityKinds)
+			identifier(authorityKind, "authorityKind");
+	}
+	const activeByRole: Record<string, Set<string>> = {};
 	for (const membership of institution.memberships) {
 		requireReference(
 			state.references.citizenIds,
@@ -650,7 +665,31 @@ export function registerInstitution(
 				"INVALID_REFERENCE",
 				`membership role ${membership.roleId} is unknown`,
 			);
+		simulationTime(membership.joinedAtSimulationTime, "membership join");
+		if (membership.leftAtSimulationTime !== null) {
+			simulationTime(membership.leftAtSimulationTime, "membership leave");
+			if (membership.leftAtSimulationTime <= membership.joinedAtSimulationTime)
+				throw new CivilizationError(
+					"INVALID_INPUT",
+					"membership leave must follow its join",
+				);
+		} else {
+			const active = activeByRole[membership.roleId] ?? new Set<string>();
+			activeByRole[membership.roleId] = active;
+			if (active.has(membership.citizenId))
+				throw new CivilizationError(
+					"INVALID_INPUT",
+					"institution repeats an active membership",
+				);
+			active.add(membership.citizenId);
+		}
 	}
+	for (const role of institution.roles)
+		if ((activeByRole[role.roleId]?.size ?? 0) > role.capacity)
+			throw new CivilizationError(
+				"INVALID_INPUT",
+				`role ${role.roleId} exceeds its capacity`,
+			);
 	for (const storageId of institution.storageIds)
 		present(state.storages, storageId, "storage");
 	for (const projectId of institution.projectIds)
@@ -675,7 +714,25 @@ export function registerAgreement(
 			"INVALID_INPUT",
 			"agreement needs at least two parties",
 		);
+	if (
+		new Set(agreement.parties.map(ownerKey)).size !== agreement.parties.length
+	)
+		throw new CivilizationError("INVALID_INPUT", "agreement repeats a party");
 	for (const party of agreement.parties) validateOwner(state, party);
+	if (
+		agreement.commitments.length === 0 ||
+		new Set(agreement.commitments).size !== agreement.commitments.length
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"agreement needs unique commitments",
+		);
+	for (const commitment of agreement.commitments)
+		identifier(commitment, "agreement commitment");
+	simulationTime(
+		agreement.effectiveFromSimulationTime,
+		"agreement effective time",
+	);
 	if (agreement.authorityInstitutionId !== null)
 		present(
 			state.institutions,

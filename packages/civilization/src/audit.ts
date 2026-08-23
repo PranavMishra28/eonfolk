@@ -21,6 +21,95 @@ export function auditCivilizationState(
 	state: CivilizationState,
 ): AccountingAudit {
 	const issues: string[] = [];
+	const householdByCitizen = new Map<string, string>();
+	for (const [citizenId, citizen] of Object.entries(state.citizens)) {
+		if (citizen.citizenId !== citizenId)
+			issues.push(`citizen key ${citizenId} differs from its identifier`);
+		if (!state.references.citizenIds.includes(citizenId))
+			issues.push(`citizen ${citizenId} lacks a genesis reference`);
+		if (!state.references.settlementIds.includes(citizen.settlementId))
+			issues.push(`citizen ${citizenId} has an unknown settlement`);
+		if (!state.references.siteIds.includes(citizen.siteId))
+			issues.push(`citizen ${citizenId} has an unknown site`);
+		if (
+			citizen.foodRequiredUnitsPerDay < 1 ||
+			citizen.waterRequiredUnitsPerDay < 1 ||
+			citizen.committedLaborSecondsPerDay < 0 ||
+			citizen.committedLaborSecondsPerDay > citizen.laborCapacitySecondsPerDay
+		)
+			issues.push(`citizen ${citizenId} has invalid needs or labor`);
+		if (
+			(citizen.residenceState === "departed") !==
+			(citizen.departedAtSimulationTime !== null)
+		)
+			issues.push(`citizen ${citizenId} has inconsistent departure state`);
+	}
+	for (const [householdId, household] of Object.entries(state.households)) {
+		const residents = [
+			...household.memberCitizenIds,
+			...household.dependentCitizenIds,
+		];
+		if (residents.length === 0 || new Set(residents).size !== residents.length)
+			issues.push(`household ${householdId} has invalid residents`);
+		for (const citizenId of residents) {
+			const prior = householdByCitizen.get(citizenId);
+			if (prior !== undefined)
+				issues.push(
+					`citizen ${citizenId} belongs to households ${prior} and ${householdId}`,
+				);
+			householdByCitizen.set(citizenId, householdId);
+			const citizen = state.citizens[citizenId];
+			if (citizen !== undefined && citizen.householdId !== householdId)
+				issues.push(
+					`citizen ${citizenId} does not link back to household ${householdId}`,
+				);
+		}
+	}
+	for (const [relationshipId, relationship] of Object.entries(
+		state.relationships,
+	)) {
+		if (relationship.relationshipId !== relationshipId)
+			issues.push(
+				`relationship key ${relationshipId} differs from its identifier`,
+			);
+		if (
+			state.citizens[relationship.fromCitizenId] === undefined ||
+			state.citizens[relationship.toCitizenId] === undefined ||
+			relationship.fromCitizenId === relationship.toCitizenId
+		)
+			issues.push(`relationship ${relationshipId} has invalid citizens`);
+		if (
+			[
+				relationship.familiarityBasisPoints,
+				relationship.trustBasisPoints,
+				relationship.strainBasisPoints,
+			].some(
+				(value) => !Number.isSafeInteger(value) || value < 0 || value > 10_000,
+			)
+		)
+			issues.push(`relationship ${relationshipId} has invalid ratings`);
+	}
+	for (const [institutionId, institution] of Object.entries(
+		state.institutions,
+	)) {
+		for (const role of institution.roles) {
+			const active = institution.memberships.filter(
+				(membership) =>
+					membership.roleId === role.roleId &&
+					membership.leftAtSimulationTime === null,
+			);
+			if (active.length > role.capacity)
+				issues.push(
+					`institution ${institutionId} exceeds role ${role.roleId} capacity`,
+				);
+			if (
+				new Set(active.map(({ citizenId }) => citizenId)).size !== active.length
+			)
+				issues.push(
+					`institution ${institutionId} repeats an active membership`,
+				);
+		}
+	}
 	const reconstructed: Record<string, number> = {};
 	const consumedByProjectResource: Record<string, number> = {};
 	const seenEntries = new Set<string>();

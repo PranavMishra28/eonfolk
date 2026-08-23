@@ -61,6 +61,25 @@ function score(
 			),
 		);
 	}
+	const visibleNeedEvidence = context.visibleRecords.filter(
+		(record) =>
+			entry.evidenceRecordIds.includes(record.recordId) &&
+			(record.kind === "observation" || record.kind === "belief") &&
+			record.confidence !== null,
+	);
+	if (entry.tags.includes("need") && visibleNeedEvidence.length > 0)
+		terms.push(
+			term(
+				"need",
+				Math.trunc(
+					visibleNeedEvidence.reduce(
+						(sum, record) => sum + (record.confidence ?? 0),
+						0,
+					) / visibleNeedEvidence.length,
+				),
+				visibleNeedEvidence.map(({ recordId }) => recordId),
+			),
+		);
 	const matchingValues =
 		options.ablate === "values"
 			? []
@@ -172,6 +191,7 @@ export function renderPublicJustification(
 	const reason =
 		{
 			plan: "it follows my standing plan",
+			need: "it answers the strongest need I can see",
 			commitment: "it honors a commitment I have already made",
 			value: "it fits the values guiding this choice",
 			relationship: "I weighed the trust this decision could change",

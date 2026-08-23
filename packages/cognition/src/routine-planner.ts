@@ -42,6 +42,22 @@ export interface RoutinePlanningContext {
 	readonly maximumExpansions: number;
 }
 
+export interface GroundedRoutineDemand {
+	readonly demandId: string;
+	readonly goalType: string;
+	readonly severityBasisPoints: number;
+	readonly desiredEffectCodes: readonly string[];
+	readonly targetIds: readonly string[];
+	readonly commitmentId: string | null;
+	readonly requiredVisibleRecordIds: readonly string[];
+}
+
+export interface GroundedRoutinePlanningContext
+	extends Omit<RoutinePlanningContext, "goal"> {
+	readonly demands: readonly GroundedRoutineDemand[];
+	readonly expiryBoundary: number;
+}
+
 interface CandidatePlan {
 	readonly actions: readonly PlanningAffordance[];
 	readonly effects: ReadonlySet<string>;
@@ -199,4 +215,53 @@ export function planRoutine(context: RoutinePlanningContext): StandingPlan {
 		throw new Error("ACTION_UNAVAILABLE");
 	}
 	return toStandingPlan(context, best.actions);
+}
+
+/** Selects the strongest actor-visible grounded demand before bounded search. */
+export function planGroundedRoutine(
+	context: GroundedRoutinePlanningContext,
+): StandingPlan {
+	const visibleIds = new Set(
+		context.visibleRecords.map(({ recordId }) => recordId),
+	);
+	const demand = [...context.demands]
+		.map((candidate) => {
+			if (
+				!Number.isSafeInteger(candidate.severityBasisPoints) ||
+				candidate.severityBasisPoints < 0 ||
+				candidate.severityBasisPoints > 10_000
+			)
+				throw new RangeError("grounded demand severity is invalid");
+			return candidate;
+		})
+		.filter((candidate) =>
+			candidate.requiredVisibleRecordIds.every((recordId) =>
+				visibleIds.has(recordId),
+			),
+		)
+		.sort(
+			(left, right) =>
+				right.severityBasisPoints - left.severityBasisPoints ||
+				Number(right.commitmentId !== null) -
+					Number(left.commitmentId !== null) ||
+				left.demandId.localeCompare(right.demandId),
+		)[0];
+	if (demand === undefined || demand.severityBasisPoints === 0)
+		throw new Error("ACTION_UNAVAILABLE");
+	return planRoutine({
+		planId: context.planId,
+		citizenId: context.citizenId,
+		boundary: context.boundary,
+		visibleRecords: context.visibleRecords,
+		affordances: context.affordances,
+		goal: {
+			goalType: demand.goalType,
+			desiredEffectCodes: demand.desiredEffectCodes,
+			targetIds: demand.targetIds,
+			commitmentId: demand.commitmentId,
+			maximumSteps: 8,
+			expiryBoundary: context.expiryBoundary,
+		},
+		maximumExpansions: context.maximumExpansions,
+	});
 }
