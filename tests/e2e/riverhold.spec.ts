@@ -82,6 +82,18 @@ test.beforeEach(async ({ page }, testInfo) => {
 			"true",
 		);
 	}
+	const brandMark = page.locator(".brand .eonfolk-mark");
+	await expect(brandMark).toHaveAttribute("src", "/eonfolk-mark.svg");
+	await expect(brandMark).toHaveAttribute("alt", "");
+	await expect(brandMark).toHaveAttribute("aria-hidden", "true");
+	expect(
+		await brandMark.evaluate(
+			(mark) =>
+				mark instanceof HTMLImageElement &&
+				mark.complete &&
+				mark.naturalWidth > 0,
+		),
+	).toBe(true);
 });
 
 test.afterEach(() => expect(pageErrors).toEqual([]));
@@ -230,6 +242,9 @@ test("the world surface directly picks inhabitants and places and supports keybo
 			const citizenTargets = JSON.parse(
 				host.dataset.citizenPickTargets ?? "[]",
 			) as PickTarget[];
+			const placeTargets = JSON.parse(
+				host.dataset.placePickTargets ?? "[]",
+			) as PickTarget[];
 			const bounds = host.getBoundingClientRect();
 			return (
 				targets
@@ -243,13 +258,13 @@ test("the world surface directly picks inhabitants and places and supports keybo
 							target.clientX,
 							target.clientY,
 						);
-						const separatedFromCitizen =
-							requestedKind === "citizen" ||
-							citizenTargets.every(
-								(citizen) =>
-									Math.hypot(citizen.x - target.x, citizen.y - target.y) > 32,
-							);
-						return top !== null && host.contains(top) && separatedFromCitizen;
+						const separatedFromOtherKind = (
+							requestedKind === "citizen" ? placeTargets : citizenTargets
+						).every(
+							(citizen) =>
+								Math.hypot(citizen.x - target.x, citizen.y - target.y) > 32,
+						);
+						return top !== null && host.contains(top) && separatedFromOtherKind;
 					}) ?? null
 			);
 		}, kind);
@@ -417,6 +432,9 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await context.grantPermissions(["clipboard-read", "clipboard-write"], {
 		origin: "http://127.0.0.1:4174",
 	});
+	const storySignature = page.locator(".story-signature");
+	await expect(storySignature.getByText(/EONFOLK/u)).toBeVisible();
+	await expect(storySignature.locator(".eonfolk-mark")).toBeVisible();
 	await page.getByRole("button", { name: "Copy Story Card" }).click();
 	await expect(
 		page.getByRole("button", { name: "Story Card copied" }),

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { RiverholdProjection } from "../projection";
+import { EonfolkMark } from "./EonfolkMark";
 
 export function StoryCard({
 	projection,
@@ -57,7 +58,10 @@ export function StoryCard({
 					<p>{card.followed}</p>
 				</div>
 				<p className="story-unresolved">{card.unresolved}</p>
-				<p className="story-mark">EONFOLK · a true Riverhold story</p>
+				<div className="story-signature">
+					<EonfolkMark />
+					<p className="story-mark">EONFOLK · a true Riverhold story</p>
+				</div>
 			</div>
 			<button
 				className="primary-action"

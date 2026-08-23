@@ -65,6 +65,12 @@ Minimum targets:
 
 Names, dates, causal types, acceptance/refusal, costs, uncertainty, and actions are always actual DOM text.
 
+### Identity mark
+
+The EONFOLK mark is one repository-authored SVG seal, not a generated bitmap or font glyph. Its open outer age-ring means the world and Chronicle remain unfinished; the three joined stems mean people, relationships, and lineage; the rust diamond is the shared hearth where private lives become public consequence. The opening in the ring is deliberate and must not be “corrected” into a closed badge.
+
+Use the mark beside the text wordmark in the world header, as the browser icon, on durable loading/failure states, in the footer, and in Story Card attribution. Beside visible `EONFOLK` text it is decorative with empty alternative text; only a genuinely standalone use receives the accessible label `EONFOLK`. Preserve the 48 × 48 view box, internal clear space, warm-paper ring, gold lineage, rust hearth, and charcoal field. Do not add animation, gradients, generated texture, provider/model symbolism, or a second competing logo. At 16–32 CSS px, remove secondary detail before changing the silhouette.
+
 ## World composition
 
 ### First five seconds
