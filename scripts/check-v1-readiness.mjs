@@ -136,35 +136,27 @@ function verifySelfHash(report, failures) {
 }
 
 function attestablePayloadSha256(report) {
-	const { outputSha256: _output, trustedRun: _trustedRun, ...payload } = report;
+	const { outputSha256: _output, ...payload } = report;
 	return sha256(JSON.stringify(payload));
 }
 
-function validateTrustedRun(reference, expected, label, failures, context) {
-	if (
-		reference === null ||
-		typeof reference !== "object" ||
-		Array.isArray(reference) ||
-		Object.keys(reference).length !== 1 ||
-		!Number.isSafeInteger(reference.runId) ||
-		reference.runId <= 0
-	) {
-		failures.push(`${label} trusted-run reference is invalid`);
-		return;
-	}
-	const trusted = context?.trustedRuns?.get(reference.runId);
+function validateTrustedRun(expected, label, failures, context) {
+	const trusted = context?.trustedRuns?.get(expected.purpose);
 	if (
 		trusted?.provider !== "github-actions-live-api" ||
-		trusted?.runId !== reference.runId ||
 		trusted?.sourceSha !== expected.sourceSha ||
-		trusted?.candidateSha !== expected.candidateSha ||
+		trusted?.initialReviewSha !== expected.initialReviewSha ||
+		trusted?.frozenCandidateSha !== expected.frozenCandidateSha ||
+		trusted?.evidenceSha !== expected.evidenceSha ||
+		trusted?.control?.sha !== expected.frozenCandidateSha ||
+		trusted?.attestationClass !== expected.attestationClass ||
 		trusted?.purpose !== expected.purpose ||
 		trusted?.payloadSha256 !== expected.payloadSha256 ||
 		trusted?.reviewerAgentId !== (expected.reviewerAgentId ?? null) ||
 		trusted?.reviewerSessionId !== (expected.reviewerSessionId ?? null) ||
 		trusted?.conclusion !== "success" ||
 		trusted?.event !== "workflow_dispatch" ||
-		trusted?.workflowPath !== ".github/workflows/v1-evidence.yml" ||
+		trusted?.workflowPath !== ".github/workflows/ci.yml" ||
 		!SHA_PATTERN.test(trusted?.workflowSourceSha ?? "") ||
 		typeof trusted?.actor !== "string" ||
 		trusted.actor.length === 0 ||
@@ -177,7 +169,7 @@ function validateTrustedRun(reference, expected, label, failures, context) {
 		trusted.runAttempt <= 0
 	)
 		failures.push(
-			`${label} is not bound to a live-verified GitHub workflow run and artifact`,
+			`${label} is not bound to the required live GitHub control/blob attestation`,
 		);
 }
 
@@ -226,6 +218,7 @@ function validateArtifactManifest(report, failures, context) {
 			`DEEP artifact ${String(file?.path)}`,
 			failures,
 			context,
+			context.evidenceSha,
 		);
 	}
 	const sorted = [...files].sort((left, right) =>
@@ -297,7 +290,9 @@ function validateDeepBenchmarks(report, artifacts, failures, context) {
 		) {
 			try {
 				const raw = JSON.parse(
-					Buffer.from(context.readArtifact(evidencePath)).toString("utf8"),
+					Buffer.from(
+						context.readArtifact(context.evidenceSha, evidencePath),
+					).toString("utf8"),
 				);
 				const derived = validateDeepBenchmarkReport(
 					contract,
@@ -471,7 +466,6 @@ export function validateTargetMacDeepEvidence(
 			"status",
 			"subcommands",
 			"tier",
-			"trustedRun",
 			"verificationContractSha256",
 		])
 	)
@@ -490,9 +484,11 @@ export function validateTargetMacDeepEvidence(
 		failures.push("DEEP evidence integrity boundary is missing or overstated");
 	if (report !== null && typeof report === "object")
 		validateTrustedRun(
-			report.trustedRun,
 			{
-				candidateSha: frozenSoftwareSha,
+				attestationClass: context.attestationClass,
+				evidenceSha: context.evidenceSha,
+				frozenCandidateSha: frozenSoftwareSha,
+				initialReviewSha: context.initialReviewSha,
 				payloadSha256: attestablePayloadSha256(report),
 				purpose: "target-mac-deep",
 				sourceSha: frozenSoftwareSha,
@@ -527,7 +523,13 @@ function validateEvidencePath(path) {
 	);
 }
 
-function validateArtifactReference(reference, label, failures, context) {
+function validateArtifactReference(
+	reference,
+	label,
+	failures,
+	context,
+	evidenceSha,
+) {
 	if (!validateEvidencePath(reference?.path)) {
 		failures.push(`${label} artifact path is invalid`);
 		return null;
@@ -541,7 +543,7 @@ function validateArtifactReference(reference, label, failures, context) {
 		return null;
 	}
 	try {
-		const bytes = context.readArtifact(reference.path);
+		const bytes = context.readArtifact(evidenceSha, reference.path);
 		if (!(bytes instanceof Uint8Array))
 			throw new Error("artifact reader did not return bytes");
 		if (bytes.byteLength !== reference.bytes)
@@ -586,12 +588,13 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	const failures = [];
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["review evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v4")
+	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v5")
 		failures.push("unsupported review evidence schema");
 	if (
 		!exactKeys(report, [
 			"confirmation",
-			"frozenSoftwareSha",
+			"evidenceSha",
+			"frozenCandidateSha",
 			"initialReviewSha",
 			"integrityClaim",
 			"outputSha256",
@@ -601,7 +604,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"status",
 		])
 	)
-		failures.push("review evidence does not match the exact v4 envelope");
+		failures.push("review evidence does not match the exact v5 envelope");
 	if (report.status !== "PASS") failures.push("review evidence is not PASS");
 	if (
 		report.integrityClaim !==
@@ -611,15 +614,18 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"review evidence integrity boundary is missing or overstated",
 		);
 	verifySelfHash(report, failures);
-	for (const field of ["initialReviewSha", "frozenSoftwareSha"])
+	for (const field of ["initialReviewSha", "frozenCandidateSha", "evidenceSha"])
 		if (!SHA_PATTERN.test(report[field] ?? ""))
 			failures.push(`${field} is not a full Git SHA`);
 	if (typeof context?.isAncestor !== "function")
 		failures.push("review ancestry was not verified");
 	else if (
-		!context.isAncestor(report.initialReviewSha, report.frozenSoftwareSha)
+		!context.isAncestor(report.initialReviewSha, report.frozenCandidateSha) ||
+		!context.isAncestor(report.frozenCandidateSha, report.evidenceSha)
 	)
-		failures.push("initialReviewSha is not an ancestor of frozenSoftwareSha");
+		failures.push(
+			"initialReviewSha -> frozenCandidateSha -> evidenceSha ancestry is invalid",
+		);
 
 	const reviews = Array.isArray(report.reviews) ? report.reviews : [];
 	if (reviews.length !== REQUIRED_REVIEW_DISCIPLINES.size)
@@ -628,7 +634,6 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	const disciplines = new Set();
 	const artifactPaths = new Set();
 	const artifactHashes = new Set();
-	const runIds = new Set();
 	const reviewerAgentIds = new Set();
 	const reviewerSessionIds = new Set();
 	const allFindings = [];
@@ -645,7 +650,6 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 				"reviewId",
 				"sourceSha",
 				"status",
-				"trustedRun",
 			])
 		)
 			failures.push(`${label} declaration has unknown or missing fields`);
@@ -666,9 +670,6 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			failures.push("review artifacts are duplicated");
 		artifactPaths.add(review?.artifact?.path);
 		artifactHashes.add(review?.artifact?.sha256);
-		if (runIds.has(review?.trustedRun?.runId))
-			failures.push("review trusted runs are not independent");
-		runIds.add(review?.trustedRun?.runId);
 		if (
 			typeof review?.reviewerAgentId !== "string" ||
 			review.reviewerAgentId.length < 3 ||
@@ -688,6 +689,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			label,
 			failures,
 			context,
+			report.evidenceSha,
 		);
 		const artifact = parseJsonArtifact(contents, label, failures);
 		const p0 = Array.isArray(review?.findings?.p0) ? review.findings.p0 : [];
@@ -730,7 +732,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 				"schemaVersion",
 				"sourceSha",
 			]) ||
-			artifact?.schemaVersion !== "eonfolk-v1-structured-review-v2" ||
+			artifact?.schemaVersion !== "eonfolk-v1-structured-review-v3" ||
 			artifact?.reviewId !== review?.reviewId ||
 			artifact?.reviewerAgentId !== review?.reviewerAgentId ||
 			artifact?.reviewerSessionId !== review?.reviewerSessionId ||
@@ -745,9 +747,11 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			);
 		else reviewTimes.push(Date.parse(artifact.completedAt));
 		validateTrustedRun(
-			review?.trustedRun,
 			{
-				candidateSha: report.frozenSoftwareSha,
+				attestationClass: context.attestationClass,
+				evidenceSha: report.evidenceSha,
+				frozenCandidateSha: report.frozenCandidateSha,
+				initialReviewSha: report.initialReviewSha,
 				payloadSha256: review?.artifact?.sha256,
 				purpose: `review:${review?.reviewId}`,
 				reviewerAgentId: review?.reviewerAgentId,
@@ -781,10 +785,14 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	for (const disposition of dispositions) {
 		if (
 			!exactKeys(disposition, [
+				"affectedScope",
 				"disposition",
 				"evidenceRefs",
 				"findingId",
+				"rationale",
+				"remediationOrFalsification",
 				"status",
+				"validatingEvidence",
 			]) ||
 			!findingIds.includes(disposition?.findingId) ||
 			dispositionIds.has(disposition?.findingId)
@@ -798,6 +806,17 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			disposition?.status !== "CLOSED"
 		)
 			failures.push("finding disposition is not a valid CLOSED decision");
+		for (const field of [
+			"affectedScope",
+			"rationale",
+			"remediationOrFalsification",
+			"validatingEvidence",
+		])
+			if (
+				typeof disposition?.[field] !== "string" ||
+				disposition[field].trim().length < 16
+			)
+				failures.push(`finding disposition ${field} is not substantive`);
 		if (
 			!Array.isArray(disposition?.evidenceRefs) ||
 			disposition.evidenceRefs.length === 0
@@ -811,7 +830,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 				if (
 					!SHA_PATTERN.test(reference.sha) ||
 					!context?.commitExists?.(reference.sha) ||
-					!context?.isAncestor?.(reference.sha, report.frozenSoftwareSha)
+					!context?.isAncestor?.(reference.sha, report.frozenCandidateSha)
 				)
 					failures.push(
 						"disposition Git evidence is not in the frozen history",
@@ -825,6 +844,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 					"disposition evidence",
 					failures,
 					context,
+					report.evidenceSha,
 				);
 			else failures.push("disposition evidence reference is malformed");
 		}
@@ -848,7 +868,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		failures.push("review evidence has unrepaired P0/P1 findings");
 	if (
 		report.reconciliation?.sourceSha !== report.initialReviewSha ||
-		report.reconciliation?.finalSoftwareSha !== report.frozenSoftwareSha
+		report.reconciliation?.finalSoftwareSha !== report.frozenCandidateSha
 	)
 		failures.push("reconciliation SHA binding is invalid");
 	const reconciliationContents = validateArtifactReference(
@@ -856,6 +876,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"reconciliation",
 		failures,
 		context,
+		report.evidenceSha,
 	);
 	const reconciliationArtifact = parseJsonArtifact(
 		reconciliationContents,
@@ -866,16 +887,16 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		!exactKeys(reconciliationArtifact, [
 			"completedAt",
 			"dispositions",
-			"frozenSoftwareSha",
+			"frozenCandidateSha",
 			"initialReviewSha",
 			"schemaVersion",
 		]) ||
-		reconciliationArtifact?.schemaVersion !== "eonfolk-v1-reconciliation-v1" ||
+		reconciliationArtifact?.schemaVersion !== "eonfolk-v1-reconciliation-v2" ||
 		!validTimestamp(report.reconciliation?.completedAt) ||
 		JSON.stringify(reconciliationArtifact?.dispositions) !==
 			JSON.stringify(dispositions) ||
 		reconciliationArtifact?.initialReviewSha !== report.initialReviewSha ||
-		reconciliationArtifact?.frozenSoftwareSha !== report.frozenSoftwareSha
+		reconciliationArtifact?.frozenCandidateSha !== report.frozenCandidateSha
 	)
 		failures.push("structured reconciliation does not match its declaration");
 
@@ -889,10 +910,10 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			baseTreeSha: context.treeSha(report.initialReviewSha),
 			diffSha256: context.fullDiffSha256(
 				report.initialReviewSha,
-				report.frozenSoftwareSha,
+				report.frozenCandidateSha,
 			),
-			headSha: report.frozenSoftwareSha,
-			headTreeSha: context.treeSha(report.frozenSoftwareSha),
+			headSha: report.frozenCandidateSha,
+			headTreeSha: context.treeSha(report.frozenCandidateSha),
 		};
 	} catch {
 		failures.push("full final diff could not be independently inspected");
@@ -904,6 +925,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"final diff",
 		failures,
 		context,
+		report.evidenceSha,
 	);
 	const finalDiffArtifact = parseJsonArtifact(
 		finalDiffContents,
@@ -922,6 +944,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"fresh confirmation",
 		failures,
 		context,
+		report.evidenceSha,
 	);
 	const confirmation = parseJsonArtifact(
 		confirmationContents,
@@ -933,7 +956,6 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"artifact",
 			"reviewerAgentId",
 			"reviewerSessionId",
-			"trustedRun",
 		]) ||
 		!exactKeys(confirmation, [
 			"completedAt",
@@ -946,12 +968,12 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"sourceSha",
 			"status",
 		]) ||
-		confirmation?.schemaVersion !== "eonfolk-v1-final-confirmation-v2" ||
+		confirmation?.schemaVersion !== "eonfolk-v1-final-confirmation-v3" ||
 		confirmation?.status !== "PASS" ||
 		confirmation?.reviewerAgentId !== report.confirmation?.reviewerAgentId ||
 		confirmation?.reviewerSessionId !==
 			report.confirmation?.reviewerSessionId ||
-		confirmation?.sourceSha !== report.frozenSoftwareSha ||
+		confirmation?.sourceSha !== report.frozenCandidateSha ||
 		confirmation?.deepEvidenceOutputSha256 !==
 			context.deepEvidenceOutputSha256 ||
 		confirmation?.reconciliationSha256 !==
@@ -968,8 +990,6 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		failures.push(
 			"fresh confirmation structure, binding, or ordering is invalid",
 		);
-	if (runIds.has(report.confirmation?.trustedRun?.runId))
-		failures.push("fresh confirmation run is not independent");
 	if (
 		reviewerAgentIds.has(report.confirmation?.reviewerAgentId) ||
 		reviewerSessionIds.has(report.confirmation?.reviewerSessionId) ||
@@ -982,14 +1002,16 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"fresh confirmation reviewer agent/session is not independent",
 		);
 	validateTrustedRun(
-		report.confirmation?.trustedRun,
 		{
-			candidateSha: report.frozenSoftwareSha,
+			attestationClass: context.attestationClass,
+			evidenceSha: report.evidenceSha,
+			frozenCandidateSha: report.frozenCandidateSha,
+			initialReviewSha: report.initialReviewSha,
 			payloadSha256: report.confirmation?.artifact?.sha256,
 			purpose: "final-confirmation",
 			reviewerAgentId: report.confirmation?.reviewerAgentId,
 			reviewerSessionId: report.confirmation?.reviewerSessionId,
-			sourceSha: report.frozenSoftwareSha,
+			sourceSha: report.frozenCandidateSha,
 		},
 		"fresh confirmation",
 		failures,
@@ -998,7 +1020,8 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	return {
 		ok: failures.length === 0,
 		failures,
-		frozenSoftwareSha: report.frozenSoftwareSha ?? null,
+		frozenSoftwareSha: report.frozenCandidateSha ?? null,
+		evidenceSha: report.evidenceSha ?? null,
 	};
 }
 
@@ -1165,7 +1188,13 @@ export function evaluateV1Readiness({
 
 	const releaseContext = {
 		...reviewValidationContext,
+		attestationClass:
+			testedIdentity?.testedKind === "main-push"
+				? "POSTMERGE_PROTECTED_MAIN"
+				: "PREMERGE_CANDIDATE_CONTROL",
 		deepEvidenceOutputSha256: deepEvidence?.outputSha256,
+		evidenceSha: reviewEvidence?.evidenceSha,
+		initialReviewSha: reviewEvidence?.initialReviewSha,
 	};
 	const reviewResult = validateReviewConfirmationEvidence(
 		reviewEvidence,
@@ -1284,9 +1313,9 @@ function loadTrustedRuns(path) {
 			"trustBoundary",
 			"verifiedAt",
 		]) ||
-		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v1" ||
+		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v2" ||
 		registry?.trustBoundary !==
-			"LIVE_GITHUB_API_METADATA_AND_DOWNLOADED_ARTIFACT_BYTES; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
+			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
 		!validTimestamp(registry?.verifiedAt) ||
 		!Array.isArray(registry?.runs)
 	)
@@ -1302,9 +1331,14 @@ function loadTrustedRuns(path) {
 				"artifactArchiveSha256",
 				"artifactId",
 				"artifactName",
-				"candidateSha",
+				"attestationClass",
+				"control",
 				"conclusion",
 				"event",
+				"evidenceSha",
+				"frozenCandidateSha",
+				"initialReviewSha",
+				"macLifecycle",
 				"payloadSha256",
 				"provider",
 				"purpose",
@@ -1322,14 +1356,20 @@ function loadTrustedRuns(path) {
 			]) ||
 			!Number.isSafeInteger(run?.runId) ||
 			run.runId <= 0 ||
-			runs.has(run.runId)
+			runs.has(run.purpose)
 		)
 			throw new Error("trusted GitHub run IDs are missing or duplicated");
-		runs.set(run.runId, run);
+		runs.set(run.purpose, run);
 	}
 	if (runs.size !== 8)
 		throw new Error("trusted GitHub run registry must contain eight runs");
-	return runs;
+	return {
+		attestationClass: registry.runs[0]?.attestationClass,
+		evidenceSha: registry.runs[0]?.evidenceSha,
+		frozenCandidateSha: registry.runs[0]?.frozenCandidateSha,
+		initialReviewSha: registry.runs[0]?.initialReviewSha,
+		runs,
+	};
 }
 
 export function readRepositoryArtifact(rootPath, path) {
@@ -1347,8 +1387,7 @@ export function readRepositoryArtifact(rootPath, path) {
 	return readFileSync(real);
 }
 
-function reviewValidationContext(trustedRuns = new Map()) {
-	const root = realpathSync(resolve("."));
+function reviewValidationContext(trusted = { runs: new Map() }) {
 	return {
 		currentHead: execFileSync("git", ["rev-parse", "HEAD"], {
 			encoding: "utf8",
@@ -1377,7 +1416,10 @@ function reviewValidationContext(trustedRuns = new Map()) {
 					`${base}..${head}`,
 				]),
 			),
-		trustedRuns,
+		attestationClass: trusted.attestationClass,
+		evidenceSha: trusted.evidenceSha,
+		initialReviewSha: trusted.initialReviewSha,
+		trustedRuns: trusted.runs,
 		repository: process.env.GITHUB_REPOSITORY,
 		diffPaths: (base, head) => {
 			const output = execFileSync(
@@ -1394,8 +1436,15 @@ function reviewValidationContext(trustedRuns = new Map()) {
 				.trim()
 				.split(/\s+/u)
 				.filter(Boolean),
-		readArtifact: (path) => {
-			return readRepositoryArtifact(root, path);
+		readArtifact: (commit, path) => {
+			if (!SHA_PATTERN.test(commit ?? "") || !validateEvidencePath(path))
+				throw new Error("invalid evidence commit or path");
+			const entry = execFileSync("git", ["ls-tree", commit, "--", path], {
+				encoding: "utf8",
+			});
+			if (!entry.startsWith("100644 blob "))
+				throw new Error("evidence artifact is missing or not a regular blob");
+			return execFileSync("git", ["show", `${commit}:${path}`]);
 		},
 	};
 }
@@ -1436,14 +1485,25 @@ function main() {
 	const trustedRuns =
 		mode === "ready"
 			? loadTrustedRuns(argument("--trusted-attestations"))
-			: new Map();
+			: { runs: new Map() };
 	const deepEvidence =
 		mode === "ready" ? readJson(argument("--deep-evidence")) : null;
 	const reviewEvidence =
-		mode === "ready" ? readJson(argument("--review-evidence")) : null;
+		mode === "ready"
+			? JSON.parse(
+					execFileSync(
+						"git",
+						[
+							"show",
+							`${trustedRuns.evidenceSha}:${argument("--review-evidence")}`,
+						],
+						{ encoding: "utf8" },
+					),
+				)
+			: null;
 	const postFreeze =
 		mode === "ready"
-			? inspectPostFreeze(reviewEvidence?.frozenSoftwareSha, head)
+			? inspectPostFreeze(reviewEvidence?.frozenCandidateSha, head)
 			: { ancestor: false, paths: [] };
 	const result = evaluateV1Readiness({
 		rows,

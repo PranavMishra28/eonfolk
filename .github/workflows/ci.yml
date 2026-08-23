@@ -15,6 +15,54 @@ on:
         options:
           - pr
           - extended
+      evidence_purpose:
+        description: Ordinary CI, Mac intermediate, or one final release-evidence purpose
+        required: true
+        default: ordinary
+        type: choice
+        options:
+          - ordinary
+          - target-mac-intermediate
+          - target-mac-deep
+          - review:V1-RV-PRODUCT
+          - review:V1-RV-SYSTEMS
+          - review:V1-RV-VISUAL
+          - review:V1-RV-COGNITION
+          - review:V1-RV-PERSISTENCE
+          - review:V1-RV-CI
+          - final-confirmation
+      initial_review_sha:
+        description: Full SHA reviewed by all six initial reviewers
+        required: false
+        type: string
+      frozen_candidate_sha:
+        description: Full frozen software/control SHA
+        required: false
+        type: string
+      evidence_sha:
+        description: Full evidence-only descendant SHA and workflow source
+        required: false
+        type: string
+      artifact_path:
+        description: Evidence-SHA-relative structured review or confirmation JSON
+        required: false
+        type: string
+      reviewer_agent_id:
+        description: Self-reported independent reviewer-agent identity
+        required: false
+        type: string
+      reviewer_session_id:
+        description: Unique reviewer session/task identity
+        required: false
+        type: string
+      mac_runner_name:
+        description: Unique ephemeral non-admin Mac runner name
+        required: false
+        type: string
+      intermediate_run_id:
+        description: Successful finalized target-Mac intermediate run ID
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -27,7 +75,9 @@ concurrency:
 jobs:
   verify:
     name: Verify
-    if: github.event_name != 'workflow_dispatch' || inputs.tier != 'extended'
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      (inputs.evidence_purpose == 'ordinary' && inputs.tier != 'extended')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -153,24 +203,27 @@ jobs:
             fi
             run_ids="${RUNNER_TEMP}/v1-evidence-run-ids.json"
             verified_registry="${RUNNER_TEMP}/v1-live-verified-runs.json"
-            control_dir="${RUNNER_TEMP}/v1-protected-main-control"
-            mkdir -p "${control_dir}"
-            git show "${V1_BASE_HEAD}:scripts/v1-github-evidence.mjs" > "${control_dir}/v1-github-evidence.mjs"
-            git show "${V1_BASE_HEAD}:scripts/check-v1-readiness.mjs" > "${control_dir}/check-v1-readiness.mjs"
-            git show "${V1_BASE_HEAD}:scripts/run-verification-tier.mjs" > "${control_dir}/run-verification-tier.mjs"
+            verified_payloads="${RUNNER_TEMP}/v1-live-verified-payloads"
+            expected_evidence_sha="${V1_BRANCH_HEAD}"
+            if [[ "${V1_EVENT_NAME}" == "push" ]]; then
+              expected_evidence_sha="$(node --input-type=module -e 'import { readFileSync } from "node:fs"; const value = JSON.parse(readFileSync("docs/exec-plans/evidence/003/release/review-confirmation.json", "utf8")); process.stdout.write(value.evidenceSha ?? "")')"
+            fi
+            [[ "${expected_evidence_sha}" =~ ^[a-f0-9]{40}$ ]]
             printf '%s' "${V1_EVIDENCE_RUN_IDS_JSON}" > "${run_ids}"
-            node "${control_dir}/v1-github-evidence.mjs" verify \
+            node scripts/v1-github-evidence.mjs verify \
               --run-ids-config "${run_ids}" \
               --repository "${GITHUB_REPOSITORY}" \
+              --expected-evidence-sha "${expected_evidence_sha}" \
+              --payload-dir "${verified_payloads}" \
               --output "${verified_registry}"
-            node "${control_dir}/check-v1-readiness.mjs" \
+            node scripts/check-v1-readiness.mjs \
               --mode ready \
               --head "${V1_BRANCH_HEAD}" \
               --base-head "${V1_BASE_HEAD}" \
               --tested-head "${V1_TESTED_HEAD}" \
               --tested-kind "${V1_TESTED_KIND}" \
               --trusted-attestations "${verified_registry}" \
-              --deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json \
+              --deep-evidence "${verified_payloads}/target-mac-deep.json" \
               --review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json
           else
             node scripts/check-v1-readiness.mjs \
@@ -229,7 +282,10 @@ jobs:
 
   extended:
     name: V1 extended verification
-    if: github.event_name == 'workflow_dispatch' && inputs.tier == 'extended'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.evidence_purpose == 'ordinary' &&
+      inputs.tier == 'extended'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -321,8 +377,331 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  mac-runner-preflight:
+    name: Mac runner availability preflight
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.evidence_purpose == 'target-mac-intermediate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact frozen control
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.frozen_candidate_sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out exact workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Require exact immutable intermediate inputs
+        shell: bash
+        env:
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RUNNER_NAME: ${{ inputs.mac_runner_name }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "${CONTROL_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${RUNNER_NAME}" =~ ^eonfolk-deep-[A-Za-z0-9._-]{8,80}$ ]]
+          [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
+          [[ "$(git -C workflow-control rev-parse HEAD)" == "${WORKFLOW_SHA}" ]]
+          node control/scripts/v1-github-evidence.mjs compare-controls \
+            --control-root control \
+            --control-sha "${CONTROL_SHA}" \
+            --other-root workflow-control \
+            --other-sha "${WORKFLOW_SHA}"
+          node control/scripts/v1-github-evidence.mjs runner-preflight \
+            --repository "${GITHUB_REPOSITORY}" \
+            --runner-name "${RUNNER_NAME}"
+  mac-deep-intermediate:
+    name: Target-Mac exact 30-step DEEP intermediate
+    needs: mac-runner-preflight
+    runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]
+    timeout-minutes: 240
+    steps:
+      - name: Check out exact frozen control
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.frozen_candidate_sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out exact frozen candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.frozen_candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fail closed unless runner is unique, non-root, and non-admin
+        shell: bash
+        env:
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          EXPECTED_RUNNER_NAME: ${{ inputs.mac_runner_name }}
+        run: |
+          set -euo pipefail
+          [[ "${RUNNER_NAME}" == "${EXPECTED_RUNNER_NAME}" ]]
+          [[ "$(id -u)" -gt 0 ]]
+          runner_user="$(id -un)"
+          if dseditgroup -o checkmember -m "${runner_user}" admin | grep -qi 'yes'; then
+            echo "target-Mac runner user must not belong to the admin group" >&2
+            exit 1
+          fi
+          [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
+          [[ "$(git -C candidate rev-parse HEAD)" == "${CONTROL_SHA}" ]]
+          node control/scripts/v1-github-evidence.mjs purpose-slug --purpose target-mac-deep >/dev/null
+
+      - name: Validate dependency cohort before fetch
+        working-directory: candidate
+        run: node ../control/scripts/validate-dependency-cohort.mjs
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.15.1
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+          cache-dependency-path: candidate/pnpm-lock.yaml
+
+      - name: Install Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install exact candidate dependencies
+        working-directory: candidate
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install pinned Playwright Chromium
+        working-directory: candidate
+        run: pnpm exec playwright install chromium
+
+      - name: Fetch repository-pinned TLC
+        shell: bash
+        working-directory: candidate
+        run: |
+          set -euo pipefail
+          tlc_url="$(node ../control/scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node ../control/scripts/formal-toolchain.mjs --sha256)"
+          curl --fail --location --silent --show-error \
+            "${tlc_url}" \
+            --output "${RUNNER_TEMP}/tla2tools.jar"
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | shasum -a 256 --check
+
+      - name: Run immutable-control exact 30-step DEEP
+        working-directory: candidate
+        env:
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: node ../control/scripts/run-verification-tier.mjs deep
+
+      - name: Record non-admin runner identity and raw payload
+        shell: bash
+        env:
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          FROZEN_CANDIDATE_SHA: ${{ inputs.frozen_candidate_sha }}
+        run: |
+          set -euo pipefail
+          raw_dir="${RUNNER_TEMP}/v1-mac-raw"
+          mkdir "${raw_dir}"
+          cp candidate/tmp/eonfolk-verification-deep.json "${raw_dir}/payload.json"
+          RUNNER_USER="$(id -un)" node --input-type=module <<'EOF'
+          import { writeFileSync } from "node:fs";
+          writeFileSync(
+            `${process.env.RUNNER_TEMP}/v1-mac-raw/runner.json`,
+            `${JSON.stringify({
+              schemaVersion: "eonfolk-v1-mac-runner-v1",
+              controlSha: process.env.CONTROL_SHA,
+              frozenCandidateSha: process.env.FROZEN_CANDIDATE_SHA,
+              runnerName: process.env.RUNNER_NAME,
+              runnerUser: process.env.RUNNER_USER,
+              nonAdminUser: true,
+            }, null, 2)}\n`,
+          );
+          EOF
+
+      - name: Upload raw Mac payload for hosted finalization
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: v1-mac-raw-${{ github.run_id }}
+          path: ${{ runner.temp }}/v1-mac-raw
+          if-no-files-found: error
+          retention-days: 14
+
+  mac-intermediate-finalizer:
+    name: Clean hosted Mac evidence finalizer
+    needs: mac-deep-intermediate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Fresh checkout of exact frozen control
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.frozen_candidate_sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Fresh checkout of exact workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify runner teardown and finalize inert payload
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          RUNNER_NAME: ${{ inputs.mac_runner_name }}
+        run: |
+          node control/scripts/v1-github-evidence.mjs compare-controls \
+            --control-root control \
+            --control-sha "${CONTROL_SHA}" \
+            --other-root workflow-control \
+            --other-sha "${GITHUB_SHA}"
+          node control/scripts/v1-github-evidence.mjs finalize-mac \
+            --repository "${GITHUB_REPOSITORY}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --runner-name "${RUNNER_NAME}" \
+            --control-sha "${CONTROL_SHA}" \
+            --frozen-candidate-sha "${CONTROL_SHA}" \
+            --output "${RUNNER_TEMP}/v1-mac-finalized"
+
+      - name: Upload hosted-finalized Mac intermediate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: v1-mac-finalized-${{ github.run_id }}
+          path: ${{ runner.temp }}/v1-mac-finalized
+          if-no-files-found: error
+          retention-days: 30
+
+  release-evidence-finalizer:
+    name: Release evidence finalizer
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.evidence_purpose != 'ordinary' &&
+      inputs.evidence_purpose != 'target-mac-intermediate'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Fresh checkout of exact frozen control
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.frozen_candidate_sha }}
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout exact evidence SHA as inert bytes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.evidence_sha }}
+          path: evidence
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact workflow source for control verification
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-control
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require exact immutable SHA and identity inputs
+        shell: bash
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          EVIDENCE_SHA: ${{ inputs.evidence_sha }}
+          INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
+          INTERMEDIATE_RUN_ID: ${{ inputs.intermediate_run_id }}
+          PURPOSE: ${{ inputs.evidence_purpose }}
+          REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
+          REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "${INITIAL_REVIEW_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${CONTROL_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
+          [[ "$(git -C evidence rev-parse HEAD)" == "${EVIDENCE_SHA}" ]]
+          [[ "$(git -C workflow-control rev-parse HEAD)" == "${WORKFLOW_SHA}" ]]
+          if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
+            [[ "${INTERMEDIATE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+            [[ -z "${ARTIFACT_PATH}" && -z "${REVIEWER_AGENT_ID}" && -z "${REVIEWER_SESSION_ID}" ]]
+          else
+            [[ "${ARTIFACT_PATH}" =~ ^docs/(reviews|exec-plans/evidence/003/release)/[^./][A-Za-z0-9._/-]*\.json$ ]]
+            [[ "${REVIEWER_AGENT_ID}" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$ ]]
+            [[ "${REVIEWER_SESSION_ID}" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$ ]]
+          fi
+
+      - name: Prepare control/blob/SHA-bound receipt without executing evidence
+        id: receipt
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          EVIDENCE_SHA: ${{ inputs.evidence_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
+          INTERMEDIATE_RUN_ID: ${{ inputs.intermediate_run_id }}
+          PURPOSE: ${{ inputs.evidence_purpose }}
+          REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
+          REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+        run: |
+          args=(
+            --purpose "${PURPOSE}"
+            --control-root control
+            --evidence-root evidence
+            --workflow-root workflow-control
+            --initial-review-sha "${INITIAL_REVIEW_SHA}"
+            --frozen-candidate-sha "${CONTROL_SHA}"
+            --evidence-sha "${EVIDENCE_SHA}"
+            --output "${RUNNER_TEMP}/v1-evidence"
+          )
+          if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
+            args+=(--intermediate-run-id "${INTERMEDIATE_RUN_ID}")
+          else
+            args+=(
+              --payload "${ARTIFACT_PATH}"
+              --reviewer-agent-id "${REVIEWER_AGENT_ID}"
+              --reviewer-session-id "${REVIEWER_SESSION_ID}"
+            )
+          fi
+          node control/scripts/v1-github-evidence.mjs prepare "${args[@]}"
+          purpose_slug="$(node control/scripts/v1-github-evidence.mjs purpose-slug --purpose "${PURPOSE}")"
+          echo "artifact-name=v1-evidence-${purpose_slug}-${GITHUB_RUN_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload exact final evidence receipt and payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.receipt.outputs.artifact-name }}
+          path: ${{ runner.temp }}/v1-evidence
+          if-no-files-found: error
+          retention-days: 30
+
   formal:
     name: Formal model
+    if: github.event_name != 'workflow_dispatch' || inputs.evidence_purpose == 'ordinary'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -360,6 +739,7 @@ jobs:
 
   secrets:
     name: Secret scan
+    if: github.event_name != 'workflow_dispatch' || inputs.evidence_purpose == 'ordinary'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

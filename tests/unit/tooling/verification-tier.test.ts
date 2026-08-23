@@ -93,7 +93,7 @@ describe("V1 CI hardening", () => {
 	it("requires frozen target-Mac and review evidence only when the PR becomes ready", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		expect(workflow).toContain(
-			"--deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json",
+			'--deep-evidence "' + "$" + '{verified_payloads}/target-mac-deep.json"',
 		);
 		expect(workflow).toContain(
 			"--review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json",
@@ -114,7 +114,7 @@ describe("V1 CI hardening", () => {
 		expect(workflow).toContain("V1_EVIDENCE_RUN_IDS_JSON");
 		expect(workflow).toContain("it is not a trust assertion");
 		expect(workflow).toContain(
-			'git show "' + "$" + '{V1_BASE_HEAD}:scripts/v1-github-evidence.mjs"',
+			'--payload-dir "' + "$" + '{verified_payloads}"',
 		);
 		expect(workflow).toContain(
 			'--trusted-attestations "' + "$" + '{verified_registry}"',
@@ -124,23 +124,29 @@ describe("V1 CI hardening", () => {
 		expect(workflow.match(/--base-head/g)).toHaveLength(2);
 	});
 
-	it("keeps the protected-main producer manual and the DEEP roster exact", () => {
-		const workflow = readFileSync(
-			resolve(".github/workflows/v1-evidence.yml"),
-			"utf8",
-		);
+	it("keeps manual evidence lanes in CI and the DEEP roster exact", () => {
+		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		expect(verificationStepsForTier("deep")).toHaveLength(30);
 		expect(workflow).toContain("workflow_dispatch:");
-		expect(workflow).not.toContain("pull_request:");
-		expect(workflow).not.toContain("push:");
+		expect(workflow).toContain("evidence_purpose:");
+		expect(workflow).toContain("target-mac-intermediate");
 		expect(workflow).toContain(
 			"runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]",
 		);
 		expect(workflow).toContain("runs-on: ubuntu-24.04");
-		expect(workflow).toContain("without executing candidate code");
+		expect(workflow).toContain("Checkout exact evidence SHA as inert bytes");
+		expect(workflow).toContain(
+			"Fail closed unless runner is unique, non-root, and non-admin",
+		);
+		expect(workflow).toContain(
+			"Verify runner teardown and finalize inert payload",
+		);
 		expect(workflow).toContain(
 			"node ../control/scripts/run-verification-tier.mjs deep",
 		);
+		expect(() =>
+			readFileSync(resolve(".github/workflows/v1-evidence.yml"), "utf8"),
+		).toThrow();
 	});
 
 	it("validates the frozen dependency graph before either dependency fetch", () => {

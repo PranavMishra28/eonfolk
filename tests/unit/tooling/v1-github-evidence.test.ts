@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+	CONTROL_PATHS,
 	parseRunIdConfiguration,
 	purposeSlug,
 	REQUIRED_EVIDENCE_PURPOSES,
@@ -11,8 +12,14 @@ import {
 const hash = (value: string | Uint8Array) =>
 	createHash("sha256").update(value).digest("hex");
 const repository = "owner/repo";
-const sourceSha = "a".repeat(40);
-const workflowSha = "b".repeat(40);
+const initialReviewSha = "a".repeat(40);
+const frozenCandidateSha = "b".repeat(40);
+const evidenceSha = "c".repeat(40);
+const controlFiles = CONTROL_PATHS.map((path, index) => ({
+	path,
+	mode: "100644",
+	blobSha: String(index + 1).repeat(40),
+}));
 
 function payloadFor(purpose: string, index: number) {
 	if (purpose === "target-mac-deep")
@@ -23,8 +30,8 @@ function payloadFor(purpose: string, index: number) {
 					tier: "deep",
 					status: "PASS",
 					source: {
-						start: { commit: sourceSha },
-						end: { commit: sourceSha },
+						start: { commit: frozenCandidateSha },
+						end: { commit: frozenCandidateSha },
 					},
 				}),
 			),
@@ -37,9 +44,9 @@ function payloadFor(purpose: string, index: number) {
 		return {
 			bytes: Buffer.from(
 				JSON.stringify({
-					schemaVersion: "eonfolk-v1-final-confirmation-v2",
+					schemaVersion: "eonfolk-v1-final-confirmation-v3",
 					status: "PASS",
-					sourceSha,
+					sourceSha: frozenCandidateSha,
 					reviewerAgentId,
 					reviewerSessionId,
 				}),
@@ -51,9 +58,9 @@ function payloadFor(purpose: string, index: number) {
 	return {
 		bytes: Buffer.from(
 			JSON.stringify({
-				schemaVersion: "eonfolk-v1-structured-review-v2",
+				schemaVersion: "eonfolk-v1-structured-review-v3",
 				reviewId,
-				sourceSha,
+				sourceSha: initialReviewSha,
 				reviewerAgentId,
 				reviewerSessionId,
 			}),
@@ -65,6 +72,9 @@ function payloadFor(purpose: string, index: number) {
 
 type Mutation = Readonly<{
 	readonly duplicateReviewerSessions?: boolean;
+	readonly postMergeWorkflowSource?: boolean;
+	readonly wrongControlBlob?: boolean;
+	readonly runnerStillRegistered?: boolean;
 	readonly run?: (value: Record<string, any>) => void;
 	readonly workflow?: (value: Record<string, any>) => void;
 	readonly receipt?: (value: Record<string, any>) => void;
@@ -72,6 +82,9 @@ type Mutation = Readonly<{
 }>;
 
 function fixture(mutation: Mutation = {}) {
+	const workflowSourceSha = mutation.postMergeWorkflowSource
+		? "d".repeat(40)
+		: evidenceSha;
 	const archives = new Map<number, ReadonlyMap<string, Uint8Array>>();
 	const archiveBytes = new Map<number, Uint8Array>();
 	const runs = new Map<number, Record<string, any>>();
@@ -92,21 +105,46 @@ function fixture(mutation: Mutation = {}) {
 			};
 		}
 		const receipt: Record<string, any> = {
-			schemaVersion: "eonfolk-v1-github-evidence-receipt-v1",
+			schemaVersion: "eonfolk-v1-github-evidence-receipt-v2",
 			identityBoundary:
-				"GITHUB_OPERATOR_AND_RUN_VERIFIED_REVIEWER_AGENT_ID_SELF_REPORTED",
+				"CONTROL_BLOBS_AND_GITHUB_RUN_VERIFIED; REVIEWER_AGENT_ID_SELF_REPORTED",
 			purpose,
-			sourceSha,
-			candidateSha: sourceSha,
-			workflowSourceSha: workflowSha,
-			workflowPath: ".github/workflows/v1-evidence.yml",
-			workflowRef: "refs/heads/main",
+			sourceSha: purpose.startsWith("review:")
+				? initialReviewSha
+				: frozenCandidateSha,
+			initialReviewSha,
+			frozenCandidateSha,
+			evidenceSha,
+			control: { sha: frozenCandidateSha, files: controlFiles },
+			workflowSourceSha,
+			workflowPath: ".github/workflows/ci.yml",
+			workflowRef:
+				mutation.postMergeWorkflowSource === true
+					? "refs/heads/main"
+					: "refs/heads/feat/v1-civilization",
 			repository,
 			operatorActor: "release-operator",
 			runId,
 			runAttempt: 1,
 			reviewerAgentId: payload.reviewerAgentId,
 			reviewerSessionId: payload.reviewerSessionId,
+			macLifecycle:
+				purpose === "target-mac-deep"
+					? {
+							schemaVersion: "eonfolk-v1-mac-lifecycle-v1",
+							controlSha: frozenCandidateSha,
+							frozenCandidateSha,
+							intermediateRunId: 99,
+							intermediateWorkflowSourceSha: frozenCandidateSha,
+							runnerName: "eonfolk-deep-fixture",
+							runnerUser: "eonfolk-ci-user",
+							nonAdminUser: true,
+							preflight: "AVAILABLE_IDLE_EXACT_LABELS",
+							teardown: "RUNNER_DEREGISTERED_AFTER_JOB",
+							payloadSha256: hash(payload.bytes),
+							finalizedAt: "2026-08-23T00:00:00.000Z",
+						}
+					: null,
 			payload: {
 				path: "payload.json",
 				bytes: payload.bytes.byteLength,
@@ -129,8 +167,11 @@ function fixture(mutation: Mutation = {}) {
 			status: "completed",
 			conclusion: "success",
 			event: "workflow_dispatch",
-			head_branch: "main",
-			head_sha: workflowSha,
+			head_branch:
+				mutation.postMergeWorkflowSource === true
+					? "main"
+					: "feat/v1-civilization",
+			head_sha: workflowSourceSha,
 			run_attempt: 1,
 			actor: { login: "release-operator" },
 			workflow_id: 42,
@@ -149,18 +190,33 @@ function fixture(mutation: Mutation = {}) {
 	}
 	const workflow: Record<string, any> = {
 		id: 42,
-		path: ".github/workflows/v1-evidence.yml",
-		name: "V1 release evidence",
+		path: ".github/workflows/ci.yml",
+		name: "CI",
 		state: "active",
 	};
 	mutation.workflow?.(workflow);
 	const client = {
 		async json(path: string) {
 			if (path === `/repos/${repository}/branches/main`)
-				return { name: "main", protected: true, commit: { sha: workflowSha } };
+				return {
+					name: "main",
+					protected: true,
+					commit: { sha: workflowSourceSha },
+				};
 			const runMatch = /\/actions\/runs\/(\d+)$/u.exec(path);
 			if (runMatch !== null) {
 				const run = runs.get(Number(runMatch[1]));
+				if (Number(runMatch[1]) === 99)
+					return {
+						id: 99,
+						repository: { full_name: repository },
+						status: "completed",
+						conclusion: "success",
+						event: "workflow_dispatch",
+						head_sha: frozenCandidateSha,
+						run_attempt: 1,
+						actor: { login: "release-operator" },
+					};
 				if (run === undefined) throw new Error("not found");
 				return run;
 			}
@@ -169,34 +225,67 @@ function fixture(mutation: Mutation = {}) {
 			if (jobsMatch !== null) {
 				const runId = Number(jobsMatch[1]);
 				return {
-					jobs: [
-						{
-							conclusion: "success",
-							name:
-								runId === 1
-									? "Target-Mac exact 30-step DEEP"
-									: "Review or confirmation receipt",
-							runner_name: runId === 1 ? "ephemeral-mac-1" : "GitHub Actions 1",
-							labels:
-								runId === 1
-									? ["self-hosted", "macOS", "ARM64", "eonfolk-ephemeral-deep"]
-									: ["ubuntu-24.04"],
-						},
-					],
+					jobs:
+						runId === 99
+							? [
+									{
+										name: "Mac runner availability preflight",
+										conclusion: "success",
+									},
+									{
+										name: "Target-Mac exact 30-step DEEP intermediate",
+										conclusion: "success",
+										runner_name: "eonfolk-deep-fixture",
+										labels: [
+											"self-hosted",
+											"macOS",
+											"ARM64",
+											"eonfolk-ephemeral-deep",
+										],
+									},
+									{
+										name: "Clean hosted Mac evidence finalizer",
+										conclusion: "success",
+									},
+								]
+							: [
+									{
+										conclusion: "success",
+										name: "Release evidence finalizer",
+										runner_name: "GitHub Actions 1",
+										labels: ["ubuntu-24.04"],
+									},
+								],
 				};
 			}
+			if (path.endsWith("/actions/runners?per_page=100"))
+				return {
+					runners:
+						mutation.runnerStillRegistered === true
+							? [{ name: "eonfolk-deep-fixture" }]
+							: [],
+				};
+			if (path.includes("/git/trees/"))
+				return {
+					truncated: false,
+					tree: controlFiles.map(({ path, mode, blobSha }, index) => ({
+						path,
+						mode,
+						sha:
+							mutation.wrongControlBlob === true && index === 0
+								? "0".repeat(40)
+								: blobSha,
+						type: "blob",
+					})),
+				};
 			const artifactMatch = /\/actions\/runs\/(\d+)\/artifacts/u.exec(path);
 			if (artifactMatch !== null)
 				return { artifacts: [artifacts.get(Number(artifactMatch[1]))] };
-			if (path.includes("/compare/"))
-				return {
-					status: path.includes(`${workflowSha}...${workflowSha}`)
-						? "identical"
-						: "identical",
-					merge_base_commit: {
-						sha: path.includes(`${workflowSha}...`) ? workflowSha : sourceSha,
-					},
-				};
+			if (path.includes("/compare/")) {
+				const pair = path.split("/compare/")[1];
+				const [ancestor] = pair.split("...");
+				return { status: "ahead", merge_base_commit: { sha: ancestor } };
+			}
 			if (path.includes("/commits/")) return { sha: path.split("/").at(-1) };
 			throw new Error(`unexpected path ${path}`);
 		},
@@ -242,13 +331,45 @@ describe("live GitHub V1 evidence verification", () => {
 		const registry = await verifyGithubEvidenceRuns({
 			runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 			repository,
+			expectedEvidenceSha: evidenceSha,
 			client: built.client,
 			archiveReader: built.archiveReader,
 			now: () => "2026-08-23T00:00:00.000Z",
 		});
 		expect(registry.runs).toHaveLength(8);
-		expect(registry.trustBoundary).toContain("LIVE_GITHUB_API_METADATA");
+		expect(registry.trustBoundary).toContain("CONTROL_BLOB_VERIFICATION");
 		expect(registry.trustBoundary).toContain("SELF_REPORTED");
+		expect(
+			registry.runs.every(
+				({ attestationClass }) =>
+					attestationClass === "PREMERGE_CANDIDATE_CONTROL",
+			),
+		).toBe(true);
+	});
+
+	it("supports protected-main re-attestation without rewriting evidence bytes", async () => {
+		const built = fixture({ postMergeWorkflowSource: true });
+		const registry = await verifyGithubEvidenceRuns({
+			runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+			repository,
+			expectedEvidenceSha: evidenceSha,
+			client: built.client,
+			archiveReader: built.archiveReader,
+		});
+		expect(
+			registry.runs.every(({ evidenceSha: sha }) => sha === evidenceSha),
+		).toBe(true);
+		expect(
+			registry.runs.every(
+				({ workflowSourceSha: sha }) => sha === "d".repeat(40),
+			),
+		).toBe(true);
+		expect(
+			registry.runs.every(
+				({ attestationClass }) =>
+					attestationClass === "POSTMERGE_PROTECTED_MAIN",
+			),
+		).toBe(true);
 	});
 
 	it.each([
@@ -265,7 +386,7 @@ describe("live GitHub V1 evidence verification", () => {
 			"wrong workflow",
 			{
 				workflow: (workflow: any) =>
-					(workflow.path = ".github/workflows/ci.yml"),
+					(workflow.path = ".github/workflows/attacker.yml"),
 			},
 		],
 		[
@@ -273,8 +394,8 @@ describe("live GitHub V1 evidence verification", () => {
 			{ receipt: (receipt: any) => (receipt.sourceSha = "c".repeat(40)) },
 		],
 		[
-			"wrong candidate binding",
-			{ receipt: (receipt: any) => (receipt.candidateSha = "c".repeat(40)) },
+			"wrong evidence binding",
+			{ receipt: (receipt: any) => (receipt.evidenceSha = "d".repeat(40)) },
 		],
 		[
 			"wrong artifact digest",
@@ -289,6 +410,7 @@ describe("live GitHub V1 evidence verification", () => {
 			verifyGithubEvidenceRuns({
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
+				expectedEvidenceSha: evidenceSha,
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
@@ -299,8 +421,9 @@ describe("live GitHub V1 evidence verification", () => {
 		const built = fixture();
 		await expect(
 			verifyGithubEvidenceRuns({
-				runIds: [1, 2, 3, 4, 5, 6, 7, 99],
+				runIds: [1, 2, 3, 4, 5, 6, 7, 999],
 				repository,
+				expectedEvidenceSha: evidenceSha,
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
@@ -313,9 +436,36 @@ describe("live GitHub V1 evidence verification", () => {
 			verifyGithubEvidenceRuns({
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
+				expectedEvidenceSha: evidenceSha,
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
 		).rejects.toThrow();
+	});
+
+	it("rejects a changed immutable control blob", async () => {
+		const built = fixture({ wrongControlBlob: true });
+		await expect(
+			verifyGithubEvidenceRuns({
+				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+				repository,
+				expectedEvidenceSha: evidenceSha,
+				client: built.client,
+				archiveReader: built.archiveReader,
+			}),
+		).rejects.toThrow(/control blob changed/u);
+	});
+
+	it("rejects target-Mac evidence while its runner remains registered", async () => {
+		const built = fixture({ runnerStillRegistered: true });
+		await expect(
+			verifyGithubEvidenceRuns({
+				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+				repository,
+				expectedEvidenceSha: evidenceSha,
+				client: built.client,
+				archiveReader: built.archiveReader,
+			}),
+		).rejects.toThrow(/remains registered/u);
 	});
 });

@@ -48,7 +48,9 @@ function trustedRunRecord({
 	runId,
 	purpose,
 	sourceSha,
-	candidateSha = sourceSha,
+	initialReviewSha,
+	frozenCandidateSha,
+	evidenceSha,
 	payloadSha256,
 	reviewerAgentId = null,
 	reviewerSessionId = null,
@@ -56,7 +58,9 @@ function trustedRunRecord({
 	runId: number;
 	purpose: string;
 	sourceSha: string;
-	candidateSha?: string;
+	initialReviewSha: string;
+	frozenCandidateSha: string;
+	evidenceSha: string;
 	payloadSha256: string;
 	reviewerAgentId?: string | null;
 	reviewerSessionId?: string | null;
@@ -66,24 +70,27 @@ function trustedRunRecord({
 		artifactArchiveSha256: "9".repeat(64),
 		artifactId: runId + 100,
 		artifactName: `v1-evidence-${runId}`,
-		candidateSha,
+		attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+		control: { sha: frozenCandidateSha, files: [] },
 		conclusion: "success",
 		event: "workflow_dispatch",
+		evidenceSha,
+		frozenCandidateSha,
+		initialReviewSha,
+		macLifecycle: purpose === "target-mac-deep" ? {} : null,
 		payloadSha256,
 		provider: "github-actions-live-api",
 		purpose,
 		repository: "owner/repo",
 		reviewerAgentId,
 		reviewerSessionId,
-		runnerLabels:
-			purpose === "target-mac-deep" ? ["self-hosted"] : ["ubuntu-24.04"],
-		runnerName:
-			purpose === "target-mac-deep" ? "ephemeral-mac" : "GitHub Actions",
+		runnerLabels: ["ubuntu-24.04"],
+		runnerName: "GitHub Actions",
 		runAttempt: 1,
 		runId,
 		sourceSha,
 		workflowId: 42,
-		workflowPath: ".github/workflows/v1-evidence.yml",
+		workflowPath: ".github/workflows/ci.yml",
 		workflowSourceSha: "e".repeat(40),
 	};
 }
@@ -242,7 +249,6 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 		recordedAt: "2026-08-23T00:00:00.000Z",
 		inputs: {},
 		integrityClaim: "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
-		trustedRun: { runId: 1 },
 		verificationContractSha256: verificationContractSha256(tier),
 		source: {
 			start: { commit: head, clean: true, trackedTree },
@@ -280,19 +286,24 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 				: [],
 	};
 	const report = selfHashed(unsigned);
-	const { outputSha256: _output, trustedRun: _run, ...payload } = report;
+	const { outputSha256: _output, ...payload } = report;
+	const initialReviewSha = "a".repeat(40);
+	const evidenceSha = "e".repeat(40);
 	const trustedRuns = new Map([
 		[
-			1,
+			"target-mac-deep",
 			trustedRunRecord({
 				runId: 1,
 				purpose: "target-mac-deep",
 				sourceSha: head,
+				initialReviewSha,
+				frozenCandidateSha: head,
+				evidenceSha,
 				payloadSha256: hash(JSON.stringify(payload)),
 			}),
 		],
 	]);
-	return { report, stored, trustedRuns };
+	return { report, stored, trustedRuns, evidenceSha, initialReviewSha };
 }
 
 const disciplines = [
@@ -321,8 +332,9 @@ function reviewEvidence(
 	frozenSoftwareSha: string,
 	deepEvidenceOutputSha256 = "d".repeat(64),
 ) {
+	const evidenceSha = "e".repeat(40);
 	const stored = new Map<string, Uint8Array>();
-	const trustedRuns = new Map<number, any>();
+	const trustedRuns = new Map<string, any>();
 	const binding = {
 		baseSha: initialReviewSha,
 		baseTreeSha: "1".repeat(40),
@@ -357,7 +369,7 @@ function reviewEvidence(
 		const storedArtifact = artifact(
 			`docs/reviews/${reviewId}.json`,
 			JSON.stringify({
-				schemaVersion: "eonfolk-v1-structured-review-v2",
+				schemaVersion: "eonfolk-v1-structured-review-v3",
 				reviewId,
 				discipline,
 				reviewerAgentId,
@@ -371,12 +383,14 @@ function reviewEvidence(
 		stored.set(storedArtifact.reference.path, storedArtifact.bytes);
 		const runId = index + 10;
 		trustedRuns.set(
-			runId,
+			`review:${reviewId}`,
 			trustedRunRecord({
 				runId,
 				purpose: `review:${reviewId}`,
 				sourceSha: initialReviewSha,
-				candidateSha: frozenSoftwareSha,
+				initialReviewSha,
+				frozenCandidateSha: frozenSoftwareSha,
+				evidenceSha,
 				payloadSha256: storedArtifact.reference.sha256,
 				reviewerAgentId,
 				reviewerSessionId,
@@ -391,7 +405,6 @@ function reviewEvidence(
 			status: "COMPLETE",
 			findings,
 			artifact: storedArtifact.reference,
-			trustedRun: { runId },
 		};
 	});
 	const findingIds = reviews.flatMap((review) =>
@@ -401,14 +414,20 @@ function reviewEvidence(
 		findingId,
 		disposition: "ACCEPT",
 		status: "CLOSED",
+		rationale: "The finding is valid and must be repaired before release.",
+		affectedScope: "The exact frozen candidate and its release evidence.",
+		remediationOrFalsification:
+			"Apply the bounded repair in the frozen history.",
+		validatingEvidence:
+			"The cited commit and fresh confirmation validate closure.",
 		evidenceRefs: [{ kind: "git-commit", sha: frozenSoftwareSha }],
 	}));
 	const reconciliationArtifact = artifact(
 		"docs/exec-plans/evidence/003/release/reconciliation.json",
 		JSON.stringify({
-			schemaVersion: "eonfolk-v1-reconciliation-v1",
+			schemaVersion: "eonfolk-v1-reconciliation-v2",
 			initialReviewSha,
-			frozenSoftwareSha,
+			frozenCandidateSha: frozenSoftwareSha,
 			completedAt: "2026-08-23T01:00:00.000Z",
 			dispositions,
 		}),
@@ -420,7 +439,7 @@ function reviewEvidence(
 	const confirmationArtifact = artifact(
 		"docs/reviews/V1_CONFIRMATION.json",
 		JSON.stringify({
-			schemaVersion: "eonfolk-v1-final-confirmation-v2",
+			schemaVersion: "eonfolk-v1-final-confirmation-v3",
 			status: "PASS",
 			sourceSha: frozenSoftwareSha,
 			reviewerAgentId: "confirmation-agent",
@@ -438,23 +457,27 @@ function reviewEvidence(
 	])
 		stored.set(storedArtifact.reference.path, storedArtifact.bytes);
 	trustedRuns.set(
-		99,
+		"final-confirmation",
 		trustedRunRecord({
 			runId: 99,
 			purpose: "final-confirmation",
 			sourceSha: frozenSoftwareSha,
+			initialReviewSha,
+			frozenCandidateSha: frozenSoftwareSha,
+			evidenceSha,
 			payloadSha256: confirmationArtifact.reference.sha256,
 			reviewerAgentId: "confirmation-agent",
 			reviewerSessionId: "confirmation-session",
 		}),
 	);
 	const report = {
-		schemaVersion: "eonfolk-v1-review-confirmation-v4",
+		schemaVersion: "eonfolk-v1-review-confirmation-v5",
 		status: "PASS",
 		integrityClaim:
 			"REPOSITORY_COMPUTABLE_PLUS_LIVE_GITHUB_RECEIPTS; REVIEWER_AGENT_IDENTITY_SELF_REPORTED",
 		initialReviewSha,
-		frozenSoftwareSha,
+		frozenCandidateSha: frozenSoftwareSha,
+		evidenceSha,
 		reviews,
 		reconciliation: {
 			unrepairedP0: 0,
@@ -473,7 +496,6 @@ function reviewEvidence(
 			artifact: confirmationArtifact.reference,
 			reviewerAgentId: "confirmation-agent",
 			reviewerSessionId: "confirmation-session",
-			trustedRun: { runId: 99 },
 		},
 	};
 	const signed = {
@@ -485,6 +507,9 @@ function reviewEvidence(
 	return {
 		report: signed,
 		context: {
+			attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+			evidenceSha,
+			initialReviewSha,
 			isAncestor: () => true,
 			commitExists: () => true,
 			treeSha: (sha: string) =>
@@ -492,7 +517,7 @@ function reviewEvidence(
 			fullDiffSha256: () => binding.diffSha256,
 			deepEvidenceOutputSha256,
 			trustedRuns,
-			readArtifact: (path: string) => {
+			readArtifact: (_commit: string, path: string) => {
 				const bytes = stored.get(path);
 				if (bytes === undefined) throw new Error("missing");
 				return bytes;
@@ -527,9 +552,9 @@ function releaseFixture(initialReviewSha: string, frozenSoftwareSha: string) {
 		context: {
 			...reviews.context,
 			trustedRuns,
-			readArtifact: (path: string) => {
+			readArtifact: (commit: string, path: string) => {
 				const bytes =
-					deep.stored.get(path) ?? reviews.context.readArtifact(path);
+					deep.stored.get(path) ?? reviews.context.readArtifact(commit, path);
 				if (bytes === undefined) throw new Error("missing");
 				return bytes;
 			},
@@ -642,8 +667,54 @@ describe("V1 readiness and generated inventory tooling", () => {
 				],
 			},
 		});
+		expect(ready.releaseEvidence.failures).toEqual([]);
 		expect(ready.status).toBe("V1 READY");
 		expect(ready.frozenSoftwareSha).toBe(frozenSoftwareSha);
+	});
+
+	it("requires a fresh protected-main attestation class after merge", () => {
+		const initialReviewSha = "a".repeat(40);
+		const frozenSoftwareSha = "b".repeat(40);
+		const mainHead = "d".repeat(40);
+		const release = releaseFixture(initialReviewSha, frozenSoftwareSha);
+		const testedIdentity = {
+			baseSha: "c".repeat(40),
+			candidateSha: mainHead,
+			testedKind: "main-push",
+			testedSha: mainHead,
+		};
+		const preMerge = evaluateV1Readiness({
+			rows: parseRequiredStateRows(goal("VERIFIED")),
+			mode: "ready",
+			deepEvidence: release.deep.report,
+			reviewEvidence: release.reviews.report,
+			reviewValidationContext: { ...release.context, currentHead: mainHead },
+			head: mainHead,
+			testedIdentity,
+			postFreeze: { ancestor: true, paths: ["GOAL.md"] },
+		});
+		expect(preMerge.releaseEvidence.failures).toContain(
+			"review V1-RV-PRODUCT is not bound to the required live GitHub control/blob attestation",
+		);
+
+		for (const record of release.context.trustedRuns.values())
+			record.attestationClass = "POSTMERGE_PROTECTED_MAIN";
+		const postMerge = evaluateV1Readiness({
+			rows: parseRequiredStateRows(goal("VERIFIED")),
+			mode: "ready",
+			deepEvidence: release.deep.report,
+			reviewEvidence: release.reviews.report,
+			reviewValidationContext: {
+				...release.context,
+				attestationClass: "POSTMERGE_PROTECTED_MAIN",
+				currentHead: mainHead,
+			},
+			head: mainHead,
+			testedIdentity,
+			postFreeze: { ancestor: true, paths: ["GOAL.md"] },
+		});
+		expect(postMerge.releaseEvidence.failures).toEqual([]);
+		expect(postMerge.status).toBe("V1 READY");
 	});
 
 	it("rejects PR-tier, non-Mac, duplicate-reviewer, and software-delta substitutions", () => {
@@ -662,7 +733,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 			.digest("hex");
 		expect(
 			validateTargetMacDeepEvidence(linux, frozenSoftwareSha, {
-				readArtifact: (path: string) =>
+				attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+				evidenceSha: linuxFixture.evidenceSha,
+				initialReviewSha: linuxFixture.initialReviewSha,
+				readArtifact: (_commit: string, path: string) =>
 					linuxFixture.stored.get(path) as Uint8Array,
 				trustedRuns: linuxFixture.trustedRuns,
 			}).failures,
@@ -673,7 +747,8 @@ describe("V1 readiness and generated inventory tooling", () => {
 			frozenSoftwareSha,
 		);
 		const duplicate = duplicateFixture.report;
-		duplicate.reviews[1].trustedRun = duplicate.reviews[0].trustedRun;
+		duplicate.reviews[1].reviewerSessionId =
+			duplicate.reviews[0].reviewerSessionId;
 		const { outputSha256: _reviewHash, ...duplicateWithoutHash } = duplicate;
 		duplicate.outputSha256 = createHash("sha256")
 			.update(JSON.stringify(duplicateWithoutHash))
@@ -681,7 +756,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		expect(
 			validateReviewConfirmationEvidence(duplicate, duplicateFixture.context)
 				.failures,
-		).toContain("review trusted runs are not independent");
+		).toContain("reviewer sessions are missing or duplicated");
 
 		expect(isAllowedPostFreezePath("docs/reviews/V1.md")).toBe(true);
 		expect(isAllowedPostFreezePath("packages/sim/src/index.ts")).toBe(false);
@@ -704,7 +779,9 @@ describe("V1 readiness and generated inventory tooling", () => {
 			},
 		});
 		expect(result.status).toBe("V1 INCOMPLETE");
-		expect(result.releaseEvidence.failures[0]).toContain("software");
+		expect(result.releaseEvidence.failures).toContain(
+			"post-freeze delta contains software or unapproved files: packages/sim/src/index.ts",
+		);
 	});
 
 	it("distinguishes a tested PR merge-ref from its candidate and base", () => {
@@ -786,6 +863,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 			},
 			postFreeze: { ancestor: true, paths: ["GOAL.md"] },
 		});
+		expect(ready.releaseEvidence.failures).toEqual([]);
 		expect(ready.status).toBe("V1 READY");
 		expect(ready.head).toBe(candidateSha);
 		expect(ready.testedIdentity).toMatchObject({ testedSha, candidateSha });
@@ -838,7 +916,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 			.update(JSON.stringify(tamperedWithoutHash))
 			.digest("hex");
 		const failures = validateTargetMacDeepEvidence(tampered, head, {
-			readArtifact: (path: string) =>
+			attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+			evidenceSha: tamperedFixture.evidenceSha,
+			initialReviewSha: tamperedFixture.initialReviewSha,
+			readArtifact: (_commit: string, path: string) =>
 				tamperedFixture.stored.get(path) as Uint8Array,
 			trustedRuns: tamperedFixture.trustedRuns,
 		}).failures;
@@ -869,7 +950,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 			isAncestor: () => false,
 		}).failures;
 		expect(failures).toContain(
-			"initialReviewSha is not an ancestor of frozenSoftwareSha",
+			"initialReviewSha -> frozenCandidateSha -> evidenceSha ancestry is invalid",
 		);
 		expect(failures).toContain("review is missing exact discipline reviewId");
 		expect(failures).toContain(
@@ -949,7 +1030,8 @@ describe("V1 readiness and generated inventory tooling", () => {
 		shared.report.reconciliation.dispositions.push(
 			shared.report.reconciliation.dispositions[0],
 		);
-		shared.report.reviews[2].trustedRun = { runId: 777 };
+		shared.report.reconciliation.dispositions[0].rationale = "too short";
+		shared.context.trustedRuns.delete("review:V1-RV-VISUAL");
 		const { outputSha256: _old, ...withoutHash } = shared.report;
 		shared.report.outputSha256 = hash(JSON.stringify(withoutHash));
 		const failures = validateReviewConfirmationEvidence(
@@ -961,7 +1043,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 			"finding disposition is unknown, duplicated, or malformed",
 		);
 		expect(failures).toContain(
-			"review V1-RV-VISUAL is not bound to a live-verified GitHub workflow run and artifact",
+			"finding disposition rationale is not substantive",
+		);
+		expect(failures).toContain(
+			"review V1-RV-VISUAL is not bound to the required live GitHub control/blob attestation",
 		);
 	});
 
@@ -972,18 +1057,23 @@ describe("V1 readiness and generated inventory tooling", () => {
 		const artifactReference = fixture.report.reviews[1].artifact;
 		const parsed = JSON.parse(
 			Buffer.from(
-				fixture.context.readArtifact(artifactReference.path),
+				fixture.context.readArtifact(
+					fixture.report.evidenceSha,
+					artifactReference.path,
+				),
 			).toString("utf8"),
 		);
 		parsed.reviewerSessionId = fixture.report.reviews[0].reviewerSessionId;
 		const bytes = Buffer.from(JSON.stringify(parsed));
 		artifactReference.bytes = bytes.byteLength;
 		artifactReference.sha256 = hash(bytes);
-		const runId = fixture.report.reviews[1].trustedRun.runId;
-		fixture.context.trustedRuns.get(runId).payloadSha256 = hash(bytes);
+		fixture.context.trustedRuns.get("review:V1-RV-SYSTEMS").payloadSha256 =
+			hash(bytes);
 		const originalReadArtifact = fixture.context.readArtifact;
-		fixture.context.readArtifact = (path: string) =>
-			path === artifactReference.path ? bytes : originalReadArtifact(path);
+		fixture.context.readArtifact = (commit: string, path: string) =>
+			path === artifactReference.path
+				? bytes
+				: originalReadArtifact(commit, path);
 		const { outputSha256: _old, ...withoutHash } = fixture.report;
 		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
 		expect(
@@ -1005,7 +1095,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		);
 	});
 
-	it("supports squash/rebase main tree equivalence but still rejects software deltas", () => {
+	it("allows a main-push delta audit without ancestry but still rejects software changes", () => {
 		expect(
 			validatePostFreezeDelta({
 				ancestor: false,
@@ -1032,7 +1122,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 			fixture.report,
 			"a".repeat(40),
 			{
-				readArtifact: (path: string) => {
+				attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+				evidenceSha: fixture.evidenceSha,
+				initialReviewSha: fixture.initialReviewSha,
+				readArtifact: (_commit: string, path: string) => {
 					const bytes = fixture.stored.get(path);
 					if (bytes === undefined) throw new Error("missing");
 					return bytes;
