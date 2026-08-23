@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. V1 adds a provider-neutral exact-version authority-stream seam for Release Genesis/civilization state; its in-memory conformance adapter is implemented, while its IndexedDB/browser integration is still incomplete. The slice cannot back up, export, import, replace, fork, merge, migrate, or promote a world; that honest limitation is disclosed before commitment.
+The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The V1 exact-version authority stream is now implemented in the browser with separate stream, operation, event, receipt, and snapshot stores; cross-store transactions, CAS heads, fencing, idempotency, corruption checks, exact migration, snapshot-plus-suffix replay, and deterministic 1/7/30/90/365-day catch-up are executable. The slice cannot back up, export, import, replace, fork, merge, or promote a world; that honest limitation is disclosed before commitment.
 
 ## V1 versioned authority stream
 
@@ -18,7 +18,7 @@ The first slice keeps one local world in IndexedDB. It stores a Canonical World 
 
 The current conformance adapter stages all changed maps before a single commit point. Injected crashes before that point leave no mutation; crashes after it recover through exact idempotent retry. Changed retries, duplicate batch/event IDs, stale writers, gaps, corrupt hashes, out-of-order simulation time, incompatible schemas, engines, or state versions fail closed. Replay accepts a caller-supplied deterministic reducer and snapshot/event bytes only—there is no Brain or transport parameter—and checks every pre/post state and prior-event hash.
 
-This is not yet V1 durability acceptance. The adapter is memory-only, the civilization scheduler does not emit this envelope, the existing IndexedDB adapter still implements the Founder Alpha contract, and catch-up/decision-ledger composition is pending. V1 has no automatic upcaster: the migration policy is explicitly exact-only until a separately reviewed migration proves semantic and hash equivalence.
+The generated civilization browser path uses the versioned IndexedDB authority directly. Real Chromium tests cover day-365 persistence, close/reopen, exact replay, crash boundaries, corruption and stale writers; unit/property tests cover every reviewed catch-up horizon with zero model invocation. Migration remains deliberately narrow: one reviewed legacy checkpoint schema is fully revalidated into a new stream, and unknown or future versions fail closed. Cognitive decision-ledger composition and user-facing backup/export remain separate requirements.
 
 ## Locked port
 

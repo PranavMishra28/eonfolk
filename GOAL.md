@@ -50,7 +50,7 @@
 | Terrain, water, productivity, timber, constrained material, travel friction, and suitability | VERIFIED |
 | Settlement, site/parcel, place, building, and interaction-slot model | VERIFIED |
 | Canonical generator golden fixtures and property tests | VERIFIED |
-| Generated world persistence and deterministic replay | NOT STARTED |
+| Generated world persistence and deterministic replay | VERIFIED |
 | Camera/render residency cannot mutate Reality | IN PROGRESS |
 
 ## Civilization
@@ -94,12 +94,12 @@
 
 | Requirement | State |
 |---|---|
-| Atomic event append, snapshots, schema versions, migrations, and idempotency | IN PROGRESS |
-| Single-writer fencing and crash recovery | IN PROGRESS |
-| Replay identity across long histories | IN PROGRESS |
-| Bounded causal catch-up for reload, 1 day, 7 days, and long absence | NOT STARTED |
-| Catch-up crash and no-model recovery | NOT STARTED |
-| IndexedDB versus SQLite-WASM/OPFS benchmark and decision | NOT STARTED |
+| Atomic event append, snapshots, schema versions, migrations, and idempotency | VERIFIED |
+| Single-writer fencing and crash recovery | VERIFIED |
+| Replay identity across long histories | VERIFIED |
+| Bounded causal catch-up for reload, 1 day, 7 days, and long absence | VERIFIED |
+| Catch-up crash and no-model recovery | VERIFIED |
+| IndexedDB versus SQLite-WASM/OPFS benchmark and decision | VERIFIED |
 | Future exhibition authority/persistence adapter seam | VERIFIED |
 | Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | IN PROGRESS |
 | Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | IN PROGRESS |
@@ -135,7 +135,7 @@
 | Generator/world/project/resource/migration/founding properties | IN PROGRESS |
 | Cognition/model validation, fallback, epistemic isolation, and replay tests | IN PROGRESS |
 | Long-horizon civilization matrix | IN PROGRESS |
-| Persistence/replay/catch-up equivalence and long-history tests | NOT STARTED |
+| Persistence/replay/catch-up equivalence and long-history tests | VERIFIED |
 | Browser journeys and temporal Living World tests | IN PROGRESS |
 | Accessibility and semantic critical-action parity | IN PROGRESS |
 | Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | IN PROGRESS |
