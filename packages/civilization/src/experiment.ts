@@ -1801,11 +1801,7 @@ export async function runCivilizationExperiment(input: {
 	);
 	const cognitionDecisions: CivilizationSchedulerDecisionEvidence[] = [];
 	assertCivilizationInvariants(state);
-	const initialStateHash = await stateHash(
-		state,
-		worldStateHash,
-		activities,
-	);
+	const initialStateHash = await stateHash(state, worldStateHash, activities);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
 	let priorEventHash: string | null = null;
@@ -1818,11 +1814,7 @@ export async function runCivilizationExperiment(input: {
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
 		activities = scheduleActivities(state, world, routines);
-		const postStateHash = await stateHash(
-			state,
-			worldStateHash,
-			activities,
-		);
+		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const event = await eventRecord({
 			eventIndex: events.length,
 			priorEventHash,
@@ -2097,11 +2089,7 @@ export async function runCivilizationExperiment(input: {
 		assertCivilizationInvariants(state);
 		state = checkpointCivilizationAccounting(state);
 		activities = scheduleActivities(state, world, routines);
-		const postStateHash = await stateHash(
-			state,
-			worldStateHash,
-			activities,
-		);
+		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const eventHashes = events
 			.slice(beforeEventIndex)
 			.map((event) => event.eventHash);
@@ -2125,11 +2113,7 @@ export async function runCivilizationExperiment(input: {
 	}
 
 	assertCivilizationInvariants(state);
-	const finalStateHash = await stateHash(
-		state,
-		worldStateHash,
-		activities,
-	);
+	const finalStateHash = await stateHash(state, worldStateHash, activities);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
