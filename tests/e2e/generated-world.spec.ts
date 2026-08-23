@@ -309,7 +309,7 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	expect(externalRequests).toEqual([]);
 });
 
-test("generated navigation and reload preserve the authoritative head @generated-world @generated-target", async ({
+test("generated camera and canvas selection preserve the authoritative head @generated-world", async ({
 	page,
 }) => {
 	test.setTimeout(90_000);
@@ -377,7 +377,24 @@ test("generated navigation and reload preserve the authoritative head @generated
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 	await expect(canvas).toHaveAttribute("data-semantic-scale", "citizen");
 	await page.getByRole("button", { name: "Back to settlement" }).click();
+	expect(externalRequests).toEqual([]);
+});
 
+test("generated controls and reload preserve the durable head @generated-world @generated-target", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	await page.getByRole("button", { name: "Reduce motion" }).click();
+	await expect(world).toHaveAttribute("data-presentation-playing", "false");
 	const worldTools = page.locator("details.v1-world-tools");
 	if (!(await worldTools.evaluate((details) => details.open)))
 		await worldTools.locator("summary").click();

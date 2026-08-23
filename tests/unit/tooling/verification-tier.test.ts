@@ -79,7 +79,7 @@ describe("V1 CI hardening", () => {
 		expect(runner).toContain(
 			"legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0",
 		);
-		expect(runner).toContain("generatedWorldJourneysExecuted: 6");
+		expect(runner).toContain("generatedWorldJourneysExecuted: 7");
 		expect(runner).toContain("generatedTargetExecuted: true");
 	});
 
