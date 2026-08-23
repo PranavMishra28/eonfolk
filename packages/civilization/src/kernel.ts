@@ -16,6 +16,7 @@ import type {
 } from "@eonfolk/protocol";
 
 import {
+	appendSettlementReference,
 	evolve,
 	identifier,
 	positiveQuantity,
@@ -26,6 +27,7 @@ import {
 import type {
 	AccountingEntry,
 	CivilizationState,
+	MigrationJourneyState,
 	PhysicalResourceRequirement,
 	ProcessBinding,
 	TransferLine,
@@ -1402,6 +1404,133 @@ export function registerMigration(
 	});
 }
 
+export function registerMigrationJourney(
+	state: CivilizationState,
+	migrationId: string,
+	route: {
+		readonly cellIds: readonly string[];
+		readonly traversalUnitsByLeg: readonly number[];
+	},
+): CivilizationState {
+	absent(state.migrationJourneys, migrationId, "migration journey");
+	const migration = present(state.migrations, migrationId, "migration");
+	if (migration.state !== "planned")
+		throw new CivilizationError(
+			"INVALID_STATE",
+			"a journey must be registered before migration departure",
+		);
+	if (
+		route.cellIds.length < 2 ||
+		route.traversalUnitsByLeg.length !== route.cellIds.length - 1
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"journey route must contain one positive traversal leg per cell edge",
+		);
+	for (const cellId of route.cellIds) identifier(cellId, "route cellId");
+	if (new Set(route.cellIds).size !== route.cellIds.length)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"journey route contains a cycle",
+		);
+	for (const units of route.traversalUnitsByLeg)
+		positiveQuantity(units, "journey traversal units");
+	const totalTraversalUnits = route.traversalUnitsByLeg.reduce(
+		(total, units) => total + units,
+		0,
+	);
+	quantity(totalTraversalUnits, "total journey traversal units");
+	const journey: MigrationJourneyState = {
+		migrationId,
+		routeCellIds: [...route.cellIds],
+		traversalUnitsByLeg: [...route.traversalUnitsByLeg],
+		currentLegIndex: 0,
+		currentLegProgressUnits: 0,
+		completedTraversalUnits: 0,
+		totalTraversalUnits,
+	};
+	return evolve(state, {
+		migrationJourneys: {
+			...state.migrationJourneys,
+			[migrationId]: journey,
+		},
+	});
+}
+
+export function advanceMigrationJourney(
+	state: CivilizationState,
+	migrationId: string,
+	traversalBudgetUnits: number,
+	atSimulationTime: number,
+): CivilizationState {
+	const migration = present(state.migrations, migrationId, "migration");
+	const journey = present(
+		state.migrationJourneys,
+		migrationId,
+		"migration journey",
+	);
+	if (migration.state !== "travelling")
+		throw new CivilizationError(
+			"INVALID_STATE",
+			"only a travelling migration can traverse its route",
+		);
+	positiveQuantity(traversalBudgetUnits, "traversal budget");
+	simulationTime(atSimulationTime, "journey advance time");
+	if (atSimulationTime < state.simulationTime)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"journey advance time cannot move backwards",
+		);
+	let remainingBudget = traversalBudgetUnits;
+	let currentLegIndex = journey.currentLegIndex;
+	let currentLegProgressUnits = journey.currentLegProgressUnits;
+	let completedTraversalUnits = journey.completedTraversalUnits;
+	while (
+		remainingBudget > 0 &&
+		currentLegIndex < journey.traversalUnitsByLeg.length
+	) {
+		const legUnits = journey.traversalUnitsByLeg[currentLegIndex];
+		if (legUnits === undefined)
+			throw new CivilizationError("INVALID_STATE", "journey leg is missing");
+		const needed = legUnits - currentLegProgressUnits;
+		const traversed = Math.min(needed, remainingBudget);
+		currentLegProgressUnits += traversed;
+		completedTraversalUnits += traversed;
+		remainingBudget -= traversed;
+		if (currentLegProgressUnits === legUnits) {
+			currentLegIndex += 1;
+			currentLegProgressUnits = 0;
+		}
+	}
+	const arrived = currentLegIndex === journey.traversalUnitsByLeg.length;
+	if (arrived && atSimulationTime < migration.expectedArrivalSimulationTime)
+		throw new CivilizationError(
+			"PREREQUISITE_UNMET",
+			"physical traversal completed before the authorized arrival time",
+		);
+	return evolve(
+		state,
+		{
+			migrationJourneys: {
+				...state.migrationJourneys,
+				[migrationId]: {
+					...journey,
+					currentLegIndex,
+					currentLegProgressUnits,
+					completedTraversalUnits,
+				},
+			},
+			migrations: arrived
+				? {
+						...state.migrations,
+						[migrationId]: { ...migration, state: "arrived" },
+					}
+				: state.migrations,
+		},
+		atSimulationTime,
+	);
+}
+
 export function advanceMigration(
 	state: CivilizationState,
 	migrationId: string,
@@ -1437,6 +1566,16 @@ export function advanceMigration(
 		throw new CivilizationError(
 			"PREREQUISITE_UNMET",
 			"arrival time has not arrived",
+		);
+	const journey = state.migrationJourneys[migrationId];
+	if (
+		nextState === "arrived" &&
+		journey !== undefined &&
+		journey.completedTraversalUnits !== journey.totalTraversalUnits
+	)
+		throw new CivilizationError(
+			"PREREQUISITE_UNMET",
+			"migration route traversal is incomplete",
 		);
 	return evolve(
 		state,
@@ -1561,6 +1700,36 @@ export function advanceFounding(
 			foundings: {
 				...state.foundings,
 				[foundingId]: { ...founding, state: nextState },
+			},
+		},
+		atSimulationTime,
+	);
+}
+
+export function recordFoundingMaterialization(
+	state: CivilizationState,
+	foundingId: string,
+	atSimulationTime: number,
+): CivilizationState {
+	const founding = present(state.foundings, foundingId, "founding");
+	if (founding.state !== "viable")
+		throw new CivilizationError(
+			"PREREQUISITE_UNMET",
+			"only a viable founding can materialize a settlement",
+		);
+	absent(state.materializedFoundings, foundingId, "materialized founding");
+	if (state.references.settlementIds.includes(founding.proposedSettlementId))
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`settlement ${founding.proposedSettlementId} already exists`,
+		);
+	return appendSettlementReference(
+		state,
+		founding.proposedSettlementId,
+		{
+			materializedFoundings: {
+				...state.materializedFoundings,
+				[foundingId]: founding.proposedSettlementId,
 			},
 		},
 		atSimulationTime,

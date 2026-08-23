@@ -148,7 +148,7 @@ export function createCivilizationState(
 ): CivilizationState {
 	simulationTime(initialSimulationTime);
 	return deepFreeze({
-		schemaVersion: "eonfolk-civilization-kernel-v1",
+		schemaVersion: "eonfolk-civilization-kernel-v2",
 		revision: 0,
 		simulationTime: initialSimulationTime,
 		references: normalizeReferences(references),
@@ -163,8 +163,10 @@ export function createCivilizationState(
 		institutions: {},
 		agreements: {},
 		migrations: {},
+		migrationJourneys: {},
 		migrationRequirements: {},
 		foundings: {},
+		materializedFoundings: {},
 		foundingRequirements: {},
 		provenance: [],
 		accounting: [],
@@ -189,6 +191,38 @@ export function evolve(
 	return deepFreeze({
 		...state,
 		...isolatedPatch,
+		revision: state.revision + 1,
+		simulationTime: atSimulationTime,
+	});
+}
+
+export function appendSettlementReference(
+	state: CivilizationState,
+	settlementId: string,
+	patch: Partial<
+		Omit<CivilizationState, "schemaVersion" | "revision" | "references">
+	>,
+	atSimulationTime = state.simulationTime,
+): CivilizationState {
+	simulationTime(atSimulationTime);
+	identifier(settlementId, "settlementId");
+	if (atSimulationTime < state.simulationTime)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"simulation time cannot move backwards",
+		);
+	if (state.references.settlementIds.includes(settlementId))
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`settlement ${settlementId} already exists`,
+		);
+	return deepFreeze({
+		...state,
+		...clonePlain(patch),
+		references: normalizeReferences({
+			...state.references,
+			settlementIds: [...state.references.settlementIds, settlementId],
+		}),
 		revision: state.revision + 1,
 		simulationTime: atSimulationTime,
 	});

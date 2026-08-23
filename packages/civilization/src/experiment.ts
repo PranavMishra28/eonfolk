@@ -1,11 +1,15 @@
 import {
 	domainHash,
 	type GeneratedWorldState,
+	type CanonicalRecord,
+	type LocalSpaceState,
 	type ProjectState,
 	type ResourceDefinition,
 	type StockOwner,
 	type StockState,
 	type StorageState,
+	type SettlementState,
+	type SiteState,
 	type WorldCell,
 } from "@eonfolk/protocol";
 
@@ -16,6 +20,7 @@ import {
 import {
 	advanceFounding,
 	advanceMigration,
+	advanceMigrationJourney,
 	approveProject,
 	completeProject,
 	completeProjectMilestone,
@@ -24,33 +29,32 @@ import {
 	deliverProjectResource,
 	registerFounding,
 	registerMigration,
+	registerMigrationJourney,
 	registerProject,
 	registerResourceDefinition,
 	registerStock,
 	registerStorage,
+	recordFoundingMaterialization,
 	startProject,
 } from "./kernel.js";
 import { createCivilizationState, evolve } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v1" as const;
+	"eonfolk-civilization-experiment-v2" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v1" as const;
+	"eonfolk-civilization-runner-v2" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v1" as const;
+	"eonfolk-civilization-experiment-event-v2" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v1" as const;
+	"eonfolk-civilization-experiment-step-v2" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
-const PROJECT_DAY = 1;
-const PROJECT_COMPLETION_DAY = 2;
-const EXPANSION_DECISION_DAY = 30;
-const MIGRATION_DEPARTURE_DAY = 45;
 const PROJECT_TIMBER = 6;
 const MIGRATION_GRAIN = 18;
 const MIGRATION_TIMBER = 8;
+const MIGRATION_DAILY_TRAVERSAL_UNITS = 10_000;
 const MINIMUM_DESTINATION_SUITABILITY = 4_800;
 const MINIMUM_DESTINATION_WATER = 3_800;
 const MINIMUM_DESTINATION_TIMBER = 2_600;
@@ -82,8 +86,10 @@ export type CivilizationExperimentEventKind =
 	| "expansion-deferred"
 	| "migration-prepared"
 	| "migration-departed"
+	| "migration-traversed"
 	| "migration-arrived"
-	| "founding-viable";
+	| "founding-viable"
+	| "settlement-materialized";
 
 export interface TerritoryExperimentProfile {
 	readonly territoryId: string;
@@ -101,8 +107,16 @@ export interface CivilizationExperimentSeedConditions {
 	readonly destination: TerritoryExperimentProfile;
 	readonly initialGrain: number;
 	readonly initialTimber: number;
+	readonly originResidentialCapacity: number;
+	readonly populationPressureBasisPoints: number;
 	readonly expansionEligible: boolean;
 	readonly eligibilityReasons: readonly string[];
+	readonly route: {
+		readonly destinationCellId: string;
+		readonly cellIds: readonly string[];
+		readonly traversalUnitsByLeg: readonly number[];
+		readonly totalTraversalUnits: number;
+	};
 }
 
 export interface CivilizationExperimentEvent {
@@ -141,6 +155,7 @@ export interface CivilizationExperimentMetrics {
 	readonly travellingMigrations: number;
 	readonly arrivedMigrations: number;
 	readonly viableFoundings: number;
+	readonly materializedSettlements: number;
 	readonly outcome: "progression" | "stagnation";
 	readonly outcomeReason: string;
 	readonly invariantIssues: readonly string[];
@@ -160,11 +175,12 @@ export interface CivilizationExperimentRun {
 	readonly steps: readonly CivilizationExperimentStep[];
 	readonly metrics: CivilizationExperimentMetrics;
 	readonly state: CivilizationState;
+	readonly world: GeneratedWorldState;
 	readonly limitations: readonly string[];
 }
 
 export interface CivilizationExperimentMatrix {
-	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v1";
+	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v2";
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
 	readonly horizons: readonly [30, 90, 365];
 	readonly runs: readonly CivilizationExperimentRun[];
@@ -172,8 +188,8 @@ export interface CivilizationExperimentMatrix {
 }
 
 export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
-	"A viable founding is a kernel record; the current kernel cannot materialize it as a second GeneratedWorld settlement or extend immutable reference catalogs.",
-	"Migration validates people, carried stocks, territory, departure, arrival, and aggregate travel friction, but does not yet move citizen positions along a generated route.",
+	"The experiment materializes an undeveloped canonical settlement and founding ground, but does not yet add housing, institutions, or a generalized construction economy.",
+	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
 	"Seeded grain and timber are deterministic terrain-derived genesis proxies, not a complete production, need, demographic, or ecological model.",
 	"The experiment uses deterministic standard rules and invokes no model, cognition provider, training, or inference path.",
 ]);
@@ -225,6 +241,241 @@ function profileTerritory(
 	};
 }
 
+function routeFor(
+	world: GeneratedWorldState,
+	originSettlementId: string,
+	destinationTerritoryId: string,
+): CivilizationExperimentSeedConditions["route"] {
+	const origin = required(
+		world.settlements[originSettlementId]?.value,
+		"origin settlement",
+	);
+	const cells = values(world.cells);
+	const byId = new Map(cells.map((cell) => [cell.cellId, cell]));
+	const byCoordinate = new Map(
+		cells.map((cell) => [`${cell.gridX}:${cell.gridY}`, cell]),
+	);
+	const start = required(byId.get(origin.anchorCellId), "origin anchor cell");
+	const destination = required(
+		cells
+			.filter(
+				(cell) =>
+					cell.territoryId === destinationTerritoryId &&
+					cell.terrain !== "water",
+			)
+			.sort(
+				(left, right) =>
+					right.settlementSuitabilityBasisPoints -
+						left.settlementSuitabilityBasisPoints ||
+					left.cellId.localeCompare(right.cellId),
+			)[0],
+		"destination anchor cell",
+	);
+	const costs = new Map<string, number>([[start.cellId, 0]]);
+	const parents = new Map<string, string>();
+	const frontier = new Set<string>([start.cellId]);
+	while (frontier.size > 0) {
+		const currentId = required(
+			[...frontier].sort(
+				(left, right) =>
+					required(costs.get(left), `route cost ${left}`) -
+						required(costs.get(right), `route cost ${right}`) ||
+					left.localeCompare(right),
+			)[0],
+			"route frontier",
+		);
+		frontier.delete(currentId);
+		if (currentId === destination.cellId) break;
+		const current = required(byId.get(currentId), "current route cell");
+		const neighbors = [
+			[current.gridX - 1, current.gridY],
+			[current.gridX + 1, current.gridY],
+			[current.gridX, current.gridY - 1],
+			[current.gridX, current.gridY + 1],
+		]
+			.map(([gridX, gridY]) => byCoordinate.get(`${gridX}:${gridY}`))
+			.filter(
+				(candidate): candidate is WorldCell =>
+					candidate !== undefined && candidate.terrain !== "water",
+			)
+			.sort((left, right) => left.cellId.localeCompare(right.cellId));
+		for (const neighbor of neighbors) {
+			const cost =
+				required(costs.get(currentId), "current route cost") +
+				1_000 +
+				Math.trunc(
+					(current.travelFrictionBasisPoints +
+						neighbor.travelFrictionBasisPoints) /
+						2,
+				);
+			const priorCost = costs.get(neighbor.cellId);
+			const priorParent = parents.get(neighbor.cellId);
+			if (
+				priorCost === undefined ||
+				cost < priorCost ||
+				(cost === priorCost &&
+					(priorParent === undefined ||
+						currentId.localeCompare(priorParent) < 0))
+			) {
+				costs.set(neighbor.cellId, cost);
+				parents.set(neighbor.cellId, currentId);
+				frontier.add(neighbor.cellId);
+			}
+		}
+	}
+	if (!costs.has(destination.cellId))
+		throw new Error("destination territory is unreachable by land");
+	const reversed = [destination.cellId];
+	while (reversed.at(-1) !== start.cellId)
+		reversed.push(
+			required(
+				parents.get(required(reversed.at(-1), "route cursor")),
+				"route parent",
+			),
+		);
+	const cellIds = reversed.reverse();
+	const traversalUnitsByLeg = cellIds.slice(1).map((cellId, index) => {
+		const from = required(
+			byId.get(required(cellIds[index], "route from cell ID")),
+			"route from cell",
+		);
+		const to = required(byId.get(cellId), "route to cell");
+		return (
+			1_000 +
+			Math.trunc(
+				(from.travelFrictionBasisPoints + to.travelFrictionBasisPoints) / 2,
+			)
+		);
+	});
+	return {
+		destinationCellId: destination.cellId,
+		cellIds,
+		traversalUnitsByLeg,
+		totalTraversalUnits: traversalUnitsByLeg.reduce(
+			(total, units) => total + units,
+			0,
+		),
+	};
+}
+
+function canonicalMigrationRecord<T>(input: {
+	readonly value: T;
+	readonly migrationId: string;
+	readonly simulationTime: number;
+}): CanonicalRecord<T> {
+	return {
+		dataClass: "canonical",
+		validity: {
+			validFromSimulationTime: input.simulationTime,
+			validUntilSimulationTime: null,
+		},
+		provenance: {
+			sourceKind: "migration",
+			sourceId: input.migrationId,
+			schemaVersion: "eonfolk-world-founding-v1",
+		},
+		value: input.value,
+	};
+}
+
+function localPosition(xMillimeters: number, yMillimeters: number) {
+	return { xMillimeters, yMillimeters, elevationMillimeters: 0 };
+}
+
+function cloneAndFreeze<T>(value: T): T {
+	const clone = Array.isArray(value)
+		? (value.map((item) => cloneAndFreeze(item)) as T)
+		: value !== null && typeof value === "object"
+			? (Object.fromEntries(
+					Object.entries(value).map(([key, item]) => [
+						key,
+						cloneAndFreeze(item),
+					]),
+				) as T)
+			: value;
+	if (clone !== null && typeof clone === "object") Object.freeze(clone);
+	return clone;
+}
+
+function materializeExperimentSettlement(
+	world: GeneratedWorldState,
+	input: {
+		readonly settlementId: string;
+		readonly territoryId: string;
+		readonly anchorCellId: string;
+		readonly migrationId: string;
+		readonly simulationTime: number;
+	},
+): GeneratedWorldState {
+	if (world.settlements[input.settlementId] !== undefined)
+		throw new Error("experiment settlement already exists");
+	const anchor = world.cells[input.anchorCellId]?.value;
+	if (
+		anchor === undefined ||
+		anchor.terrain === "water" ||
+		anchor.territoryId !== input.territoryId
+	)
+		throw new Error("experiment settlement anchor is invalid");
+	const localSpaceId = `${input.settlementId}:local-space`;
+	const siteId = `${input.settlementId}:founding-site`;
+	const bounds = {
+		minimum: localPosition(0, 0),
+		maximum: {
+			...localPosition(60_000, 60_000),
+			elevationMillimeters: 12_000,
+		},
+	};
+	const localSpace = canonicalMigrationRecord<LocalSpaceState>({
+		migrationId: input.migrationId,
+		simulationTime: input.simulationTime,
+		value: {
+			localSpaceId,
+			settlementId: input.settlementId,
+			bounds,
+			siteIds: [siteId],
+			routeIds: [],
+		},
+	});
+	const site = canonicalMigrationRecord<SiteState>({
+		migrationId: input.migrationId,
+		simulationTime: input.simulationTime,
+		value: {
+			siteId,
+			localSpaceId,
+			cellId: input.anchorCellId,
+			name: "Founding ground",
+			kind: "undeveloped",
+			bounds,
+			placeIds: [],
+			buildingIds: [],
+			interactionSlotIds: [],
+		},
+	});
+	const settlement = canonicalMigrationRecord<SettlementState>({
+		migrationId: input.migrationId,
+		simulationTime: input.simulationTime,
+		value: {
+			settlementId: input.settlementId,
+			name: "Second Founding",
+			territoryId: input.territoryId,
+			anchorCellId: input.anchorCellId,
+			localSpaceId,
+			foundedAtSimulationTime: input.simulationTime,
+			founderCitizenIds: [citizenId(0)],
+			residentCitizenIds: [citizenId(0)],
+			householdIds: [],
+			institutionIds: [],
+			siteIds: [siteId],
+		},
+	});
+	return cloneAndFreeze({
+		...world,
+		localSpaces: { ...world.localSpaces, [localSpaceId]: localSpace },
+		settlements: { ...world.settlements, [input.settlementId]: settlement },
+		sites: { ...world.sites, [siteId]: site },
+	});
+}
+
 export function deriveCivilizationSeedConditions(
 	world: GeneratedWorldState,
 ): CivilizationExperimentSeedConditions {
@@ -247,7 +498,25 @@ export function deriveCivilizationSeedConditions(
 	const initialGrain =
 		18 + Math.trunc(originProfile.suitabilityBasisPoints / 300);
 	const initialTimber = 8 + Math.trunc(originProfile.timberBasisPoints / 350);
+	const originSiteIds = new Set(origin.siteIds);
+	const residentialSiteIds = new Set(
+		values(world.sites)
+			.filter(
+				(site) => originSiteIds.has(site.siteId) && site.kind === "residential",
+			)
+			.map((site) => site.siteId),
+	);
+	const originResidentialCapacity = values(world.buildings)
+		.filter((building) => residentialSiteIds.has(building.siteId))
+		.reduce((total, building) => total + building.capacity, 0);
+	const populationPressureBasisPoints = Math.min(
+		10_000,
+		Math.max(0, POPULATION - originResidentialCapacity) * 1_250,
+	);
 	const eligibilityReasons = [
+		...(populationPressureBasisPoints > 0
+			? []
+			: ["origin-has-no-population-pressure"]),
 		...(destination.traversableCellCount > 0
 			? []
 			: ["destination-has-no-traversable-cell"]),
@@ -276,8 +545,11 @@ export function deriveCivilizationSeedConditions(
 		destination,
 		initialGrain,
 		initialTimber,
+		originResidentialCapacity,
+		populationPressureBasisPoints,
 		expansionEligible: eligibilityReasons.length === 0,
 		eligibilityReasons,
+		route: routeFor(world, origin.settlementId, destination.territoryId),
 	};
 }
 
@@ -434,8 +706,14 @@ function bootstrapCivilization(
 	return state;
 }
 
-async function stateHash(state: CivilizationState): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v1", state);
+async function stateHash(
+	state: CivilizationState,
+	worldStateHash: string,
+): Promise<string> {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v2", {
+		civilization: state,
+		worldStateHash,
+	});
 }
 
 async function eventRecord(input: {
@@ -456,7 +734,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v1",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v2",
 		body,
 	);
 	return {
@@ -464,10 +742,6 @@ async function eventRecord(input: {
 		eventId: `civilization-event:${input.eventIndex}:${eventHash.slice(0, 16)}`,
 		eventHash,
 	};
-}
-
-function travelDays(profile: TerritoryExperimentProfile): number {
-	return 5 + Math.trunc(profile.travelFrictionBasisPoints / 1_000);
 }
 
 function projectTimberConsumed(state: CivilizationState): number {
@@ -492,6 +766,9 @@ function metrics(
 	const viableFoundings = Object.values(state.foundings).filter(
 		(founding) => founding.state === "viable",
 	).length;
+	const materializedSettlements = Object.keys(
+		state.materializedFoundings,
+	).length;
 	const completedProjects = projects.filter(
 		(project) => project.state === "completed",
 	).length;
@@ -505,10 +782,10 @@ function metrics(
 	let outcomeReason = "founding-prerequisites-incomplete";
 	if (!conditions.expansionEligible)
 		outcomeReason = conditions.eligibilityReasons.join(",");
+	else if (materializedSettlements > 0)
+		outcomeReason = "canonical-second-settlement-materialized";
 	else if (viableFoundings > 0) outcomeReason = "physical-founding-viable";
 	else if (migrations.length > 0) outcomeReason = "physical-expansion-underway";
-	else if (horizonDays < EXPANSION_DECISION_DAY)
-		outcomeReason = "expansion-decision-not-yet-reached";
 	return {
 		horizonDays,
 		simulationTime: state.simulationTime,
@@ -526,6 +803,7 @@ function metrics(
 		arrivedMigrations: migrations.filter((item) => item.state === "arrived")
 			.length,
 		viableFoundings,
+		materializedSettlements,
 		outcome,
 		outcomeReason,
 		invariantIssues: audit.issues,
@@ -545,18 +823,23 @@ export async function runCivilizationExperiment(input: {
 		throw new RangeError("horizonDays must be an integer from 1 through 365");
 	const conditions = deriveCivilizationSeedConditions(input.world);
 	let state = bootstrapCivilization(input.world, conditions);
+	let world = input.world;
+	let worldStateHash = await domainHash(
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v2",
+		world,
+	);
 	assertCivilizationInvariants(state);
-	const initialStateHash = await stateHash(state);
+	const initialStateHash = await stateHash(state, worldStateHash);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
 	let priorEventHash: string | null = null;
-	let migrationArrivalDay: number | null = null;
+	let expansionDeferralRecorded = false;
 
 	const appendEvent = async (
 		kind: CivilizationExperimentEventKind,
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
-		const postStateHash = await stateHash(state);
+		const postStateHash = await stateHash(state, worldStateHash);
 		const event = await eventRecord({
 			eventIndex: events.length,
 			priorEventHash,
@@ -571,12 +854,16 @@ export async function runCivilizationExperiment(input: {
 
 	for (let day = 1; day <= input.horizonDays; day += 1) {
 		const fromSimulationTime = state.simulationTime;
-		const preStateHash = await stateHash(state);
+		const preStateHash = await stateHash(state, worldStateHash);
 		const beforeEventIndex = events.length;
 		const atSimulationTime = day * SECONDS_PER_DAY;
+		let departedThisEvaluation = false;
 		state = evolve(state, {}, atSimulationTime);
 
-		if (day === PROJECT_DAY) {
+		if (
+			conditions.expansionEligible &&
+			state.projects["project-expedition-kit"] === undefined
+		) {
 			const workSite = required(
 				values(input.world.sites)
 					.filter((site) => site.kind === "production")
@@ -615,7 +902,7 @@ export async function runCivilizationExperiment(input: {
 			});
 		}
 
-		if (day === PROJECT_COMPLETION_DAY) {
+		if (state.projects["project-expedition-kit"]?.state === "approved") {
 			const available = state.stocks["stock-migrant-timber"]?.quantity ?? 0;
 			if (available >= PROJECT_TIMBER) {
 				state = startProject(state, "project-expedition-kit", atSimulationTime);
@@ -665,75 +952,82 @@ export async function runCivilizationExperiment(input: {
 			}
 		}
 
-		if (day === EXPANSION_DECISION_DAY) {
-			const projectComplete =
-				state.projects["project-expedition-kit"]?.state === "completed";
-			if (conditions.expansionEligible && projectComplete) {
-				migrationArrivalDay =
-					MIGRATION_DEPARTURE_DAY + travelDays(conditions.destination);
-				state = registerMigration(
-					state,
-					{
-						migrationId: "migration-founding-party",
-						citizenIds: [citizenId(0)],
-						originSettlementId: conditions.originSettlementId,
-						destinationTerritoryId: conditions.destination.territoryId,
-						destinationSettlementId: null,
-						carriedStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
-						departureSimulationTime: MIGRATION_DEPARTURE_DAY * SECONDS_PER_DAY,
-						expectedArrivalSimulationTime:
-							migrationArrivalDay * SECONDS_PER_DAY,
-						state: "planned",
-						sourceEventIds: [],
-					},
-					[
-						{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
-						{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
-					],
-				);
-				state = registerFounding(
-					state,
-					{
-						foundingId: "founding-second-settlement",
-						migrationId: "migration-founding-party",
-						proposedSettlementId: "settlement-second",
-						territoryId: conditions.destination.territoryId,
-						founderCitizenIds: [citizenId(0)],
-						requiredProjectIds: ["project-expedition-kit"],
-						requiredStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
-						state: "proposed",
-						viabilityEvidenceEventIds: [],
-					},
-					[
-						{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
-						{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
-					],
-				);
-				state = advanceFounding(
-					state,
-					"founding-second-settlement",
-					"preparing",
-					atSimulationTime,
-				);
-				await appendEvent("migration-prepared", {
+		const projectComplete =
+			state.projects["project-expedition-kit"]?.state === "completed";
+		if (
+			conditions.expansionEligible &&
+			projectComplete &&
+			state.migrations["migration-founding-party"] === undefined
+		) {
+			const travelEvaluationCount = Math.ceil(
+				conditions.route.totalTraversalUnits / MIGRATION_DAILY_TRAVERSAL_UNITS,
+			);
+			state = registerMigration(
+				state,
+				{
+					migrationId: "migration-founding-party",
+					citizenIds: [citizenId(0)],
+					originSettlementId: conditions.originSettlementId,
 					destinationTerritoryId: conditions.destination.territoryId,
-					arrivalDay: migrationArrivalDay,
-					carriedGrain: state.stocks["stock-migrant-grain"]?.quantity ?? 0,
-					carriedTimber: state.stocks["stock-migrant-timber"]?.quantity ?? 0,
-				});
-			} else {
-				await appendEvent("expansion-deferred", {
-					projectComplete,
-					expansionEligible: conditions.expansionEligible,
-					reasonCount: conditions.eligibilityReasons.length,
-				});
-			}
+					destinationSettlementId: null,
+					carriedStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
+					departureSimulationTime: atSimulationTime,
+					expectedArrivalSimulationTime:
+						atSimulationTime + travelEvaluationCount * SECONDS_PER_DAY,
+					state: "planned",
+					sourceEventIds: [],
+				},
+				[
+					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
+				],
+			);
+			state = registerMigrationJourney(state, "migration-founding-party", {
+				cellIds: conditions.route.cellIds,
+				traversalUnitsByLeg: conditions.route.traversalUnitsByLeg,
+			});
+			state = registerFounding(
+				state,
+				{
+					foundingId: "founding-second-settlement",
+					migrationId: "migration-founding-party",
+					proposedSettlementId: "settlement-second",
+					territoryId: conditions.destination.territoryId,
+					founderCitizenIds: [citizenId(0)],
+					requiredProjectIds: ["project-expedition-kit"],
+					requiredStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
+					state: "proposed",
+					viabilityEvidenceEventIds: [],
+				},
+				[
+					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
+				],
+			);
+			state = advanceFounding(
+				state,
+				"founding-second-settlement",
+				"preparing",
+				atSimulationTime,
+			);
+			await appendEvent("migration-prepared", {
+				destinationTerritoryId: conditions.destination.territoryId,
+				routeCells: conditions.route.cellIds.length,
+				totalTraversalUnits: conditions.route.totalTraversalUnits,
+				carriedGrain: state.stocks["stock-migrant-grain"]?.quantity ?? 0,
+				carriedTimber: state.stocks["stock-migrant-timber"]?.quantity ?? 0,
+			});
+		} else if (!conditions.expansionEligible && !expansionDeferralRecorded) {
+			expansionDeferralRecorded = true;
+			await appendEvent("expansion-deferred", {
+				projectComplete,
+				expansionEligible: false,
+				populationPressureBasisPoints: conditions.populationPressureBasisPoints,
+				reasonCount: conditions.eligibilityReasons.length,
+			});
 		}
 
-		if (
-			day === MIGRATION_DEPARTURE_DAY &&
-			state.migrations["migration-founding-party"]?.state === "planned"
-		) {
+		if (state.migrations["migration-founding-party"]?.state === "planned") {
 			state = advanceMigration(
 				state,
 				"migration-founding-party",
@@ -746,6 +1040,7 @@ export async function runCivilizationExperiment(input: {
 				"travelling",
 				atSimulationTime,
 			);
+			departedThisEvaluation = true;
 			await appendEvent("migration-departed", {
 				destinationTerritoryId: conditions.destination.territoryId,
 				physicalStocks: 2,
@@ -753,31 +1048,53 @@ export async function runCivilizationExperiment(input: {
 		}
 
 		if (
-			migrationArrivalDay !== null &&
-			day === migrationArrivalDay &&
-			state.migrations["migration-founding-party"]?.state === "travelling"
+			state.migrations["migration-founding-party"]?.state === "travelling" &&
+			!departedThisEvaluation
 		) {
-			state = advanceMigration(
+			const beforeJourney = required(
+				state.migrationJourneys["migration-founding-party"],
+				"active migration journey",
+			);
+			state = advanceMigrationJourney(
 				state,
 				"migration-founding-party",
-				"arrived",
+				MIGRATION_DAILY_TRAVERSAL_UNITS,
 				atSimulationTime,
 			);
-			state = advanceFounding(
-				state,
-				"founding-second-settlement",
-				"establishing",
-				atSimulationTime,
+			const afterJourney = required(
+				state.migrationJourneys["migration-founding-party"],
+				"advanced migration journey",
 			);
-			await appendEvent("migration-arrived", {
-				destinationTerritoryId: conditions.destination.territoryId,
-				travelDays: travelDays(conditions.destination),
+			await appendEvent("migration-traversed", {
+				traversedUnits:
+					afterJourney.completedTraversalUnits -
+					beforeJourney.completedTraversalUnits,
+				completedTraversalUnits: afterJourney.completedTraversalUnits,
+				totalTraversalUnits: afterJourney.totalTraversalUnits,
+				currentCellId:
+					afterJourney.routeCellIds[
+						Math.min(
+							afterJourney.currentLegIndex,
+							afterJourney.routeCellIds.length - 1,
+						)
+					] ?? null,
 			});
+			if (state.migrations["migration-founding-party"]?.state === "arrived") {
+				state = advanceFounding(
+					state,
+					"founding-second-settlement",
+					"establishing",
+					atSimulationTime,
+				);
+				await appendEvent("migration-arrived", {
+					destinationTerritoryId: conditions.destination.territoryId,
+					destinationCellId: conditions.route.destinationCellId,
+					completedTraversalUnits: afterJourney.completedTraversalUnits,
+				});
+			}
 		}
 
 		if (
-			migrationArrivalDay !== null &&
-			day === migrationArrivalDay + 1 &&
 			state.foundings["founding-second-settlement"]?.state === "establishing"
 		) {
 			state = advanceFounding(
@@ -793,10 +1110,31 @@ export async function runCivilizationExperiment(input: {
 				migrationArrived:
 					state.migrations["migration-founding-party"]?.state === "arrived",
 			});
+			world = materializeExperimentSettlement(world, {
+				settlementId: "settlement-second",
+				territoryId: conditions.destination.territoryId,
+				anchorCellId: conditions.route.destinationCellId,
+				migrationId: "migration-founding-party",
+				simulationTime: atSimulationTime,
+			});
+			worldStateHash = await domainHash(
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v2",
+				world,
+			);
+			state = recordFoundingMaterialization(
+				state,
+				"founding-second-settlement",
+				atSimulationTime,
+			);
+			await appendEvent("settlement-materialized", {
+				settlementId: "settlement-second",
+				territoryId: conditions.destination.territoryId,
+				anchorCellId: conditions.route.destinationCellId,
+			});
 		}
 
 		assertCivilizationInvariants(state);
-		const postStateHash = await stateHash(state);
+		const postStateHash = await stateHash(state, worldStateHash);
 		const eventHashes = events
 			.slice(beforeEventIndex)
 			.map((event) => event.eventHash);
@@ -812,13 +1150,13 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v1",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v2",
 				stepBody,
 			),
 		});
 	}
 
-	const finalStateHash = await stateHash(state);
+	const finalStateHash = await stateHash(state, worldStateHash);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
@@ -832,6 +1170,7 @@ export async function runCivilizationExperiment(input: {
 		steps,
 		metrics: metrics(state, input.horizonDays, conditions),
 		state,
+		world,
 		limitations: CIVILIZATION_EXPERIMENT_LIMITATIONS,
 	};
 }
@@ -852,7 +1191,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		for (const horizonDays of horizons)
 			runs.push(await runCivilizationExperiment({ world, horizonDays }));
 	const matrixBody = {
-		schemaVersion: "eonfolk-civilization-experiment-matrix-v1" as const,
+		schemaVersion: "eonfolk-civilization-experiment-matrix-v2" as const,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
 		horizons,
 		runs: runs.map((run) => ({
@@ -868,7 +1207,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		...matrixBody,
 		runs,
 		matrixHash: await domainHash(
-			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v1",
+			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v2",
 			matrixBody,
 		),
 	};

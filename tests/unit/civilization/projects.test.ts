@@ -4,6 +4,7 @@ import {
 	abandonProject,
 	advanceFounding,
 	advanceMigration,
+	advanceMigrationJourney,
 	approveProject,
 	completeProject,
 	completeProjectMilestone,
@@ -13,8 +14,10 @@ import {
 	failProject,
 	registerFounding,
 	registerMigration,
+	registerMigrationJourney,
 	registerProject,
 	registerStock,
+	recordFoundingMaterialization,
 	startProject,
 } from "../../../packages/civilization/src/index.js";
 import {
@@ -181,13 +184,26 @@ describe("civilization projects and physical expansion", () => {
 			},
 			[{ resourceTypeId: "grain", quantity: 10 }],
 		);
+		state = registerMigrationJourney(state, "migration-a", {
+			cellIds: ["cell-origin", "cell-ford", "cell-destination"],
+			traversalUnitsByLeg: [4, 6],
+		});
 		state = advanceFounding(state, "founding-a", "preparing", 1);
 		expect(() =>
 			advanceFounding(state, "founding-a", "travelling", 2),
 		).toThrowError(/departed/);
 		state = advanceMigration(state, "migration-a", "travelling", 2);
 		state = advanceFounding(state, "founding-a", "travelling", 2);
-		state = advanceMigration(state, "migration-a", "arrived", 5);
+		expect(() =>
+			advanceMigration(state, "migration-a", "arrived", 5),
+		).toThrowError(/route traversal/);
+		state = advanceMigrationJourney(state, "migration-a", 4, 3);
+		expect(state.migrations["migration-a"]?.state).toBe("travelling");
+		expect(
+			state.migrationJourneys["migration-a"]?.completedTraversalUnits,
+		).toBe(4);
+		state = advanceMigrationJourney(state, "migration-a", 6, 5);
+		expect(state.migrations["migration-a"]?.state).toBe("arrived");
 		state = advanceFounding(state, "founding-a", "establishing", 5);
 		expect(() =>
 			advanceFounding(state, "founding-a", "viable", 5),
@@ -195,6 +211,11 @@ describe("civilization projects and physical expansion", () => {
 		state = finishProject(state, "project-shelter", 6);
 		state = advanceFounding(state, "founding-a", "viable", 6);
 		expect(state.foundings["founding-a"]?.state).toBe("viable");
+		state = recordFoundingMaterialization(state, "founding-a", 6);
+		expect(state.references.settlementIds).toContain("settlement-new");
+		expect(state.materializedFoundings).toEqual({
+			"founding-a": "settlement-new",
+		});
 	});
 
 	it("rejects invalid project and migration references", () => {
@@ -228,5 +249,40 @@ describe("civilization projects and physical expansion", () => {
 				[{ resourceTypeId: "grain", quantity: 100 }],
 			),
 		).toThrowError(/unmet/);
+		let journeyState = registerMigration(
+			state,
+			{
+				migrationId: "migration-route",
+				citizenIds: [CITIZEN_A],
+				originSettlementId: SETTLEMENT,
+				destinationTerritoryId: TERRITORY,
+				destinationSettlementId: null,
+				carriedStockIds: ["grain-citizen-a"],
+				departureSimulationTime: 1,
+				expectedArrivalSimulationTime: 2,
+				state: "planned",
+				sourceEventIds: [],
+			},
+			[{ resourceTypeId: "grain", quantity: 1 }],
+		);
+		expect(() =>
+			registerMigrationJourney(journeyState, "migration-route", {
+				cellIds: ["cell-a", "cell-a"],
+				traversalUnitsByLeg: [1],
+			}),
+		).toThrowError(/cycle/);
+		journeyState = registerMigrationJourney(journeyState, "migration-route", {
+			cellIds: ["cell-a", "cell-b"],
+			traversalUnitsByLeg: [2],
+		});
+		journeyState = advanceMigration(
+			journeyState,
+			"migration-route",
+			"travelling",
+			1,
+		);
+		expect(() =>
+			advanceMigrationJourney(journeyState, "migration-route", 0, 1),
+		).toThrowError(/positive/);
 	});
 });

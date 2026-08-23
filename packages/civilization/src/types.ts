@@ -60,8 +60,18 @@ export interface PhysicalResourceRequirement {
 	readonly quantity: number;
 }
 
+export interface MigrationJourneyState {
+	readonly migrationId: MigrationId;
+	readonly routeCellIds: readonly string[];
+	readonly traversalUnitsByLeg: readonly number[];
+	readonly currentLegIndex: number;
+	readonly currentLegProgressUnits: number;
+	readonly completedTraversalUnits: number;
+	readonly totalTraversalUnits: number;
+}
+
 export interface CivilizationState {
-	readonly schemaVersion: "eonfolk-civilization-kernel-v1";
+	readonly schemaVersion: "eonfolk-civilization-kernel-v2";
 	readonly revision: number;
 	readonly simulationTime: number;
 	readonly references: CivilizationReferences;
@@ -78,10 +88,14 @@ export interface CivilizationState {
 	readonly institutions: Readonly<Record<string, InstitutionState>>;
 	readonly agreements: Readonly<Record<string, AgreementState>>;
 	readonly migrations: Readonly<Record<MigrationId, MigrationState>>;
+	readonly migrationJourneys: Readonly<
+		Record<MigrationId, MigrationJourneyState>
+	>;
 	readonly migrationRequirements: Readonly<
 		Record<MigrationId, readonly PhysicalResourceRequirement[]>
 	>;
 	readonly foundings: Readonly<Record<FoundingId, SettlementFoundingState>>;
+	readonly materializedFoundings: Readonly<Record<FoundingId, string>>;
 	readonly foundingRequirements: Readonly<
 		Record<FoundingId, readonly PhysicalResourceRequirement[]>
 	>;

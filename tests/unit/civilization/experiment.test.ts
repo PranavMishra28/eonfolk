@@ -10,7 +10,11 @@ import {
 	domainHash,
 	jcs,
 } from "../../../packages/protocol/src/index.js";
-import { generateWorld } from "../../../packages/worldgen/src/index.js";
+import {
+	generateWorld,
+	materializeFoundedSettlement,
+	planTerritoryMigrationRoute,
+} from "../../../packages/worldgen/src/index.js";
 
 const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
@@ -50,6 +54,45 @@ describe("deterministic civilization experiment", () => {
 			"renamed-stagnant-fixture",
 		);
 		expect(deriveCivilizationSeedConditions(sameGeography)).toEqual(stagnant);
+		const route = planTerritoryMigrationRoute(progressingWorld, {
+			originSettlementId: progressing.originSettlementId,
+			destinationTerritoryId: progressing.destination.territoryId,
+		});
+		expect({
+			destinationCellId: route.destinationCellId,
+			cellIds: route.cellIds,
+			traversalUnitsByLeg: route.traversalUnitsByLeg,
+			totalTraversalUnits: route.totalTraversalUnits,
+		}).toEqual(progressing.route);
+	});
+
+	it("materializes a frozen canonical founding without mutating generated genesis", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-world-materialization",
+		);
+		const conditions = deriveCivilizationSeedConditions(world);
+		const evolved = materializeFoundedSettlement(world, {
+			settlementId: "settlement-test-founding",
+			name: "Test Founding",
+			territoryId: conditions.destination.territoryId,
+			anchorCellId: conditions.route.destinationCellId,
+			founderCitizenIds: ["citizen-01"],
+			residentCitizenIds: ["citizen-01"],
+			migrationId: "migration-test-founding",
+			foundedAtSimulationTime: 86_400,
+		});
+		expect(Object.keys(world.settlements)).toHaveLength(1);
+		expect(Object.keys(evolved.settlements)).toHaveLength(2);
+		expect(evolved.settlements["settlement-test-founding"]?.provenance).toEqual(
+			{
+				sourceKind: "migration",
+				sourceId: "migration-test-founding",
+				schemaVersion: "eonfolk-world-founding-v1",
+			},
+		);
+		expect(Object.isFrozen(evolved)).toBe(true);
+		expect(Object.isFrozen(evolved.settlements)).toBe(true);
 	});
 
 	it("replays a 365-day physical founding byte-for-byte with versioned hash chains", async () => {
@@ -68,8 +111,10 @@ describe("deterministic civilization experiment", () => {
 			"project-completed",
 			"migration-prepared",
 			"migration-departed",
+			"migration-traversed",
 			"migration-arrived",
 			"founding-viable",
+			"settlement-materialized",
 		]);
 		for (const [index, event] of first.events.entries()) {
 			expect(event.eventIndex).toBe(index);
@@ -78,7 +123,7 @@ describe("deterministic civilization experiment", () => {
 			);
 			const { eventHash, eventId, ...eventBody } = event;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v1", eventBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v2", eventBody),
 			).toBe(eventHash);
 			expect(eventId).toBe(
 				`civilization-event:${index}:${eventHash.slice(0, 16)}`,
@@ -87,7 +132,7 @@ describe("deterministic civilization experiment", () => {
 		for (const [index, step] of first.steps.entries()) {
 			const { stepHash, ...stepBody } = step;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v1", stepBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v2", stepBody),
 			).toBe(stepHash);
 			expect(step.stepIndex).toBe(index);
 			expect(step.fromSimulationTime).toBe(index * 86_400);
@@ -99,6 +144,7 @@ describe("deterministic civilization experiment", () => {
 		expect(first.metrics.modelInvocations).toBe(0);
 		expect(first.metrics.outcome).toBe("progression");
 		expect(first.metrics.viableFoundings).toBe(1);
+		expect(first.metrics.materializedSettlements).toBe(1);
 		expect(first.state.projects["project-expedition-kit"]?.state).toBe(
 			"completed",
 		);
@@ -108,6 +154,52 @@ describe("deterministic civilization experiment", () => {
 		expect(first.state.foundings["founding-second-settlement"]?.state).toBe(
 			"viable",
 		);
+		expect(first.state.materializedFoundings).toEqual({
+			"founding-second-settlement": "settlement-second",
+		});
+		expect(first.state.references.settlementIds).toContain("settlement-second");
+		expect(Object.keys(world.settlements)).toHaveLength(1);
+		expect(Object.keys(first.world.settlements)).toHaveLength(2);
+		const secondSettlement = first.world.settlements["settlement-second"];
+		expect(secondSettlement?.dataClass).toBe("canonical");
+		expect(secondSettlement?.provenance.sourceKind).toBe("migration");
+		expect(secondSettlement?.value.territoryId).toBe(
+			first.seedConditions.destination.territoryId,
+		);
+		expect(secondSettlement?.value.anchorCellId).toBe(
+			first.seedConditions.route.destinationCellId,
+		);
+		expect(
+			first.world.localSpaces[secondSettlement?.value.localSpaceId ?? ""],
+		).toBeDefined();
+		expect(
+			first.world.sites[secondSettlement?.value.siteIds[0] ?? ""],
+		).toBeDefined();
+		const journey = first.state.migrationJourneys["migration-founding-party"];
+		expect(journey?.completedTraversalUnits).toBe(
+			first.seedConditions.route.totalTraversalUnits,
+		);
+		expect(journey?.currentLegIndex).toBe(
+			first.seedConditions.route.traversalUnitsByLeg.length,
+		);
+		expect(first.seedConditions.route.cellIds.at(-1)).toBe(
+			secondSettlement?.value.anchorCellId,
+		);
+		for (const [
+			index,
+			cellId,
+		] of first.seedConditions.route.cellIds.entries()) {
+			const cell = first.world.cells[cellId]?.value;
+			expect(cell?.terrain).not.toBe("water");
+			if (index === 0) continue;
+			const prior =
+				first.world.cells[first.seedConditions.route.cellIds[index - 1] ?? ""]
+					?.value;
+			expect(
+				Math.abs((cell?.gridX ?? 0) - (prior?.gridX ?? 0)) +
+					Math.abs((cell?.gridY ?? 0) - (prior?.gridY ?? 0)),
+			).toBe(1);
+		}
 		expect(
 			(first.state.stocks["stock-migrant-grain"]?.quantity ?? 0) >= 18,
 		).toBe(true);
@@ -122,7 +214,7 @@ describe("deterministic civilization experiment", () => {
 				first.metrics.consumedProjectTimber,
 		).toBe(first.seedConditions.initialTimber);
 		expect(first.metrics.invariantIssues).toEqual([]);
-		expect(first.limitations.join(" ")).toMatch(/cannot materialize/u);
+		expect(first.limitations.join(" ")).not.toMatch(/cannot materialize/u);
 		assertCivilizationInvariants(first.state);
 	});
 
@@ -135,17 +227,17 @@ describe("deterministic civilization experiment", () => {
 
 		expect(run.seedConditions.expansionEligible).toBe(false);
 		expect(run.events.map((event) => event.kind)).toEqual([
-			"project-approved",
-			"project-completed",
 			"expansion-deferred",
 		]);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
 			"destination-suitability-below-threshold",
 		);
-		expect(run.metrics.completedProjects).toBe(1);
+		expect(run.metrics.completedProjects).toBe(0);
 		expect(run.metrics.arrivedMigrations).toBe(0);
 		expect(run.metrics.viableFoundings).toBe(0);
+		expect(run.metrics.materializedSettlements).toBe(0);
+		expect(Object.keys(run.world.settlements)).toHaveLength(1);
 		expect(Object.keys(run.state.migrations)).toEqual([]);
 		expect(Object.keys(run.state.foundings)).toEqual([]);
 		expect(run.metrics.invariantIssues).toEqual([]);
@@ -177,8 +269,9 @@ describe("deterministic civilization experiment", () => {
 			"progression",
 			"progression",
 		]);
-		expect(progressionRuns[0]?.metrics.plannedMigrations).toBe(1);
-		expect(progressionRuns[0]?.metrics.viableFoundings).toBe(0);
+		expect(progressionRuns[0]?.metrics.plannedMigrations).toBe(0);
+		expect(progressionRuns[0]?.metrics.viableFoundings).toBe(1);
+		expect(progressionRuns[0]?.metrics.materializedSettlements).toBe(1);
 		expect(progressionRuns[1]?.metrics.viableFoundings).toBe(1);
 		expect(progressionRuns[2]?.metrics.viableFoundings).toBe(1);
 		expect(
@@ -186,6 +279,9 @@ describe("deterministic civilization experiment", () => {
 		).toBe(true);
 		expect(
 			stagnationRuns.every((run) => run.metrics.viableFoundings === 0),
+		).toBe(true);
+		expect(
+			stagnationRuns.every((run) => run.metrics.materializedSettlements === 0),
 		).toBe(true);
 
 		const thirty = progressionRuns[0];
@@ -201,6 +297,43 @@ describe("deterministic civilization experiment", () => {
 				.slice(0, thirty.events.length)
 				.map((event) => event.eventHash),
 		);
+	});
+
+	it("schedules expansion from affordances and route work rather than an absolute day", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-no-calendar-trigger",
+		);
+		const firstEvaluation = await runCivilizationExperiment({
+			world,
+			horizonDays: 1,
+		});
+		expect(firstEvaluation.events.map((event) => event.kind)).toEqual([
+			"project-approved",
+			"project-completed",
+			"migration-prepared",
+			"migration-departed",
+		]);
+		expect(
+			firstEvaluation.events.every((event) => event.simulationTime === 86_400),
+		).toBe(true);
+		expect(
+			firstEvaluation.state.migrationJourneys["migration-founding-party"]
+				?.completedTraversalUnits,
+		).toBe(0);
+		const completed = await runCivilizationExperiment({
+			world,
+			horizonDays: 30,
+		});
+		const arrival = completed.events.find(
+			(event) => event.kind === "migration-arrived",
+		);
+		const migration = completed.state.migrations["migration-founding-party"];
+		expect(arrival?.simulationTime).toBe(
+			migration?.expectedArrivalSimulationTime,
+		);
+		expect(arrival?.simulationTime).toBeLessThan(30 * 86_400);
+		expect(completed.metrics.materializedSettlements).toBe(1);
 	});
 
 	it("rejects implicit, negative, or unbounded experiment time", async () => {

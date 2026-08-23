@@ -14,6 +14,7 @@ import type {
 	ChunkState,
 	GeneratedWorldState,
 	InteractionSlotState,
+	LocalSpaceState,
 	MetricBounds,
 	MetricPosition,
 	PlaceState,
@@ -235,6 +236,281 @@ export interface GenerateWorldInput {
 	readonly releaseGenesis: ReleaseGenesis;
 	readonly worldId?: string;
 	readonly treatmentId?: string;
+}
+
+export interface TerritoryMigrationRoute {
+	readonly originSettlementId: string;
+	readonly destinationTerritoryId: string;
+	readonly destinationCellId: string;
+	readonly cellIds: readonly string[];
+	readonly traversalUnitsByLeg: readonly number[];
+	readonly totalTraversalUnits: number;
+}
+
+function worldValues<T>(
+	record: Readonly<Record<string, CanonicalRecord<T>>>,
+): T[] {
+	return Object.values(record).map((entry) => entry.value);
+}
+
+function migrationRecord<T>(input: {
+	readonly value: T;
+	readonly sourceId: string;
+	readonly simulationTime: number;
+}): CanonicalRecord<T> {
+	return {
+		dataClass: "canonical",
+		validity: {
+			validFromSimulationTime: input.simulationTime,
+			validUntilSimulationTime: null,
+		},
+		provenance: {
+			sourceKind: "migration",
+			sourceId: input.sourceId,
+			schemaVersion: "eonfolk-world-founding-v1",
+		},
+		value: input.value,
+	};
+}
+
+function freezeWorld<T>(value: T): T {
+	if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+		for (const child of Object.values(value as Record<string, unknown>))
+			freezeWorld(child);
+		Object.freeze(value);
+	}
+	return value;
+}
+
+function cloneWorld<T>(value: T): T {
+	if (Array.isArray(value)) return value.map((item) => cloneWorld(item)) as T;
+	if (value !== null && typeof value === "object")
+		return Object.fromEntries(
+			Object.entries(value).map(([key, item]) => [key, cloneWorld(item)]),
+		) as T;
+	return value;
+}
+
+/**
+ * Plans a deterministic physical cell route. The least traversal cost wins;
+ * canonical cell IDs break ties so object insertion order never affects it.
+ */
+export function planTerritoryMigrationRoute(
+	world: GeneratedWorldState,
+	input: {
+		readonly originSettlementId: string;
+		readonly destinationTerritoryId: string;
+	},
+): TerritoryMigrationRoute {
+	const origin = world.settlements[input.originSettlementId]?.value;
+	if (origin === undefined)
+		throw new RangeError(
+			`unknown origin settlement ${input.originSettlementId}`,
+		);
+	if (world.territories[input.destinationTerritoryId] === undefined)
+		throw new RangeError(
+			`unknown destination territory ${input.destinationTerritoryId}`,
+		);
+	const cells = worldValues(world.cells);
+	const byId = new Map(cells.map((cell) => [cell.cellId, cell]));
+	const byCoordinate = new Map(
+		cells.map((cell) => [`${cell.gridX}:${cell.gridY}`, cell]),
+	);
+	const start = byId.get(origin.anchorCellId);
+	if (start === undefined)
+		throw new Error("origin settlement lacks anchor cell");
+	const target = cells
+		.filter(
+			(cell) =>
+				cell.territoryId === input.destinationTerritoryId &&
+				cell.terrain !== "water",
+		)
+		.sort(
+			(left, right) =>
+				right.settlementSuitabilityBasisPoints -
+					left.settlementSuitabilityBasisPoints ||
+				left.cellId.localeCompare(right.cellId),
+		)[0];
+	if (target === undefined)
+		throw new RangeError("destination territory has no traversable cell");
+
+	const costs = new Map<string, number>([[start.cellId, 0]]);
+	const parents = new Map<string, string>();
+	const frontier = new Set<string>([start.cellId]);
+	while (frontier.size > 0) {
+		const currentId = [...frontier].sort(
+			(left, right) =>
+				required(costs.get(left), `cost ${left}`) -
+					required(costs.get(right), `cost ${right}`) ||
+				left.localeCompare(right),
+		)[0];
+		if (currentId === undefined) break;
+		frontier.delete(currentId);
+		if (currentId === target.cellId) break;
+		const current = required(byId.get(currentId), `route cell ${currentId}`);
+		const neighbors = [
+			[current.gridX - 1, current.gridY],
+			[current.gridX + 1, current.gridY],
+			[current.gridX, current.gridY - 1],
+			[current.gridX, current.gridY + 1],
+		]
+			.map(([gridX, gridY]) => byCoordinate.get(`${gridX}:${gridY}`))
+			.filter(
+				(candidate): candidate is WorldCell =>
+					candidate !== undefined && candidate.terrain !== "water",
+			)
+			.sort((left, right) => left.cellId.localeCompare(right.cellId));
+		for (const neighbor of neighbors) {
+			const nextCost =
+				required(costs.get(currentId), `cost ${currentId}`) +
+				1_000 +
+				Math.trunc(
+					(current.travelFrictionBasisPoints +
+						neighbor.travelFrictionBasisPoints) /
+						2,
+				);
+			const existing = costs.get(neighbor.cellId);
+			const existingParent = parents.get(neighbor.cellId);
+			if (
+				existing === undefined ||
+				nextCost < existing ||
+				(nextCost === existing &&
+					(existingParent === undefined ||
+						currentId.localeCompare(existingParent) < 0))
+			) {
+				costs.set(neighbor.cellId, nextCost);
+				parents.set(neighbor.cellId, currentId);
+				frontier.add(neighbor.cellId);
+			}
+		}
+	}
+	if (!costs.has(target.cellId))
+		throw new RangeError("destination territory is unreachable by land");
+	const reversed = [target.cellId];
+	while (reversed.at(-1) !== start.cellId) {
+		const parent = parents.get(required(reversed.at(-1), "route cursor"));
+		if (parent === undefined)
+			throw new Error("route parent chain is incomplete");
+		reversed.push(parent);
+	}
+	const cellIds = reversed.reverse();
+	const traversalUnitsByLeg = cellIds.slice(1).map((cellId, index) => {
+		const from = required(
+			byId.get(required(cellIds[index], "route from")),
+			"route from cell",
+		);
+		const to = required(byId.get(cellId), "route to cell");
+		return (
+			1_000 +
+			Math.trunc(
+				(from.travelFrictionBasisPoints + to.travelFrictionBasisPoints) / 2,
+			)
+		);
+	});
+	return freezeWorld({
+		originSettlementId: input.originSettlementId,
+		destinationTerritoryId: input.destinationTerritoryId,
+		destinationCellId: target.cellId,
+		cellIds,
+		traversalUnitsByLeg,
+		totalTraversalUnits: traversalUnitsByLeg.reduce(
+			(total, units) => total + units,
+			0,
+		),
+	});
+}
+
+/** Materializes a viable founding into canonical world state. */
+export function materializeFoundedSettlement(
+	world: GeneratedWorldState,
+	input: {
+		readonly settlementId: string;
+		readonly name: string;
+		readonly territoryId: string;
+		readonly anchorCellId: string;
+		readonly founderCitizenIds: readonly string[];
+		readonly residentCitizenIds: readonly string[];
+		readonly migrationId: string;
+		readonly foundedAtSimulationTime: number;
+	},
+): GeneratedWorldState {
+	if (world.settlements[input.settlementId] !== undefined)
+		throw new RangeError(`settlement ${input.settlementId} already exists`);
+	if (
+		!Number.isSafeInteger(input.foundedAtSimulationTime) ||
+		input.foundedAtSimulationTime < 0
+	)
+		throw new RangeError("founding time must be a non-negative safe integer");
+	if (input.founderCitizenIds.length === 0)
+		throw new RangeError("a founded settlement needs a founder");
+	const anchor = world.cells[input.anchorCellId]?.value;
+	if (
+		anchor === undefined ||
+		anchor.terrain === "water" ||
+		anchor.territoryId !== input.territoryId
+	)
+		throw new RangeError("founding anchor is not traversable destination land");
+	const localSpaceId = `${input.settlementId}:local-space`;
+	const siteId = `${input.settlementId}:founding-site`;
+	if (
+		world.localSpaces[localSpaceId] !== undefined ||
+		world.sites[siteId] !== undefined
+	)
+		throw new RangeError("founding world identifiers already exist");
+	const localSpace = migrationRecord<LocalSpaceState>({
+		sourceId: input.migrationId,
+		simulationTime: input.foundedAtSimulationTime,
+		value: {
+			localSpaceId,
+			settlementId: input.settlementId,
+			bounds: metricBounds(0, 0, 60_000, 60_000),
+			siteIds: [siteId],
+			routeIds: [],
+		},
+	});
+	const site = migrationRecord<SiteState>({
+		sourceId: input.migrationId,
+		simulationTime: input.foundedAtSimulationTime,
+		value: {
+			siteId,
+			localSpaceId,
+			cellId: input.anchorCellId,
+			name: "Founding ground",
+			kind: "undeveloped",
+			bounds: metricBounds(0, 0, 60_000, 60_000),
+			placeIds: [],
+			buildingIds: [],
+			interactionSlotIds: [],
+		},
+	});
+	const settlement = migrationRecord<SettlementState>({
+		sourceId: input.migrationId,
+		simulationTime: input.foundedAtSimulationTime,
+		value: {
+			settlementId: input.settlementId,
+			name: input.name,
+			territoryId: input.territoryId,
+			anchorCellId: input.anchorCellId,
+			localSpaceId,
+			foundedAtSimulationTime: input.foundedAtSimulationTime,
+			founderCitizenIds: [...input.founderCitizenIds].sort(),
+			residentCitizenIds: [...input.residentCitizenIds].sort(),
+			householdIds: [],
+			institutionIds: [],
+			siteIds: [siteId],
+		},
+	});
+	return freezeWorld(
+		cloneWorld({
+			...world,
+			localSpaces: { ...world.localSpaces, [localSpaceId]: localSpace },
+			settlements: {
+				...world.settlements,
+				[input.settlementId]: settlement,
+			},
+			sites: { ...world.sites, [siteId]: site },
+		}),
+	);
 }
 
 export async function generateWorld(

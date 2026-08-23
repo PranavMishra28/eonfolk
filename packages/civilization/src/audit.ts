@@ -160,6 +160,66 @@ export function auditCivilizationState(
 					`project ${project.projectId} consumption accounting differs for ${resourceTypeId}`,
 				);
 	}
+	for (const [migrationId, journey] of Object.entries(
+		state.migrationJourneys,
+	)) {
+		const migration = state.migrations[migrationId];
+		if (migration === undefined) {
+			issues.push(`journey ${migrationId} has no migration`);
+			continue;
+		}
+		if (
+			journey.routeCellIds.length < 2 ||
+			journey.traversalUnitsByLeg.length !== journey.routeCellIds.length - 1
+		)
+			issues.push(`journey ${migrationId} has invalid route shape`);
+		if (
+			journey.currentLegIndex < 0 ||
+			journey.currentLegIndex > journey.traversalUnitsByLeg.length
+		)
+			issues.push(`journey ${migrationId} has invalid leg index`);
+		const recomputedTotal = journey.traversalUnitsByLeg.reduce(
+			(total, units) => total + units,
+			0,
+		);
+		const recomputedCompleted =
+			journey.traversalUnitsByLeg
+				.slice(0, journey.currentLegIndex)
+				.reduce((total, units) => total + units, 0) +
+			journey.currentLegProgressUnits;
+		if (
+			journey.traversalUnitsByLeg.some(
+				(units) => !Number.isSafeInteger(units) || units <= 0,
+			) ||
+			recomputedTotal !== journey.totalTraversalUnits ||
+			recomputedCompleted !== journey.completedTraversalUnits ||
+			journey.completedTraversalUnits > journey.totalTraversalUnits
+		)
+			issues.push(`journey ${migrationId} has invalid traversal accounting`);
+		const activeLeg = journey.traversalUnitsByLeg[journey.currentLegIndex];
+		if (
+			journey.currentLegProgressUnits < 0 ||
+			(activeLeg === undefined
+				? journey.currentLegProgressUnits !== 0
+				: journey.currentLegProgressUnits >= activeLeg)
+		)
+			issues.push(`journey ${migrationId} has invalid leg progress`);
+		const complete =
+			journey.currentLegIndex === journey.traversalUnitsByLeg.length;
+		if ((migration.state === "arrived") !== complete)
+			issues.push(`journey ${migrationId} arrival differs from traversal`);
+	}
+	for (const [foundingId, settlementId] of Object.entries(
+		state.materializedFoundings,
+	)) {
+		const founding = state.foundings[foundingId];
+		if (founding === undefined || founding.state !== "viable")
+			issues.push(`materialized founding ${foundingId} is not viable`);
+		else if (founding.proposedSettlementId !== settlementId)
+			issues.push(`materialized founding ${foundingId} has wrong settlement`);
+		if (!state.references.settlementIds.includes(settlementId))
+			issues.push(`materialized settlement ${settlementId} lacks a reference`);
+	}
 
 	return {
 		ok: issues.length === 0,
