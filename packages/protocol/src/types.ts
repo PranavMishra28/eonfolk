@@ -177,6 +177,13 @@ export interface Provenance {
 	readonly proposalId?: ProposalId;
 }
 
+export interface SponsorshipEstablishedPayload {
+	readonly kind: "SponsorshipEstablished";
+	readonly patronPrincipalId: string;
+	readonly citizenId: CitizenId;
+	readonly settlementId: string;
+}
+
 export type WorldEventPayload =
 	| {
 			readonly kind: "Observed";
@@ -305,7 +312,9 @@ export type WorldEventPayload =
 	  };
 
 export interface WorldEventEnvelope<
-	E extends WorldEventPayload = WorldEventPayload,
+	E extends
+		| WorldEventPayload
+		| SponsorshipEstablishedPayload = WorldEventPayload,
 > {
 	readonly schemaVersion: typeof PROTOCOL_SCHEMA_VERSION;
 	readonly engineVersion: typeof ENGINE_VERSION;
