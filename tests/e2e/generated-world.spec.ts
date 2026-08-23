@@ -124,7 +124,7 @@ async function generatedAuthorityFingerprint(page: Page) {
 				readonly counts: Readonly<Record<string, number>>;
 				readonly digest: string;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority");
+				const request = indexedDB.open("eonfolk-generated-authority-v4");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;
@@ -206,7 +206,7 @@ async function corruptGeneratedAuthority(
 					reject(transaction.error ?? new Error("corruption fixture aborted"));
 			});
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority"),
+			indexedDB.open("eonfolk-generated-authority-v4"),
 		);
 		try {
 			if (kind === "range-gap") {
@@ -330,9 +330,9 @@ async function replaceGeneratedAuthorityWithOrphan(
 				request.onsuccess = () => resolve(request.result);
 				request.onerror = () => reject(request.error);
 			});
-		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority");
+		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority-v4");
 		await requested(deleted);
-		const opened = indexedDB.open("eonfolk-generated-authority", 1);
+		const opened = indexedDB.open("eonfolk-generated-authority-v4", 1);
 		opened.onupgradeneeded = () => {
 			for (const name of [
 				"authorityStreams",
@@ -396,7 +396,7 @@ async function forgeGeneratedAuthorityRowIdentity(
 				request.onerror = () => reject(request.error);
 			});
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority"),
+			indexedDB.open("eonfolk-generated-authority-v4"),
 		);
 		try {
 			const transaction = opened.transaction(store, "readwrite");
@@ -465,7 +465,7 @@ async function installGeneratedAuthorityStreamFixture(
 		const runId = "v1-generated-civilization";
 		const expectedKey = JSON.stringify([runId, worldId]);
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority"),
+			indexedDB.open("eonfolk-generated-authority-v4"),
 		);
 		const read = opened.transaction("authorityStreams", "readonly");
 		const readDone = completed(read);
@@ -484,8 +484,10 @@ async function installGeneratedAuthorityStreamFixture(
 		const aliasKey = `[${JSON.stringify(runId)}, ${JSON.stringify(worldId)}]`;
 
 		if (kind.startsWith("missing-")) {
-			await requested(indexedDB.deleteDatabase("eonfolk-generated-authority"));
-			const recreated = indexedDB.open("eonfolk-generated-authority", 1);
+			await requested(
+				indexedDB.deleteDatabase("eonfolk-generated-authority-v4"),
+			);
+			const recreated = indexedDB.open("eonfolk-generated-authority-v4", 1);
 			recreated.onupgradeneeded = () => {
 				for (const name of [
 					"authorityStreams",
@@ -515,7 +517,7 @@ async function installGeneratedAuthorityStreamFixture(
 		}
 
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority"),
+			indexedDB.open("eonfolk-generated-authority-v4"),
 		);
 		try {
 			const write = database.transaction("authorityStreams", "readwrite");
@@ -974,7 +976,7 @@ test("generated reload restores the durable head @generated-world @generated-tar
 	expect(externalRequests).toEqual([]);
 });
 
-test("entry fails closed when canonical IndexedDB cannot open @generated-world", async ({
+test("entry admits the deterministic view when canonical IndexedDB is newer @generated-world", async ({
 	page,
 }) => {
 	await isolateLocalWorld(page);
@@ -998,11 +1000,30 @@ test("entry fails closed when canonical IndexedDB cannot open @generated-world",
 	);
 	await page.goto("/");
 	await expect(
-		page.getByRole("heading", {
-			name: "The canonical world could not be opened.",
-		}),
+		page.getByRole("heading", { name: "A civilization has already begun." }),
 	).toBeVisible({ timeout: 20_000 });
+	await expect(page.locator("main.v1-genesis-entry")).toHaveAttribute(
+		"data-state-hash",
+		/^[0-9a-f]{64}$/u,
+	);
 	await expect(page.locator("[aria-busy='true']")).toHaveCount(0);
+
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	const world = page.locator("main.v1-world");
+	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+		timeout: 30_000,
+	});
+	await expect(world).toHaveAttribute(
+		"data-persistence-claim",
+		"admitted-deterministic-view",
+	);
+	await expect(world).toHaveAttribute(
+		"data-persistence-failure-code",
+		"DATABASE_VERSION",
+	);
+	await expect(
+		page.getByText(/The stored authority was rejected/u),
+	).toBeVisible();
 });
 
 test("settlement overview and semantic people remain keyboard-operable @generated-world", async ({
@@ -1527,7 +1548,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await blocker.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority");
+				const request = indexedDB.open("eonfolk-generated-authority-v4");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					request.result.onversionchange = () => undefined;
