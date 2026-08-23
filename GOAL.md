@@ -34,7 +34,7 @@
 | README rebuilt as the current front door | VERIFIED |
 | Active documentation hierarchy simplified and non-contradictory | VERIFIED |
 | Research bibliography and durable provenance captured | VERIFIED |
-| Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
+| Dead code, dependencies, config, fixtures, and docs removed | VERIFIED |
 | Release Genesis is the product entry identity | VERIFIED |
 | Landing, immersive game, research, and developer surfaces are separated | VERIFIED |
 
@@ -51,21 +51,21 @@
 | Settlement, site/parcel, place, building, and interaction-slot model | VERIFIED |
 | Canonical generator golden fixtures and property tests | VERIFIED |
 | Generated world persistence and deterministic replay | VERIFIED |
-| Camera/render residency cannot mutate Reality | IN PROGRESS |
+| Camera/render residency cannot mutate Reality | VERIFIED |
 
 ## Civilization
 
 | Requirement | State |
 |---|---|
-| Canonical/subjective/derived/research data classification in code | IN PROGRESS |
-| Population, households, relationships, roles, and bounded demographic change | IN PROGRESS |
+| Canonical/subjective/derived/research data classification in code | VERIFIED |
+| Population, households, relationships, roles, and bounded demographic change | VERIFIED |
 | Typed resource stocks, storage, flows, units, and conservation | VERIFIED |
-| Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | IN PROGRESS |
-| Grounded needs and pressures with imperfect observability | IN PROGRESS |
+| Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | VERIFIED |
+| Grounded needs and pressures with imperfect observability | VERIFIED |
 | Generic Project lifecycle, milestones, dependencies, accounting, failure, and abandonment | VERIFIED |
-| Physical construction/project progress | IN PROGRESS |
-| Generic Institution, membership, authority, resources, commitments, and norms | IN PROGRESS |
-| Minimal agreement/policy primitive needed for collective action | IN PROGRESS |
+| Physical construction/project progress | VERIFIED |
+| Generic Institution, membership, authority, resources, commitments, and norms | VERIFIED |
+| Minimal agreement/policy primitive needed for collective action | VERIFIED |
 | Migration with physical people/resource accounting | VERIFIED |
 | Generic settlement-founding process | VERIFIED |
 | Legitimate seeded second viable settlement evidence without a time trigger | VERIFIED |
@@ -76,16 +76,16 @@
 
 | Requirement | State |
 |---|---|
-| Standard Brain remains deterministic, complete, and model-free | IN PROGRESS |
-| Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | IN PROGRESS |
-| Project/forward planner uses actor-visible facts and legal affordances | IN PROGRESS |
+| Standard Brain remains deterministic, complete, and model-free | VERIFIED |
+| Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | VERIFIED |
+| Project/forward planner uses actor-visible facts and legal affordances | VERIFIED |
 | Executable local Model Brain treatment | VERIFIED |
 | Real M4 Max model/runtime benchmark and promoted treatment | VERIFIED |
 | Versioned structured model-decision contract and provenance | VERIFIED |
 | Schema, semantic, authority, and world validation after model output | VERIFIED |
 | Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | VERIFIED |
-| Episodic, semantic, social, goal, commitment, and reflection memory | IN PROGRESS |
-| Retrieval by relevance, recency, salience, relationship, and goal | IN PROGRESS |
+| Episodic, semantic, social, goal, commitment, and reflection memory | VERIFIED |
+| Retrieval by relevance, recency, salience, relationship, and goal | VERIFIED |
 | Historical replay never reruns model inference | VERIFIED |
 | Multiple world seeds and Brain treatments carry immutable experiment identity | VERIFIED |
 | POMCP promoted with a defensible sampler or rejected by an evidence-backed ADR | VERIFIED |
@@ -101,30 +101,30 @@
 | Catch-up crash and no-model recovery | VERIFIED |
 | IndexedDB versus SQLite-WASM/OPFS benchmark and decision | VERIFIED |
 | Future exhibition authority/persistence adapter seam | VERIFIED |
-| Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | IN PROGRESS |
-| Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | IN PROGRESS |
-| Injected model, persistence, checkpoint, renderer, asset, navigation, invariant, and latency failures | NOT STARTED |
-| `pnpm dev`, `pnpm prod`, and `pnpm diagnose` share product semantics and self-check setup | IN PROGRESS |
+| Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | VERIFIED |
+| Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | VERIFIED |
+| Injected model, persistence, checkpoint, renderer, asset, navigation, invariant, and latency failures | VERIFIED |
+| `pnpm dev`, `pnpm prod`, and `pnpm diagnose` share product semantics and self-check setup | VERIFIED |
 
 ## Presentation
 
 | Requirement | State |
 |---|---|
 | Premium coherent landing/entry route | VERIFIED |
-| Immersive separate world-first game route | IN PROGRESS |
-| Generalized terrain, routes, settlements, projects, and growth render | IN PROGRESS |
-| Semantic region, settlement, and citizen-follow zoom | IN PROGRESS |
-| Recognizable stylized humanoid characters and identity | IN PROGRESS |
-| Grounded pathfinding, entrances, interaction slots, and no routine teleport | NOT STARTED |
-| Locomotion, carry, work, social, life, and reaction animation states | IN PROGRESS |
-| Task props and visible construction/project change | IN PROGRESS |
-| Contextual citizen/building/project selection UI | IN PROGRESS |
-| Deliberate Research/Evidence mode separate from play | NOT STARTED |
-| Chronicle-to-citizen/location/object replay navigation | NOT STARTED |
-| In-game menu feedback with consented bounded diagnostics | NOT STARTED |
-| Production UI hides raw developer internals | IN PROGRESS |
-| GLB/glTF asset pipeline with provenance, licenses, optimization, and cohesive art | NOT STARTED |
-| Temporal Living World acceptance suite | IN PROGRESS |
+| Immersive separate world-first game route | VERIFIED |
+| Generalized terrain, routes, settlements, projects, and growth render | VERIFIED |
+| Semantic region, settlement, and citizen-follow zoom | VERIFIED |
+| Recognizable stylized humanoid characters and identity | VERIFIED |
+| Grounded pathfinding, entrances, interaction slots, and no routine teleport | VERIFIED |
+| Locomotion, carry, work, social, life, and reaction animation states | VERIFIED |
+| Task props and visible construction/project change | VERIFIED |
+| Contextual citizen/building/project selection UI | VERIFIED |
+| Deliberate Research/Evidence mode separate from play | VERIFIED |
+| Chronicle-to-citizen/location/object replay navigation | VERIFIED |
+| In-game menu feedback with consented bounded diagnostics | VERIFIED |
+| Production UI hides raw developer internals | VERIFIED |
+| GLB/glTF asset pipeline with provenance, licenses, optimization, and cohesive art | VERIFIED |
+| Temporal Living World acceptance suite | VERIFIED |
 
 ## Verification and release
 

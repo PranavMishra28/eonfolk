@@ -2,7 +2,7 @@
 
 **Purpose:** Implement and verify the Release Genesis civilization benchmark as one private mega PR.
 
-**Status:** ACTIVE — product integration substantially complete; exact-candidate release lattice pending
+**Status:** ACTIVE — product integration complete; exact-candidate release lattice pending
 
 **Authority boundary:** This file owns implementation sequence, evidence expectations, deviations, and integration progress. [GOAL.md](../../../GOAL.md) owns requirement state; [RESUME.md](../../../RESUME.md) owns the exact restart; [INDEX.md](../../INDEX.md) maps product and engineering authorities.
 
@@ -69,7 +69,7 @@ Outcome: arrival communicates a living generated world immediately; region, sett
 
 Evidence: deterministic browser journeys and screenshots at 1728×1117, 1366×768, and 390×844; fresh observer task-legibility; accessibility parity; reduced motion; weak-device fallback; payload/frame/memory/meaningful-display budgets.
 
-Status: the account-free generated browser renders a physically coherent inhabited settlement with eight stylized people, visible work/carry/repair/conversation, props, project/growth context, region/town/citizen camera scales, contextual selection, semantic parity, reduced motion, Research, sponsor/Chronicle, and feedback. Desktop, laptop, and mobile inspections are green. Exact grounded entrance-connector movement and final temporal acceptance are the remaining feature-completion checks.
+Status: complete for bounded V1. The account-free generated browser renders a physically coherent inhabited settlement with eight stylized people, visible work/carry/repair/conversation, props, project/growth context, region/town/citizen camera scales, contextual selection, semantic parity, reduced motion, Research, sponsor/Chronicle, and feedback. A genuine v9 route carrier replays only its proven entrance-to-current prefix, holds at the exact canonical position, never mutates Reality or teleports, and production browser evidence exposes a changed completed project. Desktop, laptop, and mobile inspections are green.
 
 ### M6 — Exact-candidate release lattice
 

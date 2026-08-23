@@ -2,7 +2,7 @@
 
 **Purpose:** Track the current V1 integration sequence, evidence gates, integration history, frozen candidate, and exit status.
 
-**Status:** FEATURE-COMPLETION PASS — draft Mega PR #9; exact-candidate release lattice pending
+**Status:** FEATURE COMPLETE — draft Mega PR #9; exact-candidate release lattice pending
 
 **Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](docs/INDEX.md) owns document authority.
 
@@ -26,7 +26,7 @@
 | 3. Civilization kernel and long-horizon emergence | Complete for bounded V1 | Pressure/affordance scheduling, least-cost migration, physical accounting, second-settlement materialization, legitimate stagnation, model-free scheduler, and deterministic 30/90/365 evidence run through the generated authority |
 | 4. Cognition and experiment treatments | Complete for bounded V1 | Standard Brain, planners, Standing Plans, six memory classes, visible-fact retrieval, closed model treatment, Mac benchmark, bounded host, validation, failure, and deterministic fallback are integrated |
 | 5. Persistence, replay, recovery, diagnostics | Complete for feature scope | IndexedDB authority, atomic/idempotent append, fencing, snapshots, migrations, reload/catch-up, corruption recovery, Flight Recorder, Sentinel, and all eight injected browser failures pass focused checks |
-| 6. Generated-world product presentation | Final gap in progress | `/world` is generated Dawnmere: inhabited PlayCanvas settlement, sponsor/Chronicle, Research, feedback, contextual selection, semantic parity, and three-viewport inspection are integrated. Exact entrance-connector movement and temporal construction browser proof are the final feature checks |
+| 6. Generated-world product presentation | Complete for bounded V1 | `/world` is generated Dawnmere: inhabited PlayCanvas settlement, sponsor/Chronicle, Research, feedback, contextual selection, semantic parity, and three-viewport inspection are integrated. A genuine v9 carrier replays its proven entrance/route prefix without Reality mutation or teleport, and production browser evidence exposes the changed completed project |
 | 7. CI, security, documentation and developer experience | Feature scope complete; exact evidence pending | Readiness guard, current inventory/cohort, 14-mutant gate, protected secret/formal checks, developer commands, and dead-surface cleanup are integrated; exact PR/DEEP artifacts remain pending |
 | 8. Exact-candidate DEEP, frozen reviews, fixes, merge | Not started | No V1 frozen SHA or release verdict exists |
 
@@ -47,13 +47,14 @@
 | Local cognition host | `fa72abf`, `1d2edb8` | macOS-only verified-artifact subprocess, deny-network sandbox, canonical framing, bounded failure/kill behavior, deterministic fallback, and inference-free recorded-proposal restoration; no actual model promoted |
 | Rule-driven founding | `bab3fce`, `c89580b` | No absolute-day expansion trigger; pressure/affordance start, canonical route traversal, physical carried stocks, canonical second settlement, geography-driven stagnation, and 30/90/365 replay properties |
 | Versioned authority persistence seam | `ae94cc5` | Exact-version port and in-memory conformance adapter with atomic/idempotent append, fencing, snapshots/ranges, corruption rejection, and replay without cognition; no browser/database V1 adapter yet |
-| Repository controls and diagnostic identity | `b434c10`, `072f312`, `103a259`, `ab7f917`, `c987027` | Re-probed GitHub controls; correlated product authority identity; generalized safe summaries; exact-head snapshot formal model; route-specific diagnostics. Full V1 injected-failure evidence remains pending |
+| Repository controls and diagnostic identity | `b434c10`, `072f312`, `103a259`, `ab7f917`, `c987027` | Re-probed GitHub controls; correlated product authority identity; generalized safe summaries; exact-head snapshot formal model; route-specific diagnostics. Full V1 injected-failure evidence was still pending at this checkpoint |
 | Embodied canonical world | `4d97834` | PlayCanvas `/world` with eight authoritative Riverhold citizens, visible temporal behavior, selection/follow, semantic fallback, and seven focused browser journeys. It is not yet generated Dawnmere or generalized civilization acceptance evidence |
 | Civilization checkpoint replay | `06b7a1f`, `b2a7ccc` | Exact-version civilization checkpoints, atomic/idempotent history, fencing, 30/90/365 replay, and v3 schema reconciliation; in-memory checkpoint proof only, without browser IndexedDB/catch-up or every kernel mutation |
-| Grounded social Mind | `6cce744` | Typed people/relationships/households/roles, imperfect grounded pressures, institutional authorization, six memory classes, visibility-first bounded retrieval, and need-aware deterministic planning; normal scheduler/product wiring remains pending |
+| Grounded social Mind | `6cce744` | Typed people/relationships/households/roles, imperfect grounded pressures, institutional authorization, six memory classes, visibility-first bounded retrieval, and need-aware deterministic planning; normal scheduler/product wiring was still pending at this checkpoint |
 | Release Genesis product convergence | `33580c4` through `1ba3574` | Generated authority, scheduler, persistence, inhabited PlayCanvas world, sponsor outcomes, factual Chronicle, Research, contextual selection, and cross-viewport World Presence integrated |
 | Final player-facing repair | `5d6b11e`, `f5c3292` | Chronicle object/event focus, local-only feedback boundary, and closed renderer/asset/navigation diagnostic outcomes |
 | Dead execution-surface cleanup | `8bfaeab` | Removed dormant relay, obsolete Gate 0/Pixi harness, unused Observatory implementation, stale handoff, and inactive dependencies/config while preserving immutable history |
+| Grounded Living World closure | `d89b8dd`, `5e6eb47` | Canonical day-365 carrier, continuous entrance-route topology, prefix replay, changed-project browser proof, v9 experiment authority, and isolated v5 IndexedDB namespace with preserved legacy v4 bytes |
 
 Every integration was required to have bounded ownership, an actual diff inspection, focused verification, a clean commit, and coordinator reconciliation. Detailed limitations and the next exact commands live in `RESUME.md`.
 

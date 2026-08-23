@@ -2,20 +2,20 @@
 
 **Purpose:** Give a zero-context coordinator the exact restart while Release Genesis remains in the one V1 mega PR.
 
-**Status:** FEATURE-COMPLETION PASS — release lattice not yet frozen
+**Status:** FEATURE COMPLETE — exact-candidate release lattice not yet frozen
 
 **Authority boundary:** [GOAL.md](GOAL.md) owns requirement state; this file owns the operational restart.
 
 ## Identity
 
 - Branch: `feat/v1-civilization`
-- Integration checkpoint: `8bfaeab680377b9989742111d8c5b0b264e0327d`
+- Software integration checkpoint: `5e6eb479d4b2c41b8547463fd2e1106d1affa08d`
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft Mega PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization mega PR`
 - Machine: plugged-in Apple M4 Max with 48 GB unified memory
 - Publication boundary: private, local-only, no deployment, spend, account, credential, or public release
 
-The PR remains draft and unmerged. Do not freeze or begin final reviews until the remaining product gaps below are closed and the exact integration head is clean.
+The PR remains draft and unmerged. Product implementation is complete; do not mark it ready or merge until the exact FAST/PR/DEEP lattice and frozen-SHA reviews below pass.
 
 ## What is executable now
 
@@ -37,18 +37,16 @@ Planning-era execution surfaces that were unreachable from V1 have been removed:
 - Chronicle navigation passed desktop and mobile production journeys.
 - Typecheck, architecture, docs/Markdown, format, lint, build, bundle budget, dependency cohort, and production audit.
 - Fresh in-app browser inspection at 1728×1117, 1366×768, and 390×844: world canvas ready, zero horizontal overflow, contextual mobile citizen focus visible.
-- Current bundle before the final movement integration: 185,342-byte critical shell and 665,592-byte initial-world JavaScript against 204,800/665,600 limits.
+- Current post-movement build: 185,452-byte critical shell and 665,591-byte initial-world JavaScript against the unchanged 204,800/665,600 limits.
 
 These are integration checks, not the final exact-candidate PR/DEEP/review evidence.
 
 ## Remaining sequence
 
-1. Close the last World Presence gap: prove entrance → registered route → entrance progress for moving citizens without routine teleport or Reality mutation.
-2. Add one production browser assertion for player-visible temporal project/construction change and rerun the three viewport product inspection.
-3. Reconcile every `GOAL.md` row from exact executable evidence, update this file and the active ExecPlan, then run one consolidated FAST, PR, and target-Mac DEEP cycle.
-4. Freeze the exact software SHA. Run the six required independent reviews against that identical SHA without cross-review exposure.
-5. Reconcile and repair every P0/P1 once, run the targeted confirmation, write the V1 handoff, and create the clean evidence/documentation tail permitted by the readiness contract.
-6. Mark Mega PR #9 ready only after the readiness checker and protected checks pass. Merge through protected `main`, run the required new push-to-main reattestation, then remove stale branches/worktrees whose unique heads are tag-reachable.
+1. Commit this truthful product-ledger reconciliation, then run one consolidated FAST, PR, and target-Mac DEEP cycle from an exact clean source state.
+2. Freeze the exact software SHA. Run the six required independent reviews against that identical SHA without cross-review exposure.
+3. Reconcile and repair every P0/P1 once, run the targeted confirmation, write the V1 handoff, and create the clean evidence/documentation tail permitted by the readiness contract.
+4. Mark Mega PR #9 ready only after the readiness checker and protected checks pass. Merge through protected `main`, run the required new push-to-main reattestation, then remove stale branches/worktrees whose unique heads are tag-reachable.
 
 Do not restart architecture or product planning, add another PR, weaken the payload or authority gates, or substitute passing backend tests for the observable world.
 
@@ -64,4 +62,4 @@ sed -n '1,190p' GOAL.md
 pnpm verify:fast
 ```
 
-If the branch head differs from the checkpoint above, inspect `git log --oneline 8bfaeab..HEAD` and the actual diff before continuing. Never discard a dirty worktree or unique commit.
+If the branch head differs from the checkpoint above, inspect `git log --oneline 5e6eb47..HEAD` and the actual diff before continuing. Never discard a dirty worktree or unique commit.
