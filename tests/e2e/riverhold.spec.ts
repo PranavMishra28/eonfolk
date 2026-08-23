@@ -48,18 +48,6 @@ function currentDecisionAction(page: Page): Locator {
 		.first();
 }
 
-async function followMaraIfOffered(page: Page): Promise<void> {
-	const follow = followMaraAction(page);
-	if (await follow.isVisible().catch(() => false)) await follow.click();
-}
-
-async function clickDecisionIfOffered(page: Page, name: RegExp): Promise<void> {
-	const action = page
-		.getByLabel("Current Riverhold decision")
-		.getByRole("button", { name });
-	if (await action.isVisible().catch(() => false)) await action.click();
-}
-
 async function expectWorldReady(page: Page) {
 	if (linuxSemanticCi) {
 		await expect(
@@ -814,8 +802,8 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 			name: "Report issue / Save feedback locally",
 		}),
 	).toBeVisible();
-	await followMaraIfOffered(newer);
-	await clickDecisionIfOffered(newer, /Check why Mara doubts/i);
+	await followMaraAction(newer).click();
+	await newer.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await expect(newer.getByText("OBSERVED", { exact: true })).toBeVisible();
 	await newer.close();
 });
@@ -959,7 +947,7 @@ test("mobile arrival keeps the world dominant and the opening action in the firs
 	expect(Math.min(...textFloors.factual)).toBeGreaterThanOrEqual(16);
 	expect(Math.min(...textFloors.secondary)).toBeGreaterThanOrEqual(14);
 
-	await followMaraIfOffered(page);
+	await followMaraAction(page).click();
 	const peek = page.locator(".phase-panel--following");
 	await expect(peek).toBeVisible();
 	const peekHeight = await peek.evaluate(
@@ -980,7 +968,7 @@ test("counsel presents its grounding and all three stakes in one state", async (
 	page,
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await followMaraIfOffered(page);
+	await followMaraAction(page).click();
 	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
 	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	const panel = page.getByLabel("Current Riverhold decision");
@@ -1162,9 +1150,9 @@ test("remembered words view and renderer failure preserve a fully playable journ
 		page.getByRole("button", { name: "Use illustrated view" }),
 	).toBeVisible();
 
-	await followMaraIfOffered(page);
-	await clickDecisionIfOffered(page, /Check why Mara doubts/i);
-	await clickDecisionIfOffered(page, /Review Mara's choices/i);
+	await followMaraAction(page).click();
+	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
+	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
 	await page.getByRole("radio", { name: /Offer no advice/i }).check();
 	await page.getByRole("button", { name: "Offer counsel" }).click();
 	await page
