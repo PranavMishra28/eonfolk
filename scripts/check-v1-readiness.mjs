@@ -1,11 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
 	artifactPathsForTier,
 	DEEP_BENCHMARK_CONTRACT,
+	validateDeepBenchmarkReport,
 	verificationContractSha256,
 	verificationStepsForTier,
 } from "./run-verification-tier.mjs";
@@ -70,10 +71,58 @@ export function parseRequiredStateRows(source) {
 			throw new Error(
 				`invalid GOAL state ${JSON.stringify(state)} for ${requirement}`,
 			);
-		rows.push({ requirement, state });
+		rows.push({
+			id: `goal-${sha256(requirement).slice(0, 16)}`,
+			requirement,
+			state,
+		});
 	}
 	if (rows.length === 0) throw new Error("GOAL has no required-state rows");
 	return rows;
+}
+
+export function goalRosterSha256(rows) {
+	return sha256(
+		JSON.stringify(rows.map(({ id, requirement }) => ({ id, requirement }))),
+	);
+}
+
+function immutableGoalStructureSha256(source) {
+	const normalized = source.split(/\r?\n/u).map((line) => {
+		if (!line.startsWith("|")) return line;
+		const cells = line
+			.split("|")
+			.slice(1, -1)
+			.map((cell) => cell.trim());
+		if (cells.length === 2 && ALLOWED_STATES.has(cells[1]))
+			return `| ${cells[0]} | <STATE> |`;
+		if (cells.length === 3 && ALLOWED_STATES.has(cells[1]))
+			return `| ${cells[0]} | <STATE> | <EVIDENCE> |`;
+		return line;
+	});
+	return sha256(normalized.join("\n"));
+}
+
+export function validateCanonicalGoalRoster(
+	rows,
+	canonicalRows,
+	{ source = null, canonicalSource = null } = {},
+) {
+	const failures = [];
+	if (goalRosterSha256(rows) !== goalRosterSha256(canonicalRows))
+		failures.push("GOAL requirement ID roster differs from the canonical base");
+	if (
+		typeof source === "string" &&
+		typeof canonicalSource === "string" &&
+		immutableGoalStructureSha256(source) !==
+			immutableGoalStructureSha256(canonicalSource)
+	)
+		failures.push("GOAL changed outside state and evidence cells");
+	return {
+		failures,
+		ok: failures.length === 0,
+		rosterSha256: goalRosterSha256(rows),
+	};
 }
 
 function sha256(value) {
@@ -84,6 +133,41 @@ function verifySelfHash(report, failures) {
 	const { outputSha256, ...withoutHash } = report;
 	if (outputSha256 !== sha256(JSON.stringify(withoutHash)))
 		failures.push("evidence output hash does not match");
+}
+
+function attestablePayloadSha256(report) {
+	const { outputSha256: _output, trustedRun: _trustedRun, ...payload } = report;
+	return sha256(JSON.stringify(payload));
+}
+
+function validateTrustedRun(reference, expected, label, failures, context) {
+	if (
+		reference === null ||
+		typeof reference !== "object" ||
+		Array.isArray(reference) ||
+		Object.keys(reference).length !== 1 ||
+		typeof reference.attestationId !== "string" ||
+		reference.attestationId.length === 0
+	) {
+		failures.push(`${label} trusted-run reference is invalid`);
+		return;
+	}
+	const trusted = context?.trustedRuns?.get(reference.attestationId);
+	if (
+		trusted?.provider !== "github-actions" ||
+		trusted?.attestationId !== reference.attestationId ||
+		trusted?.sourceSha !== expected.sourceSha ||
+		trusted?.purpose !== expected.purpose ||
+		trusted?.payloadSha256 !== expected.payloadSha256 ||
+		typeof trusted?.repository !== "string" ||
+		(typeof context?.repository === "string" &&
+			trusted.repository !== context.repository) ||
+		!Number.isSafeInteger(trusted?.runId) ||
+		trusted.runId <= 0 ||
+		!Number.isSafeInteger(trusted?.runAttempt) ||
+		trusted.runAttempt <= 0
+	)
+		failures.push(`${label} is not bound to an externally trusted GitHub run`);
 }
 
 function isFiniteMeasurements(value) {
@@ -98,12 +182,13 @@ function isFiniteMeasurements(value) {
 	return false;
 }
 
-function validateArtifactManifest(report, failures) {
+function validateArtifactManifest(report, failures, context) {
 	const files = Array.isArray(report.artifacts?.files)
 		? report.artifacts.files
 		: [];
 	if (files.length === 0) failures.push("DEEP artifact manifest is empty");
 	const paths = new Set();
+	const evidencePaths = new Set();
 	for (const file of files) {
 		if (
 			typeof file?.path !== "string" ||
@@ -116,6 +201,21 @@ function validateArtifactManifest(report, failures) {
 			failures.push(`DEEP artifact ${String(file?.path)} has invalid bytes`);
 		if (!HASH_PATTERN.test(file?.sha256 ?? ""))
 			failures.push(`DEEP artifact ${String(file?.path)} has invalid SHA-256`);
+		const expectedEvidencePath = `docs/exec-plans/evidence/003/release/deep-artifacts/${String(file?.path)}`;
+		if (
+			file?.evidencePath !== expectedEvidencePath ||
+			evidencePaths.has(file?.evidencePath)
+		)
+			failures.push(
+				`DEEP artifact ${String(file?.path)} evidence path is not unique and canonical`,
+			);
+		evidencePaths.add(file?.evidencePath);
+		validateArtifactReference(
+			{ bytes: file?.bytes, path: file?.evidencePath, sha256: file?.sha256 },
+			`DEEP artifact ${String(file?.path)}`,
+			failures,
+			context,
+		);
 	}
 	const sorted = [...files].sort((left, right) =>
 		left.path.localeCompare(right.path),
@@ -131,7 +231,7 @@ function validateArtifactManifest(report, failures) {
 				: paths.has(path);
 		if (!present) failures.push(`required DEEP artifact is missing: ${path}`);
 	}
-	return new Map(files.map((file) => [file.path, file.sha256]));
+	return new Map(files.map((file) => [file.path, file]));
 }
 
 function validateDeepConstituents(report, failures) {
@@ -156,7 +256,7 @@ function validateDeepConstituents(report, failures) {
 	}
 }
 
-function validateDeepBenchmarks(report, artifactHashes, failures) {
+function validateDeepBenchmarks(report, artifacts, failures, context) {
 	const actual = Array.isArray(report.benchmarkEvidence)
 		? report.benchmarkEvidence
 		: [];
@@ -174,11 +274,35 @@ function validateDeepBenchmarks(report, artifactHashes, failures) {
 			failures.push(`DEEP benchmark ${contract.id} is not PASS`);
 		if (
 			!HASH_PATTERN.test(benchmark?.artifactSha256 ?? "") ||
-			artifactHashes.get(contract.path) !== benchmark?.artifactSha256
+			artifacts.get(contract.path)?.sha256 !== benchmark?.artifactSha256
 		)
 			failures.push(
 				`DEEP benchmark ${contract.id} artifact hash does not match`,
 			);
+		const evidencePath = artifacts.get(contract.path)?.evidencePath;
+		if (
+			typeof evidencePath === "string" &&
+			typeof context?.readArtifact === "function"
+		) {
+			try {
+				const raw = JSON.parse(
+					Buffer.from(context.readArtifact(evidencePath)).toString("utf8"),
+				);
+				const derived = validateDeepBenchmarkReport(
+					contract,
+					raw,
+					report.source?.start?.commit,
+				);
+				if (JSON.stringify(derived) !== JSON.stringify(benchmark?.measurements))
+					failures.push(
+						`DEEP benchmark ${contract.id} measurements were not derived from the raw artifact`,
+					);
+			} catch {
+				failures.push(
+					`DEEP benchmark ${contract.id} raw artifact or gates are invalid`,
+				);
+			}
+		}
 		if (!isFiniteMeasurements(benchmark?.measurements))
 			failures.push(`DEEP benchmark ${contract.id} measurements are invalid`);
 		else
@@ -272,7 +396,7 @@ export function validateExactHeadEvidence(
 	const failures = [];
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-verification-tier-v2")
+	if (report.schemaVersion !== "eonfolk-verification-tier-v3")
 		failures.push("unsupported evidence schema");
 	if (report.status !== "PASS")
 		failures.push("verification status is not PASS");
@@ -289,7 +413,21 @@ export function validateExactHeadEvidence(
 			failures.push(`source.${endpoint}.commit is not exact HEAD`);
 		if (source?.clean !== true)
 			failures.push(`source.${endpoint}.clean is not true`);
+		if (
+			source?.trackedTree?.checkout !== "detached-full" ||
+			!HASH_PATTERN.test(source?.trackedTree?.manifestSha256 ?? "") ||
+			!Number.isSafeInteger(source?.trackedTree?.fileCount) ||
+			source.trackedTree.fileCount < 1
+		)
+			failures.push(
+				`source.${endpoint}.trackedTree is not a verified detached full checkout`,
+			);
 	}
+	if (
+		report.source?.start?.trackedTree?.manifestSha256 !==
+		report.source?.end?.trackedTree?.manifestSha256
+	)
+		failures.push("tracked source bytes or modes changed during verification");
 	if (report.source?.unchanged !== true)
 		failures.push("source.unchanged is not true");
 	if (report.source?.acceptanceEligible !== true)
@@ -297,11 +435,36 @@ export function validateExactHeadEvidence(
 	return { ok: failures.length === 0, failures };
 }
 
-export function validateTargetMacDeepEvidence(report, frozenSoftwareSha) {
+export function validateTargetMacDeepEvidence(
+	report,
+	frozenSoftwareSha,
+	context = {},
+) {
 	const result = validateExactHeadEvidence(report, frozenSoftwareSha, {
 		requiredTier: "deep",
 	});
 	const failures = [...result.failures];
+	if (
+		!exactKeys(report, [
+			"artifactAssertions",
+			"artifacts",
+			"benchmarkEvidence",
+			"claimBoundary",
+			"environment",
+			"inputs",
+			"integrityClaim",
+			"outputSha256",
+			"recordedAt",
+			"schemaVersion",
+			"source",
+			"status",
+			"subcommands",
+			"tier",
+			"trustedRun",
+			"verificationContractSha256",
+		])
+	)
+		failures.push("DEEP evidence does not match the exact v3 envelope");
 	if (typeof report?.environment?.host !== "string") {
 		failures.push("DEEP environment host is missing");
 	} else {
@@ -312,8 +475,22 @@ export function validateTargetMacDeepEvidence(report, frozenSoftwareSha) {
 	}
 	if (report?.verificationContractSha256 !== verificationContractSha256("deep"))
 		failures.push("DEEP verification contract hash does not match");
+	if (report?.integrityClaim !== "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY")
+		failures.push("DEEP evidence integrity boundary is missing or overstated");
+	if (report !== null && typeof report === "object")
+		validateTrustedRun(
+			report.trustedRun,
+			{
+				payloadSha256: attestablePayloadSha256(report),
+				purpose: "target-mac-deep",
+				sourceSha: frozenSoftwareSha,
+			},
+			"DEEP evidence",
+			failures,
+			context,
+		);
 	validateDeepConstituents(report ?? {}, failures);
-	const artifactHashes = validateArtifactManifest(report ?? {}, failures);
+	const artifacts = validateArtifactManifest(report ?? {}, failures, context);
 	if (
 		report?.artifactAssertions?.productionDistPresent !== true ||
 		report?.artifactAssertions?.crashInjectionMarkersAbsent !== true ||
@@ -321,7 +498,7 @@ export function validateTargetMacDeepEvidence(report, frozenSoftwareSha) {
 		report.artifactAssertions.filesInspected < 1
 	)
 		failures.push("DEEP production artifact assertions are incomplete");
-	validateDeepBenchmarks(report ?? {}, artifactHashes, failures);
+	validateDeepBenchmarks(report ?? {}, artifacts, failures, context);
 	return { ok: failures.length === 0, failures };
 }
 
@@ -331,8 +508,10 @@ function validateEvidencePath(path) {
 		!isAbsolute(path) &&
 		!path.includes("\\") &&
 		!path.split("/").includes("..") &&
-		(path.startsWith("docs/reviews/") ||
-			path.startsWith("docs/exec-plans/evidence/003/release/"))
+		(path.startsWith("docs/exec-plans/evidence/003/release/deep-artifacts/") ||
+			((path.startsWith("docs/reviews/") ||
+				path.startsWith("docs/exec-plans/evidence/003/release/")) &&
+				/\.(json|md|txt)$/u.test(path)))
 	);
 }
 
@@ -364,55 +543,96 @@ function validateArtifactReference(reference, label, failures, context) {
 	}
 }
 
-function requireArtifactTokens(contents, tokens, label, failures) {
-	if (contents === null) return;
-	for (const token of tokens) {
-		if (!contents.includes(token))
-			failures.push(`${label} artifact does not bind ${token}`);
+function parseJsonArtifact(contents, label, failures) {
+	if (contents === null) return null;
+	try {
+		const parsed = JSON.parse(contents);
+		if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
+			throw new Error("not object");
+		return parsed;
+	} catch {
+		failures.push(`${label} artifact is not structured JSON`);
+		return null;
 	}
+}
+
+function exactKeys(value, keys) {
+	return (
+		value !== null &&
+		typeof value === "object" &&
+		!Array.isArray(value) &&
+		JSON.stringify(Object.keys(value).sort()) ===
+			JSON.stringify([...keys].sort())
+	);
+}
+
+function validTimestamp(value) {
+	return typeof value === "string" && Number.isFinite(Date.parse(value));
 }
 
 export function validateReviewConfirmationEvidence(report, context = {}) {
 	const failures = [];
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["review evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v2")
+	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v3")
 		failures.push("unsupported review evidence schema");
+	if (
+		!exactKeys(report, [
+			"confirmation",
+			"frozenSoftwareSha",
+			"initialReviewSha",
+			"integrityClaim",
+			"outputSha256",
+			"reconciliation",
+			"reviews",
+			"schemaVersion",
+			"status",
+		])
+	)
+		failures.push("review evidence does not match the exact v3 envelope");
 	if (report.status !== "PASS") failures.push("review evidence is not PASS");
+	if (report.integrityClaim !== "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY")
+		failures.push(
+			"review evidence integrity boundary is missing or overstated",
+		);
 	verifySelfHash(report, failures);
-	for (const field of ["initialReviewSha", "frozenSoftwareSha"]) {
+	for (const field of ["initialReviewSha", "frozenSoftwareSha"])
 		if (!SHA_PATTERN.test(report[field] ?? ""))
 			failures.push(`${field} is not a full Git SHA`);
-	}
-	if (
-		SHA_PATTERN.test(report.initialReviewSha ?? "") &&
-		SHA_PATTERN.test(report.frozenSoftwareSha ?? "")
-	) {
-		if (typeof context?.isAncestor !== "function")
-			failures.push("review ancestry was not verified");
-		else if (
-			!context.isAncestor(report.initialReviewSha, report.frozenSoftwareSha)
-		)
-			failures.push("initialReviewSha is not an ancestor of frozenSoftwareSha");
-	}
+	if (typeof context?.isAncestor !== "function")
+		failures.push("review ancestry was not verified");
+	else if (
+		!context.isAncestor(report.initialReviewSha, report.frozenSoftwareSha)
+	)
+		failures.push("initialReviewSha is not an ancestor of frozenSoftwareSha");
 
 	const reviews = Array.isArray(report.reviews) ? report.reviews : [];
 	if (reviews.length !== REQUIRED_REVIEW_DISCIPLINES.size)
 		failures.push("review evidence must contain exactly six reviews");
 	const reviewIds = new Set();
-	const reviewerIds = new Set();
 	const disciplines = new Set();
-	const allFindingIds = new Set();
+	const artifactPaths = new Set();
+	const artifactHashes = new Set();
+	const attestationIds = new Set();
+	const allFindings = [];
+	const reviewTimes = [];
 	for (const review of reviews) {
-		if (review?.reviewId !== REVIEW_ID_BY_DISCIPLINE[review?.discipline])
-			failures.push("review is missing reviewId");
-		else reviewIds.add(review.reviewId);
+		const label = `review ${String(review?.reviewId)}`;
 		if (
-			typeof review?.reviewerId !== "string" ||
-			review.reviewerId.length === 0
+			!exactKeys(review, [
+				"artifact",
+				"discipline",
+				"findings",
+				"reviewId",
+				"sourceSha",
+				"status",
+				"trustedRun",
+			])
 		)
-			failures.push("review is missing reviewerId");
-		else reviewerIds.add(review.reviewerId);
+			failures.push(`${label} declaration has unknown or missing fields`);
+		if (review?.reviewId !== REVIEW_ID_BY_DISCIPLINE[review?.discipline])
+			failures.push("review is missing exact discipline reviewId");
+		else reviewIds.add(review.reviewId);
 		if (!REQUIRED_REVIEW_DISCIPLINES.has(review?.discipline))
 			failures.push(`unknown review discipline ${String(review?.discipline)}`);
 		else disciplines.add(review.discipline);
@@ -420,173 +640,289 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			failures.push("review is not bound to initialReviewSha");
 		if (review?.status !== "COMPLETE")
 			failures.push("review status is not COMPLETE");
-		const p0Findings = Array.isArray(review?.findings?.p0)
-			? review.findings.p0
-			: [];
-		const p1Findings = Array.isArray(review?.findings?.p1)
-			? review.findings.p1
-			: [];
-		const findings = [...p0Findings, ...p1Findings];
+		if (
+			artifactPaths.has(review?.artifact?.path) ||
+			artifactHashes.has(review?.artifact?.sha256)
+		)
+			failures.push("review artifacts are duplicated");
+		artifactPaths.add(review?.artifact?.path);
+		artifactHashes.add(review?.artifact?.sha256);
+		if (attestationIds.has(review?.trustedRun?.attestationId))
+			failures.push("review trusted runs are not independent");
+		attestationIds.add(review?.trustedRun?.attestationId);
+		const contents = validateArtifactReference(
+			review?.artifact,
+			label,
+			failures,
+			context,
+		);
+		const artifact = parseJsonArtifact(contents, label, failures);
+		const p0 = Array.isArray(review?.findings?.p0) ? review.findings.p0 : [];
+		const p1 = Array.isArray(review?.findings?.p1) ? review.findings.p1 : [];
+		const findings = [...p0, ...p1];
 		if (
 			!Array.isArray(review?.findings?.p0) ||
 			!Array.isArray(review?.findings?.p1)
 		)
 			failures.push("review P0/P1 finding lists are missing");
-		for (const finding of findings) {
-			if (
-				typeof finding !== "string" ||
-				!finding.startsWith(`${review?.reviewId}-`) ||
-				!/-(P0|P1)-\d{3}$/u.test(finding)
-			)
-				failures.push(`review finding ID is invalid: ${String(finding)}`);
-			if (allFindingIds.has(finding))
-				failures.push(`review finding ID is duplicated: ${String(finding)}`);
-			else allFindingIds.add(finding);
-		}
-		if (p0Findings.some((finding) => !/-P0-\d{3}$/u.test(finding)))
-			failures.push("review P0 list contains a non-P0 finding ID");
-		if (p1Findings.some((finding) => !/-P1-\d{3}$/u.test(finding)))
-			failures.push("review P1 list contains a non-P1 finding ID");
-		const artifactContents = validateArtifactReference(
-			review?.artifact,
-			`review ${String(review?.reviewId)}`,
+		for (const [severity, entries] of [
+			["P0", p0],
+			["P1", p1],
+		])
+			for (const finding of entries) {
+				if (
+					!exactKeys(finding, ["id", "narrative", "title"]) ||
+					!new RegExp(`^${review?.reviewId}-${severity}-\\d{3}$`, "u").test(
+						finding?.id ?? "",
+					) ||
+					typeof finding?.title !== "string" ||
+					finding.title.trim().length < 8 ||
+					typeof finding?.narrative !== "string" ||
+					finding.narrative.trim().length < 24 ||
+					allFindings.some((entry) => entry.id === finding?.id)
+				)
+					failures.push(`review finding is invalid: ${String(finding?.id)}`);
+				else allFindings.push({ ...finding, severity });
+			}
+		const expectedConclusion = findings.length === 0 ? "NO_P0_P1" : "FINDINGS";
+		if (
+			!exactKeys(artifact, [
+				"completedAt",
+				"conclusion",
+				"discipline",
+				"findings",
+				"reviewId",
+				"schemaVersion",
+				"sourceSha",
+			]) ||
+			artifact?.schemaVersion !== "eonfolk-v1-structured-review-v1" ||
+			artifact?.reviewId !== review?.reviewId ||
+			artifact?.discipline !== review?.discipline ||
+			artifact?.sourceSha !== report.initialReviewSha ||
+			artifact?.conclusion !== expectedConclusion ||
+			JSON.stringify(artifact?.findings) !== JSON.stringify(review?.findings) ||
+			!validTimestamp(artifact?.completedAt)
+		)
+			failures.push(
+				`${label} structured content does not match its declaration`,
+			);
+		else reviewTimes.push(Date.parse(artifact.completedAt));
+		validateTrustedRun(
+			review?.trustedRun,
+			{
+				payloadSha256: review?.artifact?.sha256,
+				purpose: `review:${review?.reviewId}`,
+				sourceSha: report.initialReviewSha,
+			},
+			label,
 			failures,
 			context,
-		);
-		requireArtifactTokens(
-			artifactContents,
-			[
-				report.initialReviewSha,
-				String(review?.reviewId),
-				String(review?.reviewerId),
-				...findings,
-			],
-			`review ${String(review?.reviewId)}`,
-			failures,
 		);
 	}
 	if (reviewIds.size !== reviews.length)
 		failures.push("review IDs are not unique");
-	if (reviewerIds.size !== reviews.length)
-		failures.push("reviewers are not independent");
 	if (disciplines.size !== REQUIRED_REVIEW_DISCIPLINES.size)
 		failures.push("required review disciplines are incomplete");
-	if (report.reconciliation?.unrepairedP0 !== 0)
-		failures.push("review evidence has unrepaired P0 findings");
-	if (report.reconciliation?.unrepairedP1 !== 0)
-		failures.push("review evidence has unrepaired P1 findings");
-	if (report.reconciliation?.finalSoftwareSha !== report.frozenSoftwareSha)
-		failures.push("reconciliation is not bound to frozenSoftwareSha");
-	if (report.reconciliation?.sourceSha !== report.initialReviewSha)
-		failures.push("reconciliation is not bound to initialReviewSha");
-	const reviewFindingIds = reviews.flatMap((review) => [
-		...(Array.isArray(review?.findings?.p0) ? review.findings.p0 : []),
-		...(Array.isArray(review?.findings?.p1) ? review.findings.p1 : []),
-	]);
+
 	const dispositions = Array.isArray(report.reconciliation?.dispositions)
 		? report.reconciliation.dispositions
 		: [];
+	const findingIds = allFindings.map(({ id }) => id);
+	if (dispositions.length !== findingIds.length)
+		failures.push("P0/P1 dispositions do not exactly cover review findings");
 	const dispositionIds = new Set();
 	for (const disposition of dispositions) {
-		if (!reviewFindingIds.includes(disposition?.findingId))
-			failures.push(
-				`disposition has unknown finding ${String(disposition?.findingId)}`,
-			);
-		else dispositionIds.add(disposition.findingId);
 		if (
-			!["ACCEPT", "PARTIALLY ACCEPT", "REJECT"].includes(
-				disposition?.disposition,
-			)
+			!exactKeys(disposition, [
+				"disposition",
+				"evidenceRefs",
+				"findingId",
+				"status",
+			]) ||
+			!findingIds.includes(disposition?.findingId) ||
+			dispositionIds.has(disposition?.findingId)
 		)
-			failures.push("finding disposition is invalid");
-		if (disposition?.status !== "CLOSED")
-			failures.push("P0/P1 disposition is not CLOSED");
+			failures.push("finding disposition is unknown, duplicated, or malformed");
+		dispositionIds.add(disposition?.findingId);
+		if (
+			!["ACCEPT", "PARTIALLY_ACCEPT", "REJECT"].includes(
+				disposition?.disposition,
+			) ||
+			disposition?.status !== "CLOSED"
+		)
+			failures.push("finding disposition is not a valid CLOSED decision");
 		if (
 			!Array.isArray(disposition?.evidenceRefs) ||
 			disposition.evidenceRefs.length === 0
 		)
 			failures.push("P0/P1 disposition has no evidence references");
+		for (const reference of disposition?.evidenceRefs ?? []) {
+			if (
+				reference?.kind === "git-commit" &&
+				exactKeys(reference, ["kind", "sha"])
+			) {
+				if (
+					!SHA_PATTERN.test(reference.sha) ||
+					!context?.commitExists?.(reference.sha) ||
+					!context?.isAncestor?.(reference.sha, report.frozenSoftwareSha)
+				)
+					failures.push(
+						"disposition Git evidence is not in the frozen history",
+					);
+			} else if (
+				reference?.kind === "artifact" &&
+				exactKeys(reference, ["artifact", "kind"])
+			)
+				validateArtifactReference(
+					reference.artifact,
+					"disposition evidence",
+					failures,
+					context,
+				);
+			else failures.push("disposition evidence reference is malformed");
+		}
 	}
+	if (dispositionIds.size !== findingIds.length)
+		failures.push("P0/P1 dispositions are incomplete");
 	if (
-		dispositionIds.size !== reviewFindingIds.length ||
-		reviewFindingIds.some((findingId) => !dispositionIds.has(findingId))
+		!exactKeys(report.reconciliation, [
+			"artifact",
+			"completedAt",
+			"dispositions",
+			"finalDiff",
+			"finalSoftwareSha",
+			"sourceSha",
+			"unrepairedP0",
+			"unrepairedP1",
+		]) ||
+		report.reconciliation?.unrepairedP0 !== 0 ||
+		report.reconciliation?.unrepairedP1 !== 0
 	)
-		failures.push("P0/P1 dispositions do not exactly cover review findings");
+		failures.push("review evidence has unrepaired P0/P1 findings");
+	if (
+		report.reconciliation?.sourceSha !== report.initialReviewSha ||
+		report.reconciliation?.finalSoftwareSha !== report.frozenSoftwareSha
+	)
+		failures.push("reconciliation SHA binding is invalid");
 	const reconciliationContents = validateArtifactReference(
 		report.reconciliation?.artifact,
 		"reconciliation",
 		failures,
 		context,
 	);
-	requireArtifactTokens(
+	const reconciliationArtifact = parseJsonArtifact(
 		reconciliationContents,
-		[report.initialReviewSha, report.frozenSoftwareSha, ...reviewFindingIds],
 		"reconciliation",
 		failures,
 	);
 	if (
-		report.reconciliation?.finalDiff?.baseSha !== report.initialReviewSha ||
-		report.reconciliation?.finalDiff?.headSha !== report.frozenSoftwareSha
+		!exactKeys(reconciliationArtifact, [
+			"completedAt",
+			"dispositions",
+			"frozenSoftwareSha",
+			"initialReviewSha",
+			"schemaVersion",
+		]) ||
+		reconciliationArtifact?.schemaVersion !== "eonfolk-v1-reconciliation-v1" ||
+		!validTimestamp(report.reconciliation?.completedAt) ||
+		JSON.stringify(reconciliationArtifact?.dispositions) !==
+			JSON.stringify(dispositions) ||
+		reconciliationArtifact?.initialReviewSha !== report.initialReviewSha ||
+		reconciliationArtifact?.frozenSoftwareSha !== report.frozenSoftwareSha
 	)
-		failures.push("final diff evidence is not bound to the review range");
-	let finalDiffPathsSha256 = null;
-	if (typeof context?.diffPaths !== "function")
-		failures.push("final diff paths were not independently inspected");
-	else {
-		try {
-			const paths = context.diffPaths(
+		failures.push("structured reconciliation does not match its declaration");
+
+	const finalDiff = report.reconciliation?.finalDiff;
+	if (!exactKeys(finalDiff, ["artifact", "binding"]))
+		failures.push("final diff declaration has unknown or missing fields");
+	let computedDiff = null;
+	try {
+		computedDiff = {
+			baseSha: report.initialReviewSha,
+			baseTreeSha: context.treeSha(report.initialReviewSha),
+			diffSha256: context.fullDiffSha256(
 				report.initialReviewSha,
 				report.frozenSoftwareSha,
-			);
-			finalDiffPathsSha256 = sha256(JSON.stringify(paths));
-			if (report.reconciliation?.finalDiff?.pathCount !== paths.length)
-				failures.push("final diff path count does not match Git");
-			if (
-				report.reconciliation?.finalDiff?.pathsSha256 !== finalDiffPathsSha256
-			)
-				failures.push("final diff path hash does not match Git");
-		} catch {
-			failures.push("final diff paths could not be inspected");
-		}
+			),
+			headSha: report.frozenSoftwareSha,
+			headTreeSha: context.treeSha(report.frozenSoftwareSha),
+		};
+	} catch {
+		failures.push("full final diff could not be independently inspected");
 	}
+	if (JSON.stringify(finalDiff?.binding) !== JSON.stringify(computedDiff))
+		failures.push("final diff tree/content binding does not match Git");
 	const finalDiffContents = validateArtifactReference(
-		report.reconciliation?.finalDiff?.artifact,
+		finalDiff?.artifact,
 		"final diff",
 		failures,
 		context,
 	);
-	requireArtifactTokens(
+	const finalDiffArtifact = parseJsonArtifact(
 		finalDiffContents,
-		[
-			report.initialReviewSha,
-			report.frozenSoftwareSha,
-			String(finalDiffPathsSha256),
-		],
 		"final diff",
 		failures,
 	);
-	if (report.confirmation?.status !== "PASS")
-		failures.push("fresh confirmation is not PASS");
-	if (report.confirmation?.sourceSha !== report.frozenSoftwareSha)
-		failures.push("fresh confirmation is not bound to frozenSoftwareSha");
 	if (
-		typeof report.confirmation?.reviewerId !== "string" ||
-		report.confirmation.reviewerId.length === 0
+		!exactKeys(finalDiffArtifact, ["binding", "schemaVersion"]) ||
+		finalDiffArtifact?.schemaVersion !== "eonfolk-v1-final-diff-v1" ||
+		JSON.stringify(finalDiffArtifact?.binding) !== JSON.stringify(computedDiff)
 	)
-		failures.push("fresh confirmation is missing reviewerId");
-	else if (reviewerIds.has(report.confirmation.reviewerId))
-		failures.push("fresh confirmation reviewer is not independent");
+		failures.push("structured final diff artifact does not match Git");
+
 	const confirmationContents = validateArtifactReference(
 		report.confirmation?.artifact,
 		"fresh confirmation",
 		failures,
 		context,
 	);
-	requireArtifactTokens(
+	const confirmation = parseJsonArtifact(
 		confirmationContents,
-		[report.frozenSoftwareSha, String(report.confirmation?.reviewerId), "PASS"],
 		"fresh confirmation",
 		failures,
+	);
+	if (
+		!exactKeys(report.confirmation, ["artifact", "trustedRun"]) ||
+		!exactKeys(confirmation, [
+			"completedAt",
+			"deepEvidenceOutputSha256",
+			"finalDiffSha256",
+			"reconciliationSha256",
+			"schemaVersion",
+			"sourceSha",
+			"status",
+		]) ||
+		confirmation?.schemaVersion !== "eonfolk-v1-final-confirmation-v1" ||
+		confirmation?.status !== "PASS" ||
+		confirmation?.sourceSha !== report.frozenSoftwareSha ||
+		confirmation?.deepEvidenceOutputSha256 !==
+			context.deepEvidenceOutputSha256 ||
+		confirmation?.reconciliationSha256 !==
+			report.reconciliation?.artifact?.sha256 ||
+		confirmation?.finalDiffSha256 !== finalDiff?.artifact?.sha256 ||
+		!validTimestamp(confirmation?.completedAt) ||
+		Date.parse(confirmation?.completedAt) <=
+			Math.max(
+				0,
+				...reviewTimes,
+				Date.parse(report.reconciliation?.completedAt ?? ""),
+			)
+	)
+		failures.push(
+			"fresh confirmation structure, binding, or ordering is invalid",
+		);
+	if (attestationIds.has(report.confirmation?.trustedRun?.attestationId))
+		failures.push("fresh confirmation run is not independent");
+	validateTrustedRun(
+		report.confirmation?.trustedRun,
+		{
+			payloadSha256: report.confirmation?.artifact?.sha256,
+			purpose: "final-confirmation",
+			sourceSha: report.frozenSoftwareSha,
+		},
+		"fresh confirmation",
+		failures,
+		context,
 	);
 	return {
 		ok: failures.length === 0,
@@ -599,25 +935,33 @@ export function isAllowedPostFreezePath(path) {
 	if (POST_FREEZE_ROOT_FILES.has(path)) return true;
 	if (path === "docs/INDEX.md" || path === "docs/generated/REPO_INVENTORY.md")
 		return true;
+	if (path.startsWith("docs/exec-plans/evidence/003/release/deep-artifacts/"))
+		return true;
 	return (
-		/^docs\/exec-plans\/(active|evidence)\/.*\.(json|md)$/u.test(path) ||
-		/^docs\/reviews\/.*\.(json|md)$/u.test(path)
+		/^docs\/exec-plans\/(active|evidence)\/.*\.(json|md|txt)$/u.test(path) ||
+		/^docs\/reviews\/.*\.(json|md|txt)$/u.test(path)
 	);
 }
 
 export function validatePostFreezeDelta({
 	ancestor,
+	ancestryRequired = true,
 	paths,
+	symlinkPaths = [],
 	frozenSha = null,
 	head = null,
 }) {
 	const failures = [];
-	if (!ancestor)
+	if (ancestryRequired && !ancestor)
 		failures.push("frozen software SHA is not an ancestor of HEAD");
 	const disallowed = paths.filter((path) => !isAllowedPostFreezePath(path));
 	if (disallowed.length > 0)
 		failures.push(
 			`post-freeze delta contains software or unapproved files: ${disallowed.join(", ")}`,
+		);
+	if (symlinkPaths.length > 0)
+		failures.push(
+			`post-freeze evidence paths must not be symlinks: ${symlinkPaths.join(", ")}`,
 		);
 	return {
 		ok: failures.length === 0,
@@ -655,6 +999,8 @@ export function validateTestedIdentity(
 			failures.push("baseSha is not an ancestor of testedSha");
 		if (!context.isAncestor(candidateSha, testedSha))
 			failures.push("candidateSha is not an ancestor of testedSha");
+		if (!context.isAncestor(baseSha, candidateSha))
+			failures.push("baseSha is not an ancestor of candidateSha");
 	}
 	if (testedKind === "pull-request-merge") {
 		if (testedSha === candidateSha)
@@ -664,27 +1010,46 @@ export function validateTestedIdentity(
 		if (typeof context.parents !== "function")
 			failures.push("pull-request merge-ref parents were not inspected");
 		else {
-			const parents = context.parents(testedSha);
-			if (
-				parents.length !== 2 ||
-				!parents.includes(baseSha) ||
-				!parents.includes(candidateSha)
-			)
-				failures.push(
-					"tested merge-ref parents are not exact base and candidate",
-				);
+			try {
+				const parents = context.parents(testedSha);
+				if (
+					parents.length !== 2 ||
+					!parents.includes(baseSha) ||
+					!parents.includes(candidateSha)
+				)
+					failures.push(
+						"tested merge-ref parents are not exact base and candidate",
+					);
+			} catch {
+				failures.push("tested merge-ref parents could not be inspected");
+			}
 		}
-	} else if (testedKind === "candidate") {
+		if (typeof context.treeSha !== "function")
+			failures.push("candidate and tested trees were not inspected");
+		else
+			try {
+				if (context.treeSha(candidateSha) !== context.treeSha(testedSha))
+					failures.push("tested merge-ref tree differs from candidate tree");
+			} catch {
+				failures.push("candidate and tested trees could not be inspected");
+			}
+	} else if (testedKind === "candidate" || testedKind === "main-push") {
 		if (testedSha !== candidateSha)
 			failures.push(
 				"candidate verification did not test candidateSha directly",
 			);
-	} else failures.push("testedKind is not pull-request-merge or candidate");
+	} else
+		failures.push(
+			"testedKind is not pull-request-merge, candidate, or main-push",
+		);
 	return { ok: failures.length === 0, failures };
 }
 
 export function evaluateV1Readiness({
 	rows,
+	canonicalRows = rows,
+	goalSource = null,
+	canonicalGoalSource = null,
 	mode,
 	deepEvidence = null,
 	reviewEvidence = null,
@@ -704,7 +1069,7 @@ export function evaluateV1Readiness({
 	);
 	if (mode === "draft") {
 		return {
-			schemaVersion: "eonfolk-v1-readiness-v2",
+			schemaVersion: "eonfolk-v1-readiness-v3",
 			status: "V1 INCOMPLETE",
 			mode,
 			head,
@@ -718,19 +1083,28 @@ export function evaluateV1Readiness({
 		};
 	}
 
+	const releaseContext = {
+		...reviewValidationContext,
+		deepEvidenceOutputSha256: deepEvidence?.outputSha256,
+	};
 	const reviewResult = validateReviewConfirmationEvidence(
 		reviewEvidence,
-		reviewValidationContext,
+		releaseContext,
 	);
 	const frozenSoftwareSha = reviewResult.frozenSoftwareSha;
 	const deepResult = SHA_PATTERN.test(frozenSoftwareSha ?? "")
-		? validateTargetMacDeepEvidence(deepEvidence, frozenSoftwareSha)
+		? validateTargetMacDeepEvidence(
+				deepEvidence,
+				frozenSoftwareSha,
+				releaseContext,
+			)
 		: {
 				ok: false,
 				failures: ["review evidence has no valid frozenSoftwareSha"],
 			};
 	const deltaResult = validatePostFreezeDelta({
 		...postFreeze,
+		ancestryRequired: testedIdentity?.testedKind !== "main-push",
 		frozenSha: frozenSoftwareSha,
 		head,
 	});
@@ -738,7 +1112,12 @@ export function evaluateV1Readiness({
 		testedIdentity ?? {},
 		reviewValidationContext,
 	);
+	const goalRosterResult = validateCanonicalGoalRoster(rows, canonicalRows, {
+		canonicalSource: canonicalGoalSource,
+		source: goalSource,
+	});
 	const evidenceFailures = [
+		...goalRosterResult.failures,
 		...reviewResult.failures,
 		...deepResult.failures,
 		...deltaResult.failures,
@@ -746,7 +1125,7 @@ export function evaluateV1Readiness({
 	];
 	const ready = incomplete.length === 0 && evidenceFailures.length === 0;
 	return {
-		schemaVersion: "eonfolk-v1-readiness-v2",
+		schemaVersion: "eonfolk-v1-readiness-v3",
 		status: ready ? "V1 READY" : "V1 INCOMPLETE",
 		mode,
 		head,
@@ -754,6 +1133,7 @@ export function evaluateV1Readiness({
 		frozenSoftwareSha,
 		requiredRows: rows.length,
 		stateCounts: counts,
+		goalRosterSha256: goalRosterResult.rosterSha256,
 		incomplete: incomplete.map((row) => row.requirement),
 		releaseEvidence: {
 			status: ready ? "VALID" : "INVALID",
@@ -784,20 +1164,88 @@ function inspectPostFreeze(frozenSoftwareSha, head) {
 		spawnSync("git", ["merge-base", "--is-ancestor", frozenSoftwareSha, head], {
 			stdio: "ignore",
 		}).status === 0;
-	if (!ancestor) return { ancestor: false, paths: [] };
 	const output = execFileSync(
 		"git",
 		["diff", "--name-only", `${frozenSoftwareSha}..${head}`],
 		{ encoding: "utf8" },
 	).trim();
+	const paths = output.length === 0 ? [] : output.split("\n");
+	const symlinkPaths = paths.filter((path) =>
+		execFileSync("git", ["ls-tree", head, "--", path], {
+			encoding: "utf8",
+		}).startsWith("120000 "),
+	);
 	return {
-		ancestor: true,
-		paths: output.length === 0 ? [] : output.split("\n"),
+		ancestor,
+		paths,
+		symlinkPaths,
 	};
 }
 
-function reviewValidationContext() {
-	const root = resolve(".");
+function loadTrustedRuns(path) {
+	if (path === null)
+		throw new Error(
+			"ready mode requires --trusted-attestations from the external GitHub trust root",
+		);
+	const root = realpathSync(resolve("."));
+	const absolute = resolve(path);
+	if (!isAbsolute(path) || lstatSync(absolute).isSymbolicLink())
+		throw new Error(
+			"trusted attestations must be a non-symlink absolute file outside the repository",
+		);
+	const real = realpathSync(absolute);
+	const repositoryRelative = relative(root, real).split(sep).join("/");
+	if (repositoryRelative !== ".." && !repositoryRelative.startsWith("../"))
+		throw new Error(
+			"trusted attestations must come from outside the repository checkout",
+		);
+	const registry = JSON.parse(readFileSync(real, "utf8"));
+	if (
+		!exactKeys(registry, ["runs", "schemaVersion", "trustBoundary"]) ||
+		registry?.schemaVersion !== "eonfolk-trusted-github-runs-v1" ||
+		registry?.trustBoundary !== "EXTERNAL_GITHUB_CONFIGURATION" ||
+		!Array.isArray(registry?.runs)
+	)
+		throw new Error("trusted GitHub run registry schema is invalid");
+	const runs = new Map();
+	for (const run of registry.runs) {
+		if (
+			!exactKeys(run, [
+				"attestationId",
+				"payloadSha256",
+				"provider",
+				"purpose",
+				"repository",
+				"runAttempt",
+				"runId",
+				"sourceSha",
+			]) ||
+			typeof run?.attestationId !== "string" ||
+			runs.has(run.attestationId)
+		)
+			throw new Error("trusted GitHub run IDs are missing or duplicated");
+		runs.set(run.attestationId, run);
+	}
+	return runs;
+}
+
+export function readRepositoryArtifact(rootPath, path) {
+	if (!validateEvidencePath(path)) throw new Error("invalid evidence path");
+	const root = realpathSync(resolve(rootPath));
+	const absolute = resolve(root, path);
+	const repositoryRelative = relative(root, absolute).split(sep).join("/");
+	if (repositoryRelative !== path)
+		throw new Error("evidence path escaped root");
+	if (lstatSync(absolute).isSymbolicLink())
+		throw new Error("evidence path must not be a symlink");
+	const real = realpathSync(absolute);
+	const realRelative = relative(root, real).split(sep).join("/");
+	if (realRelative !== path) throw new Error("evidence realpath escaped root");
+	return readFileSync(real);
+}
+
+function reviewValidationContext(trustedRuns = new Map()) {
+	const root = realpathSync(resolve("."));
 	return {
 		currentHead: execFileSync("git", ["rev-parse", "HEAD"], {
 			encoding: "utf8",
@@ -806,6 +1254,28 @@ function reviewValidationContext() {
 			spawnSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
 				stdio: "ignore",
 			}).status === 0,
+		commitExists: (commit) =>
+			spawnSync("git", ["cat-file", "-e", `${commit}^{commit}`], {
+				stdio: "ignore",
+			}).status === 0,
+		treeSha: (commit) =>
+			execFileSync("git", ["rev-parse", `${commit}^{tree}`], {
+				encoding: "utf8",
+			}).trim(),
+		fullDiffSha256: (base, head) =>
+			sha256(
+				execFileSync("git", [
+					"diff",
+					"--binary",
+					"--full-index",
+					"--no-ext-diff",
+					"--no-textconv",
+					"--no-renames",
+					`${base}..${head}`,
+				]),
+			),
+		trustedRuns,
+		repository: process.env.GITHUB_REPOSITORY,
 		diffPaths: (base, head) => {
 			const output = execFileSync(
 				"git",
@@ -822,12 +1292,7 @@ function reviewValidationContext() {
 				.split(/\s+/u)
 				.filter(Boolean),
 		readArtifact: (path) => {
-			if (!validateEvidencePath(path)) throw new Error("invalid evidence path");
-			const absolute = resolve(root, path);
-			const repositoryRelative = relative(root, absolute).split(sep).join("/");
-			if (repositoryRelative !== path)
-				throw new Error("evidence path escaped root");
-			return readFileSync(absolute);
+			return readRepositoryArtifact(root, path);
 		},
 	};
 }
@@ -857,7 +1322,21 @@ function main() {
 		testedKind: argument("--tested-kind") ?? "candidate",
 		testedSha: testedHead,
 	};
-	const rows = parseRequiredStateRows(readFileSync(goalPath, "utf8"));
+	const goalSource = readFileSync(goalPath, "utf8");
+	const rows = parseRequiredStateRows(goalSource);
+	let canonicalGoalSource = goalSource;
+	if (mode === "ready")
+		canonicalGoalSource = execFileSync(
+			"git",
+			["show", `${testedIdentity.baseSha}:GOAL.md`],
+			{ encoding: "utf8" },
+		);
+	const canonicalRows =
+		mode === "ready" ? parseRequiredStateRows(canonicalGoalSource) : rows;
+	const trustedRuns =
+		mode === "ready"
+			? loadTrustedRuns(argument("--trusted-attestations"))
+			: new Map();
 	const deepEvidence =
 		mode === "ready" ? readJson(argument("--deep-evidence")) : null;
 	const reviewEvidence =
@@ -868,10 +1347,13 @@ function main() {
 			: { ancestor: false, paths: [] };
 	const result = evaluateV1Readiness({
 		rows,
+		canonicalRows,
+		canonicalGoalSource,
+		goalSource,
 		mode,
 		deepEvidence,
 		reviewEvidence,
-		reviewValidationContext: reviewValidationContext(),
+		reviewValidationContext: reviewValidationContext(trustedRuns),
 		head,
 		testedIdentity,
 		postFreeze,

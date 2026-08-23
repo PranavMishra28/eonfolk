@@ -129,6 +129,7 @@ jobs:
           V1_BASE_HEAD: ${{ github.event.pull_request.base.sha || github.event.before }}
           V1_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
           V1_TESTED_HEAD: ${{ github.sha }}
+          V1_TRUSTED_ATTESTATIONS_JSON: ${{ vars.V1_TRUSTED_ATTESTATIONS_JSON }}
         run: |
           set -euo pipefail
           V1_READINESS_MODE="draft"
@@ -140,14 +141,23 @@ jobs:
           V1_TESTED_KIND="candidate"
           if [[ "${V1_EVENT_NAME}" == "pull_request" ]]; then
             V1_TESTED_KIND="pull-request-merge"
+          elif [[ "${V1_EVENT_NAME}" == "push" ]]; then
+            V1_TESTED_KIND="main-push"
           fi
           if [[ "${V1_READINESS_MODE}" == "ready" ]]; then
+            if [[ -z "${V1_TRUSTED_ATTESTATIONS_JSON}" ]]; then
+              echo "V1_TRUSTED_ATTESTATIONS_JSON repository variable is required for externally trusted release evidence" >&2
+              exit 1
+            fi
+            trusted_attestations="${RUNNER_TEMP}/v1-trusted-attestations.json"
+            printf '%s' "${V1_TRUSTED_ATTESTATIONS_JSON}" > "${trusted_attestations}"
             node scripts/check-v1-readiness.mjs \
               --mode ready \
               --head "${V1_BRANCH_HEAD}" \
               --base-head "${V1_BASE_HEAD}" \
               --tested-head "${V1_TESTED_HEAD}" \
               --tested-kind "${V1_TESTED_KIND}" \
+              --trusted-attestations "${trusted_attestations}" \
               --deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json \
               --review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json
           else

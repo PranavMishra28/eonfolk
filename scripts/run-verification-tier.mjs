@@ -3,10 +3,13 @@ import { createHash } from "node:crypto";
 import {
 	closeSync,
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	openSync,
 	readdirSync,
 	readFileSync,
+	readlinkSync,
+	realpathSync,
 	rmSync,
 	statSync,
 	writeFileSync,
@@ -146,6 +149,89 @@ export const PRODUCTION_FAULT_SCAFFOLDING_MARKERS = Object.freeze([
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
 
+function gitBlobObjectId(bytes, algorithm) {
+	return createHash(algorithm)
+		.update(`blob ${bytes.byteLength}\0`)
+		.update(bytes)
+		.digest("hex");
+}
+
+export function trackedTreeState({ requireDetached = true } = {}) {
+	const detached =
+		spawnSync("git", ["symbolic-ref", "-q", "HEAD"], { stdio: "ignore" })
+			.status !== 0;
+	if (requireDetached && !detached)
+		throw new Error("acceptance evidence requires a detached HEAD checkout");
+	const sparse = spawnSync("git", ["config", "--bool", "core.sparseCheckout"], {
+		encoding: "utf8",
+	});
+	if (sparse.status === 0 && sparse.stdout.trim() === "true")
+		throw new Error("acceptance evidence rejects sparse checkout");
+	const verbose = execFileSync("git", ["ls-files", "-v", "-z"]);
+	for (const entry of verbose.toString("utf8").split("\0").filter(Boolean)) {
+		const tag = entry[0] ?? "";
+		if (tag === "S" || /^[a-z]$/u.test(tag))
+			throw new Error(
+				`acceptance evidence rejects Git index flag ${tag} on ${entry.slice(2)}`,
+			);
+	}
+	const staged = execFileSync("git", ["ls-files", "--stage", "-z"])
+		.toString("utf8")
+		.split("\0")
+		.filter(Boolean);
+	const manifest = [];
+	for (const entry of staged) {
+		const match = /^(\d{6}) ([a-f0-9]{40,64}) \d\t(.+)$/u.exec(entry);
+		if (match === null) throw new Error(`unparseable tracked entry: ${entry}`);
+		const [, mode, expectedObject, path] = match;
+		const absolute = resolve(path);
+		const stat = lstatSync(absolute);
+		let bytes;
+		if (mode === "120000") {
+			if (!stat.isSymbolicLink())
+				throw new Error(`tracked mode mismatch for ${path}`);
+			bytes = Buffer.from(readlinkSync(absolute));
+		} else if (mode === "160000") {
+			if (!stat.isDirectory()) throw new Error(`submodule is missing: ${path}`);
+			const actual = execFileSync(
+				"git",
+				["-C", absolute, "rev-parse", "HEAD"],
+				{
+					encoding: "utf8",
+				},
+			).trim();
+			if (actual !== expectedObject)
+				throw new Error(`submodule drift detected: ${path}`);
+			manifest.push({ mode, object: actual, path });
+			continue;
+		} else {
+			if (!stat.isFile() || stat.isSymbolicLink())
+				throw new Error(`tracked file type mismatch for ${path}`);
+			const executable = (stat.mode & 0o111) !== 0;
+			if ((mode === "100755") !== executable)
+				throw new Error(`tracked executable mode mismatch for ${path}`);
+			bytes = readFileSync(absolute);
+		}
+		const actualObject = gitBlobObjectId(
+			bytes,
+			expectedObject.length === 64 ? "sha256" : "sha1",
+		);
+		if (actualObject !== expectedObject)
+			throw new Error(`tracked byte mismatch for ${path}`);
+		manifest.push({ mode, object: actualObject, path });
+	}
+	const submodules = spawnSync("git", ["submodule", "status", "--recursive"], {
+		encoding: "utf8",
+	});
+	if (submodules.status !== 0 || /^(?:-|\+|U)/mu.test(submodules.stdout ?? ""))
+		throw new Error("submodule state is incomplete or drifted");
+	return Object.freeze({
+		checkout: detached ? "detached-full" : "branch-full",
+		fileCount: manifest.length,
+		manifestSha256: sha256(JSON.stringify(manifest)),
+	});
+}
+
 export function classifyConditionalPaths(paths) {
 	const uiPattern =
 		/^(apps\/web\/|packages\/|tests\/e2e\/|\.github\/workflows\/ci\.yml$|package\.json$|pnpm-lock\.yaml$|vite\..*\.ts$|playwright\..*\.ts$)/u;
@@ -237,28 +323,39 @@ export function runVerificationSteps(
 	});
 }
 
-function sourceState() {
+function sourceState({ requireDetached = false } = {}) {
+	const trackedTree = trackedTreeState({ requireDetached });
 	return Object.freeze({
 		commit: git("rev-parse", "HEAD"),
 		clean: git("status", "--porcelain").length === 0,
 		lockfileSha256: sha256(readFileSync(resolve("pnpm-lock.yaml"))),
+		trackedTree,
 	});
 }
 
 function visitArtifactFiles(paths) {
+	const root = realpathSync(resolve("."));
 	const files = [];
 	const visit = (path) => {
 		if (!existsSync(path)) return;
-		const stat = statSync(path);
+		const lexical = lstatSync(path);
+		if (lexical.isSymbolicLink())
+			throw new Error(`artifact path must not be a symlink: ${path}`);
+		const real = realpathSync(path);
+		const repositoryRelative = relative(root, real).split(sep).join("/");
+		if (repositoryRelative === ".." || repositoryRelative.startsWith("../"))
+			throw new Error(`artifact path escaped repository: ${path}`);
+		const stat = statSync(real);
 		if (stat.isDirectory()) {
-			for (const name of readdirSync(path)) visit(resolve(path, name));
+			for (const name of readdirSync(real)) visit(resolve(real, name));
 			return;
 		}
 		if (!stat.isFile()) return;
 		files.push({
-			path: relative(resolve("."), path).split(sep).join("/"),
+			evidencePath: `docs/exec-plans/evidence/003/release/deep-artifacts/${repositoryRelative}`,
+			path: repositoryRelative,
 			bytes: stat.size,
-			sha256: sha256(readFileSync(path)),
+			sha256: sha256(readFileSync(real)),
 		});
 	};
 	for (const path of paths) visit(resolve(path));
@@ -401,26 +498,44 @@ function benchmarkMeasurements(contract, report) {
 	}
 }
 
+export function validateDeepBenchmarkReport(contract, report, sourceCommit) {
+	if (
+		contract === null ||
+		!DEEP_BENCHMARK_CONTRACT.some(
+			(entry) =>
+				entry.id === contract.id &&
+				entry.path === contract.path &&
+				entry.schemaVersion === contract.schemaVersion,
+		)
+	)
+		throw new Error("unknown DEEP benchmark contract");
+	if (report?.schemaVersion !== contract.schemaVersion)
+		throw new Error(`benchmark ${contract.id} schema is invalid`);
+	const reportSourceSha =
+		contract.id === "diagnostics-source" ||
+		contract.id === "local-model-treatment" ||
+		contract.id === "release-genesis-web-performance"
+			? report.source?.commit
+			: report.source?.start?.commit;
+	if (reportSourceSha !== sourceCommit)
+		throw new Error(`benchmark ${contract.id} is not bound to exact HEAD`);
+	const measurements = benchmarkMeasurements(contract, report);
+	if (!finiteMeasurements(measurements))
+		throw new Error(`benchmark ${contract.id} measurements are invalid`);
+	return measurements;
+}
+
 function inspectDeepBenchmarkEvidence(sourceCommit, artifactManifest) {
 	const artifactHashes = new Map(
 		artifactManifest.files.map((file) => [file.path, file.sha256]),
 	);
 	return DEEP_BENCHMARK_CONTRACT.map((contract) => {
 		const report = JSON.parse(readFileSync(resolve(contract.path), "utf8"));
-		if (report.schemaVersion !== contract.schemaVersion)
-			throw new Error(`benchmark ${contract.id} schema is invalid`);
-		const sourceSha =
-			contract.id === "diagnostics-source" ||
-			contract.id === "local-model-treatment"
-				? report.source?.commit
-				: contract.id === "release-genesis-web-performance"
-					? report.source?.commit
-					: report.source?.start?.commit;
-		if (sourceSha !== sourceCommit)
-			throw new Error(`benchmark ${contract.id} is not bound to exact HEAD`);
-		const measurements = benchmarkMeasurements(contract, report);
-		if (!finiteMeasurements(measurements))
-			throw new Error(`benchmark ${contract.id} measurements are invalid`);
+		const measurements = validateDeepBenchmarkReport(
+			contract,
+			report,
+			sourceCommit,
+		);
 		const artifactSha256 = artifactHashes.get(contract.path);
 		if (!/^[a-f0-9]{64}$/u.test(artifactSha256 ?? ""))
 			throw new Error(
@@ -871,11 +986,13 @@ async function main() {
 		return;
 	}
 
-	const start = sourceState();
+	const start = sourceState({ requireDetached: tier === "deep" });
 	const execution = runVerificationSteps(steps);
-	const end = sourceState();
+	const end = sourceState({ requireDetached: tier === "deep" });
 	const sourceUnchanged =
-		start.commit === end.commit && start.lockfileSha256 === end.lockfileSha256;
+		start.commit === end.commit &&
+		start.lockfileSha256 === end.lockfileSha256 &&
+		start.trackedTree.manifestSha256 === end.trackedTree.manifestSha256;
 	const acceptanceEligible = sourceUnchanged && start.clean && end.clean;
 	const status =
 		execution.exitCode !== 0
@@ -907,9 +1024,14 @@ async function main() {
 			? inspectDeepBenchmarkEvidence(start.commit, artifacts)
 			: [];
 	const reportWithoutHash = {
-		schemaVersion: "eonfolk-verification-tier-v2",
+		schemaVersion: "eonfolk-verification-tier-v3",
 		tier,
 		status,
+		integrityClaim: "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
+		trustedRun:
+			tier === "deep"
+				? { attestationId: process.env.EONFOLK_TRUSTED_RUN_ID ?? "" }
+				: null,
 		verificationContractSha256: verificationContractSha256(tier),
 		claimBoundary: claimBoundaryForTier(tier, status),
 		recordedAt: new Date().toISOString(),

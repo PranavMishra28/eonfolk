@@ -107,6 +107,11 @@ describe("V1 CI hardening", () => {
 		expect(workflow).toContain('--tested-head "' + "$" + '{V1_TESTED_HEAD}"');
 		expect(workflow).toContain('--base-head "' + "$" + '{V1_BASE_HEAD}"');
 		expect(workflow).toContain('V1_TESTED_KIND="pull-request-merge"');
+		expect(workflow).toContain('V1_TESTED_KIND="main-push"');
+		expect(workflow).toContain("V1_TRUSTED_ATTESTATIONS_JSON");
+		expect(workflow).toContain(
+			'--trusted-attestations "' + "$" + '{trusted_attestations}"',
+		);
 		expect(workflow.match(/--tested-kind/g)).toHaveLength(2);
 		expect(workflow.match(/--tested-head/g)).toHaveLength(2);
 		expect(workflow.match(/--base-head/g)).toHaveLength(2);
