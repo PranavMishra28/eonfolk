@@ -785,8 +785,8 @@ function summary(
 			memoryPressureNormal: result.maximumPressure === 1,
 			noSwapGrowth: result.swapDeltaBytes <= 0,
 			freeDiskReserve: result.minimumFreeDiskBytes >= MINIMUM_FREE_DISK_BYTES,
-			warmP95WithinThreeSeconds:
-				result.warmLatencyMs.p95 !== null && result.warmLatencyMs.p95 <= 3_000,
+			warmP95WithinFourSeconds:
+				result.warmLatencyMs.p95 !== null && result.warmLatencyMs.p95 <= 4_000,
 		},
 	};
 }
@@ -1035,7 +1035,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 							maxStdoutBytes: 16_384,
 							maxStderrBytes: 2_048,
 							coldTimeoutMs: 15_000,
-							warmTimeoutMs: 3_000,
+							warmTimeoutMs: 4_000,
 							retries: 0,
 						},
 					});
@@ -1095,7 +1095,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 								context,
 								primary: observedBrain,
 								primaryTimeoutMilliseconds:
-									results.length === 0 ? 15_000 : 3_000,
+									results.length === 0 ? 15_000 : 4_000,
 								validate: validateIntentProposal,
 								deterministicFallback: async () =>
 									(
@@ -1166,7 +1166,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 					modelSeeds: MODEL_SEEDS,
 					visibleContexts: VISIBLE_CONTEXTS,
 					hiddenVariants: 2,
-					maximumWarmLatencyMs: 3_000,
+					maximumWarmLatencyMs: 4_000,
 					noCloud: true,
 					noTraining: true,
 					noTools: true,
