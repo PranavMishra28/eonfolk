@@ -172,7 +172,7 @@ describe("Founder Alpha feedback", () => {
 		const reports = new LocalFeedbackQueue(storage, () => now).list();
 		expect(reports).toHaveLength(1);
 		expect(reports[0]?.diagnostics?.incidents[0]?.safeSummary).toBe(
-			"Riverhold paused before showing further world state. Your durable local record was not replaced.",
+			"The world paused before showing further state. Your durable local record was not replaced.",
 		);
 		const rewritten = storage.getItem(STORAGE_KEY) ?? "";
 		expect(rewritten).not.toContain("Bearer");
