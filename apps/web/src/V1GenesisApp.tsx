@@ -1017,12 +1017,23 @@ function GeneratedWorld({
 		null,
 	);
 	const [focusedEventId, setFocusedEventId] = useState<string | null>(null);
+	const navigationOutcomeReported = useRef(false);
 	const [focusedLocationId, setFocusedLocationId] = useState<string | null>(
 		null,
 	);
 	const reportNavigationRejection = useCallback(
 		(reason: "invalid-envelope" | "foreign-reference") => {
 			setNavigationRejection(reason);
+			if (
+				generatedFaultHooks &&
+				fault?.kind === "navigation" &&
+				!navigationOutcomeReported.current
+			) {
+				navigationOutcomeReported.current = true;
+				void generatedWorldFaultModule.then((module) =>
+					module?.recordGeneratedWorldFaultOutcome("navigation"),
+				);
+			}
 			browserDiagnostics.record({
 				category: "presentation",
 				name: "generated-navigation-rejected",
@@ -1032,7 +1043,7 @@ function GeneratedWorld({
 				fields: { reason },
 			});
 		},
-		[],
+		[fault],
 	);
 	const rendererIncidentReported = useRef(false);
 	const assetIncidentReported = useRef(false);
@@ -1202,8 +1213,12 @@ function GeneratedWorld({
 	useEffect(() => {
 		if (asset !== "failed" || assetIncidentReported.current) return;
 		assetIncidentReported.current = true;
+		if (generatedFaultHooks)
+			void generatedWorldFaultModule.then((module) =>
+				module?.recordGeneratedWorldFaultOutcome("asset"),
+			);
 		void browserDiagnostics.captureRuntimeFailure({
-			code: "GENERATED_ASSET_INTEGRITY_FAILED",
+			code: "GENERATED_ASSET_REJECTED",
 			component: "generated-world-asset",
 			protectReality: () => setView("semantic"),
 		});
@@ -1242,9 +1257,14 @@ function GeneratedWorld({
 		setRendererFailed(true);
 		if (rendererIncidentReported.current) return;
 		rendererIncidentReported.current = true;
+		if (generatedFaultHooks)
+			void generatedWorldFaultModule.then((module) =>
+				module?.recordGeneratedWorldFaultOutcome("renderer-webgl"),
+			);
 		void browserDiagnostics.captureRuntimeFailure({
-			code: "GENERATED_RENDERER_FAILED",
+			code: "GENERATED_RENDERER_UNAVAILABLE",
 			component: "generated-world-renderer",
+			invariant: "render-reality-noninterference",
 			protectReality: () => setRendererFailed(true),
 		});
 	};

@@ -32,6 +32,9 @@ export type GeneratedFaultDiagnosticBoundary = Extract<
 	| "model-provider"
 	| "persistence"
 	| "checkpoint"
+	| "renderer-webgl"
+	| "asset"
+	| "navigation"
 	| "authoritative-invariant"
 	| "latency"
 >;
@@ -144,6 +147,49 @@ const GENERATED_FAULT_DIAGNOSTIC_INPUTS: Readonly<
 			operation: "checkpoint-admission",
 			phase: "head-preserved",
 			recovery: "safe-stop",
+			status: "candidate-rejected",
+		}),
+	}),
+	"renderer-webgl": Object.freeze({
+		category: "sentinel",
+		name: "generated-fault-outcome",
+		severity: "critical",
+		outcome: "recovered",
+		scope: Object.freeze({ component: "generated-world-renderer" }),
+		fields: Object.freeze({
+			code: "GENERATED_RENDERER_UNAVAILABLE",
+			domain: "render",
+			invariant: "render-reality-noninterference",
+			phase: "head-preserved",
+			recovery: "semantic-fallback",
+			status: "renderer-unavailable",
+		}),
+	}),
+	asset: Object.freeze({
+		category: "sentinel",
+		name: "generated-fault-outcome",
+		severity: "critical",
+		outcome: "recovered",
+		scope: Object.freeze({ component: "generated-world-asset" }),
+		fields: Object.freeze({
+			code: "GENERATED_ASSET_REJECTED",
+			domain: "integrity",
+			invariant: "authoritative-runtime-available",
+			phase: "head-preserved",
+			recovery: "semantic-fallback",
+			status: "reference-rejected",
+		}),
+	}),
+	navigation: Object.freeze({
+		category: "ui",
+		name: "generated-fault-outcome",
+		severity: "warning",
+		outcome: "rejected",
+		scope: Object.freeze({ component: "generated-world-navigation" }),
+		fields: Object.freeze({
+			code: "GENERATED_NAVIGATION_REJECTED",
+			operation: "navigation-intent",
+			phase: "pre-dispatch",
 			status: "candidate-rejected",
 		}),
 	}),

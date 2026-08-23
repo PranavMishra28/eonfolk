@@ -8,6 +8,7 @@ import {
 	NativePerformanceMonitor,
 	projectLocalObserver,
 	Sentinel,
+	type SentinelInvariant,
 	type WorldHeadSummary,
 } from "@eonfolk/diagnostics";
 import { PROTOCOL_SCHEMA_VERSION } from "@eonfolk/protocol";
@@ -210,6 +211,7 @@ export class BrowserDiagnostics {
 	async captureRuntimeFailure(input: {
 		readonly code: string;
 		readonly component: string;
+		readonly invariant?: SentinelInvariant;
 		readonly protectReality: () => void | Promise<void>;
 	}): Promise<DiagnosticIncident> {
 		const sentinel = new Sentinel({
@@ -218,7 +220,7 @@ export class BrowserDiagnostics {
 			recover: () => false,
 		});
 		const incident = await sentinel.check({
-			invariant: "authoritative-runtime-available",
+			invariant: input.invariant ?? "authoritative-runtime-available",
 			holds: false,
 			component: input.component,
 			code: input.code,

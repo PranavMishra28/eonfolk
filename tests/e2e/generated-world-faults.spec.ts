@@ -162,6 +162,17 @@ async function generatedFaultDiagnostic(page: Page): Promise<{
 		readonly fields: Readonly<Record<string, unknown>>;
 	};
 }> {
+	await expect
+		.poll(() =>
+			page.evaluate(() =>
+				Boolean(
+					window
+						.__EONFOLK_OBSERVER__?.()
+						.trace.some((event) => event.name === "generated-fault-outcome"),
+				),
+			),
+		)
+		.toBe(true);
 	return page.evaluate(() => {
 		const observer = window.__EONFOLK_OBSERVER__?.();
 		if (observer === undefined)
@@ -354,6 +365,7 @@ test.describe
 		}) => {
 			const externalRequests = await openFaultedWorld(page, "renderer-webgl");
 			const hash = await expectRecoverableWorld(page, "renderer-webgl");
+			const authority = await authorityFingerprint(page);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 			await page
@@ -365,6 +377,32 @@ test.describe
 				"data-state-hash",
 				hash,
 			);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "sentinel",
+				outcome: "recovered",
+				fields: {
+					code: "GENERATED_RENDERER_UNAVAILABLE",
+					domain: "render",
+					invariant: "render-reality-noninterference",
+					phase: "head-preserved",
+					recovery: "semantic-fallback",
+					status: "renderer-unavailable",
+				},
+			});
+			expect(
+				diagnostic.observer.trace.find(
+					(event) => event.name === "invariant-violation",
+				),
+			).toMatchObject({
+				category: "sentinel",
+				fields: {
+					code: "GENERATED_RENDERER_UNAVAILABLE",
+					domain: "render",
+					invariant: "render-reality-noninterference",
+				},
+			});
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 			await page
 				.getByRole("button", { name: "Retry embodied renderer" })
 				.click();
@@ -377,6 +415,7 @@ test.describe
 				"data-state-hash",
 				hash,
 			);
+			expect(await authorityFingerprint(page)).toEqual(authority);
 			expect(externalRequests).toEqual([]);
 		});
 
@@ -385,6 +424,7 @@ test.describe
 		}) => {
 			const externalRequests = await openFaultedWorld(page, "asset");
 			await expectRecoverableWorld(page, "asset");
+			const authority = await authorityFingerprint(page);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-asset-integrity",
 				"failed",
@@ -395,6 +435,30 @@ test.describe
 				"data-semantic-scale",
 				/(region|town|citizen)/u,
 			);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "sentinel",
+				outcome: "recovered",
+				fields: {
+					code: "GENERATED_ASSET_REJECTED",
+					domain: "integrity",
+					phase: "head-preserved",
+					recovery: "semantic-fallback",
+					status: "reference-rejected",
+				},
+			});
+			expect(
+				diagnostic.observer.trace.find(
+					(event) => event.name === "invariant-violation",
+				),
+			).toMatchObject({
+				fields: {
+					code: "GENERATED_ASSET_REJECTED",
+					domain: "integrity",
+				},
+			});
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
+			expect(await authorityFingerprint(page)).toEqual(authority);
 			expect(externalRequests).toEqual([]);
 		});
 
@@ -428,6 +492,7 @@ test.describe
 		}) => {
 			const externalRequests = await openFaultedWorld(page, "navigation");
 			const hash = await expectRecoverableWorld(page, "navigation");
+			const authority = await authorityFingerprint(page);
 			const canvas = page.getByTestId("generated-world-canvas");
 			await expect(canvas).toHaveAttribute("data-ready", "true", {
 				timeout: 20_000,
@@ -463,6 +528,26 @@ test.describe
 				"data-state-hash",
 				hash,
 			);
+			const diagnostic = await generatedFaultDiagnostic(page);
+			expect(diagnostic.outcome).toMatchObject({
+				category: "ui",
+				outcome: "rejected",
+				fields: {
+					code: "GENERATED_NAVIGATION_REJECTED",
+					operation: "navigation-intent",
+					phase: "pre-dispatch",
+					status: "candidate-rejected",
+				},
+			});
+			expect(
+				diagnostic.observer.trace.some(
+					(event) =>
+						event.name === "invariant-violation" &&
+						event.fields.code === "GENERATED_NAVIGATION_REJECTED",
+				),
+			).toBe(false);
+			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
+			expect(await authorityFingerprint(page)).toEqual(authority);
 			expect(externalRequests).toEqual([]);
 		});
 

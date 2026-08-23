@@ -150,6 +150,24 @@ describe("generated-world fault boundary", () => {
 				phase: "head-preserved",
 				status: "candidate-rejected",
 			},
+			"renderer-webgl": {
+				category: "sentinel",
+				code: "GENERATED_RENDERER_UNAVAILABLE",
+				phase: "head-preserved",
+				status: "renderer-unavailable",
+			},
+			asset: {
+				category: "sentinel",
+				code: "GENERATED_ASSET_REJECTED",
+				phase: "head-preserved",
+				status: "reference-rejected",
+			},
+			navigation: {
+				category: "ui",
+				code: "GENERATED_NAVIGATION_REJECTED",
+				phase: "pre-dispatch",
+				status: "candidate-rejected",
+			},
 			"authoritative-invariant": {
 				category: "sentinel",
 				code: "GENERATED_AUTHORITY_INVARIANT_FAILED",
@@ -192,11 +210,20 @@ describe("generated-world fault boundary", () => {
 				fields: { phase: outcome.phase, status: outcome.status },
 			});
 			expect(event?.fields.code ?? null).toBe(outcome.code);
-			expect(event?.fields.recovery ?? null).toBe(
+			const recovery =
 				boundary === "checkpoint" || boundary === "authoritative-invariant"
 					? "safe-stop"
-					: null,
-			);
+					: boundary === "renderer-webgl" || boundary === "asset"
+						? "semantic-fallback"
+						: null;
+			expect(event?.fields.recovery ?? null).toBe(recovery);
+			if (boundary === "renderer-webgl")
+				expect(event?.fields).toMatchObject({
+					domain: "render",
+					invariant: "render-reality-noninterference",
+				});
+			if (boundary === "asset")
+				expect(event?.fields).toMatchObject({ domain: "integrity" });
 			expect(observer.worldHead).toMatchObject({ revision: 9, sequence: 41 });
 			const serialized = JSON.stringify(observer);
 			expect(serialized).not.toContain("Injected IndexedDB");
