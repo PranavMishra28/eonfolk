@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled integration commit: `05385c2` (`docs(cognition): decide POMCP non-promotion`)
+- Last reconciled integration commit: `fa72abf` (`feat(cognition): add bounded local process host`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -34,7 +34,7 @@
 - The pure world generator now produces a versioned 8×8 region, four chunks and territories, 64 classified cells, one continuous metric settlement, canonical sites/places/buildings/routes/slots, a golden hash, three differentiated fixtures, and a 160-seed deep property sweep.
 - Bounded routine and project planners generate deterministic multi-step Standing Plans from actor-visible records and legal affordances. Simulation integration remains incomplete.
 - Standing Plans now have deterministic advance, interruption, retry, replan, and abandonment transitions. Planner-to-civilization decision-boundary integration remains incomplete.
-- Model-origin proposals now have a closed typed schema, exact prompt/schema/artifact provenance, public-copy constraints, and post-Brain validation. No executable model process adapter is connected and Standard Brain remains the promoted fallback.
+- Model-origin proposals now have a closed typed schema, exact prompt/schema/artifact provenance, public-copy constraints, and post-Brain validation. A Node-only macOS process host verifies preprovisioned artifact identities, denies child-process network access, bounds one framed invocation, kills timeout/late/cancelled work, and selects Standard Brain through the deterministic gateway on failure. It is not wired into normal play and no actual model is promoted.
 - A provider-neutral closed-choice Model Brain adapter now gives an untrusted transport only actor-visible context and a bounded action catalog; it rejects Markdown, extra fields, unknown actions, and hidden-record claims before the authority gateway. The host-owned local process transport is still absent.
 - A pure immutable civilization kernel now provides integer resource stocks, storage and atomic transfers, conservation audits, recipe/process gates, project dependencies and milestones, households, institutions, agreements, and physically gated migration/founding records. Focused tests passed 11/11, deep conservation properties passed 500 runs each, all 20 TypeScript project graphs passed, and `verify:fast` passed 30 files / 224 tests.
 - A pure 30/90/365-day civilization experiment now records deterministic step/event hash chains, conservation audits, project/migration/founding records, progression/stagnation metrics, exact replay, prefix identity, and multi-seed property coverage without any model invocation.
@@ -54,7 +54,7 @@
 1. Replace fixed-day civilization expansion with pressure- and affordance-triggered scheduling, then materialize the second settlement in generated-world Reality.
 2. Integrate the civilization kernel with persistence and routine/project decision boundaries, including physically accounted route traversal.
 3. Replace the abstract `/world` diagram with a world-dominant embodied presentation driven by canonical citizens/actions, then add temporal Living World tests and measured V1-specific visual/performance evidence.
-4. Add an executable bounded local Model Brain process adapter only after deterministic integration remains green; keep Standard Brain mandatory.
+4. Build the predeclared real-model corpus runner on the bounded host, compare the cached model and one resource-safe current candidate only if the machine remains healthy, and promote no treatment unless every correctness, isolation, performance, and product-copy gate passes.
 5. Add V1-specific CI evidence tiers and readiness guards, then run the first fresh V1 DEEP checkpoint.
 
 ## Resume commands

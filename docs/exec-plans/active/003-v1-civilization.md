@@ -53,7 +53,7 @@ Outcome: routine behavior remains complete without a model; decision boundaries 
 
 Evidence: hidden-fact isolation, bounded search, interruption/replan, malformed/timeout/provider failure, exact artifact provenance, zero-egress process evidence, deterministic fallback and historical replay without inference.
 
-Status: deterministic gateway/planners/closed choice complete; host process, memory/retrieval, treatment matrix, and POMCP decision incomplete.
+Status: deterministic gateway/planners/closed choice and the macOS zero-egress process host are complete; real-model treatment promotion and memory/retrieval remain incomplete. POMCP is rejected by D-016 until a calibrated actor-authorized sampler exists.
 
 ### M4 — Persistence and reliability
 
@@ -87,6 +87,7 @@ Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](
 - 2026-08-22 — Added the supplementary portable-extended GitHub Actions tier. Its exact-source manifest explicitly cannot substitute for target-Mac DEEP or V1 readiness.
 - 2026-08-22 — Integrated `/genesis` and `/world` with six cross-viewport browser checks. An independent visual inspection failed the World Presence bar; no visual acceptance claim is permitted.
 - 2026-08-22 — Closed the POMCP disposition through D-016 and consolidated primary research into `docs/RESEARCH.md`, `references.bib`, and dated source-ledger rows. POMCP remains rejected until a calibrated actor-authorized sampler and failing information-value case exist.
+- 2026-08-22 — Integrated the bounded macOS local-process host. Exact artifact verification, canonical framing, deny-network sandboxing, timeout/kill/cancellation, hidden-fact rejection, deterministic fallback, and inference-free recorded-proposal restoration pass focused native tests. This is an executable safety seam, not an actual-model promotion or product integration.
 
 ## Review roles
 

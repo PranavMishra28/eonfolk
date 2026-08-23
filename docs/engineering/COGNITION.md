@@ -2,7 +2,7 @@
 
 **Purpose:** lock the visible information boundary, deterministic Standard Brain, cognitive-decision provenance, counsel interpretation, and grounded explanation contract.
 
-**Status:** IMPLEMENTED WITH BOUNDED CONTROLS — Standard Brain retained; Planner promotion and executable model adapters disabled
+**Status:** IMPLEMENTED WITH BOUNDED CONTROLS — Standard Brain retained; Planner and local-model promotion disabled
 
 **Authority boundary:** this file owns `DecisionContext`, `IntentProposal`, `DecisionExplanation`, raw `CognitiveDecisionRecord`, viewer-safe `DecisionTraceProjection`, Standard Brain, and optional-model policy. [SIMULATION](SIMULATION.md) owns authoritative application; [PERSISTENCE](PERSISTENCE.md) owns durable storage; [EVALS](../quality/EVALS.md) owns tests.
 
@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Every citizen runs a complete deterministic Standard Brain. Modern-model inference is absent from V1 and unnecessary for both product gates. A later model may propose one catalog action at a named boundary, but cannot see hidden Reality, grant authority, write prose facts, become a character class, or gain code/network/external-system capabilities.
+Every citizen runs a complete deterministic Standard Brain. Modern-model inference is optional and unnecessary for the product path. A local experiment model may propose one catalog action at a named boundary through the bounded host described below, but cannot see hidden Reality, grant authority, write prose facts, become a character class, or gain code/network/external-system capabilities. No model is promoted until the frozen treatment corpus and product-quality gates pass.
 
 ## `DecisionContext`
 
@@ -79,13 +79,17 @@ The same pre-boundary Riverhold snapshot is perturbed independently across trust
 
 A pass requires state-sensitive action/explanation changes and at least three distinct terminal world vectors across counsel intents. Hard-coded Riverhold lookup fails the transfer/perturbation matrix.
 
-## Optional model boundary after V1
+## Optional local-model boundary
 
-A future adapter can be evaluated only after the Standard-Brain loop passes. It receives the same bounded context/catalog, returns the same schema, and is untrusted. Provider/model/version/prompt/schema/artifact hash and the original structured proposal are preserved provenance, not identity or onboarding choice. Removing it preserves liveness and the entire game loop. Model migration is a later explicit cognition event.
+The implemented macOS host is an optional experiment seam after the Standard-Brain loop. It receives the same bounded context/catalog, returns the same schema, and is untrusted. Provider/model/version/prompt/schema/artifact hash and the original structured proposal are preserved provenance, not identity or onboarding choice. Removing it preserves liveness and the entire game loop. Model migration is a later explicit cognition event.
 
 Canonical replay never calls Standard Brain or a model: it applies the preserved accepted event history. Model reproducibility is not promised. Future model experiments rerun independent manifests and compare outcome distributions rather than treating one response/run as reproducible evidence.
 
-Founder Alpha exposes only the future `BrainPort` proposal-source type. It deliberately ships no executable optional adapter and therefore makes no timeout, cancellation, process-kill, or model-fallback claim. Standard Brain is the only executable brain. A later adapter must add a real bounded process lifecycle and adversarial missing/throwing/hung/late/malformed tests before it can enter the application. V1 ships no provider SDK, provider UI, key, branded choice, continuous inference, training, embeddings, vector storage, or model download.
+V1 now includes a Node-only macOS process transport behind `BrainPort`. Before invocation it verifies the immutable process contract and SHA-256/byte identity of the preprovisioned runtime, model, tokenizer, configuration, and template. It uses one length-prefixed canonical request, accepts one bounded canonical JSON response, runs one invocation at a time under `sandbox-exec` with network denied, scrubs the environment, allows no retry, and terminates timeout/cancellation with process-group `SIGTERM` then `SIGKILL`. Real subprocess tests cover success, malformed output, process failure, hang/timeout, late output, cancellation, hidden-fact rejection, concurrency rejection, and a denied loopback connection. The deterministic gateway fallback remains the selected action for every failure class.
+
+This host is macOS-only, hashes large artifacts when the transport is created, and requires a separately preprovisioned executable that already speaks the framed EONFOLK protocol. It is not an Ollama translator, is not wired into browser onboarding or normal play, and does not promote `qwen3-coder:30b` or any other model. Linux CI compiles and property-tests the provider-neutral boundary but skips the macOS subprocess cases; exact-candidate target-Mac verification must run them. V1 still ships no provider SDK, provider UI, key, branded choice, continuous inference, training, embeddings, vector storage, or required model download.
+
+Recorded proposal restoration accepts no `BrainPort` or transport. It verifies the decision-record hash, context binding, canonical proposal bytes/hash, and the versioned validator before returning the frozen proposal; historical replay therefore cannot invoke inference through this path.
 
 ## Founder Alpha planner and experiment gate
 

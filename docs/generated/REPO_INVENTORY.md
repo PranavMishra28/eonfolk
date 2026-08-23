@@ -6,13 +6,13 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 414 files excluding this generated file; SHA-256 `45e234dbc5f098ce598fff33825e95cce52ef68b74897b44228db96641b21c31`.
+**File-set identity:** 416 files excluding this generated file; SHA-256 `5689b4cc1fe2b61c305b226218d42a0225d7ee4406721f7b50edda3b57aa13b7`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 44 |
+| Application code | 45 |
 | Documentation | 62 |
 | Frozen execution evidence | 32 |
 | GitHub automation | 3 |
@@ -21,14 +21,14 @@
 | Repository tooling | 28 |
 | Research and reviews | 48 |
 | Root controls and configuration | 23 |
-| Tests and fixtures | 85 |
+| Tests and fixtures | 86 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
 | `apps/feedback-worker` | `@eonfolk/feedback-worker` | 8 |
-| `apps/web` | `@eonfolk/web` | 24 |
+| `apps/web` | `@eonfolk/web` | 25 |
 | `packages/civilization` | `@eonfolk/civilization` | 6 |
 | `packages/cognition` | `@eonfolk/cognition` | 13 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
@@ -48,7 +48,7 @@
 | `tests/property` | 8 |
 | `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 46 |
+| `tests/unit` | 47 |
 
 ## Root controls and configuration
 
