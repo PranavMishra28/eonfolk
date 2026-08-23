@@ -605,12 +605,6 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 }) => {
 	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
-	const generatedAssetRequests: string[] = [];
-	page.on("request", (request) => {
-		const path = new URL(request.url()).pathname;
-		if (path.startsWith("/assets/generated/"))
-			generatedAssetRequests.push(path);
-	});
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/");
@@ -914,6 +908,12 @@ test("generated reload restores the durable head @generated-world @generated-tar
 }) => {
 	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
+	const generatedAssetRequests: string[] = [];
+	page.on("request", (request) => {
+		const path = new URL(request.url()).pathname;
+		if (path.startsWith("/assets/generated/"))
+			generatedAssetRequests.push(path);
+	});
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/world");
