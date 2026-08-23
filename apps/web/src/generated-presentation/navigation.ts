@@ -248,7 +248,7 @@ export function reduceGeneratedNavigation(
 					buildingId: action.buildingId,
 				}),
 				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 18_000),
+				distanceMm: Math.min(state.distanceMm, 24_000),
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":

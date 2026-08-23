@@ -551,6 +551,7 @@ describe("generated navigation parity", () => {
 			y: building.position.elevationMillimeters,
 			z: building.position.yMillimeters,
 		});
+		expect(buildingIntent.distanceMm).toBe(24_000);
 		const site = projection.local.sites.find(
 			({ siteId }) => siteId === project.siteId,
 		);

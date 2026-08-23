@@ -927,6 +927,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(desktopBuilding).toHaveAttribute("aria-pressed", "true");
 	await expect(desktopBuilding).toHaveAttribute("aria-current", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "building");
+	await expect(canvas).toHaveAttribute("data-camera-distance-mm", "24000");
 	await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
 	await expect(
 		page.getByRole("link", { name: "Link to this building" }),
@@ -976,6 +977,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await buildingButton.press("Enter");
 		await expect(buildingButton).toHaveAttribute("aria-pressed", "true");
 		await expect(buildingButton).toHaveAttribute("aria-current", "true");
+		await expect(canvas).toHaveAttribute("data-camera-distance-mm", "24000");
 		await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
 		if (viewport.width === 390) {
 			await page.getByRole("button", { name: "Back to settlement" }).click();
