@@ -177,7 +177,7 @@ async function selectCanonicalResidentFromCanvas(
 	throw new Error("no exposed canonical citizen accepted a canvas pick");
 }
 
-test("generated civilization is the identity-bound canonical /world @generated-world @generated-target", async ({
+test("generated civilization is the identity-bound canonical /world @generated-world", async ({
 	page,
 }) => {
 	test.setTimeout(90_000);
@@ -306,8 +306,23 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		"/assets/generated/ASSET_MANIFEST.json",
 		"/assets/generated/eonfolk-folk-proxy.gltf",
 	]);
+	expect(externalRequests).toEqual([]);
+});
 
-	const stateHashBeforeNavigation = worldTruth["data-state-hash"];
+test("generated navigation and reload preserve the authoritative head @generated-world @generated-target", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const stateHashBeforeNavigation = await world.getAttribute("data-state-hash");
 	const canvasBounds = await canvas.boundingBox();
 	if (canvasBounds === null) throw new Error("generated canvas has no bounds");
 	const distanceBeforeWheel = Number(
