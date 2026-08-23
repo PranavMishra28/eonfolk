@@ -38,10 +38,9 @@ describe("V1 CI hardening", () => {
 		expect(packageManifest.scripts["verify:fast"]).toMatch(/pnpm build$/u);
 	});
 
-	it("gates cognition and retains Release Genesis evidence without promoting legacy", () => {
+	it("runs cognition once and retains Release Genesis evidence without promoting legacy", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
-		expect(workflow).toContain("steps.classify.outputs.cognition == 'true'");
-		expect(workflow).toContain("run: pnpm test:cognition:portable");
+		expect(workflow).not.toContain("run: pnpm test:cognition:portable");
 		expect(workflow).toContain("name: v1-release-genesis-browser-${{");
 		expect(workflow).toContain("retention-days: 30");
 		expect(workflow).toContain("name: v1-browser-failure-${{");
@@ -51,6 +50,9 @@ describe("V1 CI hardening", () => {
 		const runner = readFileSync(
 			resolve("scripts/run-verification-tier.mjs"),
 			"utf8",
+		);
+		expect(runner).toContain(
+			'step("cognition-portable", "pnpm", ["test:cognition:portable"])',
 		);
 		expect(runner).toContain('entryRoute: "/"');
 		expect(runner).toContain('worldRoute: "/world"');
