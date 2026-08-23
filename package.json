@@ -56,7 +56,6 @@
 		"verify:portable-extended": "node scripts/run-verification-tier.mjs portable-extended",
 		"verify:deep:checks": "node scripts/run-verification-tier.mjs deep --checks-only",
 		"verify:deep": "node scripts/run-verification-tier.mjs deep",
-		"alpha:verify": "pnpm verify:deep",
 		"verify": "pnpm verify:pr",
 		"cohort:check": "node scripts/validate-dependency-cohort.mjs",
 		"cohort:freeze": "node scripts/freeze-dependency-cohort.mjs",

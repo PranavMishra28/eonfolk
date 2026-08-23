@@ -18,9 +18,11 @@ PlayCanvas/WebGL2 civilization. It currently provides:
 - renderer-neutral spatial projections with keyboard and semantic equivalents; and
 - a bounded optional local-model treatment that never becomes Reality authority or a runtime requirement.
 
-This is still an internal incomplete V1. The generated product has not yet passed
-the embodied World Presence, counsel/attachment, Chronicle, complete fault,
-performance, frozen-review, or release gates. Founder Alpha remains available only
+This is still an internal incomplete V1. The generated product now has the complete
+sponsor loop, deliberate Research mode, contextual world selection, Chronicle
+handoff, local feedback, and the complete injected-fault matrix. It has not yet
+passed the exact-candidate DEEP, frozen-review, confirmation, or release gates.
+Founder Alpha remains available only
 at `/legacy` as regression evidence; it cannot satisfy V1 readiness. `/research`
 and `/developer` deliberately separate evidence and implementation detail from
 normal play. The [research map](docs/RESEARCH.md) and

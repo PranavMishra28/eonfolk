@@ -2,7 +2,7 @@
 
 **Purpose:** Track the current V1 integration sequence, evidence gates, integration history, frozen candidate, and exit status.
 
-**Status:** V1 IN PROGRESS — draft mega PR #9; Founder Alpha retained as regression evidence
+**Status:** FEATURE-COMPLETION PASS — draft Mega PR #9; exact-candidate release lattice pending
 
 **Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](docs/INDEX.md) owns document authority.
 
@@ -23,11 +23,11 @@
 |---|---|---|
 | 1. Exact base, V1 ledger, repository archaeology | Complete | Base `8eb6afa`; archive tag; `GOAL.md`; `RESUME.md`; generated inventory |
 | 2. Release Genesis, generalized protocol, deterministic world generator | Complete for pure contracts | Versioned identities; three differentiated seeds; 160-seed deep properties; golden world hash |
-| 3. Civilization kernel and long-horizon emergence | Pure experiment gate complete; product integration pending | Pressure/affordance scheduling, canonical least-cost migration routes, physical traversal, second-settlement materialization, legitimate stagnation, deterministic 30/90/365 evidence, and typed population/relationship/household/role/need/memory primitives pass; scheduler and browser integration remain pending |
-| 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice, local lab, bounded process host, grounded need planning, and visibility-safe memory retrieval integrated; secure real-model transport/benchmark/promotion remain pending |
-| 5. Persistence, replay, recovery, diagnostics | In progress | Generalized and civilization-specific exact-version authority streams, atomic/idempotent append, fencing, snapshots, long-history ranges, corruption rejection, and inference-free replay pass in-memory conformance; browser adapter, semantic catch-up, per-mutation integration, and full failure injection remain pending |
-| 6. Generated-world product presentation | In progress | `/genesis` renders generated Dawnmere; `/world` now embodies eight canonical Riverhold citizens in PlayCanvas with temporal action, selection, semantic fallback, and cross-viewport browser evidence. Unifying these separate authorities, rendering generated growth/second settlements, and full visual/performance evidence remain pending |
-| 7. CI, security, documentation and developer experience | In progress | Readiness guard, inventory freshness, 14-mutant gate, secret/formal checks, and supplementary portable-extended manifest integrated; V1 evidence lanes pending |
+| 3. Civilization kernel and long-horizon emergence | Complete for bounded V1 | Pressure/affordance scheduling, least-cost migration, physical accounting, second-settlement materialization, legitimate stagnation, model-free scheduler, and deterministic 30/90/365 evidence run through the generated authority |
+| 4. Cognition and experiment treatments | Complete for bounded V1 | Standard Brain, planners, Standing Plans, six memory classes, visible-fact retrieval, closed model treatment, Mac benchmark, bounded host, validation, failure, and deterministic fallback are integrated |
+| 5. Persistence, replay, recovery, diagnostics | Complete for feature scope | IndexedDB authority, atomic/idempotent append, fencing, snapshots, migrations, reload/catch-up, corruption recovery, Flight Recorder, Sentinel, and all eight injected browser failures pass focused checks |
+| 6. Generated-world product presentation | Final gap in progress | `/world` is generated Dawnmere: inhabited PlayCanvas settlement, sponsor/Chronicle, Research, feedback, contextual selection, semantic parity, and three-viewport inspection are integrated. Exact entrance-connector movement and temporal construction browser proof are the final feature checks |
+| 7. CI, security, documentation and developer experience | Feature scope complete; exact evidence pending | Readiness guard, current inventory/cohort, 14-mutant gate, protected secret/formal checks, developer commands, and dead-surface cleanup are integrated; exact PR/DEEP artifacts remain pending |
 | 8. Exact-candidate DEEP, frozen reviews, fixes, merge | Not started | No V1 frozen SHA or release verdict exists |
 
 ## Integration history
@@ -51,6 +51,9 @@
 | Embodied canonical world | `4d97834` | PlayCanvas `/world` with eight authoritative Riverhold citizens, visible temporal behavior, selection/follow, semantic fallback, and seven focused browser journeys. It is not yet generated Dawnmere or generalized civilization acceptance evidence |
 | Civilization checkpoint replay | `06b7a1f`, `b2a7ccc` | Exact-version civilization checkpoints, atomic/idempotent history, fencing, 30/90/365 replay, and v3 schema reconciliation; in-memory checkpoint proof only, without browser IndexedDB/catch-up or every kernel mutation |
 | Grounded social Mind | `6cce744` | Typed people/relationships/households/roles, imperfect grounded pressures, institutional authorization, six memory classes, visibility-first bounded retrieval, and need-aware deterministic planning; normal scheduler/product wiring remains pending |
+| Release Genesis product convergence | `33580c4` through `1ba3574` | Generated authority, scheduler, persistence, inhabited PlayCanvas world, sponsor outcomes, factual Chronicle, Research, contextual selection, and cross-viewport World Presence integrated |
+| Final player-facing repair | `5d6b11e`, `f5c3292` | Chronicle object/event focus, local-only feedback boundary, and closed renderer/asset/navigation diagnostic outcomes |
+| Dead execution-surface cleanup | `8bfaeab` | Removed dormant relay, obsolete Gate 0/Pixi harness, unused Observatory implementation, stale handoff, and inactive dependencies/config while preserving immutable history |
 
 Every integration was required to have bounded ownership, an actual diff inspection, focused verification, a clean commit, and coordinator reconciliation. Detailed limitations and the next exact commands live in `RESUME.md`.
 

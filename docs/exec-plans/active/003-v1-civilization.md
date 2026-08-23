@@ -2,7 +2,7 @@
 
 **Purpose:** Implement and verify the Release Genesis civilization benchmark as one private mega PR.
 
-**Status:** ACTIVE — V1 INCOMPLETE
+**Status:** ACTIVE — product integration substantially complete; exact-candidate release lattice pending
 
 **Authority boundary:** This file owns implementation sequence, evidence expectations, deviations, and integration progress. [GOAL.md](../../../GOAL.md) owns requirement state; [RESUME.md](../../../RESUME.md) owns the exact restart; [INDEX.md](../../INDEX.md) maps product and engineering authorities.
 
@@ -37,7 +37,7 @@ Outcome: one release/experiment/world identity deterministically creates a valid
 
 Evidence: golden hashes, multi-seed properties, reference integrity, traversability, architecture checks, no wall clock/random/network/provider/renderer imports.
 
-Status: pure contracts/generator complete; fixed-seed browser entry exists, while persistence and default product entry remain incomplete.
+Status: complete in the generated browser authority with deterministic persistence, replay, and the default product entry.
 
 ### M2 — Civilization kernel
 
@@ -45,7 +45,7 @@ Outcome: people and institutions act on conserved physical resources through rec
 
 Evidence: atomic accounting, resource conservation, prerequisite and lifecycle tests, multi-seed long-horizon metrics, viable and stagnant/failing outcomes, deterministic replay.
 
-Status: pure stocks/recipes/projects, pressure/affordance scheduling, canonical land-route traversal, physical carried stocks, canonical second-settlement materialization, legitimate stagnation, and deterministic 30/90/365 evidence pass. Generalized needs/population and product integration remain incomplete.
+Status: complete for the bounded V1 benchmark: stocks, recipes, projects, needs, population, pressure/affordance scheduling, canonical land-route traversal, physical carried stocks, a migration-provenanced second settlement, legitimate stagnation, and deterministic 30/90/365 evidence all run through the generated authority.
 
 ### M3 — Cognition and experiments
 
@@ -53,7 +53,7 @@ Outcome: routine behavior remains complete without a model; decision boundaries 
 
 Evidence: hidden-fact isolation, bounded search, interruption/replan, malformed/timeout/provider failure, exact artifact provenance, zero-egress process evidence, deterministic fallback and historical replay without inference.
 
-Status: deterministic gateway/planners/closed choice and the macOS zero-egress process host are complete; real-model treatment promotion and memory/retrieval remain incomplete. POMCP is rejected by D-016 until a calibrated actor-authorized sampler exists.
+Status: deterministic gateway, planners, Standing Plans, six memory classes and bounded retrieval, closed-choice validation, deterministic fallback, and the optional macOS zero-egress treatment are implemented. Standard Brain remains complete without inference. POMCP is rejected by D-016 until a calibrated actor-authorized sampler exists.
 
 ### M4 — Persistence and reliability
 
@@ -61,7 +61,7 @@ Outcome: generated worlds survive reload, crash, long absence, version change, a
 
 Evidence: command atomicity/idempotency, fencing, migrations, replay equivalence, 1/7/30/90/365-day catch-up, injected faults, persistence benchmark, diagnostic correlation and noninterference.
 
-Status: the exact-version authority-stream port and in-memory conformance adapter pass atomicity, idempotency, fencing, snapshots/ranges, crash, corruption, version, and inference-free replay tests. IndexedDB/browser wiring, civilization envelopes, catch-up, and diagnostics remain incomplete; Founder Alpha coverage is regression only.
+Status: the exact-version authority stream, IndexedDB adapter, civilization envelopes, snapshots/ranges, fencing, reload, bounded catch-up, corruption recovery, inference-free replay, Flight Recorder, Sentinel, and all eight injected browser failures are implemented and tested. Founder Alpha coverage remains regression only.
 
 ### M5 — World as product
 
@@ -69,7 +69,7 @@ Outcome: arrival communicates a living generated world immediately; region, sett
 
 Evidence: deterministic browser journeys and screenshots at 1728×1117, 1366×768, and 390×844; fresh observer task-legibility; accessibility parity; reduced motion; weak-device fallback; payload/frame/memory/meaningful-display budgets.
 
-Status: pure projections and an account-free generated browser checkpoint exist. The independent browser audit found an abstract grid/site diagram without citizens or activity, so World Presence, default entry, embodied simulation, and temporal acceptance remain incomplete.
+Status: the account-free generated browser renders a physically coherent inhabited settlement with eight stylized people, visible work/carry/repair/conversation, props, project/growth context, region/town/citizen camera scales, contextual selection, semantic parity, reduced motion, Research, sponsor/Chronicle, and feedback. Desktop, laptop, and mobile inspections are green. Exact grounded entrance-connector movement and final temporal acceptance are the remaining feature-completion checks.
 
 ### M6 — Exact-candidate release lattice
 
