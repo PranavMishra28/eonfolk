@@ -161,8 +161,10 @@ async function selectCanonicalResidentFromCanvas(
 ): Promise<string> {
 	for (let round = 0; round < 4; round += 1) {
 		const targets = await stableGeneratedPickTargets(page, canvas);
+		const bounds = await canvas.boundingBox();
+		if (bounds === null) throw new Error("generated canvas has no bounds");
 		for (const target of targets) {
-			await canvas.click({ position: { x: target.x, y: target.y } });
+			await page.mouse.click(bounds.x + target.x, bounds.y + target.y);
 			const selected = await canvas.getAttribute("data-last-world-pick");
 			if (selected === `citizen:${target.id}`) return target.id;
 			if (
