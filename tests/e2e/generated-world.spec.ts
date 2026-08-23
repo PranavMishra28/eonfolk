@@ -225,7 +225,27 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await expect(canvas).toHaveAttribute("data-actor-positions", /.+/u);
 	await expect(canvas).toHaveAttribute("data-rendered-actor-positions", /.+/u);
 	await expect(canvas).toHaveAttribute("data-actor-diagnostics", /.+/u);
-	await expect(canvas).toHaveAttribute("data-interaction-count", /^\d+$/u);
+	await expect(canvas).toHaveAttribute("data-interaction-count", "1");
+	const sceneTruth = page.getByTestId("generated-scene-truth");
+	await expect(sceneTruth).toBeVisible();
+	await expect(sceneTruth).toHaveAttribute(
+		"data-interaction-kind",
+		"conversation",
+	);
+	await expect(sceneTruth).toHaveAttribute(
+		"data-interaction-status",
+		"in-progress",
+	);
+	await expect(sceneTruth).toHaveAttribute(
+		"data-participant-ids",
+		"citizen-07,citizen-08",
+	);
+	await expect(sceneTruth.getByText("Bram Moss + Edda Fen")).toBeVisible();
+	await expect(
+		sceneTruth
+			.getByRole("list", { name: "Other visible work in the scene" })
+			.getByRole("listitem"),
+	).toHaveCount(4);
 	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
 	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
 	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");

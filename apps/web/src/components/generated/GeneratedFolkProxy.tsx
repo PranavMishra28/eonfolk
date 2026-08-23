@@ -207,6 +207,91 @@ function SocialGesture() {
 	);
 }
 
+function ActivityBeacon({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
+	const color = activityMaterial(actor);
+	switch (actor.animationClass) {
+		case "inspect":
+			return (
+				<Entity position={[0, 2.75, 0]} rotation={[0, 0, -24]}>
+					<Primitive
+						type="sphere"
+						position={[0, 0, 0]}
+						scale={[0.52, 0.52, 0.18]}
+						color={color}
+					/>
+					<Primitive
+						position={[0.42, -0.42, 0]}
+						scale={[0.12, 0.62, 0.12]}
+						color={color}
+					/>
+				</Entity>
+			);
+		case "repair":
+			return (
+				<Entity position={[0, 2.9, 0]} rotation={[0, 0, -32]}>
+					<Primitive
+						position={[0, 0, 0]}
+						scale={[0.13, 0.95, 0.13]}
+						color={materials.logs}
+					/>
+					<Primitive
+						position={[0, 0.48, 0]}
+						scale={[0.74, 0.22, 0.24]}
+						color={color}
+					/>
+				</Entity>
+			);
+		case "gather":
+			return (
+				<Entity position={[0, 2.82, 0]}>
+					{[-0.28, 0, 0.28].map((offset) => (
+						<Primitive
+							key={offset}
+							type="cylinder"
+							position={[offset, 0, 0]}
+							scale={[0.16, 0.82, 0.16]}
+							rotation={[0, 0, 90]}
+							color={color}
+						/>
+					))}
+				</Entity>
+			);
+		case "carry":
+			return (
+				<Entity position={[0, 2.88, 0]}>
+					<Primitive
+						position={[0, 0, 0]}
+						scale={[0.8, 0.62, 0.52]}
+						rotation={[0, 45, 0]}
+						color={color}
+					/>
+				</Entity>
+			);
+		case "eat-rest":
+			return (
+				<Entity position={[0, 2.78, 0]} rotation={[0, 0, 90]}>
+					<Primitive
+						position={[0, 0, 0]}
+						scale={[0.14, 1.1, 0.14]}
+						color={color}
+					/>
+					<Primitive
+						position={[0.3, 0.32, 0]}
+						scale={[0.14, 0.58, 0.14]}
+						color={color}
+					/>
+				</Entity>
+			);
+		case "talk":
+		case "listen":
+		case "exchange":
+		case "walk":
+		case "idle":
+		case "react":
+			return null;
+	}
+}
+
 /**
  * Low-poly procedural runtime proxy whose named parts mirror the verified glTF
  * reference contract. The glTF is not rendered; procedural limbs preserve the
@@ -251,7 +336,7 @@ export function GeneratedFolkProxy({
 			<Primitive
 				type="cylinder"
 				position={[0, 0.02, 0]}
-				scale={[0.9, 0.025, 0.9]}
+				scale={[1.3, 0.025, 1.3]}
 				color={activityMaterial(actor)}
 			/>
 			{selected || actor.focal ? (
@@ -351,6 +436,7 @@ export function GeneratedFolkProxy({
 				/>
 			</Entity>
 			<CanonicalProp actor={actor} />
+			<ActivityBeacon actor={actor} />
 			{actor.pose.family === "social" ? (
 				<SocialGesture />
 			) : ["work", "reaction"].includes(actor.pose.family) ? (

@@ -22,8 +22,8 @@ import {
 	useRef,
 } from "react";
 import {
-	GeneratedFolkProxy,
 	GENERATED_FOLK_SOURCE_HEIGHT_UNITS,
+	GeneratedFolkProxy,
 } from "./components/generated/GeneratedFolkProxy";
 import { GeneratedProjectProxy } from "./components/generated/GeneratedProjectProxy";
 import {
@@ -109,7 +109,7 @@ interface Frame {
 	readonly depth: number;
 }
 
-const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.84;
+const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.7;
 
 function sceneFrame(projection: GeneratedCivilizationSpatialProjection): Frame {
 	const xs = projection.local.sites.flatMap((site) => [
@@ -477,7 +477,7 @@ function GeneratedCamera({
 	});
 	return (
 		<Entity ref={camera} position={initialPosition}>
-			<Camera clearColor="#a9b9a8" fov={42} farClip={720} nearClip={0.2} />
+			<Camera clearColor="#a9b9a8" fov={40} farClip={720} nearClip={0.2} />
 		</Entity>
 	);
 }
@@ -961,18 +961,39 @@ function GroundedSettlement({
 				const to = localPoint(renderedActorPoint(projection, second), frame);
 				return (
 					<Entity key={interaction.interactionId}>
-						<Route from={from} to={to} color={palette.social} width={0.08} />
+						<Route from={from} to={to} color={palette.social} width={0.24} />
+						<Primitive
+							type="cylinder"
+							position={[(from[0] + to[0]) / 2, 0.055, (from[2] + to[2]) / 2]}
+							scale={[3.2, 0.035, 3.2]}
+							color={palette.social}
+							castShadows={false}
+						/>
 						<Primitive
 							type="sphere"
 							position={[
 								(from[0] + to[0]) / 2,
-								Math.max(from[1], to[1]) + 2.65,
+								Math.max(from[1], to[1]) + 3.6,
 								(from[2] + to[2]) / 2,
 							]}
-							scale={[0.22, 0.22, 0.22]}
+							scale={[0.54, 0.54, 0.54]}
 							color={palette.social}
 							castShadows={false}
 						/>
+						{[-0.72, 0.72].map((offset) => (
+							<Primitive
+								key={offset}
+								type="sphere"
+								position={[
+									(from[0] + to[0]) / 2 + offset,
+									Math.max(from[1], to[1]) + 3.28,
+									(from[2] + to[2]) / 2,
+								]}
+								scale={[0.34, 0.34, 0.34]}
+								color={palette.social}
+								castShadows={false}
+							/>
+						))}
 					</Entity>
 				);
 			})}

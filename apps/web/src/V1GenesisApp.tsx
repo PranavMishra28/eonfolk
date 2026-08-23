@@ -404,6 +404,70 @@ function actorActivity(
 	return place === undefined ? activity : `${activity} at ${place}`;
 }
 
+function GeneratedSceneTruth({
+	projection,
+	model,
+}: {
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly model: GeneratedEmbodimentProjection;
+}) {
+	const interaction = projection.spatial.interactions[0];
+	if (interaction === undefined) return null;
+	const participants = interaction.participantIds
+		.map((citizenId) =>
+			model.actors.find((actor) => actor.citizenId === citizenId),
+		)
+		.filter((actor) => actor !== undefined);
+	if (participants.length < 2) return null;
+	const first = participants[0];
+	if (first === undefined) return null;
+	const place = projection.local.sites.find(
+		(site) => site.siteId === first.placeId,
+	)?.name;
+	const otherActivities = model.actors
+		.filter((actor) => !interaction.participantIds.includes(actor.citizenId))
+		.filter(
+			(actor, index, actors) =>
+				actors.findIndex(
+					(candidate) => candidate.animationClass === actor.animationClass,
+				) === index,
+		)
+		.slice(0, 4);
+	const participantNames = participants.map(({ name }) => name).join(" + ");
+	return (
+		<div
+			className="generated-scene-truth"
+			data-testid="generated-scene-truth"
+			data-interaction-kind={interaction.kind}
+			data-interaction-status={interaction.status}
+			data-participant-ids={interaction.participantIds.join(",")}
+		>
+			<p className="generated-scene-interaction">
+				<span aria-hidden="true" className="generated-scene-signal" />
+				<span>
+					<strong>{participantNames}</strong>
+					<small>
+						{interaction.status === "in-progress" ? "In" : "Completed"}{" "}
+						{interaction.kind}
+						{place === undefined ? "" : ` · ${place}`}
+					</small>
+				</span>
+			</p>
+			<ul aria-label="Other visible work in the scene">
+				{otherActivities.map((actor) => (
+					<li
+						key={actor.citizenId}
+						className={`generated-scene-activity generated-scene-activity--${actor.animationClass}`}
+					>
+						<strong>{actor.name.split(" ")[0]}</strong>
+						<span>{actorActivity(actor, projection).split(" at ")[0]}</span>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
 function GeneratedContextPanel({
 	projection,
 	model,
@@ -436,6 +500,28 @@ function GeneratedContextPanel({
 		const activity = ACTIVITY_WORDS[actor.animationClass];
 		activityCounts.set(activity, (activityCounts.get(activity) ?? 0) + 1);
 	}
+	const activeInteraction = projection.spatial.interactions[0];
+	const interactionParticipants =
+		activeInteraction === undefined
+			? []
+			: activeInteraction.participantIds
+					.map((citizenId) =>
+						model.actors.find((actor) => actor.citizenId === citizenId),
+					)
+					.filter((actor) => actor !== undefined);
+	const interactionPlace = interactionParticipants[0]
+		? projection.local.sites.find(
+				(site) => site.siteId === interactionParticipants[0]?.placeId,
+			)?.name
+		: undefined;
+	const interactionPhrase =
+		activeInteraction?.status === "in-progress"
+			? activeInteraction.kind === "conversation"
+				? "are talking"
+				: "are making an exchange"
+			: activeInteraction?.kind === "conversation"
+				? "finished talking"
+				: "completed an exchange";
 	return (
 		<aside
 			className="v1-context-panel"
@@ -448,6 +534,20 @@ function GeneratedContextPanel({
 				<h2>{selectedActor?.name ?? projection.local.settlement.name}</h2>
 				{selectedActor === undefined ? (
 					<>
+						{activeInteraction !== undefined &&
+						interactionParticipants.length >= 2 ? (
+							<p className="v1-live-interaction">
+								<strong>
+									{interactionParticipants
+										.map(({ name }) => name)
+										.join(" and ")}
+								</strong>{" "}
+								{interactionPhrase}
+								{interactionPlace === undefined
+									? "."
+									: ` at ${interactionPlace}.`}
+							</p>
+						) : null}
 						<p>
 							{model.actors.length} lives are unfolding at once. Select someone
 							to move from the settlement view into their immediate work.
@@ -807,6 +907,7 @@ function GeneratedWorld({
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
+						<GeneratedSceneTruth projection={projection} model={model} />
 					</div>
 					<GeneratedContextPanel
 						projection={projection}
