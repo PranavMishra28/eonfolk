@@ -6,19 +6,19 @@
 
 **Authority boundary:** This file owns agent process; [docs/INDEX.md](docs/INDEX.md) owns content authority.
 
-**Related documents:** [PLAN.md](PLAN.md), [ExecPlan contract](docs/exec-plans/PLANS.md), [source ledger](docs/research/SOURCE_LEDGER.md).
+**Related documents:** [GOAL.md](GOAL.md), [RESUME.md](RESUME.md), [docs/INDEX.md](docs/INDEX.md).
 
 This repository is the system of record for EONFOLK planning, implementation, and evidence.
 
 ## Mission and constraints
 
-- Implement Founder Alpha through the sole integration branch `feat/002-founder-alpha` and its one mega PR. `main` remains the protected integration target.
+- Implement the V1 civilization benchmark through the sole integration branch `feat/v1-civilization` and its one draft mega PR. `main` remains the protected integration target.
 - Preserve World/Reality/Epistemics/Truth/Brain/Chronicle/Experiment/Observatory boundaries: typed Reality is sole authority; diagnostics, feedback, cognition, ontology projections, and experiments never mutate it; no hidden chain-of-thought.
-- Optimize for a solo builder and a compelling 40–60-hour first implementation slice.
+- Keep all required V1 software in [GOAL.md](GOAL.md) until executable acceptance evidence is verified; difficulty or elapsed time never converts a requirement to future work.
 - Target approximately $0 spend; incur no cost, deploy nothing, and add no credentials without explicit approval.
 - V1 is useful and free. Payments, revenue operations, model training, proprietary datasets, partnerships, regulated data, and enterprise sales are out of scope.
 - Never edit or reuse frozen Gate 0 treatment resolution as authoritative game logic. Historical evidence is preserved by immutable tags.
-- Start with `docs/INDEX.md`; it identifies the authority for every concern.
+- Start with `GOAL.md`, then `RESUME.md`, then `docs/INDEX.md`.
 
 ## Evidence language
 
@@ -33,7 +33,7 @@ Material external claims cite an `S-*` entry in `docs/research/SOURCE_LEDGER.md`
 
 Bounded agents work only on their assigned artifact and file allowlist. They do not create goals, broaden scope, spawn agents, or edit shared authorities. They return findings, evidence, objections, uncertainties, recommendations, tests, and one clean commit. Writing agents use isolated worktrees.
 
-The coordinator owns `PLAN.md`, `docs/INDEX.md`, `docs/research/SOURCE_LEDGER.md`, and all files under `docs/decisions/`. The coordinator inspects every actual diff before integration.
+The coordinator owns `GOAL.md`, `RESUME.md`, `docs/INDEX.md`, shared contracts, integration, and the one draft PR. The coordinator inspects every actual diff before integration.
 
 ## Document quality
 
@@ -46,4 +46,4 @@ Every authority document states the decision it owns, evidence that would reopen
 - search for unfinished-work markers, placeholders, and unsupported “current” claims
 - verify no credentials, deployment artifacts, unsupported product claims, or mutable evidence entered the tree
 - run the repository's fast or full verification command appropriate to the change
-- do not declare implementation readiness until `PLAN.md` links every applicable criterion to concrete evidence
+- do not mark the draft PR ready or merge until every required `GOAL.md` row is VERIFIED and the frozen-SHA reviews pass
