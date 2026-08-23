@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { replayCivilizationSchedulerDecisions } from "../../../packages/cognition/src/index.js";
 import {
 	assertCivilizationInvariants,
 	deriveCivilizationSeedConditions,
 	runCivilizationExperiment,
 	runCivilizationExperimentMatrix,
 } from "../../../packages/civilization/src/index.js";
+import { replayCivilizationSchedulerDecisions } from "../../../packages/cognition/src/index.js";
 import {
 	createReleaseGenesis,
 	domainHash,
 	jcs,
 } from "../../../packages/protocol/src/index.js";
+import { projectGeneratedCivilizationSpatial } from "../../../packages/world-presentation/src/index.js";
 import {
 	generateWorld,
 	materializeFoundedSettlement,
@@ -400,6 +401,111 @@ describe("deterministic civilization experiment", () => {
 		expect(Object.keys(run.state.migrations)).toEqual([]);
 		expect(Object.keys(run.state.foundings)).toEqual([]);
 		expect(run.metrics.invariantIssues).toEqual([]);
+	});
+
+	it("schedules one relationship-grounded mutual conversation that presentation cannot invent", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-canonical-social-interaction",
+		);
+		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const social = run.activities.filter((activity) =>
+			["talk", "listen", "exchange"].includes(activity.canonicalAction.kind),
+		);
+		expect(social).toHaveLength(2);
+		const first = social[0];
+		const second = social[1];
+		if (first === undefined || second === undefined)
+			throw new Error("release genesis lacks its canonical social dyad");
+		expect(first.citizenId).not.toBe(second.citizenId);
+		expect(first.canonicalAction.targetId).toBe(second.citizenId);
+		expect(second.canonicalAction.targetId).toBe(first.citizenId);
+		expect(first.routine).toMatchObject({
+			kind: "social-maintenance",
+			subjectId: second.citizenId,
+			route: null,
+		});
+		expect(second.routine).toMatchObject({
+			kind: "social-maintenance",
+			subjectId: first.citizenId,
+			route: null,
+		});
+		const firstCitizen = run.state.citizens[first.citizenId];
+		const secondCitizen = run.state.citizens[second.citizenId];
+		expect(firstCitizen).toBeDefined();
+		expect(secondCitizen).toBeDefined();
+		expect(firstCitizen?.settlementId).toBe(secondCitizen?.settlementId);
+		expect(firstCitizen?.siteId).toBe(secondCitizen?.siteId);
+		expect(
+			Object.values(run.state.relationships).some(
+				(relationship) =>
+					(relationship.fromCitizenId === first.citizenId &&
+						relationship.toCitizenId === second.citizenId) ||
+					(relationship.fromCitizenId === second.citizenId &&
+						relationship.toCitizenId === first.citizenId),
+			),
+		).toBe(true);
+		expect(first.location).toEqual(second.location);
+		if (
+			first.location.kind !== "interaction-slot" ||
+			second.location.kind !== "interaction-slot"
+		)
+			throw new Error("canonical social dyad is not slot-grounded");
+		const slot =
+			run.world.interactionSlots[first.location.interactionSlotId]?.value;
+		expect(slot?.siteId).toBe(firstCitizen?.siteId);
+		expect(slot?.capacity).toBeGreaterThanOrEqual(2);
+		expect(
+			new Set([
+				first.canonicalAction.affordanceSlotIndex,
+				second.canonicalAction.affordanceSlotIndex,
+			]),
+		).toHaveLength(2);
+
+		const input = {
+			world: run.world,
+			civilization: run.state,
+			checkpoint: run,
+			settlementId: firstCitizen?.settlementId ?? "missing-settlement",
+			presentationTick: 0,
+		} as const;
+		const canonical = projectGeneratedCivilizationSpatial({
+			...input,
+			activities: run.activities,
+		});
+		expect(canonical.spatial.interactions).toHaveLength(1);
+		expect(canonical.spatial.interactions[0]?.participantIds).toEqual(
+			[first.citizenId, second.citizenId].sort(),
+		);
+
+		const unrelatedSettlementCitizen = Object.values(run.state.citizens).find(
+			(citizen) => citizen.settlementId !== firstCitizen?.settlementId,
+		);
+		const targetPerturbations = [
+			first.citizenId,
+			"unknown-citizen",
+			null,
+			unrelatedSettlementCitizen?.citizenId ?? "unknown-settlement-citizen",
+		] as const;
+		for (const targetId of targetPerturbations) {
+			const perturbed = run.activities.map((activity) =>
+				activity.citizenId === first.citizenId
+					? {
+							...activity,
+							canonicalAction: {
+								...activity.canonicalAction,
+								targetId,
+							},
+						}
+					: activity,
+			);
+			expect(
+				projectGeneratedCivilizationSpatial({
+					...input,
+					activities: perturbed,
+				}).spatial.interactions,
+			).toEqual([]);
+		}
 	});
 
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {

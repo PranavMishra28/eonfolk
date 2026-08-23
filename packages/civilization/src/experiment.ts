@@ -1,25 +1,25 @@
 import {
+	CIVILIZATION_SCHEDULER_BRAIN_VERSION,
 	type CivilizationRoutineOption,
 	type CivilizationRoutineResolution,
 	type CivilizationSchedulerDecisionEvidence,
 	type CivilizationSchedulerMindState,
-	CIVILIZATION_SCHEDULER_BRAIN_VERSION,
-	MEMORY_SCHEMA_VERSION,
 	createMemoryStore,
 	decideCivilizationSchedulerRoutine,
+	MEMORY_SCHEMA_VERSION,
 	remember,
 } from "@eonfolk/cognition";
 import {
 	bytesFromHex,
 	domainHash,
 	type GeneratedWorldState,
-	type StandingPlan,
 	type ProjectState,
 	type ResourceDefinition,
-	seedPrng,
+	type StandingPlan,
 	type StockOwner,
 	type StockState,
 	type StorageState,
+	seedPrng,
 	VISIBILITY_POLICY_VERSION,
 	type WorldCell,
 } from "@eonfolk/protocol";
@@ -37,8 +37,9 @@ import {
 	advanceMigration,
 	advanceMigrationJourney,
 	checkpointCivilizationAccounting,
-	registerFounding,
+	recordFoundingMaterialization,
 	registerAgreement,
+	registerFounding,
 	registerInstitution,
 	registerMigration,
 	registerMigrationJourney,
@@ -47,7 +48,6 @@ import {
 	registerResourceDefinition,
 	registerStock,
 	registerStorage,
-	recordFoundingMaterialization,
 } from "./kernel.js";
 import {
 	formHousehold,
@@ -60,8 +60,8 @@ import {
 	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
 	type GeneralizedSchedulerPolicy,
 	type SchedulerAction,
-	type SchedulerRoutineDecision,
 	type SchedulerRoutineAssignment,
+	type SchedulerRoutineDecision,
 } from "./scheduler.js";
 import { createCivilizationState } from "./state.js";
 import type { CivilizationState } from "./types.js";
@@ -675,6 +675,16 @@ function bootstrapCivilization(
 	const originSites = values(world.sites)
 		.filter((site) => origin.siteIds.includes(site.siteId))
 		.sort((left, right) => left.siteId.localeCompare(right.siteId));
+	const communalSite = originSites.find((site) =>
+		values(world.interactionSlots).some(
+			(slot) =>
+				slot.siteId === site.siteId &&
+				slot.capacity >= 2 &&
+				slot.activityKinds.some((kind) =>
+					["meet", "rendezvous"].includes(kind),
+				),
+		),
+	);
 	const dwelling = values(world.buildings)
 		.filter((building) =>
 			originSites.some((site) => site.siteId === building.siteId),
@@ -683,10 +693,13 @@ function bootstrapCivilization(
 	for (let index = 0; index < POPULATION; index += 1) {
 		const id = citizenId(index);
 		const identity = required(CITIZEN_IDENTITIES[index], `identity for ${id}`);
-		const site = required(
-			originSites[index % originSites.length],
-			"an origin citizen site",
-		);
+		const site =
+			index >= POPULATION - 2 && communalSite !== undefined
+				? communalSite
+				: required(
+						originSites[index % originSites.length],
+						"an origin citizen site",
+					);
 		state = registerCitizen(state, {
 			schemaVersion: "eonfolk-civilization-social-v1",
 			citizenId: id,
@@ -1186,6 +1199,70 @@ function scheduleActivities(
 		left.interactionSlotId.localeCompare(right.interactionSlotId),
 	);
 	const occupancy = new Map<string, number>();
+	const mutualSocial = new Map<
+		string,
+		Readonly<{
+			partnerCitizenId: string;
+			interactionSlotId: string;
+			affordanceSlotIndex: number;
+			kind: "talk" | "listen";
+		}>
+	>();
+	const routinesByCitizen = new Map(
+		routines.map((routine) => [routine.citizenId, routine]),
+	);
+	const paired = new Set<string>();
+	for (const relationship of Object.values(state.relationships).sort(
+		(left, right) => left.relationshipId.localeCompare(right.relationshipId),
+	)) {
+		const first = state.citizens[relationship.fromCitizenId];
+		const second = state.citizens[relationship.toCitizenId];
+		const firstRoutine = routinesByCitizen.get(relationship.fromCitizenId);
+		const secondRoutine = routinesByCitizen.get(relationship.toCitizenId);
+		if (
+			first === undefined ||
+			second === undefined ||
+			first.citizenId === second.citizenId ||
+			first.residenceState !== "resident" ||
+			second.residenceState !== "resident" ||
+			first.settlementId !== second.settlementId ||
+			first.siteId !== second.siteId ||
+			firstRoutine?.kind !== "social-maintenance" ||
+			secondRoutine?.kind !== "social-maintenance" ||
+			firstRoutine.subjectId !== second.citizenId ||
+			secondRoutine.subjectId !== first.citizenId ||
+			paired.has(first.citizenId) ||
+			paired.has(second.citizenId)
+		)
+			continue;
+		const slot = slots.find(
+			(candidate) =>
+				candidate.siteId === first.siteId &&
+				candidate.capacity -
+					(occupancy.get(candidate.interactionSlotId) ?? 0) >=
+					2 &&
+				candidate.activityKinds.some((kind) =>
+					["meet", "rendezvous"].includes(kind),
+				),
+		);
+		if (slot === undefined) continue;
+		const firstSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
+		occupancy.set(slot.interactionSlotId, firstSlotIndex + 2);
+		const orderedIds = [first.citizenId, second.citizenId].sort();
+		for (const [index, citizenIdValue] of orderedIds.entries()) {
+			const partnerCitizenId = required(
+				orderedIds[index === 0 ? 1 : 0],
+				"mutual social partner",
+			);
+			mutualSocial.set(citizenIdValue, {
+				partnerCitizenId,
+				interactionSlotId: slot.interactionSlotId,
+				affordanceSlotIndex: firstSlotIndex + index,
+				kind: index === 0 ? "talk" : "listen",
+			});
+			paired.add(citizenIdValue);
+		}
+	}
 	return Object.values(state.citizens)
 		.filter((citizen) => citizen.residenceState === "resident")
 		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
@@ -1194,6 +1271,38 @@ function scheduleActivities(
 				routines.find((candidate) => candidate.citizenId === citizen.citizenId),
 				`routine for ${citizen.citizenId}`,
 			);
+			const social = mutualSocial.get(citizen.citizenId);
+			if (social !== undefined)
+				return [
+					{
+						schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
+						citizenId: citizen.citizenId,
+						routine,
+						canonicalAction: {
+							actionId: `scheduled:${state.revision}:${citizen.citizenId}:${social.interactionSlotId}:${social.partnerCitizenId}`,
+							sourceKind: "current-behavior" as const,
+							eventId: null,
+							eventSequence: null,
+							status: "in-progress" as const,
+							kind: social.kind,
+							originPlaceId: citizen.siteId,
+							destinationPlaceId: citizen.siteId,
+							affordanceId: social.interactionSlotId,
+							affordanceSlotIndex: social.affordanceSlotIndex,
+							targetId: social.partnerCitizenId,
+							simulationStart: state.simulationTime,
+							simulationEnd: null,
+							resultEventId: null,
+						},
+						location: {
+							kind: "interaction-slot" as const,
+							interactionSlotId: social.interactionSlotId,
+						},
+						projectId: null,
+						carriedProp: null,
+						focal: index === 0,
+					},
+				];
 			const route =
 				routine.route === null
 					? undefined
@@ -1254,7 +1363,11 @@ function scheduleActivities(
 			if (slot === undefined) return [];
 			const affordanceSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
 			occupancy.set(slot.interactionSlotId, affordanceSlotIndex + 1);
-			const readable = activityKind(slot.activityKinds);
+			const slotActivity = activityKind(slot.activityKinds);
+			const readable =
+				slotActivity.kind === "talk"
+					? ({ kind: "inspect", prop: null } as const)
+					: slotActivity;
 			const project = Object.values(state.projects)
 				.filter(
 					(candidate) =>
@@ -1422,7 +1535,11 @@ async function initializeCognitionRuntime(
 			});
 		}
 		const relationships = Object.values(state.relationships)
-			.filter(({ fromCitizenId }) => fromCitizenId === citizen.citizenId)
+			.filter(
+				({ fromCitizenId, toCitizenId }) =>
+					fromCitizenId === citizen.citizenId ||
+					toCitizenId === citizen.citizenId,
+			)
 			.sort((left, right) =>
 				left.relationshipId.localeCompare(right.relationshipId),
 			)

@@ -403,7 +403,8 @@ function validateRoutineDecisions(
 				case "social-maintenance":
 					return (
 						citizen.residenceState === "resident" &&
-						decision.subjectId === decision.citizenId
+						(decision.subjectId === decision.citizenId ||
+							legalSocialPartner(state, decision.citizenId, decision.subjectId))
 					);
 				case "travel":
 					return (
@@ -427,6 +428,29 @@ function validateRoutineDecisions(
 				`decision ${decision.actionId} does not resolve to a legal scheduler routine`,
 			);
 	}
+}
+
+function legalSocialPartner(
+	state: CivilizationState,
+	actorCitizenId: string,
+	partnerCitizenId: string,
+): boolean {
+	if (actorCitizenId === partnerCitizenId) return false;
+	const actor = state.citizens[actorCitizenId];
+	const partner = state.citizens[partnerCitizenId];
+	return (
+		actor?.residenceState === "resident" &&
+		partner?.residenceState === "resident" &&
+		actor.settlementId === partner.settlementId &&
+		actor.siteId === partner.siteId &&
+		Object.values(state.relationships).some(
+			(relationship) =>
+				(relationship.fromCitizenId === actorCitizenId &&
+					relationship.toCitizenId === partnerCitizenId) ||
+				(relationship.fromCitizenId === partnerCitizenId &&
+					relationship.toCitizenId === actorCitizenId),
+		)
+	);
 }
 
 function permitsRoutine(
@@ -456,7 +480,7 @@ function routineAssignments(
 				candidate.kind === kind &&
 				(subjectId === undefined || candidate.subjectId === subjectId),
 		);
-	return Object.values(state.citizens)
+	const assignments = Object.values(state.citizens)
 		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
 		.map((citizen) => {
 			let kind: SchedulerRoutineAssignment["kind"] = "social-maintenance";
@@ -531,6 +555,48 @@ function routineAssignments(
 				route,
 			};
 		});
+	const byCitizen = new Map(
+		assignments.map((assignment) => [assignment.citizenId, assignment]),
+	);
+	const paired = new Set<string>();
+	for (const relationship of Object.values(state.relationships).sort(
+		(left, right) => left.relationshipId.localeCompare(right.relationshipId),
+	)) {
+		const firstId = relationship.fromCitizenId;
+		const secondId = relationship.toCitizenId;
+		if (
+			paired.has(firstId) ||
+			paired.has(secondId) ||
+			!legalSocialPartner(state, firstId, secondId)
+		)
+			continue;
+		const first = byCitizen.get(firstId);
+		const second = byCitizen.get(secondId);
+		if (
+			first === undefined ||
+			second === undefined ||
+			!["consume", "social-maintenance"].includes(first.kind) ||
+			!["consume", "social-maintenance"].includes(second.kind)
+		)
+			continue;
+		byCitizen.set(firstId, {
+			...first,
+			kind: "social-maintenance",
+			subjectId: secondId,
+			route: null,
+		});
+		byCitizen.set(secondId, {
+			...second,
+			kind: "social-maintenance",
+			subjectId: firstId,
+			route: null,
+		});
+		paired.add(firstId);
+		paired.add(secondId);
+	}
+	return assignments.map(
+		(assignment) => byCitizen.get(assignment.citizenId) ?? assignment,
+	);
 }
 
 function availableLabor(state: CivilizationState): Record<string, number> {

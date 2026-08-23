@@ -1002,6 +1002,7 @@ function deriveInteractions(input: {
 			slotId === null ||
 			!social.has(actor.action.kind) ||
 			target === undefined ||
+			target.citizenId === actor.citizenId ||
 			target.travelState.status !== "stationary" ||
 			target.action.affordanceId !== slotId ||
 			!social.has(target.action.kind) ||
