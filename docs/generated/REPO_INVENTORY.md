@@ -6,30 +6,30 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 452 files excluding this generated file; SHA-256 `faacb5698f5b4c3d8e09b23522a4998d274590bd7bbee7c8587b60f161a74856`.
+**File-set identity:** 469 files excluding this generated file; SHA-256 `0769b9489e2fbd3cd71a80b384af9bc97ebef4b7809fc06515448c73985de2a3`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 52 |
+| Application code | 60 |
 | Documentation | 62 |
 | Frozen execution evidence | 33 |
 | GitHub automation | 3 |
-| Other tracked assets | 3 |
-| Packages | 93 |
+| Other tracked assets | 5 |
+| Packages | 94 |
 | Repository tooling | 29 |
 | Research and reviews | 48 |
 | Root controls and configuration | 23 |
-| Tests and fixtures | 106 |
+| Tests and fixtures | 112 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
 | `apps/feedback-worker` | `@eonfolk/feedback-worker` | 8 |
-| `apps/web` | `@eonfolk/web` | 32 |
-| `packages/civilization` | `@eonfolk/civilization` | 8 |
+| `apps/web` | `@eonfolk/web` | 40 |
+| `packages/civilization` | `@eonfolk/civilization` | 9 |
 | `packages/cognition` | `@eonfolk/cognition` | 14 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
 | `packages/observatory` | `@eonfolk/observatory` | 1 |
@@ -43,13 +43,13 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 2 |
+| `tests/e2e` | 3 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
-| `tests/property` | 15 |
+| `tests/property` | 17 |
 | `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 58 |
+| `tests/unit` | 61 |
 
 ## Root controls and configuration
 

@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled integration commit: `c987027` (`fix(web): bind route diagnostics to product identity`)
+- Last reconciled integration commit: `7254659` (`fix(diagnostics): bind observer to Release Genesis`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -40,7 +40,7 @@
 - A pure 30/90/365-day civilization experiment now records deterministic step/event hash chains, conservation audits, project/migration/founding records, progression/stagnation metrics, exact replay, prefix identity, and multi-seed property coverage without any model invocation.
 - That experiment is infrastructure, not completed V1 civilization evidence: expansion is still scheduled on fixed days, population is a fixed metric, migration does not traverse routes, founding does not materialize a second generated settlement, and no generalized persistence adapter is involved. The viable/stagnant product rows therefore remain unverified.
 - Renderer-neutral generated-world projections now expose immutable region, settlement-local, and entity-follow semantic views while preserving canonical input bytes and hashes. Four focused tests and the full FAST lane passed; no browser renderer integration, visual proof, or performance evidence exists yet.
-- `/genesis` and `/world` now render the fixed Release Genesis world through declared workspace dependencies, while `/` remains the Founder Alpha regression route. Six focused production Playwright journeys passed across 1728×1117, 1366×768, and 390×844 with keyboard navigation, reduced motion, semantic fallback, no horizontal overflow, and zero attempted external requests. Build payload is 657,791 bytes gzip against the existing 665,600-byte ceiling, leaving only 7,809 bytes of headroom.
+- `/` and `/genesis` now open the Release Genesis entry, `/world` opens the generated civilization, `/research` and `/developer` deliberately separate evidence and implementation detail, and `/legacy` is the sole Founder Alpha regression route. Six focused route/generated-world Playwright journeys passed with keyboard navigation and zero external requests. The route-aware `/world` payload is 617,652 bytes gzip against the 665,600-byte ceiling.
 - A separate in-app browser audit at 1366×768 found no console warnings/errors and confirmed region-to-settlement interaction, but the screen is still an abstract grid/site diagram with no citizens or activity. It fails the World Presence Gate and is not V1 visual acceptance evidence.
 - CI now regenerates/checks the repository topology, labels all Riverhold browser artifacts as Founder Alpha regression evidence that is ineligible for V1 readiness, and fails closed when a non-draft PR has any incomplete required row or lacks an exact-HEAD clean verification manifest. Draft mode remains green only with an explicit `V1 INCOMPLETE` claim boundary.
 - Targeted mutation coverage expanded from eight to fourteen killed mutants, adding generated settlement safety, actor-visible fact filtering, planner prerequisites and expansion budgets, and Standing Plan active/retry invariants. Civilization-kernel and later integration mutations are still required before the V1 mutation row can be verified.
@@ -56,14 +56,17 @@
 - Flight Recorder/Sentinel identity now includes genesis, world, cognition treatment, renderer, persistence, experiment, run, build, runtime, and performance identities. Its closed invariant catalog spans integrity, privacy, cognition, navigation, render, network, and persistence. Coverage is still incomplete for all required injected failures and generalized product integration.
 - The exact-head persistence TLA+ model now covers current-writer snapshots, stale-writer no-ops, and idempotent retries; TLC 1.8.0 explored 1,886 reachable states and 52,379 transitions to depth 14 without invariant or temporal violations.
 - GitHub repository controls were re-probed: `main` protection requires strict `Verify`, `Formal model`, and `Secret scan` checks with force-push/deletion blocked; Actions are SHA-pinned/read-only by default; Dependabot and vulnerability alerts are enabled; Gitleaks compensates for unavailable native private-repository secret scanning. The latest pushed checkpoint (`5c7a497`) passed all three protected checks.
+- A generalized daily scheduler now executes scarcity-prioritized production, physical transport, audited food/water consumption, grounded needs, agreement- and authority-gated collective construction, materialization, and bounded known-person departure/arrival without model inference. Its 30/90/365-day fixture evidence is deterministic and audit-clean; normal Release Genesis experiment wiring remains in progress.
+- The generated embodiment foundation now fail-closes on missing canonical activity, exposes route/entrance/slot grounding, deterministic transition sampling, six pose families, project/growth deltas, shared semantic navigation, recognizable low-poly humanoid proxies, and repository-authored glTF provenance. It is not yet mounted in the `/world` renderer and therefore is not World Presence evidence.
+- Generated-route diagnostics now bind `/`, `/genesis`, `/world`, `/research`, and `/developer` to Release Genesis; only `/legacy` binds Founder Alpha. `pnpm diagnose` targets `/world` and returned a healthy local observer with the versioned browser-authority identity.
 
 ## Next executable tasks
 
-1. Unify the generated Release Genesis authority with the embodied PlayCanvas world so generated citizens, terrain, routes, projects, migrations, and second settlements drive one canonical browser product.
-2. Wire civilization state, planners, memory, and the versioned persistence port through the browser scheduler; implement IndexedDB recovery and bounded reload/1-day/7-day/long catch-up without historical model inference.
+1. Wire the generalized scheduler and canonical embodiment projection through the normal generated browser authority; close temporal route, interaction, named-identity, project-delta, and Living World gaps without invented presentation.
+2. Integrate Standard Brain plans/memory at normal decision boundaries, then implement one sponsor counsel → independent interpretation → delayed consequence → factual spatial Chronicle path.
 3. Keep the promoted local-model treatment optional; add it to exact-candidate DEEP evidence while preserving Standard-Brain-only liveness and separately test renderer-concurrent and human story-value gates.
-4. Complete grounded population/institution/project execution, Chronicle-to-world navigation, Research mode, diagnostics, failure injection, and authored asset/animation breadth in the unified product.
-5. Add exact-V1 CI evidence tiers, run the complete target-Mac DEEP candidate, freeze it, conduct six independent reviews, repair all accepted P0/P1, and run fresh confirmation.
+4. Complete Chronicle navigation, evidence inspection, feedback, diagnostics, the injected-fault matrix, visual performance/accessibility evidence, and final dead-code/document cleanup.
+5. Run the complete target-Mac DEEP candidate, freeze it, conduct six independent reviews, repair all accepted P0/P1, run fresh confirmation, and only then move the protected mega PR through merge/post-merge verification.
 
 ## Resume commands
 

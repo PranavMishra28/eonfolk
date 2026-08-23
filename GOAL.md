@@ -35,8 +35,8 @@
 | Active documentation hierarchy simplified and non-contradictory | VERIFIED |
 | Research bibliography and durable provenance captured | VERIFIED |
 | Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
-| Release Genesis is the product entry identity | IN PROGRESS |
-| Landing, immersive game, research, and developer surfaces are separated | NOT STARTED |
+| Release Genesis is the product entry identity | VERIFIED |
+| Landing, immersive game, research, and developer surfaces are separated | VERIFIED |
 
 ## Generalized world
 
@@ -110,7 +110,7 @@
 
 | Requirement | State |
 |---|---|
-| Premium coherent landing/entry route | NOT STARTED |
+| Premium coherent landing/entry route | VERIFIED |
 | Immersive separate world-first game route | IN PROGRESS |
 | Generalized terrain, routes, settlements, projects, and growth render | IN PROGRESS |
 | Semantic region, settlement, and citizen-follow zoom | IN PROGRESS |

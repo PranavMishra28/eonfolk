@@ -8,15 +8,24 @@ The current `main` branch contains the completed Founder Alpha/Riverhold proof. 
 
 ## Current executable state
 
-Founder Alpha is the playable regression surface today:
+On the V1 branch, `/` is the Release Genesis entry and `/world` is the generated
+PlayCanvas/WebGL2 civilization. It currently provides:
 
-- one authored 250 × 210 metre PlayCanvas/WebGL2 settlement;
-- eight embodied citizens with deterministic, model-free behavior;
-- typed Reality and Mind boundaries, event sourcing, IndexedDB snapshots, catch-up, and replay;
-- travel, gathering, exchange, repair, social interaction, counsel, Chronicle, and Story Card paths; and
-- keyboard access, reduced motion, mobile reflow, renderer degradation, diagnostics, and zero-egress checks.
+- one deterministic generated region advanced through 1/7/30/90/365-day checkpoints;
+- eight canonical citizens across an origin and one physically founded settlement;
+- typed resources, projects, population, relationships, needs, institutions, agreements, and a model-free daily scheduler;
+- versioned IndexedDB events, receipts, snapshots, fencing, replay, and bounded catch-up;
+- renderer-neutral spatial projections with keyboard and semantic equivalents; and
+- a bounded optional local-model treatment that never becomes Reality authority or a runtime requirement.
 
-The V1 branch additionally contains generalized Release Genesis/protocol contracts, deterministic generated geography, immutable overview/local presentation projections, a pure civilization resource/project kernel, bounded planners, a closed model-choice adapter, and V1-specific CI readiness controls. These pieces are not yet an integrated playable civilization. Migration scheduling, founding materialization, generated-world persistence, the embodied V1 browser experience, and final evidence remain incomplete. The [research map](docs/RESEARCH.md) and [BibTeX catalog](references.bib) preserve primary sources behind durable technical choices.
+This is still an internal incomplete V1. The generated product has not yet passed
+the embodied World Presence, counsel/attachment, Chronicle, complete fault,
+performance, frozen-review, or release gates. Founder Alpha remains available only
+at `/legacy` as regression evidence; it cannot satisfy V1 readiness. `/research`
+and `/developer` deliberately separate evidence and implementation detail from
+normal play. The [research map](docs/RESEARCH.md) and
+[BibTeX catalog](references.bib) preserve primary sources behind durable technical
+choices.
 
 ## Run locally
 
@@ -27,7 +36,15 @@ corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm dev
 ```
 
-Open the loopback URL printed by Vite. Development diagnostics remain local. To build and serve the production bundle on loopback only:
+Open the loopback URL printed by Vite. Enter the current world at `/world`; use
+`/legacy` only for Founder Alpha regression checks. Development diagnostics remain
+local. To inspect the generated-world observer:
+
+```sh
+corepack pnpm diagnose
+```
+
+To build and serve the production bundle on loopback only:
 
 ```sh
 corepack pnpm prod
