@@ -4,8 +4,26 @@ import {
 	VISIBILITY_POLICY_VERSION,
 	type Viewer,
 	type VisibilityContext,
+	type Visibility,
 	type WorldEventEnvelope,
 } from "../../protocol/src/index.js";
+
+export interface CivilizationChronicleBoundary {
+	readonly eventId: string;
+	readonly parentEventId: string;
+	readonly createdRevision: number;
+	readonly visibility: Visibility;
+	readonly fact: {
+		readonly schemaVersion: "eonfolk-counsel-boundary-fact-v1";
+		readonly citizenId: string;
+		readonly interventionId: string;
+		readonly simulationTime: number;
+		readonly requiredNeedUnits: number;
+		readonly consumedNeedUnits: number;
+		readonly unmetNeedUnits: number;
+		readonly sourceStockIds: readonly string[];
+	};
+}
 
 export interface CivilizationChronicleBeat {
 	readonly beat: number;
@@ -51,6 +69,7 @@ export function projectCivilizationChronicle(input: {
 	readonly atRevision: number;
 	readonly visibilityContext: VisibilityContext;
 	readonly citizenNames: Readonly<Record<string, string>>;
+	readonly boundaries?: readonly CivilizationChronicleBoundary[];
 }): CivilizationChronicleProjection {
 	const visible = input.events.filter((event) => {
 		const createdRevision = input.eventRevisions[event.eventId];
@@ -100,6 +119,38 @@ export function projectCivilizationChronicle(input: {
 			evidenceEventIds,
 			relation: relationFor(event, visibleEventIds),
 		});
+	}
+	for (const boundary of input.boundaries ?? []) {
+		if (
+			boundary.fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v1" ||
+			boundary.createdRevision < 0 ||
+			canRead(
+				input.viewer,
+				input.purpose,
+				{
+					createdRevision: boundary.createdRevision,
+					visibility: boundary.visibility,
+				},
+				input.atRevision,
+				input.visibilityContext,
+			) !== "allow"
+		)
+			continue;
+		const fact = boundary.fact;
+		beats.push({
+			beat: beats.length + 1,
+			text: `${citizenName(fact.citizenId, input.citizenNames)} kept the daily-needs plan at the later boundary. The scheduler recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} need units consumed and ${fact.unmetNeedUnits} unmet.`,
+			evidenceEventIds: [
+				boundary.eventId,
+				...(visibleEventIds.has(boundary.parentEventId)
+					? [boundary.parentEventId]
+					: []),
+			],
+			relation: visibleEventIds.has(boundary.parentEventId)
+				? "contributing"
+				: "fact",
+		});
+		unresolvedTension = `Will ${citizenName(fact.citizenId, input.citizenNames)} and the settlement cover the next daily boundary?`;
 	}
 	const selected = beats.slice(-3).map((beat, index) => ({
 		...beat,

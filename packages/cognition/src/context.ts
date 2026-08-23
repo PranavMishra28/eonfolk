@@ -253,7 +253,7 @@ export function civilizationCounselAffordances(input: {
 				"preserves current commitments",
 				"defers counsel until another decision boundary",
 			],
-			tags: ["commitment", "relationship"],
+			tags: ["commitment", "relationship", "delay"],
 			evidenceRecordIds: [],
 			relationshipId: input.relationshipId,
 			risk: 100,

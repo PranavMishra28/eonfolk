@@ -625,6 +625,7 @@ export interface ActionCatalogEntry {
 		| "relationship"
 		| "evidence"
 		| "risk"
+		| "delay"
 		| "counsel"
 	)[];
 	readonly evidenceRecordIds: readonly string[];

@@ -4,23 +4,34 @@ import {
 	type CivilizationState,
 } from "../../../packages/civilization/src/index.js";
 import {
+	buildCivilizationCounselDecisionContext,
 	createCivilizationSponsorSnapshotBoundary,
 	prepareCivilizationSponsorTransition,
+	type ValidatedStandardBrainResolution,
 } from "../../../packages/civilization/src/sponsor.js";
 import {
+	createCognitiveDecisionRecord,
+	standardBrain,
+} from "../../../packages/cognition/src/index.js";
+import {
+	createAuthorityEvent,
 	MemoryVersionedPersistence,
 	persistCivilizationHistory,
+	reduceCivilizationAuthorityEvent,
 	replayCivilizationHistory,
 	type VersionedCrashPoint,
 } from "../../../packages/persistence/src/index.js";
 import {
+	createCivilizationCounselBoundaryAppend,
 	createCivilizationSponsorAuthorityAppend,
 	createCivilizationSponsorRejectionAppend,
 } from "../../../packages/persistence/src/civilization-sponsor.js";
 import {
 	createReleaseGenesis,
+	bytesFromHex,
 	payloadFingerprint,
 	PROTOCOL_SCHEMA_VERSION,
+	seedPrng,
 	stateHash,
 } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
@@ -113,9 +124,138 @@ async function fixture(crash?: OneShotCrash) {
 		protocolEvent: transition.events[0],
 		commandReceipt: transition.receipt,
 		decisionRecord: transition.committedDecisionRecord,
-		postCivilization: transition.postState,
 	});
 	return { port, persisted, append, citizenId, transition, runId, regionId };
+}
+
+async function appendCounselCommand(
+	value: Awaited<ReturnType<typeof fixture>>,
+	input:
+		| { readonly kind: "issue"; readonly interventionId: string }
+		| { readonly kind: "resolve"; readonly interventionId: string },
+) {
+	const head = await value.port.loadHead({
+		runId: value.runId,
+		regionId: value.regionId,
+	});
+	const replay = await replayCivilizationHistory(value.port, {
+		runId: value.runId,
+		regionId: value.regionId,
+		snapshotId: value.persisted.snapshot.snapshotId,
+		toSequenceExclusive: head.lastSequence + 1,
+	});
+	const state = replay.state.civilization as unknown as CivilizationState;
+	const decisionId = `decision:${input.interventionId}`;
+	const proposalId = `proposal:${input.interventionId}`;
+	const payload =
+		input.kind === "issue"
+			? ({
+					kind: "IssueCounsel",
+					interventionId: input.interventionId,
+					citizenId: value.citizenId,
+					intent: "verify-reserve",
+				} as const)
+			: ({
+					kind: "ResolveCounsel",
+					citizenId: value.citizenId,
+					interventionId: input.interventionId,
+					decisionId,
+					proposalId,
+					action: "follow-plan",
+				} as const);
+	const commandId = `${input.kind}:${input.interventionId}`;
+	const command = {
+		schemaVersion: PROTOCOL_SCHEMA_VERSION,
+		commandId,
+		payloadFingerprint: await payloadFingerprint(payload),
+		expectedRevision: state.revision,
+		principal:
+			input.kind === "issue"
+				? ({
+						kind: "patron",
+						principalId: "patron:local",
+						beneficiaryCitizenId: value.citizenId,
+					} as const)
+				: ({ kind: "citizen", principalId: value.citizenId } as const),
+		runId: value.runId,
+		regionId: value.regionId,
+		payload,
+	};
+	let resolution: ValidatedStandardBrainResolution | undefined;
+	if (input.kind === "resolve") {
+		const context = await buildCivilizationCounselDecisionContext({
+			state,
+			runId: value.runId,
+			regionId: value.regionId,
+			citizenId: value.citizenId,
+			interventionId: input.interventionId,
+			decisionId,
+		});
+		if (context === null) throw new Error("missing test counsel context");
+		const chosen = await standardBrain(context, {
+			proposalId,
+			prngState: await seedPrng(
+				bytesFromHex(context.contextHash, 32),
+				"civilization-sponsor-test",
+				value.citizenId,
+				decisionId,
+			),
+		});
+		resolution = {
+			decisionId,
+			context,
+			proposal: chosen.proposal,
+			decisionRecord: await createCognitiveDecisionRecord({
+				decisionId,
+				decisionBoundaryId: `boundary:${decisionId}`,
+				wholePreStateHash: await stateHash(state),
+				context,
+				proposal: chosen.proposal,
+				failureCode: null,
+				validator: {
+					stage: "authorization",
+					outcome: "accepted",
+					reason: "test Application validated Standard Brain",
+				},
+				proposedCommandId: commandId,
+				receiptRef: null,
+				acceptedEventInterval: null,
+			}),
+		};
+	}
+	const transition = await prepareCivilizationSponsorTransition({
+		state,
+		runId: value.runId,
+		regionId: value.regionId,
+		priorWorldHeadHash: head.lastEventHash,
+		nextSequence: head.lastSequence + 1,
+		snapshotBoundary: await createCivilizationSponsorSnapshotBoundary({
+			snapshotId: value.persisted.snapshot.snapshotId,
+			runId: value.runId,
+			regionId: value.regionId,
+			stateHash: await stateHash(state),
+			revision: state.revision,
+			simulationTime: state.simulationTime,
+			nextSequence: head.lastSequence + 1,
+			baseWorldHeadHash: head.lastEventHash,
+		}),
+		authoritativeHeaders: [],
+		fencingToken: head.fencingToken,
+		command,
+		authoritativeHistory: [],
+		...(resolution === undefined ? {} : { resolution }),
+	});
+	if (!transition.accepted || transition.events[0] === undefined)
+		throw new Error(`${input.kind} transition rejected`);
+	const append = await createCivilizationSponsorAuthorityAppend({
+		state: replay.state,
+		head,
+		protocolEvent: transition.events[0],
+		commandReceipt: transition.receipt,
+		decisionRecord: transition.committedDecisionRecord,
+	});
+	const committed = await value.port.appendEventBatch(append.request);
+	return { transition, append, committed };
 }
 
 describe("unified civilization sponsor authority", () => {
@@ -198,18 +338,45 @@ describe("unified civilization sponsor authority", () => {
 		);
 	});
 
-	it("rejects an invalid civilization before it can enter the durable stream", async () => {
+	it("ignores a caller-forged post-state and derives authority from the event", async () => {
 		const value = await fixture();
-		await expect(
-			createCivilizationSponsorAuthorityAppend({
-				state: value.persisted.plan.finalState,
-				head: value.persisted.head,
-				protocolEvent: value.transition.events[0],
-				commandReceipt: value.transition.receipt,
-				decisionRecord: value.transition.committedDecisionRecord,
-				postCivilization: { ...value.transition.postState, revision: -1 },
-			}),
-		).rejects.toThrow(/invariant/u);
+		const forged = {
+			...value.transition.postState,
+			citizens: {
+				...value.transition.postState.citizens,
+				[value.citizenId]: {
+					...value.transition.postState.citizens[value.citizenId]!,
+					name: "Forged name",
+				},
+			},
+		};
+		const append = await createCivilizationSponsorAuthorityAppend({
+			state: value.persisted.plan.finalState,
+			head: value.persisted.head,
+			protocolEvent: value.transition.events[0],
+			commandReceipt: value.transition.receipt,
+			decisionRecord: value.transition.committedDecisionRecord,
+			postCivilization: forged,
+		} as Parameters<typeof createCivilizationSponsorAuthorityAppend>[0] & {
+			postCivilization: CivilizationState;
+		});
+		expect(
+			(append.state.civilization as unknown as CivilizationState).citizens[
+				value.citizenId
+			]?.name,
+		).toBe(value.transition.priorState.citizens[value.citizenId]?.name);
+		const committed = await value.port.appendEventBatch(append.request);
+		const replay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: committed.head.lastSequence + 1,
+		});
+		expect(
+			(replay.state.civilization as unknown as CivilizationState).citizens[
+				value.citizenId
+			]?.name,
+		).toBe(value.transition.priorState.citizens[value.citizenId]?.name);
 	});
 
 	it("rejects a sponsor envelope with an extra payload field before persistence", async () => {
@@ -225,7 +392,6 @@ describe("unified civilization sponsor authority", () => {
 				},
 				commandReceipt: value.transition.receipt,
 				decisionRecord: value.transition.committedDecisionRecord,
-				postCivilization: value.transition.postState,
 			}),
 		).rejects.toMatchObject({ code: "INVALID_INPUT" });
 	});
@@ -239,8 +405,65 @@ describe("unified civilization sponsor authority", () => {
 				protocolEvent: value.transition.events[0],
 				commandReceipt: { ...value.transition.receipt, injected: true },
 				decisionRecord: null,
-				postCivilization: value.transition.postState,
 			}),
 		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+	});
+
+	it("executes, binds, and replays a delayed plan at a later scheduler boundary", async () => {
+		const value = await fixture();
+		await value.port.appendEventBatch(value.append.request);
+		const interventionId = `intervention:${value.citizenId}:needs`;
+		await appendCounselCommand(value, { kind: "issue", interventionId });
+		const resolved = await appendCounselCommand(value, {
+			kind: "resolve",
+			interventionId,
+		});
+		const head = resolved.committed.head;
+		const replay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: head.lastSequence + 1,
+		});
+		const boundary = await createCivilizationCounselBoundaryAppend({
+			state: replay.state,
+			head,
+			citizenId: value.citizenId,
+			interventionId,
+		});
+		expect(boundary.fact).toMatchObject({
+			citizenId: value.citizenId,
+			interpretationEventId: resolved.transition.events[0]!.eventId,
+			requiredNeedUnits: 7,
+		});
+		const original = boundary.request.events[0]!;
+		const { eventHash: _eventHash, ...eventWithoutHash } = original;
+		const swapped = await createAuthorityEvent({
+			...eventWithoutHash,
+			causalParents: [
+				{
+					eventId: value.transition.events[0]!.eventId,
+					relation: "contributing-condition",
+				},
+			],
+		});
+		expect(() =>
+			reduceCivilizationAuthorityEvent(replay.state, swapped),
+		).toThrow(/CIVP/u);
+		const committed = await value.port.appendEventBatch(boundary.request);
+		expect(committed.head.simulationTime).toBe(2 * 86_400);
+		const reloaded = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: committed.head.lastSequence + 1,
+		});
+		expect(
+			(reloaded.state.civilization as unknown as CivilizationState)
+				.simulationTime,
+		).toBe(2 * 86_400);
+		expect(
+			(await value.port.appendEventBatch(boundary.request)).idempotent,
+		).toBe(true);
 	});
 });

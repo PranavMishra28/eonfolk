@@ -166,13 +166,19 @@ function score(
 	return { entry, terms, total };
 }
 
-function disposition(
+/**
+ * Canonical counsel interpretation shared by the trusted Brain and authority.
+ * Civilization sponsorship defers a standing-plan interpretation to its typed
+ * later boundary; other decision surfaces retain their explicit rejection.
+ */
+export function counselDisposition(
 	context: DecisionContext,
 	selected: ActionCatalogEntry,
 ): DecisionExplanation["counselDisposition"] {
 	if (context.counselIntent === null) return "not-applicable";
 	if (selected.counselAffinity === context.counselIntent) return "accepted";
-	if (selected.action.kind === "FollowStandingPlan") return "rejected";
+	if (selected.action.kind === "FollowStandingPlan")
+		return selected.tags.includes("delay") ? "delayed" : "rejected";
 	return "reinterpreted";
 }
 
@@ -201,6 +207,8 @@ export function renderPublicJustification(
 		}[reasonCode] ?? "the visible facts support it";
 	if (explanation.counselDisposition === "accepted")
 		return `Your counsel matched my judgment: ${reason}.`;
+	if (explanation.counselDisposition === "delayed")
+		return `I will defer your counsel and keep my plan for now: ${reason}.`;
 	if (explanation.counselDisposition === "rejected")
 		return `I will keep my plan: ${reason}.`;
 	if (explanation.counselDisposition === "reinterpreted")
@@ -255,7 +263,7 @@ async function chooseWithStandardBrain(
 	const draw = tied.length > 1 ? xoshiro128StarStar(input.prngState) : null;
 	const selected = tied[draw === null ? 0 : draw.value % tied.length]!;
 	const nextPrngState = draw?.state ?? input.prngState;
-	const selectedDisposition = disposition(context, selected.entry);
+	const selectedDisposition = counselDisposition(context, selected.entry);
 	const decisive = [...selected.terms]
 		.sort(
 			(left, right) =>
@@ -612,9 +620,13 @@ function isClosedExplanation(
 	if (!value.decisiveReasonCodes.every((code) => allowedCodes.has(code)))
 		return false;
 	if (
-		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
-			String(value.counselDisposition),
-		)
+		![
+			"accepted",
+			"delayed",
+			"rejected",
+			"reinterpreted",
+			"not-applicable",
+		].includes(String(value.counselDisposition))
 	)
 		return false;
 	if (!value.visibleRecordIdsRead.every((id) => visibleIds.has(id)))

@@ -37,8 +37,33 @@ function appVersion(): string {
 	}
 }
 
+/** The accepted renderer is WebGL2-only; do not ship the unused WebGPU engine. */
+function webglOnlyPlayCanvasReact() {
+	return {
+		name: "eonfolk-webgl-only-playcanvas-react",
+		enforce: "pre" as const,
+		transform(_code: string, id: string) {
+			if (
+				!id
+					.replaceAll("\\", "/")
+					.endsWith("/@playcanvas/react/dist/utils/create-graphics-device.js")
+			)
+				return null;
+			return {
+				code: `import { DEVICETYPE_WEBGL2, platform, WebglGraphicsDevice } from "playcanvas";
+export async function internalCreateGraphicsDevice(canvas, options = {}) {
+  if (options.deviceTypes?.some((type) => type !== DEVICETYPE_WEBGL2)) throw new Error("WebGL2 required");
+  if (platform.browser && globalThis.navigator?.xr) options.xrCompatible ??= true;
+  return new WebglGraphicsDevice(canvas, options);
+}`,
+				map: null,
+			};
+		},
+	};
+}
+
 export default defineConfig({
-	plugins: [react()],
+	plugins: [webglOnlyPlayCanvasReact(), react()],
 	define: {
 		__EONFOLK_APP_VERSION__: JSON.stringify(appVersion()),
 		__EONFOLK_BUILD_SHA__: JSON.stringify(
@@ -56,6 +81,23 @@ export default defineConfig({
 		cssCodeSplit: true,
 		manifest: true,
 		reportCompressedSize: true,
+		rolldownOptions: {
+			treeshake: {
+				moduleSideEffects: false,
+				propertyReadSideEffects: false,
+				unknownGlobalSideEffects: false,
+			},
+			output: {
+				codeSplitting: {
+					groups: [
+						{
+							name: "world-authority",
+							test: /(?:packages\/(?:civilization|cognition|persistence|protocol|sim|worldgen|world-presentation)|V1GenesisApp|generated-(?:civilization|presentation|sponsor-runtime))/u,
+						},
+					],
+				},
+			},
+		},
 	},
 	server: {
 		host: "127.0.0.1",

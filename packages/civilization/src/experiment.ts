@@ -1117,6 +1117,14 @@ function bootstrapCivilization(
 	return { state, schedulerPolicy };
 }
 
+/** Reconstructs the versioned model-free scheduler policy from canonical world bytes. */
+export function deriveCivilizationSchedulerPolicy(
+	world: GeneratedWorldState,
+): GeneralizedSchedulerPolicy {
+	return bootstrapCivilization(world, deriveCivilizationSeedConditions(world))
+		.schedulerPolicy;
+}
+
 function activityKind(activityKinds: readonly string[]): {
 	readonly kind: CivilizationScheduledActivity["canonicalAction"]["kind"];
 	readonly prop: CivilizationScheduledActivity["carriedProp"];

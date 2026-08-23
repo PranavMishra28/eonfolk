@@ -26,7 +26,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority";
+/** Exact v2 namespace: pre-v2 authority bytes remain untouched and cannot be misread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v2";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "unavailable";

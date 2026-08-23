@@ -8,6 +8,7 @@
 		"./civilization-sponsor": "./src/civilization-sponsor.ts"
 	},
 	"dependencies": {
-		"@eonfolk/civilization": "workspace:*"
+		"@eonfolk/civilization": "workspace:*",
+		"@eonfolk/protocol": "workspace:*"
 	}
 }

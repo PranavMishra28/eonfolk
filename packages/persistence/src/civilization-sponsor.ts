@@ -1,6 +1,20 @@
-import { assertCivilizationInvariants } from "@eonfolk/civilization";
-import type { CivilizationState } from "@eonfolk/civilization";
-import { parseCivilizationSponsorEvent } from "@eonfolk/civilization/sponsor";
+import {
+	advanceGeneralizedScheduler,
+	assertCivilizationInvariants,
+	deriveCivilizationSchedulerPolicy,
+	type CivilizationState,
+	type SchedulerRoutineDecision,
+} from "@eonfolk/civilization";
+import {
+	applyCivilizationSponsorEvent,
+	parseCivilizationSponsorEvent,
+} from "@eonfolk/civilization/sponsor";
+import {
+	batchId as protocolBatchId,
+	payloadFingerprint,
+	stateHash as protocolStateHash,
+	type GeneratedWorldState,
+} from "@eonfolk/protocol";
 import { canonicalJson, cloneValue } from "./codec.js";
 import {
 	RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
@@ -22,6 +36,18 @@ const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 export interface CivilizationSponsorAuthorityAppend {
 	readonly state: ReleaseGenesisCivilizationState;
 	readonly request: AppendAuthorityBatchRequest;
+}
+
+export interface CivilizationCounselBoundaryFact {
+	readonly schemaVersion: "eonfolk-counsel-boundary-fact-v1";
+	readonly citizenId: string;
+	readonly interventionId: string;
+	readonly interpretationEventId: string;
+	readonly simulationTime: number;
+	readonly requiredNeedUnits: number;
+	readonly consumedNeedUnits: number;
+	readonly unmetNeedUnits: number;
+	readonly sourceStockIds: readonly string[];
 }
 
 function fail(
@@ -122,7 +148,7 @@ function validateReceipt(
 		typeof receipt.resultingWorldHeadHash !== "string" ||
 		!HASH_PATTERN.test(receipt.resultingWorldHeadHash)
 	)
-		fail("INVALID_INPUT", "sponsor command receipt schema is invalid");
+		fail("INVALID_INPUT", "CSP");
 	return receipt;
 }
 
@@ -138,14 +164,10 @@ function json(value: unknown, label: string): JsonValue {
 function validateState(value: ReleaseGenesisCivilizationState) {
 	const state = record(value, "release civilization state");
 	if (state.schemaVersion !== RELEASE_GENESIS_CIVILIZATION_STATE_VERSION)
-		fail(
-			"UNSUPPORTED_VERSION",
-			"release civilization state version is unsupported",
-		);
+		fail("UNSUPPORTED_VERSION", "CSP");
 	if (state.phase !== "checkpoint" && state.phase !== "active")
-		fail("INVALID_INPUT", "sponsor command requires a civilization checkpoint");
-	if (state.civilization === null)
-		fail("INVALID_INPUT", "sponsor command requires a civilization state");
+		fail("INVALID_INPUT", "CSP");
+	if (state.civilization === null) fail("INVALID_INPUT", "CSP");
 	const scheduler = record(state.scheduler, "release civilization scheduler");
 	integer(scheduler.simulationTime, "release civilization simulationTime");
 	return value;
@@ -174,13 +196,12 @@ export async function createCivilizationSponsorRejectionAppend(input: {
 	readonly decisionRecord: unknown | null;
 }): Promise<CivilizationSponsorAuthorityAppend> {
 	const current = validateState(input.state);
-	if (input.decisionRecord !== null)
-		fail("INVALID_INPUT", "rejected sponsor command cannot commit cognition");
+	if (input.decisionRecord !== null) fail("INVALID_INPUT", "CSP");
 	assertCivilizationInvariants(
 		current.civilization as unknown as CivilizationState,
 	);
 	if ((await hashAuthoritativeState(current)) !== input.head.stateHash)
-		fail("STALE_STATE", "rejected sponsor command used stale authority state");
+		fail("STALE_STATE", "CSP");
 	const receipt = validateReceipt(input.commandReceipt, current, input.head);
 	if (
 		receipt.outcome !== "rejected" ||
@@ -191,7 +212,7 @@ export async function createCivilizationSponsorRejectionAppend(input: {
 		typeof receipt.payloadFingerprint !== "string" ||
 		!HASH_PATTERN.test(receipt.payloadFingerprint)
 	)
-		fail("INVALID_INPUT", "rejected sponsor receipt semantics are invalid");
+		fail("INVALID_INPUT", "CSP");
 	const appendId = string(receipt.commandId, "sponsor commandId");
 	const batchId = `rejected:${appendId}`;
 	const event = await createAuthorityEvent({
@@ -248,7 +269,6 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 	readonly protocolEvent: unknown;
 	readonly commandReceipt: unknown;
 	readonly decisionRecord: unknown | null;
-	readonly postCivilization: unknown;
 }): Promise<CivilizationSponsorAuthorityAppend> {
 	const current = validateState(input.state);
 	assertCivilizationInvariants(
@@ -258,16 +278,12 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 		(await hashAuthoritativeState(current)) !== input.head.stateHash ||
 		current.scheduler.simulationTime !== input.head.simulationTime
 	)
-		fail(
-			"STALE_STATE",
-			"sponsor command did not load the authority head state",
-		);
+		fail("STALE_STATE", "CSP");
 	const protocolEvent = await parseCivilizationSponsorEvent(
 		input.protocolEvent,
 		current.scheduler.simulationTime,
 	);
-	if (protocolEvent === null)
-		fail("INVALID_INPUT", "protocol sponsor event schema is invalid");
+	if (protocolEvent === null) fail("INVALID_INPUT", "CSP");
 	const receipt = validateReceipt(input.commandReceipt, current, input.head);
 	const interval = record(
 		receipt.eventInterval,
@@ -296,10 +312,65 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 		integer(interval.toSequenceExclusive, "accepted sponsor interval end") !==
 			(protocolEvent.sequence as number) + 1
 	)
-		fail("INVALID_INPUT", "accepted sponsor receipt semantics are invalid");
+		fail("INVALID_INPUT", "CSP");
 	const eventPayload = protocolEvent.eventPayload;
 	const kind = eventPayload.kind;
 	const provenance = protocolEvent.provenance;
+	const civilization = current.civilization as unknown as CivilizationState;
+	const expectedBatchId = await protocolBatchId(
+		input.head.runId,
+		input.head.regionId,
+		civilization.revision,
+		string(receipt.commandId, "sponsor commandId"),
+	);
+	const expectedPayload =
+		kind === "SponsorshipEstablished"
+			? {
+					kind: "EstablishSponsorship" as const,
+					covenantId: eventPayload.covenantId,
+					citizenId: eventPayload.citizenId,
+				}
+			: kind === "CounselIssued"
+				? {
+						kind: "IssueCounsel" as const,
+						interventionId: eventPayload.interventionId,
+						citizenId: eventPayload.citizenId,
+						intent: eventPayload.intent,
+					}
+				: {
+						kind: "ResolveCounsel" as const,
+						citizenId: eventPayload.citizenId,
+						interventionId: eventPayload.interventionId,
+						decisionId: provenance.decisionId,
+						proposalId: provenance.proposalId,
+						action: eventPayload.action,
+					};
+	const principal = record(receipt.principal, "sponsor receipt principal");
+	const covenant = Object.values(civilization.sponsorships).find(
+		(item) => item.beneficiaryCitizenId === eventPayload.citizenId,
+	);
+	const principalMatches =
+		kind === "SponsorshipEstablished"
+			? principal.kind === "patron" &&
+				principal.principalId === eventPayload.patronPrincipalId &&
+				principal.beneficiaryCitizenId === eventPayload.citizenId
+			: kind === "CounselIssued"
+				? principal.kind === "patron" &&
+					principal.principalId === covenant?.patronPrincipalId &&
+					principal.beneficiaryCitizenId === eventPayload.citizenId
+				: principal.kind === "citizen" &&
+					principal.principalId === eventPayload.citizenId;
+	if (
+		protocolEvent.runId !== input.head.runId ||
+		protocolEvent.regionId !== input.head.regionId ||
+		protocolEvent.sequence !== input.head.lastSequence + 1 ||
+		protocolEvent.preStateHash !== (await protocolStateHash(civilization)) ||
+		protocolEvent.batchId !== expectedBatchId ||
+		provenance.commandId !== receipt.commandId ||
+		!principalMatches ||
+		(await payloadFingerprint(expectedPayload)) !== receipt.payloadFingerprint
+	)
+		fail("INVALID_INPUT", "CSP");
 	if (provenance.kind === "cognition") {
 		const decision = record(input.decisionRecord, "committed sponsor decision");
 		if (
@@ -316,7 +387,7 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			record(decision.validator, "committed sponsor decision validator")
 				.outcome !== "accepted"
 		)
-			fail("INVALID_INPUT", "committed sponsor decision linkage is invalid");
+			fail("INVALID_INPUT", "CSP");
 		const proposal = record(
 			JSON.parse(
 				string(decision.proposalCanonicalBytes, "committed proposal bytes"),
@@ -324,25 +395,28 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			"committed sponsor proposal",
 		);
 		if (proposal.proposalId !== provenance.proposalId)
-			fail("INVALID_INPUT", "committed sponsor proposal linkage is invalid");
+			fail("INVALID_INPUT", "CSP");
 	} else if (input.decisionRecord !== null) {
-		fail(
-			"INVALID_INPUT",
-			"patron sponsor events cannot carry a cognition record",
-		);
+		fail("INVALID_INPUT", "CSP");
+	}
+	let derivedPostCivilization: CivilizationState;
+	try {
+		derivedPostCivilization = await applyCivilizationSponsorEvent({
+			state: civilization,
+			event: protocolEvent,
+		});
+	} catch {
+		fail("INVALID_INPUT", "CSP");
 	}
 	const postCivilization = json(
-		input.postCivilization,
-		"sponsor post civilization",
-	);
-	assertCivilizationInvariants(
-		postCivilization as unknown as CivilizationState,
+		derivedPostCivilization,
+		"derived sponsor post civilization",
 	);
 	if (
 		receipt.resultingRevision !==
 		(postCivilization as unknown as CivilizationState).revision
 	)
-		fail("INVALID_INPUT", "sponsor receipt result revision is invalid");
+		fail("INVALID_INPUT", "CSP");
 	const next: ReleaseGenesisCivilizationState = {
 		...current,
 		phase: "active",
@@ -353,7 +427,7 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 		if (value === "direct") return "direct-cause" as const;
 		if (value === "trigger") return "trigger" as const;
 		if (value === "contributing") return "contributing-condition" as const;
-		fail("INVALID_INPUT", "sponsor causal relation is unsupported");
+		fail("INVALID_INPUT", "CSP");
 	};
 	const appendId = string(receipt.commandId, "sponsor commandId");
 	const batchId = string(protocolEvent.batchId, "sponsor batchId");
@@ -426,6 +500,168 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			events: [event],
 			commandReceipt: durableReceipt,
 			decisionRecord: decisionJson(input.decisionRecord),
+		},
+	};
+}
+
+/**
+ * Advances one real model-free scheduler boundary from a committed delayed
+ * FollowStandingPlan interpretation. The persisted event contains the derived
+ * actions for audit, but replay recomputes them from Reality and policy.
+ */
+export async function createCivilizationCounselBoundaryAppend(input: {
+	readonly state: ReleaseGenesisCivilizationState;
+	readonly head: AuthorityHead;
+	readonly citizenId: string;
+	readonly interventionId: string;
+}): Promise<
+	CivilizationSponsorAuthorityAppend & {
+		readonly fact: CivilizationCounselBoundaryFact;
+	}
+> {
+	const current = validateState(input.state);
+	if (current.phase !== "active" || current.civilization === null)
+		fail("INVALID_INPUT", "CSP");
+	if (
+		(await hashAuthoritativeState(current)) !== input.head.stateHash ||
+		current.scheduler.simulationTime !== input.head.simulationTime
+	)
+		fail("STALE_STATE", "CSP");
+	const civilization = current.civilization as unknown as CivilizationState;
+	assertCivilizationInvariants(civilization);
+	const counsel = civilization.counsels[input.interventionId];
+	const mind = civilization.minds[input.citizenId];
+	const resolution = counsel?.resolution;
+	const plan = mind?.snapshot.standingPlan;
+	const step = plan?.steps.find(({ stepId }) => stepId === plan.currentStepId);
+	if (
+		counsel?.citizenId !== input.citizenId ||
+		resolution?.action !== "follow-plan" ||
+		resolution.disposition !== "delayed" ||
+		plan === undefined ||
+		plan.status !== "active" ||
+		step?.status !== "active" ||
+		step.kind !== "Consume" ||
+		(step.targetIds[0] !== "food" && step.targetIds[0] !== "water")
+	)
+		fail("INVALID_INPUT", "CSP");
+	const routineDecision: SchedulerRoutineDecision = {
+		schemaVersion: "eonfolk-civilization-routine-decision-v1",
+		citizenId: input.citizenId,
+		actionId: `follow:${plan.planId}`,
+		activeStandingPlanId: plan.planId,
+		kind: "consume",
+		subjectId: step.targetIds[0],
+	};
+	const policy = deriveCivilizationSchedulerPolicy(
+		current.world as unknown as GeneratedWorldState,
+	);
+	let derived: ReturnType<typeof advanceGeneralizedScheduler>;
+	try {
+		derived = advanceGeneralizedScheduler(civilization, policy, [
+			routineDecision,
+		]);
+		assertCivilizationInvariants(derived.state);
+	} catch {
+		fail("INVALID_INPUT", "CSP");
+	}
+	const outcome = derived.state.needOutcomes
+		.filter(
+			(candidate) =>
+				candidate.citizenId === input.citizenId &&
+				candidate.evaluatedAtSimulationTime === derived.state.simulationTime,
+		)
+		.at(-1);
+	if (outcome === undefined) fail("INVALID_INPUT", "CSP");
+	const fact: CivilizationCounselBoundaryFact = {
+		schemaVersion: "eonfolk-counsel-boundary-fact-v1",
+		citizenId: input.citizenId,
+		interventionId: input.interventionId,
+		interpretationEventId: resolution.sourceEventId,
+		simulationTime: derived.state.simulationTime,
+		requiredNeedUnits: outcome.foodRequiredUnits + outcome.waterRequiredUnits,
+		consumedNeedUnits: outcome.foodConsumedUnits + outcome.waterConsumedUnits,
+		unmetNeedUnits:
+			outcome.foodRequiredUnits -
+			outcome.foodConsumedUnits +
+			(outcome.waterRequiredUnits - outcome.waterConsumedUnits),
+		sourceStockIds: [...outcome.sourceStockIds].sort(),
+	};
+	const next: ReleaseGenesisCivilizationState = {
+		...current,
+		civilization: json(derived.state, "boundary civilization"),
+		scheduler: {
+			completedDay: current.scheduler.completedDay + 1,
+			simulationTime: derived.state.simulationTime,
+			modelInvocations: 0,
+			activities: json(derived.routines, "boundary routines"),
+		},
+	};
+	const appendId = `boundary:${input.interventionId}:1`;
+	const batchId = `batch:${appendId}`;
+	const eventId = `event:${appendId}`;
+	const event = await createAuthorityEvent({
+		runId: input.head.runId,
+		regionId: input.head.regionId,
+		engineVersion: input.head.engineVersion,
+		stateSchemaVersion: input.head.stateSchemaVersion,
+		appendId,
+		batchId,
+		eventId,
+		sequence: input.head.lastSequence + 1,
+		simulationTime: derived.state.simulationTime,
+		eventType: "CivilizationCounselBoundaryCommitted",
+		causalParents: [
+			{ eventId: resolution.sourceEventId, relation: "contributing-condition" },
+		],
+		visibility: {
+			kind: "patron-visible-through-covenant",
+			subjectCitizenId: input.citizenId,
+		},
+		provenance: {
+			mechanismId: "civilization.scheduler.counsel-boundary.v1",
+			cognitionDecisionId: resolution.decisionId,
+			brainKind: "standard",
+		},
+		preStateHash: input.head.stateHash,
+		postStateHash: await hashAuthoritativeState(next),
+		previousEventHash: input.head.lastEventHash,
+		payload: {
+			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
+			transitionKind: "counsel-boundary",
+			fact: json(fact, "boundary fact"),
+			routineDecision: json(routineDecision, "boundary routine decision"),
+			schedulerActions: json(derived.actions, "boundary actions"),
+			schedulerRoutines: json(derived.routines, "boundary routines"),
+			patch: [
+				{
+					op: "set",
+					path: ["civilization"],
+					value: json(derived.state, "boundary civilization"),
+				},
+				{
+					op: "set",
+					path: ["scheduler"],
+					value: json(next.scheduler, "boundary scheduler"),
+				},
+			],
+		},
+	});
+	return {
+		state: next,
+		fact,
+		request: {
+			schemaVersion: AUTHORITY_APPEND_SCHEMA_VERSION,
+			runId: input.head.runId,
+			regionId: input.head.regionId,
+			appendId,
+			batchId,
+			expectedRevision: input.head.revision,
+			expectedLastSequence: input.head.lastSequence,
+			expectedStateHash: input.head.stateHash,
+			expectedLastEventHash: input.head.lastEventHash,
+			fencingToken: input.head.fencingToken,
+			events: [event],
 		},
 	};
 }

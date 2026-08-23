@@ -24,7 +24,9 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.deleteDatabase("eonfolk-generated-authority");
+				const request = indexedDB.deleteDatabase(
+					"eonfolk-generated-authority-v2",
+				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
@@ -42,8 +44,10 @@ async function inspectGeneratedCheckpoint(page: Page) {
 				readonly receiptCount: number;
 				readonly snapshotCount: number;
 				readonly headHash: string;
+				readonly stateHash: string;
+				readonly simulationTime: number;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority", 1);
+				const request = indexedDB.open("eonfolk-generated-authority-v2", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -74,7 +78,11 @@ async function inspectGeneratedCheckpoint(page: Page) {
 							"complete",
 							() => {
 								const stream = requests.streams.result[0] as {
-									head: { headHash: string };
+									head: {
+										headHash: string;
+										stateHash: string;
+										simulationTime: number;
+									};
 								};
 								resolve({
 									eventCount: requests.events.result,
@@ -82,6 +90,8 @@ async function inspectGeneratedCheckpoint(page: Page) {
 									receiptCount: requests.receipts.result,
 									snapshotCount: requests.snapshots.result,
 									headHash: stream.head.headHash,
+									stateHash: stream.head.stateHash,
+									simulationTime: stream.head.simulationTime,
 								});
 								database.close();
 							},
@@ -423,26 +433,63 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	});
 	const citizenId = await selectCanonicalResidentFromCanvas(page, canvas);
 	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
+	const initialHash = await page
+		.locator("main.v1-world")
+		.getAttribute("data-state-hash");
 	await expect(sponsor).toBeVisible();
 	await sponsor.click();
 	await expect(
-		page.getByRole("button", { name: "Counsel: verify first" }),
-	).toBeVisible();
+		page.getByRole("button", { name: "Consider an intervention" }),
+	).toBeVisible({ timeout: 20_000 });
+	expect(
+		await page.locator("main.v1-world").getAttribute("data-state-hash"),
+	).not.toBe(initialHash);
 	await expect(page.getByRole("status")).toContainText(
 		"entered a sponsorship covenant with patron:local",
 	);
-	await page.getByRole("button", { name: "Counsel: verify first" }).click();
+	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await expect(
-		page.getByRole("button", { name: "Counsel delayed" }),
+		page.getByRole("heading", { name: "Verify before acting?" }),
+	).toBeVisible();
+	await expect(page.getByRole("button", { name: "Abstain" })).toBeVisible();
+	await page.getByRole("button", { name: "Confirm counsel" }).click();
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible({ timeout: 20_000 });
 	await expect(page.getByRole("status")).toContainText(
 		"received counsel to verify reserve",
 	);
+	await page.reload();
+	const boundaryCanvas = page.getByTestId("generated-world-canvas");
+	await expect(boundaryCanvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	await selectCanonicalResidentFromCanvas(page, boundaryCanvas);
+	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeVisible({ timeout: 20_000 });
+	await page
+		.getByRole("button", { name: "Return at the next decision boundary" })
+		.click();
+	await expect(
+		page.getByRole("button", { name: "Counsel recorded" }),
+	).toBeVisible({ timeout: 20_000 });
 	await expect(page.getByRole("status")).toContainText(
 		"deferred the counsel and chose to follow plan",
 	);
+	await expect(page.getByRole("status")).toContainText(
+		"The scheduler recorded",
+	);
+	await expect(
+		page.getByRole("heading", { name: "Share this factual trace" }),
+	).toBeVisible();
 	const committed = await inspectGeneratedCheckpoint(page);
-	expect(committed).toMatchObject({ eventCount: 8, receiptCount: 8 });
+	expect(committed).toMatchObject({ eventCount: 9, receiptCount: 9 });
+	expect(committed.simulationTime).toBe(366 * 86_400);
+	expect(
+		await page.locator("main.v1-world").getAttribute("data-state-hash"),
+	).toBe(committed.stateHash);
 	await page.screenshot({
 		path: test.info().outputPath("normal-route-sponsor-chronicle.png"),
 		fullPage: true,
@@ -477,16 +524,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	);
 	expect(reloadedCitizenId).toBe(citizenId);
 	await page.getByRole("button", { name: "Sponsor this person" }).click();
-	await expect(page.getByRole("status")).toHaveText(
-		"The sponsorship was already recorded.",
-	);
-	await page.getByRole("button", { name: "Counsel: verify first" }).click();
 	await expect(
-		page.getByRole("button", { name: "Counsel delayed" }),
+		page.getByRole("button", { name: "Counsel recorded" }),
 	).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByRole("status")).toHaveText(
-		"The counsel and interpretation were already recorded.",
-	);
+	await expect(page.getByRole("status")).toContainText("deferred the counsel");
+	expect(
+		await page.locator("main.v1-world").getAttribute("data-state-hash"),
+	).toBe(committed.stateHash);
 	expect((await inspectGeneratedCheckpoint(page)).headHash).toBe(
 		committed.headHash,
 	);

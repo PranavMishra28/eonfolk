@@ -180,6 +180,9 @@ importers:
       '@eonfolk/civilization':
         specifier: workspace:*
         version: link:../civilization
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
 
   packages/protocol: {}
 

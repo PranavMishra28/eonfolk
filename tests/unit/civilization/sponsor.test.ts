@@ -9,6 +9,7 @@ import {
 	registerRelationship,
 } from "../../../packages/civilization/src/index.js";
 import {
+	buildCivilizationCounselDecisionContext,
 	createCivilizationSponsorSnapshotBoundary,
 	prepareCivilizationSponsorTransition,
 	parseCivilizationSponsorCommand,
@@ -21,8 +22,11 @@ import {
 	standardBrain,
 } from "../../../packages/cognition/src/index.js";
 import {
+	batchHash,
+	bytesFromHex,
 	type CitizenMindSnapshot,
 	type CognitionAction,
+	eventHash,
 	PROTOCOL_SCHEMA_VERSION,
 	payloadFingerprint,
 	seedPrng,
@@ -292,57 +296,63 @@ async function issue(
 
 async function resolution(
 	state: CivilizationState,
-	intent: "verify-reserve" | "accuse-publicly",
+	_intent: "verify-reserve" | "accuse-publicly",
 	action: CognitionAction,
 	commandId: string,
-	actorMind = state.minds[ACTOR]!.snapshot,
+	_actorMind = state.minds[ACTOR]!.snapshot,
 ) {
-	const catalog = civilizationCounselCatalog({
-		actorId: ACTOR,
-		targetCitizenId:
-			action.kind === "VerifyReserve" || action.kind === "AccusePublicly"
-				? action.targetCitizenId
-				: TARGET,
-		planId: actorMind.standingPlan.planId,
-		relationshipId: "relationship-a-b",
-		evidenceRecordIds: actorMind.records.map(({ recordId }) => recordId),
-	});
-	const context = await buildDecisionContext({
-		contextId: `context-${commandId}`,
-		actorMind,
-		runId: RUN,
-		regionId: REGION,
-		revision: state.revision,
-		simulationTime: state.simulationTime,
-		decisionReason: "sponsor-counsel",
-		actionCatalog: catalog,
-		visibilityContext: {
-			policyVersion: VISIBILITY_POLICY_VERSION,
-			covenants: [
-				{
-					patronPrincipalId: PATRON.principalId,
-					beneficiaryCitizenId: ACTOR,
-					grantRevision:
-						state.sponsorships["covenant-one"]!.establishedAtRevision,
-					revokeRevision: null,
-				},
-			],
-			localOwnerPrincipalId: PATRON.principalId,
-			nonproduction: false,
-		},
-		counselIntent: intent,
-	});
+	const decisionId = `decision-${commandId}`;
+	const canonicalMind = state.minds[ACTOR]!.snapshot;
+	const context =
+		_actorMind === canonicalMind
+			? await buildCivilizationCounselDecisionContext({
+					state,
+					runId: RUN,
+					regionId: REGION,
+					citizenId: ACTOR,
+					interventionId: "intervention-one",
+					decisionId,
+				})
+			: await buildDecisionContext({
+					contextId: `context:${decisionId}`,
+					actorMind: _actorMind,
+					runId: RUN,
+					regionId: REGION,
+					revision: state.revision,
+					simulationTime: state.simulationTime,
+					decisionReason: "sponsor-counsel",
+					actionCatalog: civilizationCounselCatalog({
+						actorId: ACTOR,
+						targetCitizenId:
+							action.kind === "VerifyReserve" ||
+							action.kind === "AccusePublicly"
+								? action.targetCitizenId
+								: TARGET,
+						planId: _actorMind.standingPlan.planId,
+						relationshipId: "relationship-a-b",
+						evidenceRecordIds: _actorMind.records.map(
+							({ recordId }) => recordId,
+						),
+					}),
+					visibilityContext: {
+						policyVersion: VISIBILITY_POLICY_VERSION,
+						covenants: [],
+						localOwnerPrincipalId: PATRON.principalId,
+						nonproduction: false,
+					},
+					counselIntent: _intent,
+				});
+	if (context === null) throw new Error("test counsel context unavailable");
 	const chosen = await standardBrain(context, {
 		proposalId: `proposal-${commandId}`,
 		prngState: await seedPrng(
-			new Uint8Array(32).fill(7),
-			"sponsor",
+			bytesFromHex(context.contextHash, 32),
+			"civilization-sponsor",
 			ACTOR,
-			commandId,
+			decisionId,
 		),
 	});
 	expect(chosen.proposal.action).toEqual(action);
-	const decisionId = `decision-${commandId}`;
 	const record = await createCognitiveDecisionRecord({
 		decisionId,
 		decisionBoundaryId: `boundary-${commandId}`,
@@ -497,6 +507,62 @@ describe("canonical civilization sponsor reducer", () => {
 		).toBe(true);
 	});
 
+	it("rejects a hash-valid counsel event whose known causal parent is semantically wrong", async () => {
+		const initial = fixture();
+		const followed = await establish(initial);
+		const counsel = await issue(followed);
+		const interpreted = await resolve(
+			counsel,
+			{ kind: "VerifyReserve", targetCitizenId: TARGET },
+			"verify-reserve",
+		);
+		const original = interpreted.events[0]!;
+		const { eventHash: _digest, ...forgedWithoutHash } = {
+			...original,
+			causalParents: [
+				{
+					eventId: followed.events[0]!.eventId,
+					relation: "contributing" as const,
+					mechanismId: "counsel.considered-at-decision-boundary.v1",
+				},
+			],
+		};
+		const forged = {
+			...forgedWithoutHash,
+			eventHash: await eventHash(forgedWithoutHash),
+		};
+		const originalHeader = interpreted.batchHeader!;
+		const forgedHead = await batchHash({
+			runId: forged.runId,
+			regionId: forged.regionId,
+			batchId: forged.batchId,
+			priorWorldHeadHash: counsel.resultingWorldHeadHash,
+			firstSequence: forged.sequence,
+			eventHashes: [forged.eventHash],
+			payloadFingerprint: originalHeader.payloadFingerprint,
+			resultRevision: originalHeader.resultRevision,
+			finalStateHash: forged.postStateHash,
+		});
+		const forgedHeader = {
+			...originalHeader,
+			eventHashes: [forged.eventHash],
+			batchHash: forgedHead,
+		};
+		await expect(
+			replayCivilizationSponsorEvents({
+				snapshotState: counsel.postState,
+				snapshotBoundary: await boundary(
+					counsel.postState,
+					counsel.resultingWorldHeadHash,
+					2,
+				),
+				headers: [forgedHeader],
+				events: [forged],
+				expectedFinalWorldHeadHash: forgedHead,
+			}),
+		).rejects.toThrow(/ACTION_UNAVAILABLE/u);
+	});
+
 	it("derives an evidence-empty Mind at counsel and deterministically delays", async () => {
 		const followed = await establish(fixture(6_000, false));
 		const counsel = await issue(followed);
@@ -513,6 +579,38 @@ describe("canonical civilization sponsor reducer", () => {
 			disposition: "delayed",
 			action: "follow-plan",
 		});
+		expect(interpreted.committedDecisionRecord?.explanation).toMatchObject({
+			counselDisposition: "delayed",
+		});
+		expect(
+			interpreted.committedDecisionRecord?.proposalCanonicalBytes,
+		).toContain("I will defer your counsel");
+		const chronicle = projectCivilizationChronicle({
+			events: [...followed.events, ...counsel.events, ...interpreted.events],
+			eventRevisions: Object.fromEntries(
+				[...followed.events, ...counsel.events, ...interpreted.events].map(
+					(event, index) => [event.eventId, index + 1],
+				),
+			),
+			viewer: { kind: "participant", principalId: PATRON.principalId },
+			purpose: "chronicle-private",
+			atRevision: interpreted.postState.revision,
+			visibilityContext: {
+				policyVersion: VISIBILITY_POLICY_VERSION,
+				covenants: [
+					{
+						patronPrincipalId: PATRON.principalId,
+						beneficiaryCitizenId: ACTOR,
+						grantRevision: 1,
+						revokeRevision: null,
+					},
+				],
+				localOwnerPrincipalId: PATRON.principalId,
+				nonproduction: false,
+			},
+			citizenNames: { [ACTOR]: "Ari" },
+		});
+		expect(chronicle.storyCard).toContain("deferred the counsel");
 	});
 
 	it("offers no evidence action when canonical Mind has no evidence", () => {
@@ -629,7 +727,7 @@ describe("canonical civilization sponsor reducer", () => {
 					],
 					expectedFinalWorldHeadHash: transition.resultingWorldHeadHash,
 				}),
-			).rejects.toThrow(/invalid sponsor event chain/u);
+			).rejects.toThrow(/invalid sponsor event|hash mismatch/u);
 		}
 		await expect(
 			replayCivilizationSponsorEvents({
@@ -639,7 +737,7 @@ describe("canonical civilization sponsor reducer", () => {
 				events: [{ ...followed.events[0]!, simulationTime: 1 }],
 				expectedFinalWorldHeadHash: followed.resultingWorldHeadHash,
 			}),
-		).rejects.toThrow(/invalid sponsor event chain/u);
+		).rejects.toThrow(/invalid sponsor event|hash mismatch/u);
 		await expect(
 			replayCivilizationSponsorEvents({
 				snapshotState: initial,
@@ -914,8 +1012,9 @@ describe("canonical civilization sponsor reducer", () => {
 			authoritativeHistory: [],
 			resolution: forged,
 		});
-		expect(rejected.accepted).toBe(true);
-		expect(JSON.stringify(rejected.events)).not.toContain("record-forged");
+		expect(rejected.accepted).toBe(false);
+		expect(rejected.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(rejected.events).toEqual([]);
 	});
 
 	it("rejects forged typed Mind state at its registration boundary", () => {
@@ -1000,13 +1099,46 @@ describe("canonical civilization sponsor reducer", () => {
 		});
 		expect(wrongPatron.receipt.rejectionCode).toBe("INVALID_PRINCIPAL");
 		const issued = await issue(followed);
-		const unavailable = await resolve(
-			issued,
-			{ kind: "VerifyReserve", targetCitizenId: NONLOCAL },
+		const commandId = "command-injected-catalog";
+		const forged = await resolution(
+			issued.postState,
 			"verify-reserve",
+			{ kind: "VerifyReserve", targetCitizenId: NONLOCAL },
+			commandId,
+			structuredClone(issued.postState.minds[ACTOR]!.snapshot),
 		);
-		expect(unavailable.accepted).toBe(true);
-		expect(JSON.stringify(unavailable.events)).not.toContain(NONLOCAL);
+		const unavailable = await prepareCivilizationSponsorTransition({
+			state: issued.postState,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: issued.resultingWorldHeadHash,
+			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				issued.postState,
+				issued.resultingWorldHeadHash,
+				2,
+			),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			command: await command(
+				commandId,
+				issued.postState.revision,
+				{ kind: "citizen", principalId: ACTOR },
+				{
+					kind: "ResolveCounsel",
+					citizenId: ACTOR,
+					interventionId: "intervention-one",
+					decisionId: forged.decisionId,
+					proposalId: forged.proposal.proposalId,
+					action: "verify-reserve",
+				},
+			),
+			authoritativeHistory: [],
+			resolution: forged,
+		});
+		expect(unavailable.accepted).toBe(false);
+		expect(unavailable.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(unavailable.events).toEqual([]);
 	});
 
 	it("returns the original receipt on a delayed exact retry", async () => {
