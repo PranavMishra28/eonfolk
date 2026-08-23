@@ -12,10 +12,10 @@ const rootPackageUrl = new URL("../package.json", import.meta.url);
 const rootLockUrl = new URL("../pnpm-lock.yaml", import.meta.url);
 
 const EXPECTED = Object.freeze({
-	package: "d2808419e67fc22a4456867736ab04246997c57b6d4d08c9093643f8b81a3fce",
-	lock: "a517ce622431e0ab771033a0d457ca841cc0c71c04a75bf25931bc4461f00896",
-	ledger: "13ae488ff29d36d421ac05da6d6fa0eda6ec013c6032e43efa16362faed57616",
-	packageCount: 285,
+	package: "77538d5cb83d125665996b33900775da7b079ea01d7bb97b26af3c0198ee06d1",
+	lock: "c9abef49dbc0fc1232891651eb1fb0c590270b29a011367d7e21db768b31bd0d",
+	ledger: "2c2a46243a67e1c705be988b11e62ef00426da01a39c94cef4bffac8a8f67a8f",
+	packageCount: 235,
 });
 
 function fail(message) {

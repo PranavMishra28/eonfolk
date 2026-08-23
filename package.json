@@ -72,16 +72,10 @@
 		"gate0:verify": "pnpm cohort:check && pnpm browser-cohort:check && node scripts/validate-work-segments.mjs && pnpm gate0:check && pnpm gate0:test && pnpm gate0:build && pnpm gate0:e2e && pnpm gate0:artifact && ruby tests/prototypes/gate-0/study/validate_vectors.rb"
 	},
 	"dependencies": {
-		"@base-ui/react": "1.7.0",
-		"@phosphor-icons/react": "2.1.10",
 		"@playcanvas/react": "0.11.5",
-		"@tailwindcss/vite": "4.3.3",
-		"motion": "13.1.0",
 		"playcanvas": "2.21.4",
 		"react": "19.2.8",
-		"react-dom": "19.2.8",
-		"react-router": "8.3.0",
-		"tailwindcss": "4.3.3"
+		"react-dom": "19.2.8"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.9",
