@@ -4,6 +4,7 @@ import {
 	runDecisionGateway,
 	validateIntentProposal,
 } from "@eonfolk/cognition";
+import { GENERATED_FOLK_BINARY_ASSET } from "./generated-presentation/assets";
 import type { GeneratedWorldBuildOptions } from "./generated-world-runtime";
 import type { BrowserPersistenceBoundaryPoint } from "./persistence/browser-versioned";
 
@@ -322,7 +323,8 @@ export function generatedWorldAssetFetcherForFault(
 	if (fault?.kind !== "asset") return fetcher;
 	return async (input, init) => {
 		const response = await fetcher(input, init);
-		if (!String(input).endsWith("/eonfolk-folk-proxy.gltf")) return response;
+		if (!String(input).endsWith(GENERATED_FOLK_BINARY_ASSET.url))
+			return response;
 		const bytes = new Uint8Array(await response.arrayBuffer());
 		if (bytes.length > 0) bytes[0] = (bytes[0] ?? 0) ^ 1;
 		return new Response(bytes, {

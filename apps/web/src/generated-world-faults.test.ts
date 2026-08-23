@@ -97,7 +97,7 @@ describe("generated-world fault boundary", () => {
 			parseGeneratedWorldFault("asset"),
 			fetcher as typeof fetch,
 		);
-		const response = await injected("/eonfolk-folk-proxy.gltf");
+		const response = await injected("/assets/generated/eonfolk-folk-proxy.glb");
 		expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([
 			0, 2, 3,
 		]);
