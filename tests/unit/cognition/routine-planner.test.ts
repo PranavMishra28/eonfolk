@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+	abandonStandingPlan,
+	advanceStandingPlan,
+	interruptStandingPlan,
 	planProjectWork,
 	planRoutine,
+	replanStandingPlan,
+	retryStandingPlan,
 	type PlanningAffordance,
 } from "../../../packages/cognition/src/index.js";
 import type { ProjectState } from "../../../packages/protocol/src/index.js";
@@ -214,4 +219,50 @@ describe("bounded routine and project planning", () => {
 			).toThrow("ACTION_UNAVAILABLE");
 		},
 	);
+
+	it("advances, interrupts, retries, replans, and abandons with bounded budgets", () => {
+		const makePlan = (boundary = 600) =>
+			planRoutine({
+				planId: "plan-lifecycle",
+				citizenId: "citizen-builder",
+				boundary,
+				visibleRecords: records,
+				affordances: affordances(),
+				goal: {
+					goalType: "advance-project",
+					desiredEffectCodes: [effects.milestone],
+					targetIds: ["hall"],
+					commitmentId: "agreement-build-hall",
+					maximumSteps: 4,
+					expiryBoundary: boundary + 86_400,
+				},
+				maximumExpansions: 64,
+			});
+		const initial = makePlan();
+		const advanced = advanceStandingPlan(initial, initial.currentStepId);
+		expect(advanced.steps.map(({ status }) => status)).toEqual([
+			"completed",
+			"active",
+			"pending",
+		]);
+		const interrupted = interruptStandingPlan(advanced);
+		expect(interrupted.status).toBe("blocked");
+		const retried = retryStandingPlan(interrupted);
+		expect(retried.status).toBe("active");
+		expect(retried.retriesRemaining).toBe(0);
+		const blockedAgain = interruptStandingPlan(retried);
+		expect(() => retryStandingPlan(blockedAgain)).toThrow(/no legal retry/u);
+
+		const replacement = makePlan(1_200);
+		const replanned = replanStandingPlan(blockedAgain, replacement);
+		expect(replanned.version).toBe(blockedAgain.version + 1);
+		expect(replanned.replansRemaining).toBe(0);
+		const abandoned = abandonStandingPlan(replanned);
+		expect(abandoned.status).toBe("abandoned");
+		expect(
+			abandoned.steps.every(
+				(step) => step.status === "abandoned" || step.status === "completed",
+			),
+		).toBe(true);
+	});
 });
