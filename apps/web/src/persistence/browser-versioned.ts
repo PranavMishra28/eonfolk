@@ -214,7 +214,15 @@ function streamRowForScope(
 	for (const raw of rows) {
 		const row = raw as Partial<StreamRow>;
 		const parts = tuple(row?.key);
-		if (!targetsScope(parts, scope) && row?.key !== expectedKey) continue;
+		const genesis = row?.genesis as Partial<AuthorityScope> | null | undefined;
+		const genesisTargets =
+			genesis?.runId === scope.runId && genesis.regionId === scope.regionId;
+		if (
+			!targetsScope(parts, scope) &&
+			row?.key !== expectedKey &&
+			!genesisTargets
+		)
+			continue;
 		if (
 			row.key !== expectedKey ||
 			result !== undefined ||
@@ -281,18 +289,35 @@ async function storedRows(
 	transaction: IDBTransaction,
 	scope: AuthorityScope,
 ): Promise<StoredRows> {
-	const [stream, operations, events, receipts, snapshots] = (await Promise.all([
-		requestValue(
-			transaction
-				.objectStore(GENERATED_AUTHORITY_STORES.streams)
-				.get(streamKey(scope)),
-		),
-		...STORE_NAMES.slice(1).map((store) =>
-			requestValue(transaction.objectStore(store).getAll()),
-		),
-	])) as [unknown | undefined, unknown[], unknown[], unknown[], unknown[]];
+	const [exactStream, streams, operations, events, receipts, snapshots] =
+		(await Promise.all([
+			requestValue(
+				transaction
+					.objectStore(GENERATED_AUTHORITY_STORES.streams)
+					.get(streamKey(scope)),
+			),
+			requestValue(
+				transaction.objectStore(GENERATED_AUTHORITY_STORES.streams).getAll(),
+			),
+			...STORE_NAMES.slice(1).map((store) =>
+				requestValue(transaction.objectStore(store).getAll()),
+			),
+		])) as [
+			unknown | undefined,
+			unknown[],
+			unknown[],
+			unknown[],
+			unknown[],
+			unknown[],
+		];
+	const stream = streamRowForScope(streams, scope);
+	if (
+		(exactStream === undefined) !== (stream === undefined) ||
+		(exactStream !== undefined && !equal(exactStream, stream))
+	)
+		fail("STALE_STATE", "stream lookup mismatch");
 	return {
-		stream: streamRowForScope(stream === undefined ? [] : [stream], scope),
+		stream,
 		operations: rowsForScope<AuthorityOperation>(operations, scope, "ordinal"),
 		events: rowsForScope<AuthorityEventRecord>(events, scope, "sequence"),
 		receipts: rowsForScope<AuthorityAppendReceipt>(receipts, scope, "appendId"),

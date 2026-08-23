@@ -427,6 +427,109 @@ async function forgeGeneratedAuthorityRowIdentity(
 	}, input);
 }
 
+async function installGeneratedAuthorityStreamFixture(
+	page: Page,
+	input: {
+		readonly kind:
+			| "missing-alias"
+			| "missing-embedded-target"
+			| "existing-duplicate-alias"
+			| "existing-scope-mismatch"
+			| "existing-malformed";
+		readonly worldId: string;
+	},
+): Promise<void> {
+	await page.evaluate(async ({ kind, worldId }) => {
+		const requested = <T>(request: IDBRequest<T>) =>
+			new Promise<T>((resolve, reject) => {
+				request.onsuccess = () => resolve(request.result);
+				request.onerror = () => reject(request.error);
+			});
+		const completed = (transaction: IDBTransaction) =>
+			new Promise<void>((resolve, reject) => {
+				transaction.oncomplete = () => resolve();
+				transaction.onerror = () => reject(transaction.error);
+				transaction.onabort = () =>
+					reject(transaction.error ?? new Error("stream fixture aborted"));
+			});
+		const runId = "v1-generated-civilization";
+		const expectedKey = JSON.stringify([runId, worldId]);
+		const opened = await requested(
+			indexedDB.open("eonfolk-generated-authority"),
+		);
+		const read = opened.transaction("authorityStreams", "readonly");
+		const readDone = completed(read);
+		const canonical = (await requested(
+			read.objectStore("authorityStreams").get(expectedKey),
+		)) as
+			| {
+					key: string;
+					genesis: Record<string, unknown>;
+					[key: string]: unknown;
+			  }
+			| undefined;
+		await readDone;
+		opened.close();
+		if (canonical === undefined) throw new Error("stream fixture missing");
+		const aliasKey = `[${JSON.stringify(runId)}, ${JSON.stringify(worldId)}]`;
+
+		if (kind.startsWith("missing-")) {
+			await requested(indexedDB.deleteDatabase("eonfolk-generated-authority"));
+			const recreated = indexedDB.open("eonfolk-generated-authority", 1);
+			recreated.onupgradeneeded = () => {
+				for (const name of [
+					"authorityStreams",
+					"authorityOperations",
+					"authorityEvents",
+					"authorityReceipts",
+					"authoritySnapshots",
+				])
+					recreated.result.createObjectStore(name, { keyPath: "key" });
+			};
+			const database = await requested(recreated);
+			try {
+				const write = database.transaction("authorityStreams", "readwrite");
+				const writeDone = completed(write);
+				write.objectStore("authorityStreams").put({
+					...canonical,
+					key:
+						kind === "missing-alias"
+							? aliasKey
+							: JSON.stringify(["forged-run", "forged-region"]),
+				});
+				await writeDone;
+			} finally {
+				database.close();
+			}
+			return;
+		}
+
+		const database = await requested(
+			indexedDB.open("eonfolk-generated-authority"),
+		);
+		try {
+			const write = database.transaction("authorityStreams", "readwrite");
+			const writeDone = completed(write);
+			write.objectStore("authorityStreams").put(
+				kind === "existing-duplicate-alias"
+					? { ...canonical, key: aliasKey }
+					: kind === "existing-scope-mismatch"
+						? {
+								...canonical,
+								genesis: {
+									...canonical.genesis,
+									regionId: "forged-region",
+								},
+							}
+						: { ...canonical, genesis: null },
+			);
+			await writeDone;
+		} finally {
+			database.close();
+		}
+	}, input);
+}
+
 async function stableGeneratedPickTargets(
 	page: Page,
 	canvas: Locator,
@@ -1214,6 +1317,82 @@ for (const mismatch of [
 		);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(forgedAuthority);
+
+		await page
+			.getByRole("button", { name: "Rebuild local checkpoint" })
+			.click();
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			canonicalAuthority,
+		);
+		expect(externalRequests).toEqual([]);
+	});
+}
+
+for (const streamFixture of [
+	{
+		kind: "missing-alias",
+		label: "missing exact stream with a noncanonical logical alias",
+	},
+	{
+		kind: "missing-embedded-target",
+		label: "missing exact stream with a foreign key and target genesis",
+	},
+	{
+		kind: "existing-duplicate-alias",
+		label: "existing stream with a duplicate logical alias",
+	},
+	{
+		kind: "existing-scope-mismatch",
+		label: "existing stream with primary/genesis disagreement",
+	},
+	{
+		kind: "existing-malformed",
+		label: "existing stream with a malformed target row",
+	},
+] as const) {
+	test(`production quarantines ${streamFixture.label} without mutation @generated-world`, async ({
+		page,
+	}) => {
+		test.setTimeout(90_000);
+		const externalRequests = await isolateLocalWorld(page);
+		await resetGeneratedCheckpoint(page);
+		await page.goto("/world", { waitUntil: "domcontentloaded" });
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		const canonicalHash = await world.getAttribute("data-state-hash");
+		const worldId = await world.getAttribute("data-world-id");
+		if (worldId === null) throw new Error("generated world identity missing");
+		const canonicalAuthority = await generatedAuthorityFingerprint(page);
+
+		await installGeneratedAuthorityStreamFixture(page, {
+			...streamFixture,
+			worldId,
+		});
+		const corruptedAuthority = await generatedAuthorityFingerprint(page);
+		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
+
+		await page.reload({ waitUntil: "domcontentloaded" });
+		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute(
+			"data-persistence-claim",
+			"admitted-deterministic-view",
+		);
+		await expect(world).toHaveAttribute(
+			"data-persistence-failure-code",
+			"STALE_STATE",
+		);
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			corruptedAuthority,
+		);
 
 		await page
 			.getByRole("button", { name: "Rebuild local checkpoint" })
