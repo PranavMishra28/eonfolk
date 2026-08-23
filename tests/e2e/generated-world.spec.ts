@@ -191,7 +191,9 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await page.getByRole("link", { name: "Enter the living world" }).click();
 	await expect(page).toHaveURL(/\/world$/u);
 	await expect(page).toHaveTitle("EONFOLK — Canonical generated world");
-	await expect(page.getByRole("heading", { name: "Dawnmere" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: "Dawnmere", level: 1 }),
+	).toBeVisible();
 	const world = page.locator("main.v1-world");
 	await expect(world).toHaveAttribute(
 		"data-world-id",
@@ -285,7 +287,9 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await expect
 		.poll(() => canvas.getAttribute("data-camera-target-mm"))
 		.not.toBe(targetBeforePan);
-	await page.getByRole("button", { name: "Settlement overview" }).click();
+	const worldTools = page.locator("details.v1-world-tools");
+	await worldTools.locator("summary").click();
+	await worldTools.getByRole("button", { name: "Settlement overview" }).click();
 	await expect(world).toHaveAttribute(
 		"data-state-hash",
 		stateHashBeforeNavigation ?? "",
@@ -298,7 +302,7 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	);
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 	await expect(canvas).toHaveAttribute("data-semantic-scale", "citizen");
-	await page.getByRole("button", { name: "Settlement overview" }).click();
+	await page.getByRole("button", { name: "Back to settlement" }).click();
 
 	await page.getByRole("button", { name: "Pause motion" }).click();
 	const stateHashBeforePose = await world.getAttribute("data-state-hash");
@@ -329,19 +333,17 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await page.getByRole("button", { name: "Follow citizen" }).click();
 	await expect(canvas).toHaveAttribute("data-following", "true");
 
+	await page.getByRole("button", { name: "Settlements", exact: true }).click();
+	await expect(page.getByTestId("generated-world-overview")).toBeVisible();
 	await page
 		.getByRole("navigation", { name: "Settlements" })
-		.getByRole("button", { name: "Second Founding 1 residents" })
+		.getByRole("button", { name: "Second Founding 1 resident" })
 		.click();
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-actor-count",
 		"1",
 	);
-	await expect(
-		page
-			.getByRole("group", { name: "Canonical residents" })
-			.getByRole("button"),
-	).toHaveCount(1);
+	await expect(page.locator("ul.v1-presence-roster button")).toHaveCount(1);
 	await expect(page.getByText("Authority", { exact: true })).toHaveCount(0);
 	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
 	expect(firstCheckpoint).toMatchObject({
