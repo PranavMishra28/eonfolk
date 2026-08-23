@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
+import { FeedbackPanel } from "./components/FeedbackPanel";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
@@ -30,6 +31,12 @@ import {
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
 } from "./generated-world-runtime";
+import {
+	buildWorldFocusHref,
+	parseWorldFocusHref,
+	type WorldFocus,
+	worldFocusId,
+} from "./research-navigation";
 
 let generatedWorldCanvasModule:
 	| Promise<typeof import("./generated-world-canvas")>
@@ -50,11 +57,6 @@ function loadGeneratedWorldCanvasModule() {
 const GeneratedWorldCanvas = lazy(async () => {
 	const module = await loadGeneratedWorldCanvasModule();
 	return { default: module.GeneratedWorldCanvas };
-});
-
-const FeedbackPanel = lazy(async () => {
-	const module = await import("./components/FeedbackPanel");
-	return { default: module.FeedbackPanel };
 });
 
 type WorldView = "embodied" | "semantic" | "overview";
@@ -278,6 +280,7 @@ function SemanticSettlement({
 	onTogglePresentation,
 	onStepPresentation,
 	onNavigationRejected,
+	focusedLocationId,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -291,6 +294,7 @@ function SemanticSettlement({
 	readonly onNavigationRejected: (
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
+	readonly focusedLocationId: string | null;
 }) {
 	return (
 		<section
@@ -320,12 +324,18 @@ function SemanticSettlement({
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Grounded places</h3>
 				<ul>
-					{projection.local.sites.map((site) => (
-						<li key={site.siteId}>
-							<strong>{site.name}</strong>
-							<span>{site.semanticLabel}</span>
-						</li>
-					))}
+					{projection.local.sites.map((site) => {
+						const focused = focusedLocationId === site.siteId;
+						return (
+							<li
+								key={site.siteId}
+								aria-current={focused ? "location" : undefined}
+							>
+								<strong>{site.name}</strong>
+								<span>{site.semanticLabel}</span>
+							</li>
+						);
+					})}
 				</ul>
 			</section>
 		</section>
@@ -553,6 +563,10 @@ function GeneratedContextPanel({
 			? undefined
 			: model.actors.find(({ citizenId }) => citizenId === selectedCitizenId);
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
+	const worldLink = (focus: WorldFocus, label: string) => {
+		const href = buildWorldFocusHref(focus);
+		return href === null ? null : <a href={href}>{label}</a>;
+	};
 	useEffect(() => {
 		setSponsorStatus("idle");
 		setChronicleTrace("");
@@ -828,20 +842,24 @@ function GeneratedContextPanel({
 												<code>{beat.relation}</code>
 												<ul>
 													{beat.evidenceEventIds.map((eventId) => (
-														<li key={eventId}>{eventId}</li>
+														<li key={eventId}>
+															{worldLink({ kind: "event", eventId }, eventId)}
+														</li>
 													))}
 												</ul>
-												<button
-													type="button"
-													onClick={() =>
-														dispatch({
-															type: "select-citizen",
-															citizenId: beat.citizenId,
-														})
-													}
-												>
-													Show affected citizen
-												</button>
+												{worldLink(
+													{ kind: "citizen", citizenId: beat.citizenId },
+													"Citizen",
+												)}
+												{selectedActor === undefined
+													? null
+													: worldLink(
+															{
+																kind: "location",
+																locationId: selectedActor.placeId,
+															},
+															"Site",
+														)}
 											</li>
 										))}
 									</ol>
@@ -963,6 +981,9 @@ function GeneratedWorld({
 	const [navigationRejection, setNavigationRejection] = useState<string | null>(
 		null,
 	);
+	const [focusedLocationId, setFocusedLocationId] = useState<string | null>(
+		null,
+	);
 	const reportNavigationRejection = useCallback(
 		(reason: "invalid-envelope" | "foreign-reference") => {
 			setNavigationRejection(reason);
@@ -998,6 +1019,66 @@ function GeneratedWorld({
 			) ?? experience.embodiments[0],
 		[experience, selectedSettlementId],
 	);
+	const focusWorldTarget = useCallback(
+		(focus: WorldFocus, updateHistory = true) => {
+			const href = buildWorldFocusHref(focus)!;
+			if (focus.kind === "event") {
+				if (!updateHistory) reportNavigationRejection("foreign-reference");
+				else {
+					setNavigationRejection(null);
+					window.history.pushState(null, "", href);
+				}
+				return;
+			}
+			const targetId = worldFocusId(focus);
+			const matches = experience.embodiments.filter((settlement) => {
+				if (focus.kind === "citizen")
+					return settlement.actors.some(
+						({ citizenId }) => citizenId === targetId,
+					);
+				if (focus.kind === "object")
+					return settlement.projects.some(
+						({ projectId }) => projectId === targetId,
+					);
+				return experience.projections.some(
+					(candidate) =>
+						candidate.local.settlement.settlementId ===
+							settlement.settlementId &&
+						candidate.local.sites.some(({ siteId }) => siteId === targetId),
+				);
+			});
+			if (matches.length !== 1) {
+				reportNavigationRejection("foreign-reference");
+				return;
+			}
+
+			setSelectedSettlementId(matches[0]!.settlementId);
+			setFocusedLocationId(focus.kind === "location" ? targetId : null);
+			setNavigationRejection(null);
+			if (focus.kind === "citizen") {
+				dispatch({ type: "select-citizen", citizenId: focus.citizenId });
+			} else if (focus.kind === "location") {
+				dispatch({ type: "overview" });
+			} else if (focus.kind === "object") {
+				dispatch({ type: "select-project", projectId: focus.objectId });
+			}
+			if (focus.kind === "location") setView("semantic");
+			if (updateHistory) window.history.pushState(null, "", href);
+		},
+		[experience, reportNavigationRejection],
+	);
+	useEffect(() => {
+		if (window.location.search === "" && window.location.hash === "") return;
+		const focus = parseWorldFocusHref(
+			`${window.location.pathname}${window.location.search}${window.location.hash}`,
+		);
+		if (focus === null) {
+			reportNavigationRejection("invalid-envelope");
+			return;
+		}
+		focusWorldTarget(focus, false);
+		// Initial focus is deliberately admitted once against the mounted authority.
+	}, []);
 
 	useEffect(() => {
 		if (!presentationPlaying || reduceMotion) return;
@@ -1125,6 +1206,7 @@ function GeneratedWorld({
 		setPresentationTick((presentationTick) => presentationTick + 1);
 
 	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: delegated native links dispatch click for keyboard activation
 		<main
 			className={`v1-world ${reduceMotion ? "v1-reduced-motion" : ""}`}
 			data-world-id={experience.worldId}
@@ -1145,6 +1227,16 @@ function GeneratedWorld({
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-navigation-rejection={navigationRejection ?? undefined}
+			onClick={(event) => {
+				const link = (event.target as Element).closest<HTMLAnchorElement>(
+					'a[href^="/world?"]',
+				);
+				if (link === null) return;
+				event.preventDefault();
+				const focus = parseWorldFocusHref(link.getAttribute("href") ?? "");
+				if (focus === null) reportNavigationRejection("invalid-envelope");
+				else focusWorldTarget(focus);
+			}}
 			{...(generatedFaultHooks
 				? {
 						"data-fault-kind": fault?.kind,
@@ -1295,6 +1387,7 @@ function GeneratedWorld({
 						onTogglePresentation={togglePresentation}
 						onStepPresentation={stepPresentation}
 						onNavigationRejected={reportNavigationRejection}
+						focusedLocationId={focusedLocationId}
 					/>
 				</>
 			) : null}
@@ -1354,14 +1447,7 @@ function GeneratedWorld({
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
 				<summary>Release Genesis feedback</summary>
-				{feedbackOpen ? (
-					<div>
-						<p className="v1-kicker">RELEASE GENESIS FEEDBACK</p>
-						<Suspense fallback={<p>Opening local feedback tools…</p>}>
-							<FeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
-						</Suspense>
-					</div>
-				) : null}
+				{feedbackOpen ? <FeedbackPanel /> : null}
 			</details>
 			<footer className="v1-world-footer">
 				<p>Watch first. Select a person or place to learn more.</p>

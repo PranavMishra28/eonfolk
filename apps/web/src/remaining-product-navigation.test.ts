@@ -8,14 +8,14 @@ import {
 
 describe("Chronicle-to-world navigation contract", () => {
 	it.each<WorldFocus>([
-		{ kind: "citizen", citizenId: "citizen:mara", eventId: "evt:0042" },
+		{ kind: "citizen", citizenId: "citizen:mara" },
 		{ kind: "location", locationId: "place:market-east" },
-		{ kind: "object", objectId: "object:reserve-ledger", eventId: "evt:0042" },
+		{ kind: "object", objectId: "object:reserve-ledger" },
 		{ kind: "event", eventId: "evt:0042" },
 	])("round trips the typed $kind focus", (focus) => {
 		const href = buildWorldFocusHref(focus);
 		expect(href).toMatch(/^\/world\?focus-version=1&focus-kind=/u);
-		expect(parseWorldFocusHref(href)).toEqual(focus);
+		expect(parseWorldFocusHref(href ?? "")).toEqual(focus);
 	});
 
 	it.each([
@@ -37,11 +37,13 @@ describe("Chronicle-to-world navigation contract", () => {
 		const href = buildWorldFocusHref({
 			kind: "citizen",
 			citizenId: "citizen:mara",
-			eventId: "evt:0042",
 		});
 		expect(href).not.toMatch(/claim|title|body|cause/iu);
-		expect(() =>
-			buildWorldFocusHref({ kind: "event", eventId: "Mara caused a shortage" }),
-		).toThrow(/bounded ID grammar/u);
+		expect(
+			buildWorldFocusHref({
+				kind: "event",
+				eventId: "Mara caused a shortage",
+			}),
+		).toBeNull();
 	});
 });
