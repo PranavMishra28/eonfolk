@@ -2,7 +2,7 @@
 
 **Purpose:** Preserve one bounded, read-only local Ollama experiment against an EONFOLK-shaped typed-proposal fixture so later cognition work has exact machine, artifact, safety, latency, validity, and product-copy evidence.
 
-**Status:** COMPLETED NON-PROMOTION EVIDENCE — three local calls on 2026-08-22; no model adapter, production dependency, download, install, credential, spend, or product authorization resulted.
+**Status:** SUPERSEDED HISTORICAL LAB plus a technically promoted optional treatment recorded on 2026-08-23. Standard Brain remains the complete default and sole liveness dependency.
 
 **Authority boundary:** This is research evidence, not a cognition or architecture decision. [Cognition](../engineering/COGNITION.md) owns executable Brain behavior and optional-model policy; [architecture](../engineering/ARCHITECTURE.md) owns process and package boundaries; [security](../engineering/SECURITY.md) owns authorization and isolation; [evals](../quality/EVALS.md) owns promotion tests; [D-013](../decisions/DECISIONS.md#d-013--planner-earns-inclusion-model-stays-an-optional-local-seam) remains authoritative. This file does not amend the shared [source ledger](SOURCE_LEDGER.md).
 
@@ -15,11 +15,19 @@
 - **INFERENCE:** a bounded conclusion from the local and external evidence.
 - **UNRESOLVED:** a material question this three-call experiment did not answer.
 
-## Executive disposition
+## Current disposition
 
-**INFERENCE — DO NOT PROMOTE.** No local model qualifies for an EONFOLK Model Brain. The sole cached model, `qwen3-coder:30b`, remains an experiment candidate only. It selected the safe evidence-gathering action in all three calls and resisted one instruction embedded in an in-world record, but one schema-valid response ended in visibly broken public copy, model loading briefly raised macOS memory pressure to warning, and no executable EONFOLK model adapter or fallback path was exercised.
+**VERIFIED LOCAL EVIDENCE — TECHNICAL TREATMENT PROMOTED, PRODUCT ADVANTAGE UNPROVEN.** At clean commit `afdb66d0243871ce8ccc59ef04c286eda755dcd2`, the repository-owned bounded adapter invoked exact `gpt-oss:20b` bytes through Ollama 0.32.15 for 100 decisions spanning 25 actor-visible contexts, two hidden variants, and two seeds. Ninety-eight proposals passed the closed adapter and authoritative `IntentProposal` validator. Two public justifications failed their bounded punctuation/normalization contract and selected Standard Brain. All 50 hidden pairs selected the same action. Warm p50/p95/max were 2,126/2,963/3,449 ms; output p50/p95 were 90/95 tokens/s. Peak runner RSS was 15,364,145,152 bytes, memory pressure remained level 1, and swap did not grow.
 
-Standard Brain therefore remains the sole complete and required Brain. This result does not authorize weights, downloads, a provider/runtime dependency, model onboarding, continuous inference, or an architecture change.
+The exact artifact, runtime, license, context, corpus, server-log, source-tree, and report hashes plus every promotion metric are retained in [local-model treatment evidence](../exec-plans/evidence/002/local-model-treatment.json). The full run passed the executable benchmark. Model output remained a noncanonical proposal; raw hidden working text was discarded at the adapter boundary and was not retained.
+
+**INFERENCE:** this promotes one optional local technical treatment, not a default onboarding path and not a claim that it improves fun. The 2% fail-closed rate is accepted specifically because Standard Brain remains complete and model removal preserves liveness. Human story value and renderer-concurrent performance remain unproven gates. Hosted inference, model download during onboarding, training, credentials, and model authority remain prohibited.
+
+## Historical 2026-08-22 disposition
+
+**INFERENCE — DID NOT PROMOTE.** The first cached-model lab used `qwen3-coder:30b`. It selected the safe evidence-gathering action in all three calls and resisted one instruction embedded in an in-world record, but one schema-valid response ended in visibly broken public copy, model loading briefly raised macOS memory pressure to warning, and no executable EONFOLK model adapter or fallback path was exercised.
+
+That historical result did not authorize integration. Standard Brain remains the sole complete and required Brain after the later technical promotion.
 
 ## Machine and safety envelope
 

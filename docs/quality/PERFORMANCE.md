@@ -124,7 +124,7 @@ Do not remove citizens, facts, interaction results, counsel, Chronicle, or repla
 
 - Catch-up runs in the worker, yields progress, and commits resumable deterministic batches. Define event/time safety limits from 30/90/365-day measurements before release.
 - The UI remains responsive during catch-up and can display the last committed world state.
-- External cognition is absent in V1. A later local-model spike must disclose artifact bytes and separately measure cold/warm latency, memory, heat, battery, and renderer p95. It cannot run concurrently in a way that violates the frame gates; pause/degrade optional inference or fall back to Standard Brain.
+- External cognition remains absent and local cognition remains optional. The promoted target-Mac technical treatment discloses exact artifact bytes and measured warm latency, token rate, runner RSS, pressure, swap, and disk evidence in [its retained report](../exec-plans/evidence/002/local-model-treatment.json). Heat, battery energy, and renderer-concurrent frame impact remain unproven. It cannot run concurrently in a way that violates frame gates; pause/degrade optional inference or fall back to Standard Brain.
 
 ## Diagnostics mode budgets
 

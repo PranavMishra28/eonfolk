@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "eonfolk-retained-local-model-treatment-v1",
+  "status": "PASS",
+  "claimBoundary": "Technical promotion of one optional local Model Brain treatment. It is noncanonical, never required for liveness, and has no human story-quality claim.",
+  "recordedAt": "2026-08-23T07:25:29.683Z",
+  "source": {
+    "commit": "afdb66d0243871ce8ccc59ef04c286eda755dcd2",
+    "tree": "2b2f0ec71db936ec4639dd33f6ddb3fd7d49f870",
+    "clean": true
+  },
+  "reportHash": "9387a2233ec5c49b36affb9d0ca007d99bc0d52fe9a3b234a3301803380bb11f",
+  "resultCorpusSha256": "42d42904a8e17ba631dc98c17faed29784e33b1c6bf3f80e32e0c7639c19bc6f",
+  "contextsHash": "75567b5252c69bdd126c751fd9fca79da26846405117c98cec38511f170c72a9",
+  "serverLogSha256": "1dce5719784db64bfc4f799f682ffa31a0aa93a39987aa4b42210344d033caec",
+  "controls": {
+    "loopbackPort": 11435,
+    "modelSeeds": [42001, 42007],
+    "visibleContexts": 25,
+    "hiddenVariants": 2,
+    "maximumWarmLatencyMs": 4000,
+    "noCloud": true,
+    "noTraining": true,
+    "noTools": true
+  },
+  "summary": {
+    "executions": 100,
+    "primaryAccepted": 98,
+    "fallbacks": 2,
+    "invalidOrUnavailableBasisPoints": 200,
+    "preferredAgreementBasisPoints": 8000,
+    "hiddenPairExactMatches": 46,
+    "hiddenPairActionMatches": 50,
+    "hiddenPairs": 50,
+    "warmLatencyMs": { "p50": 2126, "p95": 2963, "maximum": 3449 },
+    "outputTokensPerSecond": { "p50": 90, "p95": 95 },
+    "maximumPressure": 1,
+    "maximumRunnerRssBytes": 15364145152,
+    "swapDeltaBytes": 0,
+    "minimumFreeDiskBytes": 133268774912,
+    "failureCounts": { "choice-justification-invalid": 2 },
+    "promotionGates": {
+      "completeCorpus": true,
+      "fallbackWithinFivePercent": true,
+      "hiddenActionAgreementAtLeast98Percent": true,
+      "memoryPressureNormal": true,
+      "noSwapGrowth": true,
+      "freeDiskReserve": true,
+      "warmP95WithinFourSeconds": true
+    }
+  },
+  "artifacts": {
+    "adapterSha256": "ac3780d9081924809f2b61b9ec00e8a60cad34783bbd91ff8cd2c041216299d7",
+    "node": { "version": "v22.23.1", "sha256": "2e3f1286a7eb3736346ed1803e458a0ff909e2b2d5bc746144dcb76970e9b99d" },
+    "ollama": { "version": "0.32.15", "sha256": "eee609f0a6da58b978d453e0385fd0e3496e6cf319c639875669b51cb4277d2d" },
+    "model": { "id": "gpt-oss:20b", "bytes": 13793422144, "sha256": "e7b273f9636059a689e3ddcab3716e4f65abe0143ac978e46673ad0e52d09efb", "license": "Apache-2.0", "licenseSha256": "f60356777647e927149cbd4c0ec1314a90caba9400ad205ddc4ce47ed001c2d6" },
+    "configurationSha256": "776beb3adb235076157cfea408b8ea2a2d25eae99d7f5da997f607f6b69fa0fa",
+    "chatTemplateSha256": "fa6710a93d78da62641e192361344be7a8c0a1c3737f139cf89f20ce1626b99c"
+  },
+  "limitations": [
+    "Model proposals never mutate Reality and deterministic fallback remains mandatory.",
+    "Preferred-action agreement is an automated oracle, not human story quality.",
+    "Renderer-concurrent performance remains a separate acceptance gate.",
+    "Four hidden pairs differed in public wording while all 50 selected the same action."
+  ]
+}

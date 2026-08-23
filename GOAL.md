@@ -79,15 +79,15 @@
 | Standard Brain remains deterministic, complete, and model-free | IN PROGRESS |
 | Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | IN PROGRESS |
 | Project/forward planner uses actor-visible facts and legal affordances | IN PROGRESS |
-| Executable local Model Brain treatment | NOT STARTED |
-| Real M4 Max model/runtime benchmark and promoted treatment | IN PROGRESS |
+| Executable local Model Brain treatment | VERIFIED |
+| Real M4 Max model/runtime benchmark and promoted treatment | VERIFIED |
 | Versioned structured model-decision contract and provenance | VERIFIED |
-| Schema, semantic, authority, and world validation after model output | IN PROGRESS |
-| Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | IN PROGRESS |
+| Schema, semantic, authority, and world validation after model output | VERIFIED |
+| Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | VERIFIED |
 | Episodic, semantic, social, goal, commitment, and reflection memory | IN PROGRESS |
 | Retrieval by relevance, recency, salience, relationship, and goal | IN PROGRESS |
-| Historical replay never reruns model inference | IN PROGRESS |
-| Multiple world seeds and Brain treatments carry immutable experiment identity | IN PROGRESS |
+| Historical replay never reruns model inference | VERIFIED |
+| Multiple world seeds and Brain treatments carry immutable experiment identity | VERIFIED |
 | POMCP promoted with a defensible sampler or rejected by an evidence-backed ADR | VERIFIED |
 
 ## Persistence and reliability
