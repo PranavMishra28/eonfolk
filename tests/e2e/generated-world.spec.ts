@@ -301,6 +301,59 @@ async function corruptGeneratedAuthority(
 	}, kind);
 }
 
+async function replaceGeneratedAuthorityWithOrphan(
+	page: Page,
+	input: {
+		readonly store:
+			| "authorityOperations"
+			| "authorityEvents"
+			| "authorityReceipts"
+			| "authoritySnapshots";
+		readonly id: string | number;
+		readonly worldId: string;
+	},
+): Promise<void> {
+	await page.evaluate(async ({ store, id, worldId }) => {
+		const requested = <T>(request: IDBRequest<T>) =>
+			new Promise<T>((resolve, reject) => {
+				request.onsuccess = () => resolve(request.result);
+				request.onerror = () => reject(request.error);
+			});
+		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority");
+		await requested(deleted);
+		const opened = indexedDB.open("eonfolk-generated-authority", 1);
+		opened.onupgradeneeded = () => {
+			for (const name of [
+				"authorityStreams",
+				"authorityOperations",
+				"authorityEvents",
+				"authorityReceipts",
+				"authoritySnapshots",
+			])
+				opened.result.createObjectStore(name, { keyPath: "key" });
+		};
+		const database = await requested(opened);
+		try {
+			const transaction = database.transaction(store, "readwrite");
+			const completed = new Promise<void>((resolve, reject) => {
+				transaction.oncomplete = () => resolve();
+				transaction.onerror = () => reject(transaction.error);
+				transaction.onabort = () =>
+					reject(transaction.error ?? new Error("orphan fixture aborted"));
+			});
+			const runId = "v1-generated-civilization";
+			transaction.objectStore(store).put({
+				key: JSON.stringify([runId, worldId, id]),
+				streamKey: JSON.stringify([runId, worldId]),
+				malformed: `${store}-orphan`,
+			});
+			await completed;
+		} finally {
+			database.close();
+		}
+	}, input);
+}
+
 async function stableGeneratedPickTargets(
 	page: Page,
 	canvas: Locator,
@@ -920,6 +973,113 @@ for (const corruption of [
 		expect(externalRequests).toEqual([]);
 	});
 }
+
+for (const orphan of [
+	{
+		store: "authorityOperations",
+		label: "operation",
+		id: 0,
+	},
+	{
+		store: "authorityEvents",
+		label: "event",
+		id: 1,
+	},
+	{
+		store: "authorityReceipts",
+		label: "receipt",
+		id: "orphan-append",
+	},
+	{
+		store: "authoritySnapshots",
+		label: "same-key genesis snapshot",
+		id: "civilization-genesis",
+	},
+] as const) {
+	test(`production quarantines a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
+		page,
+	}) => {
+		test.setTimeout(90_000);
+		const externalRequests = await isolateLocalWorld(page);
+		await resetGeneratedCheckpoint(page);
+		await page.goto("/world", { waitUntil: "domcontentloaded" });
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		const canonicalHash = await world.getAttribute("data-state-hash");
+		const worldId = await world.getAttribute("data-world-id");
+		if (worldId === null) throw new Error("generated world identity missing");
+		const canonicalAuthority = await generatedAuthorityFingerprint(page);
+
+		await replaceGeneratedAuthorityWithOrphan(page, { ...orphan, worldId });
+		const orphanAuthority = await generatedAuthorityFingerprint(page);
+		expect(orphanAuthority).not.toEqual(canonicalAuthority);
+
+		await page.reload({ waitUntil: "domcontentloaded" });
+		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute(
+			"data-persistence-claim",
+			"admitted-deterministic-view",
+		);
+		await expect(world).toHaveAttribute(
+			"data-persistence-failure-code",
+			"STALE_STATE",
+		);
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(orphanAuthority);
+
+		await page
+			.getByRole("button", { name: "Rebuild local checkpoint" })
+			.click();
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			canonicalAuthority,
+		);
+		expect(externalRequests).toEqual([]);
+	});
+}
+
+test("production recovery surfaces a synchronous database deletion failure and permits retry @generated-world", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	const world = page.locator("main.v1-world");
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+		timeout: 30_000,
+	});
+	await corruptGeneratedAuthority(page, "genesis-schema");
+	const corruptedAuthority = await generatedAuthorityFingerprint(page);
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+		timeout: 30_000,
+	});
+	await page.evaluate(() => {
+		Object.defineProperty(IDBFactory.prototype, "deleteDatabase", {
+			configurable: true,
+			value: () => {
+				throw new DOMException("private deletion detail", "SecurityError");
+			},
+		});
+	});
+	const rebuild = page.getByRole("button", {
+		name: "Rebuild local checkpoint",
+	});
+	await rebuild.click();
+	await expect(page.getByText(/Recovery could not start/u)).toBeVisible();
+	await expect(rebuild).toBeEnabled();
+	await expect(page.locator("body")).not.toContainText(
+		"private deletion detail",
+	);
+	expect(await generatedAuthorityFingerprint(page)).toEqual(corruptedAuthority);
+});
 
 test("production recovery explains a blocked database deletion and resumes after the other tab closes @generated-world", async ({
 	page,

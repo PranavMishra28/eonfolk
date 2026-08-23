@@ -432,24 +432,27 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		}
 		const key = streamKey(request);
 		this.#boundaryInjector?.hit("write");
-		const transaction = this.#database.transaction(
-			[
-				GENERATED_AUTHORITY_STORES.streams,
-				GENERATED_AUTHORITY_STORES.snapshots,
-			],
-			"readwrite",
-			{ durability: "strict" },
-		);
+		const transaction = this.#database.transaction(STORE_NAMES, "readwrite", {
+			durability: "strict",
+		});
 		const done = transactionDone(transaction);
 		try {
 			this.#boundaryInjector?.hit("transaction-abort", transaction);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
-			const existing = (await requestValue(streams.get(key))) as
-				| StreamRow
-				| undefined;
+			const [existing, ...materializedRows] = await Promise.all([
+				requestValue(streams.get(key)) as Promise<StreamRow | undefined>,
+				...STORE_NAMES.slice(1).map(
+					(store) =>
+						requestValue(transaction.objectStore(store).getAll()) as Promise<
+							KeyedRow<unknown>[]
+						>,
+				),
+			]);
 			if (existing !== undefined) fail("STALE_REVISION", "genesis race");
+			if (materializedRows.some((rows) => rowsForStream(rows, key).length > 0))
+				fail("STALE_STATE", "orphaned authority material");
 			streams.put({
 				key,
 				genesis: clone(request),

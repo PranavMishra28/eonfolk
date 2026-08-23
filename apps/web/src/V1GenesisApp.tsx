@@ -888,10 +888,14 @@ function GeneratedWorld({
 	};
 	const rebuildPersistence = () => {
 		setRebuildState("deleting");
-		const request = indexedDB.deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
-		request.onsuccess = () => window.location.reload();
-		request.onblocked = () => setRebuildState("blocked");
-		request.onerror = () => setRebuildState("error");
+		try {
+			const request = indexedDB.deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
+			request.onsuccess = () => window.location.reload();
+			request.onblocked = () => setRebuildState("blocked");
+			request.onerror = () => setRebuildState("error");
+		} catch {
+			setRebuildState("error");
+		}
 	};
 	const reportRendererFailure = () => {
 		setRendererFailed(true);
