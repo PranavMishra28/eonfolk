@@ -2,7 +2,7 @@
 
 **Purpose:** define the reproducible local production preview, CI evidence retention, and the credential-gated path from the inert feedback relay core to a future private alpha deployment.
 
-**Status:** WORLD PRESENCE EXACT-YES, FINAL IMPLEMENTATION-HEAD GITHUB CI, AND EXACT CLEAN TARGET-MAC DEEP PASSED; FINAL DOCS-HEAD CI, MERGE, AND CLEANUP PENDING; DEPLOYMENT NOT RUN
+**Status:** WORLD PRESENCE EXACT-YES AND FOUNDER ALPHA MEGA PR #7 INTEGRATED; BOUNDED IDENTITY/CI CONTINUATION ACTIVE; DEPLOYMENT NOT RUN
 
 **Authority boundary:** this file owns Founder Alpha release procedure and release-status claims. It does not authorize deployment, spend, credentials, a public availability claim, or changes to Reality. [Feedback](FEEDBACK.md) owns relay behavior; [Testing](../quality/TESTING.md) owns verification policy; [Security](SECURITY.md) owns trust boundaries.
 
@@ -32,7 +32,7 @@ Historical clean local DEEP passed all 26 ordered rows at commit `59edef3c768d9a
 
 ## CI release surface
 
-The one `CI` workflow retains the protected `Verify`, `Formal model`, and `Secret scan` jobs. All actions are pinned to immutable commit SHAs and workflow permissions are `contents: read`; checkout credentials are not persisted. Linux `Verify` runs the nineteen-row PR baseline with two semantic injected-fault journeys, fourteen semantic product journeys, and a blocking trace-free production PlayCanvas/WebGL2 smoke at 1728×1117, 1366×768, and 390×844. The target-Mac PR/DEEP surface keeps all sixteen illustrated journeys, including cadence and spatial picking. Cognition/protocol/Observatory changes explicitly rerun the frozen planner benchmark and experiment/projection regressions. Web or browser-test changes retain the three-viewport renderer evidence; reduced-motion, keyboard, semantic fallback, and complete product journeys remain blocking in the semantic suite and target-Mac lattice.
+The one `CI` workflow retains the protected `Verify`, `Formal model`, and `Secret scan` jobs. All actions are pinned to immutable commit SHAs and workflow permissions are `contents: read`; checkout credentials are not persisted. Verify also runs checksum-pinned actionlint before the product lattice. Linux `Verify` runs the nineteen-row PR baseline with two semantic injected-fault journeys, fourteen semantic product journeys, and a blocking trace-free production PlayCanvas/WebGL2 smoke at 1728×1117, 1366×768, and 390×844. Web, simulation, cognition, protocol, world-presentation, browser-test, dependency-manifest, and renderer/test-configuration changes trigger that smoke. The target-Mac PR/DEEP surface keeps all sixteen illustrated journeys, including cadence and spatial picking. Cognition/protocol/Observatory changes explicitly rerun the frozen planner benchmark and experiment/projection regressions. Workflow dispatch additionally offers an unscheduled manual DEEP lane with bounded retention; reduced-motion, keyboard, semantic fallback, and complete product journeys remain blocking in the semantic suite and target-Mac lattice.
 
 Failed Playwright screenshots/traces are retained for 14 days. Conditional accepted UI screenshots and the local preview log are retained for 30 days. Successful videos are not recorded. Artifact access inherits private-repository Actions access; artifacts must not contain feedback prose, credentials, raw Reality, private cognition records, or external provider traces. Private storage is access control, not permission to upload sensitive evidence.
 

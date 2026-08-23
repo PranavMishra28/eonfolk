@@ -152,6 +152,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |
 | Agent constraints and read order | [AGENTS.md](../AGENTS.md) |
+| Clone, run, verify and developer entry point | [README.md](../README.md) |
 | Trusted agent-skill provenance | [SKILL_LOCK.md](agentic/SKILL_LOCK.md) |
 | Human-gate implementation override | [operator override](exec-plans/evidence/001/operator-implementation-override.md) |
 | Founder Alpha diagnostics, headful zoom-equivalent, and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md), [headful reflow record](exec-plans/evidence/002/headful-zoom.json), and [physical-device status](exec-plans/evidence/002/physical-device.json) |

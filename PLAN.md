@@ -2,7 +2,7 @@
 
 **Purpose:** Track planning, implementation, integrations, frozen evidence, blockers, and release-readiness evidence.
 
-**Status:** FOUNDER ALPHA RELEASE CANDIDATE — exact-YES confirmation, final implementation-head GitHub CI, and exact clean target-Mac DEEP passed; final docs-head CI, merge, hardening, and cleanup remain
+**Status:** FOUNDER ALPHA INTEGRATED — mega PR #7 merged; identity, run-surface, and CI hardening continuation active; human product gates remain not run
 
 **Authority boundary:** This file owns planning status, evidence gates, integration history, frozen SHA and exit checklist. [INDEX](docs/INDEX.md) owns document authority; [decisions](docs/decisions/DECISIONS.md) owns product acceptance.
 
@@ -27,7 +27,7 @@
 | 5. Frozen discipline and player-perspective reviews | Complete | Four isolated red teams and five fresh persona walkthroughs target immutable SHA `4f47eae8fe785f3994e053d01c184e9e3dddb401` |
 | 6. Reconciliation, final review, QA and draft PR | Complete | Amendment reviews/fixes, exact Goal-blob confirmation, fresh QA, private-repo probe, branch push and existing draft-PR update passed |
 | 7. Operator-authorized implementation and consolidation | Complete under override | Private `main` contains preserved planning plus the repaired Riverhold proof; final canonical 15-run performance, complete local verification, pushed-candidate CI, protection, full-history scanning, archive tags, and cleanup pass; the one allowed targeted confirmation's three P1s are repaired; human gates remain NOT RUN |
-| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Release candidate; merge/hardening/cleanup pending | Start SHA `74a8a7e`; earlier `fe7f1d0`, `593e5ab`, `afdc6e0`, and `17b2a3d` presentation candidates remain immutable failed evidence. Integrated repairs closed the frozen P1s; the one post-fix confirmation answered exactly **YES** with zero P0/P1 at frozen `90c0ad2`; final implementation head `f818d10` passed protected GitHub CI and exact clean target-Mac DEEP. Human Gate 0/A/B remain `NOT RUN`. |
+| 8. Founder Alpha observability, feedback, cognition, polish, and release hardening | Integrated through mega PR #7; bounded continuation active | Start SHA `74a8a7e`; earlier `fe7f1d0`, `593e5ab`, `afdc6e0`, and `17b2a3d` presentation candidates remain immutable failed evidence. Integrated repairs closed the frozen P1s; the one post-fix confirmation answered exactly **YES** with zero P0/P1 at frozen `90c0ad2`; final implementation head `f818d10` passed protected GitHub CI and exact clean target-Mac DEEP before merge commit `405697b`. The current continuation adds one authoritative identity mark, root run guidance, and CI trigger/manual-DEEP hardening without expanding Reality. Human Gate 0/A/B remain `NOT RUN`. |
 
 ## Operator implementation override — 2026-08-21
 

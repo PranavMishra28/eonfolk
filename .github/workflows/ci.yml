@@ -5,6 +5,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tier:
+        description: Verification depth
+        required: true
+        default: pr
+        type: choice
+        options:
+          - pr
+          - deep
 
 permissions:
   contents: read
@@ -16,6 +25,7 @@ concurrency:
 jobs:
   verify:
     name: Verify
+    if: github.event_name != 'workflow_dispatch' || inputs.tier != 'deep'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -24,6 +34,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Check workflow syntax and shell contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "${RUNNER_TEMP}/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  ${RUNNER_TEMP}/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "${RUNNER_TEMP}/actionlint.tar.gz" -C "${RUNNER_TEMP}" actionlint
+          "${RUNNER_TEMP}/actionlint" -color
 
       - name: Classify conditional verification
         id: classify
@@ -39,7 +60,7 @@ jobs:
           fi
 
           changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
-          if grep -Eq '^(apps/web/|tests/e2e/)' <<<"${changed_files}"; then
+          if grep -Eq '^(apps/web/|packages/(cognition|protocol|sim|world-presentation)/|tests/e2e/|package\.json$|pnpm-lock\.yaml$|vite\..*\.ts$|playwright\..*\.ts$)' <<<"${changed_files}"; then
             echo "ui=true" >> "${GITHUB_OUTPUT}"
           else
             echo "ui=false" >> "${GITHUB_OUTPUT}"
@@ -306,6 +327,89 @@ jobs:
             tmp/riverhold-playwright
             tmp/founder-alpha-ui-evidence
             tmp/eonfolk-verification-pr.json
+            apps/web/evidence
+          if-no-files-found: ignore
+          retention-days: 14
+
+  deep:
+    name: Deep verification
+    if: github.event_name == 'workflow_dispatch' && inputs.tier == 'deep'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.15.1
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install pinned Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Fetch repository-pinned TLC
+        shell: bash
+        run: |
+          set -euo pipefail
+          tlc_url="$(node scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node scripts/formal-toolchain.mjs --sha256)"
+          curl --fail --location --silent --show-error \
+            "${tlc_url}" \
+            --output "${RUNNER_TEMP}/tla2tools.jar"
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
+
+      - name: Run manually requested deep verification
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: pnpm verify:deep
+
+      - name: Retain accepted deep evidence
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deep-verification-${{ github.run_id }}
+          path: |
+            tmp/eonfolk-verification-deep.json
+            tmp/eonfolk-persistence-benchmark.json
+            tmp/eonfolk-diagnostics-overhead.json
+            tmp/eonfolk-diagnostics-browser-comparison.json
+            tmp/eonfolk-canonical-performance.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain failing deep evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deep-failure-${{ github.run_id }}
+          path: |
+            tmp/eonfolk-verification-deep.json
+            tmp/eonfolk-persistence-benchmark.json
+            tmp/eonfolk-diagnostics-overhead.json
+            tmp/eonfolk-diagnostics-browser-comparison.json
+            tmp/eonfolk-canonical-performance.json
+            tmp/riverhold-playwright
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14
