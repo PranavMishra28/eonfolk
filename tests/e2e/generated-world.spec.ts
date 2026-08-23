@@ -131,23 +131,22 @@ async function stableGeneratedPickTargets(
 		) {
 			const bounds = await canvas.boundingBox();
 			if (bounds === null) throw new Error("generated canvas has no bounds");
-			const exposed: GeneratedPickTarget[] = [];
-			for (const target of current) {
-				const receivesPointer = await page.evaluate(
-					({ absoluteX, absoluteY }) => {
-						const host = document.querySelector(
-							'[data-testid="generated-world-canvas"]',
+			const exposed = await page.evaluate(
+				({ left, top, targets }) => {
+					const host = document.querySelector(
+						'[data-testid="generated-world-canvas"]',
+					);
+					if (host === null) return [];
+					return targets.filter((target) => {
+						const hit = document.elementFromPoint(
+							left + target.x,
+							top + target.y,
 						);
-						const hit = document.elementFromPoint(absoluteX, absoluteY);
-						return host !== null && hit !== null && host.contains(hit);
-					},
-					{
-						absoluteX: bounds.x + target.x,
-						absoluteY: bounds.y + target.y,
-					},
-				);
-				if (receivesPointer) exposed.push(target);
-			}
+						return hit !== null && host.contains(hit);
+					});
+				},
+				{ left: bounds.x, top: bounds.y, targets: current },
+			);
 			if (exposed.length > 0) return exposed;
 		}
 		prior = current;
