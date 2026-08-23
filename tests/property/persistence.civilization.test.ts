@@ -80,6 +80,6 @@ describe("civilization persistence properties", () => {
 				{ numRuns: deep ? 60 : 12, seed: 0xe0f303 },
 			);
 		},
-		deep ? 30_000 : 5_000,
+		deep ? 30_000 : 15_000,
 	);
 });
