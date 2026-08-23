@@ -782,6 +782,11 @@ async function waitForServer(port: number): Promise<void> {
 	throw new Error("bounded Ollama server did not become ready");
 }
 
+function serverFailureLog(chunks: readonly Buffer[]): string {
+	const text = Buffer.concat(chunks).toString("utf8").trim();
+	return text.length === 0 ? "no server output" : text.slice(-4_096);
+}
+
 async function stopServer(
 	child: ChildProcessWithoutNullStreams,
 	port: number,
@@ -931,6 +936,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 			let serverLogBytes = 0;
 			const server = spawn(service.path, ["serve"], {
 				env: {
+					HOME: requiredEnvironment("HOME"),
 					LANG: "C",
 					LC_ALL: "C",
 					OLLAMA_HOST: `127.0.0.1:${port}`,
@@ -948,7 +954,13 @@ describe("manual bounded local Model Brain benchmark", () => {
 				});
 			const results: ExecutionEvidence[] = [];
 			try {
-				await waitForServer(port);
+				try {
+					await waitForServer(port);
+				} catch (error) {
+					throw new Error(
+						`${error instanceof Error ? error.message : "bounded Ollama startup failed"}: ${serverFailureLog(serverLog)}`,
+					);
+				}
 				for (const modelSeed of MODEL_SEEDS) {
 					const contract = await createLocalProcessBrainContract({
 						adapterId: adapter.identity.artifactId,
