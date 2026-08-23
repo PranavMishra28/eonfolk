@@ -38,6 +38,50 @@ function encoded(value: unknown): Buffer {
 	return Buffer.from(`${JSON.stringify(value, null, "\t")}\n`, "utf8");
 }
 
+function triangleMetrics(binary: Uint8Array) {
+	const bytes = Buffer.from(binary);
+	const position = (index: number): readonly [number, number, number] => [
+		bytes.readFloatLE(index * 12),
+		bytes.readFloatLE(index * 12 + 4),
+		bytes.readFloatLE(index * 12 + 8),
+	];
+	return Array.from({ length: 12 }, (_, triangle) => {
+		const indices = [0, 1, 2].map((component) =>
+			bytes.readUInt16LE(96 + (triangle * 3 + component) * 2),
+		);
+		const first = position(indices[0] ?? 0);
+		const second = position(indices[1] ?? 0);
+		const third = position(indices[2] ?? 0);
+		const firstEdge = second.map(
+			(value, component) => value - first[component],
+		);
+		const secondEdge = third.map(
+			(value, component) => value - first[component],
+		);
+		const normal = [
+			(firstEdge[1] ?? 0) * (secondEdge[2] ?? 0) -
+				(firstEdge[2] ?? 0) * (secondEdge[1] ?? 0),
+			(firstEdge[2] ?? 0) * (secondEdge[0] ?? 0) -
+				(firstEdge[0] ?? 0) * (secondEdge[2] ?? 0),
+			(firstEdge[0] ?? 0) * (secondEdge[1] ?? 0) -
+				(firstEdge[1] ?? 0) * (secondEdge[0] ?? 0),
+		];
+		const centroid = first.map(
+			(value, component) => (value + second[component] + third[component]) / 3,
+		);
+		return {
+			areaSquared: normal.reduce(
+				(total, component) => total + component * component,
+				0,
+			),
+			outwardDot: normal.reduce(
+				(total, component, index) => total + component * (centroid[index] ?? 0),
+				0,
+			),
+		};
+	});
+}
+
 describe("generated asset pipeline", () => {
 	it("reproduces and validates the tracked self-contained GLB exactly", async () => {
 		const assets = await trackedAssets();
@@ -51,7 +95,7 @@ describe("generated asset pipeline", () => {
 		);
 		expect(assets.sourceBytes.byteLength).toBe(3_929);
 		expect(generatedAssetSha256(assets.sourceBytes)).toBe(
-			"3056495e5471989dfce1eb41982f74760c89c457f6b00aec44f2c469ae0cc624",
+			"a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179",
 		);
 		expect(first.byteLength).toBe(GENERATED_FOLK_BINARY_ASSET.byteLength);
 		expect(
@@ -65,6 +109,15 @@ describe("generated asset pipeline", () => {
 		expect(validateGeneratedAssetsOnDisk()).toMatchObject({
 			trackedBytes: 7_081,
 		});
+		const source = validateGeneratedSourceGltf(assets.sourceBytes);
+		const delivery = parseGeneratedGlb(assets.binaryBytes);
+		for (const binary of [source.binary, delivery.binary])
+			expect(triangleMetrics(binary)).toEqual(
+				Array.from({ length: 12 }, () => ({
+					areaSquared: 1,
+					outwardDot: 0.5,
+				})),
+			);
 	});
 
 	it("rejects malformed, open, mismatched, and over-budget manifests", async () => {
@@ -256,21 +309,34 @@ describe("generated asset pipeline", () => {
 			/positions do not match the admitted cube corners/u,
 		);
 
-		for (const mutate of [
-			(geometry: Buffer) => {
-				for (let index = 0; index < 3; index += 1)
-					geometry.writeUInt16LE(
-						geometry.readUInt16LE(96 + index * 2),
-						102 + index * 2,
-					);
+		for (const { mutate, rejection } of [
+			{
+				mutate: (geometry: Buffer) => {
+					for (let index = 0; index < 3; index += 1)
+						geometry.writeUInt16LE(
+							geometry.readUInt16LE(96 + index * 2),
+							102 + index * 2,
+						);
+				},
+				rejection: /indices do not match the admitted cuboid topology/u,
 			},
-			(geometry: Buffer) => {
-				const second = geometry.readUInt16LE(98);
-				geometry.writeUInt16LE(geometry.readUInt16LE(100), 98);
-				geometry.writeUInt16LE(second, 100);
+			{
+				mutate: (geometry: Buffer) => {
+					const second = geometry.readUInt16LE(98);
+					geometry.writeUInt16LE(geometry.readUInt16LE(100), 98);
+					geometry.writeUInt16LE(second, 100);
+				},
+				rejection: /must have an outward normal/u,
 			},
-			(geometry: Buffer) => geometry.writeUInt16LE(1, 100),
-			(geometry: Buffer) => geometry.writeUInt16LE(7, 96),
+			{
+				mutate: (geometry: Buffer) => geometry.writeUInt16LE(2, 100),
+				rejection: /must have nonzero area/u,
+			},
+			{
+				mutate: (geometry: Buffer) => geometry.writeUInt16LE(7, 96),
+				rejection:
+					/must have an outward normal|must have nonzero area|indices do not match/u,
+			},
 		]) {
 			const hostileTopology = structuredClone(source);
 			const hostileGeometry = Buffer.from(
@@ -281,9 +347,7 @@ describe("generated asset pipeline", () => {
 			hostileTopology.buffers[0].uri = `${prefix}${hostileGeometry.toString("base64")}`;
 			expect(() =>
 				validateGeneratedSourceGltf(encoded(hostileTopology)),
-			).toThrow(
-				/indices do not match the admitted cuboid topology and winding/u,
-			);
+			).toThrow(rejection);
 		}
 	});
 
@@ -487,19 +551,19 @@ describe("generated asset pipeline", () => {
 		);
 		reversedWinding.writeUInt16LE(secondIndex, binaryStart + 100);
 		expect(() => parseGeneratedGlb(reversedWinding)).toThrow(
-			/indices do not match the admitted cuboid topology and winding/u,
+			/must have an outward normal/u,
 		);
 
 		const degenerateTriangle = Buffer.from(binaryBytes);
-		degenerateTriangle.writeUInt16LE(1, binaryStart + 100);
+		degenerateTriangle.writeUInt16LE(2, binaryStart + 100);
 		expect(() => parseGeneratedGlb(degenerateTriangle)).toThrow(
-			/indices do not match the admitted cuboid topology and winding/u,
+			/must have nonzero area/u,
 		);
 
 		const arbitraryInRangeIndex = Buffer.from(binaryBytes);
 		arbitraryInRangeIndex.writeUInt16LE(7, binaryStart + 96);
 		expect(() => parseGeneratedGlb(arbitraryInRangeIndex)).toThrow(
-			/indices do not match the admitted cuboid topology and winding/u,
+			/must have an outward normal|must have nonzero area|indices do not match/u,
 		);
 		for (const length of [0, 1, 11, 12, 19, 20, 27, 28, 100, 1_024])
 			expect(() =>

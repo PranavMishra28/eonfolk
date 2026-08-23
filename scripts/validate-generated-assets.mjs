@@ -116,8 +116,8 @@ const EXPECTED_POSITION_TUPLES = Object.freeze([
 	[-0.5, 0.5, 0.5],
 ]);
 const EXPECTED_TRIANGLE_INDICES = Object.freeze([
-	0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6,
-	7, 2, 7, 3, 3, 7, 4, 3, 4, 0,
+	0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 5, 4, 0, 1, 5, 1, 6, 5, 1, 2, 6, 2, 7,
+	6, 2, 3, 7, 3, 4, 7, 3, 0, 4,
 ]);
 
 function fail(message) {
@@ -572,6 +572,39 @@ function validateGeometryTables(document, label, binaryBytes) {
 		if (index >= 8)
 			fail(`${label} index accessor references a missing position`);
 		actualIndices.push(index);
+	}
+	for (let offset = 0; offset < actualIndices.length; offset += 3) {
+		const first = actualPositions[actualIndices[offset]];
+		const second = actualPositions[actualIndices[offset + 1]];
+		const third = actualPositions[actualIndices[offset + 2]];
+		if (first === undefined || second === undefined || third === undefined)
+			fail(`${label} triangle references a missing position`);
+		const firstEdge = second.map(
+			(value, component) => value - first[component],
+		);
+		const secondEdge = third.map(
+			(value, component) => value - first[component],
+		);
+		const normal = [
+			firstEdge[1] * secondEdge[2] - firstEdge[2] * secondEdge[1],
+			firstEdge[2] * secondEdge[0] - firstEdge[0] * secondEdge[2],
+			firstEdge[0] * secondEdge[1] - firstEdge[1] * secondEdge[0],
+		];
+		const areaSquared = normal.reduce(
+			(total, component) => total + component * component,
+			0,
+		);
+		if (!Number.isFinite(areaSquared) || areaSquared <= 0)
+			fail(`${label} triangle ${offset / 3} must have nonzero area`);
+		const centroid = first.map(
+			(value, component) => (value + second[component] + third[component]) / 3,
+		);
+		const outwardDot = normal.reduce(
+			(total, component, index) => total + component * centroid[index],
+			0,
+		);
+		if (!Number.isFinite(outwardDot) || outwardDot <= 0)
+			fail(`${label} triangle ${offset / 3} must have an outward normal`);
 	}
 	if (
 		JSON.stringify(actualIndices) !== JSON.stringify(EXPECTED_TRIANGLE_INDICES)

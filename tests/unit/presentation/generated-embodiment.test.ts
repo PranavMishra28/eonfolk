@@ -498,7 +498,7 @@ describe("generated asset provenance", () => {
 		};
 		expect(bytes.byteLength).toBe(3_929);
 		expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-			"3056495e5471989dfce1eb41982f74760c89c457f6b00aec44f2c469ae0cc624",
+			"a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179",
 		);
 		expect(gltf.buffers.every((buffer) => buffer.uri.startsWith("data:"))).toBe(
 			true,
@@ -553,7 +553,7 @@ describe("generated asset provenance", () => {
 			byteLength: GENERATED_FOLK_BINARY_ASSET.byteLength,
 			sha256: GENERATED_FOLK_BINARY_ASSET.sha256,
 			manifestSha256:
-				"43e8c051150acd704a1c711d15d27c2de9c01177a937da9cb2cba03fe05b3f74",
+				"69519819b59ddf72b8786a412e08145c3c235aaf6fe9ca932540821a20558392",
 			rendererIntegration: "procedural-reference-only",
 		});
 

@@ -7,14 +7,14 @@ export const GENERATED_FOLK_BINARY_ASSET = Object.freeze({
 	assetId: "eonfolk-folk-proxy-glb-v1",
 	url: "/assets/generated/eonfolk-folk-proxy.glb",
 	byteLength: 3_152,
-	sha256: "7d738a548521e82f955dbc58fd8214aa99956c3cd79920b7143ceb2f35831330",
+	sha256: "198d0d7ec6e37f7a43fae872cfff0f3ba8e010c50a3cc7c29af21a2358120549",
 });
 
 export const GENERATED_ASSET_MANIFEST_URL =
 	"/assets/generated/ASSET_MANIFEST.json";
 const GENERATED_ASSET_MANIFEST = Object.freeze({
 	byteLength: 2_587,
-	sha256: "43e8c051150acd704a1c711d15d27c2de9c01177a937da9cb2cba03fe05b3f74",
+	sha256: "69519819b59ddf72b8786a412e08145c3c235aaf6fe9ca932540821a20558392",
 });
 
 export interface GeneratedAssetIntegrity {
