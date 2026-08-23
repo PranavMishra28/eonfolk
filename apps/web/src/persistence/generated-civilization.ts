@@ -1,6 +1,7 @@
 import {
 	createAuthoritySnapshot,
 	createCivilizationPersistencePlan,
+	hashAuthoritativeState,
 	replayCivilizationHistory,
 	type AuthorityAppendReceipt,
 	type AuthorityHead,
@@ -98,16 +99,30 @@ async function persistPlan(input: {
 		if (result.idempotent) idempotentAppends += 1;
 	}
 	const head = await input.port.loadHead(plan.scope);
+	let snapshotState = plan.finalState;
+	const extendedAuthority =
+		(await hashAuthoritativeState(snapshotState)) !== head.stateHash;
+	if (extendedAuthority) {
+		const latest = await input.port.loadLatestSnapshot(plan.scope);
+		const replayed = await replayCivilizationHistory(input.port, {
+			...plan.scope,
+			snapshotId: latest.snapshotId,
+			toSequenceExclusive: head.lastSequence + 1,
+		});
+		snapshotState = replayed.state;
+	}
 	const snapshot = await createAuthoritySnapshot({
 		...plan.scope,
 		engineVersion: head.engineVersion,
 		stateSchemaVersion: head.stateSchemaVersion,
-		snapshotId: snapshotId(input.targetHorizonDays),
+		snapshotId: extendedAuthority
+			? `${snapshotId(input.targetHorizonDays)}-authority-${head.revision}`
+			: snapshotId(input.targetHorizonDays),
 		revision: head.revision,
 		baseSequence: head.lastSequence,
 		simulationTime: head.simulationTime,
 		lastEventHash: head.lastEventHash,
-		state: plan.finalState,
+		state: snapshotState,
 	});
 	await input.port.saveSnapshot({ snapshot, fencingToken: head.fencingToken });
 	return { head, snapshot, receipts, idempotentAppends };

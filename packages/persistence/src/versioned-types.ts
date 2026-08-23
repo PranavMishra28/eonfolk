@@ -1,7 +1,7 @@
 import type { JsonValue } from "./types.js";
 
 export const VERSIONED_PERSISTENCE_PORT_VERSION =
-	"eonfolk-persistence-port-v1" as const;
+	"eonfolk-persistence-port-v2" as const;
 export const AUTHORITY_HEAD_SCHEMA_VERSION =
 	"eonfolk-authority-head-v1" as const;
 export const AUTHORITY_EVENT_SCHEMA_VERSION =
@@ -9,9 +9,9 @@ export const AUTHORITY_EVENT_SCHEMA_VERSION =
 export const AUTHORITY_SNAPSHOT_SCHEMA_VERSION =
 	"eonfolk-authority-snapshot-v1" as const;
 export const AUTHORITY_APPEND_SCHEMA_VERSION =
-	"eonfolk-authority-append-v1" as const;
+	"eonfolk-authority-append-v2" as const;
 export const AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION =
-	"eonfolk-authority-append-receipt-v1" as const;
+	"eonfolk-authority-append-receipt-v2" as const;
 export const AUTHORITY_GENESIS_SCHEMA_VERSION =
 	"eonfolk-authority-genesis-v1" as const;
 export const EMPTY_EVENT_HASH = "0".repeat(64);
@@ -126,6 +126,10 @@ export interface AppendAuthorityBatchRequest extends AuthorityScope {
 	readonly expectedLastEventHash: string;
 	readonly fencingToken: number;
 	readonly events: readonly AuthorityEventRecord[];
+	/** Canonical command receipt bytes committed with the batch, when applicable. */
+	readonly commandReceipt?: JsonValue | null;
+	/** Final cognition decision bytes committed with the batch, when applicable. */
+	readonly decisionRecord?: JsonValue | null;
 }
 
 export interface AuthorityAppendReceipt extends AuthorityScope {
@@ -138,6 +142,8 @@ export interface AuthorityAppendReceipt extends AuthorityScope {
 	readonly toSequenceExclusive: number;
 	readonly resultingStateHash: string;
 	readonly resultingLastEventHash: string;
+	readonly commandReceipt: JsonValue | null;
+	readonly decisionRecord: JsonValue | null;
 	readonly receiptHash: string;
 }
 

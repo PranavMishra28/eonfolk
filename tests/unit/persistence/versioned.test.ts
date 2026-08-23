@@ -156,7 +156,7 @@ describe("MemoryVersionedPersistence", () => {
 	it("publishes an exact-only version and migration contract", () => {
 		expect(PERSISTENCE_MIGRATION_POLICY).toMatchObject({
 			mode: "exact-only",
-			portVersion: "eonfolk-persistence-port-v1",
+			portVersion: "eonfolk-persistence-port-v2",
 		});
 		expect(
 			Object.keys(PERSISTENCE_MIGRATION_POLICY.supportedRecordVersions),

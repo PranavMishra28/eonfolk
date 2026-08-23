@@ -131,7 +131,7 @@ export async function buildDecisionContext(input: {
 	return context;
 }
 
-/** General counsel affordances; callers supply only canonically derived IDs. */
+/** Frozen Riverhold fixture catalog. Canonical civilization code must not call it. */
 export function civilizationCounselCatalog(input: {
 	readonly actorId: string;
 	readonly targetCitizenId: string;
@@ -187,6 +187,71 @@ export function civilizationCounselCatalog(input: {
 			publicStakes: [
 				"preserves current commitments",
 				"defers the counsel until another decision boundary",
+			],
+			tags: ["commitment", "relationship"],
+			evidenceRecordIds: [],
+			relationshipId: input.relationshipId,
+			risk: 100,
+			counselAffinity: "neutral",
+		},
+	];
+}
+
+/** Evidence-gated legal affordances for one typed civilization counsel. */
+export function civilizationCounselAffordances(input: {
+	readonly targetCitizenId: string;
+	readonly planId: string;
+	readonly relationshipId: string;
+	readonly evidenceRecordIds: readonly string[];
+	readonly counselIntent: "verify-reserve" | "accuse-publicly";
+}): readonly ActionCatalogEntry[] {
+	const evidenceAction: ActionCatalogEntry | null =
+		input.evidenceRecordIds.length === 0
+			? null
+			: input.counselIntent === "verify-reserve"
+				? {
+						actionId: "action-verify-reserve",
+						action: {
+							kind: "VerifyReserve",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["a readable typed source record exists"],
+						publicStakes: [
+							"delays a conclusion",
+							"may gather stronger evidence",
+						],
+						tags: ["caution", "evidence", "relationship", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 200,
+						counselAffinity: "verify-reserve",
+					}
+				: {
+						actionId: "action-accuse-publicly",
+						action: {
+							kind: "AccusePublicly",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["a readable typed source record exists"],
+						publicStakes: [
+							"records a statement as an allegation",
+							"risks relationship strain",
+						],
+						tags: ["candor", "evidence", "risk", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 500,
+						counselAffinity: "accuse-publicly",
+					};
+	return [
+		...(evidenceAction === null ? [] : [evidenceAction]),
+		{
+			actionId: "action-follow-plan",
+			action: { kind: "FollowStandingPlan", planId: input.planId },
+			publicPreconditions: ["standing plan remains possible"],
+			publicStakes: [
+				"preserves current commitments",
+				"defers counsel until another decision boundary",
 			],
 			tags: ["commitment", "relationship"],
 			evidenceRecordIds: [],

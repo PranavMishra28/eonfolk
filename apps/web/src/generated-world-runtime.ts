@@ -48,6 +48,8 @@ export interface GeneratedWorldExperience {
 	readonly previousHorizonDays: number;
 	readonly embodimentLimitations: readonly string[];
 	readonly persistence: GeneratedWorldPersistenceStatus;
+	readonly authorityRegionId: string;
+	readonly authorityDatabaseName: string;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -206,6 +208,8 @@ export async function buildGeneratedWorldExperience(
 		previousHorizonDays: previousRun.horizonDays,
 		embodimentLimitations: worldEmbodiment.limitations,
 		persistence,
+		authorityRegionId: run.world.identity.worldId,
+		authorityDatabaseName: databaseName,
 	});
 }
 

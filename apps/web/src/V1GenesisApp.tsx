@@ -414,6 +414,9 @@ function GeneratedContextPanel({
 	reducedMotion,
 	onTogglePresentation,
 	onStepPresentation,
+	authorityRegionId,
+	authorityDatabaseName,
+	persistenceAvailable,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -424,13 +427,22 @@ function GeneratedContextPanel({
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
+	readonly authorityRegionId: string;
+	readonly authorityDatabaseName: string;
+	readonly persistenceAvailable: boolean;
 }) {
+	const [sponsorStatus, setSponsorStatus] = useState("idle");
+	const [chronicleTrace, setChronicleTrace] = useState("");
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
 		selectedCitizenId === null
 			? undefined
 			: model.actors.find(({ citizenId }) => citizenId === selectedCitizenId);
+	useEffect(() => {
+		setSponsorStatus("idle");
+		setChronicleTrace("");
+	}, [selectedCitizenId]);
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
 		const activity = ACTIVITY_WORDS[actor.animationClass];
@@ -478,7 +490,57 @@ function GeneratedContextPanel({
 							>
 								Back to settlement
 							</button>
+							<button
+								type="button"
+								disabled={
+									!persistenceAvailable ||
+									sponsorStatus === "saving" ||
+									sponsorStatus === "counseling" ||
+									sponsorStatus === "complete"
+								}
+								onClick={() => {
+									const counsel = sponsorStatus === "sponsored";
+									setSponsorStatus(counsel ? "counseling" : "saving");
+									void import("./generated-sponsor-runtime")
+										.then(({ sponsorGeneratedCitizen }) =>
+											sponsorGeneratedCitizen({
+												citizenId: selectedActor.citizenId,
+												regionId: authorityRegionId,
+												databaseName: authorityDatabaseName,
+												includeCounsel: counsel,
+											}),
+										)
+										.then(
+											(result) => {
+												setChronicleTrace(result.chronicleTrace);
+												setSponsorStatus(counsel ? "complete" : "sponsored");
+											},
+											() => {
+												if (counsel)
+													setChronicleTrace(
+														"Counsel unavailable; sponsorship remains recorded.",
+													);
+												setSponsorStatus(counsel ? "sponsored" : "failed");
+											},
+										);
+								}}
+							>
+								{sponsorStatus === "saving"
+									? "Establishing…"
+									: sponsorStatus === "counseling"
+										? "Considering…"
+										: sponsorStatus === "sponsored"
+											? "Counsel: verify first"
+											: sponsorStatus === "complete"
+												? "Counsel delayed"
+												: "Sponsor this person"}
+							</button>
 						</div>
+						{sponsorStatus === "failed" ? (
+							<p role="alert">Sponsorship was not committed.</p>
+						) : chronicleTrace !== "" ? (
+							<p role="status">{chronicleTrace}</p>
+						) : null}
 					</>
 				)}
 			</section>
@@ -818,6 +880,9 @@ function GeneratedWorld({
 						reducedMotion={reduceMotion}
 						onTogglePresentation={togglePresentation}
 						onStepPresentation={stepPresentation}
+						authorityRegionId={experience.authorityRegionId}
+						authorityDatabaseName={experience.authorityDatabaseName}
+						persistenceAvailable={experience.persistence.kind === "indexeddb"}
 					/>
 				</section>
 			)}

@@ -1,19 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import {
-	createCivilizationSponsorSnapshotBoundary,
-	createCivilizationState,
-	runCivilizationExperiment,
-} from "../../../packages/civilization/src/index.js";
+import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
 import {
 	AUTHORITY_EVENT_SCHEMA_VERSION,
 	type AuthorityEventRecord,
-	bindCivilizationSponsorBoundary,
 	CIVILIZATION_PERSISTENCE_MIGRATION_POLICY,
 	type CivilizationExperimentCheckpoint,
 	createAuthorityEvent,
-	createAuthorityHead,
-	createAuthoritySnapshot,
 	createCivilizationPersistencePlan,
 	MemoryVersionedPersistence,
 	persistCivilizationHistory,
@@ -24,7 +17,6 @@ import {
 import {
 	createReleaseGenesis,
 	jcs,
-	stateHash,
 } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
@@ -69,100 +61,12 @@ async function fixture(
 }
 
 describe("Release Genesis civilization persistence", () => {
-	it("binds a sponsor cursor to exact V4 snapshot and head records", async () => {
-		const state = createCivilizationState({
-			citizenIds: [],
-			settlementIds: [],
-			territoryIds: [],
-			siteIds: [],
-			buildingKindsBySite: {},
-			capabilitiesByCitizen: {},
-		});
-		const common = {
-			runId: "sponsor-persistence",
-			regionId: "region-one",
-			engineVersion: "eonfolk-civilization-sponsor-v2",
-			stateSchemaVersion: "eonfolk-civilization-kernel-v4",
-		};
-		const snapshot = await createAuthoritySnapshot({
-			...common,
-			snapshotId: "sponsor-snapshot",
-			revision: 0,
-			baseSequence: 0,
-			simulationTime: 0,
-			lastEventHash: "0".repeat(64),
-			state: state as never,
-		});
-		const head = await createAuthorityHead({
-			...common,
-			revision: 0,
-			lastSequence: 0,
-			simulationTime: 0,
-			stateHash: snapshot.stateHash,
-			lastEventHash: snapshot.lastEventHash,
-			fencingToken: 1,
-		});
-		const boundary = await bindCivilizationSponsorBoundary({ snapshot, head });
-		expect(boundary).toEqual(
-			await createCivilizationSponsorSnapshotBoundary({
-				snapshotId: snapshot.snapshotId,
-				runId: snapshot.runId,
-				regionId: snapshot.regionId,
-				stateHash: await stateHash(state),
-				revision: snapshot.revision,
-				simulationTime: snapshot.simulationTime,
-				nextSequence: snapshot.baseSequence,
-				baseWorldHeadHash: snapshot.lastEventHash,
-			}),
-		);
-		expect(boundary).toMatchObject({
-			schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1",
-			nextSequence: 0,
-			baseWorldHeadHash: snapshot.lastEventHash,
-		});
-		await expect(
-			bindCivilizationSponsorBoundary({
-				snapshot,
-				head: { ...head, headHash: "f".repeat(64) },
-			}),
-		).rejects.toMatchObject({ code: "STALE_STATE" });
-		const legacyState = {
-			...state,
-			schemaVersion: "eonfolk-civilization-kernel-v3",
-		};
-		const legacySnapshot = await createAuthoritySnapshot({
-			...common,
-			stateSchemaVersion: "eonfolk-civilization-kernel-v3",
-			snapshotId: "legacy",
-			revision: 0,
-			baseSequence: 0,
-			simulationTime: 0,
-			lastEventHash: "0".repeat(64),
-			state: legacyState as never,
-		});
-		const legacyHead = await createAuthorityHead({
-			...common,
-			stateSchemaVersion: "eonfolk-civilization-kernel-v3",
-			revision: 0,
-			lastSequence: 0,
-			simulationTime: 0,
-			stateHash: legacySnapshot.stateHash,
-			lastEventHash: legacySnapshot.lastEventHash,
-			fencingToken: 1,
-		});
-		await expect(
-			bindCivilizationSponsorBoundary({
-				snapshot: legacySnapshot,
-				head: legacyHead,
-			}),
-		).rejects.toMatchObject({ code: "STALE_STATE" });
-	});
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v5",
-			stateVersion: "eonfolk-release-genesis-civilization-state-v4",
-			transitionVersion: "eonfolk-release-genesis-civilization-transition-v3",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v6",
+			stateVersion: "eonfolk-release-genesis-civilization-state-v5",
+			transitionVersion: "eonfolk-release-genesis-civilization-transition-v4",
 		});
 	});
 

@@ -3509,6 +3509,7 @@ em {
 	padding: 0.45rem 0.65rem;
 	font-size: 0.7rem;
 	font-weight: 800;
+	white-space: nowrap;
 }
 
 .v1-focus-actions button[aria-pressed="true"] {

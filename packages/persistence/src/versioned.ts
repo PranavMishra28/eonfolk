@@ -364,7 +364,7 @@ async function validateAppendReceipt(
 		);
 	}
 	const expected = await domainHash(
-		"eonfolk-authority-append-receipt-v1",
+		"eonfolk-authority-append-receipt-v2",
 		withoutKey(receipt as unknown as Record<string, unknown>, "receiptHash"),
 	);
 	if (expected !== receipt.receiptHash) {
@@ -570,7 +570,7 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 		);
 		const receiptKey = recordKey(request, request.appendId);
 		const requestFingerprint = await domainHash(
-			"eonfolk-authority-append-v1",
+			"eonfolk-authority-append-v2",
 			request,
 		);
 		const priorReceipt = this.#stores.receipts.get(receiptKey);
@@ -708,11 +708,13 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 			toSequenceExclusive: finalEvent.sequence + 1,
 			resultingStateHash: nextHead.stateHash,
 			resultingLastEventHash: nextHead.lastEventHash,
+			commandReceipt: cloneValue(request.commandReceipt ?? null),
+			decisionRecord: cloneValue(request.decisionRecord ?? null),
 		};
 		const receipt: AuthorityAppendReceipt = {
 			...unsignedReceipt,
 			receiptHash: await domainHash(
-				"eonfolk-authority-append-receipt-v1",
+				"eonfolk-authority-append-receipt-v2",
 				unsignedReceipt,
 			),
 		};

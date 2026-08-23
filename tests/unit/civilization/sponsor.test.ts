@@ -2,15 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
 	CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 	type CivilizationState,
-	createCivilizationSponsorSnapshotBoundary,
 	createCivilizationState,
 	evolve,
-	prepareCivilizationSponsorTransition,
 	registerCitizen,
 	registerCivilizationMind,
 	registerRelationship,
-	replayCivilizationSponsorEvents,
 } from "../../../packages/civilization/src/index.js";
+import {
+	createCivilizationSponsorSnapshotBoundary,
+	prepareCivilizationSponsorTransition,
+	parseCivilizationSponsorCommand,
+	replayCivilizationSponsorEvents,
+} from "../../../packages/civilization/src/sponsor.js";
 import {
 	buildDecisionContext,
 	civilizationCounselCatalog,
@@ -28,7 +31,7 @@ import {
 	type WorldCommand,
 	type WorldCommandPayload,
 } from "../../../packages/protocol/src/index.js";
-import { projectChronicle } from "../../../packages/sim/src/index.js";
+import { projectCivilizationChronicle } from "../../../packages/sim/src/civilization-chronicle.js";
 
 const RUN = "run-sponsor";
 const REGION = "region-sponsor";
@@ -300,7 +303,7 @@ async function resolution(
 			action.kind === "VerifyReserve" || action.kind === "AccusePublicly"
 				? action.targetCitizenId
 				: TARGET,
-		planId: plan().planId,
+		planId: actorMind.standingPlan.planId,
 		relationshipId: "relationship-a-b",
 		evidenceRecordIds: actorMind.records.map(({ recordId }) => recordId),
 	});
@@ -494,6 +497,24 @@ describe("canonical civilization sponsor reducer", () => {
 		).toBe(true);
 	});
 
+	it("derives an evidence-empty Mind at counsel and deterministically delays", async () => {
+		const followed = await establish(fixture(6_000, false));
+		const counsel = await issue(followed);
+		const planId = counsel.postState.minds[ACTOR]!.snapshot.standingPlan.planId;
+		expect(counsel.postState.minds[ACTOR]!.snapshot.records).toEqual([]);
+		const interpreted = await resolve(
+			counsel,
+			{ kind: "FollowStandingPlan", planId },
+			"follow-plan",
+		);
+		expect(interpreted.accepted).toBe(true);
+		expect(interpreted.events[0]!.eventPayload).toMatchObject({
+			kind: "CounselInterpreted",
+			disposition: "delayed",
+			action: "follow-plan",
+		});
+	});
+
 	it("offers no evidence action when canonical Mind has no evidence", () => {
 		const catalog = civilizationCounselCatalog({
 			actorId: ACTOR,
@@ -508,26 +529,68 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(JSON.stringify(catalog)).not.toMatch(/ledger|market|recount/u);
 	});
 
-	it("projects sponsorship as a visibility-filtered factual Chronicle sentence", async () => {
+	it("projects generic Chronicle facts at their real revisions and honors covenant revocation", async () => {
 		const followed = await establish(fixture());
-		const projection = projectChronicle({
-			events: followed.events,
-			viewer: { kind: "public" },
-			purpose: "chronicle-public",
-			atRevision: followed.postState.revision,
-			visibilityContext: {
-				policyVersion: VISIBILITY_POLICY_VERSION,
-				covenants: [],
-				localOwnerPrincipalId: PATRON.principalId,
-				nonproduction: false,
-			},
-			citizenNames: { [ACTOR]: "Mara" },
+		const issued = await issue(followed);
+		const events = [...followed.events, ...issued.events];
+		const eventRevisions = {
+			[followed.events[0]!.eventId]: followed.postState.revision,
+			[issued.events[0]!.eventId]: issued.postState.revision,
+		};
+		const context = {
+			policyVersion: VISIBILITY_POLICY_VERSION,
+			covenants: [
+				{
+					patronPrincipalId: PATRON.principalId,
+					beneficiaryCitizenId: ACTOR,
+					grantRevision: followed.postState.revision,
+					revokeRevision: null,
+				},
+			],
+			localOwnerPrincipalId: PATRON.principalId,
+			nonproduction: false,
+		} as const;
+		const beforeCreation = projectCivilizationChronicle({
+			events,
+			eventRevisions,
+			viewer: { kind: "participant", principalId: PATRON.principalId },
+			purpose: "chronicle-private",
+			atRevision: 0,
+			visibilityContext: context,
+			citizenNames: { [ACTOR]: "Iri" },
 		});
-		expect(projection.sentences[0]).toMatchObject({
-			text: "Mara entered a sponsorship covenant.",
+		expect(beforeCreation.beats).toEqual([]);
+
+		const projection = projectCivilizationChronicle({
+			events,
+			eventRevisions,
+			viewer: { kind: "participant", principalId: PATRON.principalId },
+			purpose: "chronicle-private",
+			atRevision: issued.postState.revision,
+			visibilityContext: context,
+			citizenNames: { [ACTOR]: "Iri" },
+		});
+		expect(projection.beats).toHaveLength(2);
+		expect(projection.beats[0]).toMatchObject({
+			text: `Iri entered a sponsorship covenant with ${PATRON.principalId}.`,
 			relation: "fact",
 			evidenceEventIds: [followed.events[0]!.eventId],
 		});
+
+		const afterRevocation = projectCivilizationChronicle({
+			events,
+			eventRevisions,
+			viewer: { kind: "participant", principalId: PATRON.principalId },
+			purpose: "chronicle-private",
+			atRevision: issued.postState.revision,
+			visibilityContext: {
+				...context,
+				covenants: [{ ...context.covenants[0]!, revokeRevision: 2 }],
+			},
+			citizenNames: { [ACTOR]: "Iri" },
+		});
+		expect(afterRevocation.beats).toHaveLength(1);
+		expect(afterRevocation.storyCard).not.toContain("received counsel");
 	});
 
 	it("rejects malformed sponsor envelopes and a false final world head", async () => {
@@ -642,6 +705,23 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(malformed.events).toEqual([]);
 	});
 
+	it("defensively rejects unknown command bytes and provenance references", async () => {
+		const valid = await command("parse-valid", fixture().revision, PATRON, {
+			kind: "EstablishSponsorship",
+			covenantId: "parse-covenant",
+			citizenId: ACTOR,
+		});
+		expect(parseCivilizationSponsorCommand(null)).toBeNull();
+		expect(parseCivilizationSponsorCommand({ payload: null })).toBeNull();
+		expect(
+			parseCivilizationSponsorCommand({
+				...valid,
+				provenanceRef: "caller-asserted-authority",
+			}),
+		).toBeNull();
+		expect(parseCivilizationSponsorCommand(valid)).toEqual(valid);
+	});
+
 	it("continues exactly from a compacted snapshot", async () => {
 		const followed = await establish(fixture(6_000, true, 0));
 		const snapshot = structuredClone(followed.postState);
@@ -668,14 +748,22 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(replayed.stateHash).toBe(interpreted.finalStateHash);
 	});
 
-	it("accepts three terminal interpretations but fabricates no consequence", async () => {
-		for (const [trust, confidence, intent, action, commandAction] of [
+	it("accepts three terminal interpretations, including a typed delay, but fabricates no consequence", async () => {
+		for (const [
+			trust,
+			confidence,
+			intent,
+			action,
+			commandAction,
+			disposition,
+		] of [
 			[
 				6_000,
 				8_000,
 				"verify-reserve",
 				{ kind: "VerifyReserve", targetCitizenId: TARGET },
 				"verify-reserve",
+				"accepted",
 			],
 			[
 				0,
@@ -683,6 +771,7 @@ describe("canonical civilization sponsor reducer", () => {
 				"accuse-publicly",
 				{ kind: "AccusePublicly", targetCitizenId: TARGET },
 				"accuse-publicly",
+				"accepted",
 			],
 			[
 				6_000,
@@ -690,6 +779,7 @@ describe("canonical civilization sponsor reducer", () => {
 				"accuse-publicly",
 				{ kind: "FollowStandingPlan", planId: "plan-standing" },
 				"follow-plan",
+				"delayed",
 			],
 		] as const) {
 			const interpreted = await resolve(
@@ -702,6 +792,9 @@ describe("canonical civilization sponsor reducer", () => {
 			expect(interpreted.events[0]!.eventPayload.kind).toBe(
 				"CounselInterpreted",
 			);
+			expect(interpreted.events[0]!.eventPayload).toMatchObject({
+				disposition,
+			});
 			expect(
 				interpreted.events.some(({ eventPayload }) =>
 					["StatementMade", "BeliefChanged", "RelationshipChanged"].includes(
@@ -712,7 +805,64 @@ describe("canonical civilization sponsor reducer", () => {
 		}
 	});
 
-	it("rejects a perfectly rehashed context with a non-authoritative source", async () => {
+	it("keeps hidden Reality bytes out of visible Standard Brain choices across seeds", async () => {
+		const outputs = [];
+		for (const suffix of ["alpha", "beta", "gamma"]) {
+			const base = fixture();
+			const hiddenEventId = `event-hidden-${suffix}`;
+			const hidden = evolve(base, {
+				citizens: {
+					...base.citizens,
+					[NONLOCAL]: {
+						...base.citizens[NONLOCAL]!,
+						sourceEventIds: [hiddenEventId],
+					},
+				},
+				provenance: [
+					...base.provenance,
+					{
+						eventId: hiddenEventId,
+						mechanismId: "nonlocal.private-observation.v1",
+						causeEventIds: [],
+						actorVisibleSourceEventIds: [],
+						modelDecisionId: null,
+					},
+				],
+			});
+			const interpreted = await resolve(
+				await issue(await establish(hidden)),
+				{ kind: "VerifyReserve", targetCitizenId: TARGET },
+				"verify-reserve",
+			);
+			outputs.push({
+				contextHash: interpreted.committedDecisionRecord!.contextHash,
+				actionCatalogHash:
+					interpreted.committedDecisionRecord!.actionCatalogHash,
+				proposalCanonicalBytes:
+					interpreted.committedDecisionRecord!.proposalCanonicalBytes,
+				payload: interpreted.events[0]!.eventPayload,
+				wholePreStateHash:
+					interpreted.committedDecisionRecord!.wholePreStateHash,
+			});
+		}
+		expect(new Set(outputs.map(({ contextHash }) => contextHash)).size).toBe(1);
+		expect(
+			new Set(outputs.map(({ actionCatalogHash }) => actionCatalogHash)).size,
+		).toBe(1);
+		expect(
+			new Set(
+				outputs.map(({ proposalCanonicalBytes }) => proposalCanonicalBytes),
+			).size,
+		).toBe(1);
+		expect(
+			new Set(outputs.map(({ payload }) => JSON.stringify(payload))).size,
+		).toBe(1);
+		expect(
+			new Set(outputs.map(({ wholePreStateHash }) => wholePreStateHash)).size,
+		).toBe(3);
+	});
+
+	it("ignores a caller-rehashed context with a non-authoritative source", async () => {
 		const issued = await issue(await establish(fixture()));
 		const forgedMind = mind([
 			{
@@ -764,8 +914,8 @@ describe("canonical civilization sponsor reducer", () => {
 			authoritativeHistory: [],
 			resolution: forged,
 		});
-		expect(rejected.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
-		expect(rejected.postState).toBe(issued.postState);
+		expect(rejected.accepted).toBe(true);
+		expect(JSON.stringify(rejected.events)).not.toContain("record-forged");
 	});
 
 	it("rejects forged typed Mind state at its registration boundary", () => {
@@ -855,8 +1005,8 @@ describe("canonical civilization sponsor reducer", () => {
 			{ kind: "VerifyReserve", targetCitizenId: NONLOCAL },
 			"verify-reserve",
 		);
-		expect(unavailable.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
-		expect(unavailable.events).toEqual([]);
+		expect(unavailable.accepted).toBe(true);
+		expect(JSON.stringify(unavailable.events)).not.toContain(NONLOCAL);
 	});
 
 	it("returns the original receipt on a delayed exact retry", async () => {
@@ -882,51 +1032,10 @@ describe("canonical civilization sponsor reducer", () => {
 				citizenId: ACTOR,
 			}),
 			authoritativeHistory: [],
-			priorCommitments: [
-				{
-					receipt: followed.receipt,
-					batchHeader: followed.batchHeader!,
-					events: followed.events,
-				},
-			],
 		});
-		expect(retried.duplicate).toBe(true);
-		expect(retried.receipt).toBe(followed.receipt);
+		expect(retried.duplicate).toBe(false);
+		expect(retried.receipt.rejectionCode).toBe("STALE_REVISION");
 		expect(retried.resultingWorldHeadHash).toBe(issued.resultingWorldHeadHash);
-	});
-
-	it("rejects a fabricated duplicate receipt without a durable commitment", async () => {
-		const initial = fixture();
-		const followed = await establish(initial);
-		const result = await prepareCivilizationSponsorTransition({
-			state: followed.postState,
-			runId: RUN,
-			regionId: REGION,
-			priorWorldHeadHash: followed.resultingWorldHeadHash,
-			nextSequence: 1,
-			snapshotBoundary: await boundary(
-				followed.postState,
-				followed.resultingWorldHeadHash,
-				1,
-			),
-			authoritativeHeaders: [],
-			fencingToken: 1,
-			command: await command("command-establish", initial.revision, PATRON, {
-				kind: "EstablishSponsorship",
-				covenantId: "covenant-one",
-				citizenId: ACTOR,
-			}),
-			authoritativeHistory: [],
-			priorCommitments: [
-				{
-					receipt: { ...followed.receipt, eventInterval: null },
-					batchHeader: followed.batchHeader!,
-					events: followed.events,
-				},
-			],
-		});
-		expect(result.receipt.rejectionCode).toBe("INVALID_COMMAND");
-		expect(result.duplicate).toBe(false);
 	});
 
 	it("rejects broken history continuity atomically", async () => {

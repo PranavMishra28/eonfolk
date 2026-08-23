@@ -404,6 +404,96 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 		.toBe(true);
 });
 
+test("normal generated world commits sponsorship, counsel, and a factual Chronicle trace @generated-world @generated-target", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	const externalRequests = await isolateLocalWorld(page);
+	const browserErrors: string[] = [];
+	page.on("pageerror", (error) => browserErrors.push(error.message));
+	page.on("console", (message) => {
+		if (message.type() === "error") browserErrors.push(message.text());
+	});
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const citizenId = await selectCanonicalResidentFromCanvas(page, canvas);
+	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
+	await expect(sponsor).toBeVisible();
+	await sponsor.click();
+	await expect(
+		page.getByRole("button", { name: "Counsel: verify first" }),
+	).toBeVisible();
+	await expect(page.getByRole("status")).toContainText(
+		"entered a sponsorship covenant with patron:local",
+	);
+	await page.getByRole("button", { name: "Counsel: verify first" }).click();
+	await expect(
+		page.getByRole("button", { name: "Counsel delayed" }),
+	).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByRole("status")).toContainText(
+		"received counsel to verify reserve",
+	);
+	await expect(page.getByRole("status")).toContainText(
+		"deferred the counsel and chose to follow plan",
+	);
+	const committed = await inspectGeneratedCheckpoint(page);
+	expect(committed).toMatchObject({ eventCount: 8, receiptCount: 8 });
+	await page.screenshot({
+		path: test.info().outputPath("normal-route-sponsor-chronicle.png"),
+		fullPage: true,
+	});
+
+	await page.reload();
+	const reloadedCanvas = page.getByTestId("generated-world-canvas");
+	await Promise.race([
+		reloadedCanvas.waitFor({ state: "attached", timeout: 20_000 }),
+		page
+			.getByRole("heading", {
+				name: "No incomplete world is being shown as fact.",
+			})
+			.waitFor({ state: "visible", timeout: 20_000 }),
+	]);
+	const failure = page.getByRole("heading", {
+		name: "No incomplete world is being shown as fact.",
+	});
+	if (await failure.isVisible()) {
+		await page.getByText("Technical detail").click();
+		throw new Error(
+			(await page.locator("main.v1-genesis-shell code").textContent()) ??
+				"generated world failed closed",
+		);
+	}
+	await expect(reloadedCanvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const reloadedCitizenId = await selectCanonicalResidentFromCanvas(
+		page,
+		reloadedCanvas,
+	);
+	expect(reloadedCitizenId).toBe(citizenId);
+	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await expect(page.getByRole("status")).toHaveText(
+		"The sponsorship was already recorded.",
+	);
+	await page.getByRole("button", { name: "Counsel: verify first" }).click();
+	await expect(
+		page.getByRole("button", { name: "Counsel delayed" }),
+	).toBeVisible({ timeout: 20_000 });
+	await expect(page.getByRole("status")).toHaveText(
+		"The counsel and interpretation were already recorded.",
+	);
+	expect((await inspectGeneratedCheckpoint(page)).headHash).toBe(
+		committed.headHash,
+	);
+	expect(browserErrors).toEqual([]);
+	expect(externalRequests).toEqual([]);
+});
+
 for (const viewport of [
 	{ width: 1728, height: 1117 },
 	{ width: 1366, height: 768 },

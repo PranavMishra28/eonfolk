@@ -270,6 +270,7 @@ export type WorldEventPayload =
 			readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
 			readonly disposition:
 				| "accepted"
+				| "delayed"
 				| "rejected"
 				| "reinterpreted"
 				| "not-applicable";

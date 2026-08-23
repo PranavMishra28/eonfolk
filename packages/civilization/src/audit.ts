@@ -267,6 +267,7 @@ export function auditCivilizationState(
 					counsel.resolution.action !== "accuse-publicly" &&
 					counsel.resolution.action !== "follow-plan") ||
 				(counsel.resolution.disposition !== "accepted" &&
+					counsel.resolution.disposition !== "delayed" &&
 					counsel.resolution.disposition !== "rejected" &&
 					counsel.resolution.disposition !== "reinterpreted") ||
 				!counseledCitizen?.sourceEventIds.includes(

@@ -4,6 +4,5 @@ export * from "./kernel.js";
 export * from "./population.js";
 export * from "./pressures.js";
 export * from "./scheduler.js";
-export * from "./sponsor.js";
 export * from "./state.js";
 export * from "./types.js";

@@ -23,11 +23,11 @@ import {
 } from "./versioned-types.js";
 
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
-	"eonfolk-release-genesis-civilization-state-v4" as const;
+	"eonfolk-release-genesis-civilization-state-v5" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v3" as const;
+	"eonfolk-release-genesis-civilization-transition-v4" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v5" as const;
+	"eonfolk-release-genesis-civilization-engine-v6" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -72,7 +72,7 @@ export interface CivilizationExperimentCheckpoint {
 export interface ReleaseGenesisCivilizationState {
 	readonly [key: string]: JsonValue;
 	readonly schemaVersion: typeof RELEASE_GENESIS_CIVILIZATION_STATE_VERSION;
-	readonly phase: "initialized" | "checkpoint";
+	readonly phase: "initialized" | "checkpoint" | "active";
 	readonly worldIdentityHash: string;
 	readonly sourceInitialStateHash: string;
 	readonly finalExperimentStateHash: string;
@@ -93,6 +93,7 @@ export interface ReleaseGenesisCivilizationState {
 export interface ReleaseGenesisCivilizationTransition {
 	readonly [key: string]: JsonValue;
 	readonly schemaVersion: typeof RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION;
+	readonly transitionKind: "checkpoint";
 	readonly previousCompletedDay: number;
 	readonly resultingCompletedDay: number;
 	readonly resultingSimulationTime: number;
@@ -136,88 +137,6 @@ export interface PersistCivilizationHistoryResult {
 	readonly head: AuthorityHead;
 	readonly snapshot: AuthoritySnapshotRecord;
 	readonly receipts: readonly AuthorityAppendReceipt[];
-}
-
-export interface PersistedCivilizationSponsorBoundary {
-	readonly schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1";
-	readonly snapshotId: string;
-	readonly runId: string;
-	readonly regionId: string;
-	readonly stateHash: string;
-	readonly revision: number;
-	readonly simulationTime: number;
-	readonly nextSequence: number;
-	readonly baseWorldHeadHash: string;
-	readonly boundaryHash: string;
-}
-
-/** Binds the sponsor cursor to integrity-checked durable authority records. */
-export async function bindCivilizationSponsorBoundary(input: {
-	readonly snapshot: AuthoritySnapshotRecord;
-	readonly head: AuthorityHead;
-}): Promise<PersistedCivilizationSponsorBoundary> {
-	const rebuiltSnapshot = await createAuthoritySnapshot({
-		runId: input.snapshot.runId,
-		regionId: input.snapshot.regionId,
-		engineVersion: input.snapshot.engineVersion,
-		stateSchemaVersion: input.snapshot.stateSchemaVersion,
-		snapshotId: input.snapshot.snapshotId,
-		revision: input.snapshot.revision,
-		baseSequence: input.snapshot.baseSequence,
-		simulationTime: input.snapshot.simulationTime,
-		lastEventHash: input.snapshot.lastEventHash,
-		state: input.snapshot.state,
-	});
-	const rebuiltHead = await createAuthorityHead({
-		runId: input.head.runId,
-		regionId: input.head.regionId,
-		engineVersion: input.head.engineVersion,
-		stateSchemaVersion: input.head.stateSchemaVersion,
-		revision: input.head.revision,
-		lastSequence: input.head.lastSequence,
-		simulationTime: input.head.simulationTime,
-		stateHash: input.head.stateHash,
-		lastEventHash: input.head.lastEventHash,
-		fencingToken: input.head.fencingToken,
-	});
-	const snapshotState = record(input.snapshot.state, "sponsor snapshot state");
-	if (
-		rebuiltSnapshot.snapshotHash !== input.snapshot.snapshotHash ||
-		rebuiltHead.headHash !== input.head.headHash ||
-		input.snapshot.runId !== input.head.runId ||
-		input.snapshot.regionId !== input.head.regionId ||
-		input.snapshot.revision !== input.head.revision ||
-		input.snapshot.baseSequence !== input.head.lastSequence ||
-		input.snapshot.simulationTime !== input.head.simulationTime ||
-		input.snapshot.stateHash !== input.head.stateHash ||
-		input.snapshot.lastEventHash !== input.head.lastEventHash ||
-		input.snapshot.engineVersion !== "eonfolk-civilization-sponsor-v2" ||
-		input.head.engineVersion !== "eonfolk-civilization-sponsor-v2" ||
-		input.snapshot.stateSchemaVersion !== "eonfolk-civilization-kernel-v4" ||
-		input.head.stateSchemaVersion !== "eonfolk-civilization-kernel-v4" ||
-		snapshotState.schemaVersion !== "eonfolk-civilization-kernel-v4" ||
-		snapshotState.revision !== input.snapshot.revision ||
-		snapshotState.simulationTime !== input.snapshot.simulationTime
-	)
-		fail(
-			"STALE_STATE",
-			"sponsor snapshot and authority head are not the same durable boundary",
-		);
-	const withoutHash = {
-		schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1" as const,
-		snapshotId: input.snapshot.snapshotId,
-		runId: input.snapshot.runId,
-		regionId: input.snapshot.regionId,
-		stateHash: await sourceDomainHash("EONFOLK:STATE:v2", input.snapshot.state),
-		revision: input.snapshot.revision,
-		simulationTime: input.snapshot.simulationTime,
-		nextSequence: input.snapshot.baseSequence,
-		baseWorldHeadHash: input.snapshot.lastEventHash,
-	};
-	return {
-		...withoutHash,
-		boundaryHash: await sourceDomainHash("EONFOLK:STATE:v2", withoutHash),
-	};
 }
 
 function fail(
@@ -625,7 +544,11 @@ function validatePersistedState(
 			"UNSUPPORTED_VERSION",
 			"persisted civilization state version is unsupported",
 		);
-	if (state.phase !== "initialized" && state.phase !== "checkpoint")
+	if (
+		state.phase !== "initialized" &&
+		state.phase !== "checkpoint" &&
+		state.phase !== "active"
+	)
 		fail("INVALID_INPUT", "persisted civilization phase is invalid");
 	const scheduler = record(state.scheduler, "persisted scheduler");
 	const sourceHistory = record(state.sourceHistory, "persisted source history");
@@ -648,7 +571,10 @@ function validatePersistedState(
 			"INVALID_INPUT",
 			"initialized state must not invent civilization bytes",
 		);
-	if (state.phase === "checkpoint" && state.civilization === null)
+	if (
+		(state.phase === "checkpoint" || state.phase === "active") &&
+		state.civilization === null
+	)
 		fail("INVALID_INPUT", "checkpoint state requires civilization bytes");
 	for (const [index, item] of array(
 		sourceHistory.stepHashes,
@@ -671,7 +597,7 @@ function validatePersistedState(
 				(sourceHistory.stepHashes as readonly unknown[]).length !== 0 ||
 				(sourceHistory.eventHashes as readonly unknown[]).length !== 0 ||
 				state.finalExperimentStateHash !== state.sourceInitialStateHash)) ||
-		(state.phase === "checkpoint" &&
+		((state.phase === "checkpoint" || state.phase === "active") &&
 			((sourceHistory.stepHashes as readonly unknown[]).length !==
 				completedDay ||
 				scheduler.simulationTime !== completedDay * SECONDS_PER_DAY))
@@ -863,6 +789,7 @@ export async function createCivilizationPersistencePlan(
 		states.push(state);
 		transitions.push({
 			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
+			transitionKind: "checkpoint",
 			previousCompletedDay: priorDay,
 			resultingCompletedDay: state.scheduler.completedDay,
 			resultingSimulationTime: state.scheduler.simulationTime,
@@ -960,17 +887,52 @@ export function reduceCivilizationAuthorityEvent(
 	event: AuthorityEventRecord,
 ): ReleaseGenesisCivilizationState {
 	const current = validatePersistedState(currentValue);
+	const payload = record(event.payload, "civilization transition");
+	if (event.eventType === "CivilizationSponsorCommandRejected") {
+		if (
+			payload.schemaVersion !==
+				RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION ||
+			payload.transitionKind !== "sponsor-rejected" ||
+			array(payload.patch, "rejected sponsor patch").length !== 0
+		)
+			fail("UNSUPPORTED_VERSION", "rejected sponsor transition is invalid");
+		return current;
+	}
+	if (event.eventType === "CivilizationSponsorCommandCommitted") {
+		if (
+			payload.schemaVersion !==
+				RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION ||
+			payload.transitionKind !== "sponsor"
+		)
+			fail("UNSUPPORTED_VERSION", "sponsor transition version is unsupported");
+		const next = applyJsonPatch(current, payload.patch);
+		if (
+			next.phase !== "active" ||
+			next.worldIdentityHash !== current.worldIdentityHash ||
+			next.sourceInitialStateHash !== current.sourceInitialStateHash ||
+			next.finalExperimentStateHash !== current.finalExperimentStateHash ||
+			canonicalJson(next.world) !== canonicalJson(current.world) ||
+			canonicalJson(next.scheduler) !== canonicalJson(current.scheduler) ||
+			canonicalJson(next.sourceHistory) !==
+				canonicalJson(current.sourceHistory) ||
+			event.simulationTime !== current.scheduler.simulationTime ||
+			next.civilization === null
+		)
+			fail("RANGE_GAP", "sponsor transition changed non-sponsor authority");
+		return next;
+	}
 	if (event.eventType !== "CivilizationCheckpointCommitted")
 		fail(
 			"UNSUPPORTED_VERSION",
 			`unsupported civilization event ${event.eventType}`,
 		);
-	const payload = record(event.payload, "civilization transition");
 	if (payload.schemaVersion !== RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION)
 		fail(
 			"UNSUPPORTED_VERSION",
 			"civilization transition version is unsupported",
 		);
+	if (payload.transitionKind !== "checkpoint")
+		fail("UNSUPPORTED_VERSION", "checkpoint transition kind is unsupported");
 	if (payload.previousCompletedDay !== current.scheduler.completedDay)
 		fail("RANGE_GAP", "civilization transition starts from another checkpoint");
 	const next = applyJsonPatch(current, payload.patch);
@@ -1103,7 +1065,8 @@ export async function replayCivilizationHistory(
 					"RANGE_GAP",
 					"replay event does not continue from prior authority",
 				);
-			await validateTransitionSourceRecords(state, event);
+			if (event.eventType === "CivilizationCheckpointCommitted")
+				await validateTransitionSourceRecords(state, event);
 			state = reduceCivilizationAuthorityEvent(state, event);
 			await validateCheckpointSourceState(state);
 			stateHash = await hashAuthoritativeState(state);

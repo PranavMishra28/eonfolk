@@ -92,7 +92,7 @@ export interface CivilizationCounselState {
 		readonly decisionId: string;
 		readonly proposalId: string;
 		readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
-		readonly disposition: "accepted" | "rejected" | "reinterpreted";
+		readonly disposition: "accepted" | "delayed" | "rejected" | "reinterpreted";
 	} | null;
 }
 

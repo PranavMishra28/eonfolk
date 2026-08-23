@@ -175,7 +175,11 @@ importers:
         specifier: workspace:*
         version: link:../sim
 
-  packages/persistence: {}
+  packages/persistence:
+    dependencies:
+      '@eonfolk/civilization':
+        specifier: workspace:*
+        version: link:../civilization
 
   packages/protocol: {}
 

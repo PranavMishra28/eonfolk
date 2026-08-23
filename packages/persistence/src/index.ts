@@ -1,13 +1,11 @@
 export { DEFAULT_PERSISTENCE_BOUNDS } from "./bounds.js";
 export {
-	bindCivilizationSponsorBoundary,
 	CIVILIZATION_PERSISTENCE_MIGRATION_POLICY,
 	type CivilizationExperimentCheckpoint,
 	type CivilizationPersistencePlan,
 	type CreateCivilizationPersistencePlanInput,
 	createCivilizationPersistencePlan,
 	type PersistCivilizationHistoryResult,
-	type PersistedCivilizationSponsorBoundary,
 	persistCivilizationHistory,
 	RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
 	RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,

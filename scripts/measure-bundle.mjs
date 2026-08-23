@@ -77,6 +77,9 @@ function collectRoute(key, output) {
 	collectStatic(key, output);
 	const record = manifest[key];
 	for (const imported of record.dynamicImports ?? []) {
+		// Player-triggered authority tools are not fetched for initial world display.
+		// Keep them lazy without excluding the world renderer or route-owned panels.
+		if (imported === "src/generated-sponsor-runtime.ts") continue;
 		collectRoute(imported, output);
 	}
 }
