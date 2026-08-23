@@ -34,6 +34,12 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 		);
 		assert.equal(envelope?.error, undefined, envelope?.error);
 		assert.deepEqual(envelope?.result, {
+			boundaryFailures: {
+				open: true,
+				read: true,
+				upgrade: true,
+				write: true,
+			},
 			civilizationDay: 365,
 			civilizationEvents: 5,
 			civilizationReplayHashMatches: true,
@@ -45,6 +51,7 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 			retryIdempotent: true,
 			revisionAfterAbort: 2,
 			staleFenceCode: "STALE_FENCE",
+			writeBoundaryRevisionUnchanged: true,
 			stores: [
 				"authorityEvents",
 				"authorityOperations",

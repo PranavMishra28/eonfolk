@@ -15,6 +15,7 @@ import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 import {
 	BrowserVersionedPersistence,
+	type BrowserPersistenceBoundaryPoint,
 	GENERATED_AUTHORITY_STORES,
 } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
@@ -44,6 +45,17 @@ class OneShotCrash {
 		if (point === this.point) {
 			this.point = null;
 			throw new Error(`injected ${point}`);
+		}
+	}
+}
+
+class OneShotBoundary {
+	point: BrowserPersistenceBoundaryPoint | null = null;
+
+	hit(point: BrowserPersistenceBoundaryPoint): void {
+		if (point === this.point) {
+			this.point = null;
+			throw new Error(`injected IndexedDB ${point} boundary`);
 		}
 	}
 }
@@ -205,13 +217,51 @@ async function inspectStores(): Promise<readonly string[]> {
 async function run(): Promise<void> {
 	await deleteDatabase();
 	const crash = new OneShotCrash();
+	const boundary = new OneShotBoundary();
+	boundary.point = "open";
+	let openBoundaryFailed = false;
+	try {
+		await BrowserVersionedPersistence.open({
+			databaseName: DATABASE,
+			boundaryInjector: boundary,
+		});
+	} catch {
+		openBoundaryFailed = true;
+	}
+	boundary.point = "upgrade";
+	let upgradeBoundaryFailed = false;
+	try {
+		await BrowserVersionedPersistence.open({
+			databaseName: DATABASE,
+			boundaryInjector: boundary,
+		});
+	} catch {
+		upgradeBoundaryFailed = true;
+	}
+	await deleteDatabase();
 	const port = await BrowserVersionedPersistence.open({
 		databaseName: DATABASE,
 		crashInjector: crash,
+		boundaryInjector: boundary,
 	});
 	const created = await genesis();
+	boundary.point = "read";
+	let readBoundaryFailed = false;
+	try {
+		await port.initialize(created);
+	} catch {
+		readBoundaryFailed = true;
+	}
 	await port.initialize(created);
 	const firstRequest = await append(created.head, 1);
+	boundary.point = "write";
+	let writeBoundaryFailed = false;
+	try {
+		await port.appendEventBatch(firstRequest);
+	} catch {
+		writeBoundaryFailed = true;
+	}
+	const headAfterWriteBoundary = await port.loadHead(SCOPE);
 	await port.appendEventBatch(firstRequest);
 	const retry = await port.appendEventBatch(firstRequest);
 	const preFence = await port.loadHead(SCOPE);
@@ -314,6 +364,13 @@ async function run(): Promise<void> {
 	await deleteDatabase(CIVILIZATION_DATABASE);
 	window.__generatedPersistenceResult = {
 		result: {
+			boundaryFailures: {
+				open: openBoundaryFailed,
+				read: readBoundaryFailed,
+				upgrade: upgradeBoundaryFailed,
+				write: writeBoundaryFailed,
+			},
+			writeBoundaryRevisionUnchanged: headAfterWriteBoundary.revision === 0,
 			civilizationDay: civilizationReplay.state.scheduler.completedDay,
 			civilizationEvents: civilization.head.lastSequence,
 			civilizationReplayHashMatches:

@@ -68,6 +68,17 @@ export interface BrowserVersionedPersistenceOptions {
 	readonly databaseName?: string;
 	readonly factory?: IDBFactory;
 	readonly crashInjector?: VersionedCrashInjector;
+	readonly boundaryInjector?: BrowserPersistenceBoundaryInjector;
+}
+
+export type BrowserPersistenceBoundaryPoint =
+	| "open"
+	| "upgrade"
+	| "read"
+	| "write";
+
+export interface BrowserPersistenceBoundaryInjector {
+	hit(point: BrowserPersistenceBoundaryPoint): void;
 }
 
 function fail(
@@ -131,15 +142,38 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
 async function openDatabase(
 	factory: IDBFactory,
 	name: string,
+	injector?: BrowserPersistenceBoundaryInjector,
 ): Promise<IDBDatabase> {
+	injector?.hit("open");
 	const request = factory.open(name, GENERATED_AUTHORITY_DATABASE_VERSION);
+	let upgradeFailure: unknown;
 	request.addEventListener("upgradeneeded", () => {
+		try {
+			injector?.hit("upgrade");
+		} catch (error) {
+			upgradeFailure = error;
+			request.transaction?.abort();
+			return;
+		}
 		for (const store of STORE_NAMES) {
 			if (!request.result.objectStoreNames.contains(store))
 				request.result.createObjectStore(store, { keyPath: "key" });
 		}
 	});
-	return await requestValue(request);
+	let database: IDBDatabase;
+	try {
+		database = await requestValue(request);
+	} catch (error) {
+		throw upgradeFailure ?? error;
+	}
+	const missing = STORE_NAMES.filter(
+		(store) => !database.objectStoreNames.contains(store),
+	);
+	if (missing.length > 0) {
+		database.close();
+		fail("STALE_STATE", "missing");
+	}
+	return database;
 }
 
 function rowsForStream<T>(
@@ -153,6 +187,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	readonly portVersion = VERSIONED_PERSISTENCE_PORT_VERSION;
 	readonly #database: IDBDatabase;
 	readonly #crashInjector: VersionedCrashInjector | undefined;
+	readonly #boundaryInjector: BrowserPersistenceBoundaryInjector | undefined;
 
 	private constructor(
 		database: IDBDatabase,
@@ -160,6 +195,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	) {
 		this.#database = database;
 		this.#crashInjector = options.crashInjector;
+		this.#boundaryInjector = options.boundaryInjector;
 	}
 
 	static async open(
@@ -172,6 +208,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			await openDatabase(
 				factory,
 				options.databaseName ?? "eonfolk-generated-authority",
+				options.boundaryInjector,
 			),
 			options,
 		);
@@ -186,6 +223,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	}
 
 	async #readBundle(scope: AuthorityScope): Promise<StreamBundle> {
+		this.#boundaryInjector?.hit("read");
 		const key = streamKey(scope);
 		const transaction = this.#database.transaction(
 			[
@@ -332,6 +370,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		readonly before: Parameters<VersionedCrashInjector["hit"]>[0];
 		readonly after: Parameters<VersionedCrashInjector["hit"]>[0];
 	}): Promise<void> {
+		this.#boundaryInjector?.hit("write");
 		const key = streamKey(input.bundle.stream.genesis);
 		const transaction = this.#database.transaction(
 			[
@@ -397,6 +436,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				throw error;
 		}
 		const key = streamKey(request);
+		this.#boundaryInjector?.hit("write");
 		const transaction = this.#database.transaction(
 			[
 				GENERATED_AUTHORITY_STORES.streams,

@@ -60,6 +60,47 @@ async function expectRecoverableWorld(
 	return (await world.getAttribute("data-state-hash")) ?? "";
 }
 
+async function authorityFingerprint(page: Page): Promise<unknown> {
+	return page.evaluate(async () => {
+		const databases = await indexedDB.databases();
+		if (!databases.some(({ name }) => name === "eonfolk-generated-authority"))
+			return null;
+		return await new Promise((resolve, reject) => {
+			const request = indexedDB.open("eonfolk-generated-authority");
+			request.onerror = () => reject(request.error);
+			request.onsuccess = async () => {
+				const database = request.result;
+				try {
+					const stores = [...database.objectStoreNames].sort();
+					const counts: Record<string, number> = {};
+					for (const store of stores)
+						counts[store] = await new Promise<number>((done, failed) => {
+							const count = database
+								.transaction(store, "readonly")
+								.objectStore(store)
+								.count();
+							count.onsuccess = () => done(count.result);
+							count.onerror = () => failed(count.error);
+						});
+					const streams = stores.includes("authorityStreams")
+						? await new Promise<unknown[]>((done, failed) => {
+								const rows = database
+									.transaction("authorityStreams", "readonly")
+									.objectStore("authorityStreams")
+									.getAll();
+								rows.onsuccess = () => done(rows.result);
+								rows.onerror = () => failed(rows.error);
+							})
+						: [];
+					resolve({ counts, stores, streams });
+				} finally {
+					database.close();
+				}
+			};
+		});
+	});
+}
+
 test.describe
 	.serial("generated Release Genesis fault matrix @fault", () => {
 		test.setTimeout(90_000);
@@ -68,10 +109,37 @@ test.describe
 			page,
 		}) => {
 			const externalRequests = await openFaultedWorld(page, "model-provider");
-			await expectRecoverableWorld(page, "model-provider");
+			const hash = await expectRecoverableWorld(page, "model-provider");
+			const world = page.locator("main.v1-world");
+			const diagnostics = page.locator("html");
+			await expect(diagnostics).toHaveAttribute(
+				"data-fault-cognition-provider-attempts",
+				/^[1-9][0-9]*$/u,
+			);
+			const attempts = await diagnostics.getAttribute(
+				"data-fault-cognition-provider-attempts",
+			);
+			await expect(diagnostics).toHaveAttribute(
+				"data-fault-cognition-fallbacks",
+				attempts ?? "",
+			);
+			await expect(diagnostics).toHaveAttribute(
+				"data-fault-cognition-actor-visible-contexts",
+				attempts ?? "",
+			);
+			await expect(diagnostics).toHaveAttribute(
+				"data-fault-cognition-kinds",
+				/^(standard-brain,)*standard-brain$/u,
+			);
+			await expect(diagnostics).toHaveAttribute(
+				"data-fault-cognition-hidden-field-leaks",
+				"0",
+			);
 			await expect(
 				page.getByTestId("generated-world-fault-status"),
 			).toContainText("deterministic Standard Brain remains authoritative");
+			await page.waitForTimeout(250);
+			await expect(world).toHaveAttribute("data-state-hash", hash);
 			expect(externalRequests).toEqual([]);
 		});
 
@@ -98,7 +166,21 @@ test.describe
 			test(`${kind} failure hides all world facts and recovers only after retry`, async ({
 				page,
 			}) => {
-				const externalRequests = await openFaultedWorld(page, kind);
+				const externalRequests = await isolateGeneratedWorld(page);
+				await page.goto("/world", { waitUntil: "domcontentloaded" });
+				const canonical = page.locator("main.v1-world");
+				await expect(canonical).toHaveAttribute(
+					"data-state-hash",
+					/^[0-9a-f]{64}$/u,
+					{ timeout: 30_000 },
+				);
+				const canonicalHash = await canonical.getAttribute("data-state-hash");
+				const before = await authorityFingerprint(page);
+				await page.evaluate(
+					({ key, value }) => sessionStorage.setItem(key, value),
+					{ key: FAULT_KEY, value: kind },
+				);
+				await page.reload({ waitUntil: "domcontentloaded" });
 				const error = page.locator("main.v1-genesis-shell");
 				await expect(error).toHaveAttribute("data-fault-kind", kind, {
 					timeout: 30_000,
@@ -108,6 +190,7 @@ test.describe
 					"fail-closed",
 				);
 				await expect(page.locator("main.v1-world")).toHaveCount(0);
+				expect(await authorityFingerprint(page)).toEqual(before);
 				await expect(
 					page.getByRole("heading", {
 						name: "No incomplete world is being shown as fact.",
@@ -118,7 +201,7 @@ test.describe
 					.click();
 				await expect(page.locator("main.v1-world")).toHaveAttribute(
 					"data-state-hash",
-					/^[0-9a-f]{64}$/u,
+					canonicalHash ?? "",
 					{ timeout: 30_000 },
 				);
 				expect(externalRequests).toEqual([]);
@@ -132,6 +215,23 @@ test.describe
 			const hash = await expectRecoverableWorld(page, "renderer-webgl");
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
+			await page
+				.locator(".generated-settlement-switcher button")
+				.first()
+				.click();
+			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
+			await expect(page.locator("main.v1-world")).toHaveAttribute(
+				"data-state-hash",
+				hash,
+			);
+			await page
+				.getByRole("button", { name: "Retry embodied renderer" })
+				.click();
+			await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+				"data-ready",
+				"true",
+				{ timeout: 30_000 },
+			);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
 				hash,
@@ -157,6 +257,31 @@ test.describe
 			expect(externalRequests).toEqual([]);
 		});
 
+		test("malformed asset manifest crosses the browser verifier and degrades semantically @fault", async ({
+			page,
+		}) => {
+			const externalRequests = await isolateGeneratedWorld(page);
+			await page.route(
+				"**/assets/generated/ASSET_MANIFEST.json",
+				async (route) => {
+					const response = await route.fetch();
+					const manifest = (await response.json()) as Record<string, unknown>;
+					await route.fulfill({
+						response,
+						json: { ...manifest, schemaVersion: "untrusted-manifest-v0" },
+					});
+				},
+			);
+			await page.goto("/world", { waitUntil: "domcontentloaded" });
+			await expect(page.locator("main.v1-world")).toHaveAttribute(
+				"data-asset-integrity",
+				"failed",
+				{ timeout: 30_000 },
+			);
+			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
+			expect(externalRequests).toEqual([]);
+		});
+
 		test("malformed navigation is rejected without authority or view mutation", async ({
 			page,
 		}) => {
@@ -171,6 +296,16 @@ test.describe
 				window.dispatchEvent(
 					new CustomEvent("eonfolk:generated-navigation", {
 						detail: { type: "zoom", deltaMm: Number.POSITIVE_INFINITY },
+					}),
+				);
+			});
+			await page.evaluate(() => {
+				window.dispatchEvent(
+					new CustomEvent("eonfolk:generated-navigation", {
+						detail: {
+							type: "select-citizen",
+							citizenId: "foreign-citizen",
+						},
 					}),
 				);
 			});
@@ -192,11 +327,112 @@ test.describe
 				}),
 			).toBeVisible();
 			await expect(page.locator("main.v1-world")).toHaveCount(0);
+			await page.waitForTimeout(500);
+			expect(await authorityFingerprint(page)).toBeNull();
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
 				/^[0-9a-f]{64}$/u,
 				{ timeout: 30_000 },
 			);
+			expect(externalRequests).toEqual([]);
+		});
+
+		test("stale IndexedDB is quarantined and rebuilt only after explicit recovery @fault", async ({
+			page,
+		}) => {
+			const externalRequests = await isolateGeneratedWorld(page);
+			await page.goto("/research", { waitUntil: "domcontentloaded" });
+			await page.evaluate(async () => {
+				await new Promise<void>((resolve, reject) => {
+					const deletion = indexedDB.deleteDatabase(
+						"eonfolk-generated-authority",
+					);
+					deletion.onsuccess = () => resolve();
+					deletion.onerror = () => reject(deletion.error);
+				});
+				await new Promise<void>((resolve, reject) => {
+					const open = indexedDB.open("eonfolk-generated-authority", 1);
+					open.onsuccess = () => {
+						open.result.close();
+						resolve();
+					};
+					open.onerror = () => reject(open.error);
+				});
+			});
+			await page.goto("/world", { waitUntil: "domcontentloaded" });
+			const world = page.locator("main.v1-world");
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+				timeout: 30_000,
+			});
+			await page
+				.getByRole("button", { name: "Rebuild local checkpoint" })
+				.click();
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
+			expect(externalRequests).toEqual([]);
+		});
+
+		test("corrupt IndexedDB ledger is quarantined without presenting its facts @fault", async ({
+			page,
+		}) => {
+			const externalRequests = await isolateGeneratedWorld(page);
+			await page.goto("/world", { waitUntil: "domcontentloaded" });
+			const world = page.locator("main.v1-world");
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
+			const canonicalHash = await world.getAttribute("data-state-hash");
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve, reject) => {
+						const open = indexedDB.open("eonfolk-generated-authority");
+						open.onerror = () => reject(open.error);
+						open.onsuccess = () => {
+							const database = open.result;
+							const transaction = database.transaction(
+								"authorityEvents",
+								"readwrite",
+							);
+							const store = transaction.objectStore("authorityEvents");
+							const rows = store.getAll();
+							rows.onsuccess = () => {
+								const first = rows.result[0] as
+									| { value?: Record<string, unknown> }
+									| undefined;
+								if (first === undefined) {
+									transaction.abort();
+									return;
+								}
+								store.put({
+									...first,
+									value: { ...first.value, payload: { corrupt: true } },
+								});
+							};
+							transaction.oncomplete = () => {
+								database.close();
+								resolve();
+							};
+							transaction.onerror = () => reject(transaction.error);
+							transaction.onabort = () =>
+								reject(transaction.error ?? new Error("corruption aborted"));
+						};
+					}),
+			);
+			await page.reload({ waitUntil: "domcontentloaded" });
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+				timeout: 30_000,
+			});
+			await expect(world).toHaveAttribute(
+				"data-state-hash",
+				canonicalHash ?? "",
+			);
+			await page
+				.getByRole("button", { name: "Rebuild local checkpoint" })
+				.click();
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
 			expect(externalRequests).toEqual([]);
 		});
 	});

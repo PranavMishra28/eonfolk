@@ -58,12 +58,14 @@ export function parseGeneratedNavigationAction(
 ): GeneratedNavigationAction | null {
 	if (typeof value !== "object" || value === null) return null;
 	const candidate = value as Readonly<Record<string, unknown>>;
+	const keyCount = Object.keys(candidate).length;
 	switch (candidate.type) {
 		case "overview":
 		case "toggle-follow":
-			return Object.freeze({ type: candidate.type });
+			return keyCount === 1 ? Object.freeze({ type: candidate.type }) : null;
 		case "select-citizen":
-			return typeof candidate.citizenId === "string" &&
+			return keyCount === 2 &&
+				typeof candidate.citizenId === "string" &&
 				candidate.citizenId.length > 0
 				? Object.freeze({
 						type: "select-citizen",
@@ -71,7 +73,8 @@ export function parseGeneratedNavigationAction(
 					})
 				: null;
 		case "select-project":
-			return typeof candidate.projectId === "string" &&
+			return keyCount === 2 &&
+				typeof candidate.projectId === "string" &&
 				candidate.projectId.length > 0
 				? Object.freeze({
 						type: "select-project",
@@ -79,12 +82,14 @@ export function parseGeneratedNavigationAction(
 					})
 				: null;
 		case "zoom":
-			return typeof candidate.deltaMm === "number" &&
+			return keyCount === 2 &&
+				typeof candidate.deltaMm === "number" &&
 				Number.isFinite(candidate.deltaMm)
 				? Object.freeze({ type: "zoom", deltaMm: candidate.deltaMm })
 				: null;
 		case "pan":
-			return typeof candidate.xDeltaMm === "number" &&
+			return keyCount === 3 &&
+				typeof candidate.xDeltaMm === "number" &&
 				typeof candidate.zDeltaMm === "number" &&
 				Number.isFinite(candidate.xDeltaMm) &&
 				Number.isFinite(candidate.zDeltaMm)
@@ -95,7 +100,8 @@ export function parseGeneratedNavigationAction(
 					})
 				: null;
 		case "orbit":
-			return typeof candidate.yawDeltaDegrees === "number" &&
+			return keyCount === 3 &&
+				typeof candidate.yawDeltaDegrees === "number" &&
 				typeof candidate.pitchDeltaDegrees === "number" &&
 				Number.isFinite(candidate.yawDeltaDegrees) &&
 				Number.isFinite(candidate.pitchDeltaDegrees)
@@ -108,6 +114,20 @@ export function parseGeneratedNavigationAction(
 		default:
 			return null;
 	}
+}
+
+/** Referential admission after the exact DOM envelope has parsed. */
+export function generatedNavigationReferencesExist(
+	action: GeneratedNavigationAction,
+	model: GeneratedEmbodimentProjection,
+): boolean {
+	if (action.type === "select-citizen")
+		return model.actors.some(({ citizenId }) => citizenId === action.citizenId);
+	if (action.type === "select-project")
+		return model.projects.some(
+			({ projectId }) => projectId === action.projectId,
+		);
+	return true;
 }
 
 const MIN_CAMERA_DISTANCE_MM = 8_000;

@@ -3,6 +3,7 @@ import {
 	type CivilizationRoutineOption,
 	type CivilizationRoutineResolution,
 	type CivilizationSchedulerDecisionEvidence,
+	type CivilizationSchedulerDecisionGateway,
 	type CivilizationSchedulerMindState,
 	createMemoryStore,
 	decideCivilizationSchedulerRoutine,
@@ -1680,6 +1681,7 @@ async function decideOpeningRoutines(input: {
 	readonly policy: GeneralizedSchedulerPolicy;
 	readonly runtime: CivilizationCognitionRuntime;
 	readonly worldIdentityHash: string;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<{
 	readonly runtime: CivilizationCognitionRuntime;
 	readonly decisions: readonly SchedulerRoutineDecision[];
@@ -1709,6 +1711,9 @@ async function decideOpeningRoutines(input: {
 			options: cognitionOptions(input.state, input.policy, mind),
 			fallbackRoutine,
 			priorOutcome: input.runtime.priorOutcomes[actorId] ?? null,
+			...(input.cognition?.decisionGateway === undefined
+				? {}
+				: { decisionGateway: input.cognition.decisionGateway }),
 		});
 		minds[actorId] = result.state;
 		evidence.push(result.evidence);
@@ -1965,9 +1970,14 @@ function metrics(
 	};
 }
 
+export interface CivilizationExperimentCognitionOptions {
+	readonly decisionGateway: CivilizationSchedulerDecisionGateway;
+}
+
 export async function runCivilizationExperiment(input: {
 	readonly world: GeneratedWorldState;
 	readonly horizonDays: number;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<CivilizationExperimentRun> {
 	if (
 		!Number.isSafeInteger(input.horizonDays) ||
@@ -2032,6 +2042,9 @@ export async function runCivilizationExperiment(input: {
 						policy: schedulerPolicy,
 						runtime: cognitionRuntime,
 						worldIdentityHash: input.world.identity.identityHash,
+						...(input.cognition === undefined
+							? {}
+							: { cognition: input.cognition }),
 					})
 				: null;
 		if (opening !== null) {

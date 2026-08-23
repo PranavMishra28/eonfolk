@@ -24,6 +24,7 @@ import {
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import {
 	buildGeneratedWorldExperience,
+	GENERATED_WORLD_STORAGE_KEY,
 	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
@@ -103,11 +104,8 @@ function useGeneratedExperience(
 				: generatedWorldFaultModule.then((module) => {
 						if (module === null)
 							throw new Error("Generated fault module is unavailable");
-						return module.applyGeneratedWorldAuthorityFault(
-							buildGeneratedWorldExperience(
-								module.generatedWorldBuildOptionsForFault(fault),
-							),
-							fault,
+						return buildGeneratedWorldExperience(
+							module.generatedWorldBuildOptionsForFault(fault),
 						);
 					});
 		void loading.then(
@@ -138,10 +136,11 @@ function useGeneratedAsset(
 	);
 	useEffect(() => {
 		let active = true;
-		const verification =
-			fault?.kind === "asset"
-				? Promise.reject(new Error("Injected generated asset rejection"))
-				: verifyGeneratedFolkAsset();
+		const verification = generatedWorldFaultModule.then((module) =>
+			verifyGeneratedFolkAsset(
+				module?.generatedWorldAssetFetcherForFault(fault) ?? globalThis.fetch,
+			),
+		);
 		void verification.then(
 			(integrity) => {
 				if (active) setState(Object.freeze({ status: "verified", integrity }));
@@ -707,9 +706,7 @@ function GeneratedWorld({
 	readonly fault: GeneratedWorldFaultSpec | null;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
-	const [rendererFailed, setRendererFailed] = useState(
-		() => fault?.kind === "renderer-webgl",
-	);
+	const [rendererFailed, setRendererFailed] = useState(false);
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(() =>
 		typeof window === "undefined"
@@ -812,17 +809,6 @@ function GeneratedWorld({
 	}, [fault]);
 
 	useEffect(() => {
-		if (fault?.kind !== "renderer-webgl" || rendererIncidentReported.current)
-			return;
-		rendererIncidentReported.current = true;
-		void browserDiagnostics.captureRuntimeFailure({
-			code: "GENERATED_RENDERER_UNAVAILABLE",
-			component: "generated-world-renderer",
-			protectReality: () => setRendererFailed(true),
-		});
-	}, [fault]);
-
-	useEffect(() => {
 		if (asset.status !== "failed" || assetIncidentReported.current) return;
 		assetIncidentReported.current = true;
 		void browserDiagnostics.captureRuntimeFailure({
@@ -838,8 +824,25 @@ function GeneratedWorld({
 		setSelectedSettlementId(settlementId);
 		dispatch({ type: "overview" });
 		setPresentationTick(0);
-		setRendererFailed(false);
-		setView("embodied");
+		setView(rendererFailed ? "semantic" : "embodied");
+	};
+	const retryRenderer = () => {
+		if (
+			typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
+			__EONFOLK_E2E_CRASH_HOOKS__ &&
+			fault?.kind === "renderer-webgl"
+		) {
+			void generatedWorldFaultModule.then((module) => {
+				module?.clearGeneratedWorldFault();
+				window.location.reload();
+			});
+			return;
+		}
+		window.location.reload();
+	};
+	const rebuildPersistence = () => {
+		const request = indexedDB.deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
+		request.onsuccess = () => window.location.reload();
 	};
 	const reportRendererFailure = () => {
 		setRendererFailed(true);
@@ -937,6 +940,13 @@ function GeneratedWorld({
 					{fault.message}
 				</p>
 			)}
+			{experience.persistence.kind === "quarantined" ? (
+				<p className="renderer-note" role="status">
+					<button type="button" onClick={rebuildPersistence}>
+						Rebuild local checkpoint
+					</button>
+				</p>
+			) : null}
 
 			<nav className="generated-settlement-switcher" aria-label="Settlements">
 				{experience.projections.map((candidate) => (
@@ -970,10 +980,11 @@ function GeneratedWorld({
 			{effectiveView === "semantic" ? (
 				<>
 					{rendererFailed ? (
-						<p className="renderer-note" role="status">
-							The embodied renderer failed. The same canonical world remains
-							inspectable in semantic form.
-						</p>
+						<div className="renderer-note" role="status">
+							<button type="button" onClick={retryRenderer}>
+								Retry embodied renderer
+							</button>
+						</div>
 					) : asset.status === "checking" ? (
 						<p className="renderer-note" role="status">
 							Verifying the repository-authored proxy geometry contract.
@@ -1023,6 +1034,7 @@ function GeneratedWorld({
 								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
 								onFailure={reportRendererFailure}
+								injectContextLoss={fault?.kind === "renderer-webgl"}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />

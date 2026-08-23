@@ -4,10 +4,17 @@ import {
 	MEMORY_SCHEMA_VERSION,
 	createMemoryStore,
 	decideCivilizationSchedulerRoutine,
+	replayCivilizationSchedulerDecisions,
 	remember,
+	runDecisionGateway,
+	standardBrain,
+	validateIntentProposal,
+	type BrainPort,
 	type CivilizationRoutineOption,
 	type CivilizationSchedulerMindState,
+	type DecisionGatewayResult,
 } from "../../../packages/cognition/src/index.js";
+import type { DecisionContext } from "../../../packages/protocol/src/index.js";
 import {
 	riverholdDecisionFixture,
 	riverholdPrng,
@@ -98,6 +105,12 @@ async function mindState(input: {
 async function decide(
 	input: Awaited<ReturnType<typeof mindState>>,
 	priorOutcome: "completed" | "blocked" | null = null,
+	primary: BrainPort | null = null,
+	primaryTimeoutMilliseconds = 1_000,
+	observations: Array<{
+		readonly context: DecisionContext;
+		readonly result: DecisionGatewayResult;
+	}> = [],
 ) {
 	return decideCivilizationSchedulerRoutine({
 		state: input.state,
@@ -112,6 +125,21 @@ async function decide(
 			subjectId: input.fixture.mind.citizenId,
 		},
 		priorOutcome,
+		...(primary === null
+			? {}
+			: {
+					decisionGateway: async ({ context, deterministicFallback }) => {
+						const result = await runDecisionGateway({
+							context,
+							primary,
+							deterministicFallback,
+							validate: validateIntentProposal,
+							primaryTimeoutMilliseconds,
+						});
+						observations.push({ context, result });
+						return result;
+					},
+				}),
 	});
 }
 
@@ -167,5 +195,65 @@ describe("civilization scheduler Standard Brain", () => {
 			first.state.actorMind.standingPlan.replansRemaining - 1,
 		);
 		expect(second.state.actorMind.standingPlan.status).toBe("active");
+	});
+
+	it("discards a late provider result and records an actor-visible Standard Brain fallback", async () => {
+		const input = await mindState({
+			withMemory: true,
+			visibilitySubject: "citizen_someone_else",
+		});
+		let providerContext: unknown;
+		const primary: BrainPort = {
+			propose: (context) => {
+				providerContext = context;
+				return new Promise((resolve) =>
+					setTimeout(() => resolve({ actionId: "forged-late-action" }), 50),
+				);
+			},
+		};
+		const observations: Array<{
+			readonly context: DecisionContext;
+			readonly result: DecisionGatewayResult;
+		}> = [];
+		const result = await decide(input, null, primary, 5, observations);
+		const boundary = observations[0];
+		if (boundary === undefined) throw new Error("gateway was not observed");
+		const acceptedState = structuredClone(result.state);
+		expect(boundary.result).toMatchObject({
+			selectedSource: "deterministic-fallback",
+			primaryFailure: "timeout",
+			primaryAttempts: 1,
+			proposal: { provenance: { cognitionKind: "standard-brain" } },
+		});
+		expect(result.evidence.modelInvocations).toBe(0);
+		expect(
+			boundary.context.visibleRecords.every(
+				({ subjectCitizenId }) => subjectCitizenId === boundary.context.actorId,
+			),
+		).toBe(true);
+		expect(
+			boundary.context.visibleRecords.map(({ recordId }) => recordId),
+		).not.toContain("memory-water-warning");
+		expect(providerContext).toBe(boundary.context);
+		expect(providerContext).not.toHaveProperty("hiddenRecords");
+		expect(replayCivilizationSchedulerDecisions([result.evidence])).toEqual([
+			result.evidence.routine,
+		]);
+		await new Promise((resolve) => setTimeout(resolve, 75));
+		expect(result.state).toEqual(acceptedState);
+	});
+
+	it("rejects an accepted primary before inference-free authority evidence exists", async () => {
+		const input = await mindState({ withMemory: false });
+		const primary: BrainPort = {
+			propose: async (context) =>
+				(
+					await standardBrain(context, {
+						proposalId: "untrusted-primary-proposal",
+						prngState: input.state.prngState,
+					})
+				).proposal,
+		};
+		await expect(decide(input, null, primary)).rejects.toThrow("rejected");
 	});
 });

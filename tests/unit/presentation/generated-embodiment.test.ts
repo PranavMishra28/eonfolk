@@ -8,6 +8,7 @@ import {
 	cameraIntentForGeneratedNavigation,
 	GENERATED_FOLK_ASSET,
 	generatedCameraFidelity,
+	generatedNavigationReferencesExist,
 	INITIAL_GENERATED_NAVIGATION,
 	parseGeneratedNavigationAction,
 	planGeneratedActorTransition,
@@ -437,6 +438,13 @@ describe("generated navigation parity", () => {
 			parseGeneratedNavigationAction({ type: "zoom", deltaMm: Number.NaN }),
 		).toBeNull();
 		expect(
+			parseGeneratedNavigationAction({
+				type: "select-citizen",
+				citizenId: "citizen_mara",
+				stateHash: "forged-authority",
+			}),
+		).toBeNull();
+		expect(
 			parseGeneratedNavigationAction({ type: "invent-reality" }),
 		).toBeNull();
 		expect(() =>
@@ -448,6 +456,32 @@ describe("generated navigation parity", () => {
 				{ type: "overview" },
 			),
 		).toThrow(/must be finite/u);
+	});
+
+	it("rejects exact but foreign citizen and project identities", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		expect(
+			generatedNavigationReferencesExist(
+				{ type: "select-citizen", citizenId: "foreign-citizen" },
+				model,
+			),
+		).toBe(false);
+		expect(
+			generatedNavigationReferencesExist(
+				{ type: "select-project", projectId: "foreign-project" },
+				model,
+			),
+		).toBe(false);
+		expect(
+			generatedNavigationReferencesExist(
+				{ type: "select-citizen", citizenId: model.actors[0]?.citizenId ?? "" },
+				model,
+			),
+		).toBe(true);
 	});
 });
 

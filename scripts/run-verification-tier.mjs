@@ -96,6 +96,9 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 const PRODUCTION_CRASH_MARKERS = Object.freeze([
 	"injected browser crash after durable transition",
 	"eonfolk:e2e-crash-after-transition",
+	"eonfolk:e2e-generated-world-fault-v1",
+	"GENERATED_MODEL_PROVIDER_UNAVAILABLE",
+	"GENERATED_CHECKPOINT_REJECTED",
 ]);
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();

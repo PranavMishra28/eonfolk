@@ -6,6 +6,7 @@ import {
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	generatedCameraFidelity,
+	generatedNavigationReferencesExist,
 	parseGeneratedNavigationAction,
 } from "../../generated-presentation";
 
@@ -38,7 +39,8 @@ export function GeneratedEmbodimentControls({
 			const action = parseGeneratedNavigationAction(
 				(event as CustomEvent<unknown>).detail,
 			);
-			if (action !== null) dispatch(action);
+			if (action !== null && generatedNavigationReferencesExist(action, model))
+				dispatch(action);
 		};
 		window.addEventListener(GENERATED_NAVIGATION_EVENT, onCanvasNavigation);
 		return () =>
@@ -46,7 +48,7 @@ export function GeneratedEmbodimentControls({
 				GENERATED_NAVIGATION_EVENT,
 				onCanvasNavigation,
 			);
-	}, [dispatch]);
+	}, [dispatch, model]);
 	const fidelity = generatedCameraFidelity(navigation.distanceMm);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;

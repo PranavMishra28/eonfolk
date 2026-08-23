@@ -69,6 +69,25 @@ function selectedHorizons(
 	return GENERATED_CIVILIZATION_CATCH_UP_HORIZONS.slice(0, index + 1);
 }
 
+export function assertGeneratedPreCommitInvariants(
+	checkpoints: readonly CivilizationExperimentRun[],
+): void {
+	if (checkpoints.length === 0) throw new Error();
+	for (const checkpoint of checkpoints) {
+		const citizens = Object.values(checkpoint.state.citizens);
+		const residents = citizens.filter(
+			({ residenceState }) => residenceState === "resident",
+		).length;
+		if (
+			checkpoint.metrics.invariantIssues.length > 0 ||
+			checkpoint.metrics.residentPopulation !== residents ||
+			checkpoint.metrics.travellingPopulation !== citizens.length - residents ||
+			checkpoint.metrics.population !== citizens.length
+		)
+			throw new Error("invalid");
+	}
+}
+
 async function persistPlan(input: {
 	readonly port: VersionedPersistencePort;
 	readonly genesisWorld: GeneratedWorldState;
@@ -89,6 +108,7 @@ async function persistPlan(input: {
 		batchSize: 1,
 		snapshotId: "civilization",
 	});
+	assertGeneratedPreCommitInvariants(input.checkpoints);
 	await input.port.initialize(plan.genesis);
 	const receipts: AuthorityAppendReceipt[] = [];
 	let idempotentAppends = 0;
@@ -124,13 +144,13 @@ export async function advanceGeneratedCivilization(
 	const authorityRunner = input.authorityRunner ?? runCivilizationExperiment;
 	const checkpoints: CivilizationExperimentRun[] = [];
 	for (const horizonDays of selectedHorizons(input.targetHorizonDays)) {
-		const checkpoint = await authorityRunner({
+		const generated = await authorityRunner({
 			world: input.genesisWorld,
 			horizonDays,
 		});
-		if (checkpoint.metrics.modelInvocations !== 0)
+		if (generated.metrics.modelInvocations !== 0)
 			throw new Error("generated civilization catch-up invoked a model");
-		checkpoints.push(checkpoint);
+		checkpoints.push(generated);
 	}
 	const persisted = await persistPlan({
 		port: input.port,

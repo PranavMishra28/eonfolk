@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-	applyGeneratedWorldAuthorityFault,
 	clearGeneratedWorldFault,
 	GENERATED_WORLD_FAULT_KINDS,
 	GENERATED_WORLD_FAULT_STORAGE_KEY,
 	GeneratedWorldFaultBoundaryError,
+	generatedPersistenceBoundaryFailure,
+	generatedWorldAssetFetcherForFault,
 	generatedWorldBuildOptionsForFault,
 	generatedWorldPresentationFault,
 	parseGeneratedWorldFault,
@@ -22,46 +23,83 @@ describe("generated-world fault boundary", () => {
 		expect(parseGeneratedWorldFault({ kind: "asset" })).toBeNull();
 	});
 
-	it("maps persistence failure only to the deterministic non-persistent adapter", () => {
+	it("injects persistence failures at each real browser boundary", () => {
 		const fault = parseGeneratedWorldFault("persistence");
-		expect(generatedWorldBuildOptionsForFault(fault)).toEqual({
-			indexedDbFactory: null,
-		});
-		expect(
-			generatedWorldBuildOptionsForFault(
-				parseGeneratedWorldFault("model-provider"),
-			),
-		).toEqual({});
-	});
-
-	it("fails closed for checkpoint and authoritative invariant failures", async () => {
-		for (const kind of ["checkpoint", "authoritative-invariant"] as const) {
-			const fault = parseGeneratedWorldFault(kind);
-			await expect(
-				applyGeneratedWorldAuthorityFault(Promise.resolve("world"), fault, 0),
-			).rejects.toMatchObject({
-				name: "GeneratedWorldFaultBoundaryError",
-				fault: { kind, disposition: "fail-closed" },
-			});
+		const options = generatedWorldBuildOptionsForFault(fault);
+		expect(options.persistenceFailureFallback).toBe(true);
+		for (const point of ["open", "upgrade", "read", "write"] as const) {
+			const injector = generatedPersistenceBoundaryFailure(point);
+			for (const candidate of ["open", "upgrade", "read", "write"] as const) {
+				if (candidate === point)
+					expect(() => injector.hit(candidate)).toThrow(point);
+				else expect(() => injector.hit(candidate)).not.toThrow();
+			}
 		}
 	});
 
-	it("holds latency without converting pending data into facts", async () => {
+	it("corrupts checkpoint admission and trips the pre-commit invariant", async () => {
+		const checkpointFault = parseGeneratedWorldFault("checkpoint");
+		const checkpointOptions =
+			generatedWorldBuildOptionsForFault(checkpointFault);
+		const checkpoint = { finalStateHash: "a".repeat(64) } as never;
+		expect(checkpointOptions.checkpointTransform?.(checkpoint)).toMatchObject({
+			finalStateHash: "0".repeat(64),
+		});
+		expect(
+			checkpointOptions.mapAuthorityFailure?.(new Error("rejected")),
+		).toMatchObject({ fault: { kind: "checkpoint" } });
+
+		const invariantFault = parseGeneratedWorldFault("authoritative-invariant");
+		const invariantOptions = generatedWorldBuildOptionsForFault(invariantFault);
+		expect(
+			invariantOptions.checkpointTransform?.({
+				...(checkpoint as object),
+				metrics: { invariantIssues: [] },
+			} as never),
+		).toMatchObject({
+			metrics: {
+				invariantIssues: ["injected-pre-commit-authority-invariant"],
+			},
+		});
+	});
+
+	it("holds the authority start gate before work begins", async () => {
 		vi.useFakeTimers();
-		const pending = applyGeneratedWorldAuthorityFault(
-			Promise.resolve("canonical"),
+		const gate = generatedWorldBuildOptionsForFault(
 			parseGeneratedWorldFault("latency"),
-			500,
-		);
+		).beforeAuthorityAdvance;
+		if (gate === undefined) throw new Error("latency gate is missing");
+		const pending = Promise.resolve(gate());
 		let settled = false;
 		void pending.then(() => {
 			settled = true;
 		});
-		await vi.advanceTimersByTimeAsync(499);
+		await vi.advanceTimersByTimeAsync(1_199);
 		expect(settled).toBe(false);
 		await vi.advanceTimersByTimeAsync(1);
-		await expect(pending).resolves.toBe("canonical");
+		await expect(pending).resolves.toBeUndefined();
 		vi.useRealTimers();
+	});
+
+	it("runs asset corruption through the supplied fetch boundary", async () => {
+		const bytes = new Uint8Array([1, 2, 3]);
+		const fetcher = vi.fn(async () => new Response(bytes));
+		const injected = generatedWorldAssetFetcherForFault(
+			parseGeneratedWorldFault("asset"),
+			fetcher as typeof fetch,
+		);
+		const response = await injected("/eonfolk-folk-proxy.gltf");
+		expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([
+			0, 2, 3,
+		]);
+		expect(fetcher).toHaveBeenCalledOnce();
+	});
+
+	it("provides the real bounded decision gateway only for the provider fault", () => {
+		const options = generatedWorldBuildOptionsForFault(
+			parseGeneratedWorldFault("model-provider"),
+		);
+		expect(options.cognition?.decisionGateway).toBeTypeOf("function");
 	});
 
 	it("classifies presentation failures without mutating a supplied value", () => {

@@ -1,4 +1,11 @@
+import type { CivilizationExperimentRun } from "@eonfolk/civilization";
+import {
+	type CivilizationSchedulerDecisionGateway,
+	runDecisionGateway,
+	validateIntentProposal,
+} from "@eonfolk/cognition";
 import type { GeneratedWorldBuildOptions } from "./generated-world-runtime";
+import type { BrowserPersistenceBoundaryPoint } from "./persistence/browser-versioned";
 
 export const GENERATED_WORLD_FAULT_STORAGE_KEY =
 	"eonfolk:e2e-generated-world-fault-v1";
@@ -153,24 +160,151 @@ export function clearGeneratedWorldFault(
 export function generatedWorldBuildOptionsForFault(
 	fault: GeneratedWorldFaultSpec | null,
 ): GeneratedWorldBuildOptions {
-	return fault?.kind === "persistence"
-		? Object.freeze({ indexedDbFactory: null })
-		: Object.freeze({});
+	if (fault === null) return Object.freeze({});
+	switch (fault.kind) {
+		case "model-provider": {
+			let firstAttempt = true;
+			const primary = Object.freeze({
+				propose: (_context: unknown, signal?: AbortSignal) => {
+					if (!firstAttempt)
+						return Promise.reject(
+							new Error("Injected cognition provider unavailable"),
+						);
+					firstAttempt = false;
+					return new Promise((resolve) => {
+						const late = globalThis.setTimeout(
+							() => resolve(Object.freeze({ late: true })),
+							150,
+						);
+						signal?.addEventListener(
+							"abort",
+							() => {
+								// The gateway must discard this late result without mutation.
+								void late;
+							},
+							{ once: true },
+						);
+					});
+				},
+			});
+			let attempts = 0;
+			let fallbacks = 0;
+			let actorVisible = 0;
+			let hiddenLeaks = 0;
+			const failures: string[] = [];
+			const kinds: string[] = [];
+			const decisionGateway: CivilizationSchedulerDecisionGateway = async ({
+				context,
+				deterministicFallback,
+			}) => {
+				const boundary = await runDecisionGateway({
+					context,
+					primary,
+					deterministicFallback,
+					validate: validateIntentProposal,
+					primaryTimeoutMilliseconds: 20,
+				});
+				attempts += boundary.primaryAttempts;
+				if (boundary.selectedSource === "deterministic-fallback")
+					fallbacks += 1;
+				if (boundary.primaryFailure !== null)
+					failures.push(boundary.primaryFailure);
+				kinds.push(boundary.proposal.provenance.cognitionKind);
+				if (
+					context.visibleRecords.every(
+						(record) => record.subjectCitizenId === context.actorId,
+					)
+				)
+					actorVisible += 1;
+				if ("hiddenRecords" in (context as object)) hiddenLeaks += 1;
+				const dataset = globalThis.document?.documentElement.dataset;
+				if (dataset !== undefined) {
+					dataset.faultCognitionProviderAttempts = String(attempts);
+					dataset.faultCognitionFallbacks = String(fallbacks);
+					dataset.faultCognitionPrimaryFailures = failures.join(",");
+					dataset.faultCognitionKinds = kinds.join(",");
+					dataset.faultCognitionActorVisibleContexts = String(actorVisible);
+					dataset.faultCognitionHiddenFieldLeaks = String(hiddenLeaks);
+				}
+				return boundary;
+			};
+			return Object.freeze({
+				cognition: Object.freeze({
+					decisionGateway,
+				}),
+			});
+		}
+		case "persistence":
+			return Object.freeze({
+				persistenceBoundaryInjector:
+					generatedPersistenceBoundaryFailure("open"),
+				persistenceFailureFallback: true,
+			});
+		case "checkpoint":
+			return Object.freeze({
+				checkpointTransform: (checkpoint: CivilizationExperimentRun) =>
+					Object.freeze({
+						...checkpoint,
+						finalStateHash: "0".repeat(64),
+					}),
+				mapAuthorityFailure: () => new GeneratedWorldFaultBoundaryError(fault),
+			});
+		case "authoritative-invariant":
+			return Object.freeze({
+				checkpointTransform: (checkpoint: CivilizationExperimentRun) =>
+					Object.freeze({
+						...checkpoint,
+						metrics: Object.freeze({
+							...checkpoint.metrics,
+							invariantIssues: Object.freeze([
+								"injected-pre-commit-authority-invariant",
+							]),
+						}),
+					}),
+				mapAuthorityFailure: (error: unknown) =>
+					error instanceof GeneratedWorldFaultBoundaryError
+						? error
+						: new GeneratedWorldFaultBoundaryError(fault),
+			});
+		case "latency":
+			return Object.freeze({
+				beforeAuthorityAdvance: () =>
+					new Promise<void>((resolve) => globalThis.setTimeout(resolve, 1_200)),
+			});
+		case "asset":
+		case "navigation":
+		case "renderer-webgl":
+			return Object.freeze({});
+	}
 }
 
-export async function applyGeneratedWorldAuthorityFault<T>(
-	promise: Promise<T>,
+export function generatedPersistenceBoundaryFailure(
+	point: BrowserPersistenceBoundaryPoint,
+): Readonly<{ hit(candidate: BrowserPersistenceBoundaryPoint): void }> {
+	return Object.freeze({
+		hit(candidate: BrowserPersistenceBoundaryPoint) {
+			if (candidate === point)
+				throw new Error(`Injected IndexedDB ${point} boundary failure`);
+		},
+	});
+}
+
+export function generatedWorldAssetFetcherForFault(
 	fault: GeneratedWorldFaultSpec | null,
-	latencyMs = 1_200,
-): Promise<T> {
-	if (fault?.kind === "latency")
-		await new Promise<void>((resolve) =>
-			globalThis.setTimeout(resolve, latencyMs),
-		);
-	const value = await promise;
-	if (fault?.kind === "checkpoint" || fault?.kind === "authoritative-invariant")
-		throw new GeneratedWorldFaultBoundaryError(fault);
-	return value;
+	fetcher: typeof fetch = globalThis.fetch,
+): typeof fetch {
+	if (fault?.kind !== "asset") return fetcher;
+	return async (input, init) => {
+		const response = await fetcher(input, init);
+		if (!String(input).endsWith("/eonfolk-folk-proxy.gltf")) return response;
+		const bytes = new Uint8Array(await response.arrayBuffer());
+		if (bytes.length > 0) bytes[0] = (bytes[0] ?? 0) ^ 1;
+		return new Response(bytes, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: response.headers,
+		});
+	};
 }
 
 export function generatedWorldPresentationFault(

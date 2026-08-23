@@ -14,6 +14,16 @@ import {
 import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
+	it("rejects generated-world fault keys and codes from production output", () => {
+		const source = readFileSync(
+			resolve("scripts/run-verification-tier.mjs"),
+			"utf8",
+		);
+		expect(source).toContain("eonfolk:e2e-generated-world-fault-v1");
+		expect(source).toContain("GENERATED_MODEL_PROVIDER_UNAVAILABLE");
+		expect(source).toContain("GENERATED_CHECKPOINT_REJECTED");
+	});
+
 	it("keeps the canonical web benchmark on Release Genesis /world", () => {
 		const source = readFileSync(resolve("scripts/benchmark-web.mjs"), "utf8");
 		expect(source).toContain("await page.goto(`" + "$" + "{origin}/world`");

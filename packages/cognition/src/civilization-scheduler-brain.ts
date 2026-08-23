@@ -1,12 +1,15 @@
 import type {
 	ActionCatalogEntry,
 	CitizenMindSnapshot,
+	DecisionContext,
+	IntentProposal,
 	PrngState,
 	StandingPlan,
 	VisibilityContext,
 } from "../../protocol/src/index.js";
 
 import { buildMemoryAwareDecisionContext, type MemoryStore } from "./memory.js";
+import type { DecisionGatewayResult } from "./decision-gateway.js";
 import { standardBrain, validateIntentProposal } from "./standard-brain.js";
 import {
 	advanceStandingPlan,
@@ -76,6 +79,11 @@ export interface CivilizationSchedulerDecisionResult {
 	readonly state: CivilizationSchedulerMindState;
 	readonly evidence: CivilizationSchedulerDecisionEvidence;
 }
+
+export type CivilizationSchedulerDecisionGateway = (input: {
+	readonly context: DecisionContext;
+	readonly deterministicFallback: () => Promise<IntentProposal>;
+}) => Promise<DecisionGatewayResult>;
 
 function stepKind(kind: CivilizationRoutineKind): string {
 	switch (kind) {
@@ -201,6 +209,7 @@ export async function decideCivilizationSchedulerRoutine(input: {
 	readonly options: readonly CivilizationRoutineOption[];
 	readonly fallbackRoutine: CivilizationRoutineResolution;
 	readonly priorOutcome: PriorRoutineOutcome;
+	readonly decisionGateway?: CivilizationSchedulerDecisionGateway;
 }): Promise<CivilizationSchedulerDecisionResult> {
 	const initialPlan = input.state.actorMind.standingPlan;
 	assertOptions(
@@ -247,17 +256,31 @@ export async function decideCivilizationSchedulerRoutine(input: {
 		visibilityContext: input.visibilityContext,
 		counselIntent: null,
 	});
-	const choice = await standardBrain(built.context, {
-		proposalId: `civilization-proposal:${actorMind.citizenId}:${String(input.state.decisionOrdinal)}`,
-		prngState: input.state.prngState,
-	});
-	if (
-		(await validateIntentProposal(built.context, choice.proposal)) !==
-		"accepted"
-	)
-		throw new Error("Standard Brain produced an invalid scheduler proposal");
+	let nextPrngState = input.state.prngState;
+	const deterministicFallback = async () => {
+		const fallbackChoice = await standardBrain(built.context, {
+			proposalId: `civilization-proposal:${actorMind.citizenId}:${String(input.state.decisionOrdinal)}`,
+			prngState: input.state.prngState,
+		});
+		nextPrngState = fallbackChoice.nextPrngState;
+		if (
+			(await validateIntentProposal(built.context, fallbackChoice.proposal)) !==
+			"accepted"
+		)
+			throw new Error();
+		return fallbackChoice.proposal;
+	};
+	const gateway =
+		input.decisionGateway === undefined
+			? null
+			: await input.decisionGateway({
+					context: built.context,
+					deterministicFallback,
+				});
+	if (gateway?.selectedSource === "primary") throw new Error("rejected");
+	const proposal = gateway?.proposal ?? (await deterministicFallback());
 	const selected = input.options.find(
-		({ entry }) => entry.actionId === choice.proposal.actionId,
+		({ entry }) => entry.actionId === proposal.actionId,
 	);
 	if (selected === undefined)
 		throw new Error(
@@ -265,7 +288,7 @@ export async function decideCivilizationSchedulerRoutine(input: {
 		);
 	let plan = settled.plan;
 	let transition = settled.transition;
-	if (choice.proposal.action.kind !== "FollowStandingPlan") {
+	if (proposal.action.kind !== "FollowStandingPlan") {
 		const interrupted = interruptStandingPlan(plan);
 		if (interrupted.replansRemaining < 1)
 			throw new Error(
@@ -280,7 +303,7 @@ export async function decideCivilizationSchedulerRoutine(input: {
 	const nextState: CivilizationSchedulerMindState = {
 		actorMind: { ...actorMind, standingPlan: plan },
 		memoryStore: input.state.memoryStore,
-		prngState: choice.nextPrngState,
+		prngState: nextPrngState,
 		decisionOrdinal: input.state.decisionOrdinal + 1,
 	};
 	return {
@@ -290,13 +313,13 @@ export async function decideCivilizationSchedulerRoutine(input: {
 			decisionOrdinal: input.state.decisionOrdinal,
 			actorId: actorMind.citizenId,
 			contextHash: built.context.contextHash,
-			proposalHash: choice.proposal.proposalHash,
-			selectedActionId: choice.proposal.actionId,
+			proposalHash: proposal.proposalHash,
+			selectedActionId: proposal.actionId,
 			routine: selected.routine,
 			retrievedMemoryIds: built.retrieval.selected.map(
 				({ memory }) => memory.memoryId,
 			),
-			readVisibleRecordIds: choice.proposal.explanation.visibleRecordIdsRead,
+			readVisibleRecordIds: proposal.explanation.visibleRecordIdsRead,
 			planId: plan.planId,
 			planVersionBefore: initialPlan.version,
 			planVersionAfter: plan.version,

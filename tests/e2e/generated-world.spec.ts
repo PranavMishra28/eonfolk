@@ -571,6 +571,26 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 		.toBe(true);
 });
 
+test("production ignores generated fault storage and exposes no harness markers @generated-world", async ({
+	page,
+}) => {
+	const externalRequests = await isolateLocalWorld(page);
+	await page.addInitScript(() =>
+		sessionStorage.setItem(
+			"eonfolk:e2e-generated-world-fault-v1",
+			"authoritative-invariant",
+		),
+	);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u, {
+		timeout: 30_000,
+	});
+	await expect(world).not.toHaveAttribute("data-fault-kind", /.+/u);
+	await expect(page.getByTestId("generated-world-fault-status")).toHaveCount(0);
+	expect(externalRequests).toEqual([]);
+});
+
 for (const viewport of [
 	{ width: 1728, height: 1117 },
 	{ width: 1366, height: 768 },
