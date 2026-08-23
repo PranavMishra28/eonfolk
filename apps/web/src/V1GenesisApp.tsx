@@ -9,7 +9,6 @@ import {
 	useState,
 } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
-import { FeedbackPanel } from "./components/FeedbackPanel";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
@@ -30,6 +29,11 @@ import {
 const GeneratedWorldCanvas = lazy(async () => {
 	const module = await import("./generated-world-canvas");
 	return { default: module.GeneratedWorldCanvas };
+});
+
+const FeedbackPanel = lazy(async () => {
+	const module = await import("./components/FeedbackPanel");
+	return { default: module.FeedbackPanel };
 });
 
 type GenesisRoute = "entry" | "world";
@@ -537,6 +541,7 @@ function GeneratedWorld({
 	const [presentationPlaying, setPresentationPlaying] = useState(
 		() => !reduceMotion,
 	);
+	const [feedbackOpen, setFeedbackOpen] = useState(false);
 	const [navigation, dispatch] = useReducer(
 		reduceGeneratedNavigation,
 		INITIAL_GENERATED_NAVIGATION,
@@ -807,12 +812,19 @@ function GeneratedWorld({
 					/>
 				</section>
 			)}
-			<details className="v1-feedback-drawer">
+			<details
+				className="v1-feedback-drawer"
+				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
+			>
 				<summary>Release Genesis feedback</summary>
-				<div>
-					<p className="v1-kicker">RELEASE GENESIS FEEDBACK</p>
-					<FeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
-				</div>
+				{feedbackOpen ? (
+					<div>
+						<p className="v1-kicker">RELEASE GENESIS FEEDBACK</p>
+						<Suspense fallback={<p>Opening local feedback tools…</p>}>
+							<FeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
+						</Suspense>
+					</div>
+				) : null}
 			</details>
 
 			<footer className="v1-world-footer">
