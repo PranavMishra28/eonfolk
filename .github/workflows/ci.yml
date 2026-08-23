@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
   workflow_dispatch:
@@ -107,12 +108,17 @@ jobs:
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:pr
 
-      - name: Capture deterministic UI evidence
+      - name: Enforce the V1 readiness claim boundary
+        env:
+          V1_READINESS_MODE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false && 'ready' || 'draft' }}
+        run: node scripts/check-v1-readiness.mjs --mode "${V1_READINESS_MODE}" --evidence tmp/eonfolk-verification-pr.json
+
+      - name: Capture Founder Alpha regression evidence (not V1 acceptance)
         if: steps.classify.outputs.ui == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          evidence_dir="tmp/founder-alpha-ui-evidence"
+          evidence_dir="tmp/founder-alpha-regression-evidence"
           mkdir -p "${evidence_dir}"
           pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort >"${evidence_dir}/preview.log" 2>&1 &
           preview_pid=$!
@@ -260,7 +266,7 @@ jobs:
                 animations: "disabled",
                 caret: "hide",
                 fullPage: true,
-                path: `tmp/founder-alpha-ui-evidence/${viewport.name}.png`,
+                path: `tmp/founder-alpha-regression-evidence/${viewport.name}.png`,
                 scale: "css",
               });
               if (externalAttempts.length > 0) {
@@ -287,11 +293,14 @@ jobs:
             await browser.close();
           }
           writeFileSync(
-            "tmp/founder-alpha-ui-evidence/renderer-smoke.json",
+            "tmp/founder-alpha-regression-evidence/renderer-smoke.json",
             `${JSON.stringify(
               {
+                claimBoundary:
+                  "Founder Alpha/Riverhold regression only; INELIGIBLE FOR V1 READINESS.",
                 evidence,
-                schemaVersion: "eonfolk-renderer-smoke-v1",
+                readinessEligibility: "INELIGIBLE_FOR_V1_READINESS",
+                schemaVersion: "eonfolk-founder-alpha-regression-smoke-v1",
                 status: "PASS",
               },
               null,
@@ -300,12 +309,12 @@ jobs:
           );
           EOF
 
-      - name: Retain accepted UI evidence
+      - name: Retain Founder Alpha regression artifact (ineligible for V1)
         if: success() && steps.classify.outputs.ui == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: founder-alpha-ui-${{ github.run_id }}
-          path: tmp/founder-alpha-ui-evidence
+          name: founder-alpha-regression-only-${{ github.run_id }}
+          path: tmp/founder-alpha-regression-evidence
           if-no-files-found: error
           retention-days: 30
 
@@ -318,14 +327,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Retain failing browser evidence
+      - name: Retain failing Founder Alpha regression evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: browser-failure-${{ github.run_id }}
+          name: founder-alpha-regression-failure-${{ github.run_id }}
           path: |
             tmp/riverhold-playwright
-            tmp/founder-alpha-ui-evidence
+            tmp/founder-alpha-regression-evidence
             tmp/eonfolk-verification-pr.json
             apps/web/evidence
           if-no-files-found: ignore
@@ -398,11 +407,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Retain failing extended evidence
+      - name: Retain failing extended and Founder Alpha regression evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: extended-failure-${{ github.run_id }}
+          name: founder-alpha-regression-extended-failure-${{ github.run_id }}
           path: |
             tmp/eonfolk-verification-pr.json
             tmp/riverhold-playwright
