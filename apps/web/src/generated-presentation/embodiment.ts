@@ -35,6 +35,8 @@ export interface GeneratedGrounding {
 	readonly interactionSlotId: string | null;
 	readonly routeId: string | null;
 	readonly progressBasisPoints: number | null;
+	/** Ordered metric points used to replay only already-authoritative progress. */
+	readonly traversalPathMm?: readonly SpatialPointMm[];
 	/** False means presentation must not interpolate across the missing segment. */
 	readonly provesEntranceToEntranceTraversal: boolean;
 }
@@ -125,11 +127,11 @@ function metricDistance(left: SpatialPointMm, right: SpatialPointMm): number {
 	return Math.hypot(left.x - right.x, left.y - right.y, left.z - right.z);
 }
 
-function pointOnPolyline(
+function containingSegment(
 	value: SpatialPointMm,
 	points: readonly SpatialPointMm[],
-): boolean {
-	return points.slice(0, -1).some((from, index) => {
+): number {
+	return points.slice(0, -1).findIndex((from, index) => {
 		const to = points[index + 1];
 		if (to === undefined) return false;
 		return (
@@ -332,6 +334,24 @@ function routeTopology(
 	]);
 }
 
+/** Replays only the proven past prefix, then holds at the exact Reality point. */
+export function generatedTraversalPointAtTick(
+	grounding: GeneratedGrounding,
+	presentationTick: number,
+): SpatialPointMm {
+	const points = grounding.traversalPathMm!;
+	const scaled = Math.min(presentationTick, 48) * (points.length - 1);
+	const index = Math.min(Math.floor(scaled / 48), points.length - 2);
+	const progress = scaled / 48 - index;
+	const from = points[index]!;
+	const to = points[index + 1]!;
+	return Object.freeze({
+		x: Math.round(from.x + (to.x - from.x) * progress),
+		y: Math.round(from.y + (to.y - from.y) * progress),
+		z: Math.round(from.z + (to.z - from.z) * progress),
+	});
+}
+
 function groundingFor(
 	projection: GeneratedCivilizationSpatialProjection,
 	actor: SpatialActorProjection,
@@ -362,20 +382,27 @@ function groundingFor(
 	)
 		fail(`${actor.citizenId} has invalid route progress`);
 	const topology = routeTopology(projection, activity.location.routeId);
-	const entrances = topology.filter(
-		(nodeId) => projection.scene.nodes[nodeId]?.affordance === "entrance",
-	);
-	for (const nodeId of actor.routeNodeIds)
-		if (!topology.includes(nodeId))
-			fail(`${actor.citizenId} route node is outside grounded topology`);
+	const entrances = [topology[0]!, topology.at(-1)!];
 	const authoritativePoints = actor.routeNodeIds.map((nodeId) =>
 		nodePoint(projection, nodeId),
 	);
-	if (
-		authoritativePoints.length < 2 ||
-		!pointOnPolyline(actor.positionMm, authoritativePoints)
-	)
+	const actorSegment = containingSegment(actor.positionMm, authoritativePoints);
+	if (actorSegment < 0)
 		fail(`${actor.citizenId} position is outside its authoritative route`);
+	const topologyInterior = topology.slice(1, -1);
+	if (
+		entrances.some(
+			(nodeId) => projection.scene.nodes[nodeId]?.affordance !== "entrance",
+		) ||
+		actor.routeNodeIds.join() !== topologyInterior.join()
+	)
+		fail(`${actor.citizenId} route lacks registered entrance connectors`);
+	const prefixEnd = authoritativePoints[actorSegment]!;
+	const traversalPathMm = Object.freeze([
+		nodePoint(projection, entrances[0]!),
+		...authoritativePoints.slice(0, actorSegment + 1),
+		...(pointEqual(prefixEnd, actor.positionMm) ? [] : [actor.positionMm]),
+	]);
 	return Object.freeze({
 		kind: "route",
 		authoritativeNodeIds: Object.freeze([...actor.routeNodeIds]),
@@ -384,11 +411,8 @@ function groundingFor(
 		interactionSlotId: null,
 		routeId: activity.location.routeId,
 		progressBasisPoints: activity.location.progressBasisPoints,
-		// Current canonical progress is explicitly defined over route waypoints.
-		// It cannot truthfully animate the extra entrance connector segments.
-		provesEntranceToEntranceTraversal:
-			actor.routeNodeIds.length === topology.length &&
-			actor.routeNodeIds.every((nodeId, index) => nodeId === topology[index]),
+		traversalPathMm,
+		provesEntranceToEntranceTraversal: true,
 	});
 }
 
@@ -550,19 +574,6 @@ export function projectGeneratedEmbodiment(
 			});
 		}),
 	);
-	const routeActors = actors.filter(
-		(actor) => actor.grounding.kind === "route",
-	);
-	const unprovenRoutes = routeActors.filter(
-		(actor) => !actor.grounding.provesEntranceToEntranceTraversal,
-	);
-	const limitations = Object.freeze(
-		unprovenRoutes.length === 0
-			? []
-			: [
-					`${unprovenRoutes.length} canonical route activit${unprovenRoutes.length === 1 ? "y does" : "ies do"} not expose entrance-connector progress; presentation will not interpolate those segments`,
-				],
-	);
 	return Object.freeze({
 		schemaVersion: GENERATED_EMBODIMENT_SCHEMA_VERSION,
 		source: input.current.spatial.source,
@@ -571,7 +582,7 @@ export function projectGeneratedEmbodiment(
 		actors,
 		projects: projectDeltas(input.current, input.previous ?? null),
 		growth: growthDelta(input.current, input.previous ?? null),
-		limitations,
+		limitations: Object.freeze([]),
 	});
 }
 

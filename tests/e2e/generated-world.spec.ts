@@ -834,21 +834,54 @@ test("generated pose controls preserve authoritative state @generated-world", as
 	await page.goto("/world");
 	const world = page.locator("main.v1-world");
 	const canvas = page.getByTestId("generated-world-canvas");
+	const worldTools = page.locator("details.v1-world-tools");
+	await worldTools.locator("summary").click();
+	await worldTools.getByRole("button", { name: "Pause motion" }).click();
+	await expect(world).toHaveAttribute("data-presentation-playing", "false");
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await page.getByRole("button", { name: "Reduce motion" }).click();
-	await expect(world).toHaveAttribute("data-presentation-playing", "false");
-	const worldTools = page.locator("details.v1-world-tools");
-	if (!(await worldTools.evaluate((details) => details.open)))
-		await worldTools.locator("summary").click();
 	await expect(worldTools).toHaveAttribute("open", "");
-	await expect(world).toHaveAttribute("data-presentation-playing", "false");
 	const stateHashBeforePose = await world.getAttribute("data-state-hash");
+	const authorityBeforePose = await generatedAuthorityFingerprint(page);
 	const tickBefore = Number(
 		await canvas.getAttribute("data-presentation-tick"),
 	);
 	const positionsBeforePose = await canvas.getAttribute("data-actor-positions");
+	const renderedBeforePose = await canvas.getAttribute(
+		"data-rendered-actor-positions",
+	);
+	const traversalsBeforePose = await canvas.getAttribute(
+		"data-actor-route-states",
+	);
+	const traversals = (traversalsBeforePose ?? "")
+		.split(",")
+		.filter(Boolean)
+		.map((entry) => entry.split(":"))
+		.filter(([, status]) => status === "travelling");
+	expect(traversals.length).toBeGreaterThan(0);
+	await expect(canvas).toHaveAttribute(
+		"data-moving-actor-count",
+		String(traversals.length),
+	);
+	for (const traversal of traversals) {
+		const [, , routeId, progress] = traversal;
+		expect(routeId).toMatch(/\S/u);
+		expect(Number(progress)).toBeGreaterThanOrEqual(0);
+		expect(Number(progress)).toBeLessThanOrEqual(10_000);
+	}
+	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
+	expect(
+		Number(await canvas.getAttribute("data-project-count")),
+	).toBeGreaterThan(0);
+	expect(await canvas.getAttribute("data-limitation-count")).toBe("0");
+	const changedProject = worldTools
+		.locator("button[data-project-id]")
+		.filter({ hasText: / to .*; \+\d+ progress basis points/u })
+		.first();
+	await expect(changedProject).toBeVisible();
+	await expect(changedProject).toContainText("to completed");
+	expect(renderedBeforePose).not.toBe(positionsBeforePose);
 	await worldTools.getByRole("button", { name: "Step one pose" }).click();
 	await expect(canvas).toHaveAttribute(
 		"data-presentation-tick",
@@ -861,6 +894,32 @@ test("generated pose controls preserve authoritative state @generated-world", as
 	await expect(canvas).toHaveAttribute(
 		"data-actor-positions",
 		positionsBeforePose ?? "",
+	);
+	const renderedAfterPose = await canvas.getAttribute(
+		"data-rendered-actor-positions",
+	);
+	expect(renderedAfterPose).not.toBe(renderedBeforePose);
+	const parsePositions = (value: string | null) =>
+		(value ?? "")
+			.split(",")
+			.filter(Boolean)
+			.map((entry) => {
+				const [citizenId, x, y, z] = entry.split(":");
+				return [citizenId, `${x}:${y}:${z}`] as const;
+			});
+	const beforePositions = new Map(parsePositions(renderedBeforePose));
+	const afterPositions = new Map(parsePositions(renderedAfterPose));
+	for (const [citizenId] of traversals) {
+		expect(afterPositions.get(citizenId)).not.toBe(
+			beforePositions.get(citizenId),
+		);
+	}
+	await expect(canvas).toHaveAttribute(
+		"data-actor-route-states",
+		traversalsBeforePose ?? "",
+	);
+	expect(await generatedAuthorityFingerprint(page)).toEqual(
+		authorityBeforePose,
 	);
 	expect(externalRequests).toEqual([]);
 });

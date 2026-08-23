@@ -37,6 +37,7 @@ import {
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	generatedCameraFidelity,
+	generatedTraversalPointAtTick,
 } from "./generated-presentation";
 
 function material(hex: string): StandardMaterial {
@@ -66,9 +67,7 @@ const palette = Object.freeze({
 	stone: material("#8c8c80"),
 	civic: material("#d7bd86"),
 	field: material("#b7a75f"),
-	linen: material("#e2d2aa"),
 	clay: material("#a96045"),
-	ink: material("#242921"),
 	changed: material("#d99a45"),
 	social: material("#e7cc77"),
 });
@@ -164,6 +163,7 @@ function localPoint(
 function renderedActorPoint(
 	projection: GeneratedCivilizationSpatialProjection,
 	actor: GeneratedEmbodiedActor,
+	presentationTick = 48,
 ): SpatialPointMm {
 	const interaction = projection.spatial.interactions.find((candidate) =>
 		candidate.participantIds.includes(actor.citizenId),
@@ -171,7 +171,8 @@ function renderedActorPoint(
 	const canonicalActor = projection.spatial.actors.find(
 		(candidate) => candidate.citizenId === actor.citizenId,
 	);
-	if (actor.grounding.kind === "route") return actor.positionMm;
+	if (actor.grounding.kind === "route")
+		return generatedTraversalPointAtTick(actor.grounding, presentationTick);
 	const slotId =
 		actor.grounding.interactionSlotId ?? canonicalActor?.action.affordanceId;
 	const participantIds = interaction?.participantIds ?? [actor.citizenId];
@@ -640,29 +641,11 @@ function SiteLife({
 						color={ordinal === 0 ? palette.wood : palette.bark}
 					/>
 				))}
-				<Primitive
-					position={[x, 0.28, -z]}
-					scale={[1.45, 0.56, 0.75]}
-					color={palette.clay}
-				/>
 			</Entity>
 		);
 	if (kind === "storage")
 		return (
 			<Entity position={position}>
-				<Primitive
-					position={[-x + 0.6, 1.8, z]}
-					scale={[4.2, 0.3, 3.4]}
-					color={palette.clay}
-				/>
-				{[-1.25, 1.85].map((offset) => (
-					<Primitive
-						key={offset}
-						position={[-x + offset, 0.9, z]}
-						scale={[0.18, 1.8, 0.18]}
-						color={palette.bark}
-					/>
-				))}
 				{[0.75, 0.58, 0.52].map((height, ordinal) => (
 					<Primitive
 						key={height}
@@ -694,36 +677,6 @@ function SiteLife({
 					color={palette.water}
 					castShadows={false}
 				/>
-				<Primitive
-					position={[x, 1.4, -z]}
-					scale={[4.2, 0.22, 2.6]}
-					rotation={[0, 8, 0]}
-					color={palette.linen}
-				/>
-				<Primitive
-					position={[x - 1, 0.7, -z]}
-					scale={[0.14, 1.4, 0.14]}
-					color={palette.bark}
-				/>
-				<Primitive
-					position={[x + 1, 0.7, -z]}
-					scale={[0.14, 1.4, 0.14]}
-					color={palette.bark}
-				/>
-			</Entity>
-		);
-	if (kind === "residential")
-		return (
-			<Entity position={position}>
-				{[-1, 0, 1].map((ordinal) => (
-					<Primitive
-						key={ordinal}
-						position={[ordinal * 1.45, 0.12, z]}
-						scale={[1.1, 0.22, 2.25]}
-						color={ordinal === 0 ? palette.soil : palette.field}
-						castShadows={false}
-					/>
-				))}
 			</Entity>
 		);
 	return null;
@@ -935,7 +888,11 @@ function GroundedSettlement({
 				const actorScale =
 					scale.citizen.heightMm / (GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000);
 				const actorPoint = localPoint(
-					renderedActorPoint(projection, actor),
+					renderedActorPoint(
+						projection,
+						actor,
+						reducedMotion ? 48 : presentationTick,
+					),
 					frame,
 				);
 				return (
@@ -1084,7 +1041,11 @@ export function GeneratedWorldCanvas({
 				.join(",")}
 			data-rendered-actor-positions={model.actors
 				.map((actor) => {
-					const position = renderedActorPoint(projection, actor);
+					const position = renderedActorPoint(
+						projection,
+						actor,
+						reducedMotion ? 48 : presentationTick,
+					);
 					return `${actor.citizenId}:${position.x}:${position.y}:${position.z}`;
 				})
 				.join(",")}

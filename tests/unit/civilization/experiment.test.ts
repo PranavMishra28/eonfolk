@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	V1_GENESIS_RELEASE_ID,
+	V1_GENESIS_SEED,
+	V1_GENESIS_WORLD_ID,
+} from "../../../apps/web/src/v1-genesis-runtime.js";
+import {
 	assertCivilizationInvariants,
 	deriveCivilizationSeedConditions,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
@@ -31,6 +36,31 @@ async function generatedWorld(seedHex: string, releaseId: string) {
 }
 
 describe("deterministic civilization experiment", () => {
+	it("grounds the V1 release carrier at its authoritative supply-route origin", async () => {
+		const releaseGenesis = await createReleaseGenesis({
+			releaseId: V1_GENESIS_RELEASE_ID,
+			seedHex: V1_GENESIS_SEED,
+		});
+		const world = await generateWorld({
+			releaseGenesis,
+			worldId: V1_GENESIS_WORLD_ID,
+			treatmentId: "standard-brain",
+		});
+		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const carrier = run.activities.find(
+			(activity) => activity.location.kind === "route",
+		);
+		expect(carrier?.citizenId).toBe("citizen-05");
+		expect(carrier?.routine.kind).toBe("transport");
+		if (carrier?.location.kind !== "route" || carrier.routine.route === null)
+			throw new Error("V1 release route carrier is not grounded");
+		expect(run.state.citizens[carrier.citizenId]?.siteId).toBe(
+			carrier.routine.route.fromSiteId,
+		);
+		expect(carrier.location.progressBasisPoints).toBeGreaterThan(0);
+		expect(run.metrics.completedProjects).toBeGreaterThan(0);
+		expect(run.metrics.materializedSettlements).toBeGreaterThan(0);
+	});
 	it("derives legitimate progression and stagnation from generated geography", async () => {
 		const progressingWorld = await generatedWorld(
 			PROGRESSION_SEED,

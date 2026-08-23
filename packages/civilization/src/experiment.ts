@@ -705,12 +705,14 @@ function bootstrapCivilization(
 		const site =
 			id === RELEASE_GENESIS_MARA_CITIZEN_ID || id === citizenId(1)
 				? workSite
-				: index >= POPULATION - 2 && communalSite !== undefined
-					? communalSite
-					: required(
-							originSites[index % originSites.length],
-							"an origin citizen site",
-						);
+				: id === citizenId(4)
+					? required(world.sites[sourceSiteId]?.value, "the supply source site")
+					: index >= POPULATION - 2 && communalSite !== undefined
+						? communalSite
+						: required(
+								originSites[index % originSites.length],
+								"an origin citizen site",
+							);
 		state = registerCitizen(state, {
 			schemaVersion: "eonfolk-civilization-social-v1",
 			citizenId: id,

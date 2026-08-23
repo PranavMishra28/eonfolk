@@ -9,6 +9,7 @@ import {
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
+	generatedTraversalPointAtTick,
 	INITIAL_GENERATED_NAVIGATION,
 	parseGeneratedNavigationAction,
 	planGeneratedActorTransition,
@@ -206,27 +207,73 @@ describe("generated embodiment projection", () => {
 		);
 	});
 
-	it("exposes full grounded route topology while reporting the upstream connector gap", async () => {
+	it("proves entrance-to-route-to-entrance topology and replays only the canonical prefix", async () => {
 		const base = await fixture();
-		const routed = routeVariant({
-			...base,
-			progressBasisPoints: 0,
-		});
-		const model = projectGeneratedEmbodiment({
-			current: routed.projection,
-			activities: routed.activities,
-		});
-		const actor = model.actors[0];
-		if (actor === undefined) throw new Error("fixture lacks actor");
-
-		expect(actor.grounding.kind).toBe("route");
-		expect(actor.grounding.routeTopologyNodeIds.length).toBeGreaterThan(
-			actor.grounding.authoritativeNodeIds.length,
+		const models = [0, 2_500, 5_000, 7_500, 10_000].map(
+			(progressBasisPoints) => {
+				const routed = routeVariant({ ...base, progressBasisPoints });
+				return projectGeneratedEmbodiment({
+					current: routed.projection,
+					activities: routed.activities,
+				});
+			},
 		);
-		expect(actor.grounding.provesEntranceToEntranceTraversal).toBe(false);
-		expect(model.limitations).toEqual([
-			expect.stringContaining("not expose entrance-connector progress"),
-		]);
+		const actors = models.map((model) => model.actors[0]!);
+		const first = actors[0]!;
+
+		expect(first.grounding.kind).toBe("route");
+		expect(first.grounding.routeTopologyNodeIds.length).toBeGreaterThan(
+			first.grounding.authoritativeNodeIds.length,
+		);
+		expect(first.grounding.provesEntranceToEntranceTraversal).toBe(true);
+		expect(first.grounding.entranceNodeIds).toHaveLength(2);
+		expect(first.grounding.routeTopologyNodeIds[0]).toBe(
+			first.grounding.entranceNodeIds[0],
+		);
+		expect(first.grounding.routeTopologyNodeIds.at(-1)).toBe(
+			first.grounding.entranceNodeIds[1],
+		);
+		expect(
+			first.grounding.routeTopologyNodeIds
+				.slice(0, -1)
+				.every((nodeId, index) =>
+					base.projection.scene.edges.some(
+						(edge) =>
+							edge.edgeId.endsWith(":forward") &&
+							edge.fromNodeId === nodeId &&
+							edge.toNodeId === first.grounding.routeTopologyNodeIds[index + 1],
+					),
+				),
+		).toBe(true);
+		const firstEntrance =
+			base.projection.scene.nodes[first.grounding.entranceNodeIds[0]!]!;
+		expect(first.grounding.traversalPathMm?.[0]).toEqual({
+			x: firstEntrance.x,
+			y: firstEntrance.y,
+			z: firstEntrance.z,
+		});
+		const distancesFromOrigin = actors.map((actor) =>
+			Math.hypot(
+				actor.positionMm.x - firstEntrance.x,
+				actor.positionMm.y - firstEntrance.y,
+				actor.positionMm.z - firstEntrance.z,
+			),
+		);
+		expect(distancesFromOrigin).toEqual(
+			[...distancesFromOrigin].sort((left, right) => left - right),
+		);
+		const middle = actors[2]!;
+		const ticks = [0, 12, 24, 36, 48, 49];
+		const sampled = ticks.map((tick) =>
+			generatedTraversalPointAtTick(middle.grounding, tick),
+		);
+		expect(new Set(sampled.slice(0, -1).map(JSON.stringify)).size).toBe(5);
+		expect(sampled.at(-1)).toEqual(sampled.at(-2));
+		expect(sampled.at(-1)).toEqual(middle.positionMm);
+		expect(generatedTraversalPointAtTick(middle.grounding, 48)).toEqual(
+			middle.positionMm,
+		);
+		expect(models.every((model) => model.limitations.length === 0)).toBe(true);
 	});
 
 	it("allows only monotonic same-route interpolation and samples it deterministically", async () => {
