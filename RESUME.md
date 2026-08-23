@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled implementation commit: `0c45a7c` (`chore(deps): register civilization workspace`)
+- Last reconciled implementation commit: `cd06797` (`feat(presentation): project generated worlds`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -35,8 +35,10 @@
 - Bounded routine and project planners generate deterministic multi-step Standing Plans from actor-visible records and legal affordances. Simulation integration remains incomplete.
 - Standing Plans now have deterministic advance, interruption, retry, replan, and abandonment transitions. Planner-to-civilization decision-boundary integration remains incomplete.
 - Model-origin proposals now have a closed typed schema, exact prompt/schema/artifact provenance, public-copy constraints, and post-Brain validation. No executable model process adapter is connected and Standard Brain remains the promoted fallback.
+- A provider-neutral closed-choice Model Brain adapter now gives an untrusted transport only actor-visible context and a bounded action catalog; it rejects Markdown, extra fields, unknown actions, and hidden-record claims before the authority gateway. The host-owned local process transport is still absent.
 - A pure immutable civilization kernel now provides integer resource stocks, storage and atomic transfers, conservation audits, recipe/process gates, project dependencies and milestones, households, institutions, agreements, and physically gated migration/founding records. Focused tests passed 11/11, deep conservation properties passed 500 runs each, all 20 TypeScript project graphs passed, and `verify:fast` passed 30 files / 224 tests.
 - Migration/founding are not complete V1 evidence: no generalized-world scheduler, route traversal, persistence adapter, new-settlement materialization, or long-horizon seed matrix exists yet.
+- Renderer-neutral generated-world projections now expose immutable region, settlement-local, and entity-follow semantic views while preserving canonical input bytes and hashes. Four focused tests and the full FAST lane passed; no browser renderer integration, visual proof, or performance evidence exists yet.
 
 ## Next executable tasks
 

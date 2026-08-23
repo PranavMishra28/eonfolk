@@ -51,7 +51,7 @@
 | Settlement, site/parcel, place, building, and interaction-slot model | VERIFIED |
 | Canonical generator golden fixtures and property tests | VERIFIED |
 | Generated world persistence and deterministic replay | NOT STARTED |
-| Camera/render residency cannot mutate Reality | NOT STARTED |
+| Camera/render residency cannot mutate Reality | IN PROGRESS |
 
 ## Civilization
 
@@ -112,8 +112,8 @@
 |---|---|
 | Premium coherent landing/entry route | NOT STARTED |
 | Immersive separate world-first game route | NOT STARTED |
-| Generalized terrain, routes, settlements, projects, and growth render | NOT STARTED |
-| Semantic region, settlement, and citizen-follow zoom | NOT STARTED |
+| Generalized terrain, routes, settlements, projects, and growth render | IN PROGRESS |
+| Semantic region, settlement, and citizen-follow zoom | IN PROGRESS |
 | Recognizable stylized humanoid characters and identity | NOT STARTED |
 | Grounded pathfinding, entrances, interaction slots, and no routine teleport | NOT STARTED |
 | Locomotion, carry, work, social, life, and reaction animation states | NOT STARTED |
