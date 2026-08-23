@@ -107,6 +107,121 @@ async function inspectGeneratedCheckpoint(page: Page) {
 	);
 }
 
+async function generatedAuthorityFingerprint(page: Page) {
+	return page.evaluate(
+		() =>
+			new Promise<{
+				readonly counts: Readonly<Record<string, number>>;
+				readonly digest: string;
+			}>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-generated-authority");
+				request.onerror = () => reject(request.error);
+				request.onsuccess = () => {
+					const database = request.result;
+					const stores = [...database.objectStoreNames].sort();
+					const transaction = database.transaction(stores, "readonly");
+					const counts = Object.fromEntries(
+						stores.map((store) => [
+							store,
+							transaction.objectStore(store).count(),
+						]),
+					) as Record<string, IDBRequest<number>>;
+					const streams = transaction.objectStore("authorityStreams").getAll();
+					transaction.onerror = () => reject(transaction.error);
+					transaction.oncomplete = async () => {
+						try {
+							const values = Object.fromEntries(
+								Object.entries(counts).map(([store, count]) => [
+									store,
+									count.result,
+								]),
+							);
+							const encoded = new TextEncoder().encode(
+								JSON.stringify({ counts: values, streams: streams.result }),
+							);
+							const digest = [
+								...new Uint8Array(
+									await crypto.subtle.digest("SHA-256", encoded),
+								),
+							]
+								.map((value) => value.toString(16).padStart(2, "0"))
+								.join("");
+							resolve({ counts: values, digest });
+						} catch (error) {
+							reject(error);
+						} finally {
+							database.close();
+						}
+					};
+				};
+			}),
+	);
+}
+
+async function corruptGeneratedAuthority(
+	page: Page,
+	kind: "genesis-schema" | "engine-version" | "range-gap",
+): Promise<void> {
+	await page.evaluate(
+		(kind) =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-generated-authority");
+				request.onerror = () => reject(request.error);
+				request.onsuccess = () => {
+					const database = request.result;
+					const storeName =
+						kind === "range-gap" ? "authorityOperations" : "authorityStreams";
+					const transaction = database.transaction(storeName, "readwrite");
+					const store = transaction.objectStore(storeName);
+					if (kind === "range-gap") {
+						const keys = store.getAllKeys();
+						keys.onsuccess = () => {
+							const first = keys.result[0];
+							if (first === undefined) transaction.abort();
+							else store.delete(first);
+						};
+					} else {
+						const rows = store.getAll();
+						rows.onsuccess = () => {
+							const row = rows.result[0] as
+								| {
+										genesis: {
+											schemaVersion: string;
+											head: Record<string, unknown>;
+											snapshot: Record<string, unknown>;
+										};
+										head: Record<string, unknown>;
+								  }
+								| undefined;
+							if (row === undefined) {
+								transaction.abort();
+								return;
+							}
+							if (kind === "genesis-schema")
+								row.genesis.schemaVersion = "eonfolk-authority-genesis-v999";
+							else {
+								row.genesis.head.engineVersion = "foreign-engine-v999";
+								row.genesis.snapshot.engineVersion = "foreign-engine-v999";
+								row.head.engineVersion = "foreign-engine-v999";
+							}
+							store.put(row);
+						};
+					}
+					transaction.oncomplete = () => {
+						database.close();
+						resolve();
+					};
+					transaction.onerror = () => reject(transaction.error);
+					transaction.onabort = () =>
+						reject(
+							transaction.error ?? new Error("corruption fixture aborted"),
+						);
+				};
+			}),
+		kind,
+	);
+}
+
 async function stableGeneratedPickTargets(
 	page: Page,
 	canvas: Locator,
@@ -646,6 +761,52 @@ for (const boundary of [
 		await expect(page.locator("body")).not.toContainText(
 			`private ${boundary.name} detail`,
 		);
+	});
+}
+
+for (const corruption of [
+	{ kind: "genesis-schema", label: "unsupported genesis schema" },
+	{ kind: "engine-version", label: "foreign engine version" },
+	{ kind: "range-gap", label: "operation range gap" },
+] as const) {
+	test(`production quarantines a persisted ${corruption.label} until explicit recovery @generated-world`, async ({
+		page,
+	}) => {
+		test.setTimeout(90_000);
+		const externalRequests = await isolateLocalWorld(page);
+		await resetGeneratedCheckpoint(page);
+		await page.goto("/world", { waitUntil: "domcontentloaded" });
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		const canonicalHash = await world.getAttribute("data-state-hash");
+		const canonicalAuthority = await generatedAuthorityFingerprint(page);
+
+		await corruptGeneratedAuthority(page, corruption.kind);
+		const corruptedAuthority = await generatedAuthorityFingerprint(page);
+		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
+
+		await page.reload({ waitUntil: "domcontentloaded" });
+		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			corruptedAuthority,
+		);
+
+		await page
+			.getByRole("button", { name: "Rebuild local checkpoint" })
+			.click();
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			canonicalAuthority,
+		);
+		expect(externalRequests).toEqual([]);
 	});
 }
 

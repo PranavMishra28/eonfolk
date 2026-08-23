@@ -1,6 +1,6 @@
-import react from "@vitejs/plugin-react";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export function resolveBuildSha(
@@ -37,8 +37,40 @@ function appVersion(): string {
 	}
 }
 
+const REPOSITORY_RUNTIME_SOURCE =
+	/\/(?:apps\/web\/src|packages\/[^/]+\/src)\/.*\.tsx?$/u;
+
+export function compactProductionErrorDetails(
+	source: string,
+	id: string,
+): string {
+	if (!REPOSITORY_RUNTIME_SOURCE.test(id) || id.includes(".test."))
+		return source;
+	return source
+		.replace(
+			/((?:fail|new PersistenceError)\(\s*("[A-Z_]+")\s*,\s*)"(?:[^"\\]|\\.)*"/gu,
+			(_match, prefix: string, code: string) => `${prefix}${code}`,
+		)
+		.replace(
+			/new (Error|RangeError)\(\s*"(?:[^"\\]|\\.)*"\s*\)/gu,
+			(_match, constructorName: string) =>
+				`new ${constructorName}("LOCAL_RUNTIME_FAILURE")`,
+		)
+		.replace(/fail\(\s*"(?:[^"\\]|\\.)*"\s*\)/gu, 'fail("invalid")');
+}
+
 export default defineConfig({
-	plugins: [react()],
+	plugins: [
+		react(),
+		{
+			name: "compact-production-error-details",
+			apply: "build",
+			transform(source, id) {
+				const code = compactProductionErrorDetails(source, id);
+				return code === source ? null : { code, map: null };
+			},
+		},
+	],
 	define: {
 		__EONFOLK_APP_VERSION__: JSON.stringify(appVersion()),
 		__EONFOLK_BUILD_SHA__: JSON.stringify(

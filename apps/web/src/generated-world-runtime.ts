@@ -255,7 +255,9 @@ export async function buildGeneratedWorldExperience(
 function shouldQuarantine(error: unknown): boolean {
 	return (
 		(error instanceof PersistenceError &&
-			(error.code === "STALE_STATE" || error.code === "RANGE_GAP")) ||
+			(error.code === "STALE_STATE" ||
+				error.code === "RANGE_GAP" ||
+				error.code === "UNSUPPORTED_VERSION")) ||
 		(error instanceof DOMException && error.name === "VersionError")
 	);
 }
