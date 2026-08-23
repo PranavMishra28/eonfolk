@@ -166,6 +166,12 @@ importers:
 
   packages/world-presentation: {}
 
+  packages/worldgen:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
 packages:
 
   '@babel/helper-string-parser@7.29.7':
