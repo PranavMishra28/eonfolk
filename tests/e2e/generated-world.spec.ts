@@ -612,13 +612,19 @@ async function selectCanonicalResidentFromCanvas(
 	throw new Error("no exposed canonical citizen accepted a canvas pick");
 }
 
-async function selectSponsorCandidate(page: Page): Promise<string> {
+async function selectCanonicalMara(page: Page): Promise<string> {
 	const citizenId = "citizen-01";
+	await page.locator(".v1-context-panel").hover();
 	const resident = page.locator(
 		`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,
 	);
 	await expect(resident).toContainText("Mara Vale");
 	await resident.click();
+	return citizenId;
+}
+
+async function selectSponsorCandidate(page: Page): Promise<string> {
+	const citizenId = await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", { name: "Sponsor this person" }),
 	).toBeEnabled();
@@ -1605,7 +1611,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	const citizenId = await selectSponsorCandidate(page);
+	await selectSponsorCandidate(page);
 	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
 	const initialHash = await page
 		.locator("main.v1-world")
@@ -1623,6 +1629,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(page.getByRole("status")).toContainText(
 		"entered a sponsorship covenant with patron:local",
 	);
+	await expect
+		.poll(() =>
+			page
+				.locator(".v1-context-panel")
+				.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
+		)
+		.toBe(true);
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await expect(
 		page.getByRole("heading", { name: "Choose a consequential counsel" }),
@@ -1661,9 +1674,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(boundaryCanvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await page
-		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
-		.click();
+	await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible({ timeout: 20_000 });
@@ -1710,9 +1721,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		"true",
 		{ timeout: 20_000 },
 	);
-	await page
-		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
-		.click();
+	await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible();
@@ -1766,9 +1775,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-simulation-time"),
 	).toBe(String(367 * 86_400));
-	await page
-		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
-		.click();
+	await selectCanonicalMara(page);
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
 		"speaking at Workshop",
 	);

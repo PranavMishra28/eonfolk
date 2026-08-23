@@ -3588,6 +3588,11 @@ em {
 	overflow-wrap: anywhere;
 }
 
+.v1-context-panel pre {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 .v1-context-panel > section,
 .v1-context-now,
 .v1-place-selection {
