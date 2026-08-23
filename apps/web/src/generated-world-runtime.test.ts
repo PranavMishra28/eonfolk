@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { stateHash } from "@eonfolk/protocol";
 import {
 	buildGeneratedWorldExperience,
 	GENERATED_WORLD_HORIZON_DAYS,
 	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
+import {
+	createGeneratedSponsorAuthority,
+	resolveGeneratedCounsel,
+} from "./generated-sponsor-authority";
 import { V1_GENESIS_WORLD_ID } from "./v1-genesis-runtime";
 
 describe("canonical generated-world browser experience", () => {
@@ -92,5 +97,116 @@ describe("canonical generated-world browser experience", () => {
 				expect(projected?.action.actionId).toBe(actor.actionId);
 				expect(projected?.positionMm).toEqual(actor.positionMm);
 			}
+	});
+
+	it("projects named sponsor candidates from canonical identity and relationship state", async () => {
+		const experience = await buildGeneratedWorldExperience();
+		const candidates = experience.sponsorSource.candidates;
+
+		expect(candidates).toHaveLength(7);
+		expect(candidates.map(({ name }) => name)).toContain("Iven Rook");
+		expect(candidates.map(({ name }) => name)).not.toContain("Mara Vale");
+		const iven = candidates.find(({ name }) => name === "Iven Rook");
+		expect(iven).toMatchObject({
+			role: "provisioner",
+			valueIds: ["reliability", "care"],
+		});
+		expect(iven?.relationships).toHaveLength(2);
+		expect(iven?.currentTension).toMatch(/highest measured pressure/u);
+		expect(iven?.sourceReferenceIds[0]).toEqual(expect.any(String));
+		expect(iven?.sourceReferenceIds[0]?.length).toBeGreaterThan(0);
+		expect(experience.sponsorSource.stateHash).toBe(experience.stateHash);
+	});
+
+	it("runs one deterministic Standard Brain boundary and traces a delayed systemic consequence", async () => {
+		const experience = await buildGeneratedWorldExperience();
+		const iven = experience.sponsorSource.candidates.find(
+			({ name }) => name === "Iven Rook",
+		);
+		expect(iven).toBeDefined();
+		const sponsored = await createGeneratedSponsorAuthority(
+			experience.sponsorSource,
+			iven?.citizenId ?? "",
+		);
+		const first = await resolveGeneratedCounsel({
+			source: experience.sponsorSource,
+			authority: sponsored,
+			counsel: "verify-reserve",
+		});
+		const replay = await resolveGeneratedCounsel({
+			source: experience.sponsorSource,
+			authority: sponsored,
+			counsel: "verify-reserve",
+		});
+
+		expect(replay).toEqual(first);
+		expect(first.decision).toMatchObject({
+			actionKind: "VerifyReserve",
+			disposition: "accepted",
+			cognitionKind: "standard-brain",
+		});
+		expect(first.events).toHaveLength(4);
+		expect(first.events.at(-1)).toMatchObject({
+			kind: "InstitutionCommitmentRecorded",
+			simulationTime: experience.simulationTime + 21_600,
+			effect: {
+				kind: "institution-commitment",
+				institutionName: "Origin Council",
+				commitmentKind: "witnessed-reserve-check",
+				state: "active",
+			},
+			causalParents: [
+				{
+					relation: "direct-cause",
+				},
+			],
+		});
+		expect(first.chronicle.map(({ relation }) => relation)).toEqual([
+			"temporal-predecessor",
+			"contributing-condition",
+			"direct-cause",
+		]);
+		expect(first.shareArtifact?.durationSeconds).toBe(15);
+		expect(first.shareArtifact?.beats).toHaveLength(3);
+		expect(first.shareArtifact?.canonicalPath).toBe("/world");
+		expect(first.authorityHash).toMatch(/^[0-9a-f]{64}$/u);
+		const { authorityHash, ...withoutAuthorityHash } = first;
+		expect(await stateHash(withoutAuthorityHash)).toBe(authorityHash);
+		for (const item of first.events) {
+			const { postStateHash, ...withoutStateHash } = item;
+			expect(await stateHash(withoutStateHash)).toBe(postStateHash);
+		}
+	});
+
+	it("records a refused public allegation without presenting it as fact", async () => {
+		const experience = await buildGeneratedWorldExperience();
+		const iven = experience.sponsorSource.candidates.find(
+			({ name }) => name === "Iven Rook",
+		);
+		const sponsored = await createGeneratedSponsorAuthority(
+			experience.sponsorSource,
+			iven?.citizenId ?? "",
+		);
+		const resolved = await resolveGeneratedCounsel({
+			source: experience.sponsorSource,
+			authority: sponsored,
+			counsel: "raise-allegation-publicly",
+		});
+
+		expect(resolved.decision).toMatchObject({
+			actionKind: "FollowStandingPlan",
+			disposition: "rejected",
+		});
+		expect(
+			resolved.events.some(({ kind }) => kind === "AllegationRaised"),
+		).toBe(false);
+		expect(
+			resolved.chronicle.some(
+				({ relation }) => relation === "in-world-allegation",
+			),
+		).toBe(false);
+		expect(resolved.events.at(-1)?.publicFact).toMatch(
+			/kept its existing allocation commitment/u,
+		);
 	});
 });

@@ -255,3 +255,113 @@ export interface CivilizationEventProvenance {
 	readonly actorVisibleSourceEventIds: readonly EventId[];
 	readonly modelDecisionId: string | null;
 }
+
+/** The two bounded, high-level interventions in the Release Genesis proof. */
+export type GeneratedSponsorCounsel =
+	| "verify-reserve"
+	| "raise-allegation-publicly";
+
+/**
+ * A Chronicle relation is a claim about evidence, not a license to infer cause.
+ * `in-world-allegation` is deliberately disjoint from every factual relation.
+ */
+export type GeneratedChronicleRelation =
+	| "direct-cause"
+	| "trigger"
+	| "contributing-condition"
+	| "temporal-predecessor"
+	| "in-world-allegation";
+
+export type GeneratedSponsorEventKind =
+	| "SponsorshipEstablished"
+	| "CounselOffered"
+	| "CounselInterpreted"
+	| "AllegationRaised"
+	| "InstitutionCommitmentRecorded";
+
+export interface GeneratedSponsorCausalParent {
+	readonly eventId: EventId;
+	readonly relation: GeneratedChronicleRelation;
+}
+
+export type GeneratedSponsorEffect =
+	| {
+			readonly kind: "patron-covenant";
+			readonly patronPrincipalId: string;
+			readonly beneficiaryCitizenId: CitizenId;
+			readonly state: "active";
+	  }
+	| {
+			readonly kind: "counsel";
+			readonly counsel: GeneratedSponsorCounsel;
+	  }
+	| {
+			readonly kind: "independent-decision";
+			readonly actionKind:
+				| "VerifyReserve"
+				| "AccusePublicly"
+				| "FollowStandingPlan";
+			readonly disposition:
+				| "accepted"
+				| "rejected"
+				| "delayed"
+				| "reinterpreted";
+	  }
+	| {
+			readonly kind: "allegation";
+			readonly subjectCitizenId: CitizenId;
+			readonly truthStatus: "in-world-allegation";
+	  }
+	| {
+			readonly kind: "institution-commitment";
+			readonly institutionName: string;
+			readonly commitmentKind:
+				| "witnessed-reserve-check"
+				| "allocation-review"
+				| "existing-allocation-scheduled-review";
+			readonly state: "active";
+			readonly effectiveSimulationTime: number;
+	  };
+
+/** Append-only authority fact produced by the validated sponsor gateway. */
+export interface GeneratedSponsorEvent {
+	readonly schemaVersion: "eonfolk-generated-sponsor-event-v1";
+	readonly eventId: EventId;
+	readonly sequence: number;
+	readonly simulationTime: number;
+	readonly kind: GeneratedSponsorEventKind;
+	readonly citizenId: CitizenId;
+	readonly counterpartyCitizenId: CitizenId | null;
+	readonly settlementId: SettlementId;
+	readonly effect: GeneratedSponsorEffect;
+	readonly publicFact: string;
+	readonly causalParents: readonly GeneratedSponsorCausalParent[];
+	readonly mechanismId: string;
+	readonly decisionId: string | null;
+	readonly preStateHash: string;
+	readonly postStateHash: string;
+}
+
+export interface GeneratedChronicleSentence {
+	readonly sentenceId: string;
+	readonly text: string;
+	readonly relation: GeneratedChronicleRelation;
+	readonly evidenceEventIds: readonly EventId[];
+	readonly focus: {
+		readonly settlementId: SettlementId;
+		readonly citizenId: CitizenId | null;
+	};
+}
+
+export interface GeneratedShareArtifact {
+	readonly schemaVersion: "eonfolk-generated-share-artifact-v1";
+	readonly durationSeconds: 15;
+	readonly headline: string;
+	readonly beats: readonly [
+		GeneratedChronicleSentence,
+		GeneratedChronicleSentence,
+		GeneratedChronicleSentence,
+	];
+	readonly unresolvedTension: string;
+	readonly canonicalPath: "/world";
+}
