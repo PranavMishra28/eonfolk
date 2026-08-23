@@ -95,10 +95,41 @@ describe("V1 CI hardening", () => {
 		expect(workflow).toContain(
 			"--review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json",
 		);
-		expect(workflow).toContain("--mode draft --head");
+		expect(workflow).toContain("--mode draft");
 		expect(workflow).not.toContain(
 			"--mode ready --evidence tmp/eonfolk-verification-pr.json",
 		);
+		expect(workflow).toContain(
+			'if [[ "' + "$" + '{V1_EVENT_NAME}" == "push" ]]',
+		);
+		expect(workflow).toContain('V1_READINESS_MODE="ready"');
+		expect(workflow).toContain('--tested-kind "' + "$" + '{V1_TESTED_KIND}"');
+		expect(workflow).toContain('--tested-head "' + "$" + '{V1_TESTED_HEAD}"');
+		expect(workflow).toContain('--base-head "' + "$" + '{V1_BASE_HEAD}"');
+		expect(workflow).toContain('V1_TESTED_KIND="pull-request-merge"');
+		expect(workflow.match(/--tested-kind/g)).toHaveLength(2);
+		expect(workflow.match(/--tested-head/g)).toHaveLength(2);
+		expect(workflow.match(/--base-head/g)).toHaveLength(2);
+	});
+
+	it("validates the frozen dependency graph before either dependency fetch", () => {
+		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
+		const matches = workflow.match(
+			/name: Validate frozen dependency cohort before dependency fetch/g,
+		);
+		expect(matches).toHaveLength(2);
+		for (const jobStart of [
+			workflow.indexOf("  verify:"),
+			workflow.indexOf("  extended:"),
+		]) {
+			const cohort = workflow.indexOf(
+				"name: Validate frozen dependency cohort before dependency fetch",
+				jobStart,
+			);
+			const install = workflow.indexOf("name: Install dependencies", jobStart);
+			expect(cohort).toBeGreaterThan(jobStart);
+			expect(cohort).toBeLessThan(install);
+		}
 	});
 
 	it("binds exact candidate DEEP to the promoted local-model treatment", () => {

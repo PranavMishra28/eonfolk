@@ -93,6 +93,33 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 	]),
 	"portable-extended": Object.freeze(["apps/web/dist"]),
 });
+export const DEEP_BENCHMARK_CONTRACT = Object.freeze([
+	Object.freeze({
+		id: "persistence-bounded",
+		path: "tmp/eonfolk-persistence-benchmark.json",
+		schemaVersion: "eonfolk-persistence-benchmark-v2",
+	}),
+	Object.freeze({
+		id: "diagnostics-source",
+		path: "tmp/eonfolk-diagnostics-overhead.json",
+		schemaVersion: "eonfolk-diagnostics-overhead-evidence-v1",
+	}),
+	Object.freeze({
+		id: "diagnostics-browser",
+		path: "tmp/eonfolk-diagnostics-browser-comparison.json",
+		schemaVersion: "eonfolk-diagnostics-browser-comparison-v1",
+	}),
+	Object.freeze({
+		id: "release-genesis-web-performance",
+		path: "tmp/eonfolk-canonical-performance.json",
+		schemaVersion: "eonfolk-release-genesis-web-performance-v2",
+	}),
+	Object.freeze({
+		id: "local-model-treatment",
+		path: "tmp/eonfolk-local-model-benchmark.json",
+		schemaVersion: "eonfolk-local-model-benchmark-v2",
+	}),
+]);
 export const PRODUCTION_FAULT_SCAFFOLDING_MARKERS = Object.freeze([
 	"injected browser crash after durable transition",
 	"eonfolk:e2e-crash-after-transition",
@@ -136,6 +163,24 @@ export function verificationStepsForTier(tier) {
 			"usage: run-verification-tier.mjs pr|deep|portable-extended",
 		);
 	return TIER_STEPS[tier];
+}
+
+export function artifactPathsForTier(tier) {
+	if (!Object.hasOwn(ARTIFACT_PATHS_BY_TIER, tier))
+		throw new Error(
+			"usage: run-verification-tier.mjs pr|deep|portable-extended",
+		);
+	return ARTIFACT_PATHS_BY_TIER[tier];
+}
+
+export function verificationContractSha256(tier) {
+	return sha256(
+		JSON.stringify({
+			artifacts: artifactPathsForTier(tier),
+			benchmarks: tier === "deep" ? DEEP_BENCHMARK_CONTRACT : [],
+			steps: verificationStepsForTier(tier),
+		}),
+	);
 }
 
 export function claimBoundaryForTier(tier, status) {
@@ -246,6 +291,149 @@ function hashArtifacts(paths) {
 	return Object.freeze({
 		files,
 		manifestSha256: sha256(JSON.stringify(files)),
+	});
+}
+
+function finiteMeasurements(value) {
+	if (typeof value === "number") return Number.isFinite(value) && value >= 0;
+	if (Array.isArray(value))
+		return value.length > 0 && value.every(finiteMeasurements);
+	if (value !== null && typeof value === "object") {
+		const entries = Object.values(value);
+		return entries.length > 0 && entries.every(finiteMeasurements);
+	}
+	return typeof value === "string" && value.length > 0;
+}
+
+function assertArtifactSelfHash(report, hashField = "outputSha256") {
+	const expected = report[hashField];
+	if (typeof expected !== "string" || !/^[a-f0-9]{64}$/u.test(expected))
+		throw new Error(
+			`benchmark ${report.schemaVersion} has no valid ${hashField}`,
+		);
+	const { [hashField]: _hash, ...withoutHash } = report;
+	if (sha256(JSON.stringify(withoutHash)) !== expected)
+		throw new Error(
+			`benchmark ${report.schemaVersion} ${hashField} is invalid`,
+		);
+}
+
+function maximumFrameP95(mode) {
+	return Math.max(...Object.values(mode.frames).map((frame) => frame.p95Ms));
+}
+
+function benchmarkMeasurements(contract, report) {
+	switch (contract.id) {
+		case "persistence-bounded":
+			if (report.status !== "PASS" || report.acceptance?.pass !== true)
+				throw new Error("persistence benchmark is not an accepted gating PASS");
+			assertArtifactSelfHash(report);
+			return {
+				indexedDbAppendMedianMs: report.indexedDb?.appendMedianMilliseconds,
+				indexedDbRecoveryMedianMs: report.indexedDb?.recoveryMedianMilliseconds,
+				memoryAppendMedianMs: report.memory?.appendMedianMilliseconds,
+				memoryRecoveryMedianMs: report.memory?.recoveryMedianMilliseconds,
+			};
+		case "diagnostics-source":
+			if (report.status !== "PASS")
+				throw new Error("source diagnostics benchmark is not PASS");
+			return report.modes.map((mode) => ({
+				mode: mode.mode,
+				recordCallP95Ms: mode.recordCall?.p95Ms,
+			}));
+		case "diagnostics-browser":
+			if (report.status !== "PASS")
+				throw new Error("browser diagnostics benchmark is not PASS");
+			assertArtifactSelfHash(report);
+			return report.modes.map((mode) => ({
+				journeyMs: mode.journeyMs,
+				maximumFrameP95Ms: maximumFrameP95(mode),
+				mode: mode.mode,
+			}));
+		case "release-genesis-web-performance":
+			if (
+				report.canonical !== true ||
+				report.runtime?.power?.profileAccepted !== true ||
+				report.source?.stable !== true ||
+				report.source?.builtOutput?.stable !== true ||
+				report.fixture?.run !== "release-genesis-generated-world" ||
+				report.fixture?.route !== "/world" ||
+				report.runs?.length !== 15 ||
+				report.networkOracle?.externalRouteAttempts?.length !== 0 ||
+				report.networkOracle?.externalNetlogAttempts?.length !== 0
+			)
+				throw new Error("canonical web benchmark identity or gate is invalid");
+			return report.aggregates.map((profile) => ({
+				maximumMeaningfulWorldMs: Math.max(
+					...report.runs
+						.filter((run) => run.profile === profile.profile)
+						.map((run) => run.marks.meaningfulWorldMs),
+				),
+				pooledFrameP95Ms: profile.pooled?.p95Ms,
+				profile: profile.profile,
+			}));
+		case "local-model-treatment": {
+			const requiredGates = [
+				"completeCorpus",
+				"fallbackWithinFivePercent",
+				"freeDiskReserve",
+				"hiddenActionAgreementAtLeast98Percent",
+				"memoryPressureNormal",
+				"noSwapGrowth",
+				"warmP95WithinFourSeconds",
+			];
+			const gates = report.summary?.promotionGates ?? {};
+			if (
+				report.source?.dirty !== false ||
+				JSON.stringify(Object.keys(gates).sort()) !==
+					JSON.stringify(requiredGates) ||
+				!requiredGates.every((gate) => gates[gate] === true)
+			)
+				throw new Error("local-model benchmark promotion gates are not PASS");
+			return {
+				executions: report.summary?.executions,
+				fallbacks: report.summary?.fallbacks,
+				warmP95Ms: report.summary?.warmLatencyMs?.p95,
+			};
+		}
+		default:
+			throw new Error(`unknown DEEP benchmark ${contract.id}`);
+	}
+}
+
+function inspectDeepBenchmarkEvidence(sourceCommit, artifactManifest) {
+	const artifactHashes = new Map(
+		artifactManifest.files.map((file) => [file.path, file.sha256]),
+	);
+	return DEEP_BENCHMARK_CONTRACT.map((contract) => {
+		const report = JSON.parse(readFileSync(resolve(contract.path), "utf8"));
+		if (report.schemaVersion !== contract.schemaVersion)
+			throw new Error(`benchmark ${contract.id} schema is invalid`);
+		const sourceSha =
+			contract.id === "diagnostics-source" ||
+			contract.id === "local-model-treatment"
+				? report.source?.commit
+				: contract.id === "release-genesis-web-performance"
+					? report.source?.commit
+					: report.source?.start?.commit;
+		if (sourceSha !== sourceCommit)
+			throw new Error(`benchmark ${contract.id} is not bound to exact HEAD`);
+		const measurements = benchmarkMeasurements(contract, report);
+		if (!finiteMeasurements(measurements))
+			throw new Error(`benchmark ${contract.id} measurements are invalid`);
+		const artifactSha256 = artifactHashes.get(contract.path);
+		if (!/^[a-f0-9]{64}$/u.test(artifactSha256 ?? ""))
+			throw new Error(
+				`benchmark ${contract.id} is absent from artifact manifest`,
+			);
+		return Object.freeze({
+			artifactSha256,
+			id: contract.id,
+			measurements,
+			path: contract.path,
+			schemaVersion: contract.schemaVersion,
+			status: "PASS",
+		});
 	});
 }
 
@@ -671,7 +859,7 @@ async function main() {
 	}
 	const steps = verificationStepsForTier(tier);
 	if (process.argv.includes("--describe-artifacts")) {
-		process.stdout.write(`${JSON.stringify(ARTIFACT_PATHS_BY_TIER[tier])}\n`);
+		process.stdout.write(`${JSON.stringify(artifactPathsForTier(tier))}\n`);
 		return;
 	}
 	if (process.argv.includes("--describe-steps")) {
@@ -713,10 +901,16 @@ async function main() {
 		generatedWorldJourneysExecuted: 10,
 		generatedTargetExecuted: true,
 	});
+	const artifacts = hashArtifacts(artifactPathsForTier(tier));
+	const benchmarkEvidence =
+		tier === "deep" && execution.exitCode === 0
+			? inspectDeepBenchmarkEvidence(start.commit, artifacts)
+			: [];
 	const reportWithoutHash = {
 		schemaVersion: "eonfolk-verification-tier-v2",
 		tier,
 		status,
+		verificationContractSha256: verificationContractSha256(tier),
 		claimBoundary: claimBoundaryForTier(tier, status),
 		recordedAt: new Date().toISOString(),
 		source: {
@@ -763,7 +957,8 @@ async function main() {
 						},
 		subcommands: execution.steps,
 		artifactAssertions,
-		artifacts: hashArtifacts(ARTIFACT_PATHS_BY_TIER[tier]),
+		artifacts,
+		benchmarkEvidence,
 	};
 	const report = {
 		...reportWithoutHash,

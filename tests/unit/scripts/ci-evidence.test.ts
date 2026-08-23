@@ -7,9 +7,12 @@ import { parsePersistenceBenchmarkArguments } from "../../../scripts/benchmark-p
 import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
 import {
+	artifactPathsForTier,
 	claimBoundaryForTier,
+	DEEP_BENCHMARK_CONTRACT,
 	PRODUCTION_FAULT_SCAFFOLDING_MARKERS,
 	runVerificationSteps,
+	verificationContractSha256,
 	verificationStepsForTier,
 } from "../../../scripts/run-verification-tier.mjs";
 import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
@@ -181,6 +184,22 @@ describe("Founder Alpha CI evidence controls", () => {
 			"tmp/eonfolk-local-model-benchmark.json",
 		]);
 		expect(describeArtifacts("portable-extended")).toEqual(["apps/web/dist"]);
+	});
+
+	it("cryptographically binds the exact DEEP roster, artifacts, and benchmark identities", () => {
+		expect(verificationContractSha256("deep")).toMatch(/^[a-f0-9]{64}$/u);
+		expect(verificationContractSha256("deep")).not.toBe(
+			verificationContractSha256("pr"),
+		);
+		expect(DEEP_BENCHMARK_CONTRACT.map((entry) => entry.id)).toEqual([
+			"persistence-bounded",
+			"diagnostics-source",
+			"diagnostics-browser",
+			"release-genesis-web-performance",
+			"local-model-treatment",
+		]);
+		for (const benchmark of DEEP_BENCHMARK_CONTRACT)
+			expect(artifactPathsForTier("deep")).toContain(benchmark.path);
 	});
 
 	it("keeps PR and DEEP ordering while adding one portable extended superset", () => {

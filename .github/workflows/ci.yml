@@ -36,6 +36,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Validate frozen dependency cohort before dependency fetch
+        run: node scripts/validate-dependency-cohort.mjs
+
       - name: Check workflow syntax and shell contracts
         shell: bash
         run: |
@@ -121,18 +124,39 @@ jobs:
       - name: Enforce the V1 readiness claim boundary
         shell: bash
         env:
-          V1_READINESS_MODE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false && 'ready' || 'draft' }}
+          V1_EVENT_NAME: ${{ github.event_name }}
+          V1_PULL_REQUEST_DRAFT: ${{ github.event.pull_request.draft }}
+          V1_BASE_HEAD: ${{ github.event.pull_request.base.sha || github.event.before }}
           V1_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          V1_TESTED_HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
+          V1_READINESS_MODE="draft"
+          if [[ "${V1_EVENT_NAME}" == "push" ]]; then
+            V1_READINESS_MODE="ready"
+          elif [[ "${V1_EVENT_NAME}" == "pull_request" ]] && [[ "${V1_PULL_REQUEST_DRAFT}" == "false" ]]; then
+            V1_READINESS_MODE="ready"
+          fi
+          V1_TESTED_KIND="candidate"
+          if [[ "${V1_EVENT_NAME}" == "pull_request" ]]; then
+            V1_TESTED_KIND="pull-request-merge"
+          fi
           if [[ "${V1_READINESS_MODE}" == "ready" ]]; then
             node scripts/check-v1-readiness.mjs \
               --mode ready \
               --head "${V1_BRANCH_HEAD}" \
+              --base-head "${V1_BASE_HEAD}" \
+              --tested-head "${V1_TESTED_HEAD}" \
+              --tested-kind "${V1_TESTED_KIND}" \
               --deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json \
               --review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json
           else
-            node scripts/check-v1-readiness.mjs --mode draft --head "${V1_BRANCH_HEAD}"
+            node scripts/check-v1-readiness.mjs \
+              --mode draft \
+              --head "${V1_BRANCH_HEAD}" \
+              --base-head "${V1_BASE_HEAD}" \
+              --tested-head "${V1_TESTED_HEAD}" \
+              --tested-kind "${V1_TESTED_KIND}"
           fi
 
       - name: Capture Release Genesis and legacy regression browser evidence
@@ -192,6 +216,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Validate frozen dependency cohort before dependency fetch
+        run: node scripts/validate-dependency-cohort.mjs
 
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
