@@ -1,0 +1,23 @@
+{
+	"schemaVersion": "eonfolk-generated-asset-manifest-v1",
+	"createdAt": "2026-08-23",
+	"budget": {
+		"maximumInitialGeneratedAssetBytes": 4194304,
+		"trackedBytes": 3522
+	},
+	"assets": [
+		{
+			"assetId": "eonfolk-folk-proxy-v1",
+			"path": "/assets/generated/eonfolk-folk-proxy.gltf",
+			"mediaType": "model/gltf+json",
+			"byteLength": 3522,
+			"sha256": "8314ce09ca546ce516de51c04d444de12f75b92409f1fcbc955068c31da6b533",
+			"source": "repository-authored deterministic geometry",
+			"generator": "hand-authored glTF 2.0 JSON with embedded cube geometry",
+			"rights": "repository-authored; no third-party material",
+			"externalDependencies": [],
+			"intendedRole": "recognizable humanoid proxy with named limbs and a task-prop anchor",
+			"productionStatus": "bounded V1 proxy; not final character art"
+		}
+	]
+}
