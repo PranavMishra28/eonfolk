@@ -44,8 +44,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-/** Exact v4 namespace: earlier authority bytes remain untouched and cannot be misread. */
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v4";
+/** Exact v5 namespace: earlier authority bytes remain untouched and cannot be misread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v5";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -323,8 +323,8 @@ export async function buildGeneratedWorldExperience(
 		authorityStateHash === null
 			? null
 			: {
-					schemaVersion: "eonfolk-civilization-experiment-v8" as const,
-					runnerVersion: "eonfolk-civilization-runner-v8" as const,
+					schemaVersion: "eonfolk-civilization-experiment-v9" as const,
+					runnerVersion: "eonfolk-civilization-runner-v9" as const,
 					worldIdentityHash: generatedWorld.identity.identityHash,
 					horizonDays: durableHorizon,
 					finalStateHash: authorityStateHash,

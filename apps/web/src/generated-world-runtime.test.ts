@@ -28,7 +28,7 @@ describe("canonical generated-world browser experience", () => {
 			restored: false,
 			catchUpReceipts: 0,
 		});
-		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v4");
+		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v5");
 	});
 
 	it("projects every actual resident exactly once across founded settlements", async () => {

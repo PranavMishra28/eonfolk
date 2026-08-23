@@ -64,7 +64,7 @@ describe("Release Genesis civilization persistence", () => {
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v8",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v9",
 			stateVersion: "eonfolk-release-genesis-civilization-state-v7",
 			transitionVersion: "eonfolk-release-genesis-civilization-transition-v6",
 		});
@@ -205,6 +205,17 @@ describe("Release Genesis civilization persistence", () => {
 					{
 						...input.checkpoints[0]!,
 						schemaVersion: "future-civilization-v3",
+					} as CivilizationExperimentCheckpoint,
+				],
+			}),
+		).rejects.toMatchObject({ code: "UNSUPPORTED_VERSION" });
+		await expect(
+			createCivilizationPersistencePlan({
+				...input,
+				checkpoints: [
+					{
+						...input.checkpoints[0]!,
+						schemaVersion: "eonfolk-civilization-experiment-v8",
 					} as CivilizationExperimentCheckpoint,
 				],
 			}),

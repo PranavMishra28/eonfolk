@@ -10,7 +10,7 @@ import {
 	validateAuthorityEventRecord,
 } from "@eonfolk/persistence";
 
-const AUTHORITY_DATABASE = "eonfolk-generated-authority-v4";
+const AUTHORITY_DATABASE = "eonfolk-generated-authority-v5";
 const RELEASE_GENESIS_RUN_ID = "v1-generated-civilization";
 const AUTHORITY_STORES = Object.freeze({
 	streams: "authorityStreams",

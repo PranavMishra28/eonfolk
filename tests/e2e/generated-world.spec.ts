@@ -38,7 +38,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v4",
+					"eonfolk-generated-authority-v5",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -60,7 +60,7 @@ async function inspectGeneratedCheckpoint(page: Page) {
 				readonly stateHash: string;
 				readonly simulationTime: number;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4", 1);
+				const request = indexedDB.open("eonfolk-generated-authority-v5", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -124,7 +124,7 @@ async function generatedAuthorityFingerprint(page: Page) {
 				readonly counts: Readonly<Record<string, number>>;
 				readonly digest: string;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4");
+				const request = indexedDB.open("eonfolk-generated-authority-v5");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;
@@ -188,6 +188,89 @@ async function generatedAuthorityFingerprint(page: Page) {
 	);
 }
 
+async function seedLegacyGeneratedAuthority(page: Page) {
+	return page.evaluate(
+		() =>
+			new Promise<{
+				readonly databaseVersion: number;
+				readonly record: unknown;
+				readonly stores: readonly string[];
+			}>((resolve, reject) => {
+				// v4 is deliberately retained as a legacy namespace. Current code must
+				// neither restore it nor reclassify its bytes as v9 authority.
+				const legacyDatabaseName = "eonfolk-generated-authority-v4";
+				const deletion = indexedDB.deleteDatabase(legacyDatabaseName);
+				deletion.onerror = () => reject(deletion.error);
+				deletion.onsuccess = () => {
+					const request = indexedDB.open(legacyDatabaseName, 1);
+					request.onerror = () => reject(request.error);
+					request.onupgradeneeded = () => {
+						request.result.createObjectStore("legacyAuthoritySentinel", {
+							keyPath: "key",
+						});
+					};
+					request.onsuccess = () => {
+						const database = request.result;
+						const transaction = database.transaction(
+							"legacyAuthoritySentinel",
+							"readwrite",
+						);
+						transaction.objectStore("legacyAuthoritySentinel").put({
+							key: "pre-v9",
+							payload: "stale-authority-must-remain-in-v4",
+						});
+						transaction.onerror = () => reject(transaction.error);
+						transaction.oncomplete = () => {
+							const read = database
+								.transaction("legacyAuthoritySentinel", "readonly")
+								.objectStore("legacyAuthoritySentinel")
+								.get("pre-v9");
+							read.onerror = () => reject(read.error);
+							read.onsuccess = () => {
+								resolve({
+									databaseVersion: database.version,
+									record: read.result,
+									stores: [...database.objectStoreNames],
+								});
+								database.close();
+							};
+						};
+					};
+				};
+			}),
+	);
+}
+
+async function inspectLegacyGeneratedAuthority(page: Page) {
+	return page.evaluate(
+		() =>
+			new Promise<{
+				readonly databaseVersion: number;
+				readonly record: unknown;
+				readonly stores: readonly string[];
+			}>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-generated-authority-v4");
+				request.onerror = () => reject(request.error);
+				request.onsuccess = () => {
+					const database = request.result;
+					const read = database
+						.transaction("legacyAuthoritySentinel", "readonly")
+						.objectStore("legacyAuthoritySentinel")
+						.get("pre-v9");
+					read.onerror = () => reject(read.error);
+					read.onsuccess = () => {
+						resolve({
+							databaseVersion: database.version,
+							record: read.result,
+							stores: [...database.objectStoreNames],
+						});
+						database.close();
+					};
+				};
+			}),
+	);
+}
+
 async function corruptGeneratedAuthority(
 	page: Page,
 	kind: "genesis-schema" | "engine-version" | "range-gap",
@@ -206,7 +289,7 @@ async function corruptGeneratedAuthority(
 					reject(transaction.error ?? new Error("corruption fixture aborted"));
 			});
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority-v4"),
+			indexedDB.open("eonfolk-generated-authority-v5"),
 		);
 		try {
 			if (kind === "range-gap") {
@@ -330,9 +413,9 @@ async function replaceGeneratedAuthorityWithOrphan(
 				request.onsuccess = () => resolve(request.result);
 				request.onerror = () => reject(request.error);
 			});
-		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority-v4");
+		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority-v5");
 		await requested(deleted);
-		const opened = indexedDB.open("eonfolk-generated-authority-v4", 1);
+		const opened = indexedDB.open("eonfolk-generated-authority-v5", 1);
 		opened.onupgradeneeded = () => {
 			for (const name of [
 				"authorityStreams",
@@ -396,7 +479,7 @@ async function forgeGeneratedAuthorityRowIdentity(
 				request.onerror = () => reject(request.error);
 			});
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority-v4"),
+			indexedDB.open("eonfolk-generated-authority-v5"),
 		);
 		try {
 			const transaction = opened.transaction(store, "readwrite");
@@ -465,7 +548,7 @@ async function installGeneratedAuthorityStreamFixture(
 		const runId = "v1-generated-civilization";
 		const expectedKey = JSON.stringify([runId, worldId]);
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority-v4"),
+			indexedDB.open("eonfolk-generated-authority-v5"),
 		);
 		const read = opened.transaction("authorityStreams", "readonly");
 		const readDone = completed(read);
@@ -485,9 +568,9 @@ async function installGeneratedAuthorityStreamFixture(
 
 		if (kind.startsWith("missing-")) {
 			await requested(
-				indexedDB.deleteDatabase("eonfolk-generated-authority-v4"),
+				indexedDB.deleteDatabase("eonfolk-generated-authority-v5"),
 			);
-			const recreated = indexedDB.open("eonfolk-generated-authority-v4", 1);
+			const recreated = indexedDB.open("eonfolk-generated-authority-v5", 1);
 			recreated.onupgradeneeded = () => {
 				for (const name of [
 					"authorityStreams",
@@ -517,7 +600,7 @@ async function installGeneratedAuthorityStreamFixture(
 		}
 
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority-v4"),
+			indexedDB.open("eonfolk-generated-authority-v5"),
 		);
 		try {
 			const write = database.transaction("authorityStreams", "readwrite");
@@ -750,6 +833,45 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	expect(
 		routeStates?.filter((state) => state.includes(":travelling:")).length,
 	).toBe(movingActorCount);
+	expect(externalRequests).toEqual([]);
+});
+
+test("v5 authority ignores and preserves legacy v4 bytes @generated-world", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	const legacyBefore = await seedLegacyGeneratedAuthority(page);
+
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	const world = page.locator("main.v1-world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+		timeout: 30_000,
+	});
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	await expect(canvas).toHaveAttribute(
+		"data-actor-route-states",
+		/\bcitizen-05:travelling:/u,
+	);
+	const currentAuthority = await inspectGeneratedCheckpoint(page);
+	expect(currentAuthority.eventCount).toBeGreaterThan(0);
+	expect(currentAuthority.snapshotCount).toBeGreaterThan(0);
+	expect(currentAuthority.stateHash).toMatch(/^[0-9a-f]{64}$/u);
+
+	expect(await inspectLegacyGeneratedAuthority(page)).toEqual(legacyBefore);
+	expect(legacyBefore).toEqual({
+		databaseVersion: 1,
+		record: {
+			key: "pre-v9",
+			payload: "stale-authority-must-remain-in-v4",
+		},
+		stores: ["legacyAuthoritySentinel"],
+	});
 	expect(externalRequests).toEqual([]);
 });
 
@@ -1165,7 +1287,7 @@ test("entry admits the deterministic view when canonical IndexedDB is newer @gen
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4", 2);
+				const request = indexedDB.open("eonfolk-generated-authority-v5", 2);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -1729,7 +1851,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await blocker.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4");
+				const request = indexedDB.open("eonfolk-generated-authority-v5");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					request.result.onversionchange = () => undefined;

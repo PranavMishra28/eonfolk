@@ -135,6 +135,19 @@ describe("deterministic civilization experiment", () => {
 		const second = await runCivilizationExperiment({ world, horizonDays: 365 });
 
 		expect(jcs(second)).toBe(jcs(first));
+		expect({
+			eventVersions: [
+				...new Set(first.events.map((event) => event.schemaVersion)),
+			],
+			runnerVersion: first.runnerVersion,
+			schemaVersion: first.schemaVersion,
+			stepVersions: [...new Set(first.steps.map((step) => step.schemaVersion))],
+		}).toEqual({
+			eventVersions: ["eonfolk-civilization-experiment-event-v9"],
+			runnerVersion: "eonfolk-civilization-runner-v9",
+			schemaVersion: "eonfolk-civilization-experiment-v9",
+			stepVersions: ["eonfolk-civilization-experiment-step-v9"],
+		});
 		expect(first.steps).toHaveLength(365);
 		expect(first.steps[0]?.fromSimulationTime).toBe(0);
 		expect(first.steps.at(-1)?.toSimulationTime).toBe(365 * 86_400);

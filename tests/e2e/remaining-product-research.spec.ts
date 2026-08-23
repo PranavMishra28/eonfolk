@@ -19,7 +19,7 @@ async function resetReleaseGenesisAuthority(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v4",
+					"eonfolk-generated-authority-v5",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -33,7 +33,7 @@ async function authorityFingerprint(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4");
+				const request = indexedDB.open("eonfolk-generated-authority-v5");
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -104,7 +104,7 @@ async function authorityStateHash(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v4");
+				const request = indexedDB.open("eonfolk-generated-authority-v5");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;

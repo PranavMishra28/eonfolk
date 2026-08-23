@@ -73,13 +73,13 @@ import {
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v8" as const;
+	"eonfolk-civilization-experiment-v9" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v8" as const;
+	"eonfolk-civilization-runner-v9" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v8" as const;
+	"eonfolk-civilization-experiment-event-v9" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v8" as const;
+	"eonfolk-civilization-experiment-step-v9" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;

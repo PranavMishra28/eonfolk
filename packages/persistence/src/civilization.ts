@@ -1,10 +1,10 @@
 import {
 	advanceGeneralizedScheduler,
 	assertCivilizationInvariants,
-	deriveCivilizationSchedulerPolicy,
-	projectCivilizationScheduledActivities,
 	type CivilizationCounselOutcomeEffect,
 	type CivilizationState,
+	deriveCivilizationSchedulerPolicy,
+	projectCivilizationScheduledActivities,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
 import {
@@ -44,7 +44,7 @@ export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
 	"eonfolk-release-genesis-civilization-transition-v6" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v8" as const;
+	"eonfolk-release-genesis-civilization-engine-v9" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -52,11 +52,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v8" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v8" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v9" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v9" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v8" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v8" as const;
+	"eonfolk-civilization-experiment-event-v9" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v9" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
