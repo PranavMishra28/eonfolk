@@ -59,15 +59,15 @@
 |---|---|
 | Canonical/subjective/derived/research data classification in code | IN PROGRESS |
 | Population, households, relationships, roles, and bounded demographic change | NOT STARTED |
-| Typed resource stocks, storage, flows, units, and conservation | NOT STARTED |
-| Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | NOT STARTED |
+| Typed resource stocks, storage, flows, units, and conservation | VERIFIED |
+| Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | IN PROGRESS |
 | Grounded needs and pressures with imperfect observability | NOT STARTED |
-| Generic Project lifecycle, milestones, dependencies, accounting, failure, and abandonment | NOT STARTED |
-| Physical construction/project progress | NOT STARTED |
-| Generic Institution, membership, authority, resources, commitments, and norms | NOT STARTED |
-| Minimal agreement/policy primitive needed for collective action | NOT STARTED |
-| Migration with physical people/resource accounting | NOT STARTED |
-| Generic settlement-founding process | NOT STARTED |
+| Generic Project lifecycle, milestones, dependencies, accounting, failure, and abandonment | VERIFIED |
+| Physical construction/project progress | IN PROGRESS |
+| Generic Institution, membership, authority, resources, commitments, and norms | IN PROGRESS |
+| Minimal agreement/policy primitive needed for collective action | IN PROGRESS |
+| Migration with physical people/resource accounting | IN PROGRESS |
+| Generic settlement-founding process | IN PROGRESS |
 | Legitimate seeded second viable settlement evidence without a time trigger | NOT STARTED |
 | Legitimate stagnant/failing seed evidence | NOT STARTED |
 | 30/90/365-day civilization experiment matrix and metrics | NOT STARTED |
@@ -81,7 +81,7 @@
 | Project/forward planner uses actor-visible facts and legal affordances | IN PROGRESS |
 | Executable local Model Brain treatment | NOT STARTED |
 | Real M4 Max model/runtime benchmark and promoted treatment | IN PROGRESS |
-| Versioned structured model-decision contract and provenance | NOT STARTED |
+| Versioned structured model-decision contract and provenance | VERIFIED |
 | Schema, semantic, authority, and world validation after model output | IN PROGRESS |
 | Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | IN PROGRESS |
 | Episodic, semantic, social, goal, commitment, and reflection memory | NOT STARTED |
@@ -133,7 +133,7 @@
 | FAST lane covers V1 architecture, code, build, and focused properties | IN PROGRESS |
 | DEEP lane covers all V1 software and exact candidate evidence | NOT STARTED |
 | Generator/world/project/resource/migration/founding properties | IN PROGRESS |
-| Cognition/model validation, fallback, epistemic isolation, and replay tests | NOT STARTED |
+| Cognition/model validation, fallback, epistemic isolation, and replay tests | IN PROGRESS |
 | Long-horizon civilization matrix | NOT STARTED |
 | Persistence/replay/catch-up equivalence and long-history tests | NOT STARTED |
 | Browser journeys and temporal Living World tests | NOT STARTED |
