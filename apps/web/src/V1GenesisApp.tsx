@@ -858,7 +858,7 @@ function GeneratedContextPanel({
 																kind: "location",
 																locationId: selectedActor.placeId,
 															},
-															"Site",
+															"Current site",
 														)}
 											</li>
 										))}

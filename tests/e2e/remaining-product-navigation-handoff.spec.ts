@@ -248,7 +248,9 @@ for (const viewport of [
 			),
 		).toBe(navigationCount);
 
-		const locationLink = page.getByRole("link", { name: "Site" }).first();
+		const locationLink = page
+			.getByRole("link", { name: "Current site" })
+			.first();
 		const locationFocus = parseWorldFocusHref(
 			(await locationLink.getAttribute("href")) ?? "",
 		);
