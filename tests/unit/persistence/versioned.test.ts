@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	AUTHORITY_APPEND_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	EMPTY_EVENT_HASH,
 	MemoryVersionedPersistence,
 	PERSISTENCE_MIGRATION_POLICY,
@@ -156,13 +157,14 @@ describe("MemoryVersionedPersistence", () => {
 	it("publishes an exact-only version and migration contract", () => {
 		expect(PERSISTENCE_MIGRATION_POLICY).toMatchObject({
 			mode: "exact-only",
-			portVersion: "eonfolk-persistence-port-v1",
+			portVersion: "eonfolk-persistence-port-v3",
 		});
 		expect(
 			Object.keys(PERSISTENCE_MIGRATION_POLICY.supportedRecordVersions),
 		).toEqual([
 			"append",
 			"appendReceipt",
+			"rejection",
 			"event",
 			"genesis",
 			"head",
@@ -218,6 +220,64 @@ describe("MemoryVersionedPersistence", () => {
 				})
 			).map((event) => event.sequence),
 		).toEqual([1, 2]);
+	});
+
+	it("persists rejected receipts atomically without moving the world head", async () => {
+		const crash = new OneShotCrash();
+		const port = new MemoryVersionedPersistence({ crashInjector: crash });
+		await port.initialize(await genesis());
+		const head = await port.loadHead(SCOPE);
+		const request = {
+			...SCOPE,
+			schemaVersion: AUTHORITY_REJECTION_SCHEMA_VERSION,
+			appendId: "rejected-command-1",
+			expectedRevision: head.revision,
+			expectedLastSequence: head.lastSequence,
+			expectedStateHash: head.stateHash,
+			expectedLastEventHash: head.lastEventHash,
+			fencingToken: head.fencingToken,
+			commandReceipt: { outcome: "rejected" },
+		} as const;
+		crash.point = "authority-rejection:before-commit";
+		await expect(port.recordRejectedCommand(request)).rejects.toThrow(
+			"injected crash",
+		);
+		expect(await port.getAppendReceipt(SCOPE, request.appendId)).toBeNull();
+		expect(await port.loadHead(SCOPE)).toEqual(head);
+		crash.point = "authority-rejection:after-commit";
+		await expect(port.recordRejectedCommand(request)).rejects.toThrow(
+			"injected crash",
+		);
+		const retry = await port.recordRejectedCommand(request);
+		expect(retry.idempotent).toBe(true);
+		expect(retry.head).toEqual(head);
+		expect(retry.receipt.fromSequenceInclusive).toBe(
+			retry.receipt.toSequenceExclusive,
+		);
+		expect(
+			await port.getEventRange({
+				...SCOPE,
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: 1,
+			}),
+		).toEqual([]);
+	});
+
+	it("rejects an authority record above the exact default byte cap", async () => {
+		const port = new MemoryVersionedPersistence();
+		await port.initialize(await genesis());
+		const head = await port.loadHead(SCOPE);
+		const request = await append(head, 1, [1]);
+		const event = request.events[0]!;
+		const { eventHash: _eventHash, ...withoutHash } = event;
+		const oversized = await createAuthorityEvent({
+			...withoutHash,
+			payload: { padding: "x".repeat(262_144) },
+		});
+		await expect(
+			port.appendEventBatch({ ...request, events: [oversized] }),
+		).rejects.toMatchObject({ code: "STORAGE_LIMIT" });
+		expect(await port.loadHead(SCOPE)).toEqual(head);
 	});
 
 	it("rejects changed retries, duplicate batches, stale writers, gaps, and corrupt records", async () => {

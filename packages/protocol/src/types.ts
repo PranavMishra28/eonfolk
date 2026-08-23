@@ -52,7 +52,7 @@ export interface SemanticTravelState {
 	readonly task: BehaviorFamily;
 }
 
-export const PROTOCOL_SCHEMA_VERSION = "1" as const;
+export const PROTOCOL_SCHEMA_VERSION = "2" as const;
 export const ENGINE_VERSION = "1" as const;
 export const DETERMINISM_VERSION = "eonfolk-determinism-v2" as const;
 export const REPLAY_VERSION = "eonfolk-replay-v1" as const;
@@ -70,6 +70,11 @@ export type Principal =
 
 export type WorldCommandPayload =
 	| { readonly kind: "Observe"; readonly targetId: string }
+	| {
+			readonly kind: "EstablishSponsorship";
+			readonly covenantId: string;
+			readonly citizenId: CitizenId;
+	  }
 	| {
 			readonly kind: "MoveCitizen";
 			readonly citizenId: CitizenId;
@@ -106,6 +111,12 @@ export type WorldCommandPayload =
 			readonly interventionId: string;
 			readonly citizenId: CitizenId;
 			readonly intent: "verify-reserve" | "accuse-publicly";
+	  }
+	| {
+			readonly kind: "RecordPatronAbstention";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
 	  }
 	| {
 			readonly kind: "ResolveCounsel";
@@ -177,12 +188,21 @@ export interface Provenance {
 	readonly proposalId?: ProposalId;
 }
 
+export interface SponsorshipEstablishedPayload {
+	readonly kind: "SponsorshipEstablished";
+	readonly covenantId: string;
+	readonly patronPrincipalId: string;
+	readonly citizenId: CitizenId;
+	readonly settlementId: string;
+}
+
 export type WorldEventPayload =
 	| {
 			readonly kind: "Observed";
 			readonly observerId: CitizenId;
 			readonly targetId: string;
 	  }
+	| SponsorshipEstablishedPayload
 	| {
 			readonly kind: "CitizenMoved";
 			readonly citizenId: CitizenId;
@@ -250,12 +270,19 @@ export type WorldEventPayload =
 			readonly intent: "verify-reserve" | "accuse-publicly";
 	  }
 	| {
+			readonly kind: "PatronAbstained";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
+	  }
+	| {
 			readonly kind: "CounselInterpreted";
 			readonly citizenId: CitizenId;
 			readonly interventionId: string | null;
 			readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
 			readonly disposition:
 				| "accepted"
+				| "delayed"
 				| "rejected"
 				| "reinterpreted"
 				| "not-applicable";
@@ -610,6 +637,7 @@ export interface ActionCatalogEntry {
 		| "relationship"
 		| "evidence"
 		| "risk"
+		| "delay"
 		| "counsel"
 	)[];
 	readonly evidenceRecordIds: readonly string[];
@@ -640,7 +668,7 @@ export interface DecisionContext {
 	readonly values: readonly ValuePriority[];
 	readonly relationships: readonly RelationshipState[];
 	readonly activeStandingPlan: StandingPlan;
-	readonly actionCatalogVersion: "riverhold-actions-v1";
+	readonly actionCatalogVersion: "civilization-actions-v1";
 	readonly actionCatalog: readonly ActionCatalogEntry[];
 	readonly budgets: DecisionBudgets;
 	readonly counselIntent: "verify-reserve" | "accuse-publicly" | null;

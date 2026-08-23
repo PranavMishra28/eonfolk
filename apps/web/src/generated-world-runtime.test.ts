@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	buildGeneratedWorldExperience,
 	GENERATED_WORLD_HORIZON_DAYS,
+	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
 import { V1_GENESIS_WORLD_ID } from "./v1-genesis-runtime";
@@ -27,6 +28,7 @@ describe("canonical generated-world browser experience", () => {
 			restored: false,
 			catchUpReceipts: 0,
 		});
+		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v4");
 	});
 
 	it("projects every actual resident exactly once across founded settlements", async () => {

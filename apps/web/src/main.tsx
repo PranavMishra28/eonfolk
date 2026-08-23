@@ -17,6 +17,11 @@ const V1GenesisApp = lazy(async () => {
 	return { default: module.V1GenesisApp };
 });
 
+const GenesisEntryApp = lazy(async () => {
+	const module = await import("./GenesisEntryApp");
+	return { default: module.GenesisEntryApp };
+});
+
 const RiverholdApp = lazy(async () => {
 	const module = await import("./RiverholdApp");
 	return { default: module.RiverholdApp };
@@ -97,7 +102,7 @@ reactRoot.render(
 					</main>
 				}
 			>
-				<V1GenesisApp route={genesisRoute} />
+				{genesisRoute === "entry" ? <GenesisEntryApp /> : <V1GenesisApp />}
 			</Suspense>
 		) : normalizedPath === "/research" || normalizedPath === "/developer" ? (
 			<Suspense

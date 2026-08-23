@@ -4,6 +4,11 @@
 	"version": "0.0.0",
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./civilization-sponsor": "./src/civilization-sponsor.ts"
+	},
+	"dependencies": {
+		"@eonfolk/civilization": "workspace:*",
+		"@eonfolk/protocol": "workspace:*"
 	}
 }

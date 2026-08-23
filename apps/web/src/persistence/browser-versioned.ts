@@ -11,6 +11,7 @@ import {
 	type InitializeAuthorityResult,
 	MemoryVersionedPersistence,
 	PersistenceError,
+	type RecordRejectedAuthorityCommandRequest,
 	type SaveAuthoritySnapshotRequest,
 	VERSIONED_PERSISTENCE_PORT_VERSION,
 	type VersionedCrashInjector,
@@ -34,6 +35,11 @@ type AuthorityOperation =
 			readonly kind: "append";
 			readonly ordinal: number;
 			readonly request: AppendAuthorityBatchRequest;
+	  }
+	| {
+			readonly kind: "rejection";
+			readonly ordinal: number;
+			readonly request: RecordRejectedAuthorityCommandRequest;
 	  }
 	| {
 			readonly kind: "fence";
@@ -418,6 +424,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			for (const operation of bundle.operations) {
 				if (operation.kind === "append")
 					await memory.appendEventBatch(operation.request);
+				else if (operation.kind === "rejection")
+					await memory.recordRejectedCommand(operation.request);
 				else if (operation.kind === "fence")
 					await memory.acquireWriterFence(
 						bundle.stream.genesis,
@@ -458,14 +466,16 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			)
 			.flatMap((operation) => operation.request.events)
 			.sort((left, right) => left.sequence - right.sequence);
-		const appendOperations = bundle.operations.filter(
+		const receiptOperations = bundle.operations.filter(
 			(
 				operation,
-			): operation is Extract<AuthorityOperation, { kind: "append" }> =>
-				operation.kind === "append",
+			): operation is Extract<
+				AuthorityOperation,
+				{ kind: "append" | "rejection" }
+			> => operation.kind === "append" || operation.kind === "rejection",
 		);
 		const expectedReceipts = await Promise.all(
-			appendOperations.map(async (operation) => {
+			receiptOperations.map(async (operation) => {
 				const receipt = await memory.getAppendReceipt(
 					bundle.stream.genesis,
 					operation.request.appendId,
@@ -683,6 +693,34 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			},
 			before: "authority-append:before-commit",
 			after: "authority-append:after-commit",
+		});
+		return clone(result);
+	}
+
+	async recordRejectedCommand(
+		request: RecordRejectedAuthorityCommandRequest,
+	): Promise<AppendAuthorityBatchResult> {
+		const bundle = await this.#readBundle(request);
+		const result = await (await this.#hydrate(bundle)).recordRejectedCommand(
+			request,
+		);
+		if (result.idempotent) return clone(result);
+		await this.#commitOperation({
+			bundle,
+			operation: {
+				kind: "rejection",
+				ordinal: bundle.stream.operationCount,
+				request: clone(request),
+			},
+			head: result.head,
+			write: (transaction) =>
+				transaction.objectStore(GENERATED_AUTHORITY_STORES.receipts).put({
+					key: recordKey(request, request.appendId),
+					streamKey: streamKey(request),
+					value: clone(result.receipt),
+				} satisfies KeyedRow<AuthorityAppendReceipt>),
+			before: "authority-rejection:before-commit",
+			after: "authority-rejection:after-commit",
 		});
 		return clone(result);
 	}

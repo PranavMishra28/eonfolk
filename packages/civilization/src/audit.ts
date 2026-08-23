@@ -21,6 +21,10 @@ export function auditCivilizationState(
 	state: CivilizationState,
 ): AccountingAudit {
 	const issues: string[] = [];
+	if (state.schemaVersion !== "eonfolk-civilization-kernel-v5")
+		issues.push(
+			`unsupported civilization schema ${String(state.schemaVersion)}`,
+		);
 	const householdByCitizen = new Map<string, string>();
 	for (const [citizenId, citizen] of Object.entries(state.citizens)) {
 		if (citizen.citizenId !== citizenId)
@@ -95,6 +99,264 @@ export function auditCivilizationState(
 			)
 		)
 			issues.push(`relationship ${relationshipId} has invalid ratings`);
+	}
+	for (const [citizenId, mind] of Object.entries(state.minds)) {
+		const citizen = state.citizens[citizenId];
+		if (
+			mind.schemaVersion !== "eonfolk-civilization-mind-v1" ||
+			mind.citizenId !== citizenId ||
+			mind.snapshot.citizenId !== citizenId ||
+			citizen === undefined
+		)
+			issues.push(`mind ${citizenId} has invalid identity`);
+		if (
+			!Number.isSafeInteger(mind.committedAtRevision) ||
+			mind.committedAtRevision < 0 ||
+			mind.committedAtRevision >= state.revision ||
+			!Number.isSafeInteger(mind.committedAtSimulationTime) ||
+			mind.committedAtSimulationTime < 0 ||
+			mind.committedAtSimulationTime > state.simulationTime
+		)
+			issues.push(`mind ${citizenId} has an invalid commitment boundary`);
+		if (
+			citizen !== undefined &&
+			(mind.snapshot.values.length !== citizen.valueIds.length ||
+				new Set(mind.snapshot.values.map(({ valueId }) => valueId)).size !==
+					mind.snapshot.values.length ||
+				mind.snapshot.values.some(
+					(value) =>
+						!citizen.valueIds.includes(value.valueId) ||
+						!Number.isSafeInteger(value.weight) ||
+						value.weight < 0,
+				))
+		)
+			issues.push(`mind ${citizenId} has invalid values`);
+		for (const relationship of mind.snapshot.relationships) {
+			const canonical = state.relationships[relationship.relationshipId];
+			if (
+				canonical === undefined ||
+				canonical.fromCitizenId !== citizenId ||
+				canonical.fromCitizenId !== relationship.fromCitizenId ||
+				canonical.toCitizenId !== relationship.toCitizenId ||
+				canonical.familiarityBasisPoints !== relationship.familiarity ||
+				canonical.trustBasisPoints !== relationship.trust ||
+				canonical.strainBasisPoints !== relationship.strain
+			)
+				issues.push(
+					`mind ${citizenId} has stale relationship ${relationship.relationshipId}`,
+				);
+		}
+		const provenanceIds = new Set(
+			state.provenance.map(({ eventId }) => eventId),
+		);
+		for (const record of mind.snapshot.records)
+			if (
+				record.subjectCitizenId !== citizenId ||
+				record.sourceIds.length === 0 ||
+				record.sourceIds.some(
+					(sourceId) =>
+						!state.citizens[citizenId]?.sourceEventIds.includes(sourceId),
+				) ||
+				record.sourceIds.some((sourceId) => !provenanceIds.has(sourceId))
+			)
+				issues.push(
+					`mind ${citizenId} has unauthoritative record ${record.recordId}`,
+				);
+		if (
+			mind.snapshot.standingPlan.citizenId !== citizenId ||
+			mind.snapshot.standingPlan.status !== "active" ||
+			mind.snapshot.standingPlan.targetIds.some(
+				(targetId) =>
+					targetId !== citizenId &&
+					state.citizens[targetId] === undefined &&
+					!state.references.siteIds.includes(targetId) &&
+					(mind.snapshot.standingPlan.sourceId !==
+						"eonfolk-civilization-scheduler-brain-v1" ||
+						!/^[a-z0-9][a-z0-9._:-]*$/u.test(targetId)),
+			)
+		)
+			issues.push(`mind ${citizenId} has another citizen's standing plan`);
+	}
+	const sponsoredCitizens = new Set<string>();
+	const sponsorPrincipals = new Set<string>();
+	if (
+		Object.keys(state.sponsorships).length > state.references.citizenIds.length
+	)
+		issues.push("sponsorship count exceeds the finite citizen population");
+	for (const [covenantId, sponsorship] of Object.entries(state.sponsorships)) {
+		if (
+			sponsorship.schemaVersion !== "eonfolk-civilization-sponsorship-v1" ||
+			sponsorship.covenantId !== covenantId
+		)
+			issues.push(`sponsorship ${covenantId} has invalid identity`);
+		const beneficiary = state.citizens[sponsorship.beneficiaryCitizenId];
+		if (
+			beneficiary === undefined ||
+			!state.references.settlementIds.includes(sponsorship.settlementId)
+		)
+			issues.push(`sponsorship ${covenantId} has invalid locality`);
+		if (
+			!Number.isSafeInteger(sponsorship.establishedAtSimulationTime) ||
+			sponsorship.establishedAtSimulationTime < 0 ||
+			sponsorship.establishedAtSimulationTime > state.simulationTime
+		)
+			issues.push(`sponsorship ${covenantId} has invalid establishment time`);
+		if (
+			!Number.isSafeInteger(sponsorship.establishedAtRevision) ||
+			sponsorship.establishedAtRevision < 1 ||
+			sponsorship.establishedAtRevision > state.revision
+		)
+			issues.push(`sponsorship ${covenantId} has invalid grant revision`);
+		if (
+			beneficiary !== undefined &&
+			!beneficiary.sourceEventIds.includes(sponsorship.sourceEventId)
+		)
+			issues.push(`sponsorship ${covenantId} lacks its citizen source event`);
+		if (
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === sponsorship.sourceEventId &&
+					provenance.mechanismId === "sponsor.covenant.established.v1",
+			)
+		)
+			issues.push(`sponsorship ${covenantId} lacks canonical provenance`);
+		if (sponsoredCitizens.has(sponsorship.beneficiaryCitizenId))
+			issues.push(
+				`citizen ${sponsorship.beneficiaryCitizenId} has multiple sponsorships`,
+			);
+		if (sponsorPrincipals.has(sponsorship.patronPrincipalId))
+			issues.push(
+				`patron ${sponsorship.patronPrincipalId} has multiple sponsorships`,
+			);
+		sponsoredCitizens.add(sponsorship.beneficiaryCitizenId);
+		sponsorPrincipals.add(sponsorship.patronPrincipalId);
+	}
+	for (const [abstentionId, abstention] of Object.entries(
+		state.patronAbstentions,
+	)) {
+		const sponsorship = state.sponsorships[abstention.covenantId];
+		if (
+			abstention.schemaVersion !==
+				"eonfolk-civilization-patron-abstention-v1" ||
+			abstention.abstentionId !== abstentionId ||
+			abstention.reason !== "withhold-counsel" ||
+			sponsorship?.beneficiaryCitizenId !== abstention.citizenId ||
+			sponsorship.patronPrincipalId !== abstention.patronPrincipalId ||
+			abstention.recordedAtSimulationTime > state.simulationTime ||
+			abstention.recordedAtRevision > state.revision ||
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === abstention.sourceEventId &&
+					provenance.mechanismId === "sponsor.patron.abstained.v1",
+			)
+		)
+			issues.push(`patron abstention ${abstentionId} is not authoritative`);
+	}
+	for (const [interventionId, counsel] of Object.entries(state.counsels)) {
+		const sponsorship = state.sponsorships[counsel.covenantId];
+		if (
+			counsel.schemaVersion !== "eonfolk-civilization-counsel-v1" ||
+			counsel.interventionId !== interventionId ||
+			sponsorship === undefined ||
+			sponsorship.beneficiaryCitizenId !== counsel.citizenId
+		)
+			issues.push(`counsel ${interventionId} has invalid authority`);
+		if (
+			!Number.isSafeInteger(counsel.issuedAtSimulationTime) ||
+			counsel.issuedAtSimulationTime < 0 ||
+			counsel.issuedAtSimulationTime > state.simulationTime ||
+			(counsel.intent !== "verify-reserve" &&
+				counsel.intent !== "accuse-publicly")
+		)
+			issues.push(`counsel ${interventionId} has invalid issue semantics`);
+		if (
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === counsel.sourceEventId &&
+					provenance.mechanismId === "sponsor.counsel.issued.v1",
+			)
+		)
+			issues.push(`counsel ${interventionId} lacks canonical provenance`);
+		const counseledCitizen = state.citizens[counsel.citizenId];
+		if (
+			counseledCitizen === undefined ||
+			!counseledCitizen.sourceEventIds.includes(counsel.sourceEventId)
+		)
+			issues.push(`counsel ${interventionId} lacks its citizen source event`);
+		if (
+			counsel.resolution !== null &&
+			(counsel.resolution.decisionId.length === 0 ||
+				counsel.resolution.proposalId.length === 0 ||
+				(counsel.resolution.action !== "verify-reserve" &&
+					counsel.resolution.action !== "accuse-publicly" &&
+					counsel.resolution.action !== "follow-plan") ||
+				(counsel.resolution.disposition !== "accepted" &&
+					counsel.resolution.disposition !== "delayed" &&
+					counsel.resolution.disposition !== "rejected" &&
+					counsel.resolution.disposition !== "reinterpreted") ||
+				!counseledCitizen?.sourceEventIds.includes(
+					counsel.resolution.sourceEventId,
+				))
+		)
+			issues.push(`counsel ${interventionId} has invalid resolution semantics`);
+		if (
+			counsel.resolution !== null &&
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === counsel.resolution?.sourceEventId &&
+					provenance.mechanismId === "brain.counsel.interpreted.v1",
+			)
+		)
+			issues.push(`counsel ${interventionId} lacks resolution provenance`);
+	}
+	for (const [outcomeId, outcome] of Object.entries(state.counselOutcomes)) {
+		const counsel = state.counsels[outcome.interventionId];
+		if (
+			outcome.schemaVersion !== "eonfolk-civilization-counsel-outcome-v1" ||
+			outcome.outcomeId !== outcomeId ||
+			counsel?.citizenId !== outcome.citizenId ||
+			counsel.resolution?.sourceEventId !== outcome.interpretationEventId ||
+			outcome.recordedAtSimulationTime > state.simulationTime ||
+			outcome.recordedAtRevision > state.revision ||
+			!state.provenance.some(
+				(provenance) =>
+					provenance.eventId === outcome.sourceEventId &&
+					provenance.mechanismId ===
+						"civilization.scheduler.counsel-outcome.v1",
+			)
+		)
+			issues.push(`counsel outcome ${outcomeId} is not authoritative`);
+		if (outcome.effect.kind === "reserve-inspection") {
+			const effect = outcome.effect;
+			const record = state.minds[outcome.citizenId]?.snapshot.records.find(
+				(candidate) => candidate.recordId === effect.observationRecordId,
+			);
+			if (
+				record?.kind !== "observation" ||
+				!record.sourceIds.includes(outcome.sourceEventId) ||
+				effect.stockObservations.length === 0 ||
+				effect.stockObservations.some(
+					(observation) =>
+						state.stocks[observation.stockId]?.resourceTypeId !==
+							observation.resourceTypeId || observation.quantity < 0,
+				)
+			)
+				issues.push(`counsel outcome ${outcomeId} has invalid inspection`);
+		} else if (outcome.effect.kind === "public-allegation") {
+			const effect = outcome.effect;
+			const relationship = state.relationships[effect.relationshipId];
+			const record = state.minds[outcome.citizenId]?.snapshot.records.find(
+				(candidate) => candidate.recordId === effect.statementRecordId,
+			);
+			if (
+				record?.kind !== "message-claim" ||
+				record.visibility.kind !== "public" ||
+				relationship?.fromCitizenId !== outcome.citizenId ||
+				relationship.toCitizenId !== effect.targetCitizenId ||
+				!relationship.sourceEventIds.includes(outcome.sourceEventId)
+			)
+				issues.push(`counsel outcome ${outcomeId} has invalid allegation`);
+		}
 	}
 	for (const [institutionId, institution] of Object.entries(
 		state.institutions,

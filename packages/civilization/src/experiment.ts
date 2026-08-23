@@ -12,6 +12,7 @@ import {
 } from "@eonfolk/cognition";
 import {
 	bytesFromHex,
+	type CitizenMindSnapshot,
 	domainHash,
 	type GeneratedWorldState,
 	type ProjectState,
@@ -64,17 +65,21 @@ import {
 	type SchedulerRoutineAssignment,
 	type SchedulerRoutineDecision,
 } from "./scheduler.js";
-import { createCivilizationState } from "./state.js";
+import {
+	createCivilizationState,
+	registerCivilizationMind,
+	replaceCivilizationMind,
+} from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v5" as const;
+	"eonfolk-civilization-experiment-v8" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v5" as const;
+	"eonfolk-civilization-runner-v8" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v5" as const;
+	"eonfolk-civilization-experiment-event-v8" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v5" as const;
+	"eonfolk-civilization-experiment-step-v8" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
@@ -334,7 +339,7 @@ export interface CivilizationExperimentRun {
 }
 
 export interface CivilizationExperimentMatrix {
-	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v5";
+	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v6";
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
 	readonly horizons: readonly [30, 90, 365];
 	readonly runs: readonly CivilizationExperimentRun[];
@@ -1118,6 +1123,14 @@ function bootstrapCivilization(
 	return { state, schedulerPolicy };
 }
 
+/** Reconstructs the versioned model-free scheduler policy from canonical world bytes. */
+export function deriveCivilizationSchedulerPolicy(
+	world: GeneratedWorldState,
+): GeneralizedSchedulerPolicy {
+	return bootstrapCivilization(world, deriveCivilizationSeedConditions(world))
+		.schedulerPolicy;
+}
+
 function activityKind(activityKinds: readonly string[]): {
 	readonly kind: CivilizationScheduledActivity["canonicalAction"]["kind"];
 	readonly prop: CivilizationScheduledActivity["carriedProp"];
@@ -1412,6 +1425,24 @@ function scheduleActivities(
 		});
 }
 
+/**
+ * Projects the scheduler's committed routine assignments into the same typed
+ * activities used by Release Genesis presentation. This is deterministic
+ * projection, not a second behavior authority.
+ */
+export function projectCivilizationScheduledActivities(input: {
+	readonly state: CivilizationState;
+	readonly world: GeneratedWorldState;
+	readonly routines: readonly SchedulerRoutineAssignment[];
+}): readonly CivilizationScheduledActivity[] {
+	return scheduleActivities(
+		input.state,
+		input.world,
+		input.routines,
+		deriveCivilizationSchedulerPolicy(input.world),
+	);
+}
+
 interface CivilizationCognitionRuntime {
 	readonly minds: Readonly<Record<string, CivilizationSchedulerMindState>>;
 	readonly priorOutcomes: Readonly<
@@ -1457,7 +1488,7 @@ function initialStandingPlan(input: {
 	readonly citizenId: string;
 	readonly routine: CivilizationRoutineResolution;
 }): StandingPlan {
-	const steps = Array.from({ length: 4 }, (_, index) => ({
+	const steps = Array.from({ length: 2 }, (_, index) => ({
 		stepId: `plan:${input.citizenId}:step:${String(index + 1)}`,
 		kind:
 			input.routine.kind === "produce"
@@ -1535,15 +1566,17 @@ async function initializeCognitionRuntime(
 				provenanceVersion: "memory-provenance-v1",
 			});
 		}
-		const relationships = Object.values(state.relationships)
-			.filter(
-				({ fromCitizenId, toCitizenId }) =>
-					fromCitizenId === citizen.citizenId ||
-					toCitizenId === citizen.citizenId,
-			)
+		// One salient outgoing relationship is sufficient for the bounded counsel
+		// decision. The full social graph remains canonical Reality rather than
+		// being duplicated into every citizen's daily Mind checkpoint.
+		const relationships: CitizenMindSnapshot["relationships"] = Object.values(
+			state.relationships,
+		)
+			.filter(({ fromCitizenId }) => fromCitizenId === citizen.citizenId)
 			.sort((left, right) =>
 				left.relationshipId.localeCompare(right.relationshipId),
 			)
+			.slice(0, 1)
 			.map((relationship) => ({
 				relationshipId: relationship.relationshipId,
 				fromCitizenId: relationship.fromCitizenId,
@@ -1556,7 +1589,7 @@ async function initializeCognitionRuntime(
 					kind: "citizen-private" as const,
 					subjectCitizenId: citizen.citizenId,
 				},
-				createdRevision: 0,
+				createdRevision: state.revision,
 			}));
 		const values = citizen.valueIds.slice(0, 3).map((valueId, index) => ({
 			valueId,
@@ -1616,6 +1649,35 @@ function routineFromPlan(plan: StandingPlan): CivilizationRoutineResolution {
 		default:
 			throw new Error(`unknown scheduler plan step ${step.kind}`);
 	}
+}
+
+function advanceSchedulerMindPlans(
+	runtime: CivilizationCognitionRuntime,
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	boundary: number,
+): CivilizationCognitionRuntime {
+	const minds: Record<string, CivilizationSchedulerMindState> = {};
+	for (const [citizenId, mind] of Object.entries(runtime.minds).sort(
+		([left], [right]) => left.localeCompare(right),
+	)) {
+		const routine = plannedRoutine(state, policy, citizenId);
+		const refreshed = initialStandingPlan({ citizenId, routine });
+		minds[citizenId] = {
+			...mind,
+			actorMind: {
+				...mind.actorMind,
+				standingPlan: {
+					...refreshed,
+					planId: mind.actorMind.standingPlan.planId,
+					version: mind.actorMind.standingPlan.version + 1,
+					startBoundary: boundary,
+					expiryBoundary: boundary + SECONDS_PER_DAY,
+				},
+			},
+		};
+	}
+	return { ...runtime, minds };
 }
 
 function cognitionOptions(
@@ -1775,6 +1837,8 @@ function routineOutcome(
 		)
 	)
 		return "completed";
+	if (["produce", "transport", "construct"].includes(decision.kind))
+		return "blocked";
 	return routines.some(
 		(routine) =>
 			routine.citizenId === decision.citizenId &&
@@ -1790,7 +1854,7 @@ async function stateHash(
 	worldStateHash: string,
 	activities: readonly CivilizationScheduledActivity[],
 ): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5", {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v7", {
 		activities,
 		civilization: state,
 		worldStateHash,
@@ -1815,7 +1879,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v7",
 		body,
 	);
 	return {
@@ -1991,7 +2055,7 @@ export async function runCivilizationExperiment(input: {
 	const schedulerPolicy = bootstrap.schedulerPolicy;
 	let world = input.world;
 	let worldStateHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 		world,
 	);
 	let routines = initialRoutineAssignments(state);
@@ -2001,6 +2065,19 @@ export async function runCivilizationExperiment(input: {
 		schedulerPolicy,
 		input.world.identity.identityHash,
 	);
+	// The scheduler owns these plans before sponsorship exists. Persist a bounded
+	// canonical view at genesis so CounselIssued can never invent a Mind or intent.
+	for (const [citizenId, schedulerMind] of Object.entries(
+		cognitionRuntime.minds,
+	).sort(([left], [right]) => left.localeCompare(right))) {
+		state = registerCivilizationMind(state, {
+			schemaVersion: "eonfolk-civilization-mind-v1",
+			citizenId,
+			snapshot: schedulerMind.actorMind,
+			committedAtRevision: state.revision,
+			committedAtSimulationTime: state.simulationTime,
+		});
+	}
 	const cognitionDecisions: CivilizationSchedulerDecisionEvidence[] = [];
 	assertCivilizationInvariants(state);
 	const initialStateHash = await stateHash(state, worldStateHash, activities);
@@ -2058,13 +2135,34 @@ export async function runCivilizationExperiment(input: {
 		);
 		state = scheduled.state;
 		routines = scheduled.routines;
+		if (opening === null || day >= 2) {
+			cognitionRuntime = advanceSchedulerMindPlans(
+				cognitionRuntime,
+				state,
+				schedulerPolicy,
+				state.simulationTime,
+			);
+		}
+		for (const [citizenId, schedulerMind] of Object.entries(
+			cognitionRuntime.minds,
+		).sort(([left], [right]) => left.localeCompare(right))) {
+			state = replaceCivilizationMind(state, {
+				schemaVersion: "eonfolk-civilization-mind-v1",
+				citizenId,
+				snapshot: schedulerMind.actorMind,
+				committedAtRevision: state.revision,
+				committedAtSimulationTime: state.simulationTime,
+			});
+		}
 		if (opening !== null) {
 			cognitionRuntime = {
 				...cognitionRuntime,
 				priorOutcomes: Object.fromEntries(
 					opening.decisions.map((decision) => [
 						decision.citizenId,
-						routineOutcome(decision, scheduled.actions, scheduled.routines),
+						day >= 2
+							? null
+							: routineOutcome(decision, scheduled.actions, scheduled.routines),
 					]),
 				),
 			};
@@ -2275,7 +2373,7 @@ export async function runCivilizationExperiment(input: {
 				foundedAtSimulationTime: atSimulationTime,
 			});
 			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 				world,
 			);
 			state = recordFoundingMaterialization(
@@ -2310,7 +2408,7 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v7",
 				stepBody,
 			),
 		});
@@ -2358,7 +2456,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		for (const horizonDays of horizons)
 			runs.push(await runCivilizationExperiment({ world, horizonDays }));
 	const matrixBody = {
-		schemaVersion: "eonfolk-civilization-experiment-matrix-v5" as const,
+		schemaVersion: "eonfolk-civilization-experiment-matrix-v6" as const,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
 		horizons,
 		runs: runs.map((run) => ({
@@ -2374,7 +2472,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		...matrixBody,
 		runs,
 		matrixHash: await domainHash(
-			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v5",
+			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v6",
 			matrixBody,
 		),
 	};

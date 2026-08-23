@@ -41,7 +41,7 @@ function manifestInput() {
 			determinism: "riverhold-determinism-v2",
 			replay: "riverhold-replay-v2",
 			visibility: "riverhold-visibility-v1",
-			catalog: "riverhold-actions-v1",
+			catalog: "civilization-actions-v1",
 			cognition: "riverhold-cognition-v1",
 		},
 		corpus: {

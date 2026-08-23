@@ -126,7 +126,7 @@ describe("deterministic civilization experiment", () => {
 			);
 			const { eventHash, eventId, ...eventBody } = event;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5", eventBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v7", eventBody),
 			).toBe(eventHash);
 			expect(eventId).toBe(
 				`civilization-event:${index}:${eventHash.slice(0, 16)}`,
@@ -135,7 +135,7 @@ describe("deterministic civilization experiment", () => {
 		for (const [index, step] of first.steps.entries()) {
 			const { stepHash, ...stepBody } = step;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5", stepBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v7", stepBody),
 			).toBe(stepHash);
 			expect(step.stepIndex).toBe(index);
 			expect(step.fromSimulationTime).toBe(index * 86_400);

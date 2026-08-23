@@ -11,6 +11,7 @@ import {
 	type AppendAuthorityBatchRequest,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	type AuthorityHead,
 	createAuthorityEvent,
 	createAuthorityHead,
@@ -34,6 +35,8 @@ declare global {
 
 const DATABASE = "eonfolk-generated-versioned-browser-test";
 const CIVILIZATION_DATABASE = "eonfolk-generated-civilization-browser-test";
+const OPEN_FAILURE_DATABASE = "eonfolk-generated-open-failure-browser-test";
+const QUOTA_DATABASE = "eonfolk-generated-quota-browser-test";
 const SCOPE = { runId: "generated-browser-run", regionId: "generated-region" };
 const ENGINE_VERSION = "generated-browser-engine-v1";
 const STATE_VERSION = "generated-browser-state-v1";
@@ -256,9 +259,7 @@ async function inspectStoreCounts(): Promise<Readonly<Record<string, number>>> {
 					count.addEventListener(
 						"success",
 						() => resolve([store, count.result]),
-						{
-							once: true,
-						},
+						{ once: true },
 					);
 					count.addEventListener("error", () => reject(count.error), {
 						once: true,
@@ -271,7 +272,77 @@ async function inspectStoreCounts(): Promise<Readonly<Record<string, number>>> {
 	return Object.freeze(Object.fromEntries(entries));
 }
 
+async function verifyOpenAndQuotaFailures(): Promise<{
+	readonly openFailureName: string | null;
+	readonly quotaFailureName: string | null;
+	readonly quotaAtomic: boolean;
+}> {
+	await deleteDatabase(OPEN_FAILURE_DATABASE);
+	const future = indexedDB.open(OPEN_FAILURE_DATABASE, 2);
+	const futureDatabase = await new Promise<IDBDatabase>((resolve, reject) => {
+		future.addEventListener("upgradeneeded", () => undefined, { once: true });
+		future.addEventListener("success", () => resolve(future.result), {
+			once: true,
+		});
+		future.addEventListener("error", () => reject(future.error), {
+			once: true,
+		});
+	});
+	futureDatabase.close();
+	let openFailureName: string | null = null;
+	try {
+		await BrowserVersionedPersistence.open({
+			databaseName: OPEN_FAILURE_DATABASE,
+		});
+	} catch (error) {
+		openFailureName = (error as DOMException).name;
+	}
+	await deleteDatabase(OPEN_FAILURE_DATABASE);
+
+	await deleteDatabase(QUOTA_DATABASE);
+	const quotaPort = await BrowserVersionedPersistence.open({
+		databaseName: QUOTA_DATABASE,
+	});
+	const originalPut = IDBObjectStore.prototype.put;
+	let quotaFailureName: string | null = null;
+	try {
+		IDBObjectStore.prototype.put = function forcedQuotaFailure(): IDBRequest {
+			throw new DOMException("forced quota boundary", "QuotaExceededError");
+		};
+		await quotaPort.initialize(await genesis());
+	} catch (error) {
+		quotaFailureName = (error as DOMException).name;
+	} finally {
+		IDBObjectStore.prototype.put = originalPut;
+		quotaPort.close();
+	}
+	const raw = indexedDB.open(QUOTA_DATABASE);
+	const database = await new Promise<IDBDatabase>((resolve, reject) => {
+		raw.addEventListener("success", () => resolve(raw.result), { once: true });
+		raw.addEventListener("error", () => reject(raw.error), { once: true });
+	});
+	const transaction = database.transaction(
+		GENERATED_AUTHORITY_STORES.streams,
+		"readonly",
+	);
+	const count = await new Promise<number>((resolve, reject) => {
+		const request = transaction
+			.objectStore(GENERATED_AUTHORITY_STORES.streams)
+			.count();
+		request.addEventListener("success", () => resolve(request.result), {
+			once: true,
+		});
+		request.addEventListener("error", () => reject(request.error), {
+			once: true,
+		});
+	});
+	database.close();
+	await deleteDatabase(QUOTA_DATABASE);
+	return { openFailureName, quotaFailureName, quotaAtomic: count === 0 };
+}
+
 async function run(): Promise<void> {
+	const failures = await verifyOpenAndQuotaFailures();
 	await deleteDatabase();
 	const crash = new OneShotCrash();
 	const boundary = new OneShotBoundary();
@@ -347,7 +418,18 @@ async function run(): Promise<void> {
 	await port.appendEventBatch(firstRequest);
 	const retry = await port.appendEventBatch(firstRequest);
 	const preFence = await port.loadHead(SCOPE);
+	const secondTab = await BrowserVersionedPersistence.open({
+		databaseName: DATABASE,
+	});
+	const secondTabHead = await secondTab.loadHead(SCOPE);
 	const fenced = await port.acquireWriterFence(SCOPE, preFence.fencingToken);
+	let dualTabFenceCode: string | null = null;
+	try {
+		await secondTab.acquireWriterFence(SCOPE, secondTabHead.fencingToken);
+	} catch (error) {
+		dualTabFenceCode = (error as PersistenceError).code;
+	}
+	secondTab.close();
 	let staleFenceCode: string | null = null;
 	try {
 		await port.appendEventBatch(await append(preFence, 2));
@@ -372,6 +454,32 @@ async function run(): Promise<void> {
 		snapshot: dayTwoSnapshot,
 		fencingToken: secondHead.fencingToken,
 	});
+	const rejectionRequest = {
+		...SCOPE,
+		schemaVersion: AUTHORITY_REJECTION_SCHEMA_VERSION,
+		appendId: "rejected-browser-command",
+		expectedRevision: secondHead.revision,
+		expectedLastSequence: secondHead.lastSequence,
+		expectedStateHash: secondHead.stateHash,
+		expectedLastEventHash: secondHead.lastEventHash,
+		fencingToken: secondHead.fencingToken,
+		commandReceipt: { outcome: "rejected" },
+	} as const;
+	crash.point = "authority-rejection:before-commit";
+	try {
+		await port.recordRejectedCommand(rejectionRequest);
+	} catch {
+		/* expected abort */
+	}
+	const rejectionHeadAfterAbort = await port.loadHead(SCOPE);
+	crash.point = "authority-rejection:after-commit";
+	try {
+		await port.recordRejectedCommand(rejectionRequest);
+	} catch {
+		/* committed before crash */
+	}
+	const rejectionRetry = await port.recordRejectedCommand(rejectionRequest);
+	const rejectionHeadAfterRetry = await port.loadHead(SCOPE);
 
 	const thirdRequest = await append(secondHead, 3);
 	crash.point = "authority-append:before-commit";
@@ -476,10 +584,16 @@ async function run(): Promise<void> {
 			civilizationReplayHashMatches:
 				civilizationReplay.stateHash === civilization.head.stateHash,
 			corruptionCode,
+			dualTabFenceCode,
+			...failures,
 			recoveredIdempotently: recovered.idempotent,
 			restoredGenesisIdempotently: restoredGenesis.idempotent,
 			replayedCount: replay.state.count,
 			replayedSuffixEvents: replay.events.length,
+			rejectionHeadUnchanged:
+				rejectionHeadAfterAbort.headHash === secondHead.headHash &&
+				rejectionHeadAfterRetry.headHash === secondHead.headHash,
+			rejectionRetryIdempotent: rejectionRetry.idempotent,
 			retryIdempotent: retry.idempotent,
 			revisionAfterAbort,
 			staleFenceCode,

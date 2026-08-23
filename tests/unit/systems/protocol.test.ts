@@ -91,7 +91,7 @@ describe("determinism profile", () => {
 			regionId: "riverhold",
 			relatedEvents: [],
 			runId: "run_fixture_0001",
-			schemaVersion: "1",
+			schemaVersion: "2",
 			sequence: 1,
 			simulationTime: 1,
 			visibility: {

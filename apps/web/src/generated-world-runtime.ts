@@ -1,9 +1,16 @@
 import {
 	type CivilizationExperimentCognitionOptions,
 	type CivilizationExperimentRun,
+	type CivilizationScheduledActivity,
+	type CivilizationState,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
-import { PersistenceError } from "@eonfolk/persistence";
+import {
+	PersistenceError,
+	type ReleaseGenesisCivilizationState,
+	replayCivilizationHistory,
+} from "@eonfolk/persistence";
+import type { GeneratedWorldState } from "@eonfolk/protocol";
 import { createReleaseGenesis } from "@eonfolk/protocol";
 import {
 	type GeneratedCivilizationSpatialProjection,
@@ -17,6 +24,7 @@ import {
 import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-versioned";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
+	GENERATED_CIVILIZATION_RUN_ID,
 	type GeneratedCivilizationCatchUpHorizon,
 	persistPreparedGeneratedCivilization,
 	prepareGeneratedCivilization,
@@ -35,7 +43,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority";
+/** Exact v4 namespace: earlier authority bytes remain untouched and cannot be misread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v4";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -59,6 +68,16 @@ export interface GeneratedWorldExperience {
 	readonly previousHorizonDays: number;
 	readonly embodimentLimitations: readonly string[];
 	readonly persistence: GeneratedWorldPersistenceStatus;
+	readonly authorityRegionId: string;
+	readonly authorityDatabaseName: string;
+	readonly sponsorCitizenId: string;
+	readonly sponsorPhase:
+		| "idle"
+		| "sponsored"
+		| "abstained"
+		| "counseled"
+		| "resolved";
+	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -78,19 +97,37 @@ let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
 ): readonly GeneratedCivilizationSpatialProjection[] {
-	const settlementIds = Object.values(run.world.settlements)
+	return projectAuthorityView({
+		world: run.world,
+		civilization: run.state,
+		checkpoint: run,
+		activities: run.activities,
+		residentPopulation: run.metrics.residentPopulation,
+	});
+}
+
+function projectAuthorityView(input: {
+	readonly world: GeneratedWorldState;
+	readonly civilization: CivilizationState;
+	readonly checkpoint: Parameters<
+		typeof projectGeneratedCivilizationSpatial
+	>[0]["checkpoint"];
+	readonly activities: readonly CivilizationScheduledActivity[];
+	readonly residentPopulation: number;
+}): readonly GeneratedCivilizationSpatialProjection[] {
+	const settlementIds = Object.values(input.world.settlements)
 		.map(({ value }) => value.settlementId)
 		.sort();
 	if (settlementIds.length === 0) throw new Error("Settlement missing");
 	const projections = settlementIds
 		.map((settlementId) =>
 			projectGeneratedCivilizationSpatial({
-				world: run.world,
-				civilization: run.state,
-				checkpoint: run,
-				activities: run.activities,
+				world: input.world,
+				civilization: input.civilization,
+				checkpoint: input.checkpoint,
+				activities: input.activities,
 				settlementId,
-				presentationTick: run.metrics.simulationTime * 30,
+				presentationTick: input.checkpoint.metrics.simulationTime * 30,
 			}),
 		)
 		.sort((left, right) => {
@@ -107,9 +144,9 @@ function projectCheckpoint(
 		(total, projection) => total + projection.spatial.actors.length,
 		0,
 	);
-	if (projectedPopulation !== run.metrics.residentPopulation)
+	if (projectedPopulation !== input.residentPopulation)
 		throw new Error(
-			`Population mismatch: ${projectedPopulation}/${run.metrics.residentPopulation}`,
+			`The spatial projection accounts for ${projectedPopulation} of ${input.residentPopulation} residents`,
 		);
 	return Object.freeze(projections);
 }
@@ -153,6 +190,12 @@ export async function buildGeneratedWorldExperience(
 			: options.indexedDbFactory;
 	let run: CivilizationExperimentRun | null = null;
 	let previousRun: CivilizationExperimentRun | null = null;
+	let authorityState: ReleaseGenesisCivilizationState | null = null;
+	let authorityEvents: readonly {
+		readonly eventId: string;
+		readonly eventHash: string;
+	}[] = [];
+	let authorityStateHash: string | null = null;
 	let persistence: GeneratedWorldPersistenceStatus | null = null;
 	const prepared = await prepareGeneratedCivilization({
 		genesisWorld: generatedWorld,
@@ -198,6 +241,24 @@ export async function buildGeneratedWorldExperience(
 			if (finalCheckpoint === undefined) throw new Error("Checkpoint missing");
 			run = finalCheckpoint;
 			previousRun = advanced.checkpoints[0] ?? finalCheckpoint;
+			const latest = await port.loadLatestSnapshot({
+				runId: GENERATED_CIVILIZATION_RUN_ID,
+				regionId: generatedWorld.identity.worldId,
+			});
+			const replay = await replayCivilizationHistory(port, {
+				runId: GENERATED_CIVILIZATION_RUN_ID,
+				regionId: generatedWorld.identity.worldId,
+				snapshotId: latest.snapshotId,
+				toSequenceExclusive: advanced.head.lastSequence + 1,
+			});
+			authorityState = replay.state;
+			authorityStateHash = replay.stateHash;
+			authorityEvents = await port.getEventRange({
+				runId: GENERATED_CIVILIZATION_RUN_ID,
+				regionId: generatedWorld.identity.worldId,
+				fromSequenceInclusive: 1,
+				toSequenceExclusive: advanced.head.lastSequence + 1,
+			});
 			persistence = Object.freeze({
 				kind: "indexeddb",
 				claim: "durable-authority",
@@ -216,13 +277,92 @@ export async function buildGeneratedWorldExperience(
 		}
 	}
 	if (run === null || previousRun === null || persistence === null)
-		throw new Error();
-	const projections = projectCheckpoint(run);
+		throw new Error("Generated authority admission did not produce a view");
+	const durableCivilization =
+		authorityState?.civilization === null || authorityState === null
+			? null
+			: (authorityState.civilization as unknown as CivilizationState);
+	const authorityWorld =
+		authorityState === null
+			? generatedWorld
+			: (authorityState.world as unknown as GeneratedWorldState);
+	const sponsorCivilization = durableCivilization ?? run.state;
+	const sponsorCitizenId = Object.values(sponsorCivilization.minds)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+		.find((mind) => {
+			const citizen = sponsorCivilization.citizens[mind.citizenId];
+			return mind.snapshot.relationships.some(
+				(relationship) =>
+					sponsorCivilization.citizens[relationship.toCitizenId]
+						?.residenceState === "resident" &&
+					sponsorCivilization.citizens[relationship.toCitizenId]
+						?.settlementId === citizen?.settlementId &&
+					sponsorCivilization.citizens[relationship.toCitizenId]?.siteId ===
+						citizen?.siteId,
+			);
+		})?.citizenId;
+	if (sponsorCitizenId === undefined)
+		throw new Error("The generated world has no counsel-capable citizen");
+	const activeCounsel = Object.values(sponsorCivilization.counsels).find(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution === null,
+	);
+	const hasResolvedCounsel = Object.values(sponsorCivilization.counsels).some(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution !== null,
+	);
+	const hasSponsorship = Object.values(sponsorCivilization.sponsorships).some(
+		(covenant) => covenant.beneficiaryCitizenId === sponsorCitizenId,
+	);
+	const hasAbstention = Object.values(
+		sponsorCivilization.patronAbstentions,
+	).some((abstention) => abstention.citizenId === sponsorCitizenId);
+	const durableActivities =
+		authorityState === null
+			? null
+			: (authorityState.scheduler
+					.activities as unknown as readonly CivilizationScheduledActivity[]);
+	const durableHorizon = authorityState?.scheduler.completedDay ?? null;
+	const durableCheckpoint =
+		durableCivilization === null ||
+		durableActivities === null ||
+		durableHorizon === null ||
+		authorityStateHash === null
+			? null
+			: {
+					schemaVersion: "eonfolk-civilization-experiment-v8" as const,
+					runnerVersion: "eonfolk-civilization-runner-v8" as const,
+					worldIdentityHash: generatedWorld.identity.identityHash,
+					horizonDays: durableHorizon,
+					finalStateHash: authorityStateHash,
+					events: authorityEvents.map((event, eventIndex) => ({
+						eventIndex,
+						eventId: event.eventId,
+						eventHash: event.eventHash,
+					})),
+					metrics: {
+						simulationTime: authorityState!.scheduler.simulationTime,
+						modelInvocations: 0,
+					},
+				};
+	const projections =
+		durableCheckpoint === null
+			? projectCheckpoint(run)
+			: projectAuthorityView({
+					world: authorityWorld,
+					civilization: durableCivilization!,
+					checkpoint: durableCheckpoint,
+					activities: durableActivities!,
+					residentPopulation: Object.values(
+						durableCivilization!.citizens,
+					).filter(({ residenceState }) => residenceState === "resident")
+						.length,
+				});
 	const previousProjections = projectCheckpoint(previousRun);
 	const worldEmbodiment = projectGeneratedWorldEmbodiment({
 		current: projections,
 		previous: previousProjections,
-		activities: run.activities,
+		activities: durableActivities ?? run.activities,
 	});
 	const embodimentBySettlement = new Map(
 		worldEmbodiment.settlements.map((embodiment) => [
@@ -242,10 +382,14 @@ export async function buildGeneratedWorldExperience(
 	return Object.freeze({
 		worldId: run.world.identity.worldId,
 		worldIdentityHash: run.world.identity.identityHash,
-		stateHash: run.finalStateHash,
-		simulationTime: run.metrics.simulationTime,
-		horizonDays: run.horizonDays,
-		population: run.metrics.population,
+		stateHash: authorityStateHash ?? run.finalStateHash,
+		simulationTime:
+			authorityState?.scheduler.simulationTime ?? run.metrics.simulationTime,
+		horizonDays: authorityState?.scheduler.completedDay ?? run.horizonDays,
+		population:
+			durableCivilization === null
+				? run.metrics.population
+				: Object.keys(durableCivilization.citizens).length,
 		settlementCount: projections.length,
 		projections,
 		embodiments,
@@ -253,6 +397,20 @@ export async function buildGeneratedWorldExperience(
 		previousHorizonDays: previousRun.horizonDays,
 		embodimentLimitations: worldEmbodiment.limitations,
 		persistence,
+		authorityRegionId: run.world.identity.worldId,
+		authorityDatabaseName: databaseName,
+		sponsorCitizenId,
+		sponsorPhase:
+			activeCounsel !== undefined
+				? "counseled"
+				: hasResolvedCounsel
+					? "resolved"
+					: hasAbstention
+						? "abstained"
+						: hasSponsorship
+							? "sponsored"
+							: "idle",
+		activeCounselIntent: activeCounsel?.intent ?? null,
 	});
 }
 
@@ -298,5 +456,11 @@ function classifyDurableFailure(error: unknown): Readonly<{
 /** One immutable generated civilization shared by every view in this session. */
 export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
 	pendingExperience ??= buildGeneratedWorldExperience();
+	return pendingExperience;
+}
+
+/** Reloads the sole durable authority projection after an accepted command. */
+export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
+	pendingExperience = buildGeneratedWorldExperience();
 	return pendingExperience;
 }

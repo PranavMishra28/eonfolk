@@ -1,7 +1,7 @@
 import type { JsonValue } from "./types.js";
 
 export const VERSIONED_PERSISTENCE_PORT_VERSION =
-	"eonfolk-persistence-port-v1" as const;
+	"eonfolk-persistence-port-v3" as const;
 export const AUTHORITY_HEAD_SCHEMA_VERSION =
 	"eonfolk-authority-head-v1" as const;
 export const AUTHORITY_EVENT_SCHEMA_VERSION =
@@ -9,9 +9,11 @@ export const AUTHORITY_EVENT_SCHEMA_VERSION =
 export const AUTHORITY_SNAPSHOT_SCHEMA_VERSION =
 	"eonfolk-authority-snapshot-v1" as const;
 export const AUTHORITY_APPEND_SCHEMA_VERSION =
-	"eonfolk-authority-append-v1" as const;
+	"eonfolk-authority-append-v2" as const;
+export const AUTHORITY_REJECTION_SCHEMA_VERSION =
+	"eonfolk-authority-rejection-v1" as const;
 export const AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION =
-	"eonfolk-authority-append-receipt-v1" as const;
+	"eonfolk-authority-append-receipt-v2" as const;
 export const AUTHORITY_GENESIS_SCHEMA_VERSION =
 	"eonfolk-authority-genesis-v1" as const;
 export const EMPTY_EVENT_HASH = "0".repeat(64);
@@ -26,6 +28,7 @@ export const PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	supportedRecordVersions: Object.freeze({
 		append: AUTHORITY_APPEND_SCHEMA_VERSION,
 		appendReceipt: AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
+		rejection: AUTHORITY_REJECTION_SCHEMA_VERSION,
 		event: AUTHORITY_EVENT_SCHEMA_VERSION,
 		genesis: AUTHORITY_GENESIS_SCHEMA_VERSION,
 		head: AUTHORITY_HEAD_SCHEMA_VERSION,
@@ -126,6 +129,23 @@ export interface AppendAuthorityBatchRequest extends AuthorityScope {
 	readonly expectedLastEventHash: string;
 	readonly fencingToken: number;
 	readonly events: readonly AuthorityEventRecord[];
+	/** Canonical command receipt bytes committed with the batch, when applicable. */
+	readonly commandReceipt?: JsonValue | null;
+	/** Final cognition decision bytes committed with the batch, when applicable. */
+	readonly decisionRecord?: JsonValue | null;
+}
+
+/** A fenced receipt-only rejection. Reality, sequence, revision, and head do not move. */
+export interface RecordRejectedAuthorityCommandRequest extends AuthorityScope {
+	readonly schemaVersion: typeof AUTHORITY_REJECTION_SCHEMA_VERSION;
+	readonly appendId: string;
+	readonly expectedRevision: number;
+	readonly expectedLastSequence: number;
+	readonly expectedStateHash: string;
+	readonly expectedLastEventHash: string;
+	readonly fencingToken: number;
+	readonly commandReceipt: JsonValue;
+	readonly decisionRecord?: JsonValue | null;
 }
 
 export interface AuthorityAppendReceipt extends AuthorityScope {
@@ -138,6 +158,8 @@ export interface AuthorityAppendReceipt extends AuthorityScope {
 	readonly toSequenceExclusive: number;
 	readonly resultingStateHash: string;
 	readonly resultingLastEventHash: string;
+	readonly commandReceipt: JsonValue | null;
+	readonly decisionRecord: JsonValue | null;
 	readonly receiptHash: string;
 }
 
@@ -160,6 +182,8 @@ export interface SaveAuthoritySnapshotRequest {
 export type VersionedCrashPoint =
 	| "authority-append:after-commit"
 	| "authority-append:before-commit"
+	| "authority-rejection:after-commit"
+	| "authority-rejection:before-commit"
 	| "authority-fence:after-commit"
 	| "authority-fence:before-commit"
 	| "authority-genesis:after-commit"
@@ -183,6 +207,9 @@ export interface VersionedPersistencePort {
 	): Promise<AuthorityHead>;
 	appendEventBatch(
 		request: AppendAuthorityBatchRequest,
+	): Promise<AppendAuthorityBatchResult>;
+	recordRejectedCommand(
+		request: RecordRejectedAuthorityCommandRequest,
 	): Promise<AppendAuthorityBatchResult>;
 	getAppendReceipt(
 		scope: AuthorityScope,

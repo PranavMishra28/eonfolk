@@ -2,7 +2,10 @@
 	"name": "@eonfolk/sim",
 	"private": true,
 	"type": "module",
-	"exports": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./civilization-chronicle": "./src/civilization-chronicle.ts"
+	},
 	"dependencies": {
 		"@eonfolk/protocol": "workspace:*"
 	}

@@ -56,8 +56,13 @@ const javascript = rows.filter((row) =>
 	[".js", ".mjs"].includes(extname(row.path)),
 );
 const entryKey = Object.keys(manifest).find((key) => manifest[key]?.isEntry);
-const worldRouteKey = "src/V1GenesisApp.tsx";
-if (entryKey === undefined || manifest[worldRouteKey] === undefined) {
+const worldRouteKey =
+	manifest["src/V1GenesisApp.tsx"] === undefined
+		? Object.keys(manifest).find(
+				(key) => manifest[key]?.name === "world-authority",
+			)
+		: "src/V1GenesisApp.tsx";
+if (entryKey === undefined || worldRouteKey === undefined) {
 	process.stderr.write(
 		"Vite manifest does not declare the app and world entries\n",
 	);
@@ -73,11 +78,13 @@ function collectStatic(key, output) {
 	for (const imported of record.imports ?? []) collectStatic(imported, output);
 }
 
-function collectRoute(key, output) {
+function collectRoute(key, output, visited = new Set()) {
+	if (visited.has(key)) return;
+	visited.add(key);
 	collectStatic(key, output);
 	const record = manifest[key];
 	for (const imported of record.dynamicImports ?? []) {
-		collectRoute(imported, output);
+		collectRoute(imported, output, visited);
 	}
 }
 

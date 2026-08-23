@@ -5,6 +5,7 @@ import type { JsonValue, PersistenceBounds } from "./types.js";
 import {
 	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	AUTHORITY_EVENT_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
 	AUTHORITY_HEAD_SCHEMA_VERSION,
@@ -23,6 +24,7 @@ import {
 	type AuthoritySnapshotRecord,
 	type InitializeAuthorityRequest,
 	type InitializeAuthorityResult,
+	type RecordRejectedAuthorityCommandRequest,
 	type SaveAuthoritySnapshotRequest,
 	type VersionedCrashInjector,
 	type VersionedPersistencePort,
@@ -357,14 +359,23 @@ async function validateAppendReceipt(
 	assertHash(receipt.resultingStateHash, "receipt.resultingStateHash");
 	assertHash(receipt.resultingLastEventHash, "receipt.resultingLastEventHash");
 	assertHash(receipt.receiptHash, "receipt.receiptHash");
-	if (receipt.fromSequenceInclusive >= receipt.toSequenceExclusive) {
+	const rejected =
+		receipt.commandReceipt !== null &&
+		typeof receipt.commandReceipt === "object" &&
+		!Array.isArray(receipt.commandReceipt) &&
+		(receipt.commandReceipt as { readonly outcome?: JsonValue }).outcome ===
+			"rejected";
+	if (
+		receipt.fromSequenceInclusive > receipt.toSequenceExclusive ||
+		(receipt.fromSequenceInclusive === receipt.toSequenceExclusive && !rejected)
+	) {
 		throw new PersistenceError(
 			"INVALID_INPUT",
-			"append receipt interval must be non-empty",
+			"append receipt interval is invalid for its outcome",
 		);
 	}
 	const expected = await domainHash(
-		"eonfolk-authority-append-receipt-v1",
+		"eonfolk-authority-append-receipt-v2",
 		withoutKey(receipt as unknown as Record<string, unknown>, "receiptHash"),
 	);
 	if (expected !== receipt.receiptHash) {
@@ -570,7 +581,7 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 		);
 		const receiptKey = recordKey(request, request.appendId);
 		const requestFingerprint = await domainHash(
-			"eonfolk-authority-append-v1",
+			"eonfolk-authority-append-v2",
 			request,
 		);
 		const priorReceipt = this.#stores.receipts.get(receiptKey);
@@ -708,11 +719,13 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 			toSequenceExclusive: finalEvent.sequence + 1,
 			resultingStateHash: nextHead.stateHash,
 			resultingLastEventHash: nextHead.lastEventHash,
+			commandReceipt: cloneValue(request.commandReceipt ?? null),
+			decisionRecord: cloneValue(request.decisionRecord ?? null),
 		};
 		const receipt: AuthorityAppendReceipt = {
 			...unsignedReceipt,
 			receiptHash: await domainHash(
-				"eonfolk-authority-append-receipt-v1",
+				"eonfolk-authority-append-receipt-v2",
 				unsignedReceipt,
 			),
 		};
@@ -727,6 +740,125 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 		this.#hit("authority-append:after-commit");
 		return {
 			head: cloneValue(nextHead),
+			receipt: cloneValue(receipt),
+			idempotent: false,
+		};
+	}
+
+	async recordRejectedCommand(
+		request: RecordRejectedAuthorityCommandRequest,
+	): Promise<AppendAuthorityBatchResult> {
+		assertVersion(
+			request.schemaVersion,
+			AUTHORITY_REJECTION_SCHEMA_VERSION,
+			"rejection schema",
+		);
+		assertIdentifier(request.appendId, "rejection.appendId");
+		assertInteger(request.expectedRevision, "rejection.expectedRevision");
+		assertInteger(
+			request.expectedLastSequence,
+			"rejection.expectedLastSequence",
+		);
+		assertInteger(request.fencingToken, "rejection.fencingToken");
+		assertHash(request.expectedStateHash, "rejection.expectedStateHash");
+		assertHash(
+			request.expectedLastEventHash,
+			"rejection.expectedLastEventHash",
+		);
+		assertRecordBound(
+			request as unknown as JsonValue,
+			this.#bounds,
+			"authority rejection",
+		);
+		const receiptKey = recordKey(request, request.appendId);
+		const requestFingerprint = await domainHash(
+			"eonfolk-authority-rejection-v1",
+			request,
+		);
+		const priorReceipt = this.#stores.receipts.get(receiptKey);
+		if (priorReceipt !== undefined) {
+			await validateAppendReceipt(priorReceipt);
+			if (
+				this.#stores.requestFingerprints.get(receiptKey) !== requestFingerprint
+			)
+				throw new PersistenceError(
+					"IDEMPOTENCY_COLLISION",
+					"rejection ID has different authoritative bytes",
+				);
+			return {
+				head: await this.loadHead(request),
+				receipt: cloneValue(priorReceipt),
+				idempotent: true,
+			};
+		}
+		const head = await this.loadHead(request);
+		if (request.fencingToken !== head.fencingToken)
+			throw new PersistenceError(
+				"STALE_FENCE",
+				"rejection used a stale fencing token",
+			);
+		if (request.expectedRevision !== head.revision)
+			throw new PersistenceError(
+				"STALE_REVISION",
+				"rejection expected a stale revision",
+			);
+		if (request.expectedLastSequence !== head.lastSequence)
+			throw new PersistenceError(
+				"RANGE_GAP",
+				"rejection expected a stale sequence head",
+			);
+		if (request.expectedStateHash !== head.stateHash)
+			throw new PersistenceError(
+				"STALE_STATE",
+				"rejection expected a stale state hash",
+			);
+		if (request.expectedLastEventHash !== head.lastEventHash)
+			throw new PersistenceError(
+				"STALE_WORLD_HEAD",
+				"rejection expected a stale event hash",
+			);
+		const commandReceipt = request.commandReceipt;
+		if (
+			commandReceipt === null ||
+			typeof commandReceipt !== "object" ||
+			Array.isArray(commandReceipt) ||
+			(commandReceipt as { readonly outcome?: JsonValue }).outcome !==
+				"rejected"
+		)
+			throw new PersistenceError(
+				"INVALID_INPUT",
+				"receipt-only command must be rejected",
+			);
+		const unsignedReceipt = {
+			schemaVersion: AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
+			runId: request.runId,
+			regionId: request.regionId,
+			appendId: request.appendId,
+			appendHash: requestFingerprint,
+			batchId: `rejected:${request.appendId}`,
+			revision: head.revision,
+			fromSequenceInclusive: head.lastSequence + 1,
+			toSequenceExclusive: head.lastSequence + 1,
+			resultingStateHash: head.stateHash,
+			resultingLastEventHash: head.lastEventHash,
+			commandReceipt: cloneValue(request.commandReceipt),
+			decisionRecord: cloneValue(request.decisionRecord ?? null),
+		};
+		const receipt: AuthorityAppendReceipt = {
+			...unsignedReceipt,
+			receiptHash: await domainHash(
+				"eonfolk-authority-append-receipt-v2",
+				unsignedReceipt,
+			),
+		};
+		const staged = cloneStores(this.#stores);
+		staged.receipts.set(receiptKey, receipt);
+		staged.requestFingerprints.set(receiptKey, requestFingerprint);
+		this.#hit("authority-rejection:before-commit");
+		this.#stores = staged;
+		this.#hit("authority-rejection:after-commit");
+		return {
+			head: cloneValue(head),
 			receipt: cloneValue(receipt),
 			idempotent: false,
 		};

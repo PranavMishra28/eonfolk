@@ -52,10 +52,15 @@ describe("bounded world-presence pass", () => {
 	});
 
 	it("keeps human copy, world dominance, and mobile access explicit", async () => {
-		const [app, canvas, styles] = await Promise.all([
+		const [app, main, canvas, styles, vite] = await Promise.all([
 			webSource("V1GenesisApp.tsx"),
+			webSource("main.tsx"),
 			webSource("generated-world-canvas.tsx"),
 			webSource("styles.css"),
+			readFile(
+				new URL("../../../apps/web/vite.config.ts", import.meta.url),
+				"utf8",
+			),
 		]);
 
 		expect(app).toContain("{model.actors.length} lives are unfolding");
@@ -65,9 +70,12 @@ describe("bounded world-presence pass", () => {
 		expect(app).not.toContain("Seven lives");
 		expect(app).not.toContain("progress basis points");
 		expect(app).toContain("generatedWorldCanvasModule ??=");
-		expect(app).toContain(
-			'if (route === "world") void loadGeneratedWorldCanvasModule()',
-		);
+		expect(main).toContain('normalizedPath === "/world"');
+		expect(main).toContain('genesisRoute === "entry"');
+		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
+		expect(vite).toContain("webglOnlyPlayCanvasReact()");
+		expect(vite).toContain("WebglGraphicsDevice");
+		expect(vite).not.toContain("WebgpuGraphicsDevice");
 		expect(canvas).toContain(
 			'data-environment-context="presentation-only-ground-apron"',
 		);

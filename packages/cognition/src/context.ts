@@ -96,7 +96,7 @@ export async function buildDecisionContext(input: {
 				: 0,
 	);
 	const catalogDigest = await catalogHash({
-		version: "riverhold-actions-v1",
+		version: "civilization-actions-v1",
 		entries: actionCatalog,
 	});
 	const withoutHash = {
@@ -113,7 +113,7 @@ export async function buildDecisionContext(input: {
 		values,
 		relationships,
 		activeStandingPlan: input.actorMind.standingPlan,
-		actionCatalogVersion: "riverhold-actions-v1" as const,
+		actionCatalogVersion: "civilization-actions-v1" as const,
 		actionCatalog,
 		budgets,
 		counselIntent: input.counselIntent,
@@ -131,59 +131,144 @@ export async function buildDecisionContext(input: {
 	return context;
 }
 
-export function riverholdCounselCatalog(input: {
+/** Frozen Riverhold fixture catalog. Canonical civilization code must not call it. */
+export function civilizationCounselCatalog(input: {
 	readonly actorId: string;
 	readonly targetCitizenId: string;
 	readonly planId: string;
 	readonly relationshipId: string;
 	readonly evidenceRecordIds: readonly string[];
 }): readonly ActionCatalogEntry[] {
+	const evidenceActions: readonly ActionCatalogEntry[] =
+		input.evidenceRecordIds.length === 0
+			? []
+			: [
+					{
+						actionId: "action-verify-reserve",
+						action: {
+							kind: "VerifyReserve",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["at least one readable source record exists"],
+						publicStakes: [
+							"delays a public conclusion",
+							"may gather stronger evidence",
+						],
+						tags: ["caution", "evidence", "relationship", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 200,
+						counselAffinity: "verify-reserve",
+					},
+					{
+						actionId: "action-accuse-publicly",
+						action: {
+							kind: "AccusePublicly",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["at least one readable source record exists"],
+						publicStakes: [
+							"records an allegation, not a fact",
+							"risks relationship strain",
+						],
+						tags: ["candor", "evidence", "risk", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 500,
+						counselAffinity: "accuse-publicly",
+					},
+				];
 	return [
-		{
-			actionId: "action-verify-reserve",
-			action: { kind: "VerifyReserve", targetCitizenId: input.targetCitizenId },
-			publicPreconditions: [
-				"ledger mismatch observed",
-				"recount witness available",
-			],
-			publicStakes: [
-				"delays disclosure",
-				"may preserve trust",
-				"can improve evidence",
-			],
-			tags: ["caution", "evidence", "relationship", "counsel"],
-			evidenceRecordIds: input.evidenceRecordIds,
-			relationshipId: input.relationshipId,
-			risk: 200,
-			counselAffinity: "verify-reserve",
-		},
-		{
-			actionId: "action-accuse-publicly",
-			action: {
-				kind: "AccusePublicly",
-				targetCitizenId: input.targetCitizenId,
-			},
-			publicPreconditions: ["ledger mismatch observed", "market is public"],
-			publicStakes: [
-				"may trigger an audit",
-				"risks relationship strain",
-				"claim remains an allegation",
-			],
-			tags: ["candor", "evidence", "risk", "counsel"],
-			evidenceRecordIds: input.evidenceRecordIds,
-			relationshipId: input.relationshipId,
-			risk: 500,
-			counselAffinity: "accuse-publicly",
-		},
+		...evidenceActions,
 		{
 			actionId: "action-follow-plan",
 			action: { kind: "FollowStandingPlan", planId: input.planId },
 			publicPreconditions: ["standing plan remains possible"],
 			publicStakes: [
 				"preserves current commitments",
-				"leaves the mismatch unresolved for now",
+				"defers the counsel until another decision boundary",
 			],
 			tags: ["commitment", "relationship"],
+			evidenceRecordIds: [],
+			relationshipId: input.relationshipId,
+			risk: 100,
+			counselAffinity: "neutral",
+		},
+	];
+}
+
+/** Evidence-gated legal affordances for one typed civilization counsel. */
+export function civilizationCounselAffordances(input: {
+	readonly targetCitizenId: string;
+	readonly planId: string;
+	readonly relationshipId: string;
+	/** Readable claims or direct evidence are enough to authorize investigation. */
+	readonly verificationRecordIds: readonly string[];
+	/** Public accusation requires independently sourced non-claim evidence. */
+	readonly accusationRecordIds: readonly string[];
+	readonly counselIntent: "verify-reserve" | "accuse-publicly";
+	readonly followDisposition: "delayed" | "rejected";
+}): readonly ActionCatalogEntry[] {
+	const verificationActions: readonly ActionCatalogEntry[] =
+		input.verificationRecordIds.length === 0
+			? []
+			: [
+					{
+						actionId: "action-verify-reserve",
+						action: {
+							kind: "VerifyReserve",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["a readable typed source record exists"],
+						publicStakes: [
+							"delays a conclusion",
+							"may gather stronger evidence",
+						],
+						tags: ["caution", "evidence", "relationship", "counsel"],
+						evidenceRecordIds: input.verificationRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 200,
+						counselAffinity: "verify-reserve",
+					},
+				];
+	const accusationActions: readonly ActionCatalogEntry[] =
+		input.accusationRecordIds.length === 0
+			? []
+			: [
+					{
+						actionId: "action-accuse-publicly",
+						action: {
+							kind: "AccusePublicly",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["a readable typed source record exists"],
+						publicStakes: [
+							"records a statement as an allegation",
+							"risks relationship strain",
+						],
+						tags: ["candor", "evidence", "risk", "counsel"],
+						evidenceRecordIds: input.accusationRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 400,
+						counselAffinity: "accuse-publicly",
+					},
+				];
+	return [
+		...verificationActions,
+		...accusationActions,
+		{
+			actionId: "action-follow-plan",
+			action: { kind: "FollowStandingPlan", planId: input.planId },
+			publicPreconditions: ["standing plan remains possible"],
+			publicStakes: [
+				"preserves current commitments",
+				"defers counsel until another decision boundary",
+			],
+			tags: [
+				"commitment",
+				"relationship",
+				...(input.followDisposition === "delayed" ? (["delay"] as const) : []),
+			],
 			evidenceRecordIds: [],
 			relationshipId: input.relationshipId,
 			risk: 100,
