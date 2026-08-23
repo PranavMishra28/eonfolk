@@ -91,6 +91,9 @@ describe("generated-world properties", () => {
 				const territories = Object.values(world.territories).map(
 					(record) => record.value,
 				);
+				const chunks = Object.values(world.chunks).map(
+					(record) => record.value,
+				);
 				const cells = Object.values(world.cells).map((record) => record.value);
 				const settlements = Object.values(world.settlements).map(
 					(record) => record.value,
@@ -110,8 +113,26 @@ describe("generated-world properties", () => {
 					),
 				).toBe(true);
 				expect(
+					regions[0]?.chunkIds.every(
+						(chunkId) => world.chunks[chunkId] !== undefined,
+					),
+				).toBe(true);
+				expect(
 					regions[0]?.territoryIds.every(
 						(territoryId) => world.territories[territoryId] !== undefined,
+					),
+				).toBe(true);
+				expect(
+					chunks.every(
+						(chunk) =>
+							world.regions[chunk.regionId] !== undefined &&
+							chunk.cellIds.every(
+								(cellId) =>
+									world.cells[cellId]?.value.chunkId === chunk.chunkId,
+							) &&
+							chunk.territoryIds.every(
+								(territoryId) => world.territories[territoryId] !== undefined,
+							),
 					),
 				).toBe(true);
 				expect(
@@ -171,6 +192,11 @@ describe("generated-world properties", () => {
 					if (site === undefined) continue;
 					expect(world.cells[site.cellId]).toBeDefined();
 					expect(site.localSpaceId).toBe(localSpace.localSpaceId);
+					expect(
+						site.placeIds.every(
+							(placeId) => world.places[placeId]?.value.siteId === siteId,
+						),
+					).toBe(true);
 					expect(inBounds(site.bounds.minimum, localSpace.bounds)).toBe(true);
 					expect(inBounds(site.bounds.maximum, localSpace.bounds)).toBe(true);
 					for (const slotId of site.interactionSlotIds) {

@@ -2,7 +2,7 @@ export const GOLDEN_RELEASE_ID = "worldgen-golden";
 export const GOLDEN_SEED_HEX =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 export const GOLDEN_WORLD_HASH =
-	"3750ffe3bb6d0126f3bfc866e845b2f4c25ed6193ccfe0e38489ff9e98d05842";
+	"d0f6fcf83224043c112f75ab9f7691ab3ebaf599d3120587185dd4f92e9f1882";
 
 export const DIFFERENTIATION_SEEDS = [
 	GOLDEN_SEED_HEX,

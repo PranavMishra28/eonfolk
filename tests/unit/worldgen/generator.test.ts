@@ -7,6 +7,7 @@ import {
 import {
 	generateWorld,
 	INITIAL_SITE_COUNT,
+	WORLD_CHUNK_COUNT,
 	WORLD_GRID_HEIGHT,
 	WORLD_GRID_WIDTH,
 	WORLD_TERRITORY_COUNT,
@@ -33,7 +34,9 @@ describe("deterministic generated world", () => {
 			WORLD_GRID_WIDTH * WORLD_GRID_HEIGHT,
 		);
 		expect(Object.keys(first.territories)).toHaveLength(WORLD_TERRITORY_COUNT);
+		expect(Object.keys(first.chunks)).toHaveLength(WORLD_CHUNK_COUNT);
 		expect(Object.keys(first.sites)).toHaveLength(INITIAL_SITE_COUNT);
+		expect(Object.keys(first.places)).toHaveLength(INITIAL_SITE_COUNT);
 	});
 
 	it("creates materially different valid worlds for three fixed seeds", async () => {

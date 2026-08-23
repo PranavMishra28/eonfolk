@@ -1,6 +1,7 @@
 import type { ExperimentWorldIdentity } from "./release.js";
 
 export type WorldId = string;
+export type ChunkId = string;
 export type TerritoryId = string;
 export type CellId = string;
 export type LocalSpaceId = string;
@@ -53,6 +54,7 @@ export type TerrainKind =
 export interface WorldCell {
 	readonly cellId: CellId;
 	readonly regionId: string;
+	readonly chunkId: ChunkId;
 	readonly territoryId: TerritoryId;
 	readonly gridX: number;
 	readonly gridY: number;
@@ -71,8 +73,20 @@ export interface RegionState {
 	readonly regionId: string;
 	readonly name: string;
 	readonly cellIds: readonly CellId[];
+	readonly chunkIds: readonly ChunkId[];
 	readonly territoryIds: readonly TerritoryId[];
 	readonly neighboringRegionIds: readonly string[];
+}
+
+export interface ChunkState {
+	readonly chunkId: ChunkId;
+	readonly regionId: string;
+	readonly gridMinimumX: number;
+	readonly gridMinimumY: number;
+	readonly gridMaximumX: number;
+	readonly gridMaximumY: number;
+	readonly cellIds: readonly CellId[];
+	readonly territoryIds: readonly TerritoryId[];
 }
 
 export interface TerritoryState {
@@ -122,6 +136,15 @@ export interface SiteState {
 	readonly interactionSlotIds: readonly InteractionSlotId[];
 }
 
+export interface PlaceState {
+	readonly placeId: PlaceId;
+	readonly siteId: SiteId;
+	readonly name: string;
+	readonly kind: "meeting" | "dwelling" | "storage" | "work" | "resource";
+	readonly position: MetricPosition;
+	readonly interactionSlotIds: readonly InteractionSlotId[];
+}
+
 export interface InteractionSlotState {
 	readonly interactionSlotId: InteractionSlotId;
 	readonly siteId: SiteId;
@@ -155,6 +178,7 @@ export interface GeneratedWorldState {
 	readonly identity: ExperimentWorldIdentity;
 	readonly generatedAtSimulationTime: 0;
 	readonly regions: Readonly<Record<string, CanonicalRecord<RegionState>>>;
+	readonly chunks: Readonly<Record<string, CanonicalRecord<ChunkState>>>;
 	readonly territories: Readonly<
 		Record<string, CanonicalRecord<TerritoryState>>
 	>;
@@ -166,6 +190,7 @@ export interface GeneratedWorldState {
 		Record<string, CanonicalRecord<SettlementState>>
 	>;
 	readonly sites: Readonly<Record<string, CanonicalRecord<SiteState>>>;
+	readonly places: Readonly<Record<string, CanonicalRecord<PlaceState>>>;
 	readonly buildings: Readonly<Record<string, CanonicalRecord<BuildingState>>>;
 	readonly routes: Readonly<Record<string, CanonicalRecord<RouteState>>>;
 	readonly interactionSlots: Readonly<

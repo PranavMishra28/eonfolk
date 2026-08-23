@@ -11,10 +11,12 @@ import {
 import type {
 	BuildingState,
 	CanonicalRecord,
+	ChunkState,
 	GeneratedWorldState,
 	InteractionSlotState,
 	MetricBounds,
 	MetricPosition,
+	PlaceState,
 	RegionState,
 	ReleaseGenesis,
 	RouteState,
@@ -28,6 +30,7 @@ import type {
 export const WORLD_GRID_WIDTH = 8;
 export const WORLD_GRID_HEIGHT = 8;
 export const WORLD_TERRITORY_COUNT = 4;
+export const WORLD_CHUNK_COUNT = 4;
 export const INITIAL_SITE_COUNT = 5;
 
 const BASIS_POINTS = 10_000;
@@ -38,6 +41,7 @@ interface CellDraft {
 	readonly gridX: number;
 	readonly gridY: number;
 	readonly territoryId: string;
+	readonly chunkId: string;
 	readonly elevationMillimeters: number;
 	readonly riverDistance: number;
 	readonly localNoise: number;
@@ -98,6 +102,14 @@ const SETTLEMENT_NAMES = [
 	"Dawnmere",
 	"Emberfield",
 	"Foxhollow",
+] as const;
+
+const PLACE_KINDS = [
+	"meeting",
+	"dwelling",
+	"storage",
+	"work",
+	"resource",
 ] as const;
 
 function required<T>(value: T | undefined, label: string): T {
@@ -242,6 +254,11 @@ export async function generateWorld(
 			stableId("territory", seed, index),
 		),
 	);
+	const chunkIds = await Promise.all(
+		Array.from({ length: WORLD_CHUNK_COUNT }, (_, index) =>
+			stableId("chunk", seed, index),
+		),
+	);
 	const cellIds = await Promise.all(
 		Array.from({ length: WORLD_GRID_WIDTH * WORLD_GRID_HEIGHT }, (_, index) =>
 			stableId("cell", seed, index),
@@ -269,6 +286,7 @@ export async function generateWorld(
 	for (let gridY = 0; gridY < WORLD_GRID_HEIGHT; gridY += 1) {
 		for (let gridX = 0; gridX < WORLD_GRID_WIDTH; gridX += 1) {
 			const index = cellIndex(gridX, gridY);
+			const partitionIndex = territoryIndex(gridX, gridY);
 			const noise = await draws(seed, `cell-${gridX}-${gridY}`, "terrain", 3);
 			const hillDistance = Math.abs(gridX - hillX) + Math.abs(gridY - hillY);
 			const elevationMillimeters = clamp(
@@ -284,8 +302,12 @@ export async function generateWorld(
 				gridX,
 				gridY,
 				territoryId: required(
-					territoryIds[territoryIndex(gridX, gridY)],
+					territoryIds[partitionIndex],
 					`territory for ${gridX},${gridY}`,
+				),
+				chunkId: required(
+					chunkIds[partitionIndex],
+					`chunk for ${gridX},${gridY}`,
 				),
 				elevationMillimeters,
 				riverDistance: Math.abs(
@@ -380,6 +402,7 @@ export async function generateWorld(
 		return {
 			cellId: draft.cellId,
 			regionId,
+			chunkId: draft.chunkId,
 			territoryId: draft.territoryId,
 			gridX: draft.gridX,
 			gridY: draft.gridY,
@@ -419,6 +442,9 @@ export async function generateWorld(
 	const siteIds = await Promise.all(
 		SITE_TEMPLATES.map((_, index) => stableId("site", seed, index)),
 	);
+	const placeIds = await Promise.all(
+		SITE_TEMPLATES.map((_, index) => stableId("place", seed, index)),
+	);
 	const interactionSlotIds = await Promise.all(
 		Array.from({ length: INITIAL_SITE_COUNT * 2 }, (_, index) =>
 			stableId("interaction-slot", seed, index),
@@ -437,6 +463,7 @@ export async function generateWorld(
 
 	const slotValues: InteractionSlotState[] = [];
 	const buildingValues: BuildingState[] = [];
+	const placeValues: PlaceState[] = [];
 	const siteValues: SiteState[] = SITE_TEMPLATES.map((template, index) => {
 		const [minimumX, minimumY, maximumX, maximumY] = template.bounds;
 		const siteId = required(siteIds[index], `site ID ${index}`);
@@ -448,6 +475,7 @@ export async function generateWorld(
 			interactionSlotIds[index * 2 + 1],
 			`work slot ${index}`,
 		);
+		const placeId = required(placeIds[index], `place ID ${index}`);
 		const centerX = Math.trunc((minimumX + maximumX) / 2);
 		const centerY = Math.trunc((minimumY + maximumY) / 2);
 		slotValues.push(
@@ -468,6 +496,14 @@ export async function generateWorld(
 				capacity: index === 0 ? 8 : 3,
 			},
 		);
+		placeValues.push({
+			placeId,
+			siteId,
+			name: template.name,
+			kind: required(PLACE_KINDS[index], `place kind ${index}`),
+			position: position(centerX, centerY),
+			interactionSlotIds: [entranceSlotId, workSlotId],
+		});
 		const buildingId =
 			template.buildingKind === null
 				? null
@@ -490,7 +526,7 @@ export async function generateWorld(
 			name: template.name,
 			kind: template.kind,
 			bounds: metricBounds(minimumX, minimumY, maximumX, maximumY),
-			placeIds: [],
+			placeIds: [placeId],
 			buildingIds: buildingId === null ? [] : [buildingId],
 			interactionSlotIds: [entranceSlotId, workSlotId],
 		};
@@ -532,9 +568,26 @@ export async function generateWorld(
 		regionId,
 		name: "Genesis Reach",
 		cellIds,
+		chunkIds,
 		territoryIds,
 		neighboringRegionIds: [],
 	};
+	const chunkValues: ChunkState[] = chunkIds.map((chunkId, index) => {
+		const minimumX = index % 2 === 0 ? 0 : WORLD_GRID_WIDTH / 2;
+		const minimumY = index < 2 ? 0 : WORLD_GRID_HEIGHT / 2;
+		return {
+			chunkId,
+			regionId,
+			gridMinimumX: minimumX,
+			gridMinimumY: minimumY,
+			gridMaximumX: minimumX + WORLD_GRID_WIDTH / 2 - 1,
+			gridMaximumY: minimumY + WORLD_GRID_HEIGHT / 2 - 1,
+			cellIds: cellValues
+				.filter((cell) => cell.chunkId === chunkId)
+				.map((cell) => cell.cellId),
+			territoryIds: [required(territoryIds[index], `chunk territory ${index}`)],
+		};
+	});
 	const territoryValues: TerritoryState[] = territoryIds.map(
 		(territoryId, index) => ({
 			territoryId,
@@ -570,6 +623,9 @@ export async function generateWorld(
 		identity,
 		generatedAtSimulationTime: 0,
 		regions: { [regionId]: canonical(release, region) },
+		chunks: asRecord(
+			chunkValues.map((value) => [value.chunkId, canonical(release, value)]),
+		),
 		territories: asRecord(
 			territoryValues.map((value) => [
 				value.territoryId,
@@ -591,6 +647,9 @@ export async function generateWorld(
 		settlements: { [settlementId]: canonical(release, settlement) },
 		sites: asRecord(
 			siteValues.map((value) => [value.siteId, canonical(release, value)]),
+		),
+		places: asRecord(
+			placeValues.map((value) => [value.placeId, canonical(release, value)]),
 		),
 		buildings: asRecord(
 			buildingValues.map((value) => [
