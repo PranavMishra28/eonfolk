@@ -279,6 +279,22 @@
 
 **Reopen trigger.** Rebalance tiers when measured CI time or defect escape shows a check is misplaced; never remove a direct invariant falsification without an equal or stronger replacement.
 
+### D-016 — Do not promote POMCP without a calibrated generative model
+
+**Decision.** V1 does not promote POMCP. The implemented cognition path uses actor-visible `DecisionContext`, bounded legal affordances, deterministic routine/project planning, and an optional untrusted Model Brain proposal. EONFOLK currently has no calibrated black-box transition/observation sampler for any decision class, so a particle-belief search would manufacture probabilities rather than model justified uncertainty.
+
+**Evidence.** The primary POMCP paper requires a black-box generative model that samples a next state, observation, and reward for a state/action pair and represents belief with particles [S-FA-COG-003]. Repository inspection shows sourced typed beliefs and deterministic affordance search, but no authorized stochastic transition distribution, observation likelihood, calibrated reward model, or frozen information-gathering case. Sampling hidden canonical Reality would also violate the actor-visible context boundary.
+
+**Rejected alternatives.** Arbitrary rollout probabilities, treating belief confidence as a calibrated particle distribution, reading hidden Reality during search, and implementing POMCP merely to claim algorithmic breadth.
+
+**Remaining uncertainty.** A later investigation, uncertain trade, disease, reconnaissance, or diplomacy mechanic may create a legitimate value-of-information problem that the deterministic planners cannot solve.
+
+**Resulting behavior.** No POMCP runtime, dependency, particles, rollout values, or stochastic search enters V1. This does not weaken partial observability: Mind remains subjective and actor-bounded, while planners act only on authorized facts, beliefs, and legal actions. Rejection is an affirmative V1 technical disposition, not deferred required software.
+
+**Constraint fit.** The decision avoids unsupported complexity, floating/stochastic replay costs, and unearned research claims while preserving the solo, local, no-training, approximately-$0 operating constraints.
+
+**Reopen trigger.** Reopen only when one frozen actor-authorized case supplies typed and calibrated transition/observation distributions, materially different information value, and a predeclared benchmark where Standard Brain plus bounded planning both fail. A candidate must then beat both baselines without hidden-fact access, replay drift, or an unexplained player-facing choice.
+
 ## Founder Alpha frozen-review reconciliation
 
 Six independent reviewers inspected frozen candidate `7319d59260555ffbe4eb2f4d58beb61d3f8a11ee`. The candidate was correctly rejected. Every P0/P1 is accepted below; “closed by removal/deferral” means the unsafe claim or executable surface no longer exists, not that an active release blocker is tolerated. Human comprehension, attachment, screen-reader, physical-device, live-provider, deployment, and model evidence remain `NOT_RUN` and are not converted into technical passes.

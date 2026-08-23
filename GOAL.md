@@ -88,7 +88,7 @@
 | Retrieval by relevance, recency, salience, relationship, and goal | NOT STARTED |
 | Historical replay never reruns model inference | NOT STARTED |
 | Multiple world seeds and Brain treatments carry immutable experiment identity | NOT STARTED |
-| POMCP promoted with a defensible sampler or rejected by an evidence-backed ADR | NOT STARTED |
+| POMCP promoted with a defensible sampler or rejected by an evidence-backed ADR | VERIFIED |
 
 ## Persistence and reliability
 
