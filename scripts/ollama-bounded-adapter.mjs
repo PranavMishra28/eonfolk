@@ -317,28 +317,34 @@ function validateChoice(ollamaResponse, references) {
 		choice === null ||
 		Array.isArray(choice) ||
 		!exactKeys(choice, CHOICE_KEYS) ||
-		choice.schemaVersion !== "eonfolk-model-choice-v1" ||
-		!references.actionIds.has(choice.actionId) ||
+		choice.schemaVersion !== "eonfolk-model-choice-v1"
+	)
+		fail("choice-shape-invalid");
+	if (!references.actionIds.has(choice.actionId)) fail("choice-action-invalid");
+	if (
 		!safeString(choice.publicJustification, 180) ||
 		[...choice.publicJustification].length < 8 ||
-		!/[.!?]$/u.test(choice.publicJustification) ||
-		!uniqueSubset(
-			choice.visibleRecordIdsRead,
-			references.visibleRecordIds,
-			32,
-		) ||
-		!uniqueSubset(
-			choice.relationshipIdsRead,
-			references.relationshipIds,
-			128,
-		) ||
-		!uniqueSubset(choice.valueIdsRead, references.valueIds, 128) ||
-		!uniqueSubset(choice.commitmentIdsRead, references.commitmentIds, 32) ||
+		!/[.!?]$/u.test(choice.publicJustification)
+	)
+		fail("choice-justification-invalid");
+	if (
+		!uniqueSubset(choice.visibleRecordIdsRead, references.visibleRecordIds, 32)
+	)
+		fail("choice-visible-references-invalid");
+	if (
+		!uniqueSubset(choice.relationshipIdsRead, references.relationshipIds, 128)
+	)
+		fail("choice-relationship-references-invalid");
+	if (!uniqueSubset(choice.valueIdsRead, references.valueIds, 128))
+		fail("choice-value-references-invalid");
+	if (!uniqueSubset(choice.commitmentIdsRead, references.commitmentIds, 32))
+		fail("choice-commitment-references-invalid");
+	if (
 		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
 			choice.counselDisposition,
 		)
 	)
-		fail("choice-schema-invalid");
+		fail("choice-disposition-invalid");
 	return {
 		choice: canonicalJson(choice),
 		telemetry: canonicalJson({

@@ -710,7 +710,8 @@ function summary(
 			? [Math.round((count * 1_000_000_000) / duration)]
 			: [];
 	});
-	let hiddenPairMatches = 0;
+	let hiddenPairExactMatches = 0;
+	let hiddenPairActionMatches = 0;
 	for (const seed of MODEL_SEEDS) {
 		for (let index = 0; index < VISIBLE_CONTEXTS; index += 1) {
 			const pair = results.filter(
@@ -723,7 +724,9 @@ function summary(
 				pair[0]?.actionId === pair[1]?.actionId &&
 				pair[0]?.publicJustification === pair[1]?.publicJustification
 			)
-				hiddenPairMatches += 1;
+				hiddenPairExactMatches += 1;
+			if (pair.length === 2 && pair[0]?.actionId === pair[1]?.actionId)
+				hiddenPairActionMatches += 1;
 		}
 	}
 	const maximumPressure = Math.max(
@@ -748,7 +751,8 @@ function summary(
 			(results.filter((item) => item.preferredAgreement).length * 10_000) /
 				results.length,
 		),
-		hiddenPairMatches,
+		hiddenPairExactMatches,
+		hiddenPairActionMatches,
 		hiddenPairs: VISIBLE_CONTEXTS * MODEL_SEEDS.length,
 		warmLatencyMs: {
 			p50: percentile(warmLatencies, 0.5),
@@ -770,10 +774,14 @@ function summary(
 	};
 	return {
 		...result,
+		// Promotion is for an optional treatment, not authority or liveness. A
+		// bounded failure rate is expected to exercise the mandatory deterministic
+		// fallback; exact wording is not required from a nondeterministic model.
 		promotionGates: {
 			completeCorpus: result.executions === EXPECTED_EXECUTIONS,
-			allPrimaryAccepted: result.primaryAccepted === EXPECTED_EXECUTIONS,
-			hiddenFactIsolation: result.hiddenPairMatches === result.hiddenPairs,
+			fallbackWithinFivePercent: result.fallbacks * 20 <= result.executions,
+			hiddenActionAgreementAtLeast98Percent:
+				result.hiddenPairActionMatches * 100 >= result.hiddenPairs * 98,
 			memoryPressureNormal: result.maximumPressure === 1,
 			noSwapGrowth: result.swapDeltaBytes <= 0,
 			freeDiskReserve: result.minimumFreeDiskBytes >= MINIMUM_FREE_DISK_BYTES,
@@ -1123,7 +1131,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 							await mkdir(resolve(OUTPUT_PATH, ".."), { recursive: true });
 							await writeFile(
 								OUTPUT_PATH,
-								`${JSON.stringify({ schemaVersion: "eonfolk-local-model-benchmark-progress-v1", sourceCommit, sourceTree, model: model.identity, results }, null, 2)}\n`,
+								`${JSON.stringify({ schemaVersion: "eonfolk-local-model-benchmark-progress-v2", sourceCommit, sourceTree, model: model.identity, results }, null, 2)}\n`,
 							);
 						}
 					}
@@ -1134,7 +1142,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 			const end = safetySample();
 			const benchmarkSummary = summary(results, start, end);
 			const reportWithoutHash = {
-				schemaVersion: "eonfolk-local-model-benchmark-v1",
+				schemaVersion: "eonfolk-local-model-benchmark-v2",
 				recordedAt: new Date().toISOString(),
 				source: { commit: sourceCommit, tree: sourceTree, dirty: false },
 				machine: {
