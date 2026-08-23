@@ -62,6 +62,17 @@ interface KeyedRow<T> {
 interface StreamBundle {
 	readonly stream: StreamRow;
 	readonly operations: readonly AuthorityOperation[];
+	readonly events: readonly AuthorityEventRecord[];
+	readonly receipts: readonly AuthorityAppendReceipt[];
+	readonly snapshots: readonly AuthoritySnapshotRecord[];
+}
+
+interface StoredRows {
+	readonly stream: StreamRow | undefined;
+	readonly operations: readonly KeyedRow<AuthorityOperation>[];
+	readonly events: readonly KeyedRow<AuthorityEventRecord>[];
+	readonly receipts: readonly KeyedRow<AuthorityAppendReceipt>[];
+	readonly snapshots: readonly KeyedRow<AuthoritySnapshotRecord>[];
 }
 
 export interface BrowserVersionedPersistenceOptions {
@@ -180,11 +191,134 @@ async function openDatabase(
 	return database;
 }
 
-function rowsForStream<T>(
-	rows: readonly KeyedRow<T>[],
-	key: string,
+function tuple(value: unknown): readonly unknown[] | null {
+	if (typeof value !== "string") return null;
+	try {
+		const parsed: unknown = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
+function targetsScope(parts: readonly unknown[] | null, scope: AuthorityScope) {
+	return parts?.[0] === scope.runId && parts[1] === scope.regionId;
+}
+
+function streamRowForScope(
+	rows: readonly unknown[],
+	scope: AuthorityScope,
+): StreamRow | undefined {
+	const expectedKey = streamKey(scope);
+	let result: StreamRow | undefined;
+	for (const raw of rows) {
+		const row = raw as Partial<StreamRow>;
+		const parts = tuple(row?.key);
+		if (!targetsScope(parts, scope) && row?.key !== expectedKey) continue;
+		if (
+			row.key !== expectedKey ||
+			result !== undefined ||
+			typeof row.operationCount !== "number" ||
+			!Number.isSafeInteger(row.operationCount) ||
+			row.operationCount < 0 ||
+			typeof row.genesis !== "object" ||
+			row.genesis === null ||
+			row.genesis.runId !== scope.runId ||
+			row.genesis.regionId !== scope.regionId
+		)
+			fail("STALE_STATE", "stream identity mismatch");
+		result = row as StreamRow;
+	}
+	return result;
+}
+
+function rowsForScope<T>(
+	rows: readonly unknown[],
+	scope: AuthorityScope,
+	idField: "ordinal" | "sequence" | "appendId" | "snapshotId",
 ): readonly KeyedRow<T>[] {
-	return rows.filter((row) => row.streamKey === key);
+	const expectedStreamKey = streamKey(scope);
+	const result: KeyedRow<T>[] = [];
+	const identities = new Set<string>();
+	for (const raw of rows) {
+		const row = raw as Partial<KeyedRow<unknown>>;
+		const keyParts = tuple(row?.key);
+		const streamParts = tuple(row?.streamKey);
+		if (
+			!targetsScope(keyParts, scope) &&
+			!targetsScope(streamParts, scope) &&
+			row?.streamKey !== expectedStreamKey
+		)
+			continue;
+		const id = keyParts?.[2];
+		const value = row?.value as Record<string, unknown> | null;
+		const numericId =
+			typeof id === "number" && Number.isSafeInteger(id) && id >= 0;
+		const validId =
+			idField === "ordinal"
+				? numericId
+				: idField === "sequence"
+					? numericId && id > 0
+					: typeof id === "string" && id.length > 0;
+		const identity = `${typeof id}:${String(id)}`;
+		if (
+			!validId ||
+			row.key !== recordKey(scope, id as string | number) ||
+			row.streamKey !== expectedStreamKey ||
+			typeof value !== "object" ||
+			value === null ||
+			value[idField] !== id ||
+			identities.has(identity)
+		)
+			fail("STALE_STATE", "record identity mismatch");
+		identities.add(identity);
+		result.push(row as KeyedRow<T>);
+	}
+	return result;
+}
+
+async function storedRows(
+	transaction: IDBTransaction,
+	scope: AuthorityScope,
+): Promise<StoredRows> {
+	const [stream, operations, events, receipts, snapshots] = (await Promise.all([
+		requestValue(
+			transaction
+				.objectStore(GENERATED_AUTHORITY_STORES.streams)
+				.get(streamKey(scope)),
+		),
+		...STORE_NAMES.slice(1).map((store) =>
+			requestValue(transaction.objectStore(store).getAll()),
+		),
+	])) as [unknown | undefined, unknown[], unknown[], unknown[], unknown[]];
+	return {
+		stream: streamRowForScope(stream === undefined ? [] : [stream], scope),
+		operations: rowsForScope<AuthorityOperation>(operations, scope, "ordinal"),
+		events: rowsForScope<AuthorityEventRecord>(events, scope, "sequence"),
+		receipts: rowsForScope<AuthorityAppendReceipt>(receipts, scope, "appendId"),
+		snapshots: rowsForScope<AuthoritySnapshotRecord>(
+			snapshots,
+			scope,
+			"snapshotId",
+		),
+	};
+}
+
+function materializedValues(stored: StoredRows): Omit<StreamBundle, "stream"> {
+	return {
+		operations: stored.operations
+			.map((row) => row.value)
+			.sort((left, right) => left.ordinal - right.ordinal),
+		events: stored.events
+			.map((row) => row.value)
+			.sort((left, right) => left.sequence - right.sequence),
+		receipts: stored.receipts
+			.map((row) => row.value)
+			.sort((left, right) => left.appendId.localeCompare(right.appendId)),
+		snapshots: stored.snapshots
+			.map((row) => row.value)
+			.sort((left, right) => left.snapshotId.localeCompare(right.snapshotId)),
+	};
 }
 
 export class BrowserVersionedPersistence implements VersionedPersistencePort {
@@ -227,81 +361,69 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 
 	async #readBundle(scope: AuthorityScope): Promise<StreamBundle> {
 		this.#boundaryInjector?.hit("read");
-		const key = streamKey(scope);
-		const transaction = this.#database.transaction(
-			[
-				GENERATED_AUTHORITY_STORES.streams,
-				GENERATED_AUTHORITY_STORES.operations,
-			],
-			"readonly",
-		);
+		const transaction = this.#database.transaction(STORE_NAMES, "readonly");
 		const done = transactionDone(transaction);
-		const [stream, operationRows] = await Promise.all([
-			requestValue(
-				transaction.objectStore(GENERATED_AUTHORITY_STORES.streams).get(key),
-			) as Promise<StreamRow | undefined>,
-			requestValue(
-				transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).getAll(),
-			) as Promise<KeyedRow<AuthorityOperation>[]>,
-		]);
+		const stored = await storedRows(transaction, scope);
 		await done;
-		if (stream === undefined) fail("NOT_FOUND", "stream missing");
-		const operations = rowsForStream(operationRows, key)
-			.map((row) => row.value)
-			.sort((left, right) => left.ordinal - right.ordinal);
+		if (stored.stream === undefined) {
+			if (
+				stored.operations.length > 0 ||
+				stored.events.length > 0 ||
+				stored.receipts.length > 0 ||
+				stored.snapshots.length > 0
+			)
+				fail("STALE_STATE", "orphaned authority material");
+			fail("NOT_FOUND", "stream missing");
+		}
+		const materialized = materializedValues(stored);
 		if (
-			operations.length !== stream.operationCount ||
-			operations.some((operation, index) => operation.ordinal !== index)
+			materialized.operations.length !== stored.stream.operationCount ||
+			materialized.operations.some(
+				(operation, index) => operation.ordinal !== index,
+			)
 		)
 			fail("RANGE_GAP", "operation gap");
-		return { stream: clone(stream), operations: clone(operations) };
+		return clone({ stream: stored.stream, ...materialized });
 	}
 
 	async #hydrate(bundle: StreamBundle): Promise<MemoryVersionedPersistence> {
-		const memory = new MemoryVersionedPersistence();
-		await memory.initialize(bundle.stream.genesis);
-		for (const operation of bundle.operations) {
-			if (operation.kind === "append")
-				await memory.appendEventBatch(operation.request);
-			else if (operation.kind === "fence")
-				await memory.acquireWriterFence(
-					bundle.stream.genesis,
-					operation.expectedFencingToken,
-				);
-			else await memory.saveSnapshot(operation.request);
+		try {
+			const memory = new MemoryVersionedPersistence();
+			await memory.initialize(bundle.stream.genesis);
+			for (const operation of bundle.operations) {
+				if (operation.kind === "append")
+					await memory.appendEventBatch(operation.request);
+				else if (operation.kind === "fence")
+					await memory.acquireWriterFence(
+						bundle.stream.genesis,
+						operation.expectedFencingToken,
+					);
+				else await memory.saveSnapshot(operation.request);
+			}
+			const head = await memory.loadHead(bundle.stream.genesis);
+			if (!equal(head, bundle.stream.head))
+				fail("STALE_STATE", "head mismatch");
+			await this.#verifyMaterializedStores(bundle, memory);
+			return memory;
+		} catch (error) {
+			if (
+				error instanceof PersistenceError &&
+				[
+					"RANGE_GAP",
+					"RUN_ID_COLLISION",
+					"STALE_STATE",
+					"UNSUPPORTED_VERSION",
+				].includes(error.code)
+			)
+				throw error;
+			fail("STALE_STATE", "malformed authority material");
 		}
-		const head = await memory.loadHead(bundle.stream.genesis);
-		if (!equal(head, bundle.stream.head)) fail("STALE_STATE", "head mismatch");
-		await this.#verifyMaterializedStores(bundle, memory);
-		return memory;
 	}
 
 	async #verifyMaterializedStores(
 		bundle: StreamBundle,
 		memory: MemoryVersionedPersistence,
 	): Promise<void> {
-		const transaction = this.#database.transaction(
-			[
-				GENERATED_AUTHORITY_STORES.events,
-				GENERATED_AUTHORITY_STORES.receipts,
-				GENERATED_AUTHORITY_STORES.snapshots,
-			],
-			"readonly",
-		);
-		const done = transactionDone(transaction);
-		const [eventRows, receiptRows, snapshotRows] = await Promise.all([
-			requestValue(
-				transaction.objectStore(GENERATED_AUTHORITY_STORES.events).getAll(),
-			) as Promise<KeyedRow<AuthorityEventRecord>[]>,
-			requestValue(
-				transaction.objectStore(GENERATED_AUTHORITY_STORES.receipts).getAll(),
-			) as Promise<KeyedRow<AuthorityAppendReceipt>[]>,
-			requestValue(
-				transaction.objectStore(GENERATED_AUTHORITY_STORES.snapshots).getAll(),
-			) as Promise<KeyedRow<AuthoritySnapshotRecord>[]>,
-		]);
-		await done;
-		const key = streamKey(bundle.stream.genesis);
 		const expectedEvents = bundle.operations
 			.filter(
 				(
@@ -338,18 +460,18 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				)
 				.map((operation) => operation.request.snapshot),
 		].sort((left, right) => left.snapshotId.localeCompare(right.snapshotId));
-		const actualEvents = rowsForStream(eventRows, key)
-			.map((row) => row.value)
-			.sort((left, right) => left.sequence - right.sequence);
-		const actualReceipts = rowsForStream(receiptRows, key)
-			.map((row) => row.value)
-			.sort((left, right) => left.appendId.localeCompare(right.appendId));
+		const actualEvents = [...bundle.events].sort(
+			(left, right) => left.sequence - right.sequence,
+		);
+		const actualReceipts = [...bundle.receipts].sort((left, right) =>
+			left.appendId.localeCompare(right.appendId),
+		);
 		expectedReceipts.sort((left, right) =>
 			left.appendId.localeCompare(right.appendId),
 		);
-		const actualSnapshots = rowsForStream(snapshotRows, key)
-			.map((row) => row.value)
-			.sort((left, right) => left.snapshotId.localeCompare(right.snapshotId));
+		const actualSnapshots = [...bundle.snapshots].sort((left, right) =>
+			left.snapshotId.localeCompare(right.snapshotId),
+		);
 		if (
 			!equal(actualEvents, expectedEvents) ||
 			!equal(actualReceipts, expectedReceipts) ||
@@ -362,35 +484,32 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		readonly bundle: StreamBundle;
 		readonly operation: AuthorityOperation;
 		readonly head: AuthorityHead;
-		readonly stores: readonly string[];
 		readonly write: (transaction: IDBTransaction) => void;
 		readonly before: Parameters<VersionedCrashInjector["hit"]>[0];
 		readonly after: Parameters<VersionedCrashInjector["hit"]>[0];
 	}): Promise<void> {
 		this.#boundaryInjector?.hit("write");
 		const key = streamKey(input.bundle.stream.genesis);
-		const transaction = this.#database.transaction(
-			[
-				GENERATED_AUTHORITY_STORES.streams,
-				GENERATED_AUTHORITY_STORES.operations,
-				...input.stores,
-			],
-			"readwrite",
-			{ durability: "strict" },
-		);
+		const transaction = this.#database.transaction(STORE_NAMES, "readwrite", {
+			durability: "strict",
+		});
 		const done = transactionDone(transaction);
 		try {
 			this.#boundaryInjector?.hit("transaction-abort", transaction);
+			const stored = await storedRows(transaction, input.bundle.stream.genesis);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
-			const current = (await requestValue(streams.get(key))) as
-				| StreamRow
-				| undefined;
+			const current = stored.stream;
 			if (
 				current === undefined ||
-				current.head.headHash !== input.bundle.stream.head.headHash ||
-				current.operationCount !== input.bundle.stream.operationCount
+				!equal(current, input.bundle.stream) ||
+				!equal(materializedValues(stored), {
+					operations: input.bundle.operations,
+					events: input.bundle.events,
+					receipts: input.bundle.receipts,
+					snapshots: input.bundle.snapshots,
+				})
 			)
 				fail("STALE_REVISION", "head race");
 			input.write(transaction);
@@ -438,21 +557,18 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		const done = transactionDone(transaction);
 		try {
 			this.#boundaryInjector?.hit("transaction-abort", transaction);
+			const stored = await storedRows(transaction, request);
+			if (stored.stream !== undefined) fail("STALE_REVISION", "genesis race");
+			if (
+				stored.operations.length > 0 ||
+				stored.events.length > 0 ||
+				stored.receipts.length > 0 ||
+				stored.snapshots.length > 0
+			)
+				fail("STALE_STATE", "orphaned authority material");
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
-			const [existing, ...materializedRows] = await Promise.all([
-				requestValue(streams.get(key)) as Promise<StreamRow | undefined>,
-				...STORE_NAMES.slice(1).map(
-					(store) =>
-						requestValue(transaction.objectStore(store).getAll()) as Promise<
-							KeyedRow<unknown>[]
-						>,
-				),
-			]);
-			if (existing !== undefined) fail("STALE_REVISION", "genesis race");
-			if (materializedRows.some((rows) => rowsForStream(rows, key).length > 0))
-				fail("STALE_STATE", "orphaned authority material");
 			streams.put({
 				key,
 				genesis: clone(request),
@@ -501,7 +617,6 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				expectedFencingToken,
 			},
 			head: next,
-			stores: [],
 			write: () => undefined,
 			before: "authority-fence:before-commit",
 			after: "authority-fence:after-commit",
@@ -525,10 +640,6 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				request: clone(request),
 			},
 			head: result.head,
-			stores: [
-				GENERATED_AUTHORITY_STORES.events,
-				GENERATED_AUTHORITY_STORES.receipts,
-			],
 			write: (transaction) => {
 				const events = transaction.objectStore(
 					GENERATED_AUTHORITY_STORES.events,
@@ -571,6 +682,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				.get(recordKey(scope, appendId)),
 		)) as KeyedRow<AuthorityAppendReceipt> | undefined;
 		await done;
+		if (row !== undefined)
+			rowsForScope<AuthorityAppendReceipt>([row], scope, "appendId");
 		if (
 			(row === undefined) !== (expected === null) ||
 			(row !== undefined && !equal(row.value, expected))
@@ -593,7 +706,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			transaction.objectStore(GENERATED_AUTHORITY_STORES.events).getAll(),
 		)) as KeyedRow<AuthorityEventRecord>[];
 		await done;
-		const actual = rowsForStream(rows, streamKey(request))
+		const actual = rowsForScope<AuthorityEventRecord>(rows, request, "sequence")
 			.map((row) => row.value)
 			.filter(
 				(event) =>
@@ -630,7 +743,6 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				request: clone(request),
 			},
 			head: bundle.stream.head,
-			stores: [GENERATED_AUTHORITY_STORES.snapshots],
 			write: (transaction) =>
 				transaction.objectStore(GENERATED_AUTHORITY_STORES.snapshots).put({
 					key: recordKey(request.snapshot, request.snapshot.snapshotId),
@@ -663,6 +775,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				.get(recordKey(scope, snapshotId)),
 		)) as KeyedRow<AuthoritySnapshotRecord> | undefined;
 		await done;
+		if (row !== undefined)
+			rowsForScope<AuthoritySnapshotRecord>([row], scope, "snapshotId");
 		if (row === undefined || !equal(row.value, expected))
 			fail("STALE_STATE", "snapshot mismatch");
 		return clone(row.value);

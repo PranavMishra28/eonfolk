@@ -311,9 +311,10 @@ async function replaceGeneratedAuthorityWithOrphan(
 			| "authoritySnapshots";
 		readonly id: string | number;
 		readonly worldId: string;
+		readonly declaration: "target" | "foreign";
 	},
 ): Promise<void> {
-	await page.evaluate(async ({ store, id, worldId }) => {
+	await page.evaluate(async ({ store, id, worldId, declaration }) => {
 		const requested = <T>(request: IDBRequest<T>) =>
 			new Promise<T>((resolve, reject) => {
 				request.onsuccess = () => resolve(request.result);
@@ -342,14 +343,86 @@ async function replaceGeneratedAuthorityWithOrphan(
 					reject(transaction.error ?? new Error("orphan fixture aborted"));
 			});
 			const runId = "v1-generated-civilization";
+			const identityField = {
+				authorityOperations: "ordinal",
+				authorityEvents: "sequence",
+				authorityReceipts: "appendId",
+				authoritySnapshots: "snapshotId",
+			}[store];
 			transaction.objectStore(store).put({
 				key: JSON.stringify([runId, worldId, id]),
-				streamKey: JSON.stringify([runId, worldId]),
+				streamKey: JSON.stringify(
+					declaration === "target"
+						? [runId, worldId]
+						: ["forged-run", "forged-region"],
+				),
+				value: { [identityField]: id },
 				malformed: `${store}-orphan`,
 			});
 			await completed;
 		} finally {
 			database.close();
+		}
+	}, input);
+}
+
+async function forgeGeneratedAuthorityRowIdentity(
+	page: Page,
+	input: {
+		readonly store:
+			| "authorityOperations"
+			| "authorityEvents"
+			| "authorityReceipts"
+			| "authoritySnapshots";
+		readonly id?: string | number;
+		readonly worldId: string;
+		readonly mode: "foreign-declaration" | "logical-key-alias";
+	},
+): Promise<void> {
+	await page.evaluate(async ({ store, id, worldId, mode }) => {
+		const requested = <T>(request: IDBRequest<T>) =>
+			new Promise<T>((resolve, reject) => {
+				request.onsuccess = () => resolve(request.result);
+				request.onerror = () => reject(request.error);
+			});
+		const opened = await requested(
+			indexedDB.open("eonfolk-generated-authority"),
+		);
+		try {
+			const transaction = opened.transaction(store, "readwrite");
+			const completed = new Promise<void>((resolve, reject) => {
+				transaction.oncomplete = () => resolve();
+				transaction.onerror = () => reject(transaction.error);
+				transaction.onabort = () =>
+					reject(transaction.error ?? new Error("forgery fixture aborted"));
+			});
+			const objectStore = transaction.objectStore(store);
+			const rows = (await requested(objectStore.getAll())) as Array<{
+				key: string;
+				streamKey: string;
+				value: unknown;
+			}>;
+			const runId = "v1-generated-civilization";
+			const targetKey =
+				id === undefined ? null : JSON.stringify([runId, worldId, id]);
+			const row = rows.find(
+				(candidate) => targetKey === null || candidate.key === targetKey,
+			);
+			if (row === undefined)
+				throw new Error(`${store} forgery fixture missing`);
+			objectStore.put({
+				...row,
+				...(mode === "foreign-declaration"
+					? {
+							streamKey: JSON.stringify(["forged-run", "forged-region"]),
+						}
+					: {
+							key: `[${JSON.stringify(runId)}, ${JSON.stringify(worldId)}, ${JSON.stringify(id)}]`,
+						}),
+			});
+			await completed;
+		} finally {
+			opened.close();
 		}
 	}, input);
 }
@@ -979,21 +1052,52 @@ for (const orphan of [
 		store: "authorityOperations",
 		label: "operation",
 		id: 0,
+		mode: "foreign-declaration",
+		declaration: "target",
 	},
 	{
 		store: "authorityEvents",
 		label: "event",
 		id: 1,
+		mode: "foreign-declaration",
+		declaration: "target",
 	},
 	{
 		store: "authorityReceipts",
 		label: "receipt",
+		mode: "foreign-declaration",
 		id: "orphan-append",
+		declaration: "target",
 	},
 	{
 		store: "authoritySnapshots",
 		label: "same-key genesis snapshot",
 		id: "civilization-genesis",
+		declaration: "target",
+	},
+	{
+		store: "authorityOperations",
+		label: "operation primary key with a foreign stream declaration",
+		id: 0,
+		declaration: "foreign",
+	},
+	{
+		store: "authorityEvents",
+		label: "event primary key with a foreign stream declaration",
+		id: 1,
+		declaration: "foreign",
+	},
+	{
+		store: "authorityReceipts",
+		label: "receipt primary key with a foreign stream declaration",
+		id: "orphan-append",
+		declaration: "foreign",
+	},
+	{
+		store: "authoritySnapshots",
+		label: "exact genesis primary key with a foreign stream declaration",
+		id: "civilization-genesis",
+		declaration: "foreign",
 	},
 ] as const) {
 	test(`production quarantines a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
@@ -1030,6 +1134,86 @@ for (const orphan of [
 		);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(orphanAuthority);
+
+		await page
+			.getByRole("button", { name: "Rebuild local checkpoint" })
+			.click();
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(
+			canonicalAuthority,
+		);
+		expect(externalRequests).toEqual([]);
+	});
+}
+
+for (const mismatch of [
+	{
+		store: "authorityOperations",
+		label: "operation",
+		id: 0,
+	},
+	{
+		store: "authorityEvents",
+		label: "event",
+		id: 1,
+	},
+	{
+		store: "authorityReceipts",
+		label: "receipt",
+	},
+	{
+		store: "authoritySnapshots",
+		label: "exact genesis snapshot",
+		id: "civilization-genesis",
+		mode: "foreign-declaration",
+	},
+	{
+		store: "authorityOperations",
+		label: "noncanonical logical operation-key collision",
+		id: 0,
+		mode: "logical-key-alias",
+	},
+] as const) {
+	test(`production quarantines an existing stream with a ${mismatch.label} without mutation @generated-world`, async ({
+		page,
+	}) => {
+		test.setTimeout(90_000);
+		const externalRequests = await isolateLocalWorld(page);
+		await resetGeneratedCheckpoint(page);
+		await page.goto("/world", { waitUntil: "domcontentloaded" });
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			timeout: 30_000,
+		});
+		const canonicalHash = await world.getAttribute("data-state-hash");
+		const worldId = await world.getAttribute("data-world-id");
+		if (worldId === null) throw new Error("generated world identity missing");
+		const canonicalAuthority = await generatedAuthorityFingerprint(page);
+
+		await forgeGeneratedAuthorityRowIdentity(page, {
+			...mismatch,
+			worldId,
+		});
+		const forgedAuthority = await generatedAuthorityFingerprint(page);
+		expect(forgedAuthority).not.toEqual(canonicalAuthority);
+
+		await page.reload({ waitUntil: "domcontentloaded" });
+		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+			timeout: 30_000,
+		});
+		await expect(world).toHaveAttribute(
+			"data-persistence-claim",
+			"admitted-deterministic-view",
+		);
+		await expect(world).toHaveAttribute(
+			"data-persistence-failure-code",
+			"STALE_STATE",
+		);
+		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
+		expect(await generatedAuthorityFingerprint(page)).toEqual(forgedAuthority);
 
 		await page
 			.getByRole("button", { name: "Rebuild local checkpoint" })
