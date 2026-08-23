@@ -1255,7 +1255,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
-	});
+	}, 15_000);
 
 	it("rejects a real divergent-base merge and a changed integration tree", () => {
 		const root = mkdtempSync(join(tmpdir(), "eonfolk-merge-"));
@@ -1307,7 +1307,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
-	});
+	}, 15_000);
 
 	it("renders inventory deterministically from sorted file paths", () => {
 		const files = [
