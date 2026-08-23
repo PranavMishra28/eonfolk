@@ -80,6 +80,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@eonfolk/civilization':
+        specifier: workspace:*
+        version: link:../../packages/civilization
       '@eonfolk/cognition':
         specifier: workspace:*
         version: link:../../packages/cognition

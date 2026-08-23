@@ -14,7 +14,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
 	type CivilizationExperimentRun,
 	runCivilizationExperiment,
-} from "../../../packages/civilization/src/index.js";
+} from "@eonfolk/civilization";
 import {
 	catchUpV1Checkpoint,
 	createV1IndexedDbStorage,

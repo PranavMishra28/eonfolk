@@ -14,6 +14,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@eonfolk/civilization": "workspace:*",
 		"@eonfolk/cognition": "workspace:*",
 		"@eonfolk/diagnostics": "workspace:*",
 		"@eonfolk/persistence": "workspace:*",

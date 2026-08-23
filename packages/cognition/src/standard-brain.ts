@@ -602,6 +602,7 @@ function isClosedExplanation(
 	const allowedCodes = new Set([
 		"plan",
 		"commitment",
+		"need",
 		"value",
 		"relationship",
 		"evidence",

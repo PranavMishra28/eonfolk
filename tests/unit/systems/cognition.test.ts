@@ -232,6 +232,16 @@ describe("Mind and Standard Brain", () => {
 		});
 		expect(needDriven.actionId).toBe("action-verify-reserve");
 		expect(needDriven.selectionReason).toBe("tagged-need-action");
+		const standardNeed = await standardBrain(needContext, {
+			proposalId: "standard-need-validation",
+			prngState: prng,
+		});
+		expect(standardNeed.proposal.explanation.decisiveReasonCodes).toContain(
+			"need",
+		);
+		expect(
+			await validateIntentProposal(needContext, standardNeed.proposal),
+		).toBe("accepted");
 		const changedCounselContext = await buildDecisionContext({
 			contextId: "control-need-changed-counsel",
 			actorMind: fixture.mind,

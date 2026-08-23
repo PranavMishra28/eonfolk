@@ -10,7 +10,7 @@ import type { GeneratedWorldState } from "@eonfolk/protocol";
 import {
 	type CivilizationExperimentRun,
 	runCivilizationExperiment,
-} from "../../../packages/civilization/src/index.js";
+} from "@eonfolk/civilization";
 
 export const V1_INDEXEDDB_DATABASE = "eonfolk-v1-civilization";
 export const V1_INDEXEDDB_STORE = "canonical-checkpoints";

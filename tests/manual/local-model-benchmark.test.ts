@@ -824,13 +824,27 @@ describe("manual bounded local Model Brain benchmark", () => {
 		expect(new Set(pairs.map((pair) => pair.a.contextHash))).toHaveLength(
 			VISIBLE_CONTEXTS,
 		);
-		for (const pair of pairs) {
+		for (const [index, pair] of pairs.entries()) {
 			expect(jcs(pair.b)).toBe(jcs(pair.a));
 			expect(
 				pair.a.actionCatalog.some(
 					(action) => action.actionId === pair.scenario.preferredActionId,
 				),
 			).toBe(true);
+			const prngState = await seedPrng(
+				new Uint8Array(32).fill(1),
+				"model-benchmark-fallback-contract",
+				pair.a.actorId,
+				pair.a.contextHash,
+			);
+			const fallback = await standardBrain(pair.a, {
+				proposalId: `benchmark-context-fallback-${index}`,
+				prngState,
+			});
+			expect(
+				await validateIntentProposal(pair.a, fallback.proposal),
+				`scenario ${index} deterministic fallback must validate`,
+			).toBe("accepted");
 		}
 	});
 
