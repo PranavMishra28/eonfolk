@@ -1592,12 +1592,10 @@ async function stateHash(
 	state: CivilizationState,
 	worldStateHash: string,
 	activities: readonly CivilizationScheduledActivity[],
-	cognitionDecisions: readonly CivilizationSchedulerDecisionEvidence[],
 ): Promise<string> {
 	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5", {
 		activities,
 		civilization: state,
-		cognitionDecisions,
 		worldStateHash,
 	});
 }
@@ -1807,7 +1805,6 @@ export async function runCivilizationExperiment(input: {
 		state,
 		worldStateHash,
 		activities,
-		cognitionDecisions,
 	);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
@@ -1825,7 +1822,6 @@ export async function runCivilizationExperiment(input: {
 			state,
 			worldStateHash,
 			activities,
-			cognitionDecisions,
 		);
 		const event = await eventRecord({
 			eventIndex: events.length,
@@ -2105,7 +2101,6 @@ export async function runCivilizationExperiment(input: {
 			state,
 			worldStateHash,
 			activities,
-			cognitionDecisions,
 		);
 		const eventHashes = events
 			.slice(beforeEventIndex)
@@ -2134,7 +2129,6 @@ export async function runCivilizationExperiment(input: {
 		state,
 		worldStateHash,
 		activities,
-		cognitionDecisions,
 	);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,
