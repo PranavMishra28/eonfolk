@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -28,6 +28,14 @@ const INTENDED_ROLE =
 const GLB_MAGIC = 0x46546c67;
 const GLB_JSON_CHUNK = 0x4e4f534a;
 const GLB_BINARY_CHUNK = 0x004e4942;
+const GENERATED_ASSET_FILENAMES = Object.freeze([
+	"ASSET_MANIFEST.json",
+	"eonfolk-folk-proxy.gltf",
+	"eonfolk-folk-proxy.glb",
+]);
+const EXPECTED_NODE_MESHES = Object.freeze([null, 0, 1, 2, 2, 3, 3, 4]);
+const COMPONENT_BYTES = Object.freeze({ 5123: 2, 5126: 4 });
+const ACCESSOR_COMPONENTS = Object.freeze({ SCALAR: 1, VEC3: 3 });
 
 function fail(message) {
 	throw new Error(`generated assets: ${message}`);
@@ -101,6 +109,7 @@ function validateNamedNodes(document, label) {
 	)
 		fail(`${label} part-node set does not match the closed contract`);
 	const root = record(document.nodes[0], `${label} root node`);
+	exactKeys(root, ["children", "name"], `${label} root node`);
 	if (
 		root.name !== "folk-root" ||
 		!Array.isArray(root.children) ||
@@ -108,6 +117,35 @@ function validateNamedNodes(document, label) {
 		root.children.some((value, index) => value !== index + 1)
 	)
 		fail(`${label} root hierarchy does not match the closed contract`);
+	if (
+		document.scene !== 0 ||
+		!Array.isArray(document.scenes) ||
+		document.scenes.length !== 1
+	)
+		fail(`${label} selected scene does not match the closed contract`);
+	const scene = record(document.scenes[0], `${label} scene 0`);
+	exactKeys(scene, ["name", "nodes"], `${label} scene 0`);
+	if (
+		!Array.isArray(scene.nodes) ||
+		scene.nodes.length !== 1 ||
+		scene.nodes[0] !== 0
+	)
+		fail(`${label} scene does not select the folk root`);
+	for (const [index, expectedMesh] of EXPECTED_NODE_MESHES.entries()) {
+		const node = record(document.nodes[index], `${label} node ${index}`);
+		if (expectedMesh === null) {
+			if (Object.hasOwn(node, "mesh"))
+				fail(`${label} root node must not bind a mesh`);
+		} else if (node.mesh !== expectedMesh) {
+			fail(`${label} node ${index} does not bind its declared mesh`);
+		} else {
+			exactKeys(
+				node,
+				["mesh", "name", "scale", "translation"],
+				`${label} node ${index}`,
+			);
+		}
+	}
 	return names;
 }
 
@@ -126,6 +164,8 @@ function validateNoExternalUris(document, label, mode) {
 	} else {
 		exactKeys(buffer, ["byteLength"], `${label} buffer`);
 	}
+	if (document.images !== undefined && !Array.isArray(document.images))
+		fail(`${label} images must be an array`);
 	for (const [index, imageValue] of (document.images ?? []).entries()) {
 		const image = record(imageValue, `${label} image ${index}`);
 		if (Object.hasOwn(image, "uri")) {
@@ -174,15 +214,22 @@ function validateProvenance(document, label) {
 		fail(`${label} EONFOLK provenance values do not match the contract`);
 }
 
-function validateGeometryTables(document, label, binaryLength) {
+function validateGeometryTables(document, label, binaryBytes) {
+	const binary = Buffer.from(binaryBytes);
 	if (!Array.isArray(document.meshes) || document.meshes.length !== 5)
 		fail(`${label} mesh table does not match the proxy contract`);
 	if (!Array.isArray(document.accessors) || document.accessors.length !== 2)
 		fail(`${label} accessor table does not match the proxy contract`);
 	if (!Array.isArray(document.bufferViews) || document.bufferViews.length !== 2)
 		fail(`${label} buffer-view table does not match the proxy contract`);
+	const admittedViews = [];
 	for (const [index, value] of document.bufferViews.entries()) {
 		const view = record(value, `${label} buffer view ${index}`);
+		exactKeys(
+			view,
+			["buffer", "byteLength", "byteOffset", "target"],
+			`${label} buffer view ${index}`,
+		);
 		const offset = safeInteger(
 			view.byteOffset ?? 0,
 			`${label} buffer view ${index} offset`,
@@ -191,9 +238,124 @@ function validateGeometryTables(document, label, binaryLength) {
 			view.byteLength,
 			`${label} buffer view ${index} length`,
 		);
-		if (view.buffer !== 0 || offset + length > binaryLength)
+		if (
+			view.buffer !== 0 ||
+			length < 1 ||
+			offset > binary.byteLength - length ||
+			view.target !== (index === 0 ? 34962 : 34963)
+		)
 			fail(`${label} buffer view ${index} escapes the admitted buffer`);
+		admittedViews.push({ offset, length });
 	}
+	const [positionsView, indicesView] = admittedViews;
+	if (
+		positionsView === undefined ||
+		indicesView === undefined ||
+		positionsView.offset !== 0 ||
+		positionsView.length !== 96 ||
+		indicesView.offset !== 96 ||
+		indicesView.length !== 72 ||
+		binary.byteLength !== 168 ||
+		positionsView.offset + positionsView.length > indicesView.offset
+	)
+		fail(`${label} buffer views overlap or are out of order`);
+	for (const [index, value] of document.accessors.entries()) {
+		const accessor = record(value, `${label} accessor ${index}`);
+		exactKeys(
+			accessor,
+			index === 0
+				? ["bufferView", "componentType", "count", "max", "min", "type"]
+				: ["bufferView", "componentType", "count", "type"],
+			`${label} accessor ${index}`,
+		);
+		const bufferView = safeInteger(
+			accessor.bufferView,
+			`${label} accessor ${index} buffer view`,
+		);
+		const componentBytes = COMPONENT_BYTES[accessor.componentType];
+		const componentCount = ACCESSOR_COMPONENTS[accessor.type];
+		const count = safeInteger(
+			accessor.count,
+			`${label} accessor ${index} count`,
+		);
+		const admittedView = admittedViews[bufferView];
+		if (
+			admittedView === undefined ||
+			componentBytes === undefined ||
+			componentCount === undefined ||
+			count < 1 ||
+			count * componentBytes * componentCount > admittedView.length
+		)
+			fail(`${label} accessor ${index} escapes its buffer view`);
+	}
+	const positions = record(document.accessors[0], `${label} position accessor`);
+	const indices = record(document.accessors[1], `${label} index accessor`);
+	if (
+		positions.bufferView !== 0 ||
+		positions.componentType !== 5126 ||
+		positions.count !== 8 ||
+		positions.type !== "VEC3" ||
+		JSON.stringify(positions.min) !== JSON.stringify([-0.5, -0.5, -0.5]) ||
+		JSON.stringify(positions.max) !== JSON.stringify([0.5, 0.5, 0.5]) ||
+		indices.bufferView !== 1 ||
+		indices.componentType !== 5123 ||
+		indices.count !== 36 ||
+		indices.type !== "SCALAR"
+	)
+		fail(`${label} accessor semantics do not match the proxy contract`);
+	const meshNames = [
+		"woven-torso",
+		"warm-head",
+		"sleeved-arm",
+		"grounded-leg",
+		"task-prop",
+	];
+	if (!Array.isArray(document.materials) || document.materials.length !== 5)
+		fail(`${label} material table does not match the proxy contract`);
+	for (const [index, value] of document.meshes.entries()) {
+		const mesh = record(value, `${label} mesh ${index}`);
+		exactKeys(mesh, ["name", "primitives"], `${label} mesh ${index}`);
+		if (
+			mesh.name !== meshNames[index] ||
+			!Array.isArray(mesh.primitives) ||
+			mesh.primitives.length !== 1
+		)
+			fail(`${label} mesh ${index} does not match the closed contract`);
+		const primitive = record(
+			mesh.primitives[0],
+			`${label} mesh ${index} primitive`,
+		);
+		exactKeys(
+			primitive,
+			["attributes", "indices", "material"],
+			`${label} mesh ${index} primitive`,
+		);
+		const attributes = record(
+			primitive.attributes,
+			`${label} mesh ${index} primitive attributes`,
+		);
+		exactKeys(attributes, ["POSITION"], `${label} mesh ${index} attributes`);
+		if (
+			attributes.POSITION !== 0 ||
+			primitive.indices !== 1 ||
+			primitive.material !== index
+		)
+			fail(`${label} mesh ${index} primitive references are invalid`);
+	}
+	for (
+		let offset = positionsView.offset;
+		offset < indicesView.offset;
+		offset += 4
+	)
+		if (!Number.isFinite(binary.readFloatLE(offset)))
+			fail(`${label} position accessor contains a non-finite value`);
+	for (
+		let offset = indicesView.offset;
+		offset < indicesView.offset + 72;
+		offset += 2
+	)
+		if (binary.readUInt16LE(offset) >= 8)
+			fail(`${label} index accessor references a missing position`);
 }
 
 export function validateGeneratedSourceGltf(bytes) {
@@ -208,7 +370,7 @@ export function validateGeneratedSourceGltf(bytes) {
 	const binary = decodeEmbeddedBuffer(buffer.uri, "source glTF buffer URI");
 	if (binary.byteLength !== byteLength)
 		fail("source glTF embedded buffer length does not match its declaration");
-	validateGeometryTables(document, "source glTF", binary.byteLength);
+	validateGeometryTables(document, "source glTF", binary);
 	return Object.freeze({ document, binary, nodeNames: Object.freeze(names) });
 }
 
@@ -287,7 +449,7 @@ export function parseGeneratedGlb(bytes) {
 		binaryHeader + 8,
 		binaryHeader + 8 + byteLength,
 	);
-	validateGeometryTables(document, "GLB", binary.byteLength);
+	validateGeometryTables(document, "GLB", binary);
 	return Object.freeze({ document, binary, nodeNames: Object.freeze(names) });
 }
 
@@ -497,8 +659,37 @@ export function validateGeneratedAssetSet({
 	});
 }
 
-export function validateGeneratedAssetsOnDisk(root = ROOT) {
+function isInside(parent, candidate) {
+	const path = relative(parent, candidate);
+	return path === "" || (!path.startsWith(`..${sep}`) && path !== "..");
+}
+
+export function validateGeneratedAssetPaths(root = ROOT) {
+	const rootPath = realpathSync(root);
 	const directory = resolve(root, "apps/web/public/assets/generated");
+	const directoryStat = lstatSync(directory);
+	if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink())
+		fail("generated asset directory must be a real directory");
+	const directoryPath = realpathSync(directory);
+	if (!isInside(rootPath, directoryPath))
+		fail("generated asset directory escapes the repository root");
+	for (const filename of GENERATED_ASSET_FILENAMES) {
+		const path = resolve(directory, filename);
+		const stat = lstatSync(path);
+		if (!stat.isFile() || stat.isSymbolicLink())
+			fail(`${filename} must be a regular non-symlink file`);
+		const realPath = realpathSync(path);
+		if (
+			dirname(realPath) !== directoryPath ||
+			!isInside(directoryPath, realPath)
+		)
+			fail(`${filename} escapes the generated asset directory`);
+	}
+	return directory;
+}
+
+export function validateGeneratedAssetsOnDisk(root = ROOT) {
+	const directory = validateGeneratedAssetPaths(root);
 	return validateGeneratedAssetSet({
 		manifestBytes: readFileSync(resolve(directory, "ASSET_MANIFEST.json")),
 		sourceBytes: readFileSync(resolve(directory, "eonfolk-folk-proxy.gltf")),
@@ -507,7 +698,7 @@ export function validateGeneratedAssetsOnDisk(root = ROOT) {
 }
 
 export function writeGeneratedAssets(root = ROOT) {
-	const directory = resolve(root, "apps/web/public/assets/generated");
+	const directory = validateGeneratedAssetPaths(root);
 	const sourceBytes = readFileSync(
 		resolve(directory, "eonfolk-folk-proxy.gltf"),
 	);

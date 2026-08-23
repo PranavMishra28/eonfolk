@@ -36,17 +36,29 @@ export const GENERATED_FOLK_BINARY_ASSET = Object.freeze({
 export const GENERATED_ASSET_MANIFEST_URL =
 	"/assets/generated/ASSET_MANIFEST.json";
 
+const GENERATED_ASSET_CONVERSION =
+	"deterministic embedded-data glTF 2.0 to self-contained GLB 2.0";
+const GENERATED_ASSET_DETERMINISM =
+	"GLB and manifest bytes are pure functions of the tracked source glTF and this validator version";
+const GENERATED_ASSET_INTENDED_ROLE =
+	"recognizable humanoid proxy with named pose parts and task-prop anchor";
+const GENERATED_SOURCE_GENERATOR =
+	"repository-authored glTF 2.0 JSON with embedded cuboid geometry; no Blender authorship claimed";
+const GENERATED_BINARY_GENERATOR =
+	"scripts/validate-generated-assets.mjs deterministic glTF-to-GLB conversion";
+
 export interface GeneratedAssetIntegrity {
 	readonly status: "verified";
 	readonly assetId: string;
 	readonly byteLength: number;
 	readonly sha256: string;
 	readonly partNodeNames: readonly string[];
-	readonly deterministicBinary: Readonly<{
+	readonly authoringSource: Readonly<{
 		readonly assetId: string;
 		readonly byteLength: number;
 		readonly sha256: string;
 	}>;
+	readonly rendererIntegration: "procedural-reference-only";
 }
 
 export function assertGeneratedAssetBudget(
@@ -134,6 +146,11 @@ function assertManifestAsset(
 			("generatedFrom" in expected ? expected.generatedFrom : null) ||
 		value.source !== GENERATED_FOLK_ASSET.provenance.source ||
 		value.rights !== GENERATED_FOLK_ASSET.provenance.rights ||
+		value.generator !==
+			(role === "authoring-source"
+				? GENERATED_SOURCE_GENERATOR
+				: GENERATED_BINARY_GENERATOR) ||
+		value.intendedRole !== GENERATED_ASSET_INTENDED_ROLE ||
 		value.productionStatus !==
 			GENERATED_FOLK_ASSET.provenance.productionStatus ||
 		!Array.isArray(value.externalDependencies) ||
@@ -144,9 +161,10 @@ function assertManifestAsset(
 }
 
 /**
- * Verifies the exact repository-authored asset bytes before the embodied proxy
- * is admitted. The manifest and glTF must both be served from the app's own
- * origin; missing crypto support or any mismatch fails closed.
+ * Verifies the exact repository-authored delivery GLB before the procedural
+ * embodied proxy is admitted. The GLB is an integrity-checked visual reference;
+ * the current renderer does not parse or render it. The manifest and GLB must
+ * both be served from the app's own origin; any mismatch fails closed.
  */
 export async function verifyGeneratedFolkAsset(
 	fetcher: typeof fetch = globalThis.fetch,
@@ -160,7 +178,7 @@ export async function verifyGeneratedFolkAsset(
 			cache: "no-store",
 			credentials: "same-origin",
 		}),
-		fetcher(GENERATED_FOLK_ASSET.url, {
+		fetcher(GENERATED_FOLK_BINARY_ASSET.url, {
 			cache: "no-store",
 			credentials: "same-origin",
 		}),
@@ -171,7 +189,7 @@ export async function verifyGeneratedFolkAsset(
 		);
 	if (!assetResponse.ok)
 		throw new Error(
-			`generated asset: glTF request failed (${assetResponse.status})`,
+			`generated asset: GLB request failed (${assetResponse.status})`,
 		);
 	const manifest = record(await manifestResponse.json(), "manifest");
 	exactKeys(
@@ -220,7 +238,9 @@ export async function verifyGeneratedFolkAsset(
 		pipeline.writeCommand !== "pnpm assets:write" ||
 		pipeline.validationCommand !== "pnpm assets:validate" ||
 		pipeline.sourcePath !== GENERATED_FOLK_ASSET.url ||
-		pipeline.deliveryPath !== GENERATED_FOLK_BINARY_ASSET.url
+		pipeline.deliveryPath !== GENERATED_FOLK_BINARY_ASSET.url ||
+		pipeline.conversion !== GENERATED_ASSET_CONVERSION ||
+		pipeline.determinism !== GENERATED_ASSET_DETERMINISM
 	)
 		throw new Error("generated asset: manifest pipeline is inconsistent");
 	if (!Array.isArray(manifest.assets) || manifest.assets.length !== 2)
@@ -239,80 +259,29 @@ export async function verifyGeneratedFolkAsset(
 	assertManifestAsset(sourceEntry, GENERATED_FOLK_ASSET, "authoring-source");
 	assertManifestAsset(binaryEntry, GENERATED_FOLK_BINARY_ASSET, "delivery");
 	const bytes = await assetResponse.arrayBuffer();
-	if (bytes.byteLength !== GENERATED_FOLK_ASSET.byteLength)
-		throw new Error(
-			"generated asset: glTF byte length does not match contract",
-		);
+	if (bytes.byteLength !== GENERATED_FOLK_BINARY_ASSET.byteLength)
+		throw new Error("generated asset: GLB byte length does not match contract");
 	const sha256 = hex(await globalThis.crypto.subtle.digest("SHA-256", bytes));
-	if (sha256 !== GENERATED_FOLK_ASSET.sha256)
-		throw new Error("generated asset: glTF digest does not match contract");
-	let gltf: Record<string, unknown>;
-	try {
-		gltf = record(JSON.parse(new TextDecoder().decode(bytes)), "glTF");
-	} catch (error) {
-		throw new Error("generated asset: glTF JSON is malformed", {
-			cause: error,
-		});
-	}
-	const asset = record(gltf.asset, "glTF asset");
+	if (sha256 !== GENERATED_FOLK_BINARY_ASSET.sha256)
+		throw new Error("generated asset: GLB digest does not match contract");
+	const view = new DataView(bytes);
 	if (
-		asset.version !== "2.0" ||
-		asset.generator !== "EONFOLK repository-authored proxy asset v1" ||
-		asset.copyright !== "Repository-authored; contains no third-party material"
+		view.getUint32(0, true) !== 0x46546c67 ||
+		view.getUint32(4, true) !== 2 ||
+		view.getUint32(8, true) !== bytes.byteLength
 	)
-		throw new Error("generated asset: glTF provenance is inconsistent");
-	if (
-		Object.hasOwn(gltf, "extensionsRequired") ||
-		Object.hasOwn(gltf, "extensionsUsed")
-	)
-		throw new Error("generated asset: glTF extensions are not admitted");
-	if (!Array.isArray(gltf.buffers) || gltf.buffers.length !== 1)
-		throw new Error("generated asset: glTF buffers are malformed");
-	const buffer = record(gltf.buffers[0], "glTF buffer");
-	if (
-		typeof buffer.uri !== "string" ||
-		!buffer.uri.startsWith("data:application/octet-stream;base64,")
-	)
-		throw new Error("generated asset: glTF contains an external buffer URI");
-	if (
-		Array.isArray(gltf.images) &&
-		gltf.images.some((value, index) => {
-			const image = record(value, `glTF image ${index}`);
-			return typeof image.uri === "string" && !image.uri.startsWith("data:");
-		})
-	)
-		throw new Error("generated asset: glTF contains an external image URI");
-	if (!Array.isArray(gltf.nodes))
-		throw new Error("generated asset: glTF nodes are malformed");
-	const names = gltf.nodes.map((value, index) => {
-		const node = record(value, `glTF node ${index}`);
-		return typeof node.name === "string" ? node.name : "";
-	});
-	const nodeNames = new Set(
-		gltf.nodes.map((value, index) => {
-			const node = record(value, `glTF node ${index}`);
-			return typeof node.name === "string" ? node.name : "";
-		}),
-	);
-	if (
-		nodeNames.size !== names.length ||
-		nodeNames.size !== GENERATED_FOLK_ASSET.partNodeNames.length + 1 ||
-		!nodeNames.has("folk-root")
-	)
-		throw new Error("generated asset: glTF node contract is not closed");
-	for (const nodeName of GENERATED_FOLK_ASSET.partNodeNames)
-		if (!nodeNames.has(nodeName))
-			throw new Error(`generated asset: glTF is missing ${nodeName}`);
+		throw new Error("generated asset: GLB envelope is malformed");
 	return Object.freeze({
 		status: "verified",
-		assetId: GENERATED_FOLK_ASSET.assetId,
+		assetId: GENERATED_FOLK_BINARY_ASSET.assetId,
 		byteLength: bytes.byteLength,
 		sha256,
 		partNodeNames: GENERATED_FOLK_ASSET.partNodeNames,
-		deterministicBinary: Object.freeze({
-			assetId: GENERATED_FOLK_BINARY_ASSET.assetId,
-			byteLength: GENERATED_FOLK_BINARY_ASSET.byteLength,
-			sha256: GENERATED_FOLK_BINARY_ASSET.sha256,
+		authoringSource: Object.freeze({
+			assetId: GENERATED_FOLK_ASSET.assetId,
+			byteLength: GENERATED_FOLK_ASSET.byteLength,
+			sha256: GENERATED_FOLK_ASSET.sha256,
 		}),
+		rendererIntegration: "procedural-reference-only",
 	});
 }

@@ -1,5 +1,13 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	symlink,
+	writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,6 +19,7 @@ import {
 	createGeneratedAssetManifest,
 	generatedAssetSha256,
 	parseGeneratedGlb,
+	validateGeneratedAssetPaths,
 	validateGeneratedAssetSet,
 	validateGeneratedAssetsOnDisk,
 	validateGeneratedSourceGltf,
@@ -112,6 +121,24 @@ describe("generated asset pipeline", () => {
 			}),
 		).toThrow(/budget is inconsistent or exceeded/u);
 
+		const falseConversion = structuredClone(manifest);
+		falseConversion.pipeline.conversion = "opaque converter output";
+		expect(() =>
+			validateGeneratedAssetSet({
+				...assets,
+				manifestBytes: encoded(falseConversion),
+			}),
+		).toThrow(/pipeline contract does not match/u);
+
+		const falseDeterminism = structuredClone(manifest);
+		falseDeterminism.pipeline.determinism = "claimed deterministic";
+		expect(() =>
+			validateGeneratedAssetSet({
+				...assets,
+				manifestBytes: encoded(falseDeterminism),
+			}),
+		).toThrow(/pipeline contract does not match/u);
+
 		const corruptBinary = Buffer.from(assets.binaryBytes);
 		corruptBinary[corruptBinary.length - 1] ^= 0xff;
 		expect(() =>
@@ -127,6 +154,93 @@ describe("generated asset pipeline", () => {
 				binaryBytes: assets.binaryBytes.subarray(0, -1),
 			}),
 		).toThrow(/budget is inconsistent|byte length does not match/u);
+	});
+
+	it("rejects broken scene, mesh, primitive, accessor, and binary semantics", async () => {
+		const { sourceBytes } = await trackedAssets();
+		const source = JSON.parse(sourceBytes.toString("utf8"));
+
+		const wrongScene = structuredClone(source);
+		wrongScene.scenes[0].nodes = [1];
+		expect(() => validateGeneratedSourceGltf(encoded(wrongScene))).toThrow(
+			/scene does not select the folk root/u,
+		);
+
+		const wrongNodeMesh = structuredClone(source);
+		wrongNodeMesh.nodes[1].mesh = 4;
+		expect(() => validateGeneratedSourceGltf(encoded(wrongNodeMesh))).toThrow(
+			/does not bind its declared mesh/u,
+		);
+
+		const wrongPrimitive = structuredClone(source);
+		wrongPrimitive.meshes[0].primitives[0].attributes.POSITION = 1;
+		expect(() => validateGeneratedSourceGltf(encoded(wrongPrimitive))).toThrow(
+			/primitive references are invalid/u,
+		);
+
+		const accessorEscape = structuredClone(source);
+		accessorEscape.accessors[0].count = 9;
+		expect(() => validateGeneratedSourceGltf(encoded(accessorEscape))).toThrow(
+			/accessor 0 escapes its buffer view/u,
+		);
+
+		const viewEscape = structuredClone(source);
+		viewEscape.bufferViews[1].byteOffset = 160;
+		expect(() => validateGeneratedSourceGltf(encoded(viewEscape))).toThrow(
+			/buffer view 1 escapes the admitted buffer/u,
+		);
+
+		const missingPosition = structuredClone(source);
+		const prefix = "data:application/octet-stream;base64,";
+		const geometry = Buffer.from(
+			missingPosition.buffers[0].uri.slice(prefix.length),
+			"base64",
+		);
+		geometry.writeUInt16LE(8, 96);
+		missingPosition.buffers[0].uri = `${prefix}${geometry.toString("base64")}`;
+		expect(() => validateGeneratedSourceGltf(encoded(missingPosition))).toThrow(
+			/index accessor references a missing position/u,
+		);
+	});
+
+	it("rejects symlinked files and generated directories that escape root", async () => {
+		const assets = await trackedAssets();
+		const scratch = await mkdtemp(join(tmpdir(), "eonfolk-assets-"));
+		const outside = await mkdtemp(join(tmpdir(), "eonfolk-assets-outside-"));
+		try {
+			const directory = join(scratch, "apps/web/public/assets/generated");
+			await mkdir(directory, { recursive: true });
+			await Promise.all([
+				writeFile(join(directory, "ASSET_MANIFEST.json"), assets.manifestBytes),
+				writeFile(
+					join(directory, "eonfolk-folk-proxy.gltf"),
+					assets.sourceBytes,
+				),
+				writeFile(
+					join(directory, "eonfolk-folk-proxy.glb"),
+					assets.binaryBytes,
+				),
+			]);
+			expect(validateGeneratedAssetPaths(scratch)).toBe(directory);
+
+			await rm(join(directory, "eonfolk-folk-proxy.glb"));
+			const outsideGlb = join(outside, "outside.glb");
+			await writeFile(outsideGlb, assets.binaryBytes);
+			await symlink(outsideGlb, join(directory, "eonfolk-folk-proxy.glb"));
+			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
+				/non-symlink/u,
+			);
+
+			await rm(join(scratch, "apps/web/public/assets"), { recursive: true });
+			await mkdir(join(scratch, "apps/web/public/assets"), { recursive: true });
+			await symlink(outside, directory);
+			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
+				/directory must be a real directory|escapes/u,
+			);
+		} finally {
+			await rm(scratch, { recursive: true, force: true });
+			await rm(outside, { recursive: true, force: true });
+		}
 	});
 
 	it("rejects external source URIs and missing or duplicated part nodes", async () => {
