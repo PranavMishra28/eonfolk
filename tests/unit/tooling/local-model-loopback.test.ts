@@ -254,32 +254,35 @@ describe("bounded Ollama loopback adapter", () => {
 		).rejects.toMatchObject({ code: "artifact-mismatch" });
 	});
 
-	it("rejects service runtime bytes not bound into contract provenance", async () => {
-		const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
-		const contract = await contractFor(
-			process.execPath,
-			adapterPath,
-			1_000,
-			11_434,
-		);
-		await expect(
-			createMacOsLoopbackOllamaTransport({
+	macIt(
+		"rejects service runtime bytes not bound into contract provenance",
+		async () => {
+			const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
+			const contract = await contractFor(
+				process.execPath,
 				adapterPath,
-				ollamaExecutablePath: adapterPath,
-				artifactPaths: {
-					chatTemplate: adapterPath,
-					model: adapterPath,
-					modelConfiguration: adapterPath,
-					runtimeExecutable: process.execPath,
-					tokenizer: adapterPath,
-				},
-				cohort: "warm",
-				contract,
-				environment: {},
-				ollamaPort: 11_434,
-			}),
-		).rejects.toMatchObject({ code: "artifact-mismatch" });
-	});
+				1_000,
+				11_434,
+			);
+			await expect(
+				createMacOsLoopbackOllamaTransport({
+					adapterPath,
+					ollamaExecutablePath: adapterPath,
+					artifactPaths: {
+						chatTemplate: adapterPath,
+						model: adapterPath,
+						modelConfiguration: adapterPath,
+						runtimeExecutable: process.execPath,
+						tokenizer: adapterPath,
+					},
+					cohort: "warm",
+					contract,
+					environment: {},
+					ollamaPort: 11_434,
+				}),
+			).rejects.toMatchObject({ code: "artifact-mismatch" });
+		},
+	);
 
 	macIt(
 		"allows only the configured local API and emits a canonical choice",
