@@ -730,4 +730,20 @@ describe("authoritative Riverhold application runtime", () => {
 		const projection = await newer.dispatch({ kind: "follow-mara" });
 		expect(projection.phase).toBe("following");
 	});
+
+	it("does not mistake watched-world cadence for player journey progress after reload", async () => {
+		const persistence = new MemoryPersistence();
+		const first = new AuthoritativeRiverholdRuntime({ persistence });
+		await first.initialize();
+		await first.advanceWatchedWorld(60);
+
+		const reloaded = new AuthoritativeRiverholdRuntime({
+			persistence,
+			initialPhase: "orientation",
+		});
+		const projection = await reloaded.initialize();
+
+		expect(projection.phase).toBe("orientation");
+		expect(projection.day).toBe(18);
+	});
 });

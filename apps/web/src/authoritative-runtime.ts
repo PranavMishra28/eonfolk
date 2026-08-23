@@ -469,9 +469,22 @@ function requestedCounselFromState(state: WorldState): CounselIntent | null {
 	return state.selectedCounselBranch === "follow-plan" ? "abstain" : null;
 }
 
-function recoveredPhase(state: WorldState, requested: Phase): Phase {
+function hasCommandKind(
+	events: readonly WorldEventEnvelope[],
+	kind: "catch-up-day" | "investigate-minute",
+): boolean {
+	return events.some((event) =>
+		event.provenance.commandId.endsWith(`_${kind}`),
+	);
+}
+
+function recoveredPhase(
+	state: WorldState,
+	requested: Phase,
+	events: readonly WorldEventEnvelope[],
+): Phase {
 	if (state.lastReturnResponse !== null) return "chronicle";
-	if (state.simulationTime >= 86_400) return "return";
+	if (hasCommandKind(events, "catch-up-day")) return "return";
 	if (state.lastCounsel !== null && state.selectedCounselBranch === null)
 		return "counsel";
 	if (state.selectedCounselBranch !== null) {
@@ -479,7 +492,7 @@ function recoveredPhase(state: WorldState, requested: Phase): Phase {
 			? requested
 			: "consequence";
 	}
-	if (state.revision > 0)
+	if (hasCommandKind(events, "investigate-minute"))
 		return requested === "counsel" ? "counsel" : "investigated";
 	return requested === "following" ? "following" : "orientation";
 }
@@ -926,7 +939,7 @@ export class AuthoritativeRiverholdRuntime {
 				committed.head.fencingToken,
 			);
 			this.#state = snapshotState;
-			this.#phase = recoveredPhase(snapshotState, this.#phase);
+			this.#phase = recoveredPhase(snapshotState, this.#phase, this.#events);
 			return this.#project();
 		}
 		const [batches, events] = await Promise.all([
@@ -987,7 +1000,7 @@ export class AuthoritativeRiverholdRuntime {
 			committed.head.fencingToken,
 		);
 		this.#state = replay.state;
-		this.#phase = recoveredPhase(replay.state, this.#phase);
+		this.#phase = recoveredPhase(replay.state, this.#phase, this.#events);
 		this.#requestedCounsel = requestedCounselFromState(replay.state);
 		await this.#recoverInterpretation();
 		const recoveredResponse = [...this.#events]
