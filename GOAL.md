@@ -70,7 +70,7 @@
 | Generic settlement-founding process | IN PROGRESS |
 | Legitimate seeded second viable settlement evidence without a time trigger | NOT STARTED |
 | Legitimate stagnant/failing seed evidence | NOT STARTED |
-| 30/90/365-day civilization experiment matrix and metrics | NOT STARTED |
+| 30/90/365-day civilization experiment matrix and metrics | IN PROGRESS |
 
 ## Cognition and experiment
 
@@ -134,11 +134,11 @@
 | DEEP lane covers all V1 software and exact candidate evidence | NOT STARTED |
 | Generator/world/project/resource/migration/founding properties | IN PROGRESS |
 | Cognition/model validation, fallback, epistemic isolation, and replay tests | IN PROGRESS |
-| Long-horizon civilization matrix | NOT STARTED |
+| Long-horizon civilization matrix | IN PROGRESS |
 | Persistence/replay/catch-up equivalence and long-history tests | NOT STARTED |
-| Browser journeys and temporal Living World tests | NOT STARTED |
-| Accessibility and semantic critical-action parity | NOT STARTED |
-| Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | NOT STARTED |
+| Browser journeys and temporal Living World tests | IN PROGRESS |
+| Accessibility and semantic critical-action parity | IN PROGRESS |
+| Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | IN PROGRESS |
 | Security, secrets, dependency, zero-egress, and authority checks | IN PROGRESS |
 | High-value formal models | IN PROGRESS |
 | Targeted mutation suite for V1 pure logic | IN PROGRESS |

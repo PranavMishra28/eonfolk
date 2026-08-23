@@ -23,11 +23,11 @@
 |---|---|---|
 | 1. Exact base, V1 ledger, repository archaeology | Complete | Base `8eb6afa`; archive tag; `GOAL.md`; `RESUME.md`; generated inventory |
 | 2. Release Genesis, generalized protocol, deterministic world generator | Complete for pure contracts | Versioned identities; three differentiated seeds; 160-seed deep properties; golden world hash |
-| 3. Civilization kernel and long-horizon emergence | In progress | Resource/project kernel integrated; scheduler, demographic pressure, founding materialization, and 30/90/365 matrix pending |
+| 3. Civilization kernel and long-horizon emergence | In progress | Deterministic 30/90/365 harness integrated; scheduler, demographic pressure, rule-triggered expansion, route traversal, and founding materialization pending |
 | 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice and local lab integrated; executable isolated model host and memory pending |
 | 5. Persistence, replay, recovery, diagnostics | Not complete | Founder Alpha regression exists; generalized V1 adapter/migrations/catch-up evidence pending |
-| 6. Generated-world product presentation | In progress | Pure semantic overview/local/follow projections integrated; browser route, living citizens, temporal world, performance and visual evidence pending |
-| 7. CI, security, documentation and developer experience | In progress | Readiness guard, inventory freshness, 14-mutant gate, secret/formal checks integrated; extended manifest and V1 evidence lanes pending |
+| 6. Generated-world product presentation | In progress | `/genesis` and `/world` expose immutable generated projections with semantic fallback; browser audit still shows an abstract map, so living citizens, temporal world, default-entry migration, and performance/visual evidence remain pending |
+| 7. CI, security, documentation and developer experience | In progress | Readiness guard, inventory freshness, 14-mutant gate, secret/formal checks, and supplementary portable-extended manifest integrated; V1 evidence lanes pending |
 | 8. Exact-candidate DEEP, frozen reviews, fixes, merge | Not started | No V1 frozen SHA or release verdict exists |
 
 ## Integration history
@@ -40,9 +40,10 @@
 | Cognition authority and local lab | `7bfc080`, `3eecc82`, `ebd1829`, `b75f33b` | Validated fallback gateway; cached local model measured but not promoted |
 | Deterministic planners and model choice | `2756643`, `e542b5d`, `8fbfdb9`, `5309b87`, `87b54c1` | Actor-visible bounded planning, lifecycle, closed proposal/provenance, deep arbitrary properties; no host process treatment |
 | Generated world | `07d8cc8`, `2d78cc8`, `6a7cf76`, `1991816` | Pure generator, workspace registration, canonical places/routes, deep properties |
-| Civilization kernel | `37bc3ee`, `0c45a7c`, `e1bf6b9` | Immutable stocks/transfers/recipes/projects and physically gated records; no scheduler or new settlement materialization |
+| Civilization kernel and horizon harness | `37bc3ee`, `0c45a7c`, `e1bf6b9`, `0fb9a23` | Immutable stocks/transfers/recipes/projects and replayable 30/90/365 experiments; fixed-day scheduling and record-only founding are not acceptance evidence |
 | Generalized presentation | `cd06797`, `35091bb` | Immutable semantic projections; no renderer/browser acceptance |
-| CI hardening | `60e6c61`, `76b2389`, `b53f884`, `bb84028` | 14/14 targeted mutants, fail-closed V1 readiness, legacy artifact boundary, deterministic inventory |
+| Genesis browser checkpoint | `939079b`, `fce9646` | Fixed-seed account-free entry, generated region/settlement views, semantic fallback, reduced motion, and six focused browser journeys; visual audit fails the World Presence bar |
+| CI hardening | `60e6c61`, `76b2389`, `b53f884`, `bb84028`, `3cbc40d` | 14/14 targeted mutants, fail-closed V1 readiness, legacy artifact boundary, deterministic inventory, and separately bounded portable-extended evidence |
 
 Every integration was required to have bounded ownership, an actual diff inspection, focused verification, a clean commit, and coordinator reconciliation. Detailed limitations and the next exact commands live in `RESUME.md`.
 

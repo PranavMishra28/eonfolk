@@ -37,7 +37,7 @@ Outcome: one release/experiment/world identity deterministically creates a valid
 
 Evidence: golden hashes, multi-seed properties, reference integrity, traversability, architecture checks, no wall clock/random/network/provider/renderer imports.
 
-Status: pure contracts/generator complete; persistence and browser entry incomplete.
+Status: pure contracts/generator complete; fixed-seed browser entry exists, while persistence and default product entry remain incomplete.
 
 ### M2 — Civilization kernel
 
@@ -45,7 +45,7 @@ Outcome: people and institutions act on conserved physical resources through rec
 
 Evidence: atomic accounting, resource conservation, prerequisite and lifecycle tests, multi-seed long-horizon metrics, viable and stagnant/failing outcomes, deterministic replay.
 
-Status: pure stocks/recipes/projects and physical gate records complete; scheduler, population pressure, world materialization, and horizon evidence incomplete.
+Status: pure stocks/recipes/projects, physical gate records, and a deterministic horizon harness exist; fixed-day scheduling, population pressure, route traversal, and real world materialization remain incomplete.
 
 ### M3 — Cognition and experiments
 
@@ -69,7 +69,7 @@ Outcome: arrival communicates a living generated world immediately; region, sett
 
 Evidence: deterministic browser journeys and screenshots at 1728×1117, 1366×768, and 390×844; fresh observer task-legibility; accessibility parity; reduced motion; weak-device fallback; payload/frame/memory/meaningful-display budgets.
 
-Status: pure projections complete; browser experience and temporal acceptance incomplete.
+Status: pure projections and an account-free generated browser checkpoint exist. The independent browser audit found an abstract grid/site diagram without citizens or activity, so World Presence, default entry, embodied simulation, and temporal acceptance remain incomplete.
 
 ### M6 — Exact-candidate release lattice
 
@@ -82,6 +82,10 @@ Status: not started; no candidate frozen.
 ## Continuous logs
 
 Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](../../../RESUME.md); requirement state is maintained in [GOAL.md](../../../GOAL.md); coordinator integrations are summarized in [PLAN.md](../../../PLAN.md). Every material deviation must be recorded there before the next integration push.
+
+- 2026-08-22 — Integrated a deterministic 30/90/365 experiment harness. It establishes replayable test infrastructure but cannot satisfy emergence while its decisions are fixed-day and its founding remains record-only.
+- 2026-08-22 — Added the supplementary portable-extended GitHub Actions tier. Its exact-source manifest explicitly cannot substitute for target-Mac DEEP or V1 readiness.
+- 2026-08-22 — Integrated `/genesis` and `/world` with six cross-viewport browser checks. An independent visual inspection failed the World Presence bar; no visual acceptance claim is permitted.
 
 ## Review roles
 
