@@ -759,6 +759,9 @@ function GeneratedWorld({
 	};
 	const assetVerified = asset.status === "verified";
 	const effectiveView = rendererFailed || !assetVerified ? "semantic" : view;
+	const embodiedAvailable =
+		assetVerified && projection.availability.status !== "unavailable";
+	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
 	const togglePresentation = () =>
 		setPresentationPlaying((playing) => !playing);
 	const stepPresentation = () =>
@@ -855,7 +858,8 @@ function GeneratedWorld({
 					selectedSettlementId={projection.local.settlement.settlementId}
 					onSettlement={openSettlement}
 				/>
-			) : effectiveView === "semantic" ? (
+			) : null}
+			{effectiveView === "semantic" ? (
 				<>
 					{rendererFailed ? (
 						<p className="renderer-note" role="status">
@@ -885,10 +889,17 @@ function GeneratedWorld({
 						onStepPresentation={stepPresentation}
 					/>
 				</>
-			) : projection.availability.status === "unavailable" ? (
+			) : null}
+			{effectiveView === "embodied" && !embodiedAvailable ? (
 				<ProjectionUnavailable projection={projection} />
-			) : (
-				<section className="v1-living-stage" aria-label="Embodied settlement">
+			) : null}
+			{embodiedAvailable ? (
+				<section
+					className="v1-living-stage"
+					aria-label="Embodied settlement"
+					aria-hidden={!embodiedVisible}
+					style={embodiedVisible ? undefined : { display: "none" }}
+				>
 					<div className="v1-world-canvas-frame">
 						<Suspense
 							fallback={
@@ -921,7 +932,7 @@ function GeneratedWorld({
 						onStepPresentation={stepPresentation}
 					/>
 				</section>
-			)}
+			) : null}
 			<details
 				className="v1-feedback-drawer"
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}

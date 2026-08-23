@@ -163,7 +163,6 @@ async function selectCanonicalResidentFromCanvas(
 		const targets = await stableGeneratedPickTargets(page, canvas);
 		for (const target of targets) {
 			await canvas.click({ position: { x: target.x, y: target.y } });
-			await page.waitForTimeout(100);
 			const selected = await canvas.getAttribute("data-last-world-pick");
 			if (selected === `citizen:${target.id}`) return target.id;
 			if (
@@ -351,6 +350,8 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		stateHashBeforeNavigation ?? "",
 	);
 
+	await page.getByRole("button", { name: "Reduce motion" }).click();
+	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
 	const pickedCitizenId = await selectCanonicalResidentFromCanvas(page, canvas);
 	await expect(canvas).toHaveAttribute(
 		"data-last-world-pick",
@@ -364,7 +365,7 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	if (!(await worldTools.evaluate((details) => details.open)))
 		await worldTools.locator("summary").click();
 	await expect(worldTools).toHaveAttribute("open", "");
-	await worldTools.getByRole("button", { name: "Pause motion" }).click();
+	await expect(world).toHaveAttribute("data-presentation-playing", "false");
 	const stateHashBeforePose = await world.getAttribute("data-state-hash");
 	const tickBefore = Number(
 		await canvas.getAttribute("data-presentation-tick"),
@@ -383,6 +384,8 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		"data-actor-positions",
 		positionsBeforePose ?? "",
 	);
+	await page.getByRole("button", { name: "Motion reduced" }).click();
+	await expect(canvas).toHaveAttribute("data-navigation-mode", "smooth");
 	const firstResident = worldTools
 		.getByRole("group", { name: "Canonical residents" })
 		.getByRole("button")
@@ -440,9 +443,17 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 	const dawnmere = page.getByRole("button", { name: "Open Dawnmere" });
 	await dawnmere.focus();
 	await dawnmere.press("Enter");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	await canvas.evaluate((element) => {
+		element.dataset.semanticRoundTripIdentity = "retained";
+	});
 	await page.getByRole("button", { name: "World in words" }).click();
 	const semantic = page.getByTestId("generated-semantic-world");
 	await expect(semantic).toBeVisible();
+	await expect(canvas).toBeHidden();
 	await expect(
 		semantic
 			.getByRole("group", { name: "Canonical residents" })
@@ -455,6 +466,13 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 	await citizen.focus();
 	await citizen.press("Enter");
 	await expect(citizen).toHaveAttribute("aria-pressed", "true");
+	await page.getByRole("button", { name: "Embodied" }).click();
+	await expect(canvas).toBeVisible();
+	await expect(canvas).toHaveAttribute(
+		"data-semantic-round-trip-identity",
+		"retained",
+	);
+	await expect(canvas).toHaveAttribute("data-ready", "true");
 	await expect
 		.poll(() =>
 			page.evaluate(

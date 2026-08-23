@@ -416,12 +416,10 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			failures.push("generated canvas does not fill its visible host");
 		if (probe.pixelRatio <= 0 || probe.pixelRatio > 1.51)
 			failures.push(`pixel ratio ${probe.pixelRatio} is outside (0, 1.51]`);
-		const residentButtons = page
-			.getByRole("group", { name: "Canonical residents" })
-			.getByRole("button");
+		const residentButtons = page.locator("ul.v1-presence-roster button");
 		if ((await residentButtons.count()) !== probe.actorCount)
 			failures.push(
-				"semantic resident controls do not match rendered residents",
+				"visible resident controls do not match rendered residents",
 			);
 		if (
 			(await page
@@ -442,10 +440,18 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			failures.push("semantic world does not preserve resident parity");
 		await page.getByRole("button", { name: "Embodied" }).click();
 		await canvas.waitFor({ state: "visible" });
+		await page.waitForFunction(
+			() =>
+				document
+					.querySelector('[data-testid="generated-world-canvas"]')
+					?.getAttribute("data-ready") === "true",
+			undefined,
+			{ timeout: 20_000 },
+		);
 		await page.screenshot({
 			animations: "disabled",
 			caret: "hide",
-			fullPage: true,
+			fullPage: false,
 			path: resolve(root, `${viewport.name}-world.png`),
 			scale: "css",
 		});

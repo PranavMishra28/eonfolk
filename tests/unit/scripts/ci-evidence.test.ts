@@ -83,6 +83,10 @@ describe("Founder Alpha CI evidence controls", () => {
 			resolve("scripts/run-verification-tier.mjs"),
 			"utf8",
 		);
+		expect(source).toContain('page.locator("ul.v1-presence-roster button")');
+		expect(source).toContain(
+			'"visible resident controls do not match rendered residents"',
+		);
 		const parityFailure = source.indexOf(
 			"semantic world does not preserve resident parity",
 		);
