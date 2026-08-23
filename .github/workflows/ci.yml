@@ -388,18 +388,13 @@ jobs:
         run: |
           pnpm test:mutation
           pnpm test:property:deep
-          node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json
-          pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json
 
       - name: Retain accepted extended evidence
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: extended-verification-${{ github.run_id }}
-          path: |
-            tmp/eonfolk-verification-pr.json
-            tmp/eonfolk-persistence-benchmark.json
-            tmp/eonfolk-diagnostics-overhead.json
+          path: tmp/eonfolk-verification-pr.json
           if-no-files-found: error
           retention-days: 30
 
@@ -410,8 +405,6 @@ jobs:
           name: extended-failure-${{ github.run_id }}
           path: |
             tmp/eonfolk-verification-pr.json
-            tmp/eonfolk-persistence-benchmark.json
-            tmp/eonfolk-diagnostics-overhead.json
             tmp/riverhold-playwright
             apps/web/evidence
           if-no-files-found: ignore

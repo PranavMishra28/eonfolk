@@ -2,7 +2,7 @@
 
 **Purpose:** turn the verified local Riverhold proof into a polished, diagnosable, shareable Founder Alpha without weakening Reality authority or inventing human evidence.
 
-**Status:** RELEASE CANDIDATE — World-as-Product exact-YES confirmation, final implementation-head GitHub CI, and exact clean target-Mac DEEP passed; final docs-head CI, merge, hardening, and cleanup pending
+**Status:** INTEGRATED THROUGH MEGA PR #7 — bounded identity, run-surface, and CI continuation active; human Gate 0/A/B remain not run
 
 **Authority boundary:** this is the sole living execution log for Founder Alpha scope, progress, evidence, deviations, review findings, and completion. Product and technical semantics remain with the authorities mapped by [INDEX](../../INDEX.md); [PLANS](../PLANS.md) owns maintenance rules.
 

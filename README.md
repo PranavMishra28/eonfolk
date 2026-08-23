@@ -8,7 +8,7 @@ Founder Alpha is free, account-free, and complete without an external model or n
 
 ## Quick start
 
-Requirements: macOS on Apple Silicon, Node 22.23.1, and pnpm 11.15.1. From a fresh clone:
+Runtime requirements: macOS on Apple Silicon, Node 22.23.1, and pnpm 11.15.1. Full PR/DEEP verification additionally requires Java 21. From a fresh clone:
 
 ```sh
 corepack pnpm install --frozen-lockfile --ignore-scripts
@@ -50,7 +50,7 @@ TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:deep
 
 `verify:deep` is the target-Apple-Silicon release lattice. It additionally verifies the exact Playwright browser cohort, mutation/fuzz depth, persistence, diagnostics, and repeated three-viewport performance. Run `corepack pnpm browser-cohort:check` before committing to the longer tier; a different OS/browser cohort is not equivalent release evidence.
 
-The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **extended** Linux workflow-dispatch tier adds portable mutation, deep-property, persistence, and source-diagnostics checks without pretending to be the target-Mac DEEP/performance run. It is not scheduled, so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
+The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **extended** Linux workflow-dispatch tier adds the portable mutation gate and expanded deterministic properties without pretending to be the target-Mac DEEP/performance run. It is not scheduled, so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
 
 ## Architecture and developer guide
 
