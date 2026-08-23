@@ -758,8 +758,14 @@ test("shows no world facts while the authoritative worker is delayed", async ({
 	).toHaveCount(0);
 	await expectWorldReady(page);
 	await expect(
-		page.getByRole("heading", { name: /Follow one life/i }),
-	).toBeVisible();
+		page.getByRole("heading", {
+			name: /Checking Riverhold's durable record/i,
+		}),
+	).toHaveCount(0);
+	await expect(page.getByRole("status", { name: "World pulse" })).toContainText(
+		/Day \d+ · 8 citizens · 3 resources/u,
+	);
+	await expect(page.getByLabel("Current Riverhold decision")).toBeVisible();
 });
 
 test("a newer tab fences the older writer and remains authoritative", async ({
