@@ -67,13 +67,13 @@ import { createCivilizationState } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v5" as const;
+	"eonfolk-civilization-experiment-v6" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v5" as const;
+	"eonfolk-civilization-runner-v6" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v5" as const;
+	"eonfolk-civilization-experiment-event-v6" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v5" as const;
+	"eonfolk-civilization-experiment-step-v6" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
@@ -1785,7 +1785,7 @@ async function stateHash(
 	worldStateHash: string,
 	activities: readonly CivilizationScheduledActivity[],
 ): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5", {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v6", {
 		activities,
 		civilization: state,
 		worldStateHash,
@@ -1810,7 +1810,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v6",
 		body,
 	);
 	return {
@@ -1981,7 +1981,7 @@ export async function runCivilizationExperiment(input: {
 	const schedulerPolicy = bootstrap.schedulerPolicy;
 	let world = input.world;
 	let worldStateHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
 		world,
 	);
 	let routines = initialRoutineAssignments(state);
@@ -2262,7 +2262,7 @@ export async function runCivilizationExperiment(input: {
 				foundedAtSimulationTime: atSimulationTime,
 			});
 			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
 				world,
 			);
 			state = recordFoundingMaterialization(
@@ -2297,7 +2297,7 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v6",
 				stepBody,
 			),
 		});

@@ -156,7 +156,7 @@ export function createCivilizationState(
 ): CivilizationState {
 	simulationTime(initialSimulationTime);
 	return deepFreeze({
-		schemaVersion: "eonfolk-civilization-kernel-v3",
+		schemaVersion: "eonfolk-civilization-kernel-v4",
 		revision: 0,
 		simulationTime: initialSimulationTime,
 		references: normalizeReferences(references),
@@ -268,6 +268,9 @@ export function registerCivilizationMind(
 			(record) =>
 				record.subjectCitizenId !== mind.citizenId ||
 				record.sourceIds.length === 0 ||
+				record.sourceIds.some(
+					(sourceId) => !citizen.sourceEventIds.includes(sourceId),
+				) ||
 				record.sourceIds.some((sourceId) => !provenanceIds.has(sourceId)) ||
 				record.createdRevision > state.revision ||
 				(record.confidence !== null &&

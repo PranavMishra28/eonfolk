@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
 	CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 	type CivilizationState,
+	createCivilizationSponsorSnapshotBoundary,
 	createCivilizationState,
+	evolve,
 	prepareCivilizationSponsorTransition,
 	registerCitizen,
 	registerCivilizationMind,
@@ -18,7 +20,6 @@ import {
 import {
 	type CitizenMindSnapshot,
 	type CognitionAction,
-	type CommandReceipt,
 	PROTOCOL_SCHEMA_VERSION,
 	payloadFingerprint,
 	seedPrng,
@@ -27,6 +28,7 @@ import {
 	type WorldCommand,
 	type WorldCommandPayload,
 } from "../../../packages/protocol/src/index.js";
+import { projectChronicle } from "../../../packages/sim/src/index.js";
 
 const RUN = "run-sponsor";
 const REGION = "region-sponsor";
@@ -93,8 +95,9 @@ function plan() {
 }
 
 function mind(
-	records: CitizenMindSnapshot["records"] = [],
+	records: CitizenMindSnapshot["records"] | undefined = undefined,
 	trust = 6_000,
+	evidenceConfidence = 8_000,
 ): CitizenMindSnapshot {
 	return {
 		citizenId: ACTOR,
@@ -115,12 +118,27 @@ function mind(
 				createdRevision: 0,
 			},
 		],
-		records,
+		records: records ?? [
+			{
+				recordId: "record-visible-reserve",
+				kind: "observation",
+				subjectCitizenId: ACTOR,
+				proposition: "A sourced settlement resource claim needs review.",
+				confidence: evidenceConfidence,
+				sourceIds: ["event-visible-source"],
+				visibility: { kind: "citizen-private", subjectCitizenId: ACTOR },
+				createdRevision: 0,
+			},
+		],
 		standingPlan: plan(),
 	};
 }
 
-function fixture(trust = 6_000, withMind = true): CivilizationState {
+function fixture(
+	trust = 6_000,
+	withMind = true,
+	evidenceConfidence = 8_000,
+): CivilizationState {
 	let state = createCivilizationState({
 		citizenIds: [ACTOR, TARGET, NONLOCAL],
 		settlementIds: [SETTLEMENT_A, SETTLEMENT_B],
@@ -144,11 +162,29 @@ function fixture(trust = 6_000, withMind = true): CivilizationState {
 		lastInteractionSimulationTime: 0,
 		sourceEventIds: [],
 	});
+	state = evolve(state, {
+		citizens: {
+			...state.citizens,
+			[ACTOR]: {
+				...state.citizens[ACTOR]!,
+				sourceEventIds: ["event-visible-source"],
+			},
+		},
+		provenance: [
+			{
+				eventId: "event-visible-source",
+				mechanismId: "observation.recorded.v1",
+				causeEventIds: [],
+				actorVisibleSourceEventIds: [],
+				modelDecisionId: null,
+			},
+		],
+	});
 	if (!withMind) return state;
 	return registerCivilizationMind(state, {
 		schemaVersion: "eonfolk-civilization-mind-v1",
 		citizenId: ACTOR,
-		snapshot: mind([], trust),
+		snapshot: mind(undefined, trust, evidenceConfidence),
 		committedAtRevision: state.revision,
 		committedAtSimulationTime: state.simulationTime,
 	});
@@ -181,13 +217,33 @@ async function command<
 
 const head = () => stateHash({ runId: RUN, regionId: REGION, genesis: true });
 
+async function boundary(
+	state: CivilizationState,
+	worldHead: string,
+	nextSequence: number,
+) {
+	return createCivilizationSponsorSnapshotBoundary({
+		snapshotId: `snapshot-${nextSequence}`,
+		runId: RUN,
+		regionId: REGION,
+		stateHash: await stateHash(state),
+		revision: state.revision,
+		simulationTime: state.simulationTime,
+		nextSequence,
+		baseWorldHeadHash: worldHead,
+	});
+}
+
 async function establish(state: CivilizationState, nextSequence = 0) {
+	const worldHead = await head();
 	return prepareCivilizationSponsorTransition({
 		state,
 		runId: RUN,
 		regionId: REGION,
-		priorWorldHeadHash: await head(),
+		priorWorldHeadHash: worldHead,
 		nextSequence,
+		snapshotBoundary: await boundary(state, worldHead, nextSequence),
+		authoritativeHeaders: [],
 		fencingToken: 1,
 		command: await command("command-establish", state.revision, PATRON, {
 			kind: "EstablishSponsorship",
@@ -208,6 +264,12 @@ async function issue(
 		regionId: REGION,
 		priorWorldHeadHash: established.resultingWorldHeadHash,
 		nextSequence: 1,
+		snapshotBoundary: await boundary(
+			established.postState,
+			established.resultingWorldHeadHash,
+			1,
+		),
+		authoritativeHeaders: [],
 		fencingToken: 1,
 		command: await command(
 			"command-issue",
@@ -222,7 +284,6 @@ async function issue(
 		),
 		// Proves the persisted covenant, not ancient history, owns current authority.
 		authoritativeHistory: [],
-		priorReceipts: [established.receipt],
 	});
 }
 
@@ -241,7 +302,7 @@ async function resolution(
 				: TARGET,
 		planId: plan().planId,
 		relationshipId: "relationship-a-b",
-		evidenceRecordIds: [],
+		evidenceRecordIds: actorMind.records.map(({ recordId }) => recordId),
 	});
 	const context = await buildDecisionContext({
 		contextId: `context-${commandId}`,
@@ -322,6 +383,12 @@ async function resolve(
 		regionId: REGION,
 		priorWorldHeadHash: issued.resultingWorldHeadHash,
 		nextSequence: 2,
+		snapshotBoundary: await boundary(
+			issued.postState,
+			issued.resultingWorldHeadHash,
+			2,
+		),
+		authoritativeHeaders: [],
 		fencingToken: 1,
 		command: await command(
 			commandId,
@@ -345,12 +412,15 @@ async function resolve(
 describe("canonical civilization sponsor reducer", () => {
 	it("requires a separate persisted Follow covenant before counsel", async () => {
 		const state = fixture();
+		const startHead = await head();
 		const counselOnly = await prepareCivilizationSponsorTransition({
 			state,
 			runId: RUN,
 			regionId: REGION,
-			priorWorldHeadHash: await head(),
+			priorWorldHeadHash: startHead,
 			nextSequence: 0,
+			snapshotBoundary: await boundary(state, startHead, 0),
+			authoritativeHeaders: [],
 			fencingToken: 1,
 			command: await command("issue-too-early", state.revision, PATRON, {
 				kind: "IssueCounsel",
@@ -392,6 +462,11 @@ describe("canonical civilization sponsor reducer", () => {
 			"verify-reserve",
 		);
 		expect(interpreted.accepted).toBe(true);
+		expect(interpreted.committedDecisionRecord).toMatchObject({
+			validator: { stage: "committed", outcome: "accepted" },
+			receiptRef: interpreted.receipt.commandId,
+			acceptedEventInterval: interpreted.receipt.eventInterval,
+		});
 		expect(
 			interpreted.events.map(({ eventPayload }) => eventPayload.kind),
 		).toEqual(["CounselInterpreted"]);
@@ -402,11 +477,14 @@ describe("canonical civilization sponsor reducer", () => {
 		const all = [...followed.events, ...counsel.events, ...interpreted.events];
 		const replayed = await replayCivilizationSponsorEvents({
 			snapshotState: initial,
-			snapshotStateHash: await stateHash(initial),
-			runId: RUN,
-			regionId: REGION,
-			nextSequence: 0,
+			snapshotBoundary: await boundary(initial, await head(), 0),
+			headers: [
+				followed.batchHeader!,
+				counsel.batchHeader!,
+				interpreted.batchHeader!,
+			],
 			events: all,
+			expectedFinalWorldHeadHash: interpreted.resultingWorldHeadHash,
 		});
 		expect(replayed.stateHash).toBe(interpreted.finalStateHash);
 		expect(
@@ -416,8 +494,156 @@ describe("canonical civilization sponsor reducer", () => {
 		).toBe(true);
 	});
 
-	it("continues exactly from a compacted snapshot", async () => {
+	it("offers no evidence action when canonical Mind has no evidence", () => {
+		const catalog = civilizationCounselCatalog({
+			actorId: ACTOR,
+			targetCitizenId: TARGET,
+			planId: "plan-standing",
+			relationshipId: "relationship-a-b",
+			evidenceRecordIds: [],
+		});
+		expect(catalog.map(({ action }) => action.kind)).toEqual([
+			"FollowStandingPlan",
+		]);
+		expect(JSON.stringify(catalog)).not.toMatch(/ledger|market|recount/u);
+	});
+
+	it("projects sponsorship as a visibility-filtered factual Chronicle sentence", async () => {
 		const followed = await establish(fixture());
+		const projection = projectChronicle({
+			events: followed.events,
+			viewer: { kind: "public" },
+			purpose: "chronicle-public",
+			atRevision: followed.postState.revision,
+			visibilityContext: {
+				policyVersion: VISIBILITY_POLICY_VERSION,
+				covenants: [],
+				localOwnerPrincipalId: PATRON.principalId,
+				nonproduction: false,
+			},
+			citizenNames: { [ACTOR]: "Mara" },
+		});
+		expect(projection.sentences[0]).toMatchObject({
+			text: "Mara entered a sponsorship covenant.",
+			relation: "fact",
+			evidenceEventIds: [followed.events[0]!.eventId],
+		});
+	});
+
+	it("rejects malformed sponsor envelopes and a false final world head", async () => {
+		const initial = fixture();
+		const followed = await establish(initial);
+		const issued = await issue(followed);
+		const interpreted = await resolve(
+			issued,
+			{ kind: "VerifyReserve", targetCitizenId: TARGET },
+			"verify-reserve",
+		);
+		for (const [snapshotState, baseHead, nextSequence, transition] of [
+			[initial, await head(), 0, followed],
+			[followed.postState, followed.resultingWorldHeadHash, 1, issued],
+			[issued.postState, issued.resultingWorldHeadHash, 2, interpreted],
+		] as const) {
+			const source = transition.events[0]!;
+			const injectedPayload = {
+				...source.eventPayload,
+				injected: true,
+			} as unknown as typeof source.eventPayload;
+			await expect(
+				replayCivilizationSponsorEvents({
+					snapshotState,
+					snapshotBoundary: await boundary(
+						snapshotState,
+						baseHead,
+						nextSequence,
+					),
+					headers: [transition.batchHeader!],
+					events: [
+						{
+							...source,
+							eventPayload: injectedPayload,
+						},
+					],
+					expectedFinalWorldHeadHash: transition.resultingWorldHeadHash,
+				}),
+			).rejects.toThrow(/invalid sponsor event chain/u);
+		}
+		await expect(
+			replayCivilizationSponsorEvents({
+				snapshotState: initial,
+				snapshotBoundary: await boundary(initial, await head(), 0),
+				headers: [followed.batchHeader!],
+				events: [{ ...followed.events[0]!, simulationTime: 1 }],
+				expectedFinalWorldHeadHash: followed.resultingWorldHeadHash,
+			}),
+		).rejects.toThrow(/invalid sponsor event chain/u);
+		await expect(
+			replayCivilizationSponsorEvents({
+				snapshotState: initial,
+				snapshotBoundary: await boundary(initial, await head(), 0),
+				headers: [followed.batchHeader!],
+				events: followed.events,
+				expectedFinalWorldHeadHash: "0".repeat(64),
+			}),
+		).rejects.toThrow(/final world head/u);
+	});
+
+	it("fails closed on legacy commands and an injected counsel intent", async () => {
+		const initial = fixture();
+		const worldHead = await head();
+		const validEstablish = await command(
+			"legacy-establish",
+			initial.revision,
+			PATRON,
+			{
+				kind: "EstablishSponsorship",
+				covenantId: "legacy-covenant",
+				citizenId: ACTOR,
+			},
+		);
+		const common = {
+			state: initial,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: worldHead,
+			nextSequence: 0,
+			snapshotBoundary: await boundary(initial, worldHead, 0),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			authoritativeHistory: [],
+		};
+		const legacy = await prepareCivilizationSponsorTransition({
+			...common,
+			command: {
+				...validEstablish,
+				schemaVersion: "1" as typeof PROTOCOL_SCHEMA_VERSION,
+			},
+		});
+		expect(legacy.receipt.rejectionCode).toBe("INVALID_COMMAND");
+		expect(legacy.postState).toBe(initial);
+
+		const malformedPayload = {
+			kind: "IssueCounsel" as const,
+			interventionId: "injected-intent",
+			citizenId: ACTOR,
+			intent: "invented" as "verify-reserve",
+		};
+		const validIssue = await command(
+			"injected-intent",
+			initial.revision,
+			PATRON,
+			malformedPayload,
+		);
+		const malformed = await prepareCivilizationSponsorTransition({
+			...common,
+			command: validIssue,
+		});
+		expect(malformed.receipt.rejectionCode).toBe("INVALID_COMMAND");
+		expect(malformed.events).toEqual([]);
+	});
+
+	it("continues exactly from a compacted snapshot", async () => {
+		const followed = await establish(fixture(6_000, true, 0));
 		const snapshot = structuredClone(followed.postState);
 		const counsel = await issue(
 			{ ...followed, postState: snapshot },
@@ -430,38 +656,44 @@ describe("canonical civilization sponsor reducer", () => {
 		);
 		const replayed = await replayCivilizationSponsorEvents({
 			snapshotState: snapshot,
-			snapshotStateHash: await stateHash(snapshot),
-			runId: RUN,
-			regionId: REGION,
-			nextSequence: 1,
+			snapshotBoundary: await boundary(
+				snapshot,
+				followed.resultingWorldHeadHash,
+				1,
+			),
+			headers: [counsel.batchHeader!, interpreted.batchHeader!],
 			events: [...counsel.events, ...interpreted.events],
+			expectedFinalWorldHeadHash: interpreted.resultingWorldHeadHash,
 		});
 		expect(replayed.stateHash).toBe(interpreted.finalStateHash);
 	});
 
 	it("accepts three terminal interpretations but fabricates no consequence", async () => {
-		for (const [trust, intent, action, commandAction] of [
+		for (const [trust, confidence, intent, action, commandAction] of [
 			[
 				6_000,
+				8_000,
 				"verify-reserve",
 				{ kind: "VerifyReserve", targetCitizenId: TARGET },
 				"verify-reserve",
 			],
 			[
 				0,
+				8_000,
 				"accuse-publicly",
 				{ kind: "AccusePublicly", targetCitizenId: TARGET },
 				"accuse-publicly",
 			],
 			[
 				6_000,
+				0,
 				"accuse-publicly",
 				{ kind: "FollowStandingPlan", planId: "plan-standing" },
 				"follow-plan",
 			],
 		] as const) {
 			const interpreted = await resolve(
-				await issue(await establish(fixture(trust)), intent),
+				await issue(await establish(fixture(trust, true, confidence)), intent),
 				action,
 				commandAction,
 			);
@@ -521,6 +753,12 @@ describe("canonical civilization sponsor reducer", () => {
 			regionId: REGION,
 			priorWorldHeadHash: issued.resultingWorldHeadHash,
 			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				issued.postState,
+				issued.resultingWorldHeadHash,
+				2,
+			),
+			authoritativeHeaders: [],
 			fencingToken: 1,
 			command: resolveCommand,
 			authoritativeHistory: [],
@@ -586,6 +824,12 @@ describe("canonical civilization sponsor reducer", () => {
 			regionId: REGION,
 			priorWorldHeadHash: followed.resultingWorldHeadHash,
 			nextSequence: 1,
+			snapshotBoundary: await boundary(
+				followed.postState,
+				followed.resultingWorldHeadHash,
+				1,
+			),
+			authoritativeHeaders: [],
 			fencingToken: 1,
 			command: await command(
 				"wrong-patron",
@@ -625,6 +869,12 @@ describe("canonical civilization sponsor reducer", () => {
 			regionId: REGION,
 			priorWorldHeadHash: issued.resultingWorldHeadHash,
 			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				issued.postState,
+				issued.resultingWorldHeadHash,
+				2,
+			),
+			authoritativeHeaders: [],
 			fencingToken: 1,
 			command: await command("command-establish", initial.revision, PATRON, {
 				kind: "EstablishSponsorship",
@@ -632,14 +882,51 @@ describe("canonical civilization sponsor reducer", () => {
 				citizenId: ACTOR,
 			}),
 			authoritativeHistory: [],
-			priorReceipts: [
-				followed.receipt,
-				issued.receipt,
-			] satisfies readonly CommandReceipt[],
+			priorCommitments: [
+				{
+					receipt: followed.receipt,
+					batchHeader: followed.batchHeader!,
+					events: followed.events,
+				},
+			],
 		});
 		expect(retried.duplicate).toBe(true);
 		expect(retried.receipt).toBe(followed.receipt);
 		expect(retried.resultingWorldHeadHash).toBe(issued.resultingWorldHeadHash);
+	});
+
+	it("rejects a fabricated duplicate receipt without a durable commitment", async () => {
+		const initial = fixture();
+		const followed = await establish(initial);
+		const result = await prepareCivilizationSponsorTransition({
+			state: followed.postState,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: followed.resultingWorldHeadHash,
+			nextSequence: 1,
+			snapshotBoundary: await boundary(
+				followed.postState,
+				followed.resultingWorldHeadHash,
+				1,
+			),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			command: await command("command-establish", initial.revision, PATRON, {
+				kind: "EstablishSponsorship",
+				covenantId: "covenant-one",
+				citizenId: ACTOR,
+			}),
+			authoritativeHistory: [],
+			priorCommitments: [
+				{
+					receipt: { ...followed.receipt, eventInterval: null },
+					batchHeader: followed.batchHeader!,
+					events: followed.events,
+				},
+			],
+		});
+		expect(result.receipt.rejectionCode).toBe("INVALID_COMMAND");
+		expect(result.duplicate).toBe(false);
 	});
 
 	it("rejects broken history continuity atomically", async () => {
@@ -651,6 +938,12 @@ describe("canonical civilization sponsor reducer", () => {
 			regionId: REGION,
 			priorWorldHeadHash: issued.resultingWorldHeadHash,
 			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				followed.postState,
+				followed.resultingWorldHeadHash,
+				1,
+			),
+			authoritativeHeaders: [issued.batchHeader!],
 			fencingToken: 1,
 			command: await command("new-counsel", issued.postState.revision, PATRON, {
 				kind: "IssueCounsel",

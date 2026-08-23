@@ -52,7 +52,7 @@ export interface SemanticTravelState {
 	readonly task: BehaviorFamily;
 }
 
-export const PROTOCOL_SCHEMA_VERSION = "1" as const;
+export const PROTOCOL_SCHEMA_VERSION = "2" as const;
 export const ENGINE_VERSION = "1" as const;
 export const DETERMINISM_VERSION = "eonfolk-determinism-v2" as const;
 export const REPLAY_VERSION = "eonfolk-replay-v1" as const;

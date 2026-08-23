@@ -139,50 +139,54 @@ export function civilizationCounselCatalog(input: {
 	readonly relationshipId: string;
 	readonly evidenceRecordIds: readonly string[];
 }): readonly ActionCatalogEntry[] {
+	const evidenceActions: readonly ActionCatalogEntry[] =
+		input.evidenceRecordIds.length === 0
+			? []
+			: [
+					{
+						actionId: "action-verify-reserve",
+						action: {
+							kind: "VerifyReserve",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["at least one readable source record exists"],
+						publicStakes: [
+							"delays a public conclusion",
+							"may gather stronger evidence",
+						],
+						tags: ["caution", "evidence", "relationship", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 200,
+						counselAffinity: "verify-reserve",
+					},
+					{
+						actionId: "action-accuse-publicly",
+						action: {
+							kind: "AccusePublicly",
+							targetCitizenId: input.targetCitizenId,
+						},
+						publicPreconditions: ["at least one readable source record exists"],
+						publicStakes: [
+							"records an allegation, not a fact",
+							"risks relationship strain",
+						],
+						tags: ["candor", "evidence", "risk", "counsel"],
+						evidenceRecordIds: input.evidenceRecordIds,
+						relationshipId: input.relationshipId,
+						risk: 500,
+						counselAffinity: "accuse-publicly",
+					},
+				];
 	return [
-		{
-			actionId: "action-verify-reserve",
-			action: { kind: "VerifyReserve", targetCitizenId: input.targetCitizenId },
-			publicPreconditions: [
-				"ledger mismatch observed",
-				"recount witness available",
-			],
-			publicStakes: [
-				"delays disclosure",
-				"may preserve trust",
-				"can improve evidence",
-			],
-			tags: ["caution", "evidence", "relationship", "counsel"],
-			evidenceRecordIds: input.evidenceRecordIds,
-			relationshipId: input.relationshipId,
-			risk: 200,
-			counselAffinity: "verify-reserve",
-		},
-		{
-			actionId: "action-accuse-publicly",
-			action: {
-				kind: "AccusePublicly",
-				targetCitizenId: input.targetCitizenId,
-			},
-			publicPreconditions: ["ledger mismatch observed", "market is public"],
-			publicStakes: [
-				"may trigger an audit",
-				"risks relationship strain",
-				"claim remains an allegation",
-			],
-			tags: ["candor", "evidence", "risk", "counsel"],
-			evidenceRecordIds: input.evidenceRecordIds,
-			relationshipId: input.relationshipId,
-			risk: 500,
-			counselAffinity: "accuse-publicly",
-		},
+		...evidenceActions,
 		{
 			actionId: "action-follow-plan",
 			action: { kind: "FollowStandingPlan", planId: input.planId },
 			publicPreconditions: ["standing plan remains possible"],
 			publicStakes: [
 				"preserves current commitments",
-				"leaves the mismatch unresolved for now",
+				"defers the counsel until another decision boundary",
 			],
 			tags: ["commitment", "relationship"],
 			evidenceRecordIds: [],

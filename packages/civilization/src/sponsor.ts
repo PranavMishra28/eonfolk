@@ -7,6 +7,7 @@ import {
 	batchHash,
 	batchId,
 	type CausalParent,
+	COGNITION_VERSION,
 	type CognitiveDecisionRecord,
 	type CommandReceipt,
 	type CommandRejectionCode,
@@ -53,18 +54,51 @@ export interface ValidatedStandardBrainResolution {
 	readonly decisionRecord: CognitiveDecisionRecord;
 }
 
+export interface CivilizationSponsorSnapshotBoundary {
+	readonly schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1";
+	readonly snapshotId: string;
+	readonly runId: string;
+	readonly regionId: string;
+	readonly stateHash: string;
+	readonly revision: number;
+	readonly simulationTime: number;
+	readonly nextSequence: number;
+	readonly baseWorldHeadHash: string;
+	readonly boundaryHash: string;
+}
+
+export interface CivilizationSponsorCommitment {
+	readonly receipt: CommandReceipt;
+	readonly batchHeader: WorldBatchHeader;
+	readonly events: readonly CivilizationSponsorEventEnvelope[];
+}
+
+export async function createCivilizationSponsorSnapshotBoundary(
+	input: Omit<
+		CivilizationSponsorSnapshotBoundary,
+		"schemaVersion" | "boundaryHash"
+	>,
+): Promise<CivilizationSponsorSnapshotBoundary> {
+	const withoutHash = {
+		schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1" as const,
+		...input,
+	};
+	return { ...withoutHash, boundaryHash: await stateHash(withoutHash) };
+}
+
 export interface CivilizationSponsorTransitionInput {
 	readonly state: CivilizationState;
 	readonly runId: string;
 	readonly regionId: string;
 	readonly priorWorldHeadHash: string;
-	/** Snapshot metadata owns this cursor; history may be empty after compaction. */
 	readonly nextSequence: number;
+	readonly snapshotBoundary: CivilizationSponsorSnapshotBoundary;
+	readonly authoritativeHeaders: readonly WorldBatchHeader[];
 	readonly fencingToken: number;
 	readonly command: WorldCommand<SponsorCommandPayload>;
 	/** Contiguous, already-applied suffix that ends at state. */
 	readonly authoritativeHistory: readonly CivilizationAuthorityEventEnvelope[];
-	readonly priorReceipts?: readonly CommandReceipt[];
+	readonly priorCommitments?: readonly CivilizationSponsorCommitment[];
 	readonly resolution?: ValidatedStandardBrainResolution;
 }
 
@@ -80,6 +114,7 @@ export interface CivilizationSponsorTransition {
 	readonly events: readonly CivilizationSponsorEventEnvelope[];
 	readonly batchHeader: WorldBatchHeader | null;
 	readonly receipt: CommandReceipt;
+	readonly committedDecisionRecord: CognitiveDecisionRecord | null;
 }
 
 interface PendingEvent {
@@ -103,6 +138,38 @@ function exactKeys(value: object, expected: readonly string[]): boolean {
 	return (
 		actual.length === sorted.length &&
 		actual.every((key, i) => key === sorted[i])
+	);
+}
+
+function validBatchHeaderShape(header: WorldBatchHeader): boolean {
+	return (
+		exactKeys(header, [
+			"schemaVersion",
+			"runId",
+			"regionId",
+			"batchId",
+			"priorWorldHeadHash",
+			"firstSequence",
+			"eventCount",
+			"eventHashes",
+			"payloadFingerprint",
+			"resultRevision",
+			"finalStateHash",
+			"batchHash",
+		]) &&
+		header.schemaVersion === PROTOCOL_SCHEMA_VERSION &&
+		identifier(header.runId) &&
+		identifier(header.regionId) &&
+		identifier(header.batchId) &&
+		hashPattern.test(header.priorWorldHeadHash) &&
+		hashPattern.test(header.payloadFingerprint) &&
+		hashPattern.test(header.finalStateHash) &&
+		hashPattern.test(header.batchHash) &&
+		nonnegative(header.firstSequence) &&
+		nonnegative(header.eventCount) &&
+		nonnegative(header.resultRevision) &&
+		header.eventHashes.length === header.eventCount &&
+		header.eventHashes.every((digest) => hashPattern.test(digest))
 	);
 }
 
@@ -145,6 +212,8 @@ function validCommand(command: WorldCommand<SponsorCommandPayload>): boolean {
 		return (
 			exactKeys(payload, ["kind", "interventionId", "citizenId", "intent"]) &&
 			identifier(payload.interventionId) &&
+			(payload.intent === "verify-reserve" ||
+				payload.intent === "accuse-publicly") &&
 			command.principal.kind === "patron" &&
 			exactKeys(command.principal, [
 				"kind",
@@ -165,8 +234,101 @@ function validCommand(command: WorldCommand<SponsorCommandPayload>): boolean {
 		exactKeys(command.principal, ["kind", "principalId"]) &&
 		(payload.interventionId === null || identifier(payload.interventionId)) &&
 		identifier(payload.decisionId) &&
-		identifier(payload.proposalId)
+		identifier(payload.proposalId) &&
+		(payload.action === "verify-reserve" ||
+			payload.action === "accuse-publicly" ||
+			payload.action === "follow-plan")
 	);
+}
+
+function validSponsorEnvelopeShape(
+	event: WorldEventEnvelope,
+	expectedSimulationTime: number,
+): event is CivilizationSponsorEventEnvelope {
+	const payload = event.eventPayload;
+	if (
+		event.simulationTime !== expectedSimulationTime ||
+		!exactKeys(event, [
+			"schemaVersion",
+			"engineVersion",
+			"eventId",
+			"runId",
+			"regionId",
+			"sequence",
+			"simulationTime",
+			"eventPayload",
+			"causalParents",
+			"relatedEvents",
+			"visibility",
+			"provenance",
+			"preStateHash",
+			"postStateHash",
+			"batchId",
+			"eventHash",
+		]) ||
+		event.relatedEvents.length !== 0
+	)
+		return false;
+	if (payload.kind === "SponsorshipEstablished")
+		return (
+			exactKeys(payload, [
+				"kind",
+				"covenantId",
+				"patronPrincipalId",
+				"citizenId",
+				"settlementId",
+			]) &&
+			identifier(payload.covenantId) &&
+			identifier(payload.patronPrincipalId) &&
+			identifier(payload.citizenId) &&
+			identifier(payload.settlementId) &&
+			exactKeys(event.visibility, ["kind"]) &&
+			event.visibility.kind === "public" &&
+			exactKeys(event.provenance, ["kind", "commandId"])
+		);
+	if (payload.kind === "CounselIssued")
+		return (
+			exactKeys(payload, ["kind", "interventionId", "citizenId", "intent"]) &&
+			identifier(payload.interventionId) &&
+			identifier(payload.citizenId) &&
+			(payload.intent === "verify-reserve" ||
+				payload.intent === "accuse-publicly") &&
+			exactKeys(event.visibility, ["kind", "subjectCitizenId"]) &&
+			event.visibility.kind === "patron-visible-through-covenant" &&
+			event.visibility.subjectCitizenId === payload.citizenId &&
+			exactKeys(event.provenance, ["kind", "commandId", "interventionId"])
+		);
+	if (payload.kind === "CounselInterpreted")
+		return (
+			exactKeys(payload, [
+				"kind",
+				"citizenId",
+				"interventionId",
+				"action",
+				"disposition",
+				"planId",
+			]) &&
+			identifier(payload.citizenId) &&
+			identifier(payload.interventionId) &&
+			identifier(payload.planId) &&
+			(payload.action === "verify-reserve" ||
+				payload.action === "accuse-publicly" ||
+				payload.action === "follow-plan") &&
+			(payload.disposition === "accepted" ||
+				payload.disposition === "rejected" ||
+				payload.disposition === "reinterpreted") &&
+			exactKeys(event.visibility, ["kind", "subjectCitizenId"]) &&
+			event.visibility.kind === "patron-visible-through-covenant" &&
+			event.visibility.subjectCitizenId === payload.citizenId &&
+			exactKeys(event.provenance, [
+				"kind",
+				"commandId",
+				"interventionId",
+				"decisionId",
+				"proposalId",
+			])
+		);
+	return false;
 }
 
 function validEventProvenance(event: WorldEventEnvelope): boolean {
@@ -179,11 +341,13 @@ function validEventProvenance(event: WorldEventEnvelope): boolean {
 	if (event.eventPayload.kind === "CounselIssued")
 		return (
 			event.provenance.kind === "patron-intervention" &&
+			identifier(event.provenance.commandId) &&
 			event.provenance.interventionId === event.eventPayload.interventionId
 		);
 	if (event.eventPayload.kind === "CounselInterpreted")
 		return (
 			event.provenance.kind === "cognition" &&
+			identifier(event.provenance.commandId) &&
 			identifier(event.provenance.decisionId) &&
 			identifier(event.provenance.proposalId) &&
 			event.provenance.interventionId === event.eventPayload.interventionId
@@ -195,13 +359,54 @@ async function validHistory(
 	state: CivilizationState,
 	currentHash: string,
 	history: readonly WorldEventEnvelope[],
+	headers: readonly WorldBatchHeader[],
+	boundary: CivilizationSponsorSnapshotBoundary,
+	priorWorldHeadHash: string,
 	runId: string,
 	regionId: string,
 	nextSequence: number,
 ): Promise<boolean> {
-	if (!nonnegative(nextSequence)) return false;
-	if (history.length === 0) return true;
+	const { boundaryHash, ...boundaryWithoutHash } = boundary;
 	if (
+		!exactKeys(boundary, [
+			"schemaVersion",
+			"snapshotId",
+			"runId",
+			"regionId",
+			"stateHash",
+			"revision",
+			"simulationTime",
+			"nextSequence",
+			"baseWorldHeadHash",
+			"boundaryHash",
+		]) ||
+		boundary.schemaVersion !== "eonfolk-sponsor-snapshot-boundary-v1" ||
+		!identifier(boundary.snapshotId) ||
+		boundary.runId !== runId ||
+		boundary.regionId !== regionId ||
+		!hashPattern.test(boundary.stateHash) ||
+		!hashPattern.test(boundary.baseWorldHeadHash) ||
+		!hashPattern.test(boundaryHash) ||
+		(await stateHash(boundaryWithoutHash)) !== boundaryHash ||
+		!nonnegative(boundary.revision) ||
+		!nonnegative(boundary.simulationTime) ||
+		!nonnegative(boundary.nextSequence) ||
+		!nonnegative(nextSequence)
+	)
+		return false;
+	if (history.length === 0)
+		return (
+			headers.length === 0 &&
+			boundary.stateHash === currentHash &&
+			boundary.revision === state.revision &&
+			boundary.simulationTime === state.simulationTime &&
+			boundary.nextSequence === nextSequence &&
+			boundary.baseWorldHeadHash === priorWorldHeadHash
+		);
+	if (
+		headers.length !== history.length ||
+		boundary.stateHash !== history[0]?.preStateHash ||
+		boundary.nextSequence !== history[0]?.sequence ||
 		history.at(-1)?.postStateHash !== currentHash ||
 		history.at(-1)!.sequence + 1 !== nextSequence
 	)
@@ -214,8 +419,21 @@ async function validHistory(
 	);
 	let priorSequence: number | null = null;
 	let priorHash: string | null = null;
-	for (const event of history) {
+	let worldHead = boundary.baseWorldHeadHash;
+	for (const [index, event] of history.entries()) {
+		const header = headers[index]!;
 		const { eventHash: digest, ...withoutHash } = event;
+		const expectedHead = await batchHash({
+			runId,
+			regionId,
+			batchId: event.batchId,
+			priorWorldHeadHash: worldHead,
+			firstSequence: event.sequence,
+			eventHashes: [digest],
+			payloadFingerprint: header.payloadFingerprint,
+			resultRevision: header.resultRevision,
+			finalStateHash: event.postStateHash,
+		});
 		if (
 			event.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
 			event.engineVersion !== ENGINE_VERSION ||
@@ -230,7 +448,23 @@ async function validHistory(
 			!hashPattern.test(digest) ||
 			(await eventHash(withoutHash)) !== digest ||
 			!validEventProvenance(event) ||
+			([
+				"SponsorshipEstablished",
+				"CounselIssued",
+				"CounselInterpreted",
+			].includes(event.eventPayload.kind) &&
+				!validSponsorEnvelopeShape(event, state.simulationTime)) ||
 			!state.provenance.some(({ eventId }) => eventId === event.eventId) ||
+			!validBatchHeaderShape(header) ||
+			header.runId !== runId ||
+			header.regionId !== regionId ||
+			header.batchId !== event.batchId ||
+			header.priorWorldHeadHash !== worldHead ||
+			header.firstSequence !== event.sequence ||
+			header.eventCount !== 1 ||
+			jcs(header.eventHashes) !== jcs([digest]) ||
+			header.finalStateHash !== event.postStateHash ||
+			header.batchHash !== expectedHead ||
 			event.causalParents.some(
 				(parent) =>
 					!known.has(parent.eventId) || !identifier(parent.mechanismId),
@@ -238,10 +472,15 @@ async function validHistory(
 		)
 			return false;
 		known.add(event.eventId);
+		worldHead = header.batchHash;
 		priorSequence = event.sequence;
 		priorHash = event.postStateHash;
 	}
-	return true;
+	return (
+		worldHead === priorWorldHeadHash &&
+		boundary.revision + headers.length === state.revision &&
+		state.simulationTime === boundary.simulationTime
+	);
 }
 
 const appendUnique = (
@@ -475,7 +714,57 @@ async function validResolution(
 	if (jcs(rebuilt) !== jcs(context)) return false;
 	const { decisionRecordHash: digest, ...withoutHash } = record;
 	if (
+		!exactKeys(record, [
+			"schemaVersion",
+			"recordVersion",
+			"decisionId",
+			"decisionBoundaryId",
+			"actorId",
+			"runId",
+			"regionId",
+			"revision",
+			"simulationTime",
+			"wholePreStateHash",
+			"decisionReason",
+			"activeStandingPlanId",
+			"activeStandingPlanVersion",
+			"suppliedRecordIds",
+			"readRecordIds",
+			"relationshipIds",
+			"valueIds",
+			"commitmentIds",
+			"contextHash",
+			"actionCatalogHash",
+			"actionCatalogVersion",
+			"budgets",
+			"cognitionConfigurationVersion",
+			"cognitionKind",
+			"provider",
+			"model",
+			"modelVersion",
+			"promptTemplateHash",
+			"proposalSchemaHash",
+			"artifactHash",
+			"proposalCanonicalBytes",
+			"proposalHash",
+			"explanation",
+			"failureCode",
+			"validator",
+			"proposedCommandId",
+			"receiptRef",
+			"acceptedEventInterval",
+			"rationaleTemplateId",
+			"subjectCitizenId",
+			"sensitivity",
+			"provenance",
+			"decisionRecordHash",
+		]) ||
+		!exactKeys(record.validator, ["stage", "outcome", "reason"]) ||
+		!exactKeys(record.provenance, ["kind", "version"]) ||
 		(await decisionRecordHash(withoutHash)) !== digest ||
+		record.schemaVersion !== "eonfolk-cognitive-decision-record-v1" ||
+		record.recordVersion !== "1" ||
+		!identifier(record.decisionBoundaryId) ||
 		record.decisionId !== command.payload.decisionId ||
 		record.actorId !== context.actorId ||
 		record.runId !== command.runId ||
@@ -483,8 +772,14 @@ async function validResolution(
 		record.revision !== state.revision ||
 		record.simulationTime !== state.simulationTime ||
 		record.wholePreStateHash !== wholePreStateHash ||
+		record.decisionReason !== context.decisionReason ||
+		record.activeStandingPlanId !== context.activeStandingPlan.planId ||
+		record.activeStandingPlanVersion !== context.activeStandingPlan.version ||
 		record.contextHash !== context.contextHash ||
 		record.actionCatalogHash !== context.catalogHash ||
+		record.actionCatalogVersion !== context.actionCatalogVersion ||
+		jcs(record.budgets) !== jcs(context.budgets) ||
+		record.cognitionConfigurationVersion !== COGNITION_VERSION ||
 		record.proposalCanonicalBytes !== jcs(proposal) ||
 		record.proposalHash !== proposal.proposalHash ||
 		record.proposedCommandId !== command.commandId ||
@@ -492,13 +787,29 @@ async function validResolution(
 		record.acceptedEventInterval !== null ||
 		record.failureCode !== null ||
 		record.validator.outcome !== "accepted" ||
+		record.validator.stage !== "authorization" ||
+		!identifier(record.validator.reason) ||
 		record.cognitionKind !== "standard-brain" ||
 		record.provider !== null ||
 		record.model !== null ||
+		record.modelVersion !== null ||
+		record.promptTemplateHash !== null ||
+		record.proposalSchemaHash !== null ||
+		record.artifactHash !== null ||
 		record.explanation === null ||
 		jcs(record.explanation) !== jcs(proposal.explanation) ||
+		record.rationaleTemplateId !== proposal.explanation.templateId ||
+		record.subjectCitizenId !== context.actorId ||
+		record.sensitivity !== "citizen-private-audit" ||
+		jcs(record.provenance) !== jcs({ kind: "cognition-audit", version: "1" }) ||
 		jcs(record.suppliedRecordIds) !==
-			jcs(context.visibleRecords.map(({ recordId }) => recordId))
+			jcs(context.visibleRecords.map(({ recordId }) => recordId)) ||
+		jcs(record.readRecordIds) !==
+			jcs(proposal.explanation.visibleRecordIdsRead) ||
+		jcs(record.relationshipIds) !==
+			jcs(proposal.explanation.relationshipIdsRead) ||
+		jcs(record.valueIds) !== jcs(proposal.explanation.valueIdsRead) ||
+		jcs(record.commitmentIds) !== jcs(proposal.explanation.commitmentIdsRead)
 	)
 		return false;
 	const action = proposal.action;
@@ -630,13 +941,16 @@ async function pending(
 		))
 	)
 		return "ACTION_UNAVAILABLE";
-	const disposition = input.resolution.proposal.explanation.counselDisposition;
-	if (
-		disposition !== "accepted" &&
-		disposition !== "rejected" &&
-		disposition !== "reinterpreted"
-	)
-		return "ACTION_UNAVAILABLE";
+	const chosenAction = input.resolution.proposal.action;
+	const disposition =
+		chosenAction.kind === "FollowStandingPlan"
+			? ("rejected" as const)
+			: (chosenAction.kind === "VerifyReserve" &&
+						counsel.intent === "verify-reserve") ||
+					(chosenAction.kind === "AccusePublicly" &&
+						counsel.intent === "accuse-publicly")
+				? ("accepted" as const)
+				: ("reinterpreted" as const);
 	return {
 		payload: {
 			kind: "CounselInterpreted",
@@ -712,6 +1026,7 @@ function reject(
 		resultingWorldHeadHash: input.priorWorldHeadHash,
 		events: [],
 		batchHeader: null,
+		committedDecisionRecord: null,
 		receipt: receipt(
 			input.state,
 			input.command,
@@ -723,6 +1038,126 @@ function reject(
 			input.state.revision,
 		),
 	};
+}
+
+async function validCommitment(
+	state: CivilizationState,
+	commitment: CivilizationSponsorCommitment,
+	command: WorldCommand<SponsorCommandPayload>,
+): Promise<boolean> {
+	const { receipt: prior, batchHeader: header, events } = commitment;
+	if (
+		!exactKeys(prior, [
+			"schemaVersion",
+			"runId",
+			"regionId",
+			"commandId",
+			"payloadFingerprint",
+			"principal",
+			"expectedRevision",
+			"actualRevision",
+			"outcome",
+			"eventInterval",
+			"rejectionCode",
+			"resultingRevision",
+			"resultingWorldHeadHash",
+			"createdSimulationTime",
+			"fencingToken",
+		]) ||
+		prior.schemaVersion !== "eonfolk-command-receipt-v1" ||
+		prior.outcome !== "accepted" ||
+		prior.rejectionCode !== null ||
+		prior.commandId !== command.commandId ||
+		prior.runId !== command.runId ||
+		prior.regionId !== command.regionId ||
+		prior.payloadFingerprint !== command.payloadFingerprint ||
+		prior.expectedRevision !== command.expectedRevision ||
+		jcs(prior.principal) !== jcs(command.principal) ||
+		prior.eventInterval === null ||
+		!validBatchHeaderShape(header) ||
+		header.runId !== command.runId ||
+		header.regionId !== command.regionId ||
+		!nonnegative(prior.actualRevision) ||
+		!nonnegative(prior.resultingRevision) ||
+		!nonnegative(prior.createdSimulationTime) ||
+		!nonnegative(prior.fencingToken) ||
+		events.length !== header.eventCount ||
+		events.length === 0 ||
+		jcs(prior.eventInterval.eventIds) !==
+			jcs(events.map(({ eventId }) => eventId)) ||
+		prior.eventInterval.fromSequenceInclusive !== header.firstSequence ||
+		prior.eventInterval.toSequenceExclusive !==
+			header.firstSequence + events.length ||
+		prior.resultingRevision !== header.resultRevision ||
+		prior.resultingWorldHeadHash !== header.batchHash ||
+		header.payloadFingerprint !== prior.payloadFingerprint ||
+		header.finalStateHash !== events.at(-1)?.postStateHash ||
+		jcs(header.eventHashes) !==
+			jcs(events.map(({ eventHash: digest }) => digest)) ||
+		events.some(
+			(event) =>
+				event.provenance.commandId !== command.commandId ||
+				!state.provenance.some(({ eventId }) => eventId === event.eventId),
+		)
+	)
+		return false;
+	for (const event of events) {
+		const { eventHash: digest, ...withoutHash } = event;
+		if (
+			!hashPattern.test(digest) ||
+			(await eventHash(withoutHash)) !== digest ||
+			event.batchId !== header.batchId ||
+			event.runId !== header.runId ||
+			event.regionId !== header.regionId ||
+			!validSponsorEnvelopeShape(event, event.simulationTime) ||
+			!validEventProvenance(event)
+		)
+			return false;
+	}
+	const event = events[0]!;
+	const payload = event.eventPayload;
+	if (
+		header.eventCount !== 1 ||
+		prior.actualRevision !== command.expectedRevision ||
+		prior.resultingRevision !== prior.actualRevision + 1 ||
+		prior.createdSimulationTime !== event.simulationTime ||
+		(command.payload.kind === "EstablishSponsorship" &&
+			(payload.kind !== "SponsorshipEstablished" ||
+				payload.covenantId !== command.payload.covenantId ||
+				payload.citizenId !== command.payload.citizenId ||
+				payload.patronPrincipalId !== command.principal.principalId ||
+				state.sponsorships[command.payload.covenantId]?.sourceEventId !==
+					event.eventId)) ||
+		(command.payload.kind === "IssueCounsel" &&
+			(payload.kind !== "CounselIssued" ||
+				payload.interventionId !== command.payload.interventionId ||
+				payload.citizenId !== command.payload.citizenId ||
+				payload.intent !== command.payload.intent ||
+				state.counsels[command.payload.interventionId]?.sourceEventId !==
+					event.eventId)) ||
+		(command.payload.kind === "ResolveCounsel" &&
+			(payload.kind !== "CounselInterpreted" ||
+				payload.interventionId !== command.payload.interventionId ||
+				payload.citizenId !== command.payload.citizenId ||
+				payload.action !== command.payload.action ||
+				state.counsels[command.payload.interventionId ?? ""]?.resolution
+					?.sourceEventId !== event.eventId))
+	)
+		return false;
+	const expected = await batchHash({
+		runId: header.runId,
+		regionId: header.regionId,
+		batchId: header.batchId,
+		priorWorldHeadHash: header.priorWorldHeadHash,
+		firstSequence: header.firstSequence,
+		eventHashes: header.eventHashes,
+		payloadFingerprint: header.payloadFingerprint,
+		resultRevision: header.resultRevision,
+		finalStateHash: header.finalStateHash,
+	});
+	return (
+		expected === header.batchHash && state.revision >= prior.resultingRevision
+	);
 }
 
 export async function prepareCivilizationSponsorTransition(
@@ -740,6 +1175,9 @@ export async function prepareCivilizationSponsorTransition(
 			input.state,
 			priorStateHash,
 			input.authoritativeHistory,
+			input.authoritativeHeaders,
+			input.snapshotBoundary,
+			input.priorWorldHeadHash,
 			input.runId,
 			input.regionId,
 			input.nextSequence,
@@ -758,20 +1196,15 @@ export async function prepareCivilizationSponsorTransition(
 		input.command.payloadFingerprint
 	)
 		return reject(input, priorStateHash, "BAD_FINGERPRINT");
-	const prior = input.priorReceipts?.find(
-		({ commandId }) => commandId === input.command.commandId,
+	const prior = input.priorCommitments?.find(
+		({ receipt: priorReceipt }) =>
+			priorReceipt.commandId === input.command.commandId,
 	);
 	if (prior !== undefined) {
-		if (
-			prior.runId !== input.runId ||
-			prior.regionId !== input.regionId ||
-			prior.payloadFingerprint !== input.command.payloadFingerprint ||
-			prior.expectedRevision !== input.command.expectedRevision ||
-			jcs(prior.principal) !== jcs(input.command.principal)
-		)
+		if (!(await validCommitment(input.state, prior, input.command)))
 			return reject(input, priorStateHash, "INVALID_COMMAND");
 		return {
-			accepted: prior.outcome === "accepted",
+			accepted: true,
 			duplicate: true,
 			priorState: input.state,
 			postState: input.state,
@@ -781,7 +1214,8 @@ export async function prepareCivilizationSponsorTransition(
 			resultingWorldHeadHash: input.priorWorldHeadHash,
 			events: [],
 			batchHeader: null,
-			receipt: prior,
+			committedDecisionRecord: null,
+			receipt: prior.receipt,
 		};
 	}
 	if (
@@ -871,6 +1305,38 @@ export async function prepareCivilizationSponsorTransition(
 		finalStateHash,
 		batchHash: digest,
 	};
+	const acceptedReceipt = receipt(
+		input.state,
+		input.command,
+		digest,
+		input.fencingToken,
+		"accepted",
+		null,
+		[event],
+		postState.revision,
+	);
+	let committedDecisionRecord: CognitiveDecisionRecord | null = null;
+	if (
+		input.command.payload.kind === "ResolveCounsel" &&
+		input.resolution !== undefined
+	) {
+		const { decisionRecordHash: _priorDigest, ...priorRecord } =
+			input.resolution.decisionRecord;
+		const committedWithoutHash = {
+			...priorRecord,
+			validator: {
+				stage: "committed" as const,
+				outcome: "accepted" as const,
+				reason: "canonical event batch committed",
+			},
+			receiptRef: acceptedReceipt.commandId,
+			acceptedEventInterval: acceptedReceipt.eventInterval,
+		};
+		committedDecisionRecord = deepFreeze({
+			...committedWithoutHash,
+			decisionRecordHash: await decisionRecordHash(committedWithoutHash),
+		});
+	}
 	return {
 		accepted: true,
 		duplicate: false,
@@ -882,44 +1348,51 @@ export async function prepareCivilizationSponsorTransition(
 		resultingWorldHeadHash: digest,
 		events: [event],
 		batchHeader: header,
-		receipt: receipt(
-			input.state,
-			input.command,
-			digest,
-			input.fencingToken,
-			"accepted",
-			null,
-			[event],
-			postState.revision,
-		),
+		committedDecisionRecord,
+		receipt: acceptedReceipt,
 	};
 }
 
 export async function replayCivilizationSponsorEvents(input: {
 	readonly snapshotState: CivilizationState;
-	readonly snapshotStateHash: string;
-	readonly runId: string;
-	readonly regionId: string;
-	readonly nextSequence: number;
+	readonly snapshotBoundary: CivilizationSponsorSnapshotBoundary;
+	readonly headers: readonly WorldBatchHeader[];
 	readonly events: readonly CivilizationSponsorEventEnvelope[];
-}): Promise<{ readonly state: CivilizationState; readonly stateHash: string }> {
+	readonly expectedFinalWorldHeadHash: string;
+}): Promise<{
+	readonly state: CivilizationState;
+	readonly stateHash: string;
+	readonly worldHeadHash: string;
+}> {
 	assertCivilizationInvariants(input.snapshotState);
 	let current = input.snapshotState;
 	let currentHash = await stateHash(current);
-	if (currentHash !== input.snapshotStateHash)
+	const { boundaryHash, ...boundaryWithoutHash } = input.snapshotBoundary;
+	if (
+		input.snapshotBoundary.schemaVersion !==
+			"eonfolk-sponsor-snapshot-boundary-v1" ||
+		(await stateHash(boundaryWithoutHash)) !== boundaryHash ||
+		currentHash !== input.snapshotBoundary.stateHash ||
+		current.revision !== input.snapshotBoundary.revision ||
+		current.simulationTime !== input.snapshotBoundary.simulationTime ||
+		input.headers.length !== input.events.length
+	)
 		throw new Error("snapshot state hash mismatch");
 	const known = new Set(current.provenance.map(({ eventId }) => eventId));
-	let sequence = input.nextSequence;
+	let sequence = input.snapshotBoundary.nextSequence;
+	let worldHeadHash = input.snapshotBoundary.baseWorldHeadHash;
 	for (const [index, event] of input.events.entries()) {
+		const header = input.headers[index]!;
 		const { eventHash: digest, ...withoutHash } = event;
 		if (
 			event.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
 			event.engineVersion !== ENGINE_VERSION ||
-			event.runId !== input.runId ||
-			event.regionId !== input.regionId ||
+			event.runId !== input.snapshotBoundary.runId ||
+			event.regionId !== input.snapshotBoundary.regionId ||
 			event.sequence !== sequence ||
 			event.preStateHash !== currentHash ||
 			known.has(event.eventId) ||
+			!validSponsorEnvelopeShape(event, current.simulationTime) ||
 			!validEventProvenance(event) ||
 			event.causalParents.some(
 				(parent) =>
@@ -929,6 +1402,31 @@ export async function replayCivilizationSponsorEvents(input: {
 			throw new Error("invalid sponsor event chain");
 		if ((await eventHash(withoutHash)) !== digest)
 			throw new Error("sponsor event hash mismatch");
+		const expectedHead = await batchHash({
+			runId: event.runId,
+			regionId: event.regionId,
+			batchId: event.batchId,
+			priorWorldHeadHash: worldHeadHash,
+			firstSequence: sequence,
+			eventHashes: [digest],
+			payloadFingerprint: header.payloadFingerprint,
+			resultRevision: header.resultRevision,
+			finalStateHash: event.postStateHash,
+		});
+		if (
+			!validBatchHeaderShape(header) ||
+			header.runId !== event.runId ||
+			header.regionId !== event.regionId ||
+			header.priorWorldHeadHash !== worldHeadHash ||
+			header.firstSequence !== sequence ||
+			header.eventCount !== 1 ||
+			jcs(header.eventHashes) !== jcs([digest]) ||
+			header.batchId !== event.batchId ||
+			header.finalStateHash !== event.postStateHash ||
+			header.resultRevision !== current.revision + 1 ||
+			header.batchHash !== expectedHead
+		)
+			throw new Error("sponsor batch header mismatch");
 		current = applyPayload(
 			current,
 			event.eventPayload,
@@ -939,7 +1437,10 @@ export async function replayCivilizationSponsorEvents(input: {
 		if (currentHash !== event.postStateHash)
 			throw new Error("sponsor event post-state hash mismatch");
 		known.add(event.eventId);
+		worldHeadHash = header.batchHash;
 		sequence += 1;
 	}
-	return { state: current, stateHash: currentHash };
+	if (worldHeadHash !== input.expectedFinalWorldHeadHash)
+		throw new Error("sponsor final world head mismatch");
+	return { state: current, stateHash: currentHash, worldHeadHash };
 }

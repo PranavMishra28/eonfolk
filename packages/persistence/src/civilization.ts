@@ -23,11 +23,11 @@ import {
 } from "./versioned-types.js";
 
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
-	"eonfolk-release-genesis-civilization-state-v3" as const;
+	"eonfolk-release-genesis-civilization-state-v4" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v2" as const;
+	"eonfolk-release-genesis-civilization-transition-v3" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v4" as const;
+	"eonfolk-release-genesis-civilization-engine-v5" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -35,11 +35,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v5" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v5" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v6" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v6" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v5" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v5" as const;
+	"eonfolk-civilization-experiment-event-v6" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v6" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
@@ -136,6 +136,88 @@ export interface PersistCivilizationHistoryResult {
 	readonly head: AuthorityHead;
 	readonly snapshot: AuthoritySnapshotRecord;
 	readonly receipts: readonly AuthorityAppendReceipt[];
+}
+
+export interface PersistedCivilizationSponsorBoundary {
+	readonly schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1";
+	readonly snapshotId: string;
+	readonly runId: string;
+	readonly regionId: string;
+	readonly stateHash: string;
+	readonly revision: number;
+	readonly simulationTime: number;
+	readonly nextSequence: number;
+	readonly baseWorldHeadHash: string;
+	readonly boundaryHash: string;
+}
+
+/** Binds the sponsor cursor to integrity-checked durable authority records. */
+export async function bindCivilizationSponsorBoundary(input: {
+	readonly snapshot: AuthoritySnapshotRecord;
+	readonly head: AuthorityHead;
+}): Promise<PersistedCivilizationSponsorBoundary> {
+	const rebuiltSnapshot = await createAuthoritySnapshot({
+		runId: input.snapshot.runId,
+		regionId: input.snapshot.regionId,
+		engineVersion: input.snapshot.engineVersion,
+		stateSchemaVersion: input.snapshot.stateSchemaVersion,
+		snapshotId: input.snapshot.snapshotId,
+		revision: input.snapshot.revision,
+		baseSequence: input.snapshot.baseSequence,
+		simulationTime: input.snapshot.simulationTime,
+		lastEventHash: input.snapshot.lastEventHash,
+		state: input.snapshot.state,
+	});
+	const rebuiltHead = await createAuthorityHead({
+		runId: input.head.runId,
+		regionId: input.head.regionId,
+		engineVersion: input.head.engineVersion,
+		stateSchemaVersion: input.head.stateSchemaVersion,
+		revision: input.head.revision,
+		lastSequence: input.head.lastSequence,
+		simulationTime: input.head.simulationTime,
+		stateHash: input.head.stateHash,
+		lastEventHash: input.head.lastEventHash,
+		fencingToken: input.head.fencingToken,
+	});
+	const snapshotState = record(input.snapshot.state, "sponsor snapshot state");
+	if (
+		rebuiltSnapshot.snapshotHash !== input.snapshot.snapshotHash ||
+		rebuiltHead.headHash !== input.head.headHash ||
+		input.snapshot.runId !== input.head.runId ||
+		input.snapshot.regionId !== input.head.regionId ||
+		input.snapshot.revision !== input.head.revision ||
+		input.snapshot.baseSequence !== input.head.lastSequence ||
+		input.snapshot.simulationTime !== input.head.simulationTime ||
+		input.snapshot.stateHash !== input.head.stateHash ||
+		input.snapshot.lastEventHash !== input.head.lastEventHash ||
+		input.snapshot.engineVersion !== "eonfolk-civilization-sponsor-v2" ||
+		input.head.engineVersion !== "eonfolk-civilization-sponsor-v2" ||
+		input.snapshot.stateSchemaVersion !== "eonfolk-civilization-kernel-v4" ||
+		input.head.stateSchemaVersion !== "eonfolk-civilization-kernel-v4" ||
+		snapshotState.schemaVersion !== "eonfolk-civilization-kernel-v4" ||
+		snapshotState.revision !== input.snapshot.revision ||
+		snapshotState.simulationTime !== input.snapshot.simulationTime
+	)
+		fail(
+			"STALE_STATE",
+			"sponsor snapshot and authority head are not the same durable boundary",
+		);
+	const withoutHash = {
+		schemaVersion: "eonfolk-sponsor-snapshot-boundary-v1" as const,
+		snapshotId: input.snapshot.snapshotId,
+		runId: input.snapshot.runId,
+		regionId: input.snapshot.regionId,
+		stateHash: await sourceDomainHash("EONFOLK:STATE:v2", input.snapshot.state),
+		revision: input.snapshot.revision,
+		simulationTime: input.snapshot.simulationTime,
+		nextSequence: input.snapshot.baseSequence,
+		baseWorldHeadHash: input.snapshot.lastEventHash,
+	};
+	return {
+		...withoutHash,
+		boundaryHash: await sourceDomainHash("EONFOLK:STATE:v2", withoutHash),
+	};
 }
 
 function fail(
@@ -255,7 +337,7 @@ async function validateSourceEvent(
 	hash(source.postStateHash, `source event ${index}.postStateHash`);
 	const eventHash = hash(source.eventHash, `source event ${index}.eventHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v6",
 		without(source, ["eventHash", "eventId"]),
 	);
 	if (eventHash !== expected)
@@ -299,7 +381,7 @@ async function validateSourceStep(
 	);
 	const stepHash = hash(source.stepHash, `source step ${index}.stepHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v6",
 		without(source, ["stepHash"]),
 	);
 	if (stepHash !== expected)
@@ -393,11 +475,11 @@ async function validateCheckpoint(
 	const civilization = json(checkpoint.state, "checkpoint.state");
 	const activities = json(checkpoint.activities, "checkpoint.activities");
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
 		world,
 	);
 	const sourceStateHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v6",
 		{ activities, civilization, worldStateHash: sourceWorldHash },
 	);
 	if (sourceStateHash !== checkpoint.finalStateHash)
@@ -649,11 +731,11 @@ async function validateCheckpointSourceState(
 ): Promise<void> {
 	if (state.phase !== "checkpoint" || state.civilization === null) return;
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
 		state.world,
 	);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v6",
 		{
 			activities: state.scheduler.activities,
 			civilization: state.civilization,

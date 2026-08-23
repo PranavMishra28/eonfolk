@@ -79,7 +79,7 @@ interface CivilizationProjectInput {
 
 /** Dependency-free structural view of the civilization v3 authority state. */
 export interface GeneratedSpatialCivilizationInput {
-	readonly schemaVersion: "eonfolk-civilization-kernel-v3";
+	readonly schemaVersion: "eonfolk-civilization-kernel-v4";
 	readonly revision: number;
 	readonly simulationTime: number;
 	readonly references: Readonly<{
@@ -93,8 +93,8 @@ export interface GeneratedSpatialCivilizationInput {
 
 /** Exact metadata the adapter consumes from a validated v5 checkpoint. */
 export interface GeneratedSpatialCheckpointInput {
-	readonly schemaVersion: "eonfolk-civilization-experiment-v5";
-	readonly runnerVersion: "eonfolk-civilization-runner-v5";
+	readonly schemaVersion: "eonfolk-civilization-experiment-v6";
+	readonly runnerVersion: "eonfolk-civilization-runner-v6";
 	readonly worldIdentityHash: string;
 	readonly horizonDays: number;
 	readonly finalStateHash: string;
@@ -283,11 +283,11 @@ function nodeAffordance(
 function validateIdentity(
 	input: ProjectGeneratedCivilizationSpatialInput,
 ): void {
-	if (input.civilization.schemaVersion !== "eonfolk-civilization-kernel-v3")
+	if (input.civilization.schemaVersion !== "eonfolk-civilization-kernel-v4")
 		fail("unsupported civilization schema");
 	if (
-		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v5" ||
-		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v5"
+		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v6" ||
+		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v6"
 	)
 		fail("unsupported checkpoint schema or runner");
 	if (input.checkpoint.worldIdentityHash !== input.world.identity.identityHash)

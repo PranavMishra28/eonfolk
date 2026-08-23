@@ -74,6 +74,12 @@ export function projectChronicle(input: {
 		);
 		switch (payload.kind) {
 			case "SponsorshipEstablished":
+				sentences.push({
+					sentenceId: `sentence-${event.eventId}`,
+					text: `${nameFor(payload.citizenId, input.citizenNames)} entered a sponsorship covenant.`,
+					evidenceEventIds: [event.eventId],
+					relation: "fact",
+				});
 				break;
 			case "CounselIssued":
 				sentences.push({

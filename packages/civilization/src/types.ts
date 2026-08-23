@@ -214,7 +214,7 @@ export interface MigrationJourneyState {
 }
 
 export interface CivilizationState {
-	readonly schemaVersion: "eonfolk-civilization-kernel-v3";
+	readonly schemaVersion: "eonfolk-civilization-kernel-v4";
 	readonly revision: number;
 	readonly simulationTime: number;
 	readonly references: CivilizationReferences;

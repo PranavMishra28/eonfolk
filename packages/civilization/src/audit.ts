@@ -21,6 +21,10 @@ export function auditCivilizationState(
 	state: CivilizationState,
 ): AccountingAudit {
 	const issues: string[] = [];
+	if (state.schemaVersion !== "eonfolk-civilization-kernel-v4")
+		issues.push(
+			`unsupported civilization schema ${String(state.schemaVersion)}`,
+		);
 	const householdByCitizen = new Map<string, string>();
 	for (const [citizenId, citizen] of Object.entries(state.citizens)) {
 		if (citizen.citizenId !== citizenId)
@@ -116,18 +120,22 @@ export function auditCivilizationState(
 			issues.push(`mind ${citizenId} has an invalid commitment boundary`);
 		if (
 			citizen !== undefined &&
-			mind.snapshot.values.some(
-				(value) =>
-					!citizen.valueIds.includes(value.valueId) ||
-					!Number.isSafeInteger(value.weight) ||
-					value.weight < 0,
-			)
+			(mind.snapshot.values.length !== citizen.valueIds.length ||
+				new Set(mind.snapshot.values.map(({ valueId }) => valueId)).size !==
+					mind.snapshot.values.length ||
+				mind.snapshot.values.some(
+					(value) =>
+						!citizen.valueIds.includes(value.valueId) ||
+						!Number.isSafeInteger(value.weight) ||
+						value.weight < 0,
+				))
 		)
 			issues.push(`mind ${citizenId} has invalid values`);
 		for (const relationship of mind.snapshot.relationships) {
 			const canonical = state.relationships[relationship.relationshipId];
 			if (
 				canonical === undefined ||
+				canonical.fromCitizenId !== citizenId ||
 				canonical.fromCitizenId !== relationship.fromCitizenId ||
 				canonical.toCitizenId !== relationship.toCitizenId ||
 				canonical.familiarityBasisPoints !== relationship.familiarity ||
@@ -144,12 +152,26 @@ export function auditCivilizationState(
 		for (const record of mind.snapshot.records)
 			if (
 				record.subjectCitizenId !== citizenId ||
+				record.sourceIds.length === 0 ||
+				record.sourceIds.some(
+					(sourceId) =>
+						!state.citizens[citizenId]?.sourceEventIds.includes(sourceId),
+				) ||
 				record.sourceIds.some((sourceId) => !provenanceIds.has(sourceId))
 			)
 				issues.push(
 					`mind ${citizenId} has unauthoritative record ${record.recordId}`,
 				);
-		if (mind.snapshot.standingPlan.citizenId !== citizenId)
+		if (
+			mind.snapshot.standingPlan.citizenId !== citizenId ||
+			mind.snapshot.standingPlan.status !== "active" ||
+			mind.snapshot.standingPlan.targetIds.some(
+				(targetId) =>
+					targetId !== citizenId &&
+					state.citizens[targetId] === undefined &&
+					!state.references.siteIds.includes(targetId),
+			)
+		)
 			issues.push(`mind ${citizenId} has another citizen's standing plan`);
 	}
 	const sponsoredCitizens = new Set<string>();
@@ -216,6 +238,14 @@ export function auditCivilizationState(
 		)
 			issues.push(`counsel ${interventionId} has invalid authority`);
 		if (
+			!Number.isSafeInteger(counsel.issuedAtSimulationTime) ||
+			counsel.issuedAtSimulationTime < 0 ||
+			counsel.issuedAtSimulationTime > state.simulationTime ||
+			(counsel.intent !== "verify-reserve" &&
+				counsel.intent !== "accuse-publicly")
+		)
+			issues.push(`counsel ${interventionId} has invalid issue semantics`);
+		if (
 			!state.provenance.some(
 				(provenance) =>
 					provenance.eventId === counsel.sourceEventId &&
@@ -223,6 +253,27 @@ export function auditCivilizationState(
 			)
 		)
 			issues.push(`counsel ${interventionId} lacks canonical provenance`);
+		const counseledCitizen = state.citizens[counsel.citizenId];
+		if (
+			counseledCitizen === undefined ||
+			!counseledCitizen.sourceEventIds.includes(counsel.sourceEventId)
+		)
+			issues.push(`counsel ${interventionId} lacks its citizen source event`);
+		if (
+			counsel.resolution !== null &&
+			(counsel.resolution.decisionId.length === 0 ||
+				counsel.resolution.proposalId.length === 0 ||
+				(counsel.resolution.action !== "verify-reserve" &&
+					counsel.resolution.action !== "accuse-publicly" &&
+					counsel.resolution.action !== "follow-plan") ||
+				(counsel.resolution.disposition !== "accepted" &&
+					counsel.resolution.disposition !== "rejected" &&
+					counsel.resolution.disposition !== "reinterpreted") ||
+				!counseledCitizen?.sourceEventIds.includes(
+					counsel.resolution.sourceEventId,
+				))
+		)
+			issues.push(`counsel ${interventionId} has invalid resolution semantics`);
 		if (
 			counsel.resolution !== null &&
 			!state.provenance.some(
