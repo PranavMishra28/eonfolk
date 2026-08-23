@@ -25,6 +25,7 @@ test("Release Genesis exposes one immutable, account-free world entry", async ({
 	const externalRequests = await blockExternalNetwork(page);
 	await page.setViewportSize(viewports[0]);
 	await page.goto("/genesis");
+	await expect(page).toHaveTitle("EONFOLK — Release Genesis");
 
 	await expect(
 		page.getByRole("heading", {
@@ -42,6 +43,7 @@ test("Release Genesis exposes one immutable, account-free world entry", async ({
 
 	await page.getByRole("link", { name: /^Enter /u }).click();
 	await expect(page).toHaveURL(/\/world$/u);
+	await expect(page).toHaveTitle("EONFOLK — Genesis World");
 	await expect(page.getByTestId("region-map")).toBeVisible();
 	await expect(
 		page.locator("main[data-world-id='eonfolk-genesis-world-v1']"),

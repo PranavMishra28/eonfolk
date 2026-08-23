@@ -491,6 +491,12 @@ function GenesisWorld({
 }
 
 export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
+	useEffect(() => {
+		document.title =
+			route === "entry"
+				? "EONFOLK — Release Genesis"
+				: "EONFOLK — Genesis World";
+	}, [route]);
 	const { experience, error } = useGenesisExperience();
 	if (error !== null) return <GenesisError error={error} />;
 	if (experience === null) return <GenesisLoading />;
