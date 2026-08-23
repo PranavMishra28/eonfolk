@@ -1,5 +1,6 @@
 export * from "./animation";
 export * from "./clock";
+export * from "./generated-world";
 export * from "./inspection";
 export * from "./planner";
 export * from "./projector";
