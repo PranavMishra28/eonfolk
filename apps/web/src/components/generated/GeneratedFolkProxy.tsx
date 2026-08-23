@@ -51,6 +51,9 @@ const materials = Object.freeze({
 	reaction: material("#c84f48"),
 });
 
+/** The procedural proxy's body-and-activity silhouette spans 2.5 source units. */
+export const GENERATED_FOLK_SOURCE_HEIGHT_UNITS = 2.5;
+
 function Primitive({
 	type = "box",
 	position,
@@ -101,9 +104,113 @@ function stateMaterial(actor: GeneratedEmbodiedActor): StandardMaterial {
 	}
 }
 
+function activityMaterial(actor: GeneratedEmbodiedActor): StandardMaterial {
+	return actor.prop === null ? stateMaterial(actor) : propMaterial(actor);
+}
+
+function CanonicalProp({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
+	if (actor.prop === null) return null;
+	const color = propMaterial(actor);
+	switch (actor.prop) {
+		case "water":
+			return (
+				<Entity position={[0.68, 0.72, 0]}>
+					<Primitive
+						type="cylinder"
+						position={[0, 0, 0]}
+						scale={[0.3, 0.4, 0.3]}
+						color={color}
+					/>
+					<Primitive
+						type="cylinder"
+						position={[0, 0.24, 0]}
+						scale={[0.38, 0.06, 0.38]}
+						color={materials.linen}
+					/>
+				</Entity>
+			);
+		case "logs":
+			return (
+				<Entity position={[0.72, 0.88, 0]} rotation={[0, 0, 84]}>
+					{[-0.18, 0, 0.18].map((offset) => (
+						<Primitive
+							key={offset}
+							type="cylinder"
+							position={[offset, 0, 0]}
+							scale={[0.14, 0.86, 0.14]}
+							color={color}
+						/>
+					))}
+				</Entity>
+			);
+		case "grain":
+			return (
+				<Entity position={[0.7, 0.83, 0]}>
+					<Primitive
+						type="sphere"
+						position={[0, 0, 0]}
+						scale={[0.38, 0.5, 0.3]}
+						color={color}
+					/>
+					<Primitive
+						position={[0, 0.34, 0]}
+						scale={[0.12, 0.12, 0.12]}
+						color={materials.linen}
+					/>
+				</Entity>
+			);
+		case "trade":
+			return (
+				<Entity position={[0.72, 1.04, 0]}>
+					{[-0.13, 0.13].map((offset) => (
+						<Primitive
+							key={offset}
+							type="cylinder"
+							position={[offset, 0, 0]}
+							scale={[0.18, 0.05, 0.18]}
+							color={color}
+						/>
+					))}
+				</Entity>
+			);
+		case "tool":
+			return (
+				<Entity position={[0.7, 0.94, 0]} rotation={[0, 0, -28]}>
+					<Primitive
+						position={[0, 0, 0]}
+						scale={[0.1, 0.82, 0.1]}
+						color={materials.logs}
+					/>
+					<Primitive
+						position={[0, 0.43, 0]}
+						scale={[0.52, 0.15, 0.18]}
+						color={color}
+					/>
+				</Entity>
+			);
+	}
+}
+
+function SocialGesture() {
+	return (
+		<Entity position={[0, 2.44, 0]}>
+			{[-0.22, 0, 0.22].map((offset, index) => (
+				<Primitive
+					key={offset}
+					type="sphere"
+					position={[offset, index === 1 ? 0.08 : 0, 0]}
+					scale={[0.18, 0.18, 0.18]}
+					color={materials.social}
+				/>
+			))}
+		</Entity>
+	);
+}
+
 /**
- * Low-poly, recognizably humanoid proxy whose named parts mirror the tracked
- * glTF asset. Every visible pose comes from canonical typed action state.
+ * Low-poly procedural runtime proxy whose named parts mirror the verified glTF
+ * reference contract. The glTF is not rendered; procedural limbs preserve the
+ * canonical typed pose and stable identity variants at lower runtime cost.
  */
 export function GeneratedFolkProxy({
 	actor,
@@ -141,6 +248,12 @@ export function GeneratedFolkProxy({
 			rotation={[0, actor.facingDegrees, 0]}
 			data-citizen-name={actor.name}
 		>
+			<Primitive
+				type="cylinder"
+				position={[0, 0.02, 0]}
+				scale={[0.9, 0.025, 0.9]}
+				color={activityMaterial(actor)}
+			/>
 			{selected || actor.focal ? (
 				<Primitive
 					type="cylinder"
@@ -237,14 +350,10 @@ export function GeneratedFolkProxy({
 					color={materials.dark}
 				/>
 			</Entity>
-			{actor.prop === null ? null : (
-				<Primitive
-					position={[0.72, 0.94, 0]}
-					scale={[0.34, 0.34, 0.34]}
-					color={propMaterial(actor)}
-				/>
-			)}
-			{["work", "social", "reaction"].includes(actor.pose.family) ? (
+			<CanonicalProp actor={actor} />
+			{actor.pose.family === "social" ? (
+				<SocialGesture />
+			) : ["work", "reaction"].includes(actor.pose.family) ? (
 				<Primitive
 					type={actor.pose.family === "reaction" ? "cone" : "sphere"}
 					position={[0, 2.48, 0]}

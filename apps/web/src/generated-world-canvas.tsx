@@ -21,11 +21,15 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { GeneratedFolkProxy } from "./components/generated/GeneratedFolkProxy";
+import {
+	GeneratedFolkProxy,
+	GENERATED_FOLK_SOURCE_HEIGHT_UNITS,
+} from "./components/generated/GeneratedFolkProxy";
 import { GeneratedProjectProxy } from "./components/generated/GeneratedProjectProxy";
 import {
 	advanceGeneratedCameraIntent,
 	cameraIntentForGeneratedNavigation,
+	GENERATED_FOLK_ASSET,
 	GENERATED_NAVIGATION_EVENT,
 	type GeneratedCameraIntent,
 	type GeneratedEmbodiedActor,
@@ -52,7 +56,6 @@ function material(hex: string): StandardMaterial {
 
 const palette = Object.freeze({
 	ground: material("#718158"),
-	groundLight: material("#8d9964"),
 	soil: material("#7c6848"),
 	path: material("#a8895d"),
 	water: material("#5d9aaa"),
@@ -105,6 +108,8 @@ interface Frame {
 	readonly width: number;
 	readonly depth: number;
 }
+
+const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.84;
 
 function sceneFrame(projection: GeneratedCivilizationSpatialProjection): Frame {
 	const xs = projection.local.sites.flatMap((site) => [
@@ -161,20 +166,29 @@ function renderedActorPoint(
 	const interaction = projection.spatial.interactions.find((candidate) =>
 		candidate.participantIds.includes(actor.citizenId),
 	);
-	if (interaction === undefined) return actor.positionMm;
-	const ordinal = interaction.participantIds.indexOf(actor.citizenId);
 	const canonicalActor = projection.spatial.actors.find(
 		(candidate) => candidate.citizenId === actor.citizenId,
 	);
 	const slotId = canonicalActor?.action.affordanceId;
+	const participantIds =
+		interaction?.participantIds ??
+		projection.spatial.actors
+			.filter(
+				(candidate) =>
+					slotId !== null &&
+					slotId !== undefined &&
+					candidate.action.affordanceId === slotId,
+			)
+			.map(({ citizenId }) => citizenId);
+	if (participantIds.length < 2) return actor.positionMm;
+	const ordinal = participantIds.indexOf(actor.citizenId);
 	const node =
 		slotId === null || slotId === undefined
 			? undefined
 			: projection.scene.nodes[slotId];
 	if (node === undefined || ordinal < 0) return actor.positionMm;
 	const offset =
-		(ordinal - (interaction.participantIds.length - 1) / 2) *
-		node.occupantSpacingMm;
+		(ordinal - (participantIds.length - 1) / 2) * node.occupantSpacingMm;
 	const angle = (node.facingDegrees * Math.PI) / 180;
 	return Object.freeze({
 		x: Math.round(node.x + Math.cos(angle) * offset),
@@ -254,7 +268,9 @@ function GeneratedCamera({
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
 		const overviewMinimumMm = Math.round(
-			Math.max(frame.width, frame.depth) * 0.7 * 1_000,
+			Math.max(frame.width, frame.depth) *
+				OVERVIEW_FRAME_DISTANCE_FACTOR *
+				1_000,
 		);
 		return Object.freeze({
 			...requested,
@@ -698,7 +714,11 @@ function GroundedSettlement({
 		navigation.focus.kind === "overview"
 			? Math.max(
 					requestedCamera.distanceMm,
-					Math.round(Math.max(frame.width, frame.depth) * 0.7 * 1_000),
+					Math.round(
+						Math.max(frame.width, frame.depth) *
+							OVERVIEW_FRAME_DISTANCE_FACTOR *
+							1_000,
+					),
 				)
 			: requestedCamera.distanceMm;
 	const fidelity = generatedCameraFidelity(cameraDistanceMm);
@@ -731,14 +751,8 @@ function GroundedSettlement({
 			</Entity>
 			<Primitive
 				position={[0, -0.2, 0]}
-				scale={[frame.width + 12, 0.4, frame.depth + 12]}
+				scale={[frame.width + 180, 0.4, frame.depth + 180]}
 				color={palette.ground}
-			/>
-			<Primitive
-				position={[0, 0.01, 0]}
-				scale={[frame.width + 5, 0.035, frame.depth + 5]}
-				color={palette.groundLight}
-				castShadows={false}
 			/>
 			{projection.scene.edges
 				.filter((edge) => edge.edgeId.endsWith(":forward"))
@@ -912,9 +926,12 @@ function GroundedSettlement({
 						key={actor.citizenId}
 						position={localPoint(renderedActorPoint(projection, actor), frame)}
 						scale={[
-							scale.citizen.heightMm / 2_500,
-							scale.citizen.heightMm / 2_500,
-							scale.citizen.heightMm / 2_500,
+							scale.citizen.heightMm /
+								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
+							scale.citizen.heightMm /
+								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
+							scale.citizen.heightMm /
+								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
 						]}
 					>
 						<GeneratedFolkProxy
@@ -1000,7 +1017,11 @@ export function GeneratedWorldCanvas({
 		navigation.focus.kind === "overview"
 			? Math.max(
 					cameraIntent.distanceMm,
-					Math.round(Math.max(frame.width, frame.depth) * 0.7 * 1_000),
+					Math.round(
+						Math.max(frame.width, frame.depth) *
+							OVERVIEW_FRAME_DISTANCE_FACTOR *
+							1_000,
+					),
 				)
 			: cameraIntent.distanceMm;
 	const fidelity = generatedCameraFidelity(effectiveDistanceMm);
@@ -1014,6 +1035,9 @@ export function GeneratedWorldCanvas({
 			data-testid="generated-world-canvas"
 			data-ready="false"
 			data-engine="playcanvas"
+			data-folk-renderer="procedural-typed-proxy"
+			data-folk-reference-asset={GENERATED_FOLK_ASSET.url}
+			data-environment-context="presentation-only-ground-apron"
 			data-world-id={projection.spatial.source.runId}
 			data-state-hash={projection.spatial.source.stateHash}
 			data-world-revision={projection.spatial.source.revision}

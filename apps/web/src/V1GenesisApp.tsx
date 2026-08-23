@@ -14,6 +14,7 @@ import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmb
 import { browserDiagnostics } from "./diagnostics";
 import {
 	type GeneratedAssetIntegrity,
+	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
@@ -352,6 +353,44 @@ function SettlementOverview({
 	);
 }
 
+const ACTIVITY_WORDS = Object.freeze({
+	idle: "pausing",
+	walk: "walking",
+	carry: "carrying",
+	gather: "gathering",
+	inspect: "inspecting the work",
+	talk: "speaking",
+	listen: "listening",
+	exchange: "exchanging goods",
+	repair: "making repairs",
+	"eat-rest": "resting",
+	react: "reacting",
+});
+
+const PROP_WORDS = Object.freeze({
+	water: "water",
+	logs: "logs",
+	grain: "grain",
+	trade: "goods",
+	tool: "a tool",
+});
+
+function actorActivity(
+	actor: GeneratedEmbodiedActor,
+	projection: GeneratedCivilizationSpatialProjection,
+): string {
+	const place = projection.local.sites.find(
+		({ siteId }) => siteId === actor.placeId,
+	)?.name;
+	const prop = actor.prop === null ? null : PROP_WORDS[actor.prop];
+	const activity =
+		prop !== null &&
+		["carry", "gather", "exchange"].includes(actor.animationClass)
+			? `${ACTIVITY_WORDS[actor.animationClass]} ${prop}`
+			: ACTIVITY_WORDS[actor.animationClass];
+	return place === undefined ? activity : `${activity} at ${place}`;
+}
+
 function GeneratedContextPanel({
 	projection,
 	model,
@@ -373,39 +412,110 @@ function GeneratedContextPanel({
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
 }) {
+	const selectedCitizenId =
+		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const selectedActor =
+		selectedCitizenId === null
+			? undefined
+			: model.actors.find(({ citizenId }) => citizenId === selectedCitizenId);
+	const activityCounts = new Map<string, number>();
+	for (const actor of model.actors) {
+		const activity = ACTIVITY_WORDS[actor.animationClass];
+		activityCounts.set(activity, (activityCounts.get(activity) ?? 0) + 1);
+	}
 	return (
 		<aside
 			className="v1-context-panel"
 			aria-label="Canonical settlement context"
 		>
-			<div className="v1-context-now" aria-live="polite">
-				<p className="v1-kicker">HAPPENING NOW</p>
-				<strong>{projection.local.settlement.name}</strong>
-				<span>
-					{projection.spatial.actors.length} residents have scheduler-owned
-					activities at this checkpoint.
-				</span>
-			</div>
-			<GeneratedEmbodimentControls
-				model={model}
-				navigation={navigation}
-				dispatch={dispatch}
-				presentationTick={presentationTick}
-				presentationPlaying={presentationPlaying}
-				reducedMotion={reducedMotion}
-				onTogglePresentation={onTogglePresentation}
-				onStepPresentation={onStepPresentation}
-			/>
-			{projection.projects.map((project) => (
-				<section className="v1-project-card" key={project.projectId}>
-					<p className="v1-kicker">CANONICAL PROJECT</p>
-					<h3>{project.name}</h3>
-					<p>{project.semanticLabel}</p>
-					<progress max={10_000} value={project.progressBasisPoints}>
-						{project.progressBasisPoints / 100}%
-					</progress>
-				</section>
-			))}
+			<section className="v1-presence-card" aria-live="polite">
+				<p className="v1-kicker">
+					{selectedActor === undefined ? "HAPPENING NOW" : "PERSON IN FOCUS"}
+				</p>
+				<h2>{selectedActor?.name ?? projection.local.settlement.name}</h2>
+				{selectedActor === undefined ? (
+					<>
+						<p>
+							{model.actors.length} lives are unfolding at once. Select someone
+							to move from the settlement view into their immediate work.
+						</p>
+						<ul className="v1-activity-summary" aria-label="Visible activities">
+							{[...activityCounts].map(([activity, count]) => (
+								<li key={activity}>
+									<strong>{count}</strong> {activity}
+								</li>
+							))}
+						</ul>
+					</>
+				) : (
+					<>
+						<p className="v1-context-role">{selectedActor.role}</p>
+						<p>{actorActivity(selectedActor, projection)}.</p>
+						<div className="v1-focus-actions">
+							<button
+								type="button"
+								aria-pressed={navigation.followCitizen}
+								onClick={() => dispatch({ type: "toggle-follow" })}
+							>
+								{navigation.followCitizen ? "Stop following" : "Follow"}
+							</button>
+							<button
+								type="button"
+								onClick={() => dispatch({ type: "overview" })}
+							>
+								Back to settlement
+							</button>
+						</div>
+					</>
+				)}
+			</section>
+			<ul className="v1-presence-roster" aria-label="Visible residents">
+				{model.actors.map((actor) => (
+					<li key={actor.citizenId}>
+						<button
+							type="button"
+							aria-pressed={selectedActor?.citizenId === actor.citizenId}
+							onClick={() =>
+								dispatch({
+									type: "select-citizen",
+									citizenId: actor.citizenId,
+								})
+							}
+						>
+							<strong>{actor.name}</strong>
+							<span>{actorActivity(actor, projection)}</span>
+						</button>
+					</li>
+				))}
+			</ul>
+			<details className="v1-world-tools">
+				<summary>Camera, playback, and evidence</summary>
+				<GeneratedEmbodimentControls
+					model={model}
+					navigation={navigation}
+					dispatch={dispatch}
+					presentationTick={presentationTick}
+					presentationPlaying={presentationPlaying}
+					reducedMotion={reducedMotion}
+					onTogglePresentation={onTogglePresentation}
+					onStepPresentation={onStepPresentation}
+				/>
+				{projection.projects.map((project) => (
+					<section className="v1-project-card" key={project.projectId}>
+						<p className="v1-kicker">SETTLEMENT RECORD</p>
+						<h3>{project.name}</h3>
+						<p>{project.state}</p>
+						<progress
+							aria-label={`${project.name} progress`}
+							max={10_000}
+							value={project.progressBasisPoints}
+						>
+							{project.progressBasisPoints / 100}%
+						</progress>
+						<p>{Math.round(project.progressBasisPoints / 100)}% complete</p>
+					</section>
+				))}
+			</details>
 		</aside>
 	);
 }
@@ -617,7 +727,10 @@ function GeneratedWorld({
 						}
 					>
 						{candidate.local.settlement.name}
-						<small>{candidate.spatial.actors.length} residents</small>
+						<small>
+							{candidate.spatial.actors.length} resident
+							{candidate.spatial.actors.length === 1 ? "" : "s"}
+						</small>
 					</button>
 				))}
 			</nav>
@@ -637,13 +750,13 @@ function GeneratedWorld({
 						</p>
 					) : asset.status === "checking" ? (
 						<p className="renderer-note" role="status">
-							Verifying the repository-authored embodiment asset. Canonical
-							world actions remain inspectable in words.
+							Verifying the repository-authored proxy geometry contract.
+							Canonical world actions remain inspectable in words.
 						</p>
 					) : asset.status === "failed" ? (
 						<p className="renderer-note" role="status">
-							The embodiment asset did not pass integrity checks. The canonical
-							world remains inspectable without it.
+							The proxy geometry reference did not pass integrity checks. The
+							canonical world remains inspectable without it.
 						</p>
 					) : null}
 					<SemanticSettlement
