@@ -26,6 +26,7 @@ const PR_STEPS = Object.freeze([
 	step("lint", "pnpm", ["lint"]),
 	step("typecheck", "pnpm", ["typecheck"]),
 	step("unit", "pnpm", ["test:unit"]),
+	step("cognition-portable", "pnpm", ["test:cognition:portable"]),
 	step("property-pr", "pnpm", ["test:property"]),
 	step("indexeddb", "pnpm", ["test:indexeddb"]),
 	step("timing", "pnpm", ["test:timing"]),
@@ -47,6 +48,7 @@ const PR_STEPS = Object.freeze([
 const DEEP_ONLY_STEPS = Object.freeze([
 	step("targeted-mutation", "pnpm", ["test:mutation"]),
 	step("property-deep", "pnpm", ["test:property:deep"]),
+	step("local-model-benchmark", "pnpm", ["test:model:benchmark"]),
 	step("browser-cohort", "pnpm", ["browser-cohort:check"]),
 	step("persistence-benchmark", "node", [
 		"scripts/benchmark-persistence.mjs",
@@ -85,6 +87,7 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 		"tmp/eonfolk-diagnostics-overhead.json",
 		"tmp/eonfolk-diagnostics-browser-comparison.json",
 		"tmp/eonfolk-canonical-performance.json",
+		"tmp/eonfolk-local-model-benchmark.json",
 	]),
 	"portable-extended": Object.freeze(["apps/web/dist"]),
 });
@@ -662,6 +665,8 @@ async function main() {
 			tier === "deep"
 				? {
 						propertyProfile: "deep: 500/320 deterministic runs",
+						localModelTreatment:
+							"exact 100-decision promoted treatment with deterministic fallback",
 						diagnosticsModes: ["off", "local", "alpha"],
 						persistenceMode: "gating",
 						canonicalWebProfile: "5 repetitions x 3 states x 3 viewports",

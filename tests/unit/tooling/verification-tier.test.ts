@@ -71,4 +71,15 @@ describe("V1 CI hardening", () => {
 			"--mode ready --evidence tmp/eonfolk-verification-pr.json",
 		);
 	});
+
+	it("binds exact candidate DEEP to the promoted local-model treatment", () => {
+		const runner = readFileSync(
+			resolve("scripts/run-verification-tier.mjs"),
+			"utf8",
+		);
+		expect(runner).toContain(
+			'step("local-model-benchmark", "pnpm", ["test:model:benchmark"])',
+		);
+		expect(runner).toContain("tmp/eonfolk-local-model-benchmark.json");
+	});
 });

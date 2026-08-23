@@ -89,6 +89,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"tmp/eonfolk-diagnostics-overhead.json",
 			"tmp/eonfolk-diagnostics-browser-comparison.json",
 			"tmp/eonfolk-canonical-performance.json",
+			"tmp/eonfolk-local-model-benchmark.json",
 		]);
 		expect(describeArtifacts("portable-extended")).toEqual(["apps/web/dist"]);
 	});
@@ -106,6 +107,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"lint",
 			"typecheck",
 			"unit",
+			"cognition-portable",
 			"property-pr",
 			"indexeddb",
 			"timing",
@@ -122,6 +124,7 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(deep.slice(pr.length).map((entry) => entry.id)).toEqual([
 			"targeted-mutation",
 			"property-deep",
+			"local-model-benchmark",
 			"browser-cohort",
 			"persistence-benchmark",
 			"diagnostics-source-benchmark",
