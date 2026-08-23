@@ -131,16 +131,30 @@ describe("V1 CI hardening", () => {
 		expect(workflow).toContain("evidence_purpose:");
 		expect(workflow).toContain("target-mac-intermediate");
 		expect(workflow).toContain(
-			"runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]",
+			"format('eonfolk-ephemeral-deep-{0}', inputs.runner_nonce)",
 		);
 		expect(workflow).toContain("runs-on: ubuntu-24.04");
 		expect(workflow).toContain("Checkout exact evidence SHA as inert bytes");
 		expect(workflow).toContain(
-			"Fail closed unless runner is unique, non-root, and non-admin",
+			"Prove dedicated non-admin identity before checkout",
 		);
 		expect(workflow).toContain(
-			"Verify runner teardown and finalize inert payload",
+			"Bind actions-read job metadata and finalize inert payload",
 		);
+		expect(workflow).not.toContain("/actions/runners");
+		expect(workflow).toContain("dseditgroup -o checkmember");
+		expect(workflow).toContain("refs/tags/eonfolk-evidence-");
+		expect(workflow).toContain("repository-preflight");
+		expect(workflow).toContain("-attempt-" + "$" + "{{ github.run_attempt }}");
+		expect(workflow).toContain("inputs.evidence_purpose || 'automatic'");
+		const macJob = workflow.indexOf("  mac-deep-intermediate:");
+		const identity = workflow.indexOf(
+			"Prove dedicated non-admin identity before checkout",
+			macJob,
+		);
+		const checkout = workflow.indexOf("Check out exact frozen control", macJob);
+		expect(identity).toBeGreaterThan(macJob);
+		expect(identity).toBeLessThan(checkout);
 		expect(workflow).toContain(
 			"node ../control/scripts/run-verification-tier.mjs deep",
 		);

@@ -40,7 +40,7 @@ on:
         required: false
         type: string
       evidence_sha:
-        description: Full evidence-only descendant SHA and workflow source
+        description: Full evidence-only descendant SHA; workflow source is the dispatch tag target
         required: false
         type: string
       artifact_path:
@@ -55,12 +55,20 @@ on:
         description: Unique reviewer session/task identity
         required: false
         type: string
-      mac_runner_name:
-        description: Unique ephemeral non-admin Mac runner name
+      runner_nonce:
+        description: Unique nonce used in the exact ephemeral runner name and custom label
         required: false
         type: string
       intermediate_run_id:
         description: Successful finalized target-Mac intermediate run ID
+        required: false
+        type: string
+      intermediate_run_attempt:
+        description: Exact successful target-Mac intermediate run attempt
+        required: false
+        type: string
+      runner_probe_path:
+        description: Evidence-SHA-relative external coordinator runner-probe receipt
         required: false
         type: string
 
@@ -69,8 +77,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.evidence_purpose || 'automatic' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || inputs.evidence_purpose == 'ordinary' }}
 
 jobs:
   verify:
@@ -214,6 +222,8 @@ jobs:
               --run-ids-config "${run_ids}" \
               --repository "${GITHUB_REPOSITORY}" \
               --expected-evidence-sha "${expected_evidence_sha}" \
+              --expected-owner "${GITHUB_REPOSITORY_OWNER}" \
+              --expected-operator "${GITHUB_REPOSITORY_OWNER}" \
               --payload-dir "${verified_payloads}" \
               --output "${verified_registry}"
             node scripts/check-v1-readiness.mjs \
@@ -378,7 +388,7 @@ jobs:
           retention-days: 14
 
   mac-runner-preflight:
-    name: Mac runner availability preflight
+    name: Mac immutable control preflight
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.evidence_purpose == 'target-mac-intermediate'
@@ -406,12 +416,16 @@ jobs:
         env:
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
           GITHUB_TOKEN: ${{ github.token }}
-          RUNNER_NAME: ${{ inputs.mac_runner_name }}
+          INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
+          RUNNER_NONCE: ${{ inputs.runner_nonce }}
           WORKFLOW_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           [[ "${CONTROL_SHA}" =~ ^[a-f0-9]{40}$ ]]
-          [[ "${RUNNER_NAME}" =~ ^eonfolk-deep-[A-Za-z0-9._-]{8,80}$ ]]
+          [[ "${INITIAL_REVIEW_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${INITIAL_REVIEW_SHA}" != "${CONTROL_SHA}" ]]
+          [[ "${RUNNER_NONCE}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,63}$ ]]
+          [[ "${GITHUB_REF}" =~ ^refs/tags/eonfolk-evidence-[A-Za-z0-9][A-Za-z0-9._-]{7,63}$ ]]
           [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
           [[ "$(git -C workflow-control rev-parse HEAD)" == "${WORKFLOW_SHA}" ]]
           node control/scripts/v1-github-evidence.mjs compare-controls \
@@ -419,15 +433,49 @@ jobs:
             --control-sha "${CONTROL_SHA}" \
             --other-root workflow-control \
             --other-sha "${WORKFLOW_SHA}"
-          node control/scripts/v1-github-evidence.mjs runner-preflight \
+          node control/scripts/v1-github-evidence.mjs repository-preflight \
             --repository "${GITHUB_REPOSITORY}" \
-            --runner-name "${RUNNER_NAME}"
+            --expected-owner "${GITHUB_REPOSITORY_OWNER}" \
+            --expected-operator "${GITHUB_REPOSITORY_OWNER}"
   mac-deep-intermediate:
     name: Target-Mac exact 30-step DEEP intermediate
     needs: mac-runner-preflight
-    runs-on: [self-hosted, macOS, ARM64, eonfolk-ephemeral-deep]
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - ${{ format('eonfolk-ephemeral-deep-{0}', inputs.runner_nonce) }}
     timeout-minutes: 240
     steps:
+      - name: Prove dedicated non-admin identity before checkout
+        shell: bash
+        env:
+          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
+          EXPECTED_RUNNER_NAME: ${{ format('eonfolk-deep-{0}', inputs.runner_nonce) }}
+          FROZEN_CANDIDATE_SHA: ${{ inputs.frozen_candidate_sha }}
+          RUNNER_NONCE: ${{ inputs.runner_nonce }}
+        run: |
+          set -euo pipefail
+          [[ "${RUNNER_NAME}" == "${EXPECTED_RUNNER_NAME}" ]]
+          [[ "$(id -u)" -gt 0 ]]
+          runner_user="$(id -un)"
+          [[ "${runner_user}" =~ ^[A-Za-z0-9._-]+$ ]]
+          if ! membership_output="$(dseditgroup -o checkmember -m "${runner_user}" admin 2>&1)"; then
+            echo "dseditgroup failed while checking target-Mac runner identity" >&2
+            exit 1
+          fi
+          [[ "${membership_output}" == *" is NOT a member of group admin" ]]
+          identity_dir="${RUNNER_TEMP}/v1-mac-identity"
+          mkdir "${identity_dir}"
+          printf '{"schemaVersion":"eonfolk-v1-mac-runner-v2","controlSha":"%s","frozenCandidateSha":"%s","runnerName":"%s","runnerNonce":"%s","runnerUser":"%s","nonAdminCheckOutput":"%s","nonAdminUser":true}\n' \
+            "${CONTROL_SHA}" \
+            "${FROZEN_CANDIDATE_SHA}" \
+            "${RUNNER_NAME}" \
+            "${RUNNER_NONCE}" \
+            "${runner_user}" \
+            "${membership_output}" \
+            > "${identity_dir}/runner.json"
+
       - name: Check out exact frozen control
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -444,20 +492,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Fail closed unless runner is unique, non-root, and non-admin
+      - name: Verify exact frozen checkouts
         shell: bash
         env:
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
-          EXPECTED_RUNNER_NAME: ${{ inputs.mac_runner_name }}
         run: |
           set -euo pipefail
-          [[ "${RUNNER_NAME}" == "${EXPECTED_RUNNER_NAME}" ]]
-          [[ "$(id -u)" -gt 0 ]]
-          runner_user="$(id -un)"
-          if dseditgroup -o checkmember -m "${runner_user}" admin | grep -qi 'yes'; then
-            echo "target-Mac runner user must not belong to the admin group" >&2
-            exit 1
-          fi
           [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
           [[ "$(git -C candidate rev-parse HEAD)" == "${CONTROL_SHA}" ]]
           node control/scripts/v1-github-evidence.mjs purpose-slug --purpose target-mac-deep >/dev/null
@@ -513,33 +553,17 @@ jobs:
 
       - name: Record non-admin runner identity and raw payload
         shell: bash
-        env:
-          CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
-          FROZEN_CANDIDATE_SHA: ${{ inputs.frozen_candidate_sha }}
         run: |
           set -euo pipefail
           raw_dir="${RUNNER_TEMP}/v1-mac-raw"
           mkdir "${raw_dir}"
           cp candidate/tmp/eonfolk-verification-deep.json "${raw_dir}/payload.json"
-          RUNNER_USER="$(id -un)" node --input-type=module <<'EOF'
-          import { writeFileSync } from "node:fs";
-          writeFileSync(
-            `${process.env.RUNNER_TEMP}/v1-mac-raw/runner.json`,
-            `${JSON.stringify({
-              schemaVersion: "eonfolk-v1-mac-runner-v1",
-              controlSha: process.env.CONTROL_SHA,
-              frozenCandidateSha: process.env.FROZEN_CANDIDATE_SHA,
-              runnerName: process.env.RUNNER_NAME,
-              runnerUser: process.env.RUNNER_USER,
-              nonAdminUser: true,
-            }, null, 2)}\n`,
-          );
-          EOF
+          cp "${RUNNER_TEMP}/v1-mac-identity/runner.json" "${raw_dir}/runner.json"
 
       - name: Upload raw Mac payload for hosted finalization
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: v1-mac-raw-${{ github.run_id }}
+          name: v1-mac-raw-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ${{ runner.temp }}/v1-mac-raw
           if-no-files-found: error
           retention-days: 14
@@ -566,11 +590,11 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify runner teardown and finalize inert payload
+      - name: Bind actions-read job metadata and finalize inert payload
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
-          RUNNER_NAME: ${{ inputs.mac_runner_name }}
+          RUNNER_NONCE: ${{ inputs.runner_nonce }}
         run: |
           node control/scripts/v1-github-evidence.mjs compare-controls \
             --control-root control \
@@ -580,7 +604,8 @@ jobs:
           node control/scripts/v1-github-evidence.mjs finalize-mac \
             --repository "${GITHUB_REPOSITORY}" \
             --run-id "${GITHUB_RUN_ID}" \
-            --runner-name "${RUNNER_NAME}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --runner-nonce "${RUNNER_NONCE}" \
             --control-sha "${CONTROL_SHA}" \
             --frozen-candidate-sha "${CONTROL_SHA}" \
             --output "${RUNNER_TEMP}/v1-mac-finalized"
@@ -588,7 +613,7 @@ jobs:
       - name: Upload hosted-finalized Mac intermediate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: v1-mac-finalized-${{ github.run_id }}
+          name: v1-mac-finalized-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: ${{ runner.temp }}/v1-mac-finalized
           if-no-files-found: error
           retention-days: 30
@@ -633,21 +658,29 @@ jobs:
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
           EVIDENCE_SHA: ${{ inputs.evidence_sha }}
           INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
+          INTERMEDIATE_RUN_ATTEMPT: ${{ inputs.intermediate_run_attempt }}
           INTERMEDIATE_RUN_ID: ${{ inputs.intermediate_run_id }}
           PURPOSE: ${{ inputs.evidence_purpose }}
           REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
           REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+          RUNNER_PROBE_PATH: ${{ inputs.runner_probe_path }}
           WORKFLOW_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           [[ "${INITIAL_REVIEW_SHA}" =~ ^[a-f0-9]{40}$ ]]
           [[ "${CONTROL_SHA}" =~ ^[a-f0-9]{40}$ ]]
           [[ "${EVIDENCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+          [[ "${INITIAL_REVIEW_SHA}" != "${CONTROL_SHA}" ]]
+          [[ "${INITIAL_REVIEW_SHA}" != "${EVIDENCE_SHA}" ]]
+          [[ "${CONTROL_SHA}" != "${EVIDENCE_SHA}" ]]
+          [[ "${GITHUB_REF}" =~ ^refs/tags/eonfolk-evidence-[A-Za-z0-9][A-Za-z0-9._-]{7,63}$ ]]
           [[ "$(git -C control rev-parse HEAD)" == "${CONTROL_SHA}" ]]
           [[ "$(git -C evidence rev-parse HEAD)" == "${EVIDENCE_SHA}" ]]
           [[ "$(git -C workflow-control rev-parse HEAD)" == "${WORKFLOW_SHA}" ]]
           if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
             [[ "${INTERMEDIATE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
+            [[ "${INTERMEDIATE_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
+            [[ "${RUNNER_PROBE_PATH}" =~ ^docs/exec-plans/evidence/003/release/[^./][A-Za-z0-9._/-]*\.json$ ]]
             [[ -z "${ARTIFACT_PATH}" && -z "${REVIEWER_AGENT_ID}" && -z "${REVIEWER_SESSION_ID}" ]]
           else
             [[ "${ARTIFACT_PATH}" =~ ^docs/(reviews|exec-plans/evidence/003/release)/[^./][A-Za-z0-9._/-]*\.json$ ]]
@@ -663,11 +696,17 @@ jobs:
           EVIDENCE_SHA: ${{ inputs.evidence_sha }}
           GITHUB_TOKEN: ${{ github.token }}
           INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
+          INTERMEDIATE_RUN_ATTEMPT: ${{ inputs.intermediate_run_attempt }}
           INTERMEDIATE_RUN_ID: ${{ inputs.intermediate_run_id }}
           PURPOSE: ${{ inputs.evidence_purpose }}
           REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
           REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
+          RUNNER_PROBE_PATH: ${{ inputs.runner_probe_path }}
         run: |
+          node control/scripts/v1-github-evidence.mjs repository-preflight \
+            --repository "${GITHUB_REPOSITORY}" \
+            --expected-owner "${GITHUB_REPOSITORY_OWNER}" \
+            --expected-operator "${GITHUB_REPOSITORY_OWNER}"
           args=(
             --purpose "${PURPOSE}"
             --control-root control
@@ -679,7 +718,11 @@ jobs:
             --output "${RUNNER_TEMP}/v1-evidence"
           )
           if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
-            args+=(--intermediate-run-id "${INTERMEDIATE_RUN_ID}")
+            args+=(
+              --intermediate-run-id "${INTERMEDIATE_RUN_ID}"
+              --intermediate-run-attempt "${INTERMEDIATE_RUN_ATTEMPT}"
+              --runner-probe-payload "${RUNNER_PROBE_PATH}"
+            )
           else
             args+=(
               --payload "${ARTIFACT_PATH}"
@@ -689,7 +732,7 @@ jobs:
           fi
           node control/scripts/v1-github-evidence.mjs prepare "${args[@]}"
           purpose_slug="$(node control/scripts/v1-github-evidence.mjs purpose-slug --purpose "${PURPOSE}")"
-          echo "artifact-name=v1-evidence-${purpose_slug}-${GITHUB_RUN_ID}" >> "${GITHUB_OUTPUT}"
+          echo "artifact-name=v1-evidence-${purpose_slug}-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload exact final evidence receipt and payload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

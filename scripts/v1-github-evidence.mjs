@@ -18,12 +18,10 @@ const HASH_PATTERN = /^[a-f0-9]{64}$/u;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$/u;
 const WORKFLOW_PATH = ".github/workflows/ci.yml";
 const WORKFLOW_NAME = "CI";
-const MAC_LABELS = Object.freeze([
-	"self-hosted",
-	"macOS",
-	"ARM64",
-	"eonfolk-ephemeral-deep",
-]);
+const MAC_BASE_LABELS = Object.freeze(["self-hosted", "macOS", "ARM64"]);
+const NONCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
+const EVIDENCE_TAG_PATTERN =
+	/^refs\/tags\/eonfolk-evidence-[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
 export const CONTROL_PATHS = Object.freeze([
 	WORKFLOW_PATH,
 	"scripts/v1-github-evidence.mjs",
@@ -61,6 +59,16 @@ function exactKeys(value, keys) {
 
 function positiveInteger(value) {
 	return Number.isSafeInteger(value) && value > 0;
+}
+
+function macRunnerName(nonce) {
+	if (!NONCE_PATTERN.test(nonce ?? ""))
+		throw new Error("runner nonce is invalid");
+	return `eonfolk-deep-${nonce}`;
+}
+
+function macLabels(nonce) {
+	return [...MAC_BASE_LABELS, `eonfolk-ephemeral-deep-${nonce}`].sort();
 }
 
 function nonemptyIdentity(value) {
@@ -212,6 +220,10 @@ function validateShaChain(initialReviewSha, frozenCandidateSha, evidenceSha) {
 	for (const value of [initialReviewSha, frozenCandidateSha, evidenceSha])
 		if (!SHA_PATTERN.test(value))
 			throw new Error("evidence SHA chain is invalid");
+	if (new Set([initialReviewSha, frozenCandidateSha, evidenceSha]).size !== 3)
+		throw new Error(
+			"initial review, frozen candidate, and evidence SHAs differ",
+		);
 }
 
 function validateLifecycle(lifecycle, frozenCandidateSha, controlSha) {
@@ -221,29 +233,93 @@ function validateLifecycle(lifecycle, frozenCandidateSha, controlSha) {
 			"finalizedAt",
 			"frozenCandidateSha",
 			"intermediateRunId",
+			"intermediateRunAttempt",
+			"intermediateWorkflowRef",
 			"intermediateWorkflowSourceSha",
+			"nonAdminCheckOutput",
 			"nonAdminUser",
 			"payloadSha256",
 			"preflight",
+			"runnerId",
+			"runnerLabels",
 			"runnerName",
+			"runnerNonce",
 			"runnerUser",
 			"schemaVersion",
 			"teardown",
 		]) ||
-		lifecycle.schemaVersion !== "eonfolk-v1-mac-lifecycle-v1" ||
+		lifecycle.schemaVersion !== "eonfolk-v1-mac-lifecycle-v2" ||
 		lifecycle.controlSha !== controlSha ||
 		lifecycle.frozenCandidateSha !== frozenCandidateSha ||
 		!positiveInteger(lifecycle.intermediateRunId) ||
+		!positiveInteger(lifecycle.intermediateRunAttempt) ||
+		!EVIDENCE_TAG_PATTERN.test(lifecycle.intermediateWorkflowRef ?? "") ||
 		!SHA_PATTERN.test(lifecycle.intermediateWorkflowSourceSha ?? "") ||
+		!positiveInteger(lifecycle.runnerId) ||
+		!NONCE_PATTERN.test(lifecycle.runnerNonce ?? "") ||
+		lifecycle.runnerName !== macRunnerName(lifecycle.runnerNonce) ||
+		JSON.stringify([...(lifecycle.runnerLabels ?? [])].sort()) !==
+			JSON.stringify(macLabels(lifecycle.runnerNonce)) ||
 		!nonemptyIdentity(lifecycle.runnerName) ||
 		!nonemptyIdentity(lifecycle.runnerUser) ||
+		typeof lifecycle.nonAdminCheckOutput !== "string" ||
+		!/ is NOT a member of group admin$/u.test(lifecycle.nonAdminCheckOutput) ||
 		lifecycle.nonAdminUser !== true ||
-		lifecycle.preflight !== "AVAILABLE_IDLE_EXACT_LABELS" ||
-		lifecycle.teardown !== "RUNNER_DEREGISTERED_AFTER_JOB" ||
+		lifecycle.preflight !== "JOB_ASSIGNED_EXACT_NONCE_RUNNER" ||
+		lifecycle.teardown !== "EXTERNAL_COORDINATOR_PROBE_REQUIRED" ||
 		!HASH_PATTERN.test(lifecycle.payloadSha256 ?? "") ||
 		!Number.isFinite(Date.parse(lifecycle.finalizedAt ?? ""))
 	)
 		throw new Error("target-Mac lifecycle evidence is invalid");
+}
+
+function validateExternalMacProbe(probe, lifecycle, repository) {
+	if (
+		!exactKeys(probe, [
+			"afterRun",
+			"beforeRegistration",
+			"boundary",
+			"intermediateRunAttempt",
+			"intermediateRunId",
+			"outputSha256",
+			"probeMethod",
+			"repository",
+			"runnerId",
+			"runnerName",
+			"runnerNonce",
+			"schemaVersion",
+		]) ||
+		probe.schemaVersion !== "eonfolk-v1-mac-external-probe-v1" ||
+		probe.boundary !==
+			"COORDINATOR_RECORDED_GH_API_OBSERVATION_NOT_CRYPTOGRAPHIC" ||
+		probe.probeMethod !== "GH_API_REPOSITORY_RUNNERS" ||
+		probe.repository !== repository ||
+		probe.intermediateRunId !== lifecycle.intermediateRunId ||
+		probe.intermediateRunAttempt !== lifecycle.intermediateRunAttempt ||
+		probe.runnerId !== lifecycle.runnerId ||
+		probe.runnerName !== lifecycle.runnerName ||
+		probe.runnerNonce !== lifecycle.runnerNonce ||
+		!exactKeys(probe.beforeRegistration, [
+			"observedAt",
+			"operatorActor",
+			"runnerCount",
+		]) ||
+		probe.beforeRegistration.runnerCount !== 0 ||
+		!exactKeys(probe.afterRun, [
+			"observedAt",
+			"operatorActor",
+			"runnerAbsent",
+		]) ||
+		probe.afterRun.runnerAbsent !== true ||
+		probe.beforeRegistration.operatorActor !== probe.afterRun.operatorActor ||
+		!nonemptyIdentity(probe.beforeRegistration.operatorActor) ||
+		!Number.isFinite(Date.parse(probe.beforeRegistration.observedAt ?? "")) ||
+		!Number.isFinite(Date.parse(probe.afterRun.observedAt ?? ""))
+	)
+		throw new Error("external Mac runner probe is malformed or mismatched");
+	const { outputSha256, ...unsigned } = probe;
+	if (outputSha256 !== sha256(JSON.stringify(unsigned)))
+		throw new Error("external Mac runner probe self-hash does not match");
 }
 
 function validateReceipt(receipt) {
@@ -254,6 +330,7 @@ function validateReceipt(receipt) {
 			"frozenCandidateSha",
 			"identityBoundary",
 			"initialReviewSha",
+			"macExternalProbe",
 			"macLifecycle",
 			"operatorActor",
 			"payload",
@@ -275,6 +352,7 @@ function validateReceipt(receipt) {
 		!REQUIRED_EVIDENCE_PURPOSES.includes(receipt.purpose) ||
 		!SHA_PATTERN.test(receipt.sourceSha ?? "") ||
 		!SHA_PATTERN.test(receipt.workflowSourceSha ?? "") ||
+		!EVIDENCE_TAG_PATTERN.test(receipt.workflowRef ?? "") ||
 		receipt.workflowPath !== WORKFLOW_PATH ||
 		!positiveInteger(receipt.runId) ||
 		!positiveInteger(receipt.runAttempt) ||
@@ -303,14 +381,19 @@ function validateReceipt(receipt) {
 			(receipt.reviewerAgentId !== null || receipt.reviewerSessionId !== null))
 	)
 		throw new Error("evidence receipt reviewer identity is invalid");
-	if (receipt.purpose === "target-mac-deep")
+	if (receipt.purpose === "target-mac-deep") {
 		validateLifecycle(
 			receipt.macLifecycle,
 			receipt.frozenCandidateSha,
 			receipt.control.sha,
 		);
-	else if (receipt.macLifecycle !== null)
-		throw new Error("non-Mac evidence cannot assert a Mac lifecycle");
+		validateExternalMacProbe(
+			receipt.macExternalProbe,
+			receipt.macLifecycle,
+			receipt.repository,
+		);
+	} else if (receipt.macLifecycle !== null || receipt.macExternalProbe !== null)
+		throw new Error("non-Mac evidence cannot assert Mac lifecycle evidence");
 }
 
 function defaultArchiveReader(archiveBytes) {
@@ -435,24 +518,27 @@ async function downloadSingleArtifact(client, repository, runId, artifactName) {
 	return { archiveBytes, archiveSha256, artifact };
 }
 
-async function runnerIsRegistered(client, repository, runnerName) {
-	const response = await client.json(
-		`/repos/${repository}/actions/runners?per_page=100`,
-	);
-	return (Array.isArray(response?.runners) ? response.runners : []).find(
-		({ name }) => name === runnerName,
-	);
-}
-
 async function verifyMacLifecycle(client, repository, lifecycle, control) {
 	const run = await client.json(
 		`/repos/${repository}/actions/runs/${lifecycle.intermediateRunId}`,
 	);
 	validateRun(run, repository, lifecycle.intermediateRunId);
-	if (run.head_sha !== lifecycle.intermediateWorkflowSourceSha)
+	if (
+		run.head_sha !== lifecycle.intermediateWorkflowSourceSha ||
+		run.run_attempt !== lifecycle.intermediateRunAttempt
+	)
 		throw new Error(
 			"Mac lifecycle workflow source does not match its live run",
 		);
+	const intermediateTag = await client.json(
+		`/repos/${repository}/git/ref/tags/${lifecycle.intermediateWorkflowRef.slice("refs/tags/".length)}`,
+	);
+	if (
+		intermediateTag?.ref !== lifecycle.intermediateWorkflowRef ||
+		intermediateTag?.object?.type !== "commit" ||
+		intermediateTag?.object?.sha !== run.head_sha
+	)
+		throw new Error("Mac intermediate tag does not bind its workflow source");
 	await verifyAncestry(
 		client,
 		repository,
@@ -468,7 +554,7 @@ async function verifyMacLifecycle(client, repository, lifecycle, control) {
 	);
 	const entries = Array.isArray(jobs?.jobs) ? jobs.jobs : [];
 	for (const name of [
-		"Mac runner availability preflight",
+		"Mac immutable control preflight",
 		"Target-Mac exact 30-step DEEP intermediate",
 		"Clean hosted Mac evidence finalizer",
 	])
@@ -481,21 +567,20 @@ async function verifyMacLifecycle(client, repository, lifecycle, control) {
 		({ name }) => name === "Target-Mac exact 30-step DEEP intermediate",
 	);
 	if (
+		macJob?.runner_id !== lifecycle.runnerId ||
 		macJob?.runner_name !== lifecycle.runnerName ||
-		!MAC_LABELS.every((label) => macJob?.labels?.includes(label))
+		JSON.stringify([...(macJob?.labels ?? [])].sort()) !==
+			JSON.stringify(macLabels(lifecycle.runnerNonce))
 	)
 		throw new Error("Mac lifecycle runner identity or labels do not match");
-	if (
-		(await runnerIsRegistered(client, repository, lifecycle.runnerName)) !==
-		undefined
-	)
-		throw new Error("ephemeral Mac runner remains registered after its job");
 }
 
 export async function verifyGithubEvidenceRuns({
 	runIds,
 	repository,
 	expectedEvidenceSha,
+	expectedOwner,
+	expectedOperator,
 	client,
 	archiveReader = defaultArchiveReader,
 	now = () => new Date().toISOString(),
@@ -507,6 +592,22 @@ export async function verifyGithubEvidenceRuns({
 		throw new Error("repository identity is invalid");
 	if (!SHA_PATTERN.test(expectedEvidenceSha ?? ""))
 		throw new Error("expected evidence SHA is invalid");
+	if (!nonemptyIdentity(expectedOwner) || !nonemptyIdentity(expectedOperator))
+		throw new Error("expected owner/operator identity is invalid");
+	if (repository.split("/")[0] !== expectedOwner)
+		throw new Error("repository owner is not the expected owner");
+	const repositoryMetadata = await client.json(`/repos/${repository}`);
+	if (
+		repositoryMetadata?.full_name !== repository ||
+		repositoryMetadata?.owner?.login !== expectedOwner ||
+		repositoryMetadata?.delete_branch_on_merge !== false ||
+		repositoryMetadata?.allow_merge_commit !== true ||
+		repositoryMetadata?.allow_squash_merge !== false ||
+		repositoryMetadata?.allow_rebase_merge !== false
+	)
+		throw new Error(
+			"repository owner, merge mode, or delete-branch-on-merge control is invalid",
+		);
 	const main = await client.json(`/repos/${repository}/branches/main`);
 	if (
 		main?.name !== "main" ||
@@ -525,6 +626,8 @@ export async function verifyGithubEvidenceRuns({
 			);
 		}
 		validateRun(run, repository, runId);
+		if (run.actor.login !== expectedOperator)
+			throw new Error(`run ${runId} actor is not the expected operator`);
 		const workflow = await client.json(
 			`/repos/${repository}/actions/workflows/${run.workflow_id}`,
 		);
@@ -579,17 +682,32 @@ export async function verifyGithubEvidenceRuns({
 		const payloadBytes = files.get("payload.json");
 		validateReceipt(receipt);
 		if (
+			receipt.purpose === "target-mac-deep" &&
+			receipt.macExternalProbe.beforeRegistration.operatorActor !==
+				expectedOperator
+		)
+			throw new Error(
+				"external Mac probe operator is not the expected operator",
+			);
+		const evidenceTag = receipt.workflowRef.slice("refs/tags/".length);
+		const tag = await client.json(
+			`/repos/${repository}/git/ref/tags/${evidenceTag}`,
+		);
+		if (
 			!(payloadBytes instanceof Uint8Array) ||
 			receipt.runId !== runId ||
 			receipt.runAttempt !== run.run_attempt ||
 			receipt.repository !== repository ||
 			receipt.operatorActor !== run.actor.login ||
 			receipt.workflowSourceSha !== run.head_sha ||
+			tag?.ref !== receipt.workflowRef ||
+			tag?.object?.type !== "commit" ||
+			tag?.object?.sha !== run.head_sha ||
 			receipt.evidenceSha !== expectedEvidenceSha ||
 			receipt.payload.bytes !== payloadBytes.byteLength ||
 			receipt.payload.sha256 !== sha256(payloadBytes) ||
 			finalArtifacts[0].name !==
-				`v1-evidence-${purposeSlug(receipt.purpose)}-${runId}`
+				`v1-evidence-${purposeSlug(receipt.purpose)}-${runId}-attempt-${run.run_attempt}`
 		)
 			throw new Error(
 				`run ${runId} receipt does not match live GitHub metadata`,
@@ -642,10 +760,9 @@ export async function verifyGithubEvidenceRuns({
 			receipt.evidenceSha === main.commit.sha ||
 			(["ahead", "identical"].includes(mainComparison?.status) &&
 				mainComparison?.merge_base_commit?.sha === receipt.evidenceSha);
-		const attestationClass =
-			run.head_branch === "main" && inProtectedMain
-				? "POSTMERGE_PROTECTED_MAIN"
-				: "PREMERGE_CANDIDATE_CONTROL";
+		const attestationClass = inProtectedMain
+			? "POSTMERGE_PROTECTED_MAIN"
+			: "PREMERGE_CANDIDATE_CONTROL";
 		onPayload(receipt.purpose, payloadBytes);
 		records.push(
 			Object.freeze({
@@ -660,6 +777,7 @@ export async function verifyGithubEvidenceRuns({
 				evidenceSha: receipt.evidenceSha,
 				frozenCandidateSha: receipt.frozenCandidateSha,
 				initialReviewSha: receipt.initialReviewSha,
+				macExternalProbe: receipt.macExternalProbe,
 				macLifecycle: receipt.macLifecycle,
 				payloadSha256: receipt.payload.sha256,
 				provider: "github-actions-live-api",
@@ -717,7 +835,7 @@ export async function verifyGithubEvidenceRuns({
 		),
 		schemaVersion: "eonfolk-live-verified-github-runs-v2",
 		trustBoundary:
-			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED",
+			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; MAC_RUNNER_ABSENCE_IS_PROCEDURAL; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED",
 		verifiedAt: now(),
 	});
 	return Object.freeze({
@@ -758,38 +876,52 @@ function assertLocalAncestry(root, ancestor, descendant, label) {
 		throw new Error(`${label} local ancestry is invalid`);
 }
 
-async function runnerPreflight() {
+async function repositoryPreflight() {
 	const repository = requiredArgument("--repository");
-	const runnerName = requiredArgument("--runner-name");
-	const runner = await runnerIsRegistered(
-		githubClient(process.env.GITHUB_TOKEN),
-		repository,
-		runnerName,
+	const expectedOwner = requiredArgument("--expected-owner");
+	const expectedOperator = requiredArgument("--expected-operator");
+	const metadata = await githubClient(process.env.GITHUB_TOKEN).json(
+		`/repos/${repository}`,
 	);
 	if (
-		runner === undefined ||
-		runner.status !== "online" ||
-		runner.busy !== false ||
-		!MAC_LABELS.every((label) =>
-			runner.labels?.some(({ name }) => name === label),
-		)
+		repository.split("/")[0] !== expectedOwner ||
+		metadata?.full_name !== repository ||
+		metadata?.owner?.login !== expectedOwner ||
+		metadata?.delete_branch_on_merge !== false ||
+		metadata?.allow_merge_commit !== true ||
+		metadata?.allow_squash_merge !== false ||
+		metadata?.allow_rebase_merge !== false ||
+		process.env.GITHUB_ACTOR !== expectedOperator
 	)
 		throw new Error(
-			"exact ephemeral Mac runner is not online, idle, and fully labeled",
+			"repository owner/operator, merge mode, or delete-branch-on-merge preflight failed",
 		);
 }
 
 async function finalizeMacIntermediate() {
 	const repository = requiredArgument("--repository");
 	const runId = Number(requiredArgument("--run-id"));
-	const runnerName = requiredArgument("--runner-name");
+	const runAttempt = Number(requiredArgument("--run-attempt"));
+	const runnerNonce = requiredArgument("--runner-nonce");
+	const runnerName = macRunnerName(runnerNonce);
 	const output = resolve(requiredArgument("--output"));
 	const client = githubClient(process.env.GITHUB_TOKEN);
+	const run = await client.json(`/repos/${repository}/actions/runs/${runId}`);
+	if (
+		run?.id !== runId ||
+		run?.repository?.full_name !== repository ||
+		run?.event !== "workflow_dispatch" ||
+		run?.head_sha !== process.env.GITHUB_SHA ||
+		run?.run_attempt !== runAttempt
+	)
+		throw new Error(
+			"Mac intermediate run identity does not match live metadata",
+		);
 	const downloaded = await downloadSingleArtifact(
 		client,
 		repository,
 		runId,
-		`v1-mac-raw-${runId}`,
+		`v1-mac-raw-${runId}-attempt-${runAttempt}`,
 	);
 	const files = defaultArchiveReader(downloaded.archiveBytes);
 	if (
@@ -806,46 +938,65 @@ async function finalizeMacIntermediate() {
 		!exactKeys(runner, [
 			"controlSha",
 			"frozenCandidateSha",
+			"nonAdminCheckOutput",
 			"nonAdminUser",
 			"runnerName",
+			"runnerNonce",
 			"runnerUser",
 			"schemaVersion",
 		]) ||
-		runner.schemaVersion !== "eonfolk-v1-mac-runner-v1" ||
+		runner.schemaVersion !== "eonfolk-v1-mac-runner-v2" ||
 		runner.controlSha !== controlSha ||
 		runner.frozenCandidateSha !== frozenCandidateSha ||
 		runner.runnerName !== runnerName ||
+		runner.runnerNonce !== runnerNonce ||
 		runner.nonAdminUser !== true ||
+		typeof runner.nonAdminCheckOutput !== "string" ||
+		!/ is NOT a member of group admin$/u.test(runner.nonAdminCheckOutput) ||
 		!nonemptyIdentity(runner.runnerUser)
 	)
 		throw new Error(
 			"Mac runner record does not prove the required non-admin identity",
 		);
 	inspectPayload("target-mac-deep", payloadBytes);
-	let remainingRunner;
-	for (let attempt = 0; attempt < 10; attempt += 1) {
-		remainingRunner = await runnerIsRegistered(client, repository, runnerName);
-		if (remainingRunner === undefined) break;
-		await new Promise((resolveDelay) => setTimeout(resolveDelay, 2_000));
-	}
-	if (remainingRunner !== undefined)
-		throw new Error("ephemeral Mac runner is still registered after its job");
+	const jobs = await client.json(
+		`/repos/${repository}/actions/runs/${runId}/jobs?per_page=100`,
+	);
+	const macJobs = (Array.isArray(jobs?.jobs) ? jobs.jobs : []).filter(
+		({ name, conclusion }) =>
+			name === "Target-Mac exact 30-step DEEP intermediate" &&
+			conclusion === "success",
+	);
+	if (
+		macJobs.length !== 1 ||
+		!positiveInteger(macJobs[0].runner_id) ||
+		macJobs[0].runner_name !== runnerName ||
+		JSON.stringify([...(macJobs[0].labels ?? [])].sort()) !==
+			JSON.stringify(macLabels(runnerNonce))
+	)
+		throw new Error("Mac job metadata does not bind the exact nonce runner");
 	mkdirSync(output, { recursive: false });
 	writeFileSync(join(output, "payload.json"), payloadBytes);
 	writeFileSync(
 		join(output, "lifecycle.json"),
 		`${JSON.stringify(
 			{
-				schemaVersion: "eonfolk-v1-mac-lifecycle-v1",
+				schemaVersion: "eonfolk-v1-mac-lifecycle-v2",
 				controlSha,
 				frozenCandidateSha,
 				intermediateRunId: runId,
+				intermediateRunAttempt: runAttempt,
+				intermediateWorkflowRef: process.env.GITHUB_REF,
 				intermediateWorkflowSourceSha: process.env.GITHUB_SHA,
+				runnerId: macJobs[0].runner_id,
+				runnerLabels: macLabels(runnerNonce),
 				runnerName,
+				runnerNonce,
 				runnerUser: runner.runnerUser,
+				nonAdminCheckOutput: runner.nonAdminCheckOutput,
 				nonAdminUser: true,
-				preflight: "AVAILABLE_IDLE_EXACT_LABELS",
-				teardown: "RUNNER_DEREGISTERED_AFTER_JOB",
+				preflight: "JOB_ASSIGNED_EXACT_NONCE_RUNNER",
+				teardown: "EXTERNAL_COORDINATOR_PROBE_REQUIRED",
 				payloadSha256: sha256(payloadBytes),
 				finalizedAt: new Date().toISOString(),
 			},
@@ -907,13 +1058,17 @@ async function prepareEvidenceBundle() {
 	);
 	let payload;
 	let macLifecycle = null;
+	let macExternalProbe = null;
 	if (purpose === "target-mac-deep") {
 		const intermediateRunId = Number(requiredArgument("--intermediate-run-id"));
+		const intermediateRunAttempt = Number(
+			requiredArgument("--intermediate-run-attempt"),
+		);
 		const downloaded = await downloadSingleArtifact(
 			githubClient(process.env.GITHUB_TOKEN),
 			process.env.GITHUB_REPOSITORY,
 			intermediateRunId,
-			`v1-mac-finalized-${intermediateRunId}`,
+			`v1-mac-finalized-${intermediateRunId}-attempt-${intermediateRunAttempt}`,
 		);
 		const files = defaultArchiveReader(downloaded.archiveBytes);
 		if (
@@ -925,8 +1080,21 @@ async function prepareEvidenceBundle() {
 		payload = files.get("payload.json");
 		macLifecycle = parseJson(files.get("lifecycle.json"), "Mac lifecycle");
 		validateLifecycle(macLifecycle, frozenCandidateSha, control.sha);
+		if (macLifecycle.intermediateRunAttempt !== intermediateRunAttempt)
+			throw new Error("Mac intermediate run attempt does not match");
 		if (macLifecycle.payloadSha256 !== sha256(payload))
 			throw new Error("Mac lifecycle payload hash does not match");
+		macExternalProbe = parseJson(
+			readFileSync(
+				safePayload(evidenceRoot, requiredArgument("--runner-probe-payload")),
+			),
+			"external Mac runner probe",
+		);
+		validateExternalMacProbe(
+			macExternalProbe,
+			macLifecycle,
+			process.env.GITHUB_REPOSITORY,
+		);
 	} else {
 		payload = readFileSync(
 			safePayload(evidenceRoot, requiredArgument("--payload")),
@@ -979,6 +1147,7 @@ async function prepareEvidenceBundle() {
 		reviewerAgentId,
 		reviewerSessionId,
 		macLifecycle,
+		macExternalProbe,
 		payload: {
 			path: "payload.json",
 			bytes: payload.byteLength,
@@ -1049,6 +1218,8 @@ async function verifyConfiguredEvidence() {
 		runIds: parseRunIdConfiguration(readFileSync(configPath, "utf8")),
 		repository: requiredArgument("--repository"),
 		expectedEvidenceSha: requiredArgument("--expected-evidence-sha"),
+		expectedOwner: requiredArgument("--expected-owner"),
+		expectedOperator: requiredArgument("--expected-operator"),
 		client: githubClient(process.env.GITHUB_TOKEN),
 		onPayload: (purpose, bytes) =>
 			writeFileSync(join(payloadDir, `${purposeSlug(purpose)}.json`), bytes, {
@@ -1070,14 +1241,14 @@ async function main() {
 				requiredArgument("--other-sha"),
 			);
 			break;
-		case "runner-preflight":
-			await runnerPreflight();
-			break;
 		case "finalize-mac":
 			await finalizeMacIntermediate();
 			break;
 		case "prepare":
 			await prepareEvidenceBundle();
+			break;
+		case "repository-preflight":
+			await repositoryPreflight();
 			break;
 		case "verify":
 			await verifyConfiguredEvidence();
@@ -1087,7 +1258,7 @@ async function main() {
 			break;
 		default:
 			throw new Error(
-				"usage: v1-github-evidence.mjs compare-controls|runner-preflight|finalize-mac|prepare|verify|purpose-slug [options]",
+				"usage: v1-github-evidence.mjs compare-controls|finalize-mac|prepare|repository-preflight|verify|purpose-slug [options]",
 			);
 	}
 }

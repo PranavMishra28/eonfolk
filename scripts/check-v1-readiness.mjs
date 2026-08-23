@@ -617,6 +617,16 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	for (const field of ["initialReviewSha", "frozenCandidateSha", "evidenceSha"])
 		if (!SHA_PATTERN.test(report[field] ?? ""))
 			failures.push(`${field} is not a full Git SHA`);
+	if (
+		new Set([
+			report.initialReviewSha,
+			report.frozenCandidateSha,
+			report.evidenceSha,
+		]).size !== 3
+	)
+		failures.push(
+			"initialReviewSha, frozenCandidateSha, and evidenceSha must be pairwise distinct",
+		);
 	if (typeof context?.isAncestor !== "function")
 		failures.push("review ancestry was not verified");
 	else if (
@@ -1315,7 +1325,7 @@ function loadTrustedRuns(path) {
 		]) ||
 		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v2" ||
 		registry?.trustBoundary !==
-			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
+			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; MAC_RUNNER_ABSENCE_IS_PROCEDURAL; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
 		!validTimestamp(registry?.verifiedAt) ||
 		!Array.isArray(registry?.runs)
 	)
@@ -1338,6 +1348,7 @@ function loadTrustedRuns(path) {
 				"evidenceSha",
 				"frozenCandidateSha",
 				"initialReviewSha",
+				"macExternalProbe",
 				"macLifecycle",
 				"payloadSha256",
 				"provider",

@@ -15,6 +15,16 @@ const repository = "owner/repo";
 const initialReviewSha = "a".repeat(40);
 const frozenCandidateSha = "b".repeat(40);
 const evidenceSha = "c".repeat(40);
+const runnerNonce = "fixture01";
+const runnerName = `eonfolk-deep-${runnerNonce}`;
+const runnerLabels = [
+	"ARM64",
+	`eonfolk-ephemeral-deep-${runnerNonce}`,
+	"macOS",
+	"self-hosted",
+];
+const evidenceTag = "refs/tags/eonfolk-evidence-fixture01";
+const intermediateTag = "refs/tags/eonfolk-evidence-intermediate01";
 const controlFiles = CONTROL_PATHS.map((path, index) => ({
 	path,
 	mode: "100644",
@@ -71,10 +81,11 @@ function payloadFor(purpose: string, index: number) {
 }
 
 type Mutation = Readonly<{
+	readonly autoDeleteBranches?: boolean;
 	readonly duplicateReviewerSessions?: boolean;
 	readonly postMergeWorkflowSource?: boolean;
 	readonly wrongControlBlob?: boolean;
-	readonly runnerStillRegistered?: boolean;
+	readonly badExternalProbe?: boolean;
 	readonly run?: (value: Record<string, any>) => void;
 	readonly workflow?: (value: Record<string, any>) => void;
 	readonly receipt?: (value: Record<string, any>) => void;
@@ -85,6 +96,9 @@ function fixture(mutation: Mutation = {}) {
 	const workflowSourceSha = mutation.postMergeWorkflowSource
 		? "d".repeat(40)
 		: evidenceSha;
+	const mainSha = mutation.postMergeWorkflowSource
+		? workflowSourceSha
+		: "f".repeat(40);
 	const archives = new Map<number, ReadonlyMap<string, Uint8Array>>();
 	const archiveBytes = new Map<number, Uint8Array>();
 	const runs = new Map<number, Record<string, any>>();
@@ -118,10 +132,7 @@ function fixture(mutation: Mutation = {}) {
 			control: { sha: frozenCandidateSha, files: controlFiles },
 			workflowSourceSha,
 			workflowPath: ".github/workflows/ci.yml",
-			workflowRef:
-				mutation.postMergeWorkflowSource === true
-					? "refs/heads/main"
-					: "refs/heads/feat/v1-civilization",
+			workflowRef: evidenceTag,
 			repository,
 			operatorActor: "release-operator",
 			runId,
@@ -131,26 +142,61 @@ function fixture(mutation: Mutation = {}) {
 			macLifecycle:
 				purpose === "target-mac-deep"
 					? {
-							schemaVersion: "eonfolk-v1-mac-lifecycle-v1",
+							schemaVersion: "eonfolk-v1-mac-lifecycle-v2",
 							controlSha: frozenCandidateSha,
 							frozenCandidateSha,
 							intermediateRunId: 99,
+							intermediateRunAttempt: 1,
+							intermediateWorkflowRef: intermediateTag,
 							intermediateWorkflowSourceSha: frozenCandidateSha,
-							runnerName: "eonfolk-deep-fixture",
+							runnerId: 501,
+							runnerLabels,
+							runnerName,
+							runnerNonce,
 							runnerUser: "eonfolk-ci-user",
+							nonAdminCheckOutput:
+								"user eonfolk-ci-user is NOT a member of group admin",
 							nonAdminUser: true,
-							preflight: "AVAILABLE_IDLE_EXACT_LABELS",
-							teardown: "RUNNER_DEREGISTERED_AFTER_JOB",
+							preflight: "JOB_ASSIGNED_EXACT_NONCE_RUNNER",
+							teardown: "EXTERNAL_COORDINATOR_PROBE_REQUIRED",
 							payloadSha256: hash(payload.bytes),
 							finalizedAt: "2026-08-23T00:00:00.000Z",
 						}
 					: null,
+			macExternalProbe: null,
 			payload: {
 				path: "payload.json",
 				bytes: payload.bytes.byteLength,
 				sha256: hash(payload.bytes),
 			},
 		};
+		if (purpose === "target-mac-deep") {
+			const probeUnsigned = {
+				schemaVersion: "eonfolk-v1-mac-external-probe-v1",
+				boundary: "COORDINATOR_RECORDED_GH_API_OBSERVATION_NOT_CRYPTOGRAPHIC",
+				probeMethod: "GH_API_REPOSITORY_RUNNERS",
+				repository,
+				intermediateRunId: 99,
+				intermediateRunAttempt: 1,
+				runnerId: 501,
+				runnerName,
+				runnerNonce,
+				beforeRegistration: {
+					observedAt: "2026-08-23T00:00:00.000Z",
+					operatorActor: "release-operator",
+					runnerCount: mutation.badExternalProbe === true ? 1 : 0,
+				},
+				afterRun: {
+					observedAt: "2026-08-23T01:00:00.000Z",
+					operatorActor: "release-operator",
+					runnerAbsent: true,
+				},
+			};
+			receipt.macExternalProbe = {
+				...probeUnsigned,
+				outputSha256: hash(JSON.stringify(probeUnsigned)),
+			};
+		}
 		mutation.receipt?.(receipt);
 		archives.set(
 			runId,
@@ -167,10 +213,7 @@ function fixture(mutation: Mutation = {}) {
 			status: "completed",
 			conclusion: "success",
 			event: "workflow_dispatch",
-			head_branch:
-				mutation.postMergeWorkflowSource === true
-					? "main"
-					: "feat/v1-civilization",
+			head_branch: "eonfolk-evidence-fixture01",
 			head_sha: workflowSourceSha,
 			run_attempt: 1,
 			actor: { login: "release-operator" },
@@ -180,7 +223,7 @@ function fixture(mutation: Mutation = {}) {
 		runs.set(runId, run);
 		const artifact: Record<string, any> = {
 			id: 100 + runId,
-			name: `v1-evidence-${purposeSlug(purpose)}-${runId}`,
+			name: `v1-evidence-${purposeSlug(purpose)}-${runId}-attempt-1`,
 			expired: false,
 			archive_download_url: `https://api.github.com/artifacts/${runId}`,
 			digest: `sha256:${hash(zipped)}`,
@@ -197,11 +240,35 @@ function fixture(mutation: Mutation = {}) {
 	mutation.workflow?.(workflow);
 	const client = {
 		async json(path: string) {
+			if (path === `/repos/${repository}`)
+				return {
+					full_name: repository,
+					owner: { login: "owner" },
+					delete_branch_on_merge: mutation.autoDeleteBranches === true,
+					allow_merge_commit: true,
+					allow_squash_merge: false,
+					allow_rebase_merge: false,
+				};
 			if (path === `/repos/${repository}/branches/main`)
 				return {
 					name: "main",
 					protected: true,
-					commit: { sha: workflowSourceSha },
+					commit: { sha: mainSha },
+				};
+			if (
+				path === `/repos/${repository}/git/ref/tags/eonfolk-evidence-fixture01`
+			)
+				return {
+					ref: evidenceTag,
+					object: { type: "commit", sha: workflowSourceSha },
+				};
+			if (
+				path ===
+				`/repos/${repository}/git/ref/tags/eonfolk-evidence-intermediate01`
+			)
+				return {
+					ref: intermediateTag,
+					object: { type: "commit", sha: frozenCandidateSha },
 				};
 			const runMatch = /\/actions\/runs\/(\d+)$/u.exec(path);
 			if (runMatch !== null) {
@@ -229,19 +296,15 @@ function fixture(mutation: Mutation = {}) {
 						runId === 99
 							? [
 									{
-										name: "Mac runner availability preflight",
+										name: "Mac immutable control preflight",
 										conclusion: "success",
 									},
 									{
 										name: "Target-Mac exact 30-step DEEP intermediate",
 										conclusion: "success",
-										runner_name: "eonfolk-deep-fixture",
-										labels: [
-											"self-hosted",
-											"macOS",
-											"ARM64",
-											"eonfolk-ephemeral-deep",
-										],
+										runner_id: 501,
+										runner_name: runnerName,
+										labels: runnerLabels,
 									},
 									{
 										name: "Clean hosted Mac evidence finalizer",
@@ -258,13 +321,6 @@ function fixture(mutation: Mutation = {}) {
 								],
 				};
 			}
-			if (path.endsWith("/actions/runners?per_page=100"))
-				return {
-					runners:
-						mutation.runnerStillRegistered === true
-							? [{ name: "eonfolk-deep-fixture" }]
-							: [],
-				};
 			if (path.includes("/git/trees/"))
 				return {
 					truncated: false,
@@ -283,7 +339,16 @@ function fixture(mutation: Mutation = {}) {
 				return { artifacts: [artifacts.get(Number(artifactMatch[1]))] };
 			if (path.includes("/compare/")) {
 				const pair = path.split("/compare/")[1];
-				const [ancestor] = pair.split("...");
+				const [ancestor, descendant] = pair.split("...");
+				if (
+					mutation.postMergeWorkflowSource !== true &&
+					ancestor === evidenceSha &&
+					descendant === mainSha
+				)
+					return {
+						status: "diverged",
+						merge_base_commit: { sha: "0".repeat(40) },
+					};
 				return { status: "ahead", merge_base_commit: { sha: ancestor } };
 			}
 			if (path.includes("/commits/")) return { sha: path.split("/").at(-1) };
@@ -332,6 +397,8 @@ describe("live GitHub V1 evidence verification", () => {
 			runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 			repository,
 			expectedEvidenceSha: evidenceSha,
+			expectedOwner: "owner",
+			expectedOperator: "release-operator",
 			client: built.client,
 			archiveReader: built.archiveReader,
 			now: () => "2026-08-23T00:00:00.000Z",
@@ -353,6 +420,8 @@ describe("live GitHub V1 evidence verification", () => {
 			runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 			repository,
 			expectedEvidenceSha: evidenceSha,
+			expectedOwner: "owner",
+			expectedOperator: "release-operator",
 			client: built.client,
 			archiveReader: built.archiveReader,
 		});
@@ -398,6 +467,14 @@ describe("live GitHub V1 evidence verification", () => {
 			{ receipt: (receipt: any) => (receipt.evidenceSha = "d".repeat(40)) },
 		],
 		[
+			"non-distinct SHA chain",
+			{
+				receipt: (receipt: any) =>
+					(receipt.initialReviewSha = receipt.frozenCandidateSha),
+			},
+		],
+		["wrong run attempt", { run: (run: any) => (run.run_attempt = 2) }],
+		[
 			"wrong artifact digest",
 			{
 				artifact: (artifact: any) =>
@@ -411,6 +488,8 @@ describe("live GitHub V1 evidence verification", () => {
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
 				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
@@ -424,6 +503,8 @@ describe("live GitHub V1 evidence verification", () => {
 				runIds: [1, 2, 3, 4, 5, 6, 7, 999],
 				repository,
 				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
@@ -437,6 +518,8 @@ describe("live GitHub V1 evidence verification", () => {
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
 				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
@@ -450,22 +533,41 @@ describe("live GitHub V1 evidence verification", () => {
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
 				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
 		).rejects.toThrow(/control blob changed/u);
 	});
 
-	it("rejects target-Mac evidence while its runner remains registered", async () => {
-		const built = fixture({ runnerStillRegistered: true });
+	it("rejects automatic branch deletion before evidence cleanup", async () => {
+		const built = fixture({ autoDeleteBranches: true });
 		await expect(
 			verifyGithubEvidenceRuns({
 				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 				repository,
 				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
 				client: built.client,
 				archiveReader: built.archiveReader,
 			}),
-		).rejects.toThrow(/remains registered/u);
+		).rejects.toThrow(/delete-branch-on-merge/u);
+	});
+
+	it("rejects a procedural probe that did not observe zero prior runners", async () => {
+		const built = fixture({ badExternalProbe: true });
+		await expect(
+			verifyGithubEvidenceRuns({
+				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+				repository,
+				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
+				client: built.client,
+				archiveReader: built.archiveReader,
+			}),
+		).rejects.toThrow(/probe is malformed/u);
 	});
 });

@@ -77,6 +77,7 @@ function trustedRunRecord({
 		evidenceSha,
 		frozenCandidateSha,
 		initialReviewSha,
+		macExternalProbe: purpose === "target-mac-deep" ? {} : null,
 		macLifecycle: purpose === "target-mac-deep" ? {} : null,
 		payloadSha256,
 		provider: "github-actions-live-api",
@@ -972,6 +973,19 @@ describe("V1 readiness and generated inventory tooling", () => {
 			validateReviewConfirmationEvidence(fixture.report, fixture.context)
 				.failures,
 		).toContain("fresh confirmation artifact hash does not match");
+	});
+
+	it("rejects a non-distinct review/frozen/evidence SHA chain", () => {
+		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
+		fixture.report.evidenceSha = fixture.report.frozenCandidateSha;
+		const { outputSha256: _old, ...withoutHash } = fixture.report;
+		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		expect(
+			validateReviewConfirmationEvidence(fixture.report, fixture.context)
+				.failures,
+		).toContain(
+			"initialReviewSha, frozenCandidateSha, and evidenceSha must be pairwise distinct",
+		);
 	});
 
 	it("rejects a shrunk canonical GOAL roster", () => {
