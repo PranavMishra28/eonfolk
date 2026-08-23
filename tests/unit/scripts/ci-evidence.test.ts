@@ -24,6 +24,12 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(source).toContain("canonicalPopulation === 8");
 		expect(source).toContain("visibleInteractionCount >= 1");
 		expect(source).toContain("verifyGeneratedPersistenceReload");
+		expect(source).toContain(
+			'world?.getAttribute("data-persistence") === "indexeddb"',
+		);
+		expect(source).toContain(
+			'assertWorldInvariant(invariant, "after persistence reload", true)',
+		);
 		expect(source).toContain("stateHashStable: true");
 		expect(source).not.toContain("region_riverhold");
 		expect(source).not.toContain("riverhold-canvas");

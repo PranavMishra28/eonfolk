@@ -226,6 +226,9 @@ async function waitForQualificationMark(page, name, timeout) {
 				worldId: world?.getAttribute("data-world-id") ?? null,
 				stateHash: world?.getAttribute("data-state-hash") ?? null,
 				assetIntegrity: world?.getAttribute("data-asset-integrity") ?? null,
+				persistence: world?.getAttribute("data-persistence") ?? null,
+				persistenceRestored:
+					world?.getAttribute("data-persistence-restored") ?? null,
 				worldError:
 					document.querySelector("#v1-error-title")?.textContent?.trim() ??
 					null,
@@ -270,6 +273,7 @@ async function captureWorldInvariant(page) {
 			contradictionCount: Number(canvas?.dataset.contradictionCount ?? "-1"),
 			persistenceRestored:
 				world?.getAttribute("data-persistence-restored") ?? null,
+			persistence: world?.getAttribute("data-persistence") ?? null,
 			residentControlCount: residentButtons.length,
 			routeSegmentCount: Number(canvas?.dataset.routeSegmentCount ?? "0"),
 			stateHash: world?.getAttribute("data-state-hash") ?? null,
@@ -279,12 +283,13 @@ async function captureWorldInvariant(page) {
 	});
 }
 
-function assertWorldInvariant(invariant, boundary) {
+function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 	if (
 		invariant.worldId !== "eonfolk-genesis-world-v1" ||
 		!/^[a-f0-9]{64}$/u.test(invariant.stateHash ?? "") ||
 		invariant.assetIntegrity !== "verified" ||
-		invariant.persistenceRestored !== "true" ||
+		invariant.persistence !== "indexeddb" ||
+		(requireRestored && invariant.persistenceRestored !== "true") ||
 		invariant.canvasReady !== "true" ||
 		invariant.actorCount !== 7 ||
 		invariant.canonicalPopulation !== 8 ||
@@ -343,7 +348,7 @@ async function verifyGeneratedPersistenceReload(page, expectedStateHash) {
 		{ timeout: 20_000 },
 	);
 	const invariant = await captureWorldInvariant(page);
-	assertWorldInvariant(invariant, "after persistence reload");
+	assertWorldInvariant(invariant, "after persistence reload", true);
 	if (invariant.stateHash !== expectedStateHash)
 		throw new Error(
 			`generated-world state hash changed across reload: ${String(expectedStateHash)} -> ${String(invariant.stateHash)}`,
@@ -567,7 +572,7 @@ try {
 									canvas?.dataset.teleportCount === "0" &&
 									canvas?.dataset.contradictionCount === "0" &&
 									world?.getAttribute("data-asset-integrity") === "verified" &&
-									world?.getAttribute("data-persistence-restored") === "true" &&
+									world?.getAttribute("data-persistence") === "indexeddb" &&
 									/^[a-f0-9]{64}$/.test(stateHash) &&
 									renderer instanceof HTMLCanvasElement &&
 									renderer.width > 0 &&
@@ -578,6 +583,7 @@ try {
 											assetIntegrityVerified: true,
 											canonicalPopulation,
 											canonicalActivityGrounded: true,
+											persistenceEstablished: true,
 											residentControlCount: residents.length,
 											route: window.location.pathname,
 											routeSegmentCount,
@@ -833,6 +839,7 @@ const failed =
 			run.markEvidence.meaningfulWorld.assetIntegrityVerified !== true ||
 			run.markEvidence.meaningfulWorld.canonicalPopulation !== 8 ||
 			run.markEvidence.meaningfulWorld.canonicalActivityGrounded !== true ||
+			run.markEvidence.meaningfulWorld.persistenceEstablished !== true ||
 			run.markEvidence.meaningfulWorld.residentControlCount !==
 				run.markEvidence.meaningfulWorld.actorCount ||
 			run.markEvidence.meaningfulWorld.route !== "/world" ||
