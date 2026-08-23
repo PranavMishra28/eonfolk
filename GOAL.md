@@ -22,7 +22,7 @@
 |---|---|---|
 | Exact remote/local base and GitHub state inspected | VERIFIED | Local and `origin/main` matched `8eb6afa`; repository private; protected `main`; one branch; no open PR/issues |
 | Canonical pre-change DEEP baseline | IN PROGRESS | Exact clean base passed runtime through bundle budget and 15/16 production journeys; delayed-authority restoration journey failed; later DEEP constituents did not run |
-| Baseline failure repair | NOT STARTED | Must eliminate nondeterministic delayed-worker recovery without weakening the authority gate |
+| Baseline failure repair | VERIFIED | Test-only oracle repair at `2540bd4`; pre-authority fact suppression retained; 50/50 focused repetitions and 16/16 production journeys passed |
 
 ## Repository and product
 

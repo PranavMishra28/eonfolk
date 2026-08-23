@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled commit: `6a32bea88f5d0b8a5b4c4f0bc050fe4c32b7e4ea`
+- Last reconciled commit: `2540bd45d0df30b7b8e1f660a190a6936808df3d`
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -20,10 +20,10 @@
 - Runtime, dependency cohort, architecture, docs, format, lint, typecheck, 194 unit tests, bounded properties, real IndexedDB, timing noninterference, fault journeys, production build, and bundle budgets passed.
 - Fifteen of sixteen production browser journeys passed.
 
-## Current failure
+## Repaired baseline failure
 
-- The delayed-authority browser journey timed out after the delayed worker was released; the expected restored `Follow one life` heading did not appear within five seconds.
-- Because production browser verification failed, later DEEP mutation, benchmarks, and canonical performance did not run. The baseline is FAIL, not acceptance evidence.
+- The delayed-authority failure was a stale phase-specific post-authority assertion. The test now retains every pre-authority fact-suppression assertion and waits for stable authoritative World Pulse and decision evidence after release.
+- Focused parallel repetition passed 50/50, the full production suite passed 16/16 with zero external network attempts, and coordinator `verify:fast` passed 25 files / 198 tests. A fresh complete DEEP run on the evolving V1 branch is still required; the failed original baseline is not acceptance evidence.
 
 ## Completed checkpoints
 
@@ -33,11 +33,11 @@
 
 ## Next executable tasks
 
-1. Reproduce and repair delayed-worker authority restoration without weakening the no-facts-before-authority guarantee.
-2. Implement deterministic generalized world generation and its property tests against the frozen contracts.
-3. Integrate local-model lab evidence without promoting a treatment.
-4. Implement generalized civilization state and resource conservation on top of generated worlds.
-5. Add the validating decision gateway before any executable Model Brain adapter.
+1. Implement deterministic generalized world generation and its property tests against the frozen contracts.
+2. Integrate local-model lab evidence without promoting a treatment.
+3. Implement generalized civilization state and resource conservation on top of generated worlds.
+4. Add the validating decision gateway before any executable Model Brain adapter.
+5. Run the first fresh V1 DEEP checkpoint after the generalized world and civilization kernel are integrated.
 
 ## Resume commands
 
