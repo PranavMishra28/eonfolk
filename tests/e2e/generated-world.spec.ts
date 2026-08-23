@@ -94,14 +94,16 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
-	await page.goto("/genesis");
+	await page.goto("/");
 	await expect(page).toHaveTitle("EONFOLK — A civilization has begun");
 	await expect(
 		page.getByRole("heading", { name: "A civilization has already begun." }),
 	).toBeVisible();
-	await expect(page.getByLabel("Immutable world identity")).toContainText(
+	await expect(page.locator("main.v1-genesis-entry")).toHaveAttribute(
+		"data-world-id",
 		"eonfolk-genesis-world-v1",
 	);
+	await expect(page.getByText("Identity hash")).toHaveCount(0);
 
 	await page.getByRole("link", { name: "Enter the living world" }).click();
 	await expect(page).toHaveURL(/\/world$/u);
@@ -137,9 +139,7 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 			.getByRole("group", { name: "Canonical residents" })
 			.getByRole("button"),
 	).toHaveCount(1);
-	await expect(
-		page.getByText("Scheduler-owned current behavior", { exact: false }),
-	).toBeVisible();
+	await expect(page.getByText("Authority", { exact: true })).toHaveCount(0);
 	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
 	expect(firstCheckpoint).toMatchObject({
 		eventCount: 5,

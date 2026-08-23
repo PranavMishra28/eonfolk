@@ -1,14 +1,14 @@
 import {
 	Component,
-	lazy,
-	Suspense,
 	type ErrorInfo,
+	lazy,
 	type ReactNode,
+	Suspense,
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 const root = document.getElementById("root");
-if (!root) throw new Error("Riverhold root is missing");
+if (!root) throw new Error("EONFOLK root is missing");
 
 const V1GenesisApp = lazy(async () => {
 	const module = await import("./V1GenesisApp");
@@ -18,6 +18,11 @@ const V1GenesisApp = lazy(async () => {
 const RiverholdApp = lazy(async () => {
 	const module = await import("./RiverholdApp");
 	return { default: module.RiverholdApp };
+});
+
+const InformationSurface = lazy(async () => {
+	const module = await import("./InformationSurface");
+	return { default: module.InformationSurface };
 });
 
 class RuntimeBoundary extends Component<
@@ -64,7 +69,7 @@ if (import.meta.hot) import.meta.hot.data.reactRoot = reactRoot;
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
 const genesisRoute =
-	normalizedPath === "/genesis"
+	normalizedPath === "/" || normalizedPath === "/genesis"
 		? "entry"
 		: normalizedPath === "/world"
 			? "world"
@@ -72,7 +77,7 @@ const genesisRoute =
 
 reactRoot.render(
 	<RuntimeBoundary>
-		{normalizedPath === "/" || normalizedPath === "/legacy" ? (
+		{normalizedPath === "/legacy" ? (
 			<Suspense
 				fallback={
 					<main className="loading-state" aria-busy="true">
@@ -91,6 +96,18 @@ reactRoot.render(
 				}
 			>
 				<V1GenesisApp route={genesisRoute} />
+			</Suspense>
+		) : normalizedPath === "/research" || normalizedPath === "/developer" ? (
+			<Suspense
+				fallback={
+					<main className="v1-information" aria-busy="true">
+						<p>Opening the evidence surface…</p>
+					</main>
+				}
+			>
+				<InformationSurface
+					route={normalizedPath === "/research" ? "research" : "developer"}
+				/>
 			</Suspense>
 		) : (
 			<main className="runtime-failure" aria-labelledby="not-found-title">

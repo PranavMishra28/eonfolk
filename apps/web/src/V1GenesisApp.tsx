@@ -5,10 +5,9 @@ import type {
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
 import {
-	loadGeneratedWorldExperience,
 	type GeneratedWorldExperience,
+	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
-import { V1_GENESIS_RELEASE_ID, V1_GENESIS_SEED } from "./v1-genesis-runtime";
 
 const GeneratedWorldCanvas = lazy(async () => {
 	const module = await import("./generated-world-canvas");
@@ -17,10 +16,6 @@ const GeneratedWorldCanvas = lazy(async () => {
 
 type GenesisRoute = "entry" | "world";
 type WorldView = "embodied" | "semantic" | "overview";
-
-function shorten(value: string): string {
-	return `${value.slice(0, 12)}…${value.slice(-8)}`;
-}
 
 function readableId(value: string): string {
 	return value.replace(/[-_:]+/gu, " ");
@@ -89,35 +84,6 @@ function WorldError({ error }: { readonly error: Error }) {
 	);
 }
 
-function WorldIdentity({
-	experience,
-}: {
-	readonly experience: GeneratedWorldExperience;
-}) {
-	return (
-		<dl className="v1-identity" aria-label="Immutable world identity">
-			<div>
-				<dt>World</dt>
-				<dd>{experience.worldId}</dd>
-			</div>
-			<div>
-				<dt>Identity hash</dt>
-				<dd title={experience.worldIdentityHash}>
-					{shorten(experience.worldIdentityHash)}
-				</dd>
-			</div>
-			<div>
-				<dt>State hash</dt>
-				<dd title={experience.stateHash}>{shorten(experience.stateHash)}</dd>
-			</div>
-			<div>
-				<dt>Simulation horizon</dt>
-				<dd>{experience.horizonDays} days</dd>
-			</div>
-		</dl>
-	);
-}
-
 function GenesisEntry({
 	experience,
 }: {
@@ -149,14 +115,19 @@ function GenesisEntry({
 					</a>
 				</div>
 				<section className="v1-genesis-proof" aria-labelledby="v1-proof-title">
-					<p className="v1-kicker">CANONICAL CHECKPOINT</p>
-					<h2 id="v1-proof-title">One generated origin, advanced in full.</h2>
-					<WorldIdentity experience={experience} />
-					<details>
-						<summary>Show the complete fixed seed</summary>
-						<code data-testid="genesis-seed">{V1_GENESIS_SEED}</code>
-					</details>
-					<p className="v1-release-id">Release {V1_GENESIS_RELEASE_ID}</p>
+					<p className="v1-kicker">THE SETTLEMENT TODAY</p>
+					<h2 id="v1-proof-title">
+						{origin?.local.settlement.name ?? "The first settlement"} endured
+						long enough to send out a second founding.
+					</h2>
+					<p>
+						Enter on day {experience.horizonDays}. Watch where people go, what
+						they carry, and which shared work survives scarcity.
+					</p>
+					<nav aria-label="More about EONFOLK">
+						<a href="/research">Research evidence</a>
+						<a href="/developer">Developer surface</a>
+					</nav>
 				</section>
 			</header>
 			<section className="v1-entry-ledger" aria-labelledby="v1-world-now-title">
@@ -225,14 +196,6 @@ function ActorDetail({ actor }: { readonly actor: SpatialActorProjection }) {
 				<div>
 					<dt>Place</dt>
 					<dd>{actor.action.destinationPlaceId}</dd>
-				</div>
-				<div>
-					<dt>Authority</dt>
-					<dd>
-						{actor.action.sourceKind === "world-event"
-							? `Committed event ${actor.action.eventId ?? "unavailable"}`
-							: "Scheduler-owned current behavior; no result claimed"}
-					</dd>
 				</div>
 				<div>
 					<dt>Carrying</dt>
@@ -476,11 +439,11 @@ function GeneratedWorld({
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-world-title">
-					<p className="v1-kicker">CANONICAL GENERATED CIVILIZATION</p>
+					<p className="v1-kicker">A LIVING SETTLEMENT</p>
 					<h1>{projection.local.settlement.name}</h1>
 					<p>
 						Day {experience.horizonDays} · {projection.spatial.actors.length}{" "}
-						visible residents · state {shorten(experience.stateHash)}
+						visible residents
 					</p>
 				</div>
 				<nav className="v1-view-controls" aria-label="World view">
@@ -585,11 +548,13 @@ function GeneratedWorld({
 
 			<footer className="v1-world-footer">
 				<p>
-					Every person, place, project, and action above is read from the
-					generated world and validated civilization checkpoint. Selection and
-					camera state never write back to Reality.
+					Watch the world first. Select a person or place when you want to
+					understand more.
 				</p>
-				<a href="/legacy">Open the frozen Riverhold regression surface</a>
+				<nav aria-label="Evidence and development">
+					<a href="/research">Research evidence</a>
+					<a href="/developer">Developer surface</a>
+				</nav>
 			</footer>
 		</main>
 	);

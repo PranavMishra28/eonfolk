@@ -2386,7 +2386,8 @@ em {
 /* Release Genesis is an isolated world-first surface; v1 classes do not style Riverhold. */
 .v1-genesis-entry,
 .v1-world,
-.v1-genesis-shell {
+.v1-genesis-shell,
+.v1-information {
 	--v1-night: #111812;
 	--v1-forest: #1f3529;
 	--v1-mist: #c8d6c7;
@@ -2412,13 +2413,115 @@ em {
 
 .v1-genesis-entry *,
 .v1-world *,
-.v1-genesis-shell * {
+.v1-genesis-shell *,
+.v1-information * {
 	box-sizing: border-box;
 }
 
 .v1-genesis-entry {
 	display: block;
 	height: auto;
+}
+
+.v1-information {
+	display: grid;
+	align-content: start;
+	gap: clamp(2.5rem, 7vw, 6rem);
+	min-height: 100vh;
+	padding: clamp(1.2rem, 4vw, 3.5rem) clamp(1.2rem, 6vw, 6rem);
+}
+
+.v1-information > nav,
+.v1-information > nav > div,
+.v1-information > footer {
+	display: flex;
+	align-items: center;
+	gap: 1.2rem;
+}
+
+.v1-information > nav {
+	justify-content: space-between;
+}
+
+.v1-information a {
+	color: inherit;
+}
+
+.v1-information > nav a:not(.v1-brand) {
+	padding: 0.55rem 0;
+	color: #c6c9ba;
+	text-underline-offset: 0.3rem;
+}
+
+.v1-information > nav a[aria-current="page"] {
+	color: #f1c47f;
+}
+
+.v1-information > header {
+	display: grid;
+	gap: 1rem;
+	max-width: 68rem;
+}
+
+.v1-information > header h1 {
+	max-width: 16ch;
+	margin: 0;
+	font-size: clamp(3rem, 7vw, 6.5rem);
+	font-weight: 500;
+	line-height: 0.95;
+}
+
+.v1-information > header > p:last-child {
+	max-width: 48rem;
+	margin: 0;
+	color: #c6c9ba;
+	font-size: clamp(1rem, 1.5vw, 1.2rem);
+	line-height: 1.65;
+}
+
+.v1-information-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1px;
+	background: rgba(226, 223, 199, 0.18);
+}
+
+.v1-information-grid article {
+	padding: clamp(1.2rem, 3vw, 2.25rem);
+	background: #18251c;
+}
+
+.v1-information-grid h2 {
+	font-size: clamp(1.35rem, 2.2vw, 2rem);
+	font-weight: 500;
+}
+
+.v1-information-grid p {
+	margin-bottom: 0;
+	color: #c6c9ba;
+	line-height: 1.65;
+}
+
+.v1-information > footer {
+	flex-wrap: wrap;
+	justify-content: space-between;
+	padding-bottom: 2rem;
+}
+
+@media (max-width: 760px) {
+	.v1-information > nav,
+	.v1-information > footer {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.v1-information > nav > div {
+		flex-wrap: wrap;
+	}
+
+	.v1-information-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 .v1-genesis-shell {

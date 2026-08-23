@@ -66,7 +66,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 		});
 	}
 	await installPageOracles(page);
-	await page.goto("/");
+	await page.goto("/legacy");
 	await page.evaluate((useWords) => {
 		localStorage.clear();
 		if (useWords) localStorage.setItem("eonfolk:world-view", "words");
@@ -774,7 +774,7 @@ test("a newer tab fences the older writer and remains authoritative", async ({
 }) => {
 	const newer = await context.newPage();
 	await installPageOracles(newer);
-	await newer.goto("/");
+	await newer.goto("/legacy");
 	await expectWorldReady(newer);
 	await expect(
 		page.getByRole("heading", {
