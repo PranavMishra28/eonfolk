@@ -230,6 +230,50 @@ export function appendSettlementReference(
 	});
 }
 
+export function appendSettlementAndSiteReferences(
+	state: CivilizationState,
+	settlementId: string,
+	siteId: string,
+	patch: Partial<
+		Omit<CivilizationState, "schemaVersion" | "revision" | "references">
+	>,
+	atSimulationTime = state.simulationTime,
+): CivilizationState {
+	simulationTime(atSimulationTime);
+	identifier(settlementId, "settlementId");
+	identifier(siteId, "siteId");
+	if (atSimulationTime < state.simulationTime)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"simulation time cannot move backwards",
+		);
+	if (state.references.settlementIds.includes(settlementId))
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`settlement ${settlementId} already exists`,
+		);
+	if (state.references.siteIds.includes(siteId))
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`site ${siteId} already exists`,
+		);
+	return deepFreeze({
+		...state,
+		...clonePlain(patch),
+		references: normalizeReferences({
+			...state.references,
+			settlementIds: [...state.references.settlementIds, settlementId],
+			siteIds: [...state.references.siteIds, siteId],
+			buildingKindsBySite: {
+				...state.references.buildingKindsBySite,
+				[siteId]: [],
+			},
+		}),
+		revision: state.revision + 1,
+		simulationTime: atSimulationTime,
+	});
+}
+
 export function requireReference(
 	values: readonly string[],
 	value: string,

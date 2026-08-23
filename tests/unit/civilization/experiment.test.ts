@@ -158,6 +158,21 @@ describe("deterministic civilization experiment", () => {
 			"founding-second-settlement": "settlement-second",
 		});
 		expect(first.state.references.settlementIds).toContain("settlement-second");
+		expect(Object.keys(first.state.citizens)).toHaveLength(8);
+		expect(Object.keys(first.state.households)).toHaveLength(4);
+		expect(Object.keys(first.state.relationships)).toHaveLength(8);
+		expect(first.metrics.population).toBe(8);
+		expect(first.state.citizens["citizen-01"]).toMatchObject({
+			settlementId: "settlement-second",
+			siteId: "settlement-second:founding-site",
+			residenceState: "resident",
+		});
+		expect(first.state.references.siteIds).toContain(
+			"settlement-second:founding-site",
+		);
+		expect(
+			first.state.stocks["stock-migrant-water"]?.quantity,
+		).toBeGreaterThanOrEqual(18);
 		expect(Object.keys(world.settlements)).toHaveLength(1);
 		expect(Object.keys(first.world.settlements)).toHaveLength(2);
 		const secondSettlement = first.world.settlements["settlement-second"];

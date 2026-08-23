@@ -37,6 +37,11 @@ import {
 	recordFoundingMaterialization,
 	startProject,
 } from "./kernel.js";
+import {
+	formHousehold,
+	registerCitizen,
+	registerRelationship,
+} from "./population.js";
 import { createCivilizationState, evolve } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
@@ -53,6 +58,7 @@ const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
 const PROJECT_TIMBER = 6;
 const MIGRATION_GRAIN = 18;
+const MIGRATION_WATER = 18;
 const MIGRATION_TIMBER = 8;
 const MIGRATION_DAILY_TRAVERSAL_UNITS = 10_000;
 const MINIMUM_DESTINATION_SUITABILITY = 4_800;
@@ -73,6 +79,14 @@ const RESOURCE_DEFINITIONS: readonly ResourceDefinition[] = [
 		resourceTypeId: "timber",
 		name: "timber",
 		unit: "millimeters",
+		conserved: true,
+		divisible: true,
+		decayBasisPointsPerDay: 0,
+	},
+	{
+		resourceTypeId: "water",
+		name: "water",
+		unit: "milliliters",
 		conserved: true,
 		divisible: true,
 		decayBasisPointsPerDay: 0,
@@ -106,6 +120,7 @@ export interface CivilizationExperimentSeedConditions {
 	readonly originTerritoryId: string;
 	readonly destination: TerritoryExperimentProfile;
 	readonly initialGrain: number;
+	readonly initialWater: number;
 	readonly initialTimber: number;
 	readonly originResidentialCapacity: number;
 	readonly populationPressureBasisPoints: number;
@@ -190,7 +205,7 @@ export interface CivilizationExperimentMatrix {
 export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
 	"The experiment materializes an undeveloped canonical settlement and founding ground, but does not yet add housing, institutions, or a generalized construction economy.",
 	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
-	"Seeded grain and timber are deterministic terrain-derived genesis proxies, not a complete production, need, demographic, or ecological model.",
+	"Seeded grain, water, and timber are deterministic terrain-derived genesis proxies; canonical people, households, relationships, and grounded pressures exist, but daily production, consumption, birth/death, and ecology are not yet complete.",
 	"The experiment uses deterministic standard rules and invokes no model, cognition provider, training, or inference path.",
 ]);
 
@@ -279,6 +294,7 @@ export function deriveCivilizationSeedConditions(
 	const destination = required(alternatives[0], "a destination territory");
 	const initialGrain =
 		18 + Math.trunc(originProfile.suitabilityBasisPoints / 300);
+	const initialWater = 18 + Math.trunc(originProfile.waterBasisPoints / 300);
 	const initialTimber = 8 + Math.trunc(originProfile.timberBasisPoints / 350);
 	const originSiteIds = new Set(origin.siteIds);
 	const residentialSiteIds = new Set(
@@ -317,6 +333,9 @@ export function deriveCivilizationSeedConditions(
 		...(initialGrain >= MIGRATION_GRAIN
 			? []
 			: ["origin-grain-below-physical-requirement"]),
+		...(initialWater >= MIGRATION_WATER
+			? []
+			: ["origin-water-below-physical-requirement"]),
 		...(initialTimber >= PROJECT_TIMBER + MIGRATION_TIMBER
 			? []
 			: ["origin-timber-below-physical-requirement"]),
@@ -326,6 +345,7 @@ export function deriveCivilizationSeedConditions(
 		originTerritoryId: origin.territoryId,
 		destination,
 		initialGrain,
+		initialWater,
 		initialTimber,
 		originResidentialCapacity,
 		populationPressureBasisPoints,
@@ -360,8 +380,8 @@ function storage(
 		storageId,
 		siteId,
 		owner,
-		acceptedResourceTypeIds: ["grain", "timber"],
-		capacityByResource: { grain: 100_000, timber: 100_000 },
+		acceptedResourceTypeIds: ["grain", "timber", "water"],
+		capacityByResource: { grain: 100_000, timber: 100_000, water: 100_000 },
 		accessInstitutionId: null,
 	};
 }
@@ -370,7 +390,7 @@ function stock(
 	stockId: string,
 	storageId: string,
 	owner: StockOwner,
-	resourceTypeId: "grain" | "timber",
+	resourceTypeId: "grain" | "timber" | "water",
 	quantity: number,
 	updatedAtSimulationTime = 0,
 ): StockState {
@@ -460,10 +480,86 @@ function bootstrapCivilization(
 	});
 	for (const definition of RESOURCE_DEFINITIONS)
 		state = registerResourceDefinition(state, definition);
+	const origin = required(
+		values(world.settlements).find(
+			(settlement) => settlement.settlementId === conditions.originSettlementId,
+		),
+		"the origin settlement",
+	);
+	const originSites = values(world.sites)
+		.filter((site) => origin.siteIds.includes(site.siteId))
+		.sort((left, right) => left.siteId.localeCompare(right.siteId));
+	const dwelling = values(world.buildings)
+		.filter((building) =>
+			originSites.some((site) => site.siteId === building.siteId),
+		)
+		.sort((left, right) => left.buildingId.localeCompare(right.buildingId))[0];
+	for (let index = 0; index < POPULATION; index += 1) {
+		const id = citizenId(index);
+		const site = required(
+			originSites[index % originSites.length],
+			"an origin citizen site",
+		);
+		state = registerCitizen(state, {
+			schemaVersion: "eonfolk-civilization-social-v1",
+			citizenId: id,
+			settlementId: conditions.originSettlementId,
+			siteId: site.siteId,
+			householdId: null,
+			primaryRoleId: null,
+			residenceState: "resident",
+			arrivedAtSimulationTime: 0,
+			departedAtSimulationTime: null,
+			foodRequiredUnitsPerDay: 3,
+			waterRequiredUnitsPerDay: 4,
+			laborCapacitySecondsPerDay: 24_000,
+			committedLaborSecondsPerDay: index === 0 ? 3_600 : 0,
+			lastSocialSimulationTime: 0,
+			sourceEventIds: [],
+		});
+	}
+	for (let index = 1; index < POPULATION; index += 2) {
+		const memberCitizenIds = [citizenId(index), citizenId(index + 1)].filter(
+			(id) => state.citizens[id] !== undefined,
+		);
+		state = formHousehold(state, {
+			householdId: `household-${String(Math.trunc(index / 2) + 1).padStart(2, "0")}`,
+			settlementId: conditions.originSettlementId,
+			memberCitizenIds,
+			dependentCitizenIds: [],
+			dwellingBuildingId: dwelling?.buildingId ?? null,
+			sharedStorageIds: [],
+			commitmentIds: [],
+		});
+	}
+	for (let index = 0; index < POPULATION; index += 1) {
+		state = registerRelationship(state, {
+			schemaVersion: "eonfolk-civilization-social-v1",
+			relationshipId: `relationship-${String(index + 1).padStart(2, "0")}`,
+			fromCitizenId: citizenId(index),
+			toCitizenId: citizenId((index + 1) % POPULATION),
+			kind: index === 0 ? "friend" : "colleague",
+			familiarityBasisPoints: 5_000,
+			trustBasisPoints: 5_500,
+			strainBasisPoints: 500,
+			lastInteractionSimulationTime: 0,
+			sourceEventIds: [],
+		});
+	}
 	const migrantOwner = { kind: "citizen" as const, citizenId: migrant };
 	state = registerStorage(
 		state,
 		storage("storage-migrant", workSite.siteId, migrantOwner),
+	);
+	state = registerStock(
+		state,
+		stock(
+			"stock-migrant-water",
+			"storage-migrant",
+			migrantOwner,
+			"water",
+			conditions.initialWater,
+		),
 	);
 	state = registerStock(
 		state,
@@ -572,7 +668,9 @@ function metrics(
 		horizonDays,
 		simulationTime: state.simulationTime,
 		revision: state.revision,
-		population: POPULATION,
+		population: Object.values(state.citizens).filter(
+			(citizen) => citizen.residenceState !== "departed",
+		).length,
 		stockTotalsByResource: audit.stockTotalsByResource,
 		consumedProjectTimber: projectTimberConsumed(state),
 		completedProjects,
@@ -752,7 +850,11 @@ export async function runCivilizationExperiment(input: {
 					originSettlementId: conditions.originSettlementId,
 					destinationTerritoryId: conditions.destination.territoryId,
 					destinationSettlementId: null,
-					carriedStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
+					carriedStockIds: [
+						"stock-migrant-grain",
+						"stock-migrant-water",
+						"stock-migrant-timber",
+					],
 					departureSimulationTime: atSimulationTime,
 					expectedArrivalSimulationTime:
 						atSimulationTime + travelEvaluationCount * SECONDS_PER_DAY,
@@ -761,6 +863,7 @@ export async function runCivilizationExperiment(input: {
 				},
 				[
 					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+					{ resourceTypeId: "water", quantity: MIGRATION_WATER },
 					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
 				],
 			);
@@ -777,12 +880,17 @@ export async function runCivilizationExperiment(input: {
 					territoryId: conditions.destination.territoryId,
 					founderCitizenIds: [citizenId(0)],
 					requiredProjectIds: ["project-expedition-kit"],
-					requiredStockIds: ["stock-migrant-grain", "stock-migrant-timber"],
+					requiredStockIds: [
+						"stock-migrant-grain",
+						"stock-migrant-water",
+						"stock-migrant-timber",
+					],
 					state: "proposed",
 					viabilityEvidenceEventIds: [],
 				},
 				[
 					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+					{ resourceTypeId: "water", quantity: MIGRATION_WATER },
 					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
 				],
 			);
@@ -825,7 +933,7 @@ export async function runCivilizationExperiment(input: {
 			departedThisEvaluation = true;
 			await appendEvent("migration-departed", {
 				destinationTerritoryId: conditions.destination.territoryId,
-				physicalStocks: 2,
+				physicalStocks: 3,
 			});
 		}
 
@@ -910,6 +1018,7 @@ export async function runCivilizationExperiment(input: {
 				state,
 				"founding-second-settlement",
 				atSimulationTime,
+				"settlement-second:founding-site",
 			);
 			await appendEvent("settlement-materialized", {
 				settlementId: "settlement-second",

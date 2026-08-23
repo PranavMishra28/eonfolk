@@ -16,6 +16,7 @@ import type {
 } from "@eonfolk/protocol";
 
 import {
+	appendSettlementAndSiteReferences,
 	appendSettlementReference,
 	evolve,
 	identifier,
@@ -1638,9 +1639,36 @@ export function advanceMigration(
 			"PREREQUISITE_UNMET",
 			"migration route traversal is incomplete",
 		);
+	const citizens = { ...state.citizens };
+	if (nextState === "travelling") {
+		for (const citizenId of migration.citizenIds) {
+			const citizen = citizens[citizenId];
+			if (citizen === undefined) continue;
+			if (citizen.residenceState !== "resident")
+				throw new CivilizationError(
+					"INVALID_STATE",
+					`migrant ${citizenId} is not resident at departure`,
+				);
+			if (citizen.settlementId !== migration.originSettlementId)
+				throw new CivilizationError(
+					"INVALID_REFERENCE",
+					`migrant ${citizenId} is outside the origin settlement`,
+				);
+			if (citizen.householdId !== null)
+				throw new CivilizationError(
+					"PREREQUISITE_UNMET",
+					`migrant ${citizenId} must leave their household before departure`,
+				);
+			citizens[citizenId] = {
+				...citizen,
+				residenceState: "travelling",
+			};
+		}
+	}
 	return evolve(
 		state,
 		{
+			citizens,
 			migrations: {
 				...state.migrations,
 				[migrationId]: { ...migration, state: nextState },
@@ -1771,6 +1799,7 @@ export function recordFoundingMaterialization(
 	state: CivilizationState,
 	foundingId: string,
 	atSimulationTime: number,
+	destinationSiteId?: string,
 ): CivilizationState {
 	const founding = present(state.foundings, foundingId, "founding");
 	if (founding.state !== "viable")
@@ -1784,10 +1813,47 @@ export function recordFoundingMaterialization(
 			"ALREADY_EXISTS",
 			`settlement ${founding.proposedSettlementId} already exists`,
 		);
-	return appendSettlementReference(
+	if (destinationSiteId === undefined)
+		return appendSettlementReference(
+			state,
+			founding.proposedSettlementId,
+			{
+				materializedFoundings: {
+					...state.materializedFoundings,
+					[foundingId]: founding.proposedSettlementId,
+				},
+			},
+			atSimulationTime,
+		);
+	const migration = present(
+		state.migrations,
+		founding.migrationId,
+		"migration",
+	);
+	const citizens = { ...state.citizens };
+	for (const citizenId of migration.citizenIds) {
+		const citizen = citizens[citizenId];
+		if (citizen === undefined) continue;
+		if (citizen.residenceState !== "travelling")
+			throw new CivilizationError(
+				"INVALID_STATE",
+				`migrant ${citizenId} is not travelling at materialization`,
+			);
+		citizens[citizenId] = {
+			...citizen,
+			settlementId: founding.proposedSettlementId,
+			siteId: destinationSiteId,
+			residenceState: "resident",
+			arrivedAtSimulationTime: atSimulationTime,
+			departedAtSimulationTime: null,
+		};
+	}
+	return appendSettlementAndSiteReferences(
 		state,
 		founding.proposedSettlementId,
+		destinationSiteId,
 		{
+			citizens,
 			materializedFoundings: {
 				...state.materializedFoundings,
 				[foundingId]: founding.proposedSettlementId,
