@@ -144,6 +144,9 @@ importers:
 
   packages/civilization:
     dependencies:
+      '@eonfolk/cognition':
+        specifier: workspace:*
+        version: link:../cognition
       '@eonfolk/protocol':
         specifier: workspace:*
         version: link:../protocol

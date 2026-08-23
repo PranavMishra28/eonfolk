@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { replayCivilizationSchedulerDecisions } from "../../../packages/cognition/src/index.js";
 import {
 	assertCivilizationInvariants,
 	deriveCivilizationSeedConditions,
@@ -142,7 +143,44 @@ describe("deterministic civilization experiment", () => {
 				expect(step.preStateHash).toBe(first.steps[index - 1]?.postStateHash);
 		}
 		expect(first.finalEventHash).toBe(first.events.at(-1)?.eventHash);
+		expect(first.cognitionDecisions).toHaveLength(24);
+		expect(
+			new Set(first.cognitionDecisions.map(({ actorId }) => actorId)),
+		).toHaveLength(8);
+		expect(
+			first.cognitionDecisions.every(
+				({ modelInvocations }) => modelInvocations === 0,
+			),
+		).toBe(true);
+		expect(first.finalStandingPlans).toHaveLength(8);
+		expect(
+			first.cognitionDecisions.some(
+				({ planTransition }) => planTransition === "choice-replanned",
+			),
+		).toBe(true);
+		const waterMemoryDecision = first.cognitionDecisions.find(
+			({ selectedActionId }) =>
+				selectedActionId === "transport:lane-daily-water",
+		);
+		expect(waterMemoryDecision).toMatchObject({
+			actorId: "citizen-06",
+			planTransition: "choice-replanned",
+			routine: { kind: "transport", subjectId: "lane-daily-water" },
+			modelInvocations: 0,
+		});
+		expect(waterMemoryDecision?.retrievedMemoryIds).toEqual([
+			"memory:citizen-06:water-reserve",
+		]);
+		expect(waterMemoryDecision?.readVisibleRecordIds).toEqual([
+			"memory:citizen-06:water-reserve",
+		]);
+		expect(
+			replayCivilizationSchedulerDecisions(first.cognitionDecisions),
+		).toEqual(first.cognitionDecisions.map(({ routine }) => routine));
 		expect(first.metrics.modelInvocations).toBe(0);
+		expect(first.metrics.standardBrainDecisionCount).toBe(24);
+		expect(first.metrics.standingPlanTransitionCount).toBeGreaterThan(8);
+		expect(first.metrics.memoryRetrievedDecisionCount).toBe(3);
 		expect(first.metrics.outcome).toBe("progression");
 		expect(first.metrics.viableFoundings).toBe(1);
 		expect(first.metrics.materializedSettlements).toBe(1);

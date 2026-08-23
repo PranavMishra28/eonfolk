@@ -1,4 +1,5 @@
 export * from "./brain-port.js";
+export * from "./civilization-scheduler-brain.js";
 export * from "./context.js";
 export * from "./decision-record.js";
 export * from "./decision-gateway.js";

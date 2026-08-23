@@ -1,11 +1,26 @@
 import {
+	type CivilizationRoutineOption,
+	type CivilizationRoutineResolution,
+	type CivilizationSchedulerDecisionEvidence,
+	type CivilizationSchedulerMindState,
+	CIVILIZATION_SCHEDULER_BRAIN_VERSION,
+	MEMORY_SCHEMA_VERSION,
+	createMemoryStore,
+	decideCivilizationSchedulerRoutine,
+	remember,
+} from "@eonfolk/cognition";
+import {
+	bytesFromHex,
 	domainHash,
 	type GeneratedWorldState,
+	type StandingPlan,
 	type ProjectState,
 	type ResourceDefinition,
+	seedPrng,
 	type StockOwner,
 	type StockState,
 	type StorageState,
+	VISIBILITY_POLICY_VERSION,
 	type WorldCell,
 } from "@eonfolk/protocol";
 import {
@@ -45,6 +60,7 @@ import {
 	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
 	type GeneralizedSchedulerPolicy,
 	type SchedulerAction,
+	type SchedulerRoutineDecision,
 	type SchedulerRoutineAssignment,
 } from "./scheduler.js";
 import { createCivilizationState } from "./state.js";
@@ -244,6 +260,9 @@ export interface CivilizationExperimentMetrics {
 	readonly outcome: "progression" | "stagnation";
 	readonly outcomeReason: string;
 	readonly invariantIssues: readonly string[];
+	readonly standardBrainDecisionCount: number;
+	readonly standingPlanTransitionCount: number;
+	readonly memoryRetrievedDecisionCount: number;
 	readonly modelInvocations: 0;
 }
 
@@ -298,6 +317,8 @@ export interface CivilizationExperimentRun {
 	readonly finalEventHash: string | null;
 	readonly events: readonly CivilizationExperimentEvent[];
 	readonly steps: readonly CivilizationExperimentStep[];
+	readonly cognitionDecisions: readonly CivilizationSchedulerDecisionEvidence[];
+	readonly finalStandingPlans: readonly StandingPlan[];
 	readonly metrics: CivilizationExperimentMetrics;
 	readonly activities: readonly CivilizationScheduledActivity[];
 	readonly state: CivilizationState;
@@ -318,7 +339,8 @@ export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
 	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
 	"Terrain-derived source stocks feed audited daily transport, production, and consumption; birth, death, ecology, and replenishment beyond the bounded horizon remain excluded.",
 	"Scheduler routines expose canonical route and task inputs, but visual route traversal still requires downstream temporal-location authority and must not be inferred by presentation.",
-	"The experiment uses deterministic standard rules and invokes no model, cognition provider, training, or inference path.",
+	"Three opening daily decision boundaries use deterministic Standard Brain, bounded Standing Plans, and actor-visible memory; later stable daily spans use the same resolved scheduler policy without a model.",
+	"The experiment invokes no model, cognition provider, training, or inference path; captured decision evidence replays without rerunning any Brain.",
 ]);
 
 function required<T>(value: T | undefined, label: string): T {
@@ -1201,14 +1223,381 @@ function scheduleActivities(
 		});
 }
 
+interface CivilizationCognitionRuntime {
+	readonly minds: Readonly<Record<string, CivilizationSchedulerMindState>>;
+	readonly priorOutcomes: Readonly<
+		Record<string, "completed" | "blocked" | null>
+	>;
+}
+
+function plannedRoutine(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	citizenIdValue: string,
+): CivilizationRoutineResolution {
+	const project = policy.collectiveProjects.find(
+		(candidate) => candidate.actorCitizenId === citizenIdValue,
+	);
+	if (project !== undefined)
+		return { kind: "construct", subjectId: project.projectId };
+	const job = policy.productionJobs.find((candidate) =>
+		candidate.participantCitizenIds.includes(citizenIdValue),
+	);
+	if (job !== undefined) return { kind: "produce", subjectId: job.jobId };
+	const lane = policy.transportLanes.find(
+		(candidate) => candidate.carrierCitizenId === citizenIdValue,
+	);
+	if (lane !== undefined) return { kind: "transport", subjectId: lane.laneId };
+	const citizen = required(
+		state.citizens[citizenIdValue],
+		`cognition citizen ${citizenIdValue}`,
+	);
+	if (citizen.residenceState === "travelling") {
+		const migration = Object.values(state.migrations).find((candidate) =>
+			candidate.citizenIds.includes(citizenIdValue),
+		);
+		if (migration !== undefined)
+			return { kind: "travel", subjectId: migration.migrationId };
+	}
+	if (citizen.residenceState === "departed")
+		return { kind: "away", subjectId: citizenIdValue };
+	return { kind: "social-maintenance", subjectId: citizenIdValue };
+}
+
+function initialStandingPlan(input: {
+	readonly citizenId: string;
+	readonly routine: CivilizationRoutineResolution;
+}): StandingPlan {
+	const steps = Array.from({ length: 4 }, (_, index) => ({
+		stepId: `plan:${input.citizenId}:step:${String(index + 1)}`,
+		kind:
+			input.routine.kind === "produce"
+				? "Produce"
+				: input.routine.kind === "transport"
+					? "TransportResource"
+					: input.routine.kind === "construct"
+						? "WorkProject"
+						: input.routine.kind === "consume"
+							? "Consume"
+							: input.routine.kind === "travel"
+								? "JoinMigration"
+								: input.routine.kind === "away"
+									? "Away"
+									: "SocialMaintenance",
+		targetIds: [input.routine.subjectId],
+		status: index === 0 ? ("active" as const) : ("pending" as const),
+		children: [],
+	}));
+	return {
+		planId: `plan:${input.citizenId}:daily-routine`,
+		version: 1,
+		citizenId: input.citizenId,
+		goalType: `routine:${input.routine.kind}`,
+		targetIds: [input.routine.subjectId],
+		steps,
+		currentStepId: steps[0]!.stepId,
+		commitmentId: null,
+		sourceId: CIVILIZATION_SCHEDULER_BRAIN_VERSION,
+		startBoundary: 0,
+		expiryBoundary: 30 * SECONDS_PER_DAY,
+		retriesRemaining: 1,
+		replansRemaining: 2,
+		status: "active",
+	};
+}
+
+async function initializeCognitionRuntime(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	worldIdentityHash: string,
+): Promise<CivilizationCognitionRuntime> {
+	const minds: Record<string, CivilizationSchedulerMindState> = {};
+	for (const citizen of Object.values(state.citizens).sort((left, right) =>
+		left.citizenId.localeCompare(right.citizenId),
+	)) {
+		const routine = plannedRoutine(state, policy, citizen.citizenId);
+		let memoryStore = createMemoryStore(citizen.citizenId);
+		const waterLane = policy.transportLanes.find(
+			(lane) =>
+				lane.carrierCitizenId === citizen.citizenId &&
+				state.stocks[lane.toStockId]?.resourceTypeId === "spring-water",
+		);
+		if (waterLane !== undefined) {
+			memoryStore = remember(memoryStore, {
+				schemaVersion: MEMORY_SCHEMA_VERSION,
+				memoryId: `memory:${citizen.citizenId}:water-reserve`,
+				ownerCitizenId: citizen.citizenId,
+				kind: "semantic",
+				proposition: "The settlement has only one day of prepared water.",
+				cueIds: ["need", `transport:${waterLane.laneId}`],
+				relatedCitizenIds: [],
+				goalId: null,
+				commitmentId: null,
+				salienceBasisPoints: 9_000,
+				confidenceBasisPoints: 9_000,
+				createdAtSimulationTime: 0,
+				reinforcedAtSimulationTime: 0,
+				createdRevision: 0,
+				sourceIds: [waterLane.toStockId],
+				visibility: {
+					kind: "citizen-private",
+					subjectCitizenId: citizen.citizenId,
+				},
+				provenanceVersion: "memory-provenance-v1",
+			});
+		}
+		const relationships = Object.values(state.relationships)
+			.filter(({ fromCitizenId }) => fromCitizenId === citizen.citizenId)
+			.sort((left, right) =>
+				left.relationshipId.localeCompare(right.relationshipId),
+			)
+			.map((relationship) => ({
+				relationshipId: relationship.relationshipId,
+				fromCitizenId: relationship.fromCitizenId,
+				toCitizenId: relationship.toCitizenId,
+				familiarity: relationship.familiarityBasisPoints,
+				trust: relationship.trustBasisPoints,
+				strain: relationship.strainBasisPoints,
+				lastMaterialEventId: null,
+				visibility: {
+					kind: "citizen-private" as const,
+					subjectCitizenId: citizen.citizenId,
+				},
+				createdRevision: 0,
+			}));
+		const values = citizen.valueIds.slice(0, 3).map((valueId, index) => ({
+			valueId,
+			rank: (index + 1) as 1 | 2 | 3,
+			weight: Math.max(1_000, 3_000 - index * 500),
+		}));
+		minds[citizen.citizenId] = {
+			actorMind: {
+				citizenId: citizen.citizenId,
+				values,
+				relationships,
+				records: [],
+				standingPlan: initialStandingPlan({
+					citizenId: citizen.citizenId,
+					routine,
+				}),
+			},
+			memoryStore,
+			prngState: await seedPrng(
+				bytesFromHex(worldIdentityHash, 32),
+				"civilization-standard-brain",
+				citizen.citizenId,
+				"scheduler-boundary",
+			),
+			decisionOrdinal: 0,
+		};
+	}
+	return {
+		minds,
+		priorOutcomes: Object.fromEntries(
+			Object.keys(minds).map((id) => [id, null]),
+		),
+	};
+}
+
+function routineFromPlan(plan: StandingPlan): CivilizationRoutineResolution {
+	const step = required(
+		plan.steps.find(({ stepId }) => stepId === plan.currentStepId),
+		`current step for ${plan.planId}`,
+	);
+	const subjectId = required(step.targetIds[0], `target for ${step.stepId}`);
+	switch (step.kind) {
+		case "Produce":
+			return { kind: "produce", subjectId };
+		case "TransportResource":
+			return { kind: "transport", subjectId };
+		case "WorkProject":
+			return { kind: "construct", subjectId };
+		case "Consume":
+			return { kind: "consume", subjectId };
+		case "JoinMigration":
+			return { kind: "travel", subjectId };
+		case "Away":
+			return { kind: "away", subjectId };
+		case "SocialMaintenance":
+			return { kind: "social-maintenance", subjectId };
+		default:
+			throw new Error(`unknown scheduler plan step ${step.kind}`);
+	}
+}
+
+function cognitionOptions(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	mind: CivilizationSchedulerMindState,
+): readonly CivilizationRoutineOption[] {
+	const planRoutine = routineFromPlan(mind.actorMind.standingPlan);
+	const options: CivilizationRoutineOption[] = [
+		{
+			entry: {
+				actionId: `follow:${mind.actorMind.standingPlan.planId}`,
+				action: {
+					kind: "FollowStandingPlan",
+					planId: mind.actorMind.standingPlan.planId,
+				},
+				publicPreconditions: ["the current step remains legal"],
+				publicStakes: ["continues the citizen's existing commitment"],
+				tags: [],
+				evidenceRecordIds: [],
+				relationshipId: null,
+				risk: 0,
+				counselAffinity: "neutral",
+			},
+			routine: planRoutine,
+		},
+	];
+	const waterLane = policy.transportLanes.find(
+		(lane) =>
+			lane.carrierCitizenId === mind.actorMind.citizenId &&
+			state.stocks[lane.toStockId]?.resourceTypeId === "spring-water",
+	);
+	const memoryId = `memory:${mind.actorMind.citizenId}:water-reserve`;
+	if (waterLane !== undefined && mind.decisionOrdinal === 0) {
+		const from = required(state.stocks[waterLane.fromStockId], "water source");
+		const to = required(state.stocks[waterLane.toStockId], "water destination");
+		options.push({
+			entry: {
+				actionId: `transport:${waterLane.laneId}`,
+				action: {
+					kind: "TransportResource",
+					resourceTypeId: from.resourceTypeId,
+					quantity: waterLane.capacityUnitsPerStep,
+					fromStorageId: from.storageId,
+					toStorageId: to.storageId,
+				},
+				publicPreconditions: ["water route and source stock are visible"],
+				publicStakes: ["delays the current plan to protect daily water"],
+				tags: ["need", "evidence"],
+				evidenceRecordIds: [memoryId],
+				relationshipId: null,
+				risk: 100,
+				counselAffinity: "neutral",
+			},
+			routine: { kind: "transport", subjectId: waterLane.laneId },
+		});
+	}
+	return options;
+}
+
+async function decideOpeningRoutines(input: {
+	readonly state: CivilizationState;
+	readonly policy: GeneralizedSchedulerPolicy;
+	readonly runtime: CivilizationCognitionRuntime;
+	readonly worldIdentityHash: string;
+}): Promise<{
+	readonly runtime: CivilizationCognitionRuntime;
+	readonly decisions: readonly SchedulerRoutineDecision[];
+	readonly evidence: readonly CivilizationSchedulerDecisionEvidence[];
+}> {
+	const minds: Record<string, CivilizationSchedulerMindState> = {
+		...input.runtime.minds,
+	};
+	const decisions: SchedulerRoutineDecision[] = [];
+	const evidence: CivilizationSchedulerDecisionEvidence[] = [];
+	const visibilityContext = {
+		policyVersion: VISIBILITY_POLICY_VERSION,
+		covenants: [],
+		localOwnerPrincipalId: "local-owner",
+		nonproduction: false,
+	} as const;
+	for (const actorId of Object.keys(minds).sort()) {
+		const mind = required(minds[actorId], `scheduler mind ${actorId}`);
+		const fallbackRoutine = routineFromPlan(mind.actorMind.standingPlan);
+		const result = await decideCivilizationSchedulerRoutine({
+			state: mind,
+			runId: `civilization:${input.worldIdentityHash}`,
+			regionId: "release-genesis-region",
+			revision: input.state.revision,
+			simulationTime: input.state.simulationTime,
+			visibilityContext,
+			options: cognitionOptions(input.state, input.policy, mind),
+			fallbackRoutine,
+			priorOutcome: input.runtime.priorOutcomes[actorId] ?? null,
+		});
+		minds[actorId] = result.state;
+		evidence.push(result.evidence);
+		decisions.push({
+			schemaVersion: "eonfolk-civilization-routine-decision-v1",
+			citizenId: actorId,
+			actionId: result.evidence.selectedActionId,
+			activeStandingPlanId: result.evidence.planId,
+			kind: result.evidence.routine.kind,
+			subjectId: result.evidence.routine.subjectId,
+		});
+	}
+	return {
+		runtime: { ...input.runtime, minds },
+		decisions,
+		evidence,
+	};
+}
+
+function routineOutcome(
+	decision: SchedulerRoutineDecision,
+	actions: readonly SchedulerAction[],
+	routines: readonly SchedulerRoutineAssignment[],
+): "completed" | "blocked" {
+	if (
+		decision.kind === "produce" &&
+		actions.some(
+			(action) =>
+				(action.kind === "process-started" ||
+					action.kind === "process-completed") &&
+				action.subjectId.includes(decision.subjectId),
+		)
+	)
+		return "completed";
+	if (
+		decision.kind === "transport" &&
+		actions.some(
+			(action) =>
+				action.kind === "transported" &&
+				action.subjectId === decision.subjectId,
+		)
+	)
+		return "completed";
+	if (
+		decision.kind === "construct" &&
+		actions.some(
+			(action) =>
+				action.kind.startsWith("project-") &&
+				action.subjectId === decision.subjectId,
+		)
+	)
+		return "completed";
+	if (
+		decision.kind === "consume" &&
+		actions.some(
+			(action) =>
+				action.kind === "need-evaluated" &&
+				action.subjectId === decision.citizenId,
+		)
+	)
+		return "completed";
+	return routines.some(
+		(routine) =>
+			routine.citizenId === decision.citizenId &&
+			routine.kind === decision.kind &&
+			routine.subjectId === decision.subjectId,
+	)
+		? "completed"
+		: "blocked";
+}
+
 async function stateHash(
 	state: CivilizationState,
 	worldStateHash: string,
 	activities: readonly CivilizationScheduledActivity[],
+	cognitionDecisions: readonly CivilizationSchedulerDecisionEvidence[],
 ): Promise<string> {
 	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5", {
 		activities,
 		civilization: state,
+		cognitionDecisions,
 		worldStateHash,
 	});
 }
@@ -1302,6 +1691,7 @@ function metrics(
 	state: CivilizationState,
 	horizonDays: number,
 	conditions: CivilizationExperimentSeedConditions,
+	cognitionDecisions: readonly CivilizationSchedulerDecisionEvidence[],
 ): CivilizationExperimentMetrics {
 	const audit = auditCivilizationState(state);
 	const projects = Object.values(state.projects);
@@ -1374,6 +1764,13 @@ function metrics(
 		outcome,
 		outcomeReason,
 		invariantIssues: audit.issues,
+		standardBrainDecisionCount: cognitionDecisions.length,
+		standingPlanTransitionCount: cognitionDecisions.filter(
+			({ planTransition }) => planTransition !== "continued",
+		).length,
+		memoryRetrievedDecisionCount: cognitionDecisions.filter(
+			({ retrievedMemoryIds }) => retrievedMemoryIds.length > 0,
+		).length,
 		modelInvocations: 0,
 	};
 }
@@ -1399,8 +1796,19 @@ export async function runCivilizationExperiment(input: {
 	);
 	let routines = initialRoutineAssignments(state);
 	let activities = scheduleActivities(state, world, routines);
+	let cognitionRuntime = await initializeCognitionRuntime(
+		state,
+		schedulerPolicy,
+		input.world.identity.identityHash,
+	);
+	const cognitionDecisions: CivilizationSchedulerDecisionEvidence[] = [];
 	assertCivilizationInvariants(state);
-	const initialStateHash = await stateHash(state, worldStateHash, activities);
+	const initialStateHash = await stateHash(
+		state,
+		worldStateHash,
+		activities,
+		cognitionDecisions,
+	);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
 	let priorEventHash: string | null = null;
@@ -1413,7 +1821,12 @@ export async function runCivilizationExperiment(input: {
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
 		activities = scheduleActivities(state, world, routines);
-		const postStateHash = await stateHash(state, worldStateHash, activities);
+		const postStateHash = await stateHash(
+			state,
+			worldStateHash,
+			activities,
+			cognitionDecisions,
+		);
 		const event = await eventRecord({
 			eventIndex: events.length,
 			priorEventHash,
@@ -1432,9 +1845,37 @@ export async function runCivilizationExperiment(input: {
 		const beforeEventIndex = events.length;
 		const atSimulationTime = day * SECONDS_PER_DAY;
 		let departedThisEvaluation = false;
-		const scheduled = advanceGeneralizedScheduler(state, schedulerPolicy);
+		const opening =
+			day <= 3
+				? await decideOpeningRoutines({
+						state,
+						policy: schedulerPolicy,
+						runtime: cognitionRuntime,
+						worldIdentityHash: input.world.identity.identityHash,
+					})
+				: null;
+		if (opening !== null) {
+			cognitionRuntime = opening.runtime;
+			cognitionDecisions.push(...opening.evidence);
+		}
+		const scheduled = advanceGeneralizedScheduler(
+			state,
+			schedulerPolicy,
+			opening?.decisions ?? [],
+		);
 		state = scheduled.state;
 		routines = scheduled.routines;
+		if (opening !== null) {
+			cognitionRuntime = {
+				...cognitionRuntime,
+				priorOutcomes: Object.fromEntries(
+					opening.decisions.map((decision) => [
+						decision.citizenId,
+						routineOutcome(decision, scheduled.actions, scheduled.routines),
+					]),
+				),
+			};
+		}
 		const schedulerAction = (
 			kind: SchedulerAction["kind"],
 		): SchedulerAction | undefined =>
@@ -1660,7 +2101,12 @@ export async function runCivilizationExperiment(input: {
 		assertCivilizationInvariants(state);
 		state = checkpointCivilizationAccounting(state);
 		activities = scheduleActivities(state, world, routines);
-		const postStateHash = await stateHash(state, worldStateHash, activities);
+		const postStateHash = await stateHash(
+			state,
+			worldStateHash,
+			activities,
+			cognitionDecisions,
+		);
 		const eventHashes = events
 			.slice(beforeEventIndex)
 			.map((event) => event.eventHash);
@@ -1684,7 +2130,12 @@ export async function runCivilizationExperiment(input: {
 	}
 
 	assertCivilizationInvariants(state);
-	const finalStateHash = await stateHash(state, worldStateHash, activities);
+	const finalStateHash = await stateHash(
+		state,
+		worldStateHash,
+		activities,
+		cognitionDecisions,
+	);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
@@ -1696,7 +2147,11 @@ export async function runCivilizationExperiment(input: {
 		finalEventHash: priorEventHash,
 		events,
 		steps,
-		metrics: metrics(state, input.horizonDays, conditions),
+		cognitionDecisions,
+		finalStandingPlans: Object.values(cognitionRuntime.minds)
+			.map(({ actorMind }) => actorMind.standingPlan)
+			.sort((left, right) => left.citizenId.localeCompare(right.citizenId)),
+		metrics: metrics(state, input.horizonDays, conditions, cognitionDecisions),
 		activities,
 		state,
 		world,

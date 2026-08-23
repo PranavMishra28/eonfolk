@@ -19,6 +19,7 @@ import {
 	runGeneralizedSchedulerHorizon,
 	type CivilizationState,
 	type GeneralizedSchedulerPolicy,
+	type SchedulerRoutineDecision,
 } from "../../../packages/civilization/src/index.js";
 
 const DAY = 86_400;
@@ -426,6 +427,55 @@ export function registerSchedulerTests(): void {
 				ok: true,
 				issues: [],
 			});
+		});
+
+		it("executes only the actor routine selected after cognition validation", () => {
+			const fixture = schedulerFixture();
+			const decision: SchedulerRoutineDecision = {
+				schemaVersion: "eonfolk-civilization-routine-decision-v1",
+				citizenId: "citizen-a",
+				actionId: "follow-social-plan",
+				activeStandingPlanId: "plan-citizen-a",
+				kind: "social-maintenance",
+				subjectId: "citizen-a",
+			};
+			const result = advanceGeneralizedScheduler(
+				fixture.state,
+				fixture.policy,
+				[decision],
+			);
+			expect(result.actions.some(({ kind }) => kind === "transported")).toBe(
+				false,
+			);
+			expect(
+				result.actions.some(({ kind }) => kind === "process-started"),
+			).toBe(false);
+			expect(
+				result.actions.some(({ kind }) => kind.startsWith("project-")),
+			).toBe(false);
+			expect(
+				result.actions.some(
+					({ kind, subjectId }) =>
+						kind === "need-evaluated" && subjectId === "citizen-a",
+				),
+			).toBe(true);
+			expect(auditCivilizationState(result.state).ok).toBe(true);
+		});
+
+		it("rejects an Application routine resolution not legal for that citizen", () => {
+			const fixture = schedulerFixture();
+			expect(() =>
+				advanceGeneralizedScheduler(fixture.state, fixture.policy, [
+					{
+						schemaVersion: "eonfolk-civilization-routine-decision-v1",
+						citizenId: "citizen-b",
+						actionId: "invented-carrier-assignment",
+						activeStandingPlanId: "plan-citizen-b",
+						kind: "transport",
+						subjectId: "lane-grain",
+					},
+				]),
+			).toThrow(/does not resolve to a legal scheduler routine/u);
 		});
 
 		it("leaves collective construction inert without an active authorizing agreement", () => {

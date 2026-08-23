@@ -103,6 +103,15 @@ export interface SchedulerStepResult {
 	readonly modelInvocations: 0;
 }
 
+export interface SchedulerRoutineDecision {
+	readonly schemaVersion: "eonfolk-civilization-routine-decision-v1";
+	readonly citizenId: string;
+	readonly actionId: string;
+	readonly activeStandingPlanId: string;
+	readonly kind: SchedulerRoutineAssignment["kind"];
+	readonly subjectId: string;
+}
+
 export interface SchedulerRoutineAssignment {
 	readonly schemaVersion: "eonfolk-civilization-routine-v1";
 	readonly routineId: string;
@@ -338,6 +347,101 @@ function validatePolicy(
 				`demographic rule ${rule.ruleId} is invalid`,
 			);
 	}
+}
+
+function validateRoutineDecisions(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	decisions: readonly SchedulerRoutineDecision[],
+): void {
+	uniqueIds(
+		decisions.map(({ citizenId }) => citizenId),
+		"scheduler decision citizenId",
+	);
+	for (const decision of decisions) {
+		if (
+			decision.schemaVersion !== "eonfolk-civilization-routine-decision-v1" ||
+			decision.actionId.length === 0 ||
+			decision.activeStandingPlanId.length === 0 ||
+			decision.subjectId.length === 0
+		)
+			throw new CivilizationError(
+				"INVALID_INPUT",
+				"scheduler decision is malformed",
+			);
+		const citizen = state.citizens[decision.citizenId];
+		if (citizen === undefined)
+			throw new CivilizationError(
+				"INVALID_REFERENCE",
+				`decision citizen ${decision.citizenId} is unknown`,
+			);
+		const legal = (() => {
+			switch (decision.kind) {
+				case "produce":
+					return policy.productionJobs.some(
+						(job) =>
+							job.jobId === decision.subjectId &&
+							job.participantCitizenIds.includes(decision.citizenId),
+					);
+				case "transport":
+					return policy.transportLanes.some(
+						(lane) =>
+							lane.laneId === decision.subjectId &&
+							lane.carrierCitizenId === decision.citizenId,
+					);
+				case "construct":
+					return policy.collectiveProjects.some(
+						(project) =>
+							project.projectId === decision.subjectId &&
+							project.actorCitizenId === decision.citizenId,
+					);
+				case "consume":
+					return (
+						citizen.residenceState === "resident" &&
+						["food", "water", decision.citizenId].includes(decision.subjectId)
+					);
+				case "social-maintenance":
+					return (
+						citizen.residenceState === "resident" &&
+						decision.subjectId === decision.citizenId
+					);
+				case "travel":
+					return (
+						citizen.residenceState === "travelling" &&
+						Object.values(state.migrations).some(
+							(migration) =>
+								migration.migrationId === decision.subjectId &&
+								migration.citizenIds.includes(decision.citizenId),
+						)
+					);
+				case "away":
+					return (
+						citizen.residenceState === "departed" &&
+						decision.subjectId === decision.citizenId
+					);
+			}
+		})();
+		if (!legal)
+			throw new CivilizationError(
+				"PREREQUISITE_UNMET",
+				`decision ${decision.actionId} does not resolve to a legal scheduler routine`,
+			);
+	}
+}
+
+function permitsRoutine(
+	decisions: readonly SchedulerRoutineDecision[],
+	citizenId: string,
+	kind: SchedulerRoutineAssignment["kind"],
+	subjectId: string,
+): boolean {
+	const decision = decisions.find(
+		(candidate) => candidate.citizenId === citizenId,
+	);
+	return (
+		decision === undefined ||
+		(decision.kind === kind && decision.subjectId === subjectId)
+	);
 }
 
 function routineAssignments(
@@ -768,8 +872,10 @@ function executeCollectiveProject(
 export function advanceGeneralizedScheduler(
 	state: CivilizationState,
 	policy: GeneralizedSchedulerPolicy,
+	routineDecisions: readonly SchedulerRoutineDecision[] = [],
 ): SchedulerStepResult {
 	validatePolicy(state, policy);
+	validateRoutineDecisions(state, policy, routineDecisions);
 	const atSimulationTime = state.simulationTime + policy.stepSeconds;
 	let next = state;
 	const actions: SchedulerAction[] = [];
@@ -807,6 +913,12 @@ export function advanceGeneralizedScheduler(
 			? left.jobId.localeCompare(right.jobId)
 			: normalizedDifference;
 	})) {
+		if (
+			!job.participantCitizenIds.every((citizenId) =>
+				permitsRoutine(routineDecisions, citizenId, "produce", job.jobId),
+			)
+		)
+			continue;
 		const recipe = next.recipes[job.recipeId];
 		const output = next.stocks[job.outputStockId];
 		if (
@@ -828,6 +940,15 @@ export function advanceGeneralizedScheduler(
 				(candidate) => candidate.laneId === laneId,
 			);
 			if (lane === undefined) continue;
+			if (
+				!permitsRoutine(
+					routineDecisions,
+					lane.carrierCitizenId,
+					"transport",
+					lane.laneId,
+				)
+			)
+				continue;
 			const to = next.stocks[lane.toStockId];
 			const from = next.stocks[lane.fromStockId];
 			const required =
@@ -936,7 +1057,16 @@ export function advanceGeneralizedScheduler(
 	}
 	for (const plan of [...policy.collectiveProjects].sort((left, right) =>
 		left.projectId.localeCompare(right.projectId),
-	))
+	)) {
+		if (
+			!permitsRoutine(
+				routineDecisions,
+				plan.actorCitizenId,
+				"construct",
+				plan.projectId,
+			)
+		)
+			continue;
 		next = executeCollectiveProject(
 			next,
 			plan,
@@ -944,6 +1074,7 @@ export function advanceGeneralizedScheduler(
 			labor,
 			actions,
 		);
+	}
 	let demographicTransitions = 0;
 	for (const rule of [...policy.demographicRules].sort((left, right) =>
 		left.ruleId.localeCompare(right.ruleId),
