@@ -8,8 +8,11 @@ import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
 import {
 	artifactPathsForTier,
+	browserJourneyClaim,
 	claimBoundaryForTier,
 	DEEP_BENCHMARK_CONTRACT,
+	describeProductionBrowserCoverage,
+	parsePlaywrightRoster,
 	PRODUCTION_FAULT_SCAFFOLDING_MARKERS,
 	runVerificationSteps,
 	verificationContractSha256,
@@ -18,6 +21,67 @@ import {
 import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
+	it("derives browser coverage from the exact Playwright roster", () => {
+		const roster = (counts: Record<string, number>) => {
+			const lines = Object.entries(counts).flatMap(([file, count]) =>
+				Array.from(
+					{ length: count },
+					(_, index) => `  ${file}:${index + 1}:1 › journey ${index + 1}`,
+				),
+			);
+			const total = Object.values(counts).reduce(
+				(sum, count) => sum + count,
+				0,
+			);
+			return parsePlaywrightRoster(
+				[`Listing tests:`, ...lines, `Total: ${total} tests in 3 files`].join(
+					"\n",
+				),
+			);
+		};
+		const coverage = describeProductionBrowserCoverage({
+			environment: { EONFOLK_ALLOW_LINUX_CI: "1" },
+			listRoster: (config, environment) => {
+				if (config === "playwright.fault.config.ts")
+					return roster({
+						"generated-world-faults.spec.ts": 11,
+						"riverhold.spec.ts": 2,
+					});
+				return environment.EONFOLK_ALLOW_LINUX_CI === "1"
+					? roster({
+							"generated-world.spec.ts": 38,
+							"riverhold.spec.ts": 14,
+							"v1-routes.spec.ts": 4,
+						})
+					: roster({
+							"generated-world.spec.ts": 38,
+							"riverhold.spec.ts": 16,
+							"v1-routes.spec.ts": 4,
+						});
+			},
+		});
+		expect(coverage).toEqual({
+			mode: "linux-semantic-ci",
+			productionJourneysExecuted: 56,
+			targetMacProductionJourneysAvailable: 58,
+			legacyIllustratedJourneysExcluded: 2,
+			generatedWorldJourneysExecuted: 38,
+			faultJourneysExecuted: 13,
+			generatedTargetExecuted: true,
+		});
+		expect(browserJourneyClaim(coverage)).toBe(
+			"13 injected-fault journeys plus 56 production journeys, including 38 generated-world journeys; 2 illustrated target-Mac production journeys are excluded",
+		);
+	});
+
+	it("rejects incomplete Playwright roster output", () => {
+		expect(() =>
+			parsePlaywrightRoster(
+				"Listing tests:\n  generated-world.spec.ts:1:1 › one\nTotal: 2 tests in 1 file",
+			),
+		).toThrow(/count mismatch/);
+	});
+
 	it("rejects the closed fault-scaffolding marker set from production output", () => {
 		expect(PRODUCTION_FAULT_SCAFFOLDING_MARKERS).toEqual([
 			"injected browser crash after durable transition",

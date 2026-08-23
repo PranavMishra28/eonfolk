@@ -283,6 +283,89 @@ export function claimBoundaryForTier(tier, status) {
 	return "Exact-tier evidence bound to one clean, unchanged source state.";
 }
 
+export function parsePlaywrightRoster(output) {
+	const journeysByFile = {};
+	for (const line of output.split("\n")) {
+		const match = /^ {2}([^:]+\.spec\.ts):\d+:\d+ › /u.exec(line);
+		if (match === null) continue;
+		const file = match[1];
+		journeysByFile[file] = (journeysByFile[file] ?? 0) + 1;
+	}
+	const totalMatch = /^Total: (\d+) tests? in \d+ files?$/mu.exec(output);
+	if (totalMatch === null)
+		throw new Error("Playwright roster did not report an exact total");
+	const total = Number.parseInt(totalMatch[1], 10);
+	const counted = Object.values(journeysByFile).reduce(
+		(sum, count) => sum + count,
+		0,
+	);
+	if (counted !== total)
+		throw new Error(
+			`Playwright roster count mismatch: listed ${counted}, reported ${total}`,
+		);
+	return Object.freeze({
+		total,
+		journeysByFile: Object.freeze(journeysByFile),
+	});
+}
+
+function listPlaywrightRoster(config, environment) {
+	return parsePlaywrightRoster(
+		execFileSync(
+			"pnpm",
+			[
+				"--filter",
+				"@eonfolk/web",
+				"exec",
+				"playwright",
+				"test",
+				"--config",
+				config,
+				"--list",
+			],
+			{ encoding: "utf8", env: environment },
+		),
+	);
+}
+
+export function describeProductionBrowserCoverage({
+	environment = process.env,
+	listRoster = listPlaywrightRoster,
+} = {}) {
+	const linuxSemanticCi = environment.EONFOLK_ALLOW_LINUX_CI === "1";
+	const targetMacEnvironment = {
+		...environment,
+		EONFOLK_ALLOW_LINUX_CI: "0",
+	};
+	const actual = listRoster("playwright.config.ts", environment);
+	const targetMac = linuxSemanticCi
+		? listRoster("playwright.config.ts", targetMacEnvironment)
+		: actual;
+	const fault = listRoster("playwright.fault.config.ts", environment);
+	const legacyIllustratedJourneysExcluded = targetMac.total - actual.total;
+	if (legacyIllustratedJourneysExcluded < 0)
+		throw new Error("Linux production roster exceeds the target-Mac roster");
+	return Object.freeze({
+		mode: linuxSemanticCi ? "linux-semantic-ci" : "target-mac",
+		productionJourneysExecuted: actual.total,
+		targetMacProductionJourneysAvailable: targetMac.total,
+		legacyIllustratedJourneysExcluded,
+		generatedWorldJourneysExecuted:
+			actual.journeysByFile["generated-world.spec.ts"] ?? 0,
+		faultJourneysExecuted: fault.total,
+		generatedTargetExecuted:
+			(actual.journeysByFile["generated-world.spec.ts"] ?? 0) > 0,
+	});
+}
+
+export function browserJourneyClaim(coverage) {
+	const exclusion =
+		coverage.legacyIllustratedJourneysExcluded === 0
+			? "no target-Mac production journeys are excluded"
+			: `${coverage.legacyIllustratedJourneysExcluded} illustrated target-Mac production journeys are excluded`;
+	return `${coverage.faultJourneysExecuted} injected-fault journeys plus ${coverage.productionJourneysExecuted} production journeys, including ${coverage.generatedWorldJourneysExecuted} generated-world journeys; ${exclusion}`;
+}
+
 export function runVerificationSteps(
 	steps,
 	{
@@ -1010,14 +1093,7 @@ async function main() {
 					filesInspected: 0,
 					crashInjectionMarkersAbsent: false,
 				});
-	const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
-	const productionBrowserCoverage = Object.freeze({
-		mode: linuxSemanticCi ? "linux-semantic-ci" : "target-mac",
-		productionJourneysExecuted: linuxSemanticCi ? 26 : 28,
-		legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0,
-		generatedWorldJourneysExecuted: 10,
-		generatedTargetExecuted: true,
-	});
+	const productionBrowserCoverage = describeProductionBrowserCoverage();
 	const artifacts = hashArtifacts(artifactPathsForTier(tier));
 	const benchmarkEvidence =
 		tier === "deep" && execution.exitCode === 0
@@ -1059,8 +1135,7 @@ async function main() {
 							productionBrowserCoverage,
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "deep portable deterministic properties",
-							browserJourney:
-								"two semantic injected-fault journeys plus 28 production journeys on Linux CI; only two legacy illustrated-only journeys are excluded, while all ten generated-world journeys run",
+							browserJourney: browserJourneyClaim(productionBrowserCoverage),
 							readinessEvidence: false,
 							targetMacDeepEvidence: false,
 						}
@@ -1068,10 +1143,9 @@ async function main() {
 							productionBrowserCoverage,
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "PR: 50/32 deterministic runs",
-							browserJourney:
-								process.env.EONFOLK_ALLOW_LINUX_CI === "1"
-									? "two semantic injected-fault journeys plus 28 production journeys, including all ten generated-world journeys; only two legacy illustrated-only journeys are excluded; relevant UI changes additionally require three-viewport PlayCanvas/WebGL2 evidence"
-									: "two semantic injected-fault journeys plus all 30 production journeys, including both legacy illustrated journeys and all ten generated-world journeys",
+							browserJourney: `${browserJourneyClaim(
+								productionBrowserCoverage,
+							)}; relevant UI changes additionally require three-viewport PlayCanvas/WebGL2 evidence`,
 						},
 		subcommands: execution.steps,
 		artifactAssertions,
