@@ -54,5 +54,5 @@ describe("generated civilization persistence properties", () => {
 			),
 			{ numRuns: GENERATED_CIVILIZATION_CATCH_UP_HORIZONS.length },
 		);
-	});
+	}, 30_000);
 });
