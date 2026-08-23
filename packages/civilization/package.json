@@ -7,6 +7,7 @@
 		".": "./src/index.ts"
 	},
 	"dependencies": {
-		"@eonfolk/protocol": "workspace:*"
+		"@eonfolk/protocol": "workspace:*",
+		"@eonfolk/worldgen": "workspace:*"
 	}
 }

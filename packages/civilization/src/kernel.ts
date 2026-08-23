@@ -1546,6 +1546,12 @@ export function advanceMigration(
 			"INVALID_STATE",
 			`migration cannot advance from ${migration.state} to ${nextState}`,
 		);
+	const journey = state.migrationJourneys[migrationId];
+	if (journey === undefined)
+		throw new CivilizationError(
+			"PREREQUISITE_UNMET",
+			"migration has no registered physical route",
+		);
 	validatePhysicalRequirements(
 		state,
 		migration.carriedStockIds,
@@ -1567,10 +1573,8 @@ export function advanceMigration(
 			"PREREQUISITE_UNMET",
 			"arrival time has not arrived",
 		);
-	const journey = state.migrationJourneys[migrationId];
 	if (
 		nextState === "arrived" &&
-		journey !== undefined &&
 		journey.completedTraversalUnits !== journey.totalTraversalUnits
 	)
 		throw new CivilizationError(

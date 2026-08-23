@@ -266,6 +266,9 @@ describe("civilization projects and physical expansion", () => {
 			[{ resourceTypeId: "grain", quantity: 1 }],
 		);
 		expect(() =>
+			advanceMigration(journeyState, "migration-route", "travelling", 1),
+		).toThrowError(/physical route/);
+		expect(() =>
 			registerMigrationJourney(journeyState, "migration-route", {
 				cellIds: ["cell-a", "cell-a"],
 				traversalUnitsByLeg: [1],

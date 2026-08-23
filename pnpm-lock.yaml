@@ -144,6 +144,9 @@ importers:
       '@eonfolk/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@eonfolk/worldgen':
+        specifier: workspace:*
+        version: link:../worldgen
 
   packages/cognition:
     dependencies:

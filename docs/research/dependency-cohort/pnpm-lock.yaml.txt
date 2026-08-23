@@ -98,6 +98,9 @@ importers:
       '@eonfolk/world-presentation':
         specifier: workspace:*
         version: link:../../packages/world-presentation
+      '@eonfolk/worldgen':
+        specifier: workspace:*
+        version: link:../../packages/worldgen
       '@playcanvas/react':
         specifier: 0.11.5
         version: 0.11.5(playcanvas@2.21.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -136,6 +139,15 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
 
+  packages/civilization:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@eonfolk/worldgen':
+        specifier: workspace:*
+        version: link:../worldgen
+
   packages/cognition:
     dependencies:
       '@eonfolk/protocol':
@@ -165,6 +177,12 @@ importers:
         version: link:../protocol
 
   packages/world-presentation: {}
+
+  packages/worldgen:
+    dependencies:
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../protocol
 
 packages:
 
