@@ -96,10 +96,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Run provider-neutral cognition safety gate
-        if: steps.classify.outputs.cognition == 'true'
-        run: pnpm test:cognition:portable
-
       - name: Install pinned Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -117,6 +113,8 @@ jobs:
       - name: Run pull-request verification
         env:
           EONFOLK_ALLOW_LINUX_CI: "1"
+          EONFOLK_DIFF_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EONFOLK_DIFF_HEAD_SHA: ${{ github.sha }}
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:pr
 
@@ -214,9 +212,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Run provider-neutral cognition safety gate
-        run: pnpm test:cognition:portable
-
       - name: Install pinned Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -234,6 +229,8 @@ jobs:
       - name: Run supplementary portable extended verification
         env:
           EONFOLK_ALLOW_LINUX_CI: "1"
+          EONFOLK_DIFF_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EONFOLK_DIFF_HEAD_SHA: ${{ github.sha }}
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:portable-extended
 

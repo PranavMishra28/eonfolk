@@ -6,6 +6,9 @@
   },
   "globs": [
     "**/*.md",
-    "!.git/**"
+    "!.git/**",
+    "!**/node_modules/**",
+    "!tmp/**",
+    "!test-results/**"
   ]
 }

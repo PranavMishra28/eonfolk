@@ -22,6 +22,8 @@ const PR_STEPS = Object.freeze([
 	step("dependency-cohort", "pnpm", ["cohort:check"]),
 	step("architecture", "pnpm", ["architecture:check"]),
 	step("documentation", "pnpm", ["docs:check"]),
+	step("markdown", "pnpm", ["markdown:lint"]),
+	step("diff-check", "pnpm", ["diff:check"]),
 	step("format", "pnpm", ["format:check"]),
 	step("lint", "pnpm", ["lint"]),
 	step("typecheck", "pnpm", ["typecheck"]),

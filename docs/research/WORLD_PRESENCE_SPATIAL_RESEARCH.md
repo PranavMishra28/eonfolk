@@ -65,20 +65,20 @@ Use a closed union, not optional fields spread across unrelated payloads. A mini
 
 ```ts
 type CitizenActionKind =
-	| "move" | "gather" | "inspect" | "communicate" | "exchange"
-	| "repair" | "consume" | "rest" | "react";
+ | "move" | "gather" | "inspect" | "communicate" | "exchange"
+ | "repair" | "consume" | "rest" | "react";
 
 interface CitizenActionWindow {
-	readonly actionId: string;
-	readonly kind: CitizenActionKind;
-	readonly actorIds: readonly CitizenId[];
-	readonly originPlaceIds: readonly string[];
-	readonly destinationPlaceId: string;
-	readonly target: CitizenActionTarget;
-	readonly startSimulationTime: number;
-	readonly resolveSimulationTime: number;
-	readonly carried: null | { readonly kind: "resource" | "tool"; readonly ref: string };
-	readonly sourceEventId: EventId | null;
+ readonly actionId: string;
+ readonly kind: CitizenActionKind;
+ readonly actorIds: readonly CitizenId[];
+ readonly originPlaceIds: readonly string[];
+ readonly destinationPlaceId: string;
+ readonly target: CitizenActionTarget;
+ readonly startSimulationTime: number;
+ readonly resolveSimulationTime: number;
+ readonly carried: null | { readonly kind: "resource" | "tool"; readonly ref: string };
+ readonly sourceEventId: EventId | null;
 }
 ```
 
@@ -116,18 +116,18 @@ Create a pure package such as `packages/world-presentation` with no React, PlayC
 
 ```ts
 interface SpatialProjection {
-	readonly schemaVersion: "eonfolk-spatial-projection-v1";
-	readonly sceneVersion: string;
-	readonly source: {
-		readonly runId: string;
-		readonly revision: number;
-		readonly throughSequence: number;
-		readonly stateHash: string;
-	};
-	readonly actors: readonly SpatialActorProjection[];
-	readonly objects: readonly SpatialObjectProjection[];
-	readonly processes: readonly SpatialProcessProjection[];
-	readonly semanticActions: readonly SemanticActionProjection[];
+ readonly schemaVersion: "eonfolk-spatial-projection-v1";
+ readonly sceneVersion: string;
+ readonly source: {
+  readonly runId: string;
+  readonly revision: number;
+  readonly throughSequence: number;
+  readonly stateHash: string;
+ };
+ readonly actors: readonly SpatialActorProjection[];
+ readonly objects: readonly SpatialObjectProjection[];
+ readonly processes: readonly SpatialProcessProjection[];
+ readonly semanticActions: readonly SemanticActionProjection[];
 }
 ```
 
@@ -176,12 +176,12 @@ If the reopen trigger fires, use Recast this way:
 
 ```ts
 interface PathPlanner {
-	plan(input: {
-		readonly actorId: string;
-		readonly fromAnchorId: string;
-		readonly toAnchorId: string;
-		readonly occupiedSlotIds: readonly string[];
-	}): Readonly<{ status: "ok"; nodeIds: readonly string[] } | { status: "blocked" }>;
+ plan(input: {
+  readonly actorId: string;
+  readonly fromAnchorId: string;
+  readonly toAnchorId: string;
+  readonly occupiedSlotIds: readonly string[];
+ }): Readonly<{ status: "ok"; nodeIds: readonly string[] } | { status: "blocked" }>;
 }
 ```
 

@@ -123,6 +123,8 @@ describe("Founder Alpha CI evidence controls", () => {
 			"dependency-cohort",
 			"architecture",
 			"documentation",
+			"markdown",
+			"diff-check",
 			"format",
 			"lint",
 			"typecheck",
@@ -184,6 +186,24 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(extendedJob).not.toContain("run: pnpm verify:pr");
 		expect(extendedJob).not.toContain("pnpm test:mutation");
 		expect(extendedJob).not.toContain("pnpm test:property:deep");
+	});
+
+	it("runs cognition and both real IndexedDB harnesses exactly through the tier", () => {
+		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
+		const packageManifest = JSON.parse(
+			readFileSync(resolve("package.json"), "utf8"),
+		) as { scripts: Record<string, string> };
+		const cognitionSteps = verificationStepsForTier("pr").filter(
+			(entry) => entry.id === "cognition-portable",
+		);
+		expect(cognitionSteps).toHaveLength(1);
+		expect(workflow).not.toContain("run: pnpm test:cognition:portable");
+		expect(packageManifest.scripts["test:indexeddb"]).toContain(
+			"tests/unit/persistence/indexeddb.browser.mjs",
+		);
+		expect(packageManifest.scripts["test:indexeddb"]).toContain(
+			"tests/unit/persistence/generated-versioned.browser.mjs",
+		);
 	});
 
 	it("records individual results and fails closed without running later steps", () => {
