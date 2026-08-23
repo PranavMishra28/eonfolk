@@ -26,7 +26,6 @@ import {
 	GENERATED_FOLK_SOURCE_HEIGHT_UNITS,
 	GeneratedFolkProxy,
 } from "./components/generated/GeneratedFolkProxy";
-import { GeneratedProjectProxy } from "./components/generated/GeneratedProjectProxy";
 import {
 	advanceGeneratedCameraIntent,
 	cameraIntentForGeneratedNavigation,
@@ -67,7 +66,7 @@ const palette = Object.freeze({
 	stone: material("#8c8c80"),
 	civic: material("#d7bd86"),
 	field: material("#b7a75f"),
-	linen: material("#d9c89d"),
+	linen: material("#e2d2aa"),
 	clay: material("#a96045"),
 	ink: material("#242921"),
 	changed: material("#d99a45"),
@@ -110,7 +109,9 @@ interface Frame {
 	readonly depth: number;
 }
 
-const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.7;
+const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.41;
+const OVERVIEW_YAW_OFFSET_DEGREES = 138;
+const OVERVIEW_PITCH_OFFSET_DEGREES = 8;
 
 function sceneFrame(projection: GeneratedCivilizationSpatialProjection): Frame {
 	const xs = projection.local.sites.flatMap((site) => [
@@ -170,18 +171,10 @@ function renderedActorPoint(
 	const canonicalActor = projection.spatial.actors.find(
 		(candidate) => candidate.citizenId === actor.citizenId,
 	);
-	const slotId = canonicalActor?.action.affordanceId;
-	const participantIds =
-		interaction?.participantIds ??
-		projection.spatial.actors
-			.filter(
-				(candidate) =>
-					slotId !== null &&
-					slotId !== undefined &&
-					candidate.action.affordanceId === slotId,
-			)
-			.map(({ citizenId }) => citizenId);
-	if (participantIds.length < 2) return actor.positionMm;
+	if (actor.grounding.kind === "route") return actor.positionMm;
+	const slotId =
+		actor.grounding.interactionSlotId ?? canonicalActor?.action.affordanceId;
+	const participantIds = interaction?.participantIds ?? [actor.citizenId];
 	const ordinal = participantIds.indexOf(actor.citizenId);
 	const node =
 		slotId === null || slotId === undefined
@@ -189,13 +182,15 @@ function renderedActorPoint(
 			: projection.scene.nodes[slotId];
 	if (node === undefined || ordinal < 0) return actor.positionMm;
 	const offset =
-		(ordinal - (participantIds.length - 1) / 2) * node.occupantSpacingMm;
+		(ordinal - (participantIds.length - 1) / 2) *
+		Math.max(2_200, node.occupantSpacingMm);
 	const angle = (node.facingDegrees * Math.PI) / 180;
-	return Object.freeze({
+	const clearance = Math.max(6_000, node.occupantSpacingMm);
+	return {
 		x: Math.round(node.x + Math.cos(angle) * offset),
 		y: node.y,
-		z: Math.round(node.z - Math.sin(angle) * offset),
-	});
+		z: Math.round(node.z - Math.sin(angle) * offset - clearance),
+	};
 }
 
 function renderedActorFacing(
@@ -268,10 +263,13 @@ function GeneratedCamera({
 	readonly host: RefObject<HTMLDivElement | null>;
 }) {
 	const camera = useRef<PlayCanvasEntity>(null);
-	const pointers = useRef(new Map<number, { x: number; y: number }>());
-	const pointerStarts = useRef(new Map<number, { x: number; y: number }>());
-	const priorPinch = useRef<number | null>(null);
-	const multiPointerGesture = useRef(false);
+	const pointer = useRef<{
+		id: number;
+		x: number;
+		y: number;
+		startX: number;
+		startY: number;
+	} | null>(null);
 	const navigationRef = useRef(navigation);
 	navigationRef.current = navigation;
 	const requested = useMemo(
@@ -279,6 +277,13 @@ function GeneratedCamera({
 		[model, navigation],
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
+		const focus = navigation.focus;
+		const actor =
+			focus.kind === "citizen"
+				? model.actors.find(({ citizenId }) => citizenId === focus.citizenId)
+				: undefined;
+		const actorPoint =
+			actor === undefined ? undefined : renderedActorPoint(projection, actor);
 		const overviewMinimumMm = Math.round(
 			Math.max(frame.width, frame.depth) *
 				OVERVIEW_FRAME_DISTANCE_FACTOR *
@@ -286,12 +291,36 @@ function GeneratedCamera({
 		);
 		return Object.freeze({
 			...requested,
+			targetMm:
+				actorPoint === undefined
+					? focus.kind === "overview"
+						? { ...requested.targetMm, z: requested.targetMm.z + 4_000 }
+						: requested.targetMm
+					: {
+							...actorPoint,
+							y: actorPoint.y + 1_000,
+							z:
+								actorPoint.z -
+								((host.current?.clientWidth ?? 800) < 600 ? 800 : 2_400),
+						},
+			yawDegrees:
+				focus.kind === "overview"
+					? requested.yawDegrees + OVERVIEW_YAW_OFFSET_DEGREES
+					: focus.kind === "citizen"
+						? requested.yawDegrees + 48
+						: requested.yawDegrees,
+			pitchDegrees:
+				focus.kind === "overview"
+					? requested.pitchDegrees + OVERVIEW_PITCH_OFFSET_DEGREES
+					: focus.kind === "citizen"
+						? requested.pitchDegrees + 14
+						: requested.pitchDegrees,
 			distanceMm:
-				navigation.focus.kind === "overview"
+				focus.kind === "overview"
 					? Math.max(requested.distanceMm, overviewMinimumMm)
 					: requested.distanceMm,
 		});
-	}, [frame, navigation.focus.kind, requested]);
+	}, [frame, model.actors, navigation.focus, projection, requested]);
 	const desiredRef = useRef(desired);
 	desiredRef.current = desired;
 	const current = useRef(desired);
@@ -321,54 +350,29 @@ function GeneratedCamera({
 			});
 		};
 		const onPointerDown = (event: PointerEvent) => {
-			if (
-				event.pointerType === "mouse" &&
-				event.button !== 0 &&
-				event.button !== 2
-			)
-				return;
+			if (pointer.current !== null || event.button !== 0) return;
 			surface.setPointerCapture(event.pointerId);
-			const point = { x: event.clientX, y: event.clientY };
-			pointers.current.set(event.pointerId, point);
-			pointerStarts.current.set(event.pointerId, point);
-			if (pointers.current.size > 1) multiPointerGesture.current = true;
-		};
-		const onPointerMove = (event: PointerEvent) => {
-			const prior = pointers.current.get(event.pointerId);
-			if (prior === undefined) return;
-			pointers.current.set(event.pointerId, {
+			pointer.current = {
+				id: event.pointerId,
 				x: event.clientX,
 				y: event.clientY,
-			});
-			const active = [...pointers.current.values()];
-			if (active.length >= 2) {
-				const first = active[0]!;
-				const second = active[1]!;
-				const pinch = Math.hypot(first.x - second.x, first.y - second.y);
-				if (priorPinch.current !== null)
-					emit({
-						type: "zoom",
-						deltaMm: Math.max(
-							-18_000,
-							Math.min(18_000, (priorPinch.current - pinch) * 120),
-						),
-					});
-				priorPinch.current = pinch;
-				return;
-			}
+				startX: event.clientX,
+				startY: event.clientY,
+			};
+		};
+		const onPointerMove = (event: PointerEvent) => {
+			const prior = pointer.current;
+			if (prior?.id !== event.pointerId) return;
 			const dx = event.clientX - prior.x;
 			const dy = event.clientY - prior.y;
-			if (event.altKey || event.button === 2 || (event.buttons & 2) !== 0) {
-				emit({
-					type: "orbit",
-					yawDeltaDegrees: -dx * 0.28,
-					pitchDeltaDegrees: dy * 0.2,
-				});
-				return;
-			}
+			pointer.current = { ...prior, x: event.clientX, y: event.clientY };
 			const state = navigationRef.current;
 			const unitsPerPixelMm = state.distanceMm * 0.0018;
-			const yaw = (state.yawDegrees * Math.PI) / 180;
+			const yaw =
+				((state.yawDegrees +
+					(state.focus.kind === "overview" ? OVERVIEW_YAW_OFFSET_DEGREES : 0)) *
+					Math.PI) /
+				180;
 			emit({
 				type: "pan",
 				xDeltaMm: (-dx * Math.cos(yaw) + dy * Math.sin(yaw)) * unitsPerPixelMm,
@@ -376,69 +380,49 @@ function GeneratedCamera({
 			});
 		};
 		const pickAt = (event: PointerEvent) => {
-			const entity = camera.current;
-			if (entity?.camera === undefined) return;
 			const bounds = surface.getBoundingClientRect();
 			const x = event.clientX - bounds.left;
 			const y = event.clientY - bounds.top;
-			const nearest = model.actors
-				.map((actor) => {
-					const point = localPoint(
-						renderedActorPoint(projection, actor),
-						frame,
-					);
-					const screen = entity.camera?.worldToScreen(
-						new Vec3(point[0], point[1] + 0.9, point[2]),
-					);
-					return {
-						citizenId: actor.citizenId,
-						distance:
-							screen === undefined
-								? Number.POSITIVE_INFINITY
-								: Math.hypot(screen.x - x, screen.y - y),
-					};
-				})
+			const targets = JSON.parse(
+				surface.dataset.citizenPickTargets ?? "[]",
+			) as readonly { id: string; x: number; y: number }[];
+			const nearest = targets
+				.map((target) => ({
+					citizenId: target.id,
+					distance: Math.hypot(target.x - x, target.y - y),
+				}))
 				.sort((left, right) => left.distance - right.distance)[0];
 			const threshold = event.pointerType === "touch" ? 42 : 28;
 			if (nearest === undefined || nearest.distance > threshold) return;
 			emit({ type: "select-citizen", citizenId: nearest.citizenId });
 		};
 		const finishPointer = (event: PointerEvent, allowPick: boolean) => {
-			const start = pointerStarts.current.get(event.pointerId);
-			const wasOnlyPointer = pointers.current.size === 1;
-			const travelled =
-				start === undefined
-					? Number.POSITIVE_INFINITY
-					: Math.hypot(event.clientX - start.x, event.clientY - start.y);
+			const prior = pointer.current;
+			if (prior?.id !== event.pointerId) return;
 			if (
 				allowPick &&
-				wasOnlyPointer &&
-				!multiPointerGesture.current &&
-				travelled <= 7
+				Math.hypot(
+					event.clientX - prior.startX,
+					event.clientY - prior.startY,
+				) <= 7
 			)
 				pickAt(event);
-			pointers.current.delete(event.pointerId);
-			pointerStarts.current.delete(event.pointerId);
-			priorPinch.current = null;
-			if (pointers.current.size === 0) multiPointerGesture.current = false;
+			pointer.current = null;
 		};
 		const onPointerUp = (event: PointerEvent) => finishPointer(event, true);
 		const onPointerCancel = (event: PointerEvent) =>
 			finishPointer(event, false);
-		const onContextMenu = (event: MouseEvent) => event.preventDefault();
 		surface.addEventListener("wheel", onWheel, { passive: false });
 		surface.addEventListener("pointerdown", onPointerDown);
 		surface.addEventListener("pointermove", onPointerMove);
 		surface.addEventListener("pointerup", onPointerUp);
 		surface.addEventListener("pointercancel", onPointerCancel);
-		surface.addEventListener("contextmenu", onContextMenu);
 		return () => {
 			surface.removeEventListener("wheel", onWheel);
 			surface.removeEventListener("pointerdown", onPointerDown);
 			surface.removeEventListener("pointermove", onPointerMove);
 			surface.removeEventListener("pointerup", onPointerUp);
 			surface.removeEventListener("pointercancel", onPointerCancel);
-			surface.removeEventListener("contextmenu", onContextMenu);
 		};
 	}, [frame, host, model, projection]);
 
@@ -488,7 +472,7 @@ function GeneratedCamera({
 	});
 	return (
 		<Entity ref={camera} position={initialPosition}>
-			<Camera clearColor="#a9b9a8" fov={40} farClip={720} nearClip={0.2} />
+			<Camera clearColor="#a9b9a8" fov={46} farClip={720} nearClip={0.2} />
 		</Entity>
 	);
 }
@@ -509,7 +493,11 @@ function Route({
 	const length = Math.hypot(dx, dz);
 	return (
 		<Primitive
-			position={[(from[0] + to[0]) / 2, 0.04, (from[2] + to[2]) / 2]}
+			position={[
+				(from[0] + to[0]) / 2,
+				(from[1] + to[1]) / 2 + 0.04,
+				(from[2] + to[2]) / 2,
+			]}
 			scale={[width, 0.08, Math.max(0.1, length)]}
 			rotation={[0, (Math.atan2(dx, dz) * 180) / Math.PI, 0]}
 			color={color}
@@ -523,15 +511,11 @@ function Tree({
 	ordinal,
 	height,
 	canopyDiameter,
-	fidelityClass,
 }: {
 	readonly position: [number, number, number];
 	readonly ordinal: number;
 	readonly height: number;
 	readonly canopyDiameter: number;
-	readonly fidelityClass: ReturnType<
-		typeof generatedCameraFidelity
-	>["fidelityClass"];
 }) {
 	const variedHeight = height * (0.92 + (ordinal % 3) * 0.04);
 	const canopy = canopyDiameter * (0.92 + (ordinal % 2) * 0.08);
@@ -549,14 +533,41 @@ function Tree({
 				scale={[canopy, variedHeight * 0.6, canopy]}
 				color={ordinal % 2 === 0 ? palette.leaf : palette.leafLight}
 			/>
-			{fidelityClass === "LOD0" ? (
-				<Primitive
-					type="sphere"
-					position={[0, variedHeight * 0.55, 0]}
-					scale={[canopy * 0.72, canopy * 0.5, canopy * 0.72]}
-					color={palette.leafLight}
-				/>
-			) : null}
+		</Entity>
+	);
+}
+
+/** Non-authoritative landscape context keeps the settlement inside a world. */
+function WorldContext({ frame }: { readonly frame: Frame }) {
+	const fields = [-0.18, 0.22] as const;
+	return (
+		<Entity name="cosmetic-landscape">
+			{fields.map((x) => (
+				<Entity key={x}>
+					<Primitive
+						type="sphere"
+						position={[x * frame.width, -0.28, -x * frame.depth]}
+						scale={[7.5, 0.58, 12]}
+						color={palette.soil}
+						castShadows={false}
+					/>
+					{[-2.8, -1.4, 0, 1.4, 2.8].map((row) => (
+						<Primitive
+							key={row}
+							position={[x * frame.width + row, 0.12, -x * frame.depth]}
+							scale={[0.52, 0.24, 9.5]}
+							color={palette.field}
+							castShadows={false}
+						/>
+					))}
+				</Entity>
+			))}
+			<Route
+				from={[-frame.width * 0.7, 0, -frame.depth * 0.58]}
+				to={[-frame.width * 0.42, 0, frame.depth * 0.5]}
+				color={palette.water}
+				width={8.5}
+			/>
 		</Entity>
 	);
 }
@@ -598,7 +609,6 @@ function SiteLife({
 							ordinal={ordinal}
 							height={physicalScale.tree.matureHeightMm / 1_000}
 							canopyDiameter={physicalScale.tree.canopyDiameterMm / 1_000}
-							fidelityClass={fidelityClass}
 						/>
 					))}
 				<Primitive
@@ -613,20 +623,23 @@ function SiteLife({
 		return (
 			<Entity position={position}>
 				<Primitive
-					position={[-x, 0.55, z]}
-					scale={[2.6, 0.25, 1.1]}
-					color={palette.wood}
+					position={[-x, 2.15, z]}
+					scale={[5, 0.3, 3.6]}
+					rotation={[0, 0, -8]}
+					color={palette.clay}
 				/>
-				<Primitive
-					position={[-x - 0.9, 0.25, z]}
-					scale={[0.18, 0.55, 0.18]}
-					color={palette.bark}
-				/>
-				<Primitive
-					position={[-x + 0.9, 0.25, z]}
-					scale={[0.18, 0.55, 0.18]}
-					color={palette.bark}
-				/>
+				{[
+					[-x, 0.55, z, 2.6, 0.25, 1.1],
+					[-x - 1.8, 1.05, z, 0.18, 2.1, 0.18],
+					[-x + 1.8, 1.05, z, 0.18, 2.1, 0.18],
+				].map(([px, py, pz, sx, sy, sz], ordinal) => (
+					<Primitive
+						key={px}
+						position={[px ?? 0, py ?? 0, pz ?? 0]}
+						scale={[sx ?? 1, sy ?? 1, sz ?? 1]}
+						color={ordinal === 0 ? palette.wood : palette.bark}
+					/>
+				))}
 				<Primitive
 					position={[x, 0.28, -z]}
 					scale={[1.45, 0.56, 0.75]}
@@ -637,15 +650,28 @@ function SiteLife({
 	if (kind === "storage")
 		return (
 			<Entity position={position}>
-				{[
-					[-x, z, 0.75],
-					[-x + 1.25, z, 0.58],
-					[-x + 0.55, z - 0.85, 0.52],
-				].map(([crateX, crateZ, height], ordinal) => (
+				<Primitive
+					position={[-x + 0.6, 1.8, z]}
+					scale={[4.2, 0.3, 3.4]}
+					color={palette.clay}
+				/>
+				{[-1.25, 1.85].map((offset) => (
 					<Primitive
-						key={`${crateX}:${crateZ}`}
-						position={[crateX ?? 0, (height ?? 0.5) / 2, crateZ ?? 0]}
-						scale={[0.9, height ?? 0.5, 0.9]}
+						key={offset}
+						position={[-x + offset, 0.9, z]}
+						scale={[0.18, 1.8, 0.18]}
+						color={palette.bark}
+					/>
+				))}
+				{[0.75, 0.58, 0.52].map((height, ordinal) => (
+					<Primitive
+						key={height}
+						position={[
+							-x + ordinal * 0.62,
+							height / 2,
+							z - (ordinal === 2 ? 0.85 : 0),
+						]}
+						scale={[0.9, height, 0.9]}
 						rotation={[0, ordinal * 12, 0]}
 						color={palette.wood}
 					/>
@@ -670,7 +696,7 @@ function SiteLife({
 				/>
 				<Primitive
 					position={[x, 1.4, -z]}
-					scale={[2.6, 0.14, 1.5]}
+					scale={[4.2, 0.22, 2.6]}
 					rotation={[0, 8, 0]}
 					color={palette.linen}
 				/>
@@ -703,9 +729,55 @@ function SiteLife({
 	return null;
 }
 
+function VernacularBuilding({
+	position,
+	width,
+	depth,
+	ridgeHeight,
+	doorHeight,
+}: {
+	readonly position: [number, number, number];
+	readonly width: number;
+	readonly depth: number;
+	readonly ridgeHeight: number;
+	readonly doorHeight: number;
+}) {
+	const wallHeight = ridgeHeight * 0.62;
+	return (
+		<Entity position={position}>
+			<Primitive
+				position={[0, 0.16, 0]}
+				scale={[width + 0.45, 0.32, depth + 0.45]}
+				color={palette.stone}
+			/>
+			<Primitive
+				position={[0, wallHeight / 2 + 0.26, 0]}
+				scale={[width, wallHeight, depth]}
+				color={palette.civic}
+			/>
+			{[-1, 1].map((side) => (
+				<Primitive
+					key={side}
+					position={[side * width * 0.23, ridgeHeight - 0.18, 0]}
+					scale={[width * 0.58, 0.46, depth + 0.9]}
+					rotation={[0, 0, side * 27]}
+					color={palette.clay}
+				/>
+			))}
+			<Primitive
+				position={[0, doorHeight / 2 + 0.25, depth / 2 + 0.04]}
+				scale={[1.05, doorHeight, 0.12]}
+				color={palette.wood}
+			/>
+		</Entity>
+	);
+}
+
 function GroundedSettlement({
 	projection,
 	model,
+	frame,
+	fidelity,
 	navigation,
 	presentationTick,
 	reducedMotion,
@@ -714,27 +786,15 @@ function GroundedSettlement({
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
+	readonly frame: Frame;
+	readonly fidelity: ReturnType<typeof generatedCameraFidelity>;
 	readonly navigation: GeneratedNavigationState;
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly onFailure: () => void;
 }) {
-	const frame = useMemo(() => sceneFrame(projection), [projection]);
 	const scale = projection.scene.physicalScale;
-	const requestedCamera = cameraIntentForGeneratedNavigation(model, navigation);
-	const cameraDistanceMm =
-		navigation.focus.kind === "overview"
-			? Math.max(
-					requestedCamera.distanceMm,
-					Math.round(
-						Math.max(frame.width, frame.depth) *
-							OVERVIEW_FRAME_DISTANCE_FACTOR *
-							1_000,
-					),
-				)
-			: requestedCamera.distanceMm;
-	const fidelity = generatedCameraFidelity(cameraDistanceMm);
 	const selectedActorId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	return (
@@ -759,14 +819,15 @@ function GroundedSettlement({
 					castShadows
 				/>
 			</Entity>
-			<Entity rotation={[-35, 145, 0]}>
-				<Light type="directional" color="#8daaa0" intensity={0.28} />
+			<Entity rotation={[48, 152, 0]}>
+				<Light type="directional" color="#dce6c4" intensity={0.95} />
 			</Entity>
 			<Primitive
 				position={[0, -0.2, 0]}
 				scale={[frame.width + 180, 0.4, frame.depth + 180]}
 				color={palette.ground}
 			/>
+			<WorldContext frame={frame} />
 			{projection.scene.edges
 				.filter((edge) => edge.edgeId.endsWith(":forward"))
 				.map((edge) => {
@@ -811,15 +872,22 @@ function GroundedSettlement({
 				const color = model.growth.addedSiteIds.includes(site.siteId)
 					? palette.changed
 					: site.kind === "resource"
-						? palette.wood
+						? palette.leaf
 						: site.kind === "civic"
-							? palette.civic
-							: palette.field;
+							? palette.path
+							: site.kind === "storage"
+								? palette.soil
+								: palette.field;
 				return (
 					<Entity key={site.siteId}>
 						<Primitive
-							position={[position[0], 0.04, position[2]]}
-							scale={[Math.max(2, width), 0.08, Math.max(2, depth)]}
+							type="sphere"
+							position={[position[0], -0.32, position[2]]}
+							scale={[
+								Math.max(2, width * 0.64),
+								0.68,
+								Math.max(2, depth * 0.64),
+							]}
 							color={color}
 							castShadows={false}
 						/>
@@ -851,107 +919,36 @@ function GroundedSettlement({
 				const ridgeHeight =
 					(isMill ? scale.mill.ridgeHeightMm : scale.house.ridgeHeightMm) /
 					1_000;
-				const wallHeight = ridgeHeight * 0.68;
 				return (
-					<Entity key={building.buildingId} position={point}>
-						<Primitive
-							position={[0, wallHeight / 2, 0]}
-							scale={[width, wallHeight, depth]}
-							color={palette.civic}
-						/>
-						<Primitive
-							position={[0, scale.door.heightMm / 2_000, depth / 2 + 0.03]}
-							scale={[
-								scale.door.widthMm / 1_000,
-								scale.door.heightMm / 1_000,
-								0.12,
-							]}
-							color={palette.wood}
-						/>
-						{fidelity.fidelityClass === "LOD0" ||
-						fidelity.fidelityClass === "LOD1" ? (
-							<>
-								<Primitive
-									position={[
-										-width * 0.28,
-										wallHeight * 0.62,
-										depth / 2 + 0.04,
-									]}
-									scale={[0.72, 0.72, 0.08]}
-									color={palette.water}
-									castShadows={false}
-								/>
-								<Primitive
-									position={[width * 0.28, wallHeight * 0.62, depth / 2 + 0.04]}
-									scale={[0.72, 0.72, 0.08]}
-									color={palette.water}
-									castShadows={false}
-								/>
-							</>
-						) : null}
-						<Primitive
-							position={[0, ridgeHeight - 0.35, 0]}
-							scale={[width + 0.6, 0.7, depth + 0.6]}
-							color={palette.clay}
-							rotation={[0, 0, 8]}
-						/>
-						{fidelity.fidelityClass === "LOD3" ? null : (
-							<Primitive
-								position={[width * 0.28, ridgeHeight + 0.45, -depth * 0.18]}
-								scale={[0.58, 1.6, 0.58]}
-								color={palette.ink}
-							/>
-						)}
-					</Entity>
-				);
-			})}
-			{model.projects.map((project) => {
-				const site = projection.local.sites.find(
-					(candidate) => candidate.siteId === project.siteId,
-				);
-				if (site === undefined)
-					throw new Error(`Generated project ${project.projectId} has no site`);
-				return (
-					<GeneratedProjectProxy
-						key={project.projectId}
-						project={project}
-						position={localPoint(
-							{
-								x:
-									(site.bounds.minimum.xMillimeters +
-										site.bounds.maximum.xMillimeters) /
-									2,
-								y: site.bounds.maximum.elevationMillimeters,
-								z:
-									(site.bounds.minimum.yMillimeters +
-										site.bounds.maximum.yMillimeters) /
-									2,
-							},
-							frame,
-						)}
+					<VernacularBuilding
+						key={building.buildingId}
+						position={point}
+						width={width}
+						depth={depth}
+						ridgeHeight={ridgeHeight}
+						doorHeight={scale.door.heightMm / 1_000}
 					/>
 				);
 			})}
 			{model.actors.map((actor) => {
 				const facingDegrees = renderedActorFacing(projection, model, actor);
+				const actorScale =
+					scale.citizen.heightMm / (GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000);
+				const actorPoint = localPoint(
+					renderedActorPoint(projection, actor),
+					frame,
+				);
 				return (
 					<Entity
 						key={actor.citizenId}
-						position={localPoint(renderedActorPoint(projection, actor), frame)}
-						scale={[
-							scale.citizen.heightMm /
-								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
-							scale.citizen.heightMm /
-								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
-							scale.citizen.heightMm /
-								(GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000),
-						]}
+						position={actorPoint}
+						scale={[actorScale, actorScale, actorScale]}
 					>
 						<GeneratedFolkProxy
 							actor={
 								facingDegrees === actor.facingDegrees
 									? actor
-									: Object.freeze({ ...actor, facingDegrees })
+									: { ...actor, facingDegrees }
 							}
 							position={[0, 0, 0]}
 							presentationTick={presentationTick}
@@ -973,41 +970,14 @@ function GroundedSettlement({
 				const from = localPoint(renderedActorPoint(projection, first), frame);
 				const to = localPoint(renderedActorPoint(projection, second), frame);
 				return (
-					<Entity key={interaction.interactionId}>
-						<Route from={from} to={to} color={palette.social} width={0.24} />
-						<Primitive
-							type="cylinder"
-							position={[(from[0] + to[0]) / 2, 0.055, (from[2] + to[2]) / 2]}
-							scale={[3.2, 0.035, 3.2]}
-							color={palette.social}
-							castShadows={false}
-						/>
-						<Primitive
-							type="sphere"
-							position={[
-								(from[0] + to[0]) / 2,
-								Math.max(from[1], to[1]) + 3.6,
-								(from[2] + to[2]) / 2,
-							]}
-							scale={[0.54, 0.54, 0.54]}
-							color={palette.social}
-							castShadows={false}
-						/>
-						{[-0.72, 0.72].map((offset) => (
-							<Primitive
-								key={offset}
-								type="sphere"
-								position={[
-									(from[0] + to[0]) / 2 + offset,
-									Math.max(from[1], to[1]) + 3.28,
-									(from[2] + to[2]) / 2,
-								]}
-								scale={[0.34, 0.34, 0.34]}
-								color={palette.social}
-								castShadows={false}
-							/>
-						))}
-					</Entity>
+					<Primitive
+						key={interaction.interactionId}
+						type="cylinder"
+						position={[(from[0] + to[0]) / 2, 0.055, (from[2] + to[2]) / 2]}
+						scale={[2.25, 0.035, 2.25]}
+						color={palette.social}
+						castShadows={false}
+					/>
 				);
 			})}
 		</Application>
@@ -1065,13 +1035,14 @@ export function GeneratedWorldCanvas({
 			ref={host}
 			className="generated-world-canvas"
 			role="img"
-			aria-label={`${projection.local.settlement.name}, an embodied generated settlement with ${projection.spatial.actors.length} visible residents. Drag to pan, Alt-drag to orbit, or use the adjacent semantic camera controls.`}
+			aria-label={`${projection.local.settlement.name}, an embodied generated settlement with ${projection.spatial.actors.length} visible residents. Drag to pan, scroll to zoom, or use the adjacent semantic camera controls.`}
 			data-testid="generated-world-canvas"
 			data-ready="false"
 			data-engine="playcanvas"
 			data-folk-renderer="procedural-typed-proxy"
 			data-folk-reference-asset={GENERATED_FOLK_ASSET.url}
 			data-environment-context="presentation-only-ground-apron"
+			data-environment-authority="cosmetic-never-reality"
 			data-world-id={projection.spatial.source.runId}
 			data-state-hash={projection.spatial.source.stateHash}
 			data-world-revision={projection.spatial.source.revision}
@@ -1132,7 +1103,16 @@ export function GeneratedWorldCanvas({
 			data-following={String(navigation.followCitizen)}
 			data-camera-target={cameraIntent.semanticLabel}
 			data-camera-distance-mm={effectiveDistanceMm}
-			data-camera-yaw-degrees={navigation.yawDegrees}
+			data-camera-yaw-degrees={
+				navigation.yawDegrees +
+				(navigation.focus.kind === "overview" ? OVERVIEW_YAW_OFFSET_DEGREES : 0)
+			}
+			data-camera-pitch-degrees={
+				navigation.pitchDegrees +
+				(navigation.focus.kind === "overview"
+					? OVERVIEW_PITCH_OFFSET_DEGREES
+					: 0)
+			}
 			data-camera-target-mm={`${cameraIntent.targetMm.x}:${cameraIntent.targetMm.y}:${cameraIntent.targetMm.z}`}
 			data-semantic-scale={fidelity.semanticScale}
 			data-fidelity-class={fidelity.fidelityClass}
@@ -1148,6 +1128,8 @@ export function GeneratedWorldCanvas({
 				<GroundedSettlement
 					projection={projection}
 					model={model}
+					frame={frame}
+					fidelity={fidelity}
 					navigation={navigation}
 					presentationTick={presentationTick}
 					reducedMotion={reducedMotion}

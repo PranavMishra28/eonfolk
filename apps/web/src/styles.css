@@ -3334,6 +3334,7 @@ em {
 /* The generated civilization uses the same world-first shell as Release Genesis. */
 .v1-living-stage {
 	position: relative;
+	isolation: isolate;
 	display: block;
 	min-height: 0;
 	height: calc(100svh - 9.7rem);
@@ -3342,11 +3343,12 @@ em {
 
 .v1-world-canvas-frame {
 	position: relative;
+	contain: paint;
 	min-width: 0;
 	min-height: 34rem;
 	height: 100%;
 	overflow: hidden;
-	background: #889b7d;
+	background: #71856e;
 }
 
 .v1-world-canvas-frame .world-canvas {
@@ -3518,16 +3520,72 @@ em {
 	top: 1rem;
 	right: 1rem;
 	z-index: 4;
-	width: min(21rem, 27vw);
+	width: min(20rem, 24vw);
 	max-height: calc(100% - 2rem);
 	min-width: 0;
-	overflow: auto;
+	overflow-x: hidden;
+	overflow-y: auto;
 	padding: 0.75rem;
 	color: #25281f;
 	border: 1px solid rgba(255, 250, 232, 0.5);
-	background: rgba(232, 220, 192, 0.92);
+	background: rgba(232, 220, 192, 0.89);
 	box-shadow: 0 1.2rem 3.5rem rgba(0, 0, 0, 0.28);
 	backdrop-filter: blur(10px);
+}
+
+.v1-context-panel:not(:hover, :focus-within) {
+	width: 13rem;
+	max-height: none;
+	padding: 0.45rem;
+	background: rgba(232, 220, 192, 0.84);
+}
+
+@media (min-width: 721px) {
+	.v1-context-panel:not(:hover, :focus-within) .v1-presence-card {
+		margin: 0 !important;
+		padding: 0.55rem !important;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within)
+		.v1-presence-card
+		> p:not(.v1-live-interaction),
+	.v1-context-panel:not(:hover, :focus-within) .v1-activity-summary,
+	.v1-context-panel:not(:hover, :focus-within) .v1-presence-roster {
+		display: none;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within) h2 {
+		margin: 0 0 0.3rem;
+		font-size: 1.35rem;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within) .v1-live-interaction {
+		margin: 0;
+		font-size: 0.68rem;
+		line-height: 1.35;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within) .v1-world-tools summary {
+		overflow: hidden;
+		font-size: 0.58rem;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within):has(.v1-context-role)
+		.v1-presence-card
+		> p {
+		display: block;
+		margin: 0.2rem 0;
+		font-size: 0.72rem;
+		line-height: 1.3;
+	}
+}
+
+.v1-context-panel * {
+	min-width: 0;
+	max-width: 100%;
+	overflow-wrap: anywhere;
 }
 
 .v1-context-panel > section,
@@ -3594,6 +3652,7 @@ em {
 
 .v1-focus-actions {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 0.35rem;
 	margin-top: 0.7rem;
 }
@@ -3610,6 +3669,7 @@ em {
 
 .v1-focus-actions button {
 	padding: 0.45rem 0.65rem;
+	overflow-wrap: normal;
 	font-size: 0.7rem;
 	font-weight: 800;
 	white-space: nowrap;
@@ -3807,7 +3867,7 @@ em {
 
 @media (max-width: 980px) {
 	.v1-context-panel {
-		width: min(18rem, 32vw);
+		width: min(16.5rem, 27vw);
 	}
 
 	.v1-people-list {
@@ -3844,6 +3904,16 @@ em {
 		box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
 	}
 
+	.v1-context-panel:not(:hover, :focus-within) {
+		width: auto;
+		padding: 0.75rem;
+	}
+
+	.v1-context-panel:has(.v1-context-role)
+		:is(.v1-presence-roster, .v1-world-tools) {
+		display: none;
+	}
+
 	.generated-scene-truth {
 		left: 0.55rem;
 		right: 0.55rem;
@@ -3860,7 +3930,7 @@ em {
 		min-width: 5.4rem;
 	}
 
-	.generated-scene-activity:nth-child(n + 3) {
+	.generated-scene-activity:nth-child(n + 2) {
 		display: none;
 	}
 

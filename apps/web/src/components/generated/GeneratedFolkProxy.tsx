@@ -25,17 +25,17 @@ function material(hex: string): StandardMaterial {
 }
 
 const identityMaterials = Object.freeze([
-	material("#356f72"),
-	material("#995d3d"),
-	material("#637845"),
-	material("#65598a"),
-	material("#9a7737"),
-	material("#445f85"),
+	material("#4e9692"),
+	material("#c27550"),
+	material("#8da65d"),
+	material("#8977b5"),
+	material("#c49b4c"),
+	material("#5f81b0"),
 ]);
 
 const materials = Object.freeze({
-	skin: material("#c8946a"),
-	dark: material("#282c28"),
+	skin: material("#e0ad7c"),
+	dark: material("#3c403b"),
 	hairDark: material("#30271f"),
 	hairWarm: material("#78432f"),
 	linen: material("#d7c6a0"),
@@ -46,9 +46,6 @@ const materials = Object.freeze({
 	grain: material("#c9a94d"),
 	trade: material("#a16d83"),
 	tool: material("#777c7b"),
-	work: material("#dc9a3c"),
-	social: material("#62a294"),
-	reaction: material("#c84f48"),
 });
 
 /** The procedural proxy's body-and-activity silhouette spans 2.5 source units. */
@@ -89,23 +86,6 @@ function propMaterial(actor: GeneratedEmbodiedActor): StandardMaterial {
 		case null:
 			return materials.dark;
 	}
-}
-
-function stateMaterial(actor: GeneratedEmbodiedActor): StandardMaterial {
-	switch (actor.pose.family) {
-		case "work":
-			return materials.work;
-		case "social":
-			return materials.social;
-		case "reaction":
-			return materials.reaction;
-		default:
-			return materials.dark;
-	}
-}
-
-function activityMaterial(actor: GeneratedEmbodiedActor): StandardMaterial {
-	return actor.prop === null ? stateMaterial(actor) : propMaterial(actor);
 }
 
 function CanonicalProp({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
@@ -191,97 +171,55 @@ function CanonicalProp({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
 	}
 }
 
-function SocialGesture() {
-	return (
-		<Entity position={[0, 2.44, 0]}>
-			{[-0.22, 0, 0.22].map((offset, index) => (
-				<Primitive
-					key={offset}
-					type="sphere"
-					position={[offset, index === 1 ? 0.08 : 0, 0]}
-					scale={[0.18, 0.18, 0.18]}
-					color={materials.social}
-				/>
-			))}
-		</Entity>
-	);
-}
-
-function ActivityBeacon({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
-	const color = activityMaterial(actor);
+/** Readable physical evidence for the typed action, never a floating UI glyph. */
+function PhysicalAction({ actor }: { readonly actor: GeneratedEmbodiedActor }) {
 	switch (actor.animationClass) {
 		case "inspect":
 			return (
-				<Entity position={[0, 2.75, 0]} rotation={[0, 0, -24]}>
+				<Entity position={[0.9, 0.84, -0.55]} rotation={[18, 0, 0]}>
 					<Primitive
-						type="sphere"
 						position={[0, 0, 0]}
-						scale={[0.52, 0.52, 0.18]}
-						color={color}
+						scale={[0.34, 0.45, 0.05]}
+						color={materials.logs}
 					/>
 					<Primitive
-						position={[0.42, -0.42, 0]}
-						scale={[0.12, 0.62, 0.12]}
-						color={color}
+						position={[0, 0, 0.04]}
+						scale={[0.26, 0.35, 0.02]}
+						color={materials.linen}
 					/>
 				</Entity>
 			);
 		case "repair":
 			return (
-				<Entity position={[0, 2.9, 0]} rotation={[0, 0, -32]}>
+				<Entity position={[0.9, 0.18, 0.3]} rotation={[0, 8, 0]}>
 					<Primitive
 						position={[0, 0, 0]}
-						scale={[0.13, 0.95, 0.13]}
+						scale={[1.18, 0.16, 0.34]}
 						color={materials.logs}
 					/>
 					<Primitive
-						position={[0, 0.48, 0]}
-						scale={[0.74, 0.22, 0.24]}
-						color={color}
+						position={[0.34, 0.17, 0]}
+						scale={[0.09, 0.34, 0.09]}
+						color={materials.tool}
 					/>
 				</Entity>
 			);
 		case "gather":
 			return (
-				<Entity position={[0, 2.82, 0]}>
-					{[-0.28, 0, 0.28].map((offset) => (
+				<Entity position={[-0.72, 0.13, 0.48]} rotation={[0, 0, 90]}>
+					{[-0.14, 0.14].map((offset) => (
 						<Primitive
 							key={offset}
 							type="cylinder"
 							position={[offset, 0, 0]}
-							scale={[0.16, 0.82, 0.16]}
-							rotation={[0, 0, 90]}
-							color={color}
+							scale={[0.14, 0.72, 0.14]}
+							color={materials.logs}
 						/>
 					))}
 				</Entity>
 			);
 		case "carry":
-			return (
-				<Entity position={[0, 2.88, 0]}>
-					<Primitive
-						position={[0, 0, 0]}
-						scale={[0.8, 0.62, 0.52]}
-						rotation={[0, 45, 0]}
-						color={color}
-					/>
-				</Entity>
-			);
 		case "eat-rest":
-			return (
-				<Entity position={[0, 2.78, 0]} rotation={[0, 0, 90]}>
-					<Primitive
-						position={[0, 0, 0]}
-						scale={[0.14, 1.1, 0.14]}
-						color={color}
-					/>
-					<Primitive
-						position={[0.3, 0.32, 0]}
-						scale={[0.14, 0.58, 0.14]}
-						color={color}
-					/>
-				</Entity>
-			);
 		case "talk":
 		case "listen":
 		case "exchange":
@@ -333,12 +271,6 @@ export function GeneratedFolkProxy({
 			rotation={[0, actor.facingDegrees, 0]}
 			data-citizen-name={actor.name}
 		>
-			<Primitive
-				type="cylinder"
-				position={[0, 0.02, 0]}
-				scale={[1.3, 0.025, 1.3]}
-				color={activityMaterial(actor)}
-			/>
 			{selected || actor.focal ? (
 				<Primitive
 					type="cylinder"
@@ -394,6 +326,22 @@ export function GeneratedFolkProxy({
 						/>
 					</>
 				)}
+				{isMara ? (
+					<>
+						<Primitive
+							position={[0, 1.43, 0.25]}
+							scale={[0.84, 0.16, 0.1]}
+							color={materials.focal}
+						/>
+						<Primitive
+							type="cylinder"
+							position={[-0.34, 1.8, -0.2]}
+							scale={[0.14, 0.58, 0.14]}
+							rotation={[0, 0, -16]}
+							color={hair}
+						/>
+					</>
+				) : null}
 				<Entity
 					position={[-0.5, 1.34, 0]}
 					rotation={[pose.leftArmPitchDegrees, 0, 0]}
@@ -424,6 +372,11 @@ export function GeneratedFolkProxy({
 					scale={[0.23, 0.72, 0.25]}
 					color={materials.dark}
 				/>
+				<Primitive
+					position={[0, -0.66, 0.08]}
+					scale={[0.3, 0.12, 0.43]}
+					color={materials.logs}
+				/>
 			</Entity>
 			<Entity
 				position={[0.22, 0.6, 0]}
@@ -434,19 +387,16 @@ export function GeneratedFolkProxy({
 					scale={[0.23, 0.72, 0.25]}
 					color={materials.dark}
 				/>
+				<Primitive
+					position={[0, -0.66, 0.08]}
+					scale={[0.3, 0.12, 0.43]}
+					color={materials.logs}
+				/>
 			</Entity>
 			<CanonicalProp actor={actor} />
-			<ActivityBeacon actor={actor} />
-			{actor.pose.family === "social" ? (
-				<SocialGesture />
-			) : ["work", "reaction"].includes(actor.pose.family) ? (
-				<Primitive
-					type={actor.pose.family === "reaction" ? "cone" : "sphere"}
-					position={[0, 2.48, 0]}
-					scale={[0.18, 0.18, 0.18]}
-					color={stateMaterial(actor)}
-				/>
-			) : null}
+			<Entity scale={[1.8, 1.8, 1.8]}>
+				<PhysicalAction actor={actor} />
+			</Entity>
 		</Entity>
 	);
 }

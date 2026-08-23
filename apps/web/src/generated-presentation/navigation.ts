@@ -130,16 +130,16 @@ export function generatedNavigationReferencesExist(
 	return true;
 }
 
-const MIN_CAMERA_DISTANCE_MM = 8_000;
+const MIN_CAMERA_DISTANCE_MM = 7_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
-const MAX_CAMERA_PAN_MM = 120_000;
+const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
 
 export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 	Object.freeze({
 		focus: Object.freeze({ kind: "overview" }),
 		followCitizen: false,
-		distanceMm: 72_000,
+		distanceMm: 48_000,
 		yawDegrees: 42,
 		pitchDegrees: -38,
 		panOffsetMm: Object.freeze({ x: 0, z: 0 }),
@@ -181,11 +181,11 @@ export function generatedCameraFidelity(
 	const distance = finite(distanceMm, "fidelity distance");
 	if (distance < MIN_CAMERA_DISTANCE_MM)
 		throw new Error("Fidelity distance too near");
-	if (distance <= 18_000)
+	if (distance <= 16_000)
 		return Object.freeze({ semanticScale: "citizen", fidelityClass: "LOD0" });
-	if (distance <= 34_000)
+	if (distance <= 28_000)
 		return Object.freeze({ semanticScale: "citizen", fidelityClass: "LOD1" });
-	if (distance <= 100_000)
+	if (distance <= 96_000)
 		return Object.freeze({ semanticScale: "town", fidelityClass: "LOD2" });
 	return Object.freeze({ semanticScale: "region", fidelityClass: "LOD3" });
 }
@@ -202,6 +202,9 @@ export function reduceGeneratedNavigation(
 				...state,
 				focus: Object.freeze({ kind: "overview" }),
 				followCitizen: false,
+				distanceMm: 48_000,
+				yawDegrees: 42,
+				pitchDegrees: -38,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-citizen":
@@ -213,7 +216,7 @@ export function reduceGeneratedNavigation(
 					citizenId: action.citizenId,
 				}),
 				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 24_000),
+				distanceMm: Math.min(state.distanceMm, 9_000),
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":
@@ -225,7 +228,7 @@ export function reduceGeneratedNavigation(
 					projectId: action.projectId,
 				}),
 				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 34_000),
+				distanceMm: Math.min(state.distanceMm, 28_000),
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "toggle-follow":
@@ -233,6 +236,7 @@ export function reduceGeneratedNavigation(
 			return Object.freeze({
 				...state,
 				followCitizen: !state.followCitizen,
+				distanceMm: state.followCitizen ? 9_000 : MIN_CAMERA_DISTANCE_MM,
 			});
 		case "zoom":
 			return Object.freeze({
