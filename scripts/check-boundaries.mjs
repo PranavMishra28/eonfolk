@@ -96,6 +96,25 @@ const rules = [
 			[/\bMath\.random\s*\(/, "ambient randomness"],
 		],
 	},
+	{
+		directories: ["packages/worldgen"],
+		patterns: [
+			[
+				/from\s+["'](?:react|react-dom|pixi\.js|playcanvas|@playcanvas|motion|@base-ui)/,
+				"presentation dependency",
+			],
+			[
+				/from\s+["'][^"']*(?:apps\/web|sim|persistence|cognition|diagnostics)/,
+				"runtime authority dependency",
+			],
+			[/\bDate\.now\s*\(/, "wall-clock authority"],
+			[/\bMath\.random\s*\(/, "ambient randomness"],
+			[
+				/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/,
+				"network authority",
+			],
+		],
+	},
 ];
 
 const failures = [];
