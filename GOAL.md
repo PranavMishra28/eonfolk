@@ -28,21 +28,21 @@
 
 | Requirement | State |
 |---|---|
-| Repository archaeology reconciled | IN PROGRESS |
-| Generated repository inventory | IN PROGRESS |
+| Repository archaeology reconciled | VERIFIED |
+| Generated repository inventory | VERIFIED |
 | Stale Founder Alpha active terminology retired or archived | NOT STARTED |
 | README rebuilt as the current front door | NOT STARTED |
 | Active documentation hierarchy simplified and non-contradictory | NOT STARTED |
 | Research bibliography and durable provenance captured | NOT STARTED |
 | Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
-| Release Genesis is the product entry identity | NOT STARTED |
+| Release Genesis is the product entry identity | IN PROGRESS |
 | Landing, immersive game, research, and developer surfaces are separated | NOT STARTED |
 
 ## Generalized world
 
 | Requirement | State |
 |---|---|
-| Immutable Release Genesis identity | NOT STARTED |
+| Immutable Release Genesis identity | VERIFIED |
 | Deterministic versioned world generator | NOT STARTED |
 | Multiple materially different valid world seeds | NOT STARTED |
 | Region/chunk/cell/territory hierarchy | NOT STARTED |
@@ -57,7 +57,7 @@
 
 | Requirement | State |
 |---|---|
-| Canonical/subjective/derived/research data classification in code | NOT STARTED |
+| Canonical/subjective/derived/research data classification in code | IN PROGRESS |
 | Population, households, relationships, roles, and bounded demographic change | NOT STARTED |
 | Typed resource stocks, storage, flows, units, and conservation | NOT STARTED |
 | Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | NOT STARTED |
@@ -80,7 +80,7 @@
 | Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | NOT STARTED |
 | Project/forward planner uses actor-visible facts and legal affordances | NOT STARTED |
 | Executable local Model Brain treatment | NOT STARTED |
-| Real M4 Max model/runtime benchmark and promoted treatment | NOT STARTED |
+| Real M4 Max model/runtime benchmark and promoted treatment | IN PROGRESS |
 | Versioned structured model-decision contract and provenance | NOT STARTED |
 | Schema, semantic, authority, and world validation after model output | NOT STARTED |
 | Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | NOT STARTED |
@@ -148,4 +148,3 @@
 | Fresh post-fix confirmation | NOT STARTED |
 | V1 handoff with evidence and honest limitations | NOT STARTED |
 | Draft PR marked ready, protected merge completed, and post-merge main verified | NOT STARTED |
-

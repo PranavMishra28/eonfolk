@@ -9,9 +9,9 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled commit: `8eb6afa911cbe386e18dddd26f093aaeef9e5167` (initial base; working ledger not yet committed)
+- Last reconciled commit: `6a32bea88f5d0b8a5b4c4f0bc050fe4c32b7e4ea`
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
-- Draft PR: not opened until the initial execution-ledger commit is pushed
+- Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
 
 ## Green starting evidence
@@ -25,13 +25,19 @@
 - The delayed-authority browser journey timed out after the delayed worker was released; the expected restored `Follow one life` heading did not appear within five seconds.
 - Because production browser verification failed, later DEEP mutation, benchmarks, and canonical performance did not run. The baseline is FAIL, not acceptance evidence.
 
+## Completed checkpoints
+
+- Repository archaeology is captured in `docs/generated/REPO_INVENTORY.md`.
+- Versioned Release Genesis, experiment-world, generalized world, and civilization protocol contracts are committed with focused tests.
+- A read-only local Ollama lab tested the one cached `qwen3-coder:30b` model. It is not promoted: one response produced broken public copy at the schema boundary, memory pressure reached warning level, and no executable model gateway exists yet.
+
 ## Next executable tasks
 
-1. Commit and push the V1 ledger; open the one draft V1 PR.
-2. Finish repository archaeology and generated inventory.
-3. Reproduce and repair delayed-worker authority restoration without weakening the no-facts-before-authority guarantee.
-4. Freeze the cross-package Release Genesis and civilization contracts.
-5. Implement deterministic generalized world generation and its property tests.
+1. Reproduce and repair delayed-worker authority restoration without weakening the no-facts-before-authority guarantee.
+2. Implement deterministic generalized world generation and its property tests against the frozen contracts.
+3. Integrate local-model lab evidence without promoting a treatment.
+4. Implement generalized civilization state and resource conservation on top of generated worlds.
+5. Add the validating decision gateway before any executable Model Brain adapter.
 
 ## Resume commands
 
