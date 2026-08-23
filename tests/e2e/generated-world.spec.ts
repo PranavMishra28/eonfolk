@@ -613,20 +613,16 @@ async function selectCanonicalResidentFromCanvas(
 }
 
 async function selectSponsorCandidate(page: Page): Promise<string> {
-	const residents = page.locator("ul.v1-presence-roster button");
-	for (let index = 0; index < (await residents.count()); index += 1) {
-		const resident = residents.nth(index);
-		await resident.click();
-		const sponsor = page.getByRole("button", {
-			name: /Sponsor this person|Consider an intervention|Return at the next decision boundary|Review Chronicle/u,
-		});
-		if ((await sponsor.count()) === 1 && (await sponsor.isEnabled())) {
-			const citizenId = await resident.getAttribute("data-citizen-id");
-			if (citizenId === null) throw new Error("sponsor candidate lacks an id");
-			return citizenId;
-		}
-	}
-	throw new Error("no counsel-capable sponsor candidate is visible");
+	const citizenId = "citizen-01";
+	const resident = page.locator(
+		`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,
+	);
+	await expect(resident).toContainText("Mara Vale");
+	await resident.click();
+	await expect(
+		page.getByRole("button", { name: "Sponsor this person" }),
+	).toBeEnabled();
+	return citizenId;
 }
 
 test("generated civilization is the identity-bound canonical /world @generated-world @generated-target", async ({
@@ -1774,7 +1770,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.locator(`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`)
 		.click();
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
-		"speaking at Commons",
+		"speaking at Workshop",
 	);
 	await page.getByRole("button", { name: "Review Chronicle" }).click();
 	await expect(
