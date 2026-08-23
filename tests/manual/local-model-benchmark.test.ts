@@ -4,6 +4,7 @@ import {
 	execFileSync,
 } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { resolve } from "node:path";
@@ -101,6 +102,20 @@ function sha256(bytes: Uint8Array | string): string {
 	return createHash("sha256").update(bytes).digest("hex");
 }
 
+const fileSha256Cache = new Map<string, Promise<string>>();
+
+function sha256File(path: string): Promise<string> {
+	const cached = fileSha256Cache.get(path);
+	if (cached !== undefined) return cached;
+	const pending = (async () => {
+		const hash = createHash("sha256");
+		for await (const chunk of createReadStream(path)) hash.update(chunk);
+		return hash.digest("hex");
+	})();
+	fileSha256Cache.set(path, pending);
+	return pending;
+}
+
 async function artifact(input: {
 	readonly path: string;
 	readonly artifactId: string;
@@ -110,7 +125,6 @@ async function artifact(input: {
 }) {
 	const path = await realpath(input.path);
 	const metadata = await stat(path);
-	const bytes = await readFile(path);
 	return {
 		path,
 		identity: {
@@ -118,7 +132,7 @@ async function artifact(input: {
 			byteLength: metadata.size,
 			licenseId: input.licenseId,
 			licenseTextSha256: input.licenseTextSha256,
-			sha256: sha256(bytes),
+			sha256: await sha256File(path),
 			version: input.version,
 		},
 	};
