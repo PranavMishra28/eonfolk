@@ -1,9 +1,27 @@
-import type {
-	GeneratedCivilizationSpatialProjection,
-	SpatialActorProjection,
-} from "@eonfolk/world-presentation";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
+import {
+	type ComponentType,
+	lazy,
+	Suspense,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+} from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
+import { FeedbackPanel } from "./components/FeedbackPanel";
+import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
+import { browserDiagnostics } from "./diagnostics";
+import {
+	type GeneratedAssetIntegrity,
+	type GeneratedEmbodimentProjection,
+	type GeneratedNavigationAction,
+	type GeneratedNavigationState,
+	INITIAL_GENERATED_NAVIGATION,
+	reduceGeneratedNavigation,
+	verifyGeneratedFolkAsset,
+} from "./generated-presentation";
 import {
 	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
@@ -16,6 +34,14 @@ const GeneratedWorldCanvas = lazy(async () => {
 
 type GenesisRoute = "entry" | "world";
 type WorldView = "embodied" | "semantic" | "overview";
+
+type GeneratedAssetState =
+	| Readonly<{ readonly status: "checking" }>
+	| Readonly<{
+			readonly status: "verified";
+			readonly integrity: GeneratedAssetIntegrity;
+	  }>
+	| Readonly<{ readonly status: "failed"; readonly error: Error }>;
 
 function readableId(value: string): string {
 	return value.replace(/[-_:]+/gu, " ");
@@ -49,6 +75,36 @@ function useGeneratedExperience(): {
 		};
 	}, []);
 	return { experience, error };
+}
+
+function useGeneratedAsset(): GeneratedAssetState {
+	const [state, setState] = useState<GeneratedAssetState>(() =>
+		Object.freeze({ status: "checking" }),
+	);
+	useEffect(() => {
+		let active = true;
+		void verifyGeneratedFolkAsset().then(
+			(integrity) => {
+				if (active) setState(Object.freeze({ status: "verified", integrity }));
+			},
+			(reason: unknown) => {
+				if (active)
+					setState(
+						Object.freeze({
+							status: "failed",
+							error:
+								reason instanceof Error
+									? reason
+									: new Error("Generated asset verification failed"),
+						}),
+					);
+			},
+		);
+		return () => {
+			active = false;
+		};
+	}, []);
+	return state;
 }
 
 function WorldLoading() {
@@ -181,39 +237,26 @@ function ProjectionUnavailable({
 	);
 }
 
-function ActorDetail({ actor }: { readonly actor: SpatialActorProjection }) {
-	return (
-		<section className="generated-actor-detail" aria-labelledby="actor-title">
-			<p className="v1-kicker">SELECTED PERSON</p>
-			<h2 id="actor-title">{actor.name}</h2>
-			<p className="v1-context-role">{readableId(actor.role)}</p>
-			<p>{actor.semanticLabel}</p>
-			<dl>
-				<div>
-					<dt>Action</dt>
-					<dd>{readableId(actor.animationClass)}</dd>
-				</div>
-				<div>
-					<dt>Place</dt>
-					<dd>{actor.action.destinationPlaceId}</dd>
-				</div>
-				<div>
-					<dt>Carrying</dt>
-					<dd>{actor.prop === null ? "nothing" : readableId(actor.prop)}</dd>
-				</div>
-			</dl>
-		</section>
-	);
-}
-
 function SemanticSettlement({
 	projection,
-	selectedActorId,
-	onActor,
+	model,
+	navigation,
+	dispatch,
+	presentationTick,
+	presentationPlaying,
+	reducedMotion,
+	onTogglePresentation,
+	onStepPresentation,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
-	readonly selectedActorId: string | null;
-	readonly onActor: (citizenId: string) => void;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly navigation: GeneratedNavigationState;
+	readonly dispatch: (action: GeneratedNavigationAction) => void;
+	readonly presentationTick: number;
+	readonly presentationPlaying: boolean;
+	readonly reducedMotion: boolean;
+	readonly onTogglePresentation: () => void;
+	readonly onStepPresentation: () => void;
 }) {
 	return (
 		<section
@@ -229,27 +272,16 @@ function SemanticSettlement({
 					{projection.spatial.actors.length} visibly scheduled residents.
 				</p>
 			</div>
-			<section aria-labelledby="semantic-people-title">
-				<h3 id="semantic-people-title">People and current actions</h3>
-				{projection.spatial.actors.length === 0 ? (
-					<p>No canonical resident activity is available.</p>
-				) : (
-					<ul>
-						{projection.spatial.actors.map((actor) => (
-							<li key={actor.citizenId}>
-								<button
-									type="button"
-									aria-pressed={actor.citizenId === selectedActorId}
-									onClick={() => onActor(actor.citizenId)}
-								>
-									<strong>{actor.name}</strong>
-									<span>{actor.semanticLabel}</span>
-								</button>
-							</li>
-						))}
-					</ul>
-				)}
-			</section>
+			<GeneratedEmbodimentControls
+				model={model}
+				navigation={navigation}
+				dispatch={dispatch}
+				presentationTick={presentationTick}
+				presentationPlaying={presentationPlaying}
+				reducedMotion={reducedMotion}
+				onTogglePresentation={onTogglePresentation}
+				onStepPresentation={onStepPresentation}
+			/>
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Grounded places</h3>
 				<ul>
@@ -323,17 +355,25 @@ function SettlementOverview({
 
 function GeneratedContextPanel({
 	projection,
-	selectedActorId,
-	onActor,
+	model,
+	navigation,
+	dispatch,
+	presentationTick,
+	presentationPlaying,
+	reducedMotion,
+	onTogglePresentation,
+	onStepPresentation,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
-	readonly selectedActorId: string | null;
-	readonly onActor: (citizenId: string) => void;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly navigation: GeneratedNavigationState;
+	readonly dispatch: (action: GeneratedNavigationAction) => void;
+	readonly presentationTick: number;
+	readonly presentationPlaying: boolean;
+	readonly reducedMotion: boolean;
+	readonly onTogglePresentation: () => void;
+	readonly onStepPresentation: () => void;
 }) {
-	const selected =
-		projection.spatial.actors.find(
-			(actor) => actor.citizenId === selectedActorId,
-		) ?? projection.spatial.actors[0];
 	return (
 		<aside
 			className="v1-context-panel"
@@ -347,11 +387,16 @@ function GeneratedContextPanel({
 					activities at this checkpoint.
 				</span>
 			</div>
-			{selected === undefined ? (
-				<ProjectionUnavailable projection={projection} />
-			) : (
-				<ActorDetail actor={selected} />
-			)}
+			<GeneratedEmbodimentControls
+				model={model}
+				navigation={navigation}
+				dispatch={dispatch}
+				presentationTick={presentationTick}
+				presentationPlaying={presentationPlaying}
+				reducedMotion={reducedMotion}
+				onTogglePresentation={onTogglePresentation}
+				onStepPresentation={onStepPresentation}
+			/>
 			{projection.projects.map((project) => (
 				<section className="v1-project-card" key={project.projectId}>
 					<p className="v1-kicker">CANONICAL PROJECT</p>
@@ -362,29 +407,13 @@ function GeneratedContextPanel({
 					</progress>
 				</section>
 			))}
-			<fieldset className="v1-people-list">
-				<legend className="sr-only">Canonical residents</legend>
-				{projection.spatial.actors.map((actor) => (
-					<button
-						key={actor.citizenId}
-						type="button"
-						aria-pressed={actor.citizenId === selected?.citizenId}
-						onClick={() => onActor(actor.citizenId)}
-					>
-						<span
-							className={`generated-activity-dot generated-activity-dot--${actor.animationClass}`}
-							aria-hidden="true"
-						/>
-						<span>
-							<strong>{actor.name}</strong>
-							<small>{actor.semanticLabel}</small>
-						</span>
-					</button>
-				))}
-			</fieldset>
 		</aside>
 	);
 }
+
+const ReleaseFeedbackPanel = FeedbackPanel as ComponentType<{
+	readonly contextLabel?: string;
+}>;
 
 function GeneratedWorld({
 	experience,
@@ -393,11 +422,23 @@ function GeneratedWorld({
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
+	const asset = useGeneratedAsset();
 	const [reduceMotion, setReduceMotion] = useState(() =>
 		typeof window === "undefined"
 			? false
 			: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 	);
+	const [presentationTick, setPresentationTick] = useState(0);
+	const [presentationPlaying, setPresentationPlaying] = useState(
+		() => !reduceMotion,
+	);
+	const [navigation, dispatch] = useReducer(
+		reduceGeneratedNavigation,
+		INITIAL_GENERATED_NAVIGATION,
+	);
+	const rendererIncidentReported = useRef(false);
+	const assetIncidentReported = useRef(false);
+	const diagnosticStateRecorded = useRef<string | null>(null);
 	const [selectedSettlementId, setSelectedSettlementId] = useState(
 		experience.projections[0]?.local.settlement.settlementId ?? "",
 	);
@@ -409,17 +450,100 @@ function GeneratedWorld({
 			) ?? experience.projections[0],
 		[experience, selectedSettlementId],
 	);
-	const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
+	const model = useMemo(
+		() =>
+			experience.embodiments.find(
+				(candidate) => candidate.settlementId === selectedSettlementId,
+			) ?? experience.embodiments[0],
+		[experience, selectedSettlementId],
+	);
 
-	if (projection === undefined)
+	useEffect(() => {
+		if (!presentationPlaying || reduceMotion) return;
+		const interval = window.setInterval(
+			() => setPresentationTick((tick) => tick + 1),
+			125,
+		);
+		return () => window.clearInterval(interval);
+	}, [presentationPlaying, reduceMotion]);
+
+	useEffect(() => {
+		if (reduceMotion) setPresentationPlaying(false);
+	}, [reduceMotion]);
+
+	useEffect(() => {
+		if (projection === undefined) return;
+		const source = projection.spatial.source;
+		browserDiagnostics.setWorldHead({
+			runId: source.runId,
+			regionId: source.regionId,
+			revision: source.revision,
+			sequence: source.throughSequence,
+			simulationTime: experience.simulationTime,
+			status: "healthy",
+		});
+		if (diagnosticStateRecorded.current === experience.stateHash) return;
+		diagnosticStateRecorded.current = experience.stateHash;
+		for (const settlement of experience.projections)
+			for (const actor of settlement.spatial.actors)
+				browserDiagnostics.record({
+					category: "presentation",
+					name: "canonical-action-render-linked",
+					severity: "info",
+					outcome: "observed",
+					scope: {
+						component: "generated-world",
+						runId: settlement.spatial.source.runId,
+						regionId: settlement.spatial.source.regionId,
+					},
+					fields: {
+						citizenId: actor.citizenId,
+						settlementId: settlement.local.settlement.settlementId,
+						actionId: actor.action.actionId,
+						actionKind: actor.action.kind,
+						actionStatus: actor.action.status,
+						actionSource: actor.action.sourceKind,
+						eventSequence: actor.action.eventSequence ?? -1,
+						prop: actor.prop ?? "none",
+					},
+				});
+	}, [experience, projection]);
+
+	useEffect(() => {
+		if (asset.status !== "failed" || assetIncidentReported.current) return;
+		assetIncidentReported.current = true;
+		void browserDiagnostics.captureRuntimeFailure({
+			code: "GENERATED_ASSET_INTEGRITY_FAILED",
+			component: "generated-world-asset",
+			protectReality: () => setView("semantic"),
+		});
+	}, [asset.status]);
+
+	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
 	const openSettlement = (settlementId: string) => {
 		setSelectedSettlementId(settlementId);
-		setSelectedActorId(null);
+		dispatch({ type: "overview" });
+		setPresentationTick(0);
 		setRendererFailed(false);
 		setView("embodied");
 	};
-	const effectiveView = rendererFailed ? "semantic" : view;
+	const reportRendererFailure = () => {
+		setRendererFailed(true);
+		if (rendererIncidentReported.current) return;
+		rendererIncidentReported.current = true;
+		void browserDiagnostics.captureRuntimeFailure({
+			code: "GENERATED_RENDERER_FAILED",
+			component: "generated-world-renderer",
+			protectReality: () => setRendererFailed(true),
+		});
+	};
+	const assetVerified = asset.status === "verified";
+	const effectiveView = rendererFailed || !assetVerified ? "semantic" : view;
+	const togglePresentation = () =>
+		setPresentationPlaying((playing) => !playing);
+	const stepPresentation = () =>
+		setPresentationTick((presentationTick) => presentationTick + 1);
 
 	return (
 		<main
@@ -432,6 +556,11 @@ function GeneratedWorld({
 			data-persistence={experience.persistence.kind}
 			data-persistence-restored={String(experience.persistence.restored)}
 			data-catch-up-receipts={experience.persistence.catchUpReceipts}
+			data-previous-state-hash={experience.previousStateHash}
+			data-previous-horizon-days={experience.previousHorizonDays}
+			data-asset-integrity={asset.status}
+			data-presentation-tick={presentationTick}
+			data-presentation-playing={String(presentationPlaying)}
 		>
 			<header className="v1-world-header">
 				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
@@ -450,6 +579,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={effectiveView === "embodied"}
+						disabled={!assetVerified}
 						onClick={() => setView("embodied")}
 					>
 						Embodied
@@ -510,11 +640,27 @@ function GeneratedWorld({
 							The embodied renderer failed. The same canonical world remains
 							inspectable in semantic form.
 						</p>
+					) : asset.status === "checking" ? (
+						<p className="renderer-note" role="status">
+							Verifying the repository-authored embodiment asset. Canonical
+							world actions remain inspectable in words.
+						</p>
+					) : asset.status === "failed" ? (
+						<p className="renderer-note" role="status">
+							The embodiment asset did not pass integrity checks. The canonical
+							world remains inspectable without it.
+						</p>
 					) : null}
 					<SemanticSettlement
 						projection={projection}
-						selectedActorId={selectedActorId}
-						onActor={setSelectedActorId}
+						model={model}
+						navigation={navigation}
+						dispatch={dispatch}
+						presentationTick={presentationTick}
+						presentationPlaying={presentationPlaying}
+						reducedMotion={reduceMotion}
+						onTogglePresentation={togglePresentation}
+						onStepPresentation={stepPresentation}
 					/>
 				</>
 			) : projection.availability.status === "unavailable" ? (
@@ -531,20 +677,35 @@ function GeneratedWorld({
 						>
 							<GeneratedWorldCanvas
 								projection={projection}
+								model={model}
+								navigation={navigation}
+								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
-								selectedActorId={selectedActorId}
-								onFailure={() => setRendererFailed(true)}
+								onFailure={reportRendererFailure}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
 					</div>
 					<GeneratedContextPanel
 						projection={projection}
-						selectedActorId={selectedActorId}
-						onActor={setSelectedActorId}
+						model={model}
+						navigation={navigation}
+						dispatch={dispatch}
+						presentationTick={presentationTick}
+						presentationPlaying={presentationPlaying}
+						reducedMotion={reduceMotion}
+						onTogglePresentation={togglePresentation}
+						onStepPresentation={stepPresentation}
 					/>
 				</section>
 			)}
+			<details className="v1-feedback-drawer">
+				<summary>Release Genesis feedback</summary>
+				<div>
+					<p className="v1-kicker">RELEASE GENESIS FEEDBACK</p>
+					<ReleaseFeedbackPanel contextLabel="RELEASE GENESIS FEEDBACK" />
+				</div>
+			</details>
 
 			<footer className="v1-world-footer">
 				<p>

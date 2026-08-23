@@ -253,6 +253,54 @@ export function poseForGeneratedActor(
 	}
 }
 
+/**
+ * Samples a presentation-only pose from an explicit integer clock. It never
+ * changes metric position, action identity, or Reality state, and reduced
+ * motion returns the canonical base pose unchanged.
+ */
+export function poseAtGeneratedPresentationTick(
+	pose: GeneratedPose,
+	presentationTick: number,
+	identityVariant: number,
+	reducedMotion: boolean,
+): GeneratedPose {
+	if (!Number.isSafeInteger(presentationTick) || presentationTick < 0)
+		fail("presentation tick must be a non-negative safe integer");
+	if (!Number.isSafeInteger(identityVariant) || identityVariant < 0)
+		fail("identity variant must be a non-negative safe integer");
+	if (reducedMotion) return pose;
+	const phase = (presentationTick + identityVariant) % 16 < 8 ? 1 : -1;
+	switch (pose.family) {
+		case "locomotion":
+			return Object.freeze({
+				...pose,
+				leftArmPitchDegrees: Math.abs(pose.leftArmPitchDegrees) * phase,
+				rightArmPitchDegrees: -Math.abs(pose.rightArmPitchDegrees) * phase,
+				leftLegPitchDegrees: -Math.abs(pose.leftLegPitchDegrees) * phase,
+				rightLegPitchDegrees: Math.abs(pose.rightLegPitchDegrees) * phase,
+			});
+		case "carry":
+			return Object.freeze({
+				...pose,
+				leftLegPitchDegrees: Math.abs(pose.leftLegPitchDegrees) * phase,
+				rightLegPitchDegrees: -Math.abs(pose.rightLegPitchDegrees) * phase,
+			});
+		case "work":
+			return Object.freeze({
+				...pose,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 10,
+			});
+		case "social":
+			return Object.freeze({
+				...pose,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 8,
+			});
+		case "life":
+		case "reaction":
+			return pose;
+	}
+}
+
 function routeTopology(
 	projection: GeneratedCivilizationSpatialProjection,
 	routeId: string,

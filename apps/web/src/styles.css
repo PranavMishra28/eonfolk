@@ -416,6 +416,136 @@ main {
 	color: var(--ink);
 	font-weight: 700;
 }
+
+.generated-embodiment-controls {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.generated-embodiment-controls fieldset {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0.7rem;
+	border: 1px solid rgba(35, 38, 31, 0.22);
+}
+
+.generated-embodiment-controls legend {
+	padding-inline: 0.3rem;
+	font-size: 0.68rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.generated-embodiment-controls fieldset button {
+	min-height: 2.35rem;
+	padding: 0.45rem 0.55rem;
+	border: 1px solid rgba(35, 38, 31, 0.28);
+	color: inherit;
+	background: rgba(255, 250, 232, 0.56);
+	font: inherit;
+	font-size: 0.7rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.generated-embodiment-controls fieldset button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.generated-camera-status {
+	margin: 0;
+	color: #65695e;
+	font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+	font-size: 0.64rem;
+}
+
+.generated-embodiment-controls > ul,
+.generated-residents > ul {
+	display: grid;
+	gap: 0.35rem;
+	margin: 0;
+	padding: 0;
+	max-height: 13rem;
+	overflow: auto;
+	list-style: none;
+}
+
+.generated-residents {
+	grid-template-columns: 1fr;
+	min-height: 0;
+}
+
+.generated-residents li button {
+	display: block;
+	width: 100%;
+	min-height: 2.65rem;
+	padding: 0.55rem;
+	border: 0;
+	color: inherit;
+	background: rgba(255, 250, 232, 0.56);
+	font: inherit;
+	font-size: 0.7rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.generated-residents li button[aria-pressed="true"] {
+	background: #fff5d9;
+	box-shadow: inset 3px 0 #bd6e37;
+}
+
+.generated-embodiment-controls > article,
+.generated-limitations {
+	padding: 0.8rem;
+	border: 1px solid rgba(35, 38, 31, 0.22);
+	background: rgba(255, 250, 232, 0.52);
+}
+
+.generated-embodiment-controls > article h2 {
+	margin: 0 0 0.4rem;
+	font-size: 1.35rem;
+}
+
+.generated-embodiment-controls > article p,
+.generated-limitations li {
+	font-size: 0.72rem;
+	line-height: 1.45;
+}
+
+.v1-feedback-drawer {
+	margin: 1px 0 0;
+	padding: 0.8rem clamp(1rem, 3vw, 2.5rem);
+	color: #ede6d1;
+	background: #151d16;
+}
+
+.v1-feedback-drawer > summary {
+	width: fit-content;
+	min-height: 2.5rem;
+	padding: 0.65rem 0.8rem;
+	border: 1px solid rgba(232, 225, 198, 0.28);
+	font-size: 0.72rem;
+	font-weight: 900;
+	letter-spacing: 0.06em;
+	cursor: pointer;
+}
+
+.v1-feedback-drawer > div {
+	max-width: 50rem;
+	margin-top: 0.8rem;
+}
+
+.v1-feedback-drawer .feedback-panel .eyebrow {
+	display: none;
+}
+
+.v1-world.v1-reduced-motion .generated-playcanvas canvas {
+	transition: none;
+}
 .semantic-world--compact {
 	width: min(100%, 70rem);
 	margin: 0 auto;

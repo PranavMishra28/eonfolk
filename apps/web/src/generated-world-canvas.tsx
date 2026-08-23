@@ -1,7 +1,4 @@
-import type {
-	GeneratedCivilizationSpatialProjection,
-	SpatialActorProjection,
-} from "@eonfolk/world-presentation";
+import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
 import { Application, Entity } from "@playcanvas/react";
 import { Camera, Light, Render } from "@playcanvas/react/components";
 import { useApp, useAppEvent } from "@playcanvas/react/hooks";
@@ -20,6 +17,13 @@ import {
 	useMemo,
 	useRef,
 } from "react";
+import { GeneratedFolkProxy } from "./components/generated/GeneratedFolkProxy";
+import { GeneratedProjectProxy } from "./components/generated/GeneratedProjectProxy";
+import {
+	cameraIntentForGeneratedNavigation,
+	type GeneratedEmbodimentProjection,
+	type GeneratedNavigationState,
+} from "./generated-presentation";
 
 function material(hex: string): StandardMaterial {
 	const value = Number.parseInt(hex.slice(1), 16);
@@ -43,10 +47,8 @@ const palette = Object.freeze({
 	stone: material("#8c8c80"),
 	civic: material("#d7bd86"),
 	field: material("#b7a75f"),
-	resident: material("#3f7d83"),
-	focal: material("#d27643"),
-	selected: material("#e8dba6"),
 	ink: material("#242921"),
+	changed: material("#d99a45"),
 });
 
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
@@ -160,14 +162,39 @@ function SceneProbe({
 	return null;
 }
 
-function GeneratedCamera({ frame }: { readonly frame: Frame }) {
+function GeneratedCamera({
+	frame,
+	model,
+	navigation,
+}: {
+	readonly frame: Frame;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly navigation: GeneratedNavigationState;
+}) {
 	const camera = useRef<PlayCanvasEntity>(null);
+	const intent = useMemo(
+		() => cameraIntentForGeneratedNavigation(model, navigation),
+		[model, navigation],
+	);
+	const target = localPoint(intent.targetMm, frame);
+	const requestedDistance = intent.distanceMm / 1_000;
+	const distance =
+		navigation.focus.kind === "overview"
+			? Math.max(requestedDistance, Math.max(frame.width, frame.depth) * 0.9)
+			: requestedDistance;
+	const yaw = (intent.yawDegrees * Math.PI) / 180;
+	const pitch = (intent.pitchDegrees * Math.PI) / 180;
+	const horizontalDistance = Math.cos(pitch) * distance;
+	const position: [number, number, number] = [
+		target[0] + Math.sin(yaw) * horizontalDistance,
+		target[1] - Math.sin(pitch) * distance,
+		target[2] + Math.cos(yaw) * horizontalDistance,
+	];
 	useEffect(() => {
-		camera.current?.lookAt(0, 0, 0);
-	}, [frame]);
-	const distance = Math.max(frame.width, frame.depth) * 0.9;
+		camera.current?.lookAt(target[0], target[1], target[2]);
+	}, [target]);
 	return (
-		<Entity ref={camera} position={[distance * 0.72, distance, distance * 0.8]}>
+		<Entity ref={camera} position={position}>
 			<Camera
 				clearColor="#a9b9a8"
 				fov={42}
@@ -199,86 +226,31 @@ function Route({
 	);
 }
 
-function Citizen({
-	actor,
-	frame,
-	reducedMotion,
-	selected,
-}: {
-	readonly actor: SpatialActorProjection;
-	readonly frame: Frame;
-	readonly reducedMotion: boolean;
-	readonly selected: boolean;
-}) {
-	const root = useRef<PlayCanvasEntity>(null);
-	const position = localPoint(actor.positionMm, frame);
-	useAppEvent("update", () => {
-		if (root.current === null) return;
-		const motion = reducedMotion
-			? 0
-			: Math.sin(performance.now() / 260 + actor.citizenId.length) * 0.07;
-		root.current.setLocalPosition(
-			position[0],
-			position[1] + motion,
-			position[2],
-		);
-	});
-	return (
-		<Entity
-			ref={root}
-			position={position}
-			rotation={[0, actor.facingDegrees, 0]}
-		>
-			{selected || actor.focal ? (
-				<Primitive
-					type="cylinder"
-					position={[0, 0.03, 0]}
-					scale={[selected ? 1.35 : 1, 0.04, selected ? 1.35 : 1]}
-					color={selected ? palette.selected : palette.focal}
-					castShadows={false}
-				/>
-			) : null}
-			<Primitive
-				position={[0, 0.9, 0]}
-				scale={[0.62, 1.15, 0.42]}
-				color={actor.focal ? palette.focal : palette.resident}
-			/>
-			<Primitive
-				type="sphere"
-				position={[0, 1.72, 0]}
-				scale={[0.42, 0.42, 0.42]}
-				color={palette.selected}
-			/>
-			{actor.prop === null ? null : (
-				<Primitive
-					position={[0.48, 0.82, 0]}
-					scale={[0.34, 0.34, 0.34]}
-					color={actor.prop === "water" ? palette.water : palette.wood}
-				/>
-			)}
-		</Entity>
-	);
-}
-
 function GroundedSettlement({
 	projection,
+	model,
+	navigation,
+	presentationTick,
 	reducedMotion,
-	selectedActorId,
 	host,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly navigation: GeneratedNavigationState;
+	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
-	readonly selectedActorId: string | null;
 	readonly host: RefObject<HTMLDivElement | null>;
 }) {
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
+	const selectedActorId =
+		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	return (
 		<Application
 			deviceTypes={[DEVICETYPE_WEBGL2]}
 			className="generated-playcanvas"
 		>
 			<SceneProbe host={host} />
-			<GeneratedCamera frame={frame} />
+			<GeneratedCamera frame={frame} model={model} navigation={navigation} />
 			<Entity rotation={[48, -28, 0]}>
 				<Light
 					type="directional"
@@ -342,8 +314,9 @@ function GroundedSettlement({
 					},
 					frame,
 				);
-				const color =
-					site.kind === "resource"
+				const color = model.growth.addedSiteIds.includes(site.siteId)
+					? palette.changed
+					: site.kind === "resource"
 						? palette.wood
 						: site.kind === "civic"
 							? palette.civic
@@ -383,11 +356,39 @@ function GroundedSettlement({
 					</Entity>
 				);
 			})}
-			{projection.spatial.actors.map((actor) => (
-				<Citizen
+			{model.projects.map((project) => {
+				const site = projection.local.sites.find(
+					(candidate) => candidate.siteId === project.siteId,
+				);
+				if (site === undefined)
+					throw new Error(`Generated project ${project.projectId} has no site`);
+				return (
+					<GeneratedProjectProxy
+						key={project.projectId}
+						project={project}
+						position={localPoint(
+							{
+								x:
+									(site.bounds.minimum.xMillimeters +
+										site.bounds.maximum.xMillimeters) /
+									2,
+								y: site.bounds.maximum.elevationMillimeters,
+								z:
+									(site.bounds.minimum.yMillimeters +
+										site.bounds.maximum.yMillimeters) /
+									2,
+							},
+							frame,
+						)}
+					/>
+				);
+			})}
+			{model.actors.map((actor) => (
+				<GeneratedFolkProxy
 					key={actor.citizenId}
 					actor={actor}
-					frame={frame}
+					position={localPoint(actor.positionMm, frame)}
+					presentationTick={presentationTick}
 					reducedMotion={reducedMotion}
 					selected={selectedActorId === actor.citizenId}
 				/>
@@ -414,15 +415,20 @@ class RendererBoundary extends Component<
 
 export function GeneratedWorldCanvas({
 	projection,
+	model,
+	navigation,
+	presentationTick,
 	reducedMotion,
-	selectedActorId,
 	onFailure,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly navigation: GeneratedNavigationState;
+	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
-	readonly selectedActorId: string | null;
 	readonly onFailure: () => void;
 }) {
+	const cameraIntent = cameraIntentForGeneratedNavigation(model, navigation);
 	const host = useRef<HTMLDivElement>(null);
 	return (
 		<div
@@ -439,13 +445,29 @@ export function GeneratedWorldCanvas({
 			data-world-sequence={projection.spatial.source.throughSequence}
 			data-settlement-id={projection.local.settlement.settlementId}
 			data-actor-count={projection.spatial.actors.length}
+			data-canonical-actor-ids={model.actors
+				.map(({ citizenId }) => citizenId)
+				.join(",")}
+			data-canonical-action-ids={model.actors
+				.map(({ actionId }) => actionId)
+				.join(",")}
 			data-animation-classes={projection.spatial.animationClasses.join(",")}
+			data-embodiment-schema={model.schemaVersion}
+			data-presentation-tick={presentationTick}
+			data-focus-kind={navigation.focus.kind}
+			data-following={String(navigation.followCitizen)}
+			data-camera-target={cameraIntent.semanticLabel}
+			data-growth-changes={model.growth.visibleChangeCount}
+			data-project-count={model.projects.length}
+			data-limitation-count={model.limitations.length}
 		>
 			<RendererBoundary onFailure={onFailure}>
 				<GroundedSettlement
 					projection={projection}
+					model={model}
+					navigation={navigation}
+					presentationTick={presentationTick}
 					reducedMotion={reducedMotion}
-					selectedActorId={selectedActorId}
 					host={host}
 				/>
 			</RendererBoundary>

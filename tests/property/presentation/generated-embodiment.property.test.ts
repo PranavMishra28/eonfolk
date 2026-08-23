@@ -5,6 +5,7 @@ import type { GeneratedEmbodiedActor } from "../../../apps/web/src/generated-pre
 import {
 	INITIAL_GENERATED_NAVIGATION,
 	planGeneratedActorTransition,
+	poseAtGeneratedPresentationTick,
 	reduceGeneratedNavigation,
 	sampleGeneratedActorTransition,
 } from "../../../apps/web/src/generated-presentation/index.js";
@@ -119,6 +120,40 @@ describe("generated embodiment properties", () => {
 					expect(orbited.yawDegrees).toBeLessThan(360);
 					expect(orbited.pitchDegrees).toBeGreaterThanOrEqual(-75);
 					expect(orbited.pitchDegrees).toBeLessThanOrEqual(-18);
+				},
+			),
+			{ numRuns: deep ? 1_000 : 100 },
+		);
+	});
+
+	it("samples pose ticks deterministically without mutating canonical actors", () => {
+		fc.assert(
+			fc.property(
+				fc.integer({ min: 0, max: 1_000_000 }),
+				fc.integer({ min: 0, max: 0xffff_ffff }),
+				fc.boolean(),
+				(tick, identityVariant, reducedMotion) => {
+					const actor = routeActor({
+						x: 12_000,
+						z: -4_000,
+						progressBasisPoints: 5_000,
+					});
+					const before = structuredClone(actor);
+					const first = poseAtGeneratedPresentationTick(
+						actor.pose,
+						tick,
+						identityVariant,
+						reducedMotion,
+					);
+					const second = poseAtGeneratedPresentationTick(
+						actor.pose,
+						tick,
+						identityVariant,
+						reducedMotion,
+					);
+					expect(first).toEqual(second);
+					expect(actor).toEqual(before);
+					expect(actor.positionMm).toEqual(before.positionMm);
 				},
 			),
 			{ numRuns: deep ? 1_000 : 100 },

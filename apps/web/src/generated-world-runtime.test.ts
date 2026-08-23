@@ -17,6 +17,9 @@ describe("canonical generated-world browser experience", () => {
 		expect(first.simulationTime).toBe(GENERATED_WORLD_HORIZON_DAYS * 86_400);
 		expect(first.worldIdentityHash).toMatch(/^[0-9a-f]{64}$/u);
 		expect(first.stateHash).toMatch(/^[0-9a-f]{64}$/u);
+		expect(first.previousStateHash).toMatch(/^[0-9a-f]{64}$/u);
+		expect(first.previousStateHash).not.toBe(first.stateHash);
+		expect(first.previousHorizonDays).toBe(1);
 		expect(first.persistence).toEqual({
 			kind: "unavailable",
 			restored: false,
@@ -47,6 +50,18 @@ describe("canonical generated-world browser experience", () => {
 				({ availability }) => availability.status === "available",
 			),
 		).toBe(true);
+		expect(experience.embodiments).toHaveLength(2);
+		expect(experience.embodiments.flatMap(({ actors }) => actors)).toHaveLength(
+			8,
+		);
+		expect(
+			experience.embodiments.every(
+				(embodiment, index) =>
+					embodiment.settlementId ===
+						experience.projections[index]?.local.settlement.settlementId &&
+					embodiment.source.stateHash === experience.stateHash,
+			),
+		).toBe(true);
 	});
 
 	it("exposes only scheduler-owned actions and grounded settlement sources", async () => {
@@ -68,5 +83,13 @@ describe("canonical generated-world browser experience", () => {
 				).toBe(true);
 			}
 		}
+		for (const embodiment of experience.embodiments)
+			for (const actor of embodiment.actors) {
+				const projected = experience.projections
+					.flatMap(({ spatial }) => spatial.actors)
+					.find(({ citizenId }) => citizenId === actor.citizenId);
+				expect(projected?.action.actionId).toBe(actor.actionId);
+				expect(projected?.positionMm).toEqual(actor.positionMm);
+			}
 	});
 });

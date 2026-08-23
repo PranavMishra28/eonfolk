@@ -92,6 +92,12 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	page,
 }) => {
 	const externalRequests = await isolateLocalWorld(page);
+	const generatedAssetRequests: string[] = [];
+	page.on("request", (request) => {
+		const path = new URL(request.url()).pathname;
+		if (path.startsWith("/assets/generated/"))
+			generatedAssetRequests.push(path);
+	});
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/");
@@ -119,12 +125,47 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb");
 	await expect(world).toHaveAttribute("data-persistence-restored", "true");
 	await expect(world).toHaveAttribute("data-catch-up-receipts", "5");
+	await expect(world).toHaveAttribute("data-asset-integrity", "verified");
+	await expect(world).toHaveAttribute(
+		"data-previous-state-hash",
+		/^[0-9a-f]{64}$/u,
+	);
 	const canvas = page.getByTestId("generated-world-canvas");
 	await expect(canvas).toHaveAttribute("data-engine", "playcanvas");
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
+	await expect(canvas).toHaveAttribute("data-embodiment-schema", /v1$/u);
+	await expect(canvas).toHaveAttribute("data-canonical-action-ids", /.+/u);
+	expect(generatedAssetRequests.sort()).toEqual([
+		"/assets/generated/ASSET_MANIFEST.json",
+		"/assets/generated/eonfolk-folk-proxy.gltf",
+	]);
+
+	await page.getByRole("button", { name: "Pause motion" }).click();
+	const stateHashBeforePose = await world.getAttribute("data-state-hash");
+	const tickBefore = Number(
+		await canvas.getAttribute("data-presentation-tick"),
+	);
+	await page.getByRole("button", { name: "Step one pose" }).click();
+	await expect(canvas).toHaveAttribute(
+		"data-presentation-tick",
+		String(tickBefore + 1),
+	);
+	await expect(world).toHaveAttribute(
+		"data-state-hash",
+		stateHashBeforePose ?? "",
+	);
+	const firstResident = page
+		.getByRole("group", { name: "Canonical residents" })
+		.getByRole("button")
+		.first();
+	await firstResident.click();
+	await expect(firstResident).toHaveAttribute("aria-pressed", "true");
+	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
+	await page.getByRole("button", { name: "Follow citizen" }).click();
+	await expect(canvas).toHaveAttribute("data-following", "true");
 
 	await page
 		.getByRole("navigation", { name: "Settlements" })
@@ -178,8 +219,15 @@ test("settlement overview and semantic people remain keyboard-operable", async (
 	await page.getByRole("button", { name: "World in words" }).click();
 	const semantic = page.getByTestId("generated-semantic-world");
 	await expect(semantic).toBeVisible();
-	await expect(semantic.locator("button")).toHaveCount(7);
-	const citizen = semantic.locator("button").first();
+	await expect(
+		semantic
+			.getByRole("group", { name: "Canonical residents" })
+			.getByRole("button"),
+	).toHaveCount(7);
+	const citizen = semantic
+		.getByRole("group", { name: "Canonical residents" })
+		.getByRole("button")
+		.first();
 	await citizen.focus();
 	await citizen.press("Enter");
 	await expect(citizen).toHaveAttribute("aria-pressed", "true");
@@ -191,3 +239,36 @@ test("settlement overview and semantic people remain keyboard-operable", async (
 		)
 		.toBe(true);
 });
+
+for (const viewport of [
+	{ width: 1728, height: 1117 },
+	{ width: 1366, height: 768 },
+	{ width: 390, height: 844 },
+]) {
+	test(`generated embodiment remains truthful and operable at ${viewport.width}x${viewport.height}`, async ({
+		page,
+	}) => {
+		const externalRequests = await isolateLocalWorld(page);
+		await page.setViewportSize(viewport);
+		await page.goto("/world");
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-asset-integrity", "verified");
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 20_000 },
+		);
+		await page.getByRole("button", { name: "Reduce motion" }).click();
+		await expect(world).toHaveAttribute("data-presentation-playing", "false");
+		await page.getByRole("button", { name: "World in words" }).click();
+		await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
+		await expect
+			.poll(() =>
+				page.evaluate(
+					() => document.documentElement.scrollWidth <= window.innerWidth + 1,
+				),
+			)
+			.toBe(true);
+		expect(externalRequests).toEqual([]);
+	});
+}

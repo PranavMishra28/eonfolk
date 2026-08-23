@@ -2,28 +2,29 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
-
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
-import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
 import {
-	projectGeneratedCivilizationSpatial,
-	type GeneratedCivilizationSpatialProjection,
-	type GeneratedSpatialActivityInput,
-	type SpatialActorProjection,
-} from "../../../packages/world-presentation/src/index.js";
-import { generateWorld } from "../../../packages/worldgen/src/index.js";
-import {
-	GENERATED_FOLK_ASSET,
-	INITIAL_GENERATED_NAVIGATION,
 	assertGeneratedAssetBudget,
 	cameraIntentForGeneratedNavigation,
+	GENERATED_FOLK_ASSET,
+	INITIAL_GENERATED_NAVIGATION,
 	planGeneratedActorTransition,
+	poseAtGeneratedPresentationTick,
 	poseForGeneratedActor,
 	projectGeneratedEmbodiment,
 	projectGeneratedWorldEmbodiment,
 	reduceGeneratedNavigation,
 	sampleGeneratedActorTransition,
+	verifyGeneratedFolkAsset,
 } from "../../../apps/web/src/generated-presentation/index.js";
+import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
+import {
+	type GeneratedCivilizationSpatialProjection,
+	type GeneratedSpatialActivityInput,
+	projectGeneratedCivilizationSpatial,
+	type SpatialActorProjection,
+} from "../../../packages/world-presentation/src/index.js";
+import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
 const SEED = "8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 
@@ -266,6 +267,23 @@ describe("generated embodiment projection", () => {
 		);
 	});
 
+	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
+		const positionMm = Object.freeze({ x: 1_200, y: 0, z: -900 });
+		const base = poseForGeneratedActor({
+			animationClass: "walk",
+			positionMm,
+		});
+		const tickZero = poseAtGeneratedPresentationTick(base, 0, 12, false);
+		const tickOne = poseAtGeneratedPresentationTick(base, 8, 12, false);
+
+		expect(tickZero).not.toEqual(tickOne);
+		expect(poseAtGeneratedPresentationTick(base, 8, 12, false)).toEqual(
+			tickOne,
+		);
+		expect(poseAtGeneratedPresentationTick(base, 8, 12, true)).toBe(base);
+		expect(positionMm).toEqual({ x: 1_200, y: 0, z: -900 });
+	});
+
 	it("drives project stage and growth markers from projection deltas", async () => {
 		const { projection, activities } = await fixture();
 		const currentProject = projection.projects[0];
@@ -332,7 +350,7 @@ describe("generated asset provenance", () => {
 	it("tracks an embedded, external-request-free glTF well under the mobile budget", async () => {
 		const bytes = await readFile(
 			new URL(
-				"../../../public/assets/generated/eonfolk-folk-proxy.gltf",
+				"../../../apps/web/public/assets/generated/eonfolk-folk-proxy.gltf",
 				import.meta.url,
 			),
 		);
@@ -350,5 +368,50 @@ describe("generated asset provenance", () => {
 		expect(() =>
 			assertGeneratedAssetBudget(GENERATED_FOLK_ASSET),
 		).not.toThrow();
+	});
+
+	it("admits only the exact manifest-bound bytes", async () => {
+		const [manifestBytes, assetBytes] = await Promise.all([
+			readFile(
+				new URL(
+					"../../../apps/web/public/assets/generated/ASSET_MANIFEST.json",
+					import.meta.url,
+				),
+			),
+			readFile(
+				new URL(
+					"../../../apps/web/public/assets/generated/eonfolk-folk-proxy.gltf",
+					import.meta.url,
+				),
+			),
+		]);
+		const requests: string[] = [];
+		const fetcher = async (input: RequestInfo | URL) => {
+			const url = String(input);
+			requests.push(url);
+			return url.endsWith("ASSET_MANIFEST.json")
+				? new Response(manifestBytes, { status: 200 })
+				: new Response(assetBytes, { status: 200 });
+		};
+
+		const integrity = await verifyGeneratedFolkAsset(fetcher as typeof fetch);
+		expect(requests).toEqual([
+			"/assets/generated/ASSET_MANIFEST.json",
+			"/assets/generated/eonfolk-folk-proxy.gltf",
+		]);
+		expect(integrity).toMatchObject({
+			status: "verified",
+			byteLength: GENERATED_FOLK_ASSET.byteLength,
+			sha256: GENERATED_FOLK_ASSET.sha256,
+		});
+
+		await expect(
+			verifyGeneratedFolkAsset((async (input: RequestInfo | URL) => {
+				const url = String(input);
+				return url.endsWith("ASSET_MANIFEST.json")
+					? new Response(manifestBytes, { status: 200 })
+					: new Response(new Uint8Array(assetBytes.length), { status: 200 });
+			}) as typeof fetch),
+		).rejects.toThrow(/byte length|digest/u);
 	});
 });

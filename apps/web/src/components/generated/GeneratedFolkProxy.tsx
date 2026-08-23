@@ -1,9 +1,11 @@
 import { Entity } from "@playcanvas/react";
 import { Render } from "@playcanvas/react/components";
 import { Color, StandardMaterial } from "playcanvas";
-
-import { GENERATED_FOLK_ASSET } from "../../generated-presentation";
 import type { GeneratedEmbodiedActor } from "../../generated-presentation";
+import {
+	GENERATED_FOLK_ASSET,
+	poseAtGeneratedPresentationTick,
+} from "../../generated-presentation";
 
 type PrimitiveKind = "box" | "cone" | "cylinder" | "sphere";
 
@@ -103,16 +105,25 @@ export function GeneratedFolkProxy({
 	actor,
 	position,
 	selected,
+	presentationTick,
+	reducedMotion,
 }: {
 	readonly actor: GeneratedEmbodiedActor;
 	readonly position: [number, number, number];
 	readonly selected: boolean;
+	readonly presentationTick: number;
+	readonly reducedMotion: boolean;
 }) {
 	const cloth =
 		identityMaterials[actor.identityVariant % identityMaterials.length] ??
 		identityMaterials[0];
 	if (cloth === undefined) throw new Error("generated folk palette is empty");
-	const pose = actor.pose;
+	const pose = poseAtGeneratedPresentationTick(
+		actor.pose,
+		presentationTick,
+		actor.identityVariant,
+		reducedMotion,
+	);
 	return (
 		<Entity
 			name={`${GENERATED_FOLK_ASSET.assetId}:${actor.citizenId}`}
