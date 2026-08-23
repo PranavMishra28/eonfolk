@@ -1,9 +1,12 @@
-import type { Dispatch } from "react";
+import { type Dispatch, useEffect } from "react";
 
-import type {
-	GeneratedEmbodimentProjection,
-	GeneratedNavigationAction,
-	GeneratedNavigationState,
+import {
+	GENERATED_NAVIGATION_EVENT,
+	type GeneratedEmbodimentProjection,
+	type GeneratedNavigationAction,
+	type GeneratedNavigationState,
+	generatedCameraFidelity,
+	parseGeneratedNavigationAction,
 } from "../../generated-presentation";
 
 /**
@@ -30,6 +33,21 @@ export function GeneratedEmbodimentControls({
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
 }) {
+	useEffect(() => {
+		const onCanvasNavigation = (event: Event) => {
+			const action = parseGeneratedNavigationAction(
+				(event as CustomEvent<unknown>).detail,
+			);
+			if (action !== null) dispatch(action);
+		};
+		window.addEventListener(GENERATED_NAVIGATION_EVENT, onCanvasNavigation);
+		return () =>
+			window.removeEventListener(
+				GENERATED_NAVIGATION_EVENT,
+				onCanvasNavigation,
+			);
+	}, [dispatch]);
+	const fidelity = generatedCameraFidelity(navigation.distanceMm);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
@@ -60,6 +78,46 @@ export function GeneratedEmbodimentControls({
 				</button>
 				<button
 					type="button"
+					onClick={() =>
+						dispatch({
+							type: "orbit",
+							yawDeltaDegrees: -12,
+							pitchDeltaDegrees: 0,
+						})
+					}
+				>
+					Orbit left
+				</button>
+				<button
+					type="button"
+					onClick={() =>
+						dispatch({
+							type: "orbit",
+							yawDeltaDegrees: 12,
+							pitchDeltaDegrees: 0,
+						})
+					}
+				>
+					Orbit right
+				</button>
+				<button
+					type="button"
+					onClick={() =>
+						dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 })
+					}
+				>
+					Pan west
+				</button>
+				<button
+					type="button"
+					onClick={() =>
+						dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 })
+					}
+				>
+					Pan east
+				</button>
+				<button
+					type="button"
 					disabled={selectedActor === undefined}
 					aria-pressed={navigation.followCitizen}
 					onClick={() => dispatch({ type: "toggle-follow" })}
@@ -84,10 +142,13 @@ export function GeneratedEmbodimentControls({
 				data-focus-kind={navigation.focus.kind}
 				data-following={String(navigation.followCitizen)}
 				data-camera-distance-mm={navigation.distanceMm}
+				data-semantic-scale={fidelity.semanticScale}
+				data-fidelity-class={fidelity.fidelityClass}
 				data-presentation-tick={presentationTick}
 			>
-				Presentation tick {presentationTick}. Camera distance{" "}
-				{navigation.distanceMm / 1_000} metres.
+				{fidelity.semanticScale} scale · {fidelity.fidelityClass}. Presentation
+				tick {presentationTick}. Camera distance {navigation.distanceMm / 1_000}
+				metres.
 			</p>
 			<fieldset className="generated-residents">
 				<legend>Canonical residents</legend>

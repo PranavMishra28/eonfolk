@@ -149,6 +149,15 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	await expect(canvas).toHaveAttribute("data-interaction-count", /^\d+$/u);
 	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
 	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
+	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
+	await expect(canvas).toHaveAttribute("data-door-height-mm", "2050");
+	await expect(canvas).toHaveAttribute("data-road-width-mm", "1800");
+	await expect(canvas).toHaveAttribute(
+		"data-semantic-scale",
+		/^(?:region|town|citizen)$/u,
+	);
+	await expect(canvas).toHaveAttribute("data-fidelity-class", /^LOD[0-3]$/u);
+	await expect(canvas).toHaveAttribute("data-navigation-mode", "smooth");
 	const routeStates = (await canvas.getAttribute("data-actor-route-states"))
 		?.split(",")
 		.filter(Boolean);
@@ -162,6 +171,73 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 		"/assets/generated/ASSET_MANIFEST.json",
 		"/assets/generated/eonfolk-folk-proxy.gltf",
 	]);
+
+	const stateHashBeforeNavigation = await world.getAttribute("data-state-hash");
+	const canvasBounds = await canvas.boundingBox();
+	if (canvasBounds === null) throw new Error("generated canvas has no bounds");
+	const distanceBeforeWheel = Number(
+		await page
+			.getByTestId("generated-camera-status")
+			.getAttribute("data-camera-distance-mm"),
+	);
+	await page.mouse.move(
+		canvasBounds.x + canvasBounds.width * 0.45,
+		canvasBounds.y + canvasBounds.height * 0.45,
+	);
+	await page.mouse.wheel(0, -120);
+	await expect
+		.poll(() =>
+			page
+				.getByTestId("generated-camera-status")
+				.getAttribute("data-camera-distance-mm")
+				.then(Number),
+		)
+		.toBeLessThan(distanceBeforeWheel);
+	const targetBeforePan = await canvas.getAttribute("data-camera-target-mm");
+	await page.mouse.move(
+		canvasBounds.x + canvasBounds.width * 0.42,
+		canvasBounds.y + canvasBounds.height * 0.42,
+	);
+	await page.mouse.down();
+	await page.mouse.move(
+		canvasBounds.x + canvasBounds.width * 0.34,
+		canvasBounds.y + canvasBounds.height * 0.48,
+		{ steps: 4 },
+	);
+	await page.mouse.up();
+	await expect
+		.poll(() => canvas.getAttribute("data-camera-target-mm"))
+		.not.toBe(targetBeforePan);
+	await page.getByRole("button", { name: "Settlement overview" }).click();
+	await expect(world).toHaveAttribute(
+		"data-state-hash",
+		stateHashBeforeNavigation ?? "",
+	);
+
+	const pickTargets = await expect
+		.poll(() => canvas.getAttribute("data-citizen-pick-targets"))
+		.not.toBeNull()
+		.then(() => canvas.getAttribute("data-citizen-pick-targets"));
+	const firstPick = (
+		JSON.parse(pickTargets ?? "[]") as readonly Readonly<{
+			id: string;
+			x: number;
+			y: number;
+		}>[]
+	)[0];
+	if (firstPick === undefined)
+		throw new Error("camera exposed no citizen picks");
+	await page.mouse.click(
+		canvasBounds.x + firstPick.x,
+		canvasBounds.y + firstPick.y,
+	);
+	await expect(canvas).toHaveAttribute(
+		"data-last-world-pick",
+		`citizen:${firstPick.id}`,
+	);
+	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
+	await expect(canvas).toHaveAttribute("data-semantic-scale", "citizen");
+	await page.getByRole("button", { name: "Settlement overview" }).click();
 
 	await page.getByRole("button", { name: "Pause motion" }).click();
 	const stateHashBeforePose = await world.getAttribute("data-state-hash");

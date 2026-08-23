@@ -13,6 +13,7 @@ export interface GeneratedNavigationState {
 	readonly distanceMm: number;
 	readonly yawDegrees: number;
 	readonly pitchDegrees: number;
+	readonly panOffsetMm: Readonly<{ readonly x: number; readonly z: number }>;
 }
 
 export type GeneratedNavigationAction =
@@ -21,6 +22,11 @@ export type GeneratedNavigationAction =
 	| Readonly<{ readonly type: "select-project"; readonly projectId: string }>
 	| Readonly<{ readonly type: "toggle-follow" }>
 	| Readonly<{ readonly type: "zoom"; readonly deltaMm: number }>
+	| Readonly<{
+			readonly type: "pan";
+			readonly xDeltaMm: number;
+			readonly zDeltaMm: number;
+	  }>
 	| Readonly<{
 			readonly type: "orbit";
 			readonly yawDeltaDegrees: number;
@@ -36,8 +42,78 @@ export interface GeneratedCameraIntent {
 	readonly semanticLabel: string;
 }
 
+export type GeneratedSemanticScale = "region" | "town" | "citizen";
+export type GeneratedFidelityClass = "LOD0" | "LOD1" | "LOD2" | "LOD3";
+
+export interface GeneratedCameraFidelity {
+	readonly semanticScale: GeneratedSemanticScale;
+	readonly fidelityClass: GeneratedFidelityClass;
+}
+
+export const GENERATED_NAVIGATION_EVENT = "eonfolk:generated-navigation";
+
+/** Fail-closed boundary for canvas-originated DOM navigation intents. */
+export function parseGeneratedNavigationAction(
+	value: unknown,
+): GeneratedNavigationAction | null {
+	if (typeof value !== "object" || value === null) return null;
+	const candidate = value as Readonly<Record<string, unknown>>;
+	switch (candidate.type) {
+		case "overview":
+		case "toggle-follow":
+			return Object.freeze({ type: candidate.type });
+		case "select-citizen":
+			return typeof candidate.citizenId === "string" &&
+				candidate.citizenId.length > 0
+				? Object.freeze({
+						type: "select-citizen",
+						citizenId: candidate.citizenId,
+					})
+				: null;
+		case "select-project":
+			return typeof candidate.projectId === "string" &&
+				candidate.projectId.length > 0
+				? Object.freeze({
+						type: "select-project",
+						projectId: candidate.projectId,
+					})
+				: null;
+		case "zoom":
+			return typeof candidate.deltaMm === "number" &&
+				Number.isFinite(candidate.deltaMm)
+				? Object.freeze({ type: "zoom", deltaMm: candidate.deltaMm })
+				: null;
+		case "pan":
+			return typeof candidate.xDeltaMm === "number" &&
+				typeof candidate.zDeltaMm === "number" &&
+				Number.isFinite(candidate.xDeltaMm) &&
+				Number.isFinite(candidate.zDeltaMm)
+				? Object.freeze({
+						type: "pan",
+						xDeltaMm: candidate.xDeltaMm,
+						zDeltaMm: candidate.zDeltaMm,
+					})
+				: null;
+		case "orbit":
+			return typeof candidate.yawDeltaDegrees === "number" &&
+				typeof candidate.pitchDeltaDegrees === "number" &&
+				Number.isFinite(candidate.yawDeltaDegrees) &&
+				Number.isFinite(candidate.pitchDeltaDegrees)
+				? Object.freeze({
+						type: "orbit",
+						yawDeltaDegrees: candidate.yawDeltaDegrees,
+						pitchDeltaDegrees: candidate.pitchDeltaDegrees,
+					})
+				: null;
+		default:
+			return null;
+	}
+}
+
 const MIN_CAMERA_DISTANCE_MM = 8_000;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
+const MAX_CAMERA_PAN_MM = 120_000;
+const CAMERA_BLEND_BASIS_POINTS = 2_600;
 
 export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 	Object.freeze({
@@ -46,6 +122,7 @@ export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 		distanceMm: 72_000,
 		yawDegrees: 42,
 		pitchDegrees: -38,
+		panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 	});
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -58,17 +135,55 @@ function finite(value: number, label: string): number {
 	return value;
 }
 
+function assertNavigationState(state: GeneratedNavigationState): void {
+	finite(state.distanceMm, "distance");
+	finite(state.yawDegrees, "yaw");
+	finite(state.pitchDegrees, "pitch");
+	finite(state.panOffsetMm.x, "pan x");
+	finite(state.panOffsetMm.z, "pan z");
+	if (
+		state.distanceMm < MIN_CAMERA_DISTANCE_MM ||
+		state.distanceMm > MAX_CAMERA_DISTANCE_MM ||
+		state.pitchDegrees < -75 ||
+		state.pitchDegrees > -18
+	)
+		throw new Error("generated navigation: state is outside camera bounds");
+	if (
+		(state.focus.kind === "citizen" && state.focus.citizenId.length === 0) ||
+		(state.focus.kind === "project" && state.focus.projectId.length === 0)
+	)
+		throw new Error("generated navigation: focused identity is empty");
+}
+
+/** Distance alone determines semantic scale and renderer fidelity. */
+export function generatedCameraFidelity(
+	distanceMm: number,
+): GeneratedCameraFidelity {
+	const distance = finite(distanceMm, "fidelity distance");
+	if (distance < MIN_CAMERA_DISTANCE_MM)
+		throw new Error("generated navigation: fidelity distance is too near");
+	if (distance <= 18_000)
+		return Object.freeze({ semanticScale: "citizen", fidelityClass: "LOD0" });
+	if (distance <= 34_000)
+		return Object.freeze({ semanticScale: "citizen", fidelityClass: "LOD1" });
+	if (distance <= 100_000)
+		return Object.freeze({ semanticScale: "town", fidelityClass: "LOD2" });
+	return Object.freeze({ semanticScale: "region", fidelityClass: "LOD3" });
+}
+
 /** Shared reducer for pointer controls, keyboard controls and semantic DOM UI. */
 export function reduceGeneratedNavigation(
 	state: GeneratedNavigationState,
 	action: GeneratedNavigationAction,
 ): GeneratedNavigationState {
+	assertNavigationState(state);
 	switch (action.type) {
 		case "overview":
 			return Object.freeze({
 				...state,
 				focus: Object.freeze({ kind: "overview" }),
 				followCitizen: false,
+				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-citizen":
 			if (action.citizenId.length === 0)
@@ -81,6 +196,7 @@ export function reduceGeneratedNavigation(
 				}),
 				followCitizen: false,
 				distanceMm: Math.min(state.distanceMm, 24_000),
+				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":
 			if (action.projectId.length === 0)
@@ -93,6 +209,7 @@ export function reduceGeneratedNavigation(
 				}),
 				followCitizen: false,
 				distanceMm: Math.min(state.distanceMm, 34_000),
+				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "toggle-follow":
 			if (state.focus.kind !== "citizen") return state;
@@ -111,6 +228,27 @@ export function reduceGeneratedNavigation(
 					),
 				),
 			});
+		case "pan":
+			return Object.freeze({
+				...state,
+				followCitizen: false,
+				panOffsetMm: Object.freeze({
+					x: Math.round(
+						clamp(
+							state.panOffsetMm.x + finite(action.xDeltaMm, "pan x delta"),
+							-MAX_CAMERA_PAN_MM,
+							MAX_CAMERA_PAN_MM,
+						),
+					),
+					z: Math.round(
+						clamp(
+							state.panOffsetMm.z + finite(action.zDeltaMm, "pan z delta"),
+							-MAX_CAMERA_PAN_MM,
+							MAX_CAMERA_PAN_MM,
+						),
+					),
+				}),
+			});
 		case "orbit": {
 			const yaw =
 				state.yawDegrees + finite(action.yawDeltaDegrees, "yaw delta");
@@ -126,6 +264,53 @@ export function reduceGeneratedNavigation(
 			});
 		}
 	}
+}
+
+function interpolateInteger(current: number, desired: number): number {
+	const delta = desired - current;
+	if (Math.abs(delta) <= 1) return desired;
+	return current + Math.round((delta * CAMERA_BLEND_BASIS_POINTS) / 10_000);
+}
+
+function interpolateYaw(current: number, desired: number): number {
+	const delta = ((desired - current + 540) % 360) - 180;
+	const next = current + (Math.abs(delta) <= 0.05 ? delta : delta * 0.26);
+	return ((next % 360) + 360) % 360;
+}
+
+/** Pure frame-step camera interpolation; reduced motion applies the target once. */
+export function advanceGeneratedCameraIntent(
+	current: GeneratedCameraIntent,
+	desired: GeneratedCameraIntent,
+	reducedMotion: boolean,
+): GeneratedCameraIntent {
+	for (const [label, value] of [
+		["current distance", current.distanceMm],
+		["desired distance", desired.distanceMm],
+		["current target x", current.targetMm.x],
+		["current target y", current.targetMm.y],
+		["current target z", current.targetMm.z],
+		["desired target x", desired.targetMm.x],
+		["desired target y", desired.targetMm.y],
+		["desired target z", desired.targetMm.z],
+	] as const)
+		finite(value, label);
+	if (reducedMotion) return desired;
+	return Object.freeze({
+		...desired,
+		targetMm: Object.freeze({
+			x: interpolateInteger(current.targetMm.x, desired.targetMm.x),
+			y: interpolateInteger(current.targetMm.y, desired.targetMm.y),
+			z: interpolateInteger(current.targetMm.z, desired.targetMm.z),
+		}),
+		distanceMm: interpolateInteger(current.distanceMm, desired.distanceMm),
+		yawDegrees: interpolateYaw(current.yawDegrees, desired.yawDegrees),
+		pitchDegrees:
+			Math.abs(desired.pitchDegrees - current.pitchDegrees) <= 0.05
+				? desired.pitchDegrees
+				: current.pitchDegrees +
+					(desired.pitchDegrees - current.pitchDegrees) * 0.26,
+	});
 }
 
 function overviewCenter(model: GeneratedEmbodimentProjection): SpatialPointMm {
@@ -150,6 +335,7 @@ export function cameraIntentForGeneratedNavigation(
 	model: GeneratedEmbodimentProjection,
 	state: GeneratedNavigationState,
 ): GeneratedCameraIntent {
+	assertNavigationState(state);
 	let targetMm = overviewCenter(model);
 	let semanticLabel = `${model.settlementName} overview`;
 	let followCitizenId: string | null = null;
@@ -193,6 +379,11 @@ export function cameraIntentForGeneratedNavigation(
 		}
 		semanticLabel = `Viewing ${project.semanticLabel}`;
 	}
+	targetMm = Object.freeze({
+		x: targetMm.x + state.panOffsetMm.x,
+		y: targetMm.y,
+		z: targetMm.z + state.panOffsetMm.z,
+	});
 	return Object.freeze({
 		targetMm,
 		distanceMm: state.distanceMm,

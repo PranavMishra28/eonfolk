@@ -3,10 +3,13 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 import {
+	advanceGeneratedCameraIntent,
 	assertGeneratedAssetBudget,
 	cameraIntentForGeneratedNavigation,
 	GENERATED_FOLK_ASSET,
+	generatedCameraFidelity,
 	INITIAL_GENERATED_NAVIGATION,
+	parseGeneratedNavigationAction,
 	planGeneratedActorTransition,
 	poseAtGeneratedPresentationTick,
 	poseForGeneratedActor,
@@ -357,6 +360,94 @@ describe("generated navigation parity", () => {
 		expect(intent.targetMm).toEqual(actor.positionMm);
 		expect(intent.followCitizenId).toBe(actor.citizenId);
 		expect(intent.semanticLabel).toContain("Following");
+	});
+
+	it("derives four fidelity classes across region, town and citizen scales", () => {
+		expect(generatedCameraFidelity(8_000)).toEqual({
+			semanticScale: "citizen",
+			fidelityClass: "LOD0",
+		});
+		expect(generatedCameraFidelity(24_000)).toEqual({
+			semanticScale: "citizen",
+			fidelityClass: "LOD1",
+		});
+		expect(generatedCameraFidelity(72_000)).toEqual({
+			semanticScale: "town",
+			fidelityClass: "LOD2",
+		});
+		expect(generatedCameraFidelity(140_000)).toEqual({
+			semanticScale: "region",
+			fidelityClass: "LOD3",
+		});
+	});
+
+	it("shares bounded pan/orbit state without changing a projected actor", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const before = structuredClone(model);
+		const panned = reduceGeneratedNavigation(INITIAL_GENERATED_NAVIGATION, {
+			type: "pan",
+			xDeltaMm: 8_000,
+			zDeltaMm: -4_000,
+		});
+		const orbited = reduceGeneratedNavigation(panned, {
+			type: "orbit",
+			yawDeltaDegrees: 20,
+			pitchDeltaDegrees: -8,
+		});
+		const intent = cameraIntentForGeneratedNavigation(model, orbited);
+
+		expect(orbited.panOffsetMm).toEqual({ x: 8_000, z: -4_000 });
+		expect(intent.yawDegrees).toBe(62);
+		expect(model).toEqual(before);
+	});
+
+	it("advances camera presentation deterministically and honors reduced motion", () => {
+		const current = Object.freeze({
+			targetMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			distanceMm: 72_000,
+			yawDegrees: 350,
+			pitchDegrees: -38,
+			followCitizenId: null,
+			semanticLabel: "current",
+		});
+		const desired = Object.freeze({
+			...current,
+			targetMm: Object.freeze({ x: 10_000, y: 0, z: -5_000 }),
+			distanceMm: 24_000,
+			yawDegrees: 10,
+			semanticLabel: "desired",
+		});
+		const first = advanceGeneratedCameraIntent(current, desired, false);
+
+		expect(first).toEqual(
+			advanceGeneratedCameraIntent(current, desired, false),
+		);
+		expect(first.targetMm).toEqual({ x: 2_600, y: 0, z: -1_300 });
+		expect(first.distanceMm).toBe(59_520);
+		expect(first.yawDegrees).toBeCloseTo(355.2);
+		expect(advanceGeneratedCameraIntent(current, desired, true)).toBe(desired);
+	});
+
+	it("fails closed on malformed DOM actions and corrupt navigation state", () => {
+		expect(
+			parseGeneratedNavigationAction({ type: "zoom", deltaMm: Number.NaN }),
+		).toBeNull();
+		expect(
+			parseGeneratedNavigationAction({ type: "invent-reality" }),
+		).toBeNull();
+		expect(() =>
+			reduceGeneratedNavigation(
+				{
+					...INITIAL_GENERATED_NAVIGATION,
+					distanceMm: Number.NaN,
+				},
+				{ type: "overview" },
+			),
+		).toThrow(/must be finite/u);
 	});
 });
 
