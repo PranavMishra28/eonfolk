@@ -1,22 +1,67 @@
 {
-	"schemaVersion": "eonfolk-generated-asset-manifest-v1",
-	"createdAt": "2026-08-23",
+	"schemaVersion": "eonfolk-generated-asset-manifest-v2",
+	"authoredOn": "2026-08-23",
 	"budget": {
 		"maximumInitialGeneratedAssetBytes": 4194304,
-		"trackedBytes": 3522
+		"trackedBytes": 6322,
+		"deliveryBytes": 2800
+	},
+	"pipeline": {
+		"validator": "scripts/validate-generated-assets.mjs",
+		"writeCommand": "pnpm assets:write",
+		"validationCommand": "pnpm assets:validate",
+		"sourcePath": "/assets/generated/eonfolk-folk-proxy.gltf",
+		"deliveryPath": "/assets/generated/eonfolk-folk-proxy.glb",
+		"conversion": "deterministic embedded-data glTF 2.0 to self-contained GLB 2.0",
+		"determinism": "GLB and manifest bytes are pure functions of the tracked source glTF and this validator version"
 	},
 	"assets": [
 		{
 			"assetId": "eonfolk-folk-proxy-v1",
+			"role": "authoring-source",
 			"path": "/assets/generated/eonfolk-folk-proxy.gltf",
 			"mediaType": "model/gltf+json",
 			"byteLength": 3522,
 			"sha256": "8314ce09ca546ce516de51c04d444de12f75b92409f1fcbc955068c31da6b533",
+			"generatedFrom": null,
 			"source": "repository-authored deterministic geometry",
-			"generator": "hand-authored glTF 2.0 JSON with embedded cube geometry",
-			"rights": "repository-authored; no third-party material",
+			"generator": "repository-authored glTF 2.0 JSON with embedded cuboid geometry; no Blender authorship claimed",
+			"rights": "Authored in this repository for EONFOLK; no third-party inputs or downloads; no standalone asset license granted.",
 			"externalDependencies": [],
-			"intendedRole": "recognizable humanoid proxy with named limbs and a task-prop anchor",
+			"partNodeNames": [
+				"torso",
+				"head",
+				"arm-left",
+				"arm-right",
+				"leg-left",
+				"leg-right",
+				"task-prop-anchor"
+			],
+			"intendedRole": "recognizable humanoid proxy with named pose parts and task-prop anchor",
+			"productionStatus": "bounded V1 proxy; not final character art"
+		},
+		{
+			"assetId": "eonfolk-folk-proxy-glb-v1",
+			"role": "delivery",
+			"path": "/assets/generated/eonfolk-folk-proxy.glb",
+			"mediaType": "model/gltf-binary",
+			"byteLength": 2800,
+			"sha256": "b08c8222619bee068144d0d8b50e508d74cbde9c95f499916eaa2ff0fc219cfe",
+			"generatedFrom": "/assets/generated/eonfolk-folk-proxy.gltf",
+			"source": "repository-authored deterministic geometry",
+			"generator": "scripts/validate-generated-assets.mjs deterministic glTF-to-GLB conversion",
+			"rights": "Authored in this repository for EONFOLK; no third-party inputs or downloads; no standalone asset license granted.",
+			"externalDependencies": [],
+			"partNodeNames": [
+				"torso",
+				"head",
+				"arm-left",
+				"arm-right",
+				"leg-left",
+				"leg-right",
+				"task-prop-anchor"
+			],
+			"intendedRole": "recognizable humanoid proxy with named pose parts and task-prop anchor",
 			"productionStatus": "bounded V1 proxy; not final character art"
 		}
 	]
