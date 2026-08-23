@@ -54,7 +54,7 @@ describe("generated civilization spatial properties", () => {
 					expect(second).toEqual(first);
 					expect(first.availability).toEqual({
 						status: "unavailable",
-						reasons: ["canonical-citizens-unavailable"],
+						reasons: ["canonical-activities-unavailable"],
 					});
 					expect(first.scene).toEqual(later.scene);
 					expect(first.overview).toEqual(later.overview);

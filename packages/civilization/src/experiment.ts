@@ -42,17 +42,18 @@ import {
 	registerCitizen,
 	registerRelationship,
 } from "./population.js";
+import { deriveCanonicalPressures } from "./pressures.js";
 import { createCivilizationState, evolve } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v3" as const;
+	"eonfolk-civilization-experiment-v4" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v3" as const;
+	"eonfolk-civilization-runner-v4" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v3" as const;
+	"eonfolk-civilization-experiment-event-v4" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v3" as const;
+	"eonfolk-civilization-experiment-step-v4" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
@@ -162,6 +163,14 @@ export interface CivilizationExperimentMetrics {
 	readonly simulationTime: number;
 	readonly revision: number;
 	readonly population: number;
+	readonly residentPopulation: number;
+	readonly travellingPopulation: number;
+	readonly departedPopulation: number;
+	readonly householdCount: number;
+	readonly relationshipCount: number;
+	readonly averagePressureBasisPointsByKind: Readonly<
+		Record<"food" | "water" | "housing" | "labor" | "travel" | "social", number>
+	>;
 	readonly stockTotalsByResource: Readonly<Record<string, number>>;
 	readonly consumedProjectTimber: number;
 	readonly completedProjects: number;
@@ -195,7 +204,7 @@ export interface CivilizationExperimentRun {
 }
 
 export interface CivilizationExperimentMatrix {
-	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v3";
+	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v4";
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
 	readonly horizons: readonly [30, 90, 365];
 	readonly runs: readonly CivilizationExperimentRun[];
@@ -588,7 +597,7 @@ async function stateHash(
 	state: CivilizationState,
 	worldStateHash: string,
 ): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v3", {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4", {
 		civilization: state,
 		worldStateHash,
 	});
@@ -612,7 +621,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4",
 		body,
 	);
 	return {
@@ -631,6 +640,46 @@ function projectTimberConsumed(state: CivilizationState): number {
 		)
 		.flatMap((entry) => entry.stockDeltas)
 		.reduce((total, delta) => total + Math.max(0, -delta.quantityDelta), 0);
+}
+
+function averagePressures(
+	state: CivilizationState,
+): CivilizationExperimentMetrics["averagePressureBasisPointsByKind"] {
+	const kinds = [
+		"food",
+		"water",
+		"housing",
+		"labor",
+		"travel",
+		"social",
+	] as const;
+	const habitableBuildingIds = Object.values(state.households)
+		.map(({ dwellingBuildingId }) => dwellingBuildingId)
+		.filter((buildingId): buildingId is string => buildingId !== null);
+	const samples = Object.values(state.citizens).flatMap((citizen) =>
+		citizen.residenceState === "departed"
+			? []
+			: deriveCanonicalPressures(
+					state,
+					citizen.citizenId,
+					{
+						foodResourceTypeIds: ["grain"],
+						waterResourceTypeIds: ["water"],
+						habitableBuildingIds,
+						quantityObservationGranularity: 1,
+						socialIntervalSeconds: SECONDS_PER_DAY,
+					},
+					state.simulationTime,
+				),
+	);
+	return Object.fromEntries(
+		kinds.map((kind) => {
+			const values = samples
+				.filter((sample) => sample.kind === kind)
+				.map(({ severityBasisPoints }) => severityBasisPoints);
+			return [kind, average(values)];
+		}),
+	) as CivilizationExperimentMetrics["averagePressureBasisPointsByKind"];
 }
 
 function metrics(
@@ -664,13 +713,26 @@ function metrics(
 		outcomeReason = "canonical-second-settlement-materialized";
 	else if (viableFoundings > 0) outcomeReason = "physical-founding-viable";
 	else if (migrations.length > 0) outcomeReason = "physical-expansion-underway";
+	const residents = Object.values(state.citizens).filter(
+		(citizen) => citizen.residenceState === "resident",
+	).length;
+	const travelling = Object.values(state.citizens).filter(
+		(citizen) => citizen.residenceState === "travelling",
+	).length;
+	const departed = Object.values(state.citizens).filter(
+		(citizen) => citizen.residenceState === "departed",
+	).length;
 	return {
 		horizonDays,
 		simulationTime: state.simulationTime,
 		revision: state.revision,
-		population: Object.values(state.citizens).filter(
-			(citizen) => citizen.residenceState !== "departed",
-		).length,
+		population: residents + travelling,
+		residentPopulation: residents,
+		travellingPopulation: travelling,
+		departedPopulation: departed,
+		householdCount: Object.keys(state.households).length,
+		relationshipCount: Object.keys(state.relationships).length,
+		averagePressureBasisPointsByKind: averagePressures(state),
 		stockTotalsByResource: audit.stockTotalsByResource,
 		consumedProjectTimber: projectTimberConsumed(state),
 		completedProjects,
@@ -705,7 +767,7 @@ export async function runCivilizationExperiment(input: {
 	let state = bootstrapCivilization(input.world, conditions);
 	let world = input.world;
 	let worldStateHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
 		world,
 	);
 	assertCivilizationInvariants(state);
@@ -1011,7 +1073,7 @@ export async function runCivilizationExperiment(input: {
 				foundedAtSimulationTime: atSimulationTime,
 			});
 			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
 				world,
 			);
 			state = recordFoundingMaterialization(
@@ -1044,7 +1106,7 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v3",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4",
 				stepBody,
 			),
 		});
@@ -1085,7 +1147,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		for (const horizonDays of horizons)
 			runs.push(await runCivilizationExperiment({ world, horizonDays }));
 	const matrixBody = {
-		schemaVersion: "eonfolk-civilization-experiment-matrix-v3" as const,
+		schemaVersion: "eonfolk-civilization-experiment-matrix-v4" as const,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
 		horizons,
 		runs: runs.map((run) => ({
@@ -1101,7 +1163,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		...matrixBody,
 		runs,
 		matrixHash: await domainHash(
-			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v3",
+			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v4",
 			matrixBody,
 		),
 	};

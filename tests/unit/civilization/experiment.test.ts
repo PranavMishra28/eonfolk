@@ -123,7 +123,7 @@ describe("deterministic civilization experiment", () => {
 			);
 			const { eventHash, eventId, ...eventBody } = event;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v3", eventBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4", eventBody),
 			).toBe(eventHash);
 			expect(eventId).toBe(
 				`civilization-event:${index}:${eventHash.slice(0, 16)}`,
@@ -132,7 +132,7 @@ describe("deterministic civilization experiment", () => {
 		for (const [index, step] of first.steps.entries()) {
 			const { stepHash, ...stepBody } = step;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v3", stepBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4", stepBody),
 			).toBe(stepHash);
 			expect(step.stepIndex).toBe(index);
 			expect(step.fromSimulationTime).toBe(index * 86_400);
@@ -162,6 +162,19 @@ describe("deterministic civilization experiment", () => {
 		expect(Object.keys(first.state.households)).toHaveLength(4);
 		expect(Object.keys(first.state.relationships)).toHaveLength(8);
 		expect(first.metrics.population).toBe(8);
+		expect(first.metrics.residentPopulation).toBe(8);
+		expect(first.metrics.travellingPopulation).toBe(0);
+		expect(first.metrics.departedPopulation).toBe(0);
+		expect(first.metrics.householdCount).toBe(4);
+		expect(first.metrics.relationshipCount).toBe(8);
+		expect(first.metrics.averagePressureBasisPointsByKind).toEqual({
+			food: expect.any(Number),
+			water: expect.any(Number),
+			housing: expect.any(Number),
+			labor: expect.any(Number),
+			travel: expect.any(Number),
+			social: expect.any(Number),
+		});
 		expect(first.state.citizens["citizen-01"]).toMatchObject({
 			settlementId: "settlement-second",
 			siteId: "settlement-second:founding-site",

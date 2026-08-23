@@ -120,7 +120,7 @@ function slotActivity(input: {
 }
 
 describe("generated civilization spatial adapter", () => {
-	it("fails closed honestly when the experiment has reference IDs but no canonical people", async () => {
+	it("fails closed honestly when canonical people lack scheduler activities", async () => {
 		const run = await checkpoint();
 		const projection = projectGeneratedCivilizationSpatial({
 			world: run.world,
@@ -131,10 +131,10 @@ describe("generated civilization spatial adapter", () => {
 		});
 
 		expect(run.state.references.citizenIds).toHaveLength(8);
-		expect(Object.keys(run.state.citizens)).toHaveLength(0);
+		expect(Object.keys(run.state.citizens)).toHaveLength(8);
 		expect(projection.availability).toEqual({
 			status: "unavailable",
-			reasons: ["canonical-citizens-unavailable"],
+			reasons: ["canonical-activities-unavailable"],
 		});
 		expect(projection.spatial.actors).toEqual([]);
 		expect(projection.local.sites.length).toBeGreaterThan(0);

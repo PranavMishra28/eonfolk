@@ -27,7 +27,7 @@ export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
 	"eonfolk-release-genesis-civilization-transition-v2" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v2" as const;
+	"eonfolk-release-genesis-civilization-engine-v3" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -35,11 +35,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v3" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v3" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v4" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v4" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v3" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v3" as const;
+	"eonfolk-civilization-experiment-event-v4" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v4" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
@@ -253,7 +253,7 @@ async function validateSourceEvent(
 	hash(source.postStateHash, `source event ${index}.postStateHash`);
 	const eventHash = hash(source.eventHash, `source event ${index}.eventHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4",
 		without(source, ["eventHash", "eventId"]),
 	);
 	if (eventHash !== expected)
@@ -297,7 +297,7 @@ async function validateSourceStep(
 	);
 	const stepHash = hash(source.stepHash, `source step ${index}.stepHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4",
 		without(source, ["stepHash"]),
 	);
 	if (stepHash !== expected)
@@ -389,11 +389,11 @@ async function validateCheckpoint(
 	const world = json(checkpoint.world, "checkpoint.world");
 	const civilization = json(checkpoint.state, "checkpoint.state");
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
 		world,
 	);
 	const sourceStateHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4",
 		{ civilization, worldStateHash: sourceWorldHash },
 	);
 	if (sourceStateHash !== checkpoint.finalStateHash)
@@ -643,11 +643,11 @@ async function validateCheckpointSourceState(
 ): Promise<void> {
 	if (state.phase !== "checkpoint" || state.civilization === null) return;
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
 		state.world,
 	);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v3",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4",
 		{ civilization: state.civilization, worldStateHash: sourceWorldHash },
 	);
 	if (expected !== state.finalExperimentStateHash)

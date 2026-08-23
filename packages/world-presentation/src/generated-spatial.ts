@@ -88,10 +88,10 @@ export interface GeneratedSpatialCivilizationInput {
 	readonly projects: Readonly<Record<string, CivilizationProjectInput>>;
 }
 
-/** Exact metadata the adapter consumes from a validated v3 checkpoint. */
+/** Exact metadata the adapter consumes from a validated v4 checkpoint. */
 export interface GeneratedSpatialCheckpointInput {
-	readonly schemaVersion: "eonfolk-civilization-experiment-v3";
-	readonly runnerVersion: "eonfolk-civilization-runner-v3";
+	readonly schemaVersion: "eonfolk-civilization-experiment-v4";
+	readonly runnerVersion: "eonfolk-civilization-runner-v4";
 	readonly worldIdentityHash: string;
 	readonly horizonDays: number;
 	readonly finalStateHash: string;
@@ -244,8 +244,8 @@ function validateIdentity(
 	if (input.civilization.schemaVersion !== "eonfolk-civilization-kernel-v3")
 		fail("unsupported civilization schema");
 	if (
-		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v3" ||
-		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v3"
+		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v4" ||
+		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v4"
 	)
 		fail("unsupported checkpoint schema or runner");
 	if (input.checkpoint.worldIdentityHash !== input.world.identity.identityHash)
