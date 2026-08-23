@@ -67,7 +67,6 @@ export interface GeneratedWorldExperience {
 	readonly embodiments: readonly GeneratedEmbodimentProjection[];
 	readonly previousStateHash: string;
 	readonly previousHorizonDays: number;
-	readonly embodimentLimitations: readonly string[];
 	readonly persistence: GeneratedWorldPersistenceStatus;
 	readonly authorityRegionId: string;
 	readonly authorityDatabaseName: string;
@@ -389,7 +388,6 @@ export async function buildGeneratedWorldExperience(
 		embodiments,
 		previousStateHash: previousRun.finalStateHash,
 		previousHorizonDays: previousRun.horizonDays,
-		embodimentLimitations: worldEmbodiment.limitations,
 		persistence,
 		authorityRegionId: run.world.identity.worldId,
 		authorityDatabaseName: databaseName,

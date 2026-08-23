@@ -13,7 +13,7 @@ const rootLockUrl = new URL("../pnpm-lock.yaml", import.meta.url);
 
 const EXPECTED = Object.freeze({
 	package: "77538d5cb83d125665996b33900775da7b079ea01d7bb97b26af3c0198ee06d1",
-	lock: "c9abef49dbc0fc1232891651eb1fb0c590270b29a011367d7e21db768b31bd0d",
+	lock: "e5fe6b21d434a0e6809e78bc460e8ee7725c00f07341fb18f8ccaabc828cbbeb",
 	ledger: "2c2a46243a67e1c705be988b11e62ef00426da01a39c94cef4bffac8a8f67a8f",
 	packageCount: 235,
 });

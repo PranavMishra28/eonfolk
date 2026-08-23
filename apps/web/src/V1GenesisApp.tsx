@@ -14,7 +14,6 @@ import { FeedbackPanel } from "./components/FeedbackPanel";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
-	type GeneratedAssetIntegrity,
 	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationAction,
@@ -61,17 +60,9 @@ const GeneratedWorldCanvas = lazy(async () => {
 
 type WorldView = "embodied" | "semantic" | "overview";
 
-type GeneratedAssetState =
-	| Readonly<{ readonly status: "checking" }>
-	| Readonly<{
-			readonly status: "verified";
-			readonly integrity: GeneratedAssetIntegrity;
-	  }>
-	| Readonly<{ readonly status: "failed"; readonly error: Error }>;
+type GeneratedAssetState = "checking" | "verified" | "failed";
 
-function readableId(value: string): string {
-	return value.replace(/[-_:]+/gu, " ");
-}
+const readableId = (value: string) => value.replace(/[-_:]+/gu, " ");
 
 function useGeneratedFault(): GeneratedWorldFaultSpec | null | undefined {
 	const [fault, setFault] = useState<
@@ -154,9 +145,7 @@ function useGeneratedExperience(
 function useGeneratedAsset(
 	fault: GeneratedWorldFaultSpec | null,
 ): GeneratedAssetState {
-	const [state, setState] = useState<GeneratedAssetState>(() =>
-		Object.freeze({ status: "checking" }),
-	);
+	const [state, setState] = useState<GeneratedAssetState>(() => "checking");
 	useEffect(() => {
 		let active = true;
 		const verification = generatedFaultHooks
@@ -168,21 +157,8 @@ function useGeneratedAsset(
 				)
 			: verifyGeneratedFolkAsset();
 		void verification.then(
-			(integrity) => {
-				if (active) setState(Object.freeze({ status: "verified", integrity }));
-			},
-			(reason: unknown) => {
-				if (active)
-					setState(
-						Object.freeze({
-							status: "failed",
-							error:
-								reason instanceof Error
-									? reason
-									: new Error("Generated asset verification failed"),
-						}),
-					);
-			},
+			() => active && setState("verified"),
+			() => active && setState("failed"),
 		);
 		return () => {
 			active = false;
@@ -593,6 +569,14 @@ function GeneratedContextPanel({
 						name: selectedProject.name,
 						status: `State ${selectedProject.state} · ${Math.round(selectedProject.progressBasisPoints / 100)}% complete.`,
 					};
+	const contextualObjectId =
+		selectedActor === undefined
+			? undefined
+			: (model.projects.find(({ siteId }) => siteId === selectedActor.placeId)
+					?.projectId ??
+				projection.local.buildings.find(
+					({ siteId }) => siteId === selectedActor.placeId,
+				)?.buildingId);
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
 		const href = buildWorldFocusHref(focus);
@@ -920,6 +904,12 @@ function GeneratedContextPanel({
 															},
 															"Current site",
 														)}
+												{contextualObjectId === undefined
+													? null
+													: worldLink(
+															{ kind: "object", objectId: contextualObjectId },
+															"Object",
+														)}
 											</li>
 										))}
 									</ol>
@@ -1026,6 +1016,7 @@ function GeneratedWorld({
 	const [navigationRejection, setNavigationRejection] = useState<string | null>(
 		null,
 	);
+	const [focusedEventId, setFocusedEventId] = useState<string | null>(null);
 	const [focusedLocationId, setFocusedLocationId] = useState<string | null>(
 		null,
 	);
@@ -1068,13 +1059,16 @@ function GeneratedWorld({
 		(focus: WorldFocus, updateHistory = true) => {
 			const href = buildWorldFocusHref(focus)!;
 			if (focus.kind === "event") {
-				if (!updateHistory) reportNavigationRejection("foreign-reference");
-				else {
-					setNavigationRejection(null);
-					window.history.pushState(null, "", href);
+				if (!updateHistory) {
+					reportNavigationRejection("foreign-reference");
+					return;
 				}
+				setFocusedEventId(focus.eventId);
+				setNavigationRejection(null);
+				window.history.pushState(null, "", href);
 				return;
 			}
+			setFocusedEventId(null);
 			const targetId = worldFocusId(focus);
 			const matches = experience.projections.flatMap((candidate) => {
 				const settlement = experience.embodiments.find(
@@ -1206,14 +1200,14 @@ function GeneratedWorld({
 	}, [fault]);
 
 	useEffect(() => {
-		if (asset.status !== "failed" || assetIncidentReported.current) return;
+		if (asset !== "failed" || assetIncidentReported.current) return;
 		assetIncidentReported.current = true;
 		void browserDiagnostics.captureRuntimeFailure({
 			code: "GENERATED_ASSET_INTEGRITY_FAILED",
 			component: "generated-world-asset",
 			protectReality: () => setView("semantic"),
 		});
-	}, [asset.status]);
+	}, [asset]);
 
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
@@ -1254,7 +1248,7 @@ function GeneratedWorld({
 			protectReality: () => setRendererFailed(true),
 		});
 	};
-	const assetVerified = asset.status === "verified";
+	const assetVerified = asset === "verified";
 	const effectiveView = rendererFailed || !assetVerified ? "semantic" : view;
 	const embodiedAvailable =
 		assetVerified &&
@@ -1284,10 +1278,11 @@ function GeneratedWorld({
 			data-catch-up-receipts={experience.persistence.catchUpReceipts}
 			data-previous-state-hash={experience.previousStateHash}
 			data-previous-horizon-days={experience.previousHorizonDays}
-			data-asset-integrity={asset.status}
+			data-asset-integrity={asset}
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-navigation-rejection={navigationRejection ?? undefined}
+			data-focused-event-id={focusedEventId ?? undefined}
 			onClick={(event) => {
 				const link = (event.target as Element).closest<HTMLAnchorElement>(
 					'a[href^="/world?"]',
@@ -1350,6 +1345,11 @@ function GeneratedWorld({
 					</button>
 				</nav>
 			</header>
+			{focusedEventId === null ? null : (
+				<p className="renderer-note" role="status">
+					Event: <code>{focusedEventId}</code>
+				</p>
+			)}
 
 			{!generatedFaultHooks ||
 			fault === null ||
@@ -1426,12 +1426,12 @@ function GeneratedWorld({
 								Retry embodied renderer
 							</button>
 						</div>
-					) : asset.status === "checking" ? (
+					) : asset === "checking" ? (
 						<p className="renderer-note" role="status">
 							Verifying the repository-authored proxy geometry contract.
 							Canonical world actions remain inspectable in words.
 						</p>
-					) : asset.status === "failed" ? (
+					) : asset === "failed" ? (
 						<p className="renderer-note" role="status">
 							The proxy geometry reference did not pass integrity checks. The
 							canonical world remains inspectable without it.

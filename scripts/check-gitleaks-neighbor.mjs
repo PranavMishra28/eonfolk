@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 const executable = process.env.GITLEAKS_BIN ?? "gitleaks";
 const directory = mkdtempSync(join(tmpdir(), "eonfolk-gitleaks-neighbor-"));
 try {
-	const fixtureDirectory = join(directory, "tests/unit/feedback-worker");
+	const fixtureDirectory = join(directory, "tests/unit/security-neighbor");
 	mkdirSync(fixtureDirectory, { recursive: true });
 	const syntheticPat = [
 		"eonfolk",
@@ -14,7 +14,7 @@ try {
 		"a9Qx7Lm2Vw8Kd4Rt6Yp3Nc5Hs1Zb0FgE",
 	].join("");
 	writeFileSync(
-		join(fixtureDirectory, "providers-neighbor.test.ts"),
+		join(fixtureDirectory, "credential-neighbor.test.ts"),
 		`const apiKey = ${JSON.stringify(syntheticPat)};\n`,
 	);
 	const result = spawnSync(

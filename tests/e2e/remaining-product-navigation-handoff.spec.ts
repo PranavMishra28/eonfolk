@@ -207,6 +207,11 @@ for (const viewport of [
 			() => performance.getEntriesByType("navigation").length,
 		);
 		const citizenLink = page.getByRole("link", { name: "Citizen" }).first();
+		const objectHref = await page
+			.getByRole("link", { name: "Object" })
+			.first()
+			.getAttribute("href");
+		expect(parseWorldFocusHref(objectHref ?? "")?.kind).toBe("object");
 		const citizenHref = await citizenLink.getAttribute("href");
 		expect(citizenHref).not.toContain(" ");
 		expect(citizenHref).not.toContain("name=");
@@ -237,6 +242,13 @@ for (const viewport of [
 		if (eventFocus?.kind !== "event")
 			throw new Error("event link is not typed");
 		await expect(page).toHaveURL(focusHref(eventFocus));
+		await expect(world).toHaveAttribute(
+			"data-focused-event-id",
+			eventFocus.eventId,
+		);
+		await expect(page.locator("p.renderer-note[role='status']")).toContainText(
+			eventFocus.eventId,
+		);
 		await expect(
 			page.locator(
 				`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,

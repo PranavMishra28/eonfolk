@@ -66,7 +66,6 @@ export interface GeneratedProjectDelta {
 	readonly previousState: string | null;
 	readonly progressBasisPoints: number;
 	readonly progressDeltaBasisPoints: number;
-	readonly visualStage: 0 | 1 | 2 | 3 | 4;
 	readonly changed: boolean;
 	readonly semanticLabel: string;
 }
@@ -482,10 +481,6 @@ function projectDeltas(
 			const changed =
 				prior !== undefined &&
 				(prior.state !== project.state || progressDeltaBasisPoints !== 0);
-			const visualStage = Math.min(
-				4,
-				Math.floor(project.progressBasisPoints / 2_500),
-			) as 0 | 1 | 2 | 3 | 4;
 			return Object.freeze({
 				projectId: project.projectId,
 				name: project.name,
@@ -494,7 +489,6 @@ function projectDeltas(
 				previousState: prior?.state ?? null,
 				progressBasisPoints: project.progressBasisPoints,
 				progressDeltaBasisPoints,
-				visualStage,
 				changed,
 				semanticLabel:
 					prior === undefined

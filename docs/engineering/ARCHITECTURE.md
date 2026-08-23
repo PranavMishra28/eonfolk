@@ -65,9 +65,9 @@ These interfaces are frozen conceptually before UI work. Their single field-leve
 
 ## Founder Alpha non-authoritative sidecars
 
-`packages/diagnostics` receives closed, source-redacted boundary observations from Application, Worker, persistence, cognition, and Chronicle. Its dependency direction is outward only: simulation/protocol/persistence/cognition never import the web observer, feedback relay, or any network adapter. Sentinel may stop publication or request one typed recovery through Application, but it cannot prepare, commit, install, or publish canonical state.
+`packages/diagnostics` receives closed, source-redacted boundary observations from Application, Worker, persistence, cognition, and Chronicle. Its dependency direction is outward only: simulation/protocol/persistence/cognition never import the web observer, local feedback queue, or any network adapter. Sentinel may stop publication or request one typed recovery through Application, but it cannot prepare, commit, install, or publish canonical state.
 
-Local feedback is an Application concern. The optional `apps/feedback-worker` deployment seam validates and delivers sanitized reports but has no import path to simulation, persistence, cognition, Chronicle projection, or browser credentials. D1/GitHub records are operational feedback data, never the Canonical World Ledger, Cognitive/Decision Ledger, Experiment Manifest, or a Truth Ledger.
+Local feedback is an Application concern with no relay or network adapter in V1. Saved reports and consented bounded diagnostics remain browser-local and have no import path to simulation, persistence, cognition, or Chronicle projection. Feedback data is never part of the Canonical World Ledger, Cognitive/Decision Ledger, Experiment Manifest, or a Truth Ledger.
 
 Provider names and browser APIs never appear in authoritative world contracts. Optional provider/model/version/artifact values appear only as nullable provenance inside cognitive/experiment records. `regionId` and `runId` appear now even though the slice has one local run/region.
 

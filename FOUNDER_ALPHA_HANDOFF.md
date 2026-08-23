@@ -43,7 +43,7 @@ pnpm diagnose http://127.0.0.1:5173/
 
 Modes are OFF, LOCAL, and ALPHA. Diagnostics are non-authoritative, source-redacted, bounded, and optional. The observer returns identity, health, incidents, typed trace/performance/network summaries, reproduction range, artifacts, and a bounded world head; it exposes no raw Reality, hidden cognition, arbitrary files, shell, or mutation command.
 
-Feedback is local-only in this build. It retains at most three reports for seven days within 4 MiB, sanitizes text/images, reconstructs incident prose from a closed codebook, previews attachments, and supports deletion. Upload is disabled. The relay core is inert and uncomposed: Cloudflare D1, Turnstile, GitHub App delivery, live quotas, credentials, public abuse, and deployment are **NOT RUN**.
+Feedback is local-only. It retains at most three reports for seven days within 4 MiB, sanitizes text/images, reconstructs incident prose from a closed codebook, previews attachments, and supports deletion. Upload is disabled. Founder Alpha historically carried an inert relay prototype; V1 removed that unreachable Cloudflare/D1/Turnstile/GitHub code and retained its review record only as history.
 
 ## Verification commands
 
@@ -89,7 +89,7 @@ These remain **NOT RUN**: unfamiliar-human Gate 0/A/B and Story Card studies; fu
 - Replay/version/hash/reference disagreement fails closed before rendering world facts.
 - Local feedback/diagnostics/renderer failure does not prevent the semantic game path.
 - Revert a merged regression with a reviewed `git revert`, then rerun PR and relevant DEEP checks; never rewrite protected `main`.
-- A future relay must be independently disableable while local feedback and the game continue.
+- Any future collection service requires a new design and explicit approval; V1 contains no relay to disable.
 
 ## Git and release boundary
 

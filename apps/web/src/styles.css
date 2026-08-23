@@ -502,19 +502,12 @@ main {
 	box-shadow: inset 3px 0 #bd6e37;
 }
 
-.generated-embodiment-controls > article,
 .generated-limitations {
 	padding: 0.8rem;
 	border: 1px solid rgba(35, 38, 31, 0.22);
 	background: rgba(255, 250, 232, 0.52);
 }
 
-.generated-embodiment-controls > article h2 {
-	margin: 0 0 0.4rem;
-	font-size: 1.35rem;
-}
-
-.generated-embodiment-controls > article p,
 .generated-limitations li {
 	font-size: 0.72rem;
 	line-height: 1.45;
@@ -3742,8 +3735,7 @@ em {
 	margin-bottom: 0.55rem;
 }
 
-.v1-world-tools .generated-camera-status,
-.v1-world-tools .generated-embodiment-controls > article {
+.v1-world-tools .generated-camera-status {
 	display: none;
 }
 
