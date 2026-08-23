@@ -43,13 +43,13 @@
 | Requirement | State |
 |---|---|
 | Immutable Release Genesis identity | VERIFIED |
-| Deterministic versioned world generator | NOT STARTED |
-| Multiple materially different valid world seeds | NOT STARTED |
-| Region/chunk/cell/territory hierarchy | NOT STARTED |
-| Continuous metric local settlement space | NOT STARTED |
-| Terrain, water, productivity, timber, constrained material, travel friction, and suitability | NOT STARTED |
-| Settlement, site/parcel, place, building, and interaction-slot model | NOT STARTED |
-| Canonical generator golden fixtures and property tests | NOT STARTED |
+| Deterministic versioned world generator | VERIFIED |
+| Multiple materially different valid world seeds | VERIFIED |
+| Region/chunk/cell/territory hierarchy | VERIFIED |
+| Continuous metric local settlement space | VERIFIED |
+| Terrain, water, productivity, timber, constrained material, travel friction, and suitability | VERIFIED |
+| Settlement, site/parcel, place, building, and interaction-slot model | VERIFIED |
+| Canonical generator golden fixtures and property tests | VERIFIED |
 | Generated world persistence and deterministic replay | NOT STARTED |
 | Camera/render residency cannot mutate Reality | NOT STARTED |
 
@@ -77,8 +77,8 @@
 | Requirement | State |
 |---|---|
 | Standard Brain remains deterministic, complete, and model-free | IN PROGRESS |
-| Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | NOT STARTED |
-| Project/forward planner uses actor-visible facts and legal affordances | NOT STARTED |
+| Routine planner with multi-step plans, costs, interruption, commitments, and Standing Plans | IN PROGRESS |
+| Project/forward planner uses actor-visible facts and legal affordances | IN PROGRESS |
 | Executable local Model Brain treatment | NOT STARTED |
 | Real M4 Max model/runtime benchmark and promoted treatment | IN PROGRESS |
 | Versioned structured model-decision contract and provenance | NOT STARTED |
@@ -132,7 +132,7 @@
 |---|---|
 | FAST lane covers V1 architecture, code, build, and focused properties | IN PROGRESS |
 | DEEP lane covers all V1 software and exact candidate evidence | NOT STARTED |
-| Generator/world/project/resource/migration/founding properties | NOT STARTED |
+| Generator/world/project/resource/migration/founding properties | IN PROGRESS |
 | Cognition/model validation, fallback, epistemic isolation, and replay tests | NOT STARTED |
 | Long-horizon civilization matrix | NOT STARTED |
 | Persistence/replay/catch-up equivalence and long-history tests | NOT STARTED |
