@@ -389,7 +389,6 @@ function GeneratedCamera({
 				.sort((left, right) => left.distance - right.distance)[0];
 			const threshold = event.pointerType === "touch" ? 42 : 28;
 			if (nearest === undefined || nearest.distance > threshold) return;
-			surface.dataset.lastWorldPick = `citizen:${nearest.citizenId}`;
 			emit({ type: "select-citizen", citizenId: nearest.citizenId });
 		};
 		const finishPointer = (event: PointerEvent, allowPick: boolean) => {
@@ -1111,6 +1110,11 @@ export function GeneratedWorldCanvas({
 			data-embodiment-schema={model.schemaVersion}
 			data-presentation-tick={presentationTick}
 			data-focus-kind={navigation.focus.kind}
+			data-last-world-pick={
+				navigation.focus.kind === "citizen"
+					? `citizen:${navigation.focus.citizenId}`
+					: ""
+			}
 			data-following={String(navigation.followCitizen)}
 			data-camera-target={cameraIntent.semanticLabel}
 			data-camera-distance-mm={effectiveDistanceMm}
