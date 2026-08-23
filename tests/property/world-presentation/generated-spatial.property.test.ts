@@ -42,6 +42,7 @@ describe("generated civilization spatial properties", () => {
 						civilization: run.state,
 						checkpoint: run,
 						settlementId,
+						activities: run.activities,
 						presentationTick,
 					} as const;
 					const first = projectGeneratedCivilizationSpatial(input);
@@ -53,14 +54,24 @@ describe("generated civilization spatial properties", () => {
 
 					expect(second).toEqual(first);
 					expect(first.availability).toEqual({
-						status: "unavailable",
-						reasons: ["canonical-activities-unavailable"],
+						status: "available",
+						reasons: [],
 					});
 					expect(first.scene).toEqual(later.scene);
 					expect(first.overview).toEqual(later.overview);
 					expect(first.local).toEqual(later.local);
 					expect(first.projects).toEqual(later.projects);
-					expect(first.spatial.actors).toEqual([]);
+					const expectedLocalCitizens = Object.values(
+						run.state.citizens,
+					).filter(
+						(citizen) =>
+							citizen.settlementId === settlementId &&
+							citizen.residenceState === "resident",
+					);
+					expect(first.spatial.actors).toHaveLength(
+						Math.min(expectedLocalCitizens.length, 8),
+					);
+					expect(later.spatial.actors).toEqual(first.spatial.actors);
 					expect(later.spatial.presentationTick).toBe(presentationTick + 1);
 					expect(jcs(run.world)).toBe(worldBefore);
 					expect(jcs(run.state)).toBe(civilizationBefore);

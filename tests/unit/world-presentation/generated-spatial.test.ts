@@ -159,6 +159,48 @@ describe("generated civilization spatial adapter", () => {
 		expect(projection.spatial.actors).toEqual([]);
 	});
 
+	it("projects the real scheduler at both the origin and founded settlement", async () => {
+		const run = await checkpoint();
+		const origin = projectGeneratedCivilizationSpatial({
+			world: run.world,
+			civilization: run.state,
+			checkpoint: run,
+			settlementId: run.seedConditions.originSettlementId,
+			activities: run.activities,
+			presentationTick: 31,
+		});
+		expect(origin.availability).toEqual({ status: "available", reasons: [] });
+		expect(origin.spatial.actors).toHaveLength(7);
+		expect(
+			origin.spatial.actors.every((actor) =>
+				run.activities.some(
+					(activity) =>
+						activity.citizenId === actor.citizenId &&
+						activity.canonicalAction.actionId === actor.action.actionId,
+				),
+			),
+		).toBe(true);
+
+		const founded = projectGeneratedCivilizationSpatial({
+			world: run.world,
+			civilization: run.state,
+			checkpoint: run,
+			settlementId: "settlement-second",
+			activities: run.activities,
+			presentationTick: 32,
+		});
+		expect(founded.availability).toEqual({ status: "available", reasons: [] });
+		expect(founded.spatial.actors).toHaveLength(1);
+		expect(founded.spatial.actors[0]?.citizenId).toBe("citizen-01");
+		const camp =
+			founded.scene.nodes["settlement-second:founding-site:camp-slot"];
+		expect(founded.spatial.actors[0]?.positionMm).toEqual({
+			x: camp?.x,
+			y: camp?.y,
+			z: camp?.z,
+		});
+	});
+
 	it("unifies canonical sites, buildings, entrances, routes, projects, citizens and activities", async () => {
 		const run = await checkpoint();
 		const state = withCitizens(run);

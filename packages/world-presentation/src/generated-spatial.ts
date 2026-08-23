@@ -88,10 +88,10 @@ export interface GeneratedSpatialCivilizationInput {
 	readonly projects: Readonly<Record<string, CivilizationProjectInput>>;
 }
 
-/** Exact metadata the adapter consumes from a validated v4 checkpoint. */
+/** Exact metadata the adapter consumes from a validated v5 checkpoint. */
 export interface GeneratedSpatialCheckpointInput {
-	readonly schemaVersion: "eonfolk-civilization-experiment-v4";
-	readonly runnerVersion: "eonfolk-civilization-runner-v4";
+	readonly schemaVersion: "eonfolk-civilization-experiment-v5";
+	readonly runnerVersion: "eonfolk-civilization-runner-v5";
 	readonly worldIdentityHash: string;
 	readonly horizonDays: number;
 	readonly finalStateHash: string;
@@ -244,8 +244,8 @@ function validateIdentity(
 	if (input.civilization.schemaVersion !== "eonfolk-civilization-kernel-v3")
 		fail("unsupported civilization schema");
 	if (
-		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v4" ||
-		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v4"
+		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v5" ||
+		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v5"
 	)
 		fail("unsupported checkpoint schema or runner");
 	if (input.checkpoint.worldIdentityHash !== input.world.identity.identityHash)
@@ -943,7 +943,7 @@ export function projectGeneratedCivilizationSpatial(
 		.filter(
 			(citizen) =>
 				citizen.settlementId === settlementId &&
-				citizen.residenceState !== "departed",
+				citizen.residenceState === "resident",
 		)
 		.sort((left, right) => compareIds(left.citizenId, right.citizenId));
 	const activities = [...(input.activities ?? [])].sort((left, right) =>

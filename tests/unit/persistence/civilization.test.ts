@@ -64,8 +64,8 @@ describe("Release Genesis civilization persistence", () => {
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v3",
-			stateVersion: "eonfolk-release-genesis-civilization-state-v2",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v4",
+			stateVersion: "eonfolk-release-genesis-civilization-state-v3",
 			transitionVersion: "eonfolk-release-genesis-civilization-transition-v2",
 		});
 	});
@@ -91,6 +91,7 @@ describe("Release Genesis civilization persistence", () => {
 			completedDay: 365,
 			simulationTime: 365 * 86_400,
 			modelInvocations: 0,
+			activities: finalCheckpoint.activities,
 		});
 		expect(jcs(replay.state.world)).toBe(jcs(finalCheckpoint.world));
 		expect(jcs(replay.state.civilization)).toBe(jcs(finalCheckpoint.state));

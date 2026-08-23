@@ -123,7 +123,7 @@ describe("deterministic civilization experiment", () => {
 			);
 			const { eventHash, eventId, ...eventBody } = event;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4", eventBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5", eventBody),
 			).toBe(eventHash);
 			expect(eventId).toBe(
 				`civilization-event:${index}:${eventHash.slice(0, 16)}`,
@@ -132,7 +132,7 @@ describe("deterministic civilization experiment", () => {
 		for (const [index, step] of first.steps.entries()) {
 			const { stepHash, ...stepBody } = step;
 			expect(
-				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4", stepBody),
+				await domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5", stepBody),
 			).toBe(stepHash);
 			expect(step.stepIndex).toBe(index);
 			expect(step.fromSimulationTime).toBe(index * 86_400);
@@ -175,6 +175,18 @@ describe("deterministic civilization experiment", () => {
 			travel: expect.any(Number),
 			social: expect.any(Number),
 		});
+		expect(first.activities).toHaveLength(8);
+		expect(
+			new Set(first.activities.map(({ citizenId }) => citizenId)).size,
+		).toBe(8);
+		expect(
+			first.activities.every(
+				(activity) =>
+					activity.canonicalAction.sourceKind === "current-behavior" &&
+					activity.canonicalAction.eventId === null &&
+					activity.location.kind === "interaction-slot",
+			),
+		).toBe(true);
 		expect(first.state.citizens["citizen-01"]).toMatchObject({
 			settlementId: "settlement-second",
 			siteId: "settlement-second:founding-site",
@@ -202,6 +214,9 @@ describe("deterministic civilization experiment", () => {
 		).toBeDefined();
 		expect(
 			first.world.sites[secondSettlement?.value.siteIds[0] ?? ""],
+		).toBeDefined();
+		expect(
+			first.world.interactionSlots["settlement-second:founding-site:camp-slot"],
 		).toBeDefined();
 		const journey = first.state.migrationJourneys["migration-founding-party"];
 		expect(journey?.completedTraversalUnits).toBe(

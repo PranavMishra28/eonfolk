@@ -452,6 +452,7 @@ export function materializeFoundedSettlement(
 		throw new RangeError("founding anchor is not traversable destination land");
 	const localSpaceId = `${input.settlementId}:local-space`;
 	const siteId = `${input.settlementId}:founding-site`;
+	const campSlotId = `${siteId}:camp-slot`;
 	if (
 		world.localSpaces[localSpaceId] !== undefined ||
 		world.sites[siteId] !== undefined
@@ -480,7 +481,19 @@ export function materializeFoundedSettlement(
 			bounds: metricBounds(0, 0, 60_000, 60_000),
 			placeIds: [],
 			buildingIds: [],
-			interactionSlotIds: [],
+			interactionSlotIds: [campSlotId],
+		},
+	});
+	const campSlot = migrationRecord<InteractionSlotState>({
+		sourceId: input.migrationId,
+		simulationTime: input.foundedAtSimulationTime,
+		value: {
+			interactionSlotId: campSlotId,
+			siteId,
+			position: position(30_000, 30_000),
+			facingMilliDegrees: 0,
+			activityKinds: ["meet", "work"],
+			capacity: 8,
 		},
 	});
 	const settlement = migrationRecord<SettlementState>({
@@ -503,6 +516,10 @@ export function materializeFoundedSettlement(
 	return freezeWorld(
 		cloneWorld({
 			...world,
+			interactionSlots: {
+				...world.interactionSlots,
+				[campSlotId]: campSlot,
+			},
 			localSpaces: { ...world.localSpaces, [localSpaceId]: localSpace },
 			settlements: {
 				...world.settlements,

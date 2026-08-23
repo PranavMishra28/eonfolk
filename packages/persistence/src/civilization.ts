@@ -23,11 +23,11 @@ import {
 } from "./versioned-types.js";
 
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
-	"eonfolk-release-genesis-civilization-state-v2" as const;
+	"eonfolk-release-genesis-civilization-state-v3" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
 	"eonfolk-release-genesis-civilization-transition-v2" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v3" as const;
+	"eonfolk-release-genesis-civilization-engine-v4" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -35,11 +35,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v4" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v4" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v5" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v5" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v4" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v4" as const;
+	"eonfolk-civilization-experiment-event-v5" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v5" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
@@ -64,6 +64,7 @@ export interface CivilizationExperimentCheckpoint {
 	readonly events: readonly unknown[];
 	readonly steps: readonly unknown[];
 	readonly metrics: SourceExperimentMetrics;
+	readonly activities: readonly unknown[];
 	readonly state: unknown;
 	readonly world: unknown;
 }
@@ -81,6 +82,7 @@ export interface ReleaseGenesisCivilizationState {
 		readonly completedDay: number;
 		readonly simulationTime: number;
 		readonly modelInvocations: 0;
+		readonly activities: JsonValue;
 	};
 	readonly sourceHistory: {
 		readonly stepHashes: readonly string[];
@@ -253,7 +255,7 @@ async function validateSourceEvent(
 	hash(source.postStateHash, `source event ${index}.postStateHash`);
 	const eventHash = hash(source.eventHash, `source event ${index}.eventHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5",
 		without(source, ["eventHash", "eventId"]),
 	);
 	if (eventHash !== expected)
@@ -297,7 +299,7 @@ async function validateSourceStep(
 	);
 	const stepHash = hash(source.stepHash, `source step ${index}.stepHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5",
 		without(source, ["stepHash"]),
 	);
 	if (stepHash !== expected)
@@ -313,6 +315,7 @@ interface ValidatedCheckpoint {
 	readonly checkpoint: CivilizationExperimentCheckpoint;
 	readonly world: JsonValue;
 	readonly civilization: JsonValue;
+	readonly activities: JsonValue;
 	readonly steps: readonly JsonValue[];
 	readonly stepHashes: readonly string[];
 	readonly events: readonly JsonValue[];
@@ -388,13 +391,14 @@ async function validateCheckpoint(
 		fail("STALE_STATE", "checkpoint final event hash differs from its chain");
 	const world = json(checkpoint.world, "checkpoint.world");
 	const civilization = json(checkpoint.state, "checkpoint.state");
+	const activities = json(checkpoint.activities, "checkpoint.activities");
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
 		world,
 	);
 	const sourceStateHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4",
-		{ civilization, worldStateHash: sourceWorldHash },
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5",
+		{ activities, civilization, worldStateHash: sourceWorldHash },
 	);
 	if (sourceStateHash !== checkpoint.finalStateHash)
 		fail("STALE_STATE", "checkpoint world and civilization bytes are corrupt");
@@ -402,6 +406,7 @@ async function validateCheckpoint(
 		checkpoint,
 		world,
 		civilization,
+		activities,
 		steps,
 		stepHashes,
 		events,
@@ -544,6 +549,7 @@ function validatePersistedState(
 	const sourceHistory = record(state.sourceHistory, "persisted source history");
 	integer(scheduler.completedDay, "scheduler.completedDay");
 	integer(scheduler.simulationTime, "scheduler.simulationTime");
+	array(scheduler.activities, "scheduler.activities");
 	if (scheduler.modelInvocations !== 0)
 		fail("INVALID_INPUT", "persisted civilization state invoked a model");
 	hash(state.worldIdentityHash, "state.worldIdentityHash");
@@ -643,12 +649,16 @@ async function validateCheckpointSourceState(
 ): Promise<void> {
 	if (state.phase !== "checkpoint" || state.civilization === null) return;
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
 		state.world,
 	);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4",
-		{ civilization: state.civilization, worldStateHash: sourceWorldHash },
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5",
+		{
+			activities: state.scheduler.activities,
+			civilization: state.civilization,
+			worldStateHash: sourceWorldHash,
+		},
 	);
 	if (expected !== state.finalExperimentStateHash)
 		fail("STALE_STATE", "replayed civilization source state hash is invalid");
@@ -704,7 +714,12 @@ export async function createCivilizationPersistencePlan(
 		finalExperimentStateHash: initialHash,
 		world: genesisWorld,
 		civilization: null,
-		scheduler: { completedDay: 0, simulationTime: 0, modelInvocations: 0 },
+		scheduler: {
+			completedDay: 0,
+			simulationTime: 0,
+			modelInvocations: 0,
+			activities: [],
+		},
 		sourceHistory: { stepHashes: [], eventHashes: [] },
 	};
 	const genesisSnapshot = await createAuthoritySnapshot({
@@ -756,6 +771,7 @@ export async function createCivilizationPersistencePlan(
 				completedDay: checkpoint.checkpoint.horizonDays,
 				simulationTime: checkpoint.checkpoint.metrics.simulationTime,
 				modelInvocations: 0,
+				activities: checkpoint.activities,
 			},
 			sourceHistory: {
 				stepHashes: checkpoint.stepHashes,

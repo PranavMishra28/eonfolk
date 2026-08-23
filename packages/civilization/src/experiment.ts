@@ -47,13 +47,13 @@ import { createCivilizationState, evolve } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
-	"eonfolk-civilization-experiment-v4" as const;
+	"eonfolk-civilization-experiment-v5" as const;
 export const CIVILIZATION_EXPERIMENT_RUNNER_VERSION =
-	"eonfolk-civilization-runner-v4" as const;
+	"eonfolk-civilization-runner-v5" as const;
 export const CIVILIZATION_EXPERIMENT_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v4" as const;
+	"eonfolk-civilization-experiment-event-v5" as const;
 export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
-	"eonfolk-civilization-experiment-step-v4" as const;
+	"eonfolk-civilization-experiment-step-v5" as const;
 
 const SECONDS_PER_DAY = 86_400;
 const POPULATION = 8;
@@ -186,6 +186,45 @@ export interface CivilizationExperimentMetrics {
 	readonly modelInvocations: 0;
 }
 
+export interface CivilizationScheduledActivity {
+	readonly schemaVersion: "eonfolk-generated-spatial-activity-v1";
+	readonly citizenId: string;
+	readonly canonicalAction: Readonly<{
+		readonly actionId: string;
+		readonly sourceKind: "current-behavior";
+		readonly eventId: null;
+		readonly eventSequence: null;
+		readonly status: "in-progress";
+		readonly kind:
+			| "idle"
+			| "walk"
+			| "carry"
+			| "gather"
+			| "inspect"
+			| "talk"
+			| "listen"
+			| "exchange"
+			| "repair"
+			| "eat-rest"
+			| "react";
+		readonly originPlaceId: string;
+		readonly destinationPlaceId: string;
+		readonly affordanceId: string;
+		readonly affordanceSlotIndex: number;
+		readonly targetId: string | null;
+		readonly simulationStart: number;
+		readonly simulationEnd: null;
+		readonly resultEventId: null;
+	}>;
+	readonly location: Readonly<{
+		readonly kind: "interaction-slot";
+		readonly interactionSlotId: string;
+	}>;
+	readonly projectId: string | null;
+	readonly carriedProp: "grain" | "logs" | "trade" | "tool" | "water" | null;
+	readonly focal: boolean;
+}
+
 export interface CivilizationExperimentRun {
 	readonly schemaVersion: typeof CIVILIZATION_EXPERIMENT_SCHEMA_VERSION;
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
@@ -198,13 +237,14 @@ export interface CivilizationExperimentRun {
 	readonly events: readonly CivilizationExperimentEvent[];
 	readonly steps: readonly CivilizationExperimentStep[];
 	readonly metrics: CivilizationExperimentMetrics;
+	readonly activities: readonly CivilizationScheduledActivity[];
 	readonly state: CivilizationState;
 	readonly world: GeneratedWorldState;
 	readonly limitations: readonly string[];
 }
 
 export interface CivilizationExperimentMatrix {
-	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v4";
+	readonly schemaVersion: "eonfolk-civilization-experiment-matrix-v5";
 	readonly runnerVersion: typeof CIVILIZATION_EXPERIMENT_RUNNER_VERSION;
 	readonly horizons: readonly [30, 90, 365];
 	readonly runs: readonly CivilizationExperimentRun[];
@@ -593,11 +633,91 @@ function bootstrapCivilization(
 	return state;
 }
 
+function activityKind(activityKinds: readonly string[]): {
+	readonly kind: CivilizationScheduledActivity["canonicalAction"]["kind"];
+	readonly prop: CivilizationScheduledActivity["carriedProp"];
+} {
+	if (activityKinds.includes("gather")) return { kind: "gather", prop: "logs" };
+	if (activityKinds.includes("store")) return { kind: "carry", prop: "grain" };
+	if (activityKinds.includes("work")) return { kind: "repair", prop: "tool" };
+	if (activityKinds.includes("rest"))
+		return { kind: "eat-rest", prop: "water" };
+	if (activityKinds.includes("meet") || activityKinds.includes("rendezvous"))
+		return { kind: "talk", prop: null };
+	return { kind: "inspect", prop: null };
+}
+
+function scheduleActivities(
+	state: CivilizationState,
+	world: GeneratedWorldState,
+): readonly CivilizationScheduledActivity[] {
+	const slots = values(world.interactionSlots).sort((left, right) =>
+		left.interactionSlotId.localeCompare(right.interactionSlotId),
+	);
+	const occupancy = new Map<string, number>();
+	return Object.values(state.citizens)
+		.filter((citizen) => citizen.residenceState === "resident")
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+		.flatMap((citizen, index) => {
+			const siteSlots = slots.filter((slot) => slot.siteId === citizen.siteId);
+			const slot = siteSlots.find(
+				(candidate) =>
+					(occupancy.get(candidate.interactionSlotId) ?? 0) <
+					candidate.capacity,
+			);
+			if (slot === undefined) return [];
+			const affordanceSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
+			occupancy.set(slot.interactionSlotId, affordanceSlotIndex + 1);
+			const readable = activityKind(slot.activityKinds);
+			const project = Object.values(state.projects)
+				.filter(
+					(candidate) =>
+						candidate.siteId === citizen.siteId &&
+						candidate.participantCitizenIds.includes(citizen.citizenId) &&
+						!["failed", "abandoned"].includes(candidate.state),
+				)
+				.sort((left, right) =>
+					left.projectId.localeCompare(right.projectId),
+				)[0];
+			return [
+				{
+					schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
+					citizenId: citizen.citizenId,
+					canonicalAction: {
+						actionId: `scheduled:${state.revision}:${citizen.citizenId}:${slot.interactionSlotId}`,
+						sourceKind: "current-behavior" as const,
+						eventId: null,
+						eventSequence: null,
+						status: "in-progress" as const,
+						kind: readable.kind,
+						originPlaceId: citizen.siteId,
+						destinationPlaceId: citizen.siteId,
+						affordanceId: slot.interactionSlotId,
+						affordanceSlotIndex,
+						targetId: project?.projectId ?? null,
+						simulationStart: state.simulationTime,
+						simulationEnd: null,
+						resultEventId: null,
+					},
+					location: {
+						kind: "interaction-slot" as const,
+						interactionSlotId: slot.interactionSlotId,
+					},
+					projectId: project?.projectId ?? null,
+					carriedProp: readable.prop,
+					focal: index === 0,
+				},
+			];
+		});
+}
+
 async function stateHash(
 	state: CivilizationState,
 	worldStateHash: string,
+	activities: readonly CivilizationScheduledActivity[],
 ): Promise<string> {
-	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v4", {
+	return domainHash("EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v5", {
+		activities,
 		civilization: state,
 		worldStateHash,
 	});
@@ -621,7 +741,7 @@ async function eventRecord(input: {
 		postStateHash: input.postStateHash,
 	};
 	const eventHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v5",
 		body,
 	);
 	return {
@@ -767,11 +887,12 @@ export async function runCivilizationExperiment(input: {
 	let state = bootstrapCivilization(input.world, conditions);
 	let world = input.world;
 	let worldStateHash = await domainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
 		world,
 	);
+	let activities = scheduleActivities(state, world);
 	assertCivilizationInvariants(state);
-	const initialStateHash = await stateHash(state, worldStateHash);
+	const initialStateHash = await stateHash(state, worldStateHash, activities);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
 	let priorEventHash: string | null = null;
@@ -781,7 +902,8 @@ export async function runCivilizationExperiment(input: {
 		kind: CivilizationExperimentEventKind,
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
-		const postStateHash = await stateHash(state, worldStateHash);
+		activities = scheduleActivities(state, world);
+		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const event = await eventRecord({
 			eventIndex: events.length,
 			priorEventHash,
@@ -796,7 +918,7 @@ export async function runCivilizationExperiment(input: {
 
 	for (let day = 1; day <= input.horizonDays; day += 1) {
 		const fromSimulationTime = state.simulationTime;
-		const preStateHash = await stateHash(state, worldStateHash);
+		const preStateHash = await stateHash(state, worldStateHash, activities);
 		const beforeEventIndex = events.length;
 		const atSimulationTime = day * SECONDS_PER_DAY;
 		let departedThisEvaluation = false;
@@ -1073,7 +1195,7 @@ export async function runCivilizationExperiment(input: {
 				foundedAtSimulationTime: atSimulationTime,
 			});
 			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v4",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
 				world,
 			);
 			state = recordFoundingMaterialization(
@@ -1090,7 +1212,8 @@ export async function runCivilizationExperiment(input: {
 		}
 
 		assertCivilizationInvariants(state);
-		const postStateHash = await stateHash(state, worldStateHash);
+		activities = scheduleActivities(state, world);
+		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const eventHashes = events
 			.slice(beforeEventIndex)
 			.map((event) => event.eventHash);
@@ -1106,13 +1229,13 @@ export async function runCivilizationExperiment(input: {
 		steps.push({
 			...stepBody,
 			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v4",
+				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v5",
 				stepBody,
 			),
 		});
 	}
 
-	const finalStateHash = await stateHash(state, worldStateHash);
+	const finalStateHash = await stateHash(state, worldStateHash, activities);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
@@ -1125,6 +1248,7 @@ export async function runCivilizationExperiment(input: {
 		events,
 		steps,
 		metrics: metrics(state, input.horizonDays, conditions),
+		activities,
 		state,
 		world,
 		limitations: CIVILIZATION_EXPERIMENT_LIMITATIONS,
@@ -1147,7 +1271,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		for (const horizonDays of horizons)
 			runs.push(await runCivilizationExperiment({ world, horizonDays }));
 	const matrixBody = {
-		schemaVersion: "eonfolk-civilization-experiment-matrix-v4" as const,
+		schemaVersion: "eonfolk-civilization-experiment-matrix-v5" as const,
 		runnerVersion: CIVILIZATION_EXPERIMENT_RUNNER_VERSION,
 		horizons,
 		runs: runs.map((run) => ({
@@ -1163,7 +1287,7 @@ export async function runCivilizationExperimentMatrix(input: {
 		...matrixBody,
 		runs,
 		matrixHash: await domainHash(
-			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v4",
+			"EONFOLK:CIVILIZATION-EXPERIMENT-MATRIX:v5",
 			matrixBody,
 		),
 	};
