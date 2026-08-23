@@ -11,7 +11,6 @@ import {
 import { EonfolkMark } from "./components/EonfolkMark";
 import { FeedbackPanel } from "./components/FeedbackPanel";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
-import { GeneratedSponsorChronicle } from "./components/generated/GeneratedSponsorChronicle";
 import { browserDiagnostics } from "./diagnostics";
 import {
 	type GeneratedAssetIntegrity,
@@ -695,12 +694,6 @@ function GeneratedWorld({
 					/>
 				</section>
 			)}
-			<GeneratedSponsorChronicle
-				experience={experience}
-				settlementId={projection.local.settlement.settlementId}
-				dispatch={dispatch}
-				onOpenSettlement={openSettlement}
-			/>
 			<details className="v1-feedback-drawer">
 				<summary>Release Genesis feedback</summary>
 				<div>

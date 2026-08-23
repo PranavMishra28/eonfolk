@@ -12,10 +12,6 @@ import {
 	type GeneratedEmbodimentProjection,
 	projectGeneratedWorldEmbodiment,
 } from "./generated-presentation";
-import {
-	projectGeneratedSponsorSource,
-	type GeneratedSponsorSource,
-} from "./generated-sponsor-authority";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
 	advanceGeneratedCivilization,
@@ -31,8 +27,6 @@ export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority";
-export const GENERATED_SPONSOR_STORAGE_KEY =
-	"eonfolk-generated-sponsor-authority";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "unavailable";
@@ -54,18 +48,12 @@ export interface GeneratedWorldExperience {
 	readonly previousHorizonDays: number;
 	readonly embodimentLimitations: readonly string[];
 	readonly persistence: GeneratedWorldPersistenceStatus;
-	readonly sponsorSource: GeneratedSponsorSource;
-	readonly sponsorStorage: Readonly<{
-		readonly databaseName: string;
-		readonly indexedDbFactory: IDBFactory | null;
-	}>;
 }
 
 export interface GeneratedWorldBuildOptions {
 	readonly indexedDbFactory?: IDBFactory | null;
 	readonly databaseName?: string;
 	readonly targetHorizonDays?: GeneratedCivilizationCatchUpHorizon;
-	readonly sponsorDatabaseName?: string;
 }
 
 let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
@@ -131,8 +119,6 @@ export async function buildGeneratedWorldExperience(
 	const targetHorizonDays =
 		options.targetHorizonDays ?? GENERATED_WORLD_HORIZON_DAYS;
 	const databaseName = options.databaseName ?? GENERATED_WORLD_STORAGE_KEY;
-	const sponsorDatabaseName =
-		options.sponsorDatabaseName ?? GENERATED_SPONSOR_STORAGE_KEY;
 	const indexedDbFactory =
 		options.indexedDbFactory === undefined
 			? globalThis.indexedDB
@@ -206,11 +192,6 @@ export async function buildGeneratedWorldExperience(
 			return embodiment;
 		}),
 	);
-	const sponsorSource = projectGeneratedSponsorSource({
-		run,
-		projections,
-		worldSeedHex: V1_GENESIS_SEED,
-	});
 	return Object.freeze({
 		worldId: run.world.identity.worldId,
 		worldIdentityHash: run.world.identity.identityHash,
@@ -225,11 +206,6 @@ export async function buildGeneratedWorldExperience(
 		previousHorizonDays: previousRun.horizonDays,
 		embodimentLimitations: worldEmbodiment.limitations,
 		persistence,
-		sponsorSource,
-		sponsorStorage: Object.freeze({
-			databaseName: sponsorDatabaseName,
-			indexedDbFactory: indexedDbFactory ?? null,
-		}),
 	});
 }
 
