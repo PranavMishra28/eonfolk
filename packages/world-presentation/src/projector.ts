@@ -139,6 +139,7 @@ function projectActor(
 				originPlaceId: "market",
 				destinationPlaceId: "market",
 				routeId: slotId,
+				progressBasisPoints: null,
 				targetId: partnerId,
 			}),
 			interactionTarget: partnerId,
@@ -184,6 +185,16 @@ function projectActor(
 				originPlaceId: citizen.canonicalAction.originPlaceId,
 				destinationPlaceId: citizen.canonicalAction.destinationPlaceId,
 				routeId: canonicalRoute.join(">"),
+				progressBasisPoints:
+					routeSample.totalDistanceMm === 0
+						? 10_000
+						: Math.min(
+								10_000,
+								Math.trunc(
+									(Math.min(requestedDistanceMm, stopDistanceMm) * 10_000) /
+										routeSample.totalDistanceMm,
+								),
+							),
 				targetId: citizen.canonicalAction.targetId,
 			}),
 			interactionTarget: citizen.canonicalAction.targetId,
@@ -227,6 +238,7 @@ function projectActor(
 			originPlaceId: citizen.placeId,
 			destinationPlaceId: citizen.placeId,
 			routeId: actionNode,
+			progressBasisPoints: null,
 			targetId: citizen.canonicalAction.targetId,
 		}),
 		interactionTarget: citizen.canonicalAction.targetId,

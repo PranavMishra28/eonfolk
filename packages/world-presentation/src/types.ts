@@ -213,6 +213,8 @@ export interface SpatialActorProjection {
 		readonly originPlaceId: string;
 		readonly destinationPlaceId: string;
 		readonly routeId: string;
+		/** Canonical route progress when Reality exposes one; never camera-derived. */
+		readonly progressBasisPoints: number | null;
 		readonly targetId: string | null;
 	}>;
 	readonly interactionTarget: string | null;

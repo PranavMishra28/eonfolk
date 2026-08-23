@@ -1,12 +1,12 @@
 import {
-	projectGeneratedSettlementLocal,
-	projectGeneratedWorldOverview,
 	type GeneratedMetricPointProjection,
 	type GeneratedRouteProjection,
 	type GeneratedSettlementLocalProjection,
 	type GeneratedSiteProjection,
 	type GeneratedWorldOverviewProjection,
 	type GeneratedWorldStateInput,
+	projectGeneratedSettlementLocal,
+	projectGeneratedWorldOverview,
 } from "./generated-world";
 import { humanSettlementPhysicalScale } from "./scene";
 import type {
@@ -39,6 +39,7 @@ const ANIMATION_CLASSES = new Set<AnimationClass>([
 	"eat-rest",
 	"react",
 ]);
+const LOCOMOTION_CLASSES = new Set<AnimationClass>(["walk", "carry"]);
 
 interface CivilizationCitizenInput {
 	readonly schemaVersion: "eonfolk-civilization-social-v1";
@@ -175,6 +176,45 @@ export interface ProjectGeneratedCivilizationSpatialInput {
 	readonly settlementId?: string;
 	readonly activities?: readonly GeneratedSpatialActivityInput[];
 	readonly presentationTick: number;
+}
+
+export type GeneratedTemporalMismatchCode =
+	| "non-monotonic-tick"
+	| "source-mismatch"
+	| "off-route"
+	| "route-regression"
+	| "excessive-step"
+	| "unsupported-spatial-jump"
+	| "blocked-volume";
+
+export interface GeneratedTemporalDiagnosticSample {
+	readonly presentationTick: number;
+	readonly citizenId: string;
+	readonly actionId: string;
+	readonly destinationPlaceId: string;
+	readonly routeId: string;
+	readonly progressBasisPoints: number | null;
+	readonly animationClass: AnimationClass;
+	readonly interactionTarget: string | null;
+	readonly prop: PropKind | null;
+	readonly positionMm: SpatialPointMm;
+}
+
+export interface GeneratedTemporalMismatch {
+	readonly code: GeneratedTemporalMismatchCode;
+	readonly presentationTick: number;
+	readonly citizenId: string | null;
+}
+
+export interface GeneratedTemporalWindowInspection {
+	readonly samples: readonly GeneratedTemporalDiagnosticSample[];
+	readonly movingCitizenIds: readonly string[];
+	readonly traversedDistanceMmByCitizen: Readonly<Record<string, number>>;
+	readonly animationClasses: readonly AnimationClass[];
+	readonly interactionIds: readonly string[];
+	readonly mismatches: readonly GeneratedTemporalMismatch[];
+	readonly teleportCount: number;
+	readonly contradictionCount: number;
 }
 
 function compareIds(left: string, right: string): number {
@@ -809,6 +849,14 @@ function activityActor(input: {
 			fail(
 				`activity ${activity.canonicalAction.actionId} affordance and slot differ`,
 			);
+		if (activity.canonicalAction.affordanceSlotIndex === null)
+			fail(
+				`activity ${activity.canonicalAction.actionId} lacks a reserved slot index`,
+			);
+		if (activity.canonicalAction.affordanceSlotIndex >= slot.capacity)
+			fail(
+				`activity ${activity.canonicalAction.actionId} exceeds slot capacity`,
+			);
 		const node = scene.nodes[slot.interactionSlotId];
 		if (node === undefined)
 			fail(`activity slot ${slot.interactionSlotId} is ungrounded`);
@@ -831,6 +879,17 @@ function activityActor(input: {
 			fail(
 				`activity ${activity.canonicalAction.actionId} route endpoints differ`,
 			);
+		if (!LOCOMOTION_CLASSES.has(activity.canonicalAction.kind))
+			fail(
+				`activity ${activity.canonicalAction.actionId} route requires walk or carry`,
+			);
+		if (
+			(activity.canonicalAction.status === "committed") !==
+			(location.progressBasisPoints === 10_000)
+		)
+			fail(
+				`activity ${activity.canonicalAction.actionId} route progress and status differ`,
+			);
 		const sample = pointAlongRoute(route, location.progressBasisPoints);
 		position = sample.position;
 		facingDegrees = sample.facingDegrees;
@@ -849,7 +908,11 @@ function activityActor(input: {
 		positionMm: position,
 		facingDegrees,
 		routeNodeIds,
-		animationClass: activity.canonicalAction.kind,
+		animationClass:
+			activity.location.kind === "route" &&
+			activity.location.progressBasisPoints === 10_000
+				? "idle"
+				: activity.canonicalAction.kind,
 		prop: activity.carriedProp,
 		travelState: Object.freeze({
 			status:
@@ -862,6 +925,10 @@ function activityActor(input: {
 			originPlaceId: activity.canonicalAction.originPlaceId,
 			destinationPlaceId: activity.canonicalAction.destinationPlaceId,
 			routeId,
+			progressBasisPoints:
+				activity.location.kind === "route"
+					? activity.location.progressBasisPoints
+					: null,
 			targetId: activity.canonicalAction.targetId,
 		}),
 		interactionTarget: activity.canonicalAction.targetId,
@@ -871,8 +938,146 @@ function activityActor(input: {
 	});
 }
 
-function emptyInteractions(): readonly SpatialInteractionProjection[] {
-	return Object.freeze([]);
+function resolveSlotOccupancy(input: {
+	readonly scene: SpatialSceneDefinition;
+	readonly actors: readonly SpatialActorProjection[];
+}): readonly SpatialActorProjection[] {
+	const bySlot = new Map<string, SpatialActorProjection[]>();
+	for (const actor of input.actors) {
+		if (
+			actor.travelState.status !== "stationary" ||
+			actor.action.affordanceId === null ||
+			actor.travelState.routeId !== actor.action.affordanceId
+		)
+			continue;
+		const occupants = bySlot.get(actor.action.affordanceId) ?? [];
+		occupants.push(actor);
+		bySlot.set(actor.action.affordanceId, occupants);
+	}
+	for (const [nodeId, unsorted] of bySlot) {
+		const node = input.scene.nodes[nodeId];
+		if (node === undefined) fail(`occupied slot ${nodeId} is missing`);
+		const occupants = [...unsorted].sort((left, right) => {
+			const leftIndex = left.action.affordanceSlotIndex ?? 0;
+			const rightIndex = right.action.affordanceSlotIndex ?? 0;
+			return (
+				leftIndex - rightIndex || compareIds(left.citizenId, right.citizenId)
+			);
+		});
+		const slotIndices = occupants.map(
+			(actor) => actor.action.affordanceSlotIndex ?? 0,
+		);
+		if (new Set(slotIndices).size !== slotIndices.length)
+			fail(`occupied slot ${nodeId} repeats an affordance slot index`);
+		if (
+			occupants.length > node.capacity ||
+			slotIndices.some((index) => index >= node.capacity)
+		)
+			fail(`occupied slot ${nodeId} exceeds canonical capacity`);
+	}
+	// The canonical projection remains exactly on the reserved slot. A renderer
+	// may apply bounded per-occupant separation without changing this authority.
+	return input.actors;
+}
+
+function deriveInteractions(input: {
+	readonly actors: readonly SpatialActorProjection[];
+}): Readonly<{
+	readonly actors: readonly SpatialActorProjection[];
+	readonly interactions: readonly SpatialInteractionProjection[];
+}> {
+	const social = new Set<AnimationClass>(["talk", "listen", "exchange"]);
+	const byId = new Map(input.actors.map((actor) => [actor.citizenId, actor]));
+	const oriented = new Map<string, SpatialActorProjection>();
+	const interactions: SpatialInteractionProjection[] = [];
+	const emittedPairs = new Set<string>();
+	for (const actor of [...input.actors].sort((left, right) =>
+		compareIds(left.citizenId, right.citizenId),
+	)) {
+		const slotId = actor.action.affordanceId;
+		const targetId = actor.action.targetId;
+		const target = targetId === null ? undefined : byId.get(targetId);
+		if (
+			actor.travelState.status !== "stationary" ||
+			slotId === null ||
+			!social.has(actor.action.kind) ||
+			target === undefined ||
+			target.travelState.status !== "stationary" ||
+			target.action.affordanceId !== slotId ||
+			!social.has(target.action.kind) ||
+			target.action.targetId !== actor.citizenId
+		)
+			continue;
+		const participants = [actor, target].sort((left, right) =>
+			compareIds(left.citizenId, right.citizenId),
+		);
+		const pairId = participants.map(({ citizenId }) => citizenId).join("+");
+		if (emittedPairs.has(pairId)) continue;
+		emittedPairs.add(pairId);
+		for (const [participantIndex, actor] of participants.entries()) {
+			const interactionTarget =
+				participants[0]?.citizenId === actor.citizenId
+					? participants[1]
+					: participants[0];
+			if (interactionTarget === undefined) continue;
+			oriented.set(
+				actor.citizenId,
+				Object.freeze({
+					...actor,
+					facingDegrees:
+						participantIndex === 0
+							? actor.facingDegrees
+							: (actor.facingDegrees + 180) % 360,
+					interactionTarget: interactionTarget.citizenId,
+				}),
+			);
+		}
+		const eventIds = new Set(
+			participants
+				.map((actor) => actor.action.eventId)
+				.filter((value): value is string => value !== null),
+		);
+		const eventSequences = new Set(
+			participants
+				.map((actor) => actor.action.eventSequence)
+				.filter((value): value is number => value !== null),
+		);
+		const linkedEventId =
+			eventIds.size === 1 && eventSequences.size === 1
+				? ([...eventIds][0] ?? null)
+				: null;
+		const linkedSequence =
+			linkedEventId === null ? null : ([...eventSequences][0] ?? null);
+		const committed =
+			linkedEventId !== null &&
+			participants.every((actor) => actor.action.status === "committed");
+		const names = participants.map((actor) => actor.name);
+		interactions.push(
+			Object.freeze({
+				interactionId:
+					(linkedEventId === null ? null : `${linkedEventId}:${pairId}`) ??
+					`current:${slotId}:${participants
+						.map((actor) => actor.action.actionId)
+						.join("+")}`,
+				participantIds: Object.freeze(
+					participants.map((actor) => actor.citizenId),
+				),
+				kind: participants.every((actor) => actor.action.kind === "exchange")
+					? "exchange"
+					: "conversation",
+				sourceEventId: linkedEventId,
+				sourceSequence: linkedSequence,
+				status: committed ? "committed" : "in-progress",
+				semanticLabel: `${names.join(", ")} share a canonical ${participants.every((actor) => actor.action.kind === "exchange") ? "exchange" : "conversation"} slot at ${participants[0]?.placeId ?? slotId}`,
+			}),
+		);
+	}
+	return Object.freeze({
+		actors: Object.freeze(
+			input.actors.map((actor) => oriented.get(actor.citizenId) ?? actor),
+		),
+		interactions: Object.freeze(interactions),
+	});
 }
 
 function source(
@@ -900,23 +1105,30 @@ function spatialProjection(input: {
 	readonly presentationTick: number;
 	readonly actors: readonly SpatialActorProjection[];
 }): SpatialProjection {
+	const occupiedActors = resolveSlotOccupancy({
+		scene: input.scene,
+		actors: input.actors,
+	});
+	const linked = deriveInteractions({ actors: occupiedActors });
 	const animationClasses = Object.freeze(
-		[...new Set(input.actors.map((actor) => actor.animationClass))].sort(),
+		[...new Set(linked.actors.map((actor) => actor.animationClass))].sort(),
 	) as readonly AnimationClass[];
 	return Object.freeze({
 		schemaVersion: "eonfolk-spatial-projection-v1",
 		sceneVersion: input.scene.sceneVersion,
 		source: input.source,
 		presentationTick: input.presentationTick,
-		actors: input.actors,
-		interactions: emptyInteractions(),
+		actors: linked.actors,
+		interactions: linked.interactions,
 		animationClasses,
-		movingCitizenCount: input.actors.filter(
+		movingCitizenCount: linked.actors.filter(
 			(actor) => actor.travelState.status === "travelling",
 		).length,
-		canonicalEventLinkCount: input.actors.filter(
-			(actor) => actor.action.eventId !== null,
-		).length,
+		canonicalEventLinkCount:
+			linked.actors.filter((actor) => actor.action.eventId !== null).length +
+			linked.interactions.filter(
+				(interaction) => interaction.sourceEventId !== null,
+			).length,
 		teleportCount: 0,
 		contradictionCount: 0,
 	});
@@ -1015,5 +1227,206 @@ export function projectGeneratedCivilizationSpatial(
 			activities: Math.max(0, activities.length - actors.length),
 			projects: Math.max(0, canonicalProjects.length - MAX_PROJECTED_ENTITIES),
 		}),
+	});
+}
+
+function samePoint(left: SpatialPointMm, right: SpatialPointMm): boolean {
+	return left.x === right.x && left.y === right.y && left.z === right.z;
+}
+
+function insideBlockedVolume(
+	pointMm: SpatialPointMm,
+	scene: SpatialSceneDefinition,
+): boolean {
+	return scene.blockedVolumes.some(
+		(volume) =>
+			pointMm.x > volume.minX &&
+			pointMm.x < volume.maxX &&
+			pointMm.z > volume.minZ &&
+			pointMm.z < volume.maxZ,
+	);
+}
+
+/**
+ * Audits an ordered set of authoritative generated-world presentation frames.
+ * This never synthesizes motion: a citizen counts as moving only when successive
+ * frames expose monotonically increasing progress on the same canonical route.
+ */
+export function inspectGeneratedTemporalWindow(
+	frames: readonly GeneratedCivilizationSpatialProjection[],
+): GeneratedTemporalWindowInspection {
+	const samples: GeneratedTemporalDiagnosticSample[] = [];
+	const mismatches: GeneratedTemporalMismatch[] = [];
+	const movingCitizenIds = new Set<string>();
+	const animationClasses = new Set<AnimationClass>();
+	const interactionIds = new Set<string>();
+	const traversedDistanceMmByCitizen: Record<string, number> = {};
+	const first = frames[0];
+	let previous: GeneratedCivilizationSpatialProjection | null = null;
+	for (const frame of frames) {
+		if (
+			first !== undefined &&
+			(frame.scene.sceneVersion !== first.scene.sceneVersion ||
+				frame.spatial.source.runId !== first.spatial.source.runId ||
+				frame.spatial.source.regionId !== first.spatial.source.regionId)
+		)
+			mismatches.push(
+				Object.freeze({
+					code: "source-mismatch" as const,
+					presentationTick: frame.spatial.presentationTick,
+					citizenId: null,
+				}),
+			);
+		if (
+			previous !== null &&
+			frame.spatial.presentationTick <= previous.spatial.presentationTick
+		)
+			mismatches.push(
+				Object.freeze({
+					code: "non-monotonic-tick" as const,
+					presentationTick: frame.spatial.presentationTick,
+					citizenId: null,
+				}),
+			);
+		const previousActors = new Map(
+			(previous?.spatial.actors ?? []).map((actor) => [actor.citizenId, actor]),
+		);
+		for (const interaction of frame.spatial.interactions)
+			interactionIds.add(interaction.interactionId);
+		for (const actor of frame.spatial.actors) {
+			animationClasses.add(actor.animationClass);
+			samples.push(
+				Object.freeze({
+					presentationTick: frame.spatial.presentationTick,
+					citizenId: actor.citizenId,
+					actionId: actor.action.actionId,
+					destinationPlaceId: actor.action.destinationPlaceId,
+					routeId: actor.travelState.routeId,
+					progressBasisPoints: actor.travelState.progressBasisPoints,
+					animationClass: actor.animationClass,
+					interactionTarget: actor.interactionTarget,
+					prop: actor.prop,
+					positionMm: actor.positionMm,
+				}),
+			);
+			if (insideBlockedVolume(actor.positionMm, frame.scene))
+				mismatches.push(
+					Object.freeze({
+						code: "blocked-volume" as const,
+						presentationTick: frame.spatial.presentationTick,
+						citizenId: actor.citizenId,
+					}),
+				);
+			const progress = actor.travelState.progressBasisPoints;
+			if (progress !== null) {
+				const route = frame.local.routes.find(
+					(candidate) => candidate.routeId === actor.travelState.routeId,
+				);
+				const expected =
+					route === undefined ? null : pointAlongRoute(route, progress);
+				if (
+					expected === null ||
+					!samePoint(expected.position, actor.positionMm)
+				)
+					mismatches.push(
+						Object.freeze({
+							code: "off-route" as const,
+							presentationTick: frame.spatial.presentationTick,
+							citizenId: actor.citizenId,
+						}),
+					);
+			}
+			const prior = previousActors.get(actor.citizenId);
+			if (prior === undefined || samePoint(prior.positionMm, actor.positionMm))
+				continue;
+			const priorProgress = prior.travelState.progressBasisPoints;
+			const sameGroundedRoute =
+				prior.action.actionId === actor.action.actionId &&
+				prior.travelState.routeId === actor.travelState.routeId &&
+				priorProgress !== null &&
+				progress !== null;
+			if (!sameGroundedRoute) {
+				mismatches.push(
+					Object.freeze({
+						code: "unsupported-spatial-jump" as const,
+						presentationTick: frame.spatial.presentationTick,
+						citizenId: actor.citizenId,
+					}),
+				);
+				continue;
+			}
+			if (progress <= priorProgress) {
+				mismatches.push(
+					Object.freeze({
+						code: "route-regression" as const,
+						presentationTick: frame.spatial.presentationTick,
+						citizenId: actor.citizenId,
+					}),
+				);
+				continue;
+			}
+			const route = frame.local.routes.find(
+				(candidate) => candidate.routeId === actor.travelState.routeId,
+			);
+			if (route === undefined) {
+				mismatches.push(
+					Object.freeze({
+						code: "off-route" as const,
+						presentationTick: frame.spatial.presentationTick,
+						citizenId: actor.citizenId,
+					}),
+				);
+				continue;
+			}
+			const traversedDistanceMm = Math.ceil(
+				(route.distanceMillimeters * (progress - priorProgress)) / 10_000,
+			);
+			const elapsedTicks =
+				frame.spatial.presentationTick -
+				(previous?.spatial.presentationTick ?? frame.spatial.presentationTick);
+			const maximumDistanceMm = Math.ceil((elapsedTicks / 30) * 1_000) + 50;
+			if (traversedDistanceMm > maximumDistanceMm)
+				mismatches.push(
+					Object.freeze({
+						code: "excessive-step" as const,
+						presentationTick: frame.spatial.presentationTick,
+						citizenId: actor.citizenId,
+					}),
+				);
+			movingCitizenIds.add(actor.citizenId);
+			traversedDistanceMmByCitizen[actor.citizenId] =
+				(traversedDistanceMmByCitizen[actor.citizenId] ?? 0) +
+				traversedDistanceMm;
+		}
+		previous = frame;
+	}
+	const frozenMismatches = Object.freeze(mismatches);
+	return Object.freeze({
+		samples: Object.freeze(samples),
+		movingCitizenIds: Object.freeze([...movingCitizenIds].sort(compareIds)),
+		traversedDistanceMmByCitizen: Object.freeze(
+			Object.fromEntries(
+				Object.entries(traversedDistanceMmByCitizen).sort(([left], [right]) =>
+					compareIds(left, right),
+				),
+			),
+		),
+		animationClasses: Object.freeze(
+			[...animationClasses].sort(compareIds),
+		) as readonly AnimationClass[],
+		interactionIds: Object.freeze([...interactionIds].sort(compareIds)),
+		mismatches: frozenMismatches,
+		teleportCount: frozenMismatches.filter(
+			(mismatch) =>
+				mismatch.code === "route-regression" ||
+				mismatch.code === "excessive-step" ||
+				mismatch.code === "unsupported-spatial-jump",
+		).length,
+		contradictionCount: frozenMismatches.filter(
+			(mismatch) =>
+				mismatch.code !== "route-regression" &&
+				mismatch.code !== "excessive-step" &&
+				mismatch.code !== "unsupported-spatial-jump",
+		).length,
 	});
 }

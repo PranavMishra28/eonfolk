@@ -6,7 +6,10 @@ import {
 	createReleaseGenesis,
 	jcs,
 } from "../../../packages/protocol/src/index.js";
-import { projectGeneratedCivilizationSpatial } from "../../../packages/world-presentation/src/index.js";
+import {
+	inspectGeneratedTemporalWindow,
+	projectGeneratedCivilizationSpatial,
+} from "../../../packages/world-presentation/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
 function seedHex(bytes: Uint8Array): string {
@@ -89,6 +92,115 @@ describe("generated civilization spatial properties", () => {
 				},
 			),
 			{ numRuns: deep ? 80 : 12 },
+		);
+	});
+
+	it("accepts only monotonic canonical route samples as continuous movement", async () => {
+		await fc.assert(
+			fc.asyncProperty(
+				fc.uint8Array({ minLength: 32, maxLength: 32 }),
+				fc.integer({ min: 0, max: 9_998 }),
+				fc.integer({ min: 1, max: 2_500 }),
+				async (seedBytes, firstProgress, requestedDelta) => {
+					const secondProgress = Math.min(
+						9_999,
+						firstProgress + requestedDelta,
+					);
+					fc.pre(secondProgress > firstProgress);
+					const world = await generateWorld({
+						releaseGenesis: await createReleaseGenesis({
+							releaseId: "generated-route-property",
+							seedHex: seedHex(seedBytes),
+						}),
+					});
+					const run = await runCivilizationExperiment({
+						world,
+						horizonDays: 1,
+					});
+					const route = Object.values(run.world.routes)
+						.map((record) => record.value)
+						.sort((left, right) =>
+							left.routeId.localeCompare(right.routeId),
+						)[0];
+					const citizen = Object.values(run.state.citizens).sort(
+						(left, right) => left.citizenId.localeCompare(right.citizenId),
+					)[0];
+					if (route === undefined || citizen === undefined)
+						throw new Error("generated fixture lacks route citizen");
+					const civilization = {
+						...run.state,
+						citizens: {
+							[citizen.citizenId]: {
+								...citizen,
+								siteId: route.fromSiteId,
+							},
+						},
+					} as const;
+					const frame = (
+						progressBasisPoints: number,
+						presentationTick: number,
+					) =>
+						projectGeneratedCivilizationSpatial({
+							world: run.world,
+							civilization,
+							checkpoint: run,
+							settlementId: run.seedConditions.originSettlementId,
+							activities: [
+								{
+									schemaVersion:
+										"eonfolk-generated-spatial-activity-v1" as const,
+									citizenId: citizen.citizenId,
+									canonicalAction: {
+										actionId: "property-route",
+										sourceKind: "current-behavior" as const,
+										eventId: null,
+										eventSequence: null,
+										status: "in-progress" as const,
+										kind: "walk" as const,
+										originPlaceId: route.fromSiteId,
+										destinationPlaceId: route.toSiteId,
+										affordanceId: null,
+										affordanceSlotIndex: null,
+										targetId: null,
+										simulationStart: civilization.simulationTime,
+										simulationEnd: null,
+										resultEventId: null,
+									},
+									location: {
+										kind: "route" as const,
+										routeId: route.routeId,
+										progressBasisPoints,
+									},
+									projectId: null,
+									carriedProp: null,
+									focal: true,
+								},
+							],
+							presentationTick,
+						});
+					const inspection = inspectGeneratedTemporalWindow([
+						frame(firstProgress, 0),
+						frame(
+							secondProgress,
+							Math.ceil(
+								(((secondProgress - firstProgress) *
+									route.distanceMillimeters) /
+									10_000 /
+									1_000) *
+									30,
+							) + 1,
+						),
+					]);
+
+					expect(inspection.mismatches).toEqual([]);
+					expect(inspection.teleportCount).toBe(0);
+					expect(inspection.movingCitizenIds).toEqual([citizen.citizenId]);
+					expect(
+						inspection.traversedDistanceMmByCitizen[citizen.citizenId],
+					).toBeGreaterThan(0);
+				},
+			),
+			{ numRuns: deep ? 40 : 6 },
 		);
 	});
 });

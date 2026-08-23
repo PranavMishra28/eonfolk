@@ -1,4 +1,7 @@
-import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
+import type {
+	GeneratedCivilizationSpatialProjection,
+	SpatialPointMm,
+} from "@eonfolk/world-presentation";
 import { Application, Entity } from "@playcanvas/react";
 import { Camera, Light, Render } from "@playcanvas/react/components";
 import { useApp, useAppEvent } from "@playcanvas/react/hooks";
@@ -21,6 +24,7 @@ import { GeneratedFolkProxy } from "./components/generated/GeneratedFolkProxy";
 import { GeneratedProjectProxy } from "./components/generated/GeneratedProjectProxy";
 import {
 	cameraIntentForGeneratedNavigation,
+	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationState,
 } from "./generated-presentation";
@@ -49,6 +53,7 @@ const palette = Object.freeze({
 	field: material("#b7a75f"),
 	ink: material("#242921"),
 	changed: material("#d99a45"),
+	social: material("#e7cc77"),
 });
 
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
@@ -135,6 +140,51 @@ function localPoint(
 	];
 }
 
+function renderedActorPoint(
+	projection: GeneratedCivilizationSpatialProjection,
+	actor: GeneratedEmbodiedActor,
+): SpatialPointMm {
+	const interaction = projection.spatial.interactions.find((candidate) =>
+		candidate.participantIds.includes(actor.citizenId),
+	);
+	if (interaction === undefined) return actor.positionMm;
+	const ordinal = interaction.participantIds.indexOf(actor.citizenId);
+	const canonicalActor = projection.spatial.actors.find(
+		(candidate) => candidate.citizenId === actor.citizenId,
+	);
+	const slotId = canonicalActor?.action.affordanceId;
+	const node =
+		slotId === null || slotId === undefined
+			? undefined
+			: projection.scene.nodes[slotId];
+	if (node === undefined || ordinal < 0) return actor.positionMm;
+	const offset =
+		(ordinal - (interaction.participantIds.length - 1) / 2) *
+		node.occupantSpacingMm;
+	const angle = (node.facingDegrees * Math.PI) / 180;
+	return Object.freeze({
+		x: Math.round(node.x + Math.cos(angle) * offset),
+		y: node.y,
+		z: Math.round(node.z - Math.sin(angle) * offset),
+	});
+}
+
+function renderedActorFacing(
+	projection: GeneratedCivilizationSpatialProjection,
+	model: GeneratedEmbodimentProjection,
+	actor: GeneratedEmbodiedActor,
+): number {
+	if (actor.interactionTarget === null) return actor.facingDegrees;
+	const target = model.actors.find(
+		(candidate) => candidate.citizenId === actor.interactionTarget,
+	);
+	if (target === undefined) return actor.facingDegrees;
+	const from = renderedActorPoint(projection, actor);
+	const to = renderedActorPoint(projection, target);
+	if (from.x === to.x && from.z === to.z) return actor.facingDegrees;
+	return Math.round((Math.atan2(to.x - from.x, to.z - from.z) * 180) / Math.PI);
+}
+
 function SceneProbe({
 	host,
 }: {
@@ -208,9 +258,13 @@ function GeneratedCamera({
 function Route({
 	from,
 	to,
+	color = palette.path,
+	width = 0.75,
 }: {
 	readonly from: [number, number, number];
 	readonly to: [number, number, number];
+	readonly color?: StandardMaterial;
+	readonly width?: number;
 }) {
 	const dx = to[0] - from[0];
 	const dz = to[2] - from[2];
@@ -218,9 +272,9 @@ function Route({
 	return (
 		<Primitive
 			position={[(from[0] + to[0]) / 2, 0.04, (from[2] + to[2]) / 2]}
-			scale={[0.75, 0.08, Math.max(0.1, length)]}
+			scale={[width, 0.08, Math.max(0.1, length)]}
 			rotation={[0, (Math.atan2(dx, dz) * 180) / Math.PI, 0]}
-			color={palette.path}
+			color={color}
 			castShadows={false}
 		/>
 	);
@@ -264,33 +318,23 @@ function GroundedSettlement({
 				scale={[frame.width + 12, 0.4, frame.depth + 12]}
 				color={palette.ground}
 			/>
-			{projection.local.routes.flatMap((route) =>
-				route.waypoints.slice(0, -1).map((point, index) => {
-					const next = route.waypoints[index + 1];
-					if (next === undefined) return null;
+			{projection.scene.edges
+				.filter((edge) => edge.edgeId.endsWith(":forward"))
+				.map((edge) => {
+					const from = projection.scene.nodes[edge.fromNodeId];
+					const to = projection.scene.nodes[edge.toNodeId];
+					if (from === undefined || to === undefined)
+						throw new Error(
+							`Generated route edge ${edge.edgeId} is ungrounded`,
+						);
 					return (
 						<Route
-							key={`${route.routeId}:${point.xMillimeters}:${point.yMillimeters}`}
-							from={localPoint(
-								{
-									x: point.xMillimeters,
-									y: point.elevationMillimeters,
-									z: point.yMillimeters,
-								},
-								frame,
-							)}
-							to={localPoint(
-								{
-									x: next.xMillimeters,
-									y: next.elevationMillimeters,
-									z: next.yMillimeters,
-								},
-								frame,
-							)}
+							key={edge.edgeId}
+							from={localPoint(from, frame)}
+							to={localPoint(to, frame)}
 						/>
 					);
-				}),
-			)}
+				})}
 			{projection.local.sites.map((site) => {
 				const width =
 					(site.bounds.maximum.xMillimeters -
@@ -383,16 +427,51 @@ function GroundedSettlement({
 					/>
 				);
 			})}
-			{model.actors.map((actor) => (
-				<GeneratedFolkProxy
-					key={actor.citizenId}
-					actor={actor}
-					position={localPoint(actor.positionMm, frame)}
-					presentationTick={presentationTick}
-					reducedMotion={reducedMotion}
-					selected={selectedActorId === actor.citizenId}
-				/>
-			))}
+			{model.actors.map((actor) => {
+				const facingDegrees = renderedActorFacing(projection, model, actor);
+				return (
+					<GeneratedFolkProxy
+						key={actor.citizenId}
+						actor={
+							facingDegrees === actor.facingDegrees
+								? actor
+								: Object.freeze({ ...actor, facingDegrees })
+						}
+						position={localPoint(renderedActorPoint(projection, actor), frame)}
+						presentationTick={presentationTick}
+						reducedMotion={reducedMotion}
+						selected={selectedActorId === actor.citizenId}
+					/>
+				);
+			})}
+			{projection.spatial.interactions.map((interaction) => {
+				const participants = interaction.participantIds
+					.map((citizenId) =>
+						model.actors.find((actor) => actor.citizenId === citizenId),
+					)
+					.filter((actor) => actor !== undefined);
+				const first = participants[0];
+				const second = participants[1];
+				if (first === undefined || second === undefined) return null;
+				const from = localPoint(renderedActorPoint(projection, first), frame);
+				const to = localPoint(renderedActorPoint(projection, second), frame);
+				return (
+					<Entity key={interaction.interactionId}>
+						<Route from={from} to={to} color={palette.social} width={0.08} />
+						<Primitive
+							type="sphere"
+							position={[
+								(from[0] + to[0]) / 2,
+								Math.max(from[1], to[1]) + 2.65,
+								(from[2] + to[2]) / 2,
+							]}
+							scale={[0.22, 0.22, 0.22]}
+							color={palette.social}
+							castShadows={false}
+						/>
+					</Entity>
+				);
+			})}
 		</Application>
 	);
 }
@@ -452,6 +531,42 @@ export function GeneratedWorldCanvas({
 				.map(({ actionId }) => actionId)
 				.join(",")}
 			data-animation-classes={projection.spatial.animationClasses.join(",")}
+			data-moving-actor-count={projection.spatial.movingCitizenCount}
+			data-interaction-count={projection.spatial.interactions.length}
+			data-canonical-event-link-count={
+				projection.spatial.canonicalEventLinkCount
+			}
+			data-route-segment-count={
+				projection.scene.edges.filter((edge) =>
+					edge.edgeId.endsWith(":forward"),
+				).length
+			}
+			data-actor-route-states={projection.spatial.actors
+				.map(
+					(actor) =>
+						`${actor.citizenId}:${actor.travelState.status}:${actor.travelState.routeId}:${actor.travelState.progressBasisPoints ?? "slot"}`,
+				)
+				.join(",")}
+			data-actor-positions={projection.spatial.actors
+				.map(
+					(actor) =>
+						`${actor.citizenId}:${actor.positionMm.x}:${actor.positionMm.y}:${actor.positionMm.z}`,
+				)
+				.join(",")}
+			data-rendered-actor-positions={model.actors
+				.map((actor) => {
+					const position = renderedActorPoint(projection, actor);
+					return `${actor.citizenId}:${position.x}:${position.y}:${position.z}`;
+				})
+				.join(",")}
+			data-actor-diagnostics={projection.spatial.actors
+				.map(
+					(actor) =>
+						`${actor.citizenId}|${actor.action.actionId}|${actor.action.destinationPlaceId}|${actor.animationClass}|${actor.interactionTarget ?? "none"}|${actor.prop ?? "none"}|${actor.positionMm.x}:${actor.positionMm.y}:${actor.positionMm.z}`,
+				)
+				.join(";")}
+			data-teleport-count={projection.spatial.teleportCount}
+			data-contradiction-count={projection.spatial.contradictionCount}
 			data-embodiment-schema={model.schemaVersion}
 			data-presentation-tick={presentationTick}
 			data-focus-kind={navigation.focus.kind}

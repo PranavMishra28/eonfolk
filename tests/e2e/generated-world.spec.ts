@@ -138,6 +138,26 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	});
 	await expect(canvas).toHaveAttribute("data-embodiment-schema", /v1$/u);
 	await expect(canvas).toHaveAttribute("data-canonical-action-ids", /.+/u);
+	await expect(canvas).toHaveAttribute(
+		"data-route-segment-count",
+		/^[1-9]\d*$/u,
+	);
+	await expect(canvas).toHaveAttribute("data-actor-route-states", /.+/u);
+	await expect(canvas).toHaveAttribute("data-actor-positions", /.+/u);
+	await expect(canvas).toHaveAttribute("data-rendered-actor-positions", /.+/u);
+	await expect(canvas).toHaveAttribute("data-actor-diagnostics", /.+/u);
+	await expect(canvas).toHaveAttribute("data-interaction-count", /^\d+$/u);
+	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
+	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
+	const routeStates = (await canvas.getAttribute("data-actor-route-states"))
+		?.split(",")
+		.filter(Boolean);
+	const movingActorCount = Number(
+		await canvas.getAttribute("data-moving-actor-count"),
+	);
+	expect(
+		routeStates?.filter((state) => state.includes(":travelling:")).length,
+	).toBe(movingActorCount);
 	expect(generatedAssetRequests.sort()).toEqual([
 		"/assets/generated/ASSET_MANIFEST.json",
 		"/assets/generated/eonfolk-folk-proxy.gltf",
@@ -148,6 +168,7 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	const tickBefore = Number(
 		await canvas.getAttribute("data-presentation-tick"),
 	);
+	const positionsBeforePose = await canvas.getAttribute("data-actor-positions");
 	await page.getByRole("button", { name: "Step one pose" }).click();
 	await expect(canvas).toHaveAttribute(
 		"data-presentation-tick",
@@ -156,6 +177,10 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	await expect(world).toHaveAttribute(
 		"data-state-hash",
 		stateHashBeforePose ?? "",
+	);
+	await expect(canvas).toHaveAttribute(
+		"data-actor-positions",
+		positionsBeforePose ?? "",
 	);
 	const firstResident = page
 		.getByRole("group", { name: "Canonical residents" })

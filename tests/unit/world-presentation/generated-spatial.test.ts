@@ -7,9 +7,10 @@ import {
 	stateHash,
 } from "../../../packages/protocol/src/index.js";
 import {
-	projectGeneratedCivilizationSpatial,
 	type GeneratedSpatialActivityInput,
 	type GeneratedSpatialCivilizationInput,
+	inspectGeneratedTemporalWindow,
+	projectGeneratedCivilizationSpatial,
 } from "../../../packages/world-presentation/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
@@ -339,10 +340,29 @@ describe("generated civilization spatial adapter", () => {
 			presentationTick: 100,
 		});
 		const actor = projection.spatial.actors[0];
+		expect(() =>
+			projectGeneratedCivilizationSpatial({
+				world: run.world,
+				civilization: routeState,
+				checkpoint: run,
+				settlementId: run.seedConditions.originSettlementId,
+				activities: [
+					{
+						...activity,
+						canonicalAction: {
+							...activity.canonicalAction,
+							kind: "inspect",
+						},
+					},
+				],
+				presentationTick: 100,
+			}),
+		).toThrow(/route requires walk or carry/u);
 
 		expect(actor?.travelState).toMatchObject({
 			status: "travelling",
 			routeId: route.routeId,
+			progressBasisPoints: 5_000,
 		});
 		expect(actor?.routeNodeIds).toEqual(
 			route.waypoints.map((_, index) => `${route.routeId}:waypoint:${index}`),
@@ -383,11 +403,202 @@ describe("generated civilization spatial adapter", () => {
 			presentationTick: 101,
 		});
 		expect(arrived.spatial.actors[0]?.travelState.status).toBe("arrived");
+		expect(arrived.spatial.actors[0]?.travelState.progressBasisPoints).toBe(
+			10_000,
+		);
+		expect(arrived.spatial.actors[0]?.animationClass).toBe("idle");
 		expect(arrived.spatial.actors[0]?.positionMm).toEqual({
 			x: route.waypoints.at(-1)?.xMillimeters,
 			y: route.waypoints.at(-1)?.elevationMillimeters,
 			z: route.waypoints.at(-1)?.yMillimeters,
 		});
+	});
+
+	it("audits a ten-second canonical route traversal without presentation teleportation", async () => {
+		const run = await checkpoint();
+		const state = withCitizens(run);
+		const citizenId = Object.keys(state.citizens)[0];
+		const route = Object.values(run.world.routes)
+			.map((record) => record.value)
+			.sort((left, right) => left.routeId.localeCompare(right.routeId))[0];
+		if (citizenId === undefined || route === undefined)
+			throw new Error("fixture lacks route actor");
+		const originalCitizen = state.citizens[citizenId];
+		if (originalCitizen === undefined) throw new Error("fixture lacks citizen");
+		if (route.distanceMillimeters < 10_000)
+			throw new Error("fixture route is too short for temporal traversal");
+		const progressSamples = [0, 1_800, 3_600, 5_400, 7_200, 9_000].map(
+			(distanceMillimeters) =>
+				Math.trunc((distanceMillimeters * 10_000) / route.distanceMillimeters),
+		);
+		const frames = progressSamples.map((progressBasisPoints, index) => {
+			const civilization: GeneratedSpatialCivilizationInput = {
+				...state,
+				citizens: {
+					...state.citizens,
+					[citizenId]: {
+						...originalCitizen,
+						siteId: route.fromSiteId,
+					},
+				},
+			};
+			const activity: GeneratedSpatialActivityInput = {
+				schemaVersion: "eonfolk-generated-spatial-activity-v1",
+				citizenId,
+				canonicalAction: {
+					actionId: "scheduler-ten-second-route",
+					sourceKind: "current-behavior",
+					eventId: null,
+					eventSequence: null,
+					status: "in-progress",
+					kind: "carry",
+					originPlaceId: route.fromSiteId,
+					destinationPlaceId: route.toSiteId,
+					affordanceId: null,
+					affordanceSlotIndex: null,
+					targetId: null,
+					simulationStart: civilization.simulationTime,
+					simulationEnd: null,
+					resultEventId: null,
+				},
+				location: {
+					kind: "route",
+					routeId: route.routeId,
+					progressBasisPoints,
+				},
+				projectId: null,
+				carriedProp: "logs",
+				focal: true,
+			};
+			return projectGeneratedCivilizationSpatial({
+				world: run.world,
+				civilization,
+				checkpoint: run,
+				settlementId: run.seedConditions.originSettlementId,
+				activities: [activity],
+				presentationTick: index * 60,
+			});
+		});
+		const inspection = inspectGeneratedTemporalWindow(frames);
+
+		expect(frames.at(-1)?.spatial.presentationTick).toBe(300);
+		expect(inspection.mismatches).toEqual([]);
+		expect(inspection.teleportCount).toBe(0);
+		expect(inspection.contradictionCount).toBe(0);
+		expect(inspection.movingCitizenIds).toEqual([citizenId]);
+		expect(inspection.traversedDistanceMmByCitizen[citizenId]).toBeGreaterThan(
+			8_000,
+		);
+		expect(inspection.animationClasses).toEqual(["carry"]);
+		expect(
+			inspection.samples.every(
+				(sample) =>
+					sample.actionId === "scheduler-ten-second-route" &&
+					sample.routeId === route.routeId &&
+					sample.prop === "logs",
+			),
+		).toBe(true);
+	});
+
+	it("derives a legible interaction only from co-located canonical social activities", async () => {
+		const run = await checkpoint();
+		const state = withCitizens(run, 2);
+		const socialSlot = Object.values(run.world.interactionSlots)
+			.map((record) => record.value)
+			.filter(
+				(slot) =>
+					slot.capacity >= 2 &&
+					slot.activityKinds.some((kind) =>
+						["meet", "rendezvous"].includes(kind),
+					),
+			)
+			.sort((left, right) =>
+				left.interactionSlotId.localeCompare(right.interactionSlotId),
+			)[0];
+		if (socialSlot === undefined) throw new Error("fixture lacks social slot");
+		const citizenIds = Object.keys(state.citizens).slice(0, 2);
+		const socialState: GeneratedSpatialCivilizationInput = {
+			...state,
+			citizens: Object.fromEntries(
+				Object.entries(state.citizens).map(([citizenId, citizen]) => [
+					citizenId,
+					{ ...citizen, siteId: socialSlot.siteId },
+				]),
+			),
+		};
+		const activities: GeneratedSpatialActivityInput[] = citizenIds.map(
+			(citizenId, index) => ({
+				schemaVersion: "eonfolk-generated-spatial-activity-v1",
+				citizenId,
+				canonicalAction: {
+					actionId: `canonical-social-${index}`,
+					sourceKind: "current-behavior",
+					eventId: null,
+					eventSequence: null,
+					status: "in-progress",
+					kind: index === 0 ? "talk" : "listen",
+					originPlaceId: socialSlot.siteId,
+					destinationPlaceId: socialSlot.siteId,
+					affordanceId: socialSlot.interactionSlotId,
+					affordanceSlotIndex: index,
+					targetId: citizenIds[index === 0 ? 1 : 0] ?? null,
+					simulationStart: socialState.simulationTime,
+					simulationEnd: null,
+					resultEventId: null,
+				},
+				location: {
+					kind: "interaction-slot",
+					interactionSlotId: socialSlot.interactionSlotId,
+				},
+				projectId: null,
+				carriedProp: null,
+				focal: index === 0,
+			}),
+		);
+		const projection = projectGeneratedCivilizationSpatial({
+			world: run.world,
+			civilization: socialState,
+			checkpoint: run,
+			settlementId: run.seedConditions.originSettlementId,
+			activities,
+			presentationTick: 60,
+		});
+
+		expect(projection.spatial.interactions).toHaveLength(1);
+		expect(projection.spatial.interactions[0]).toMatchObject({
+			participantIds: [...citizenIds].sort(),
+			kind: "conversation",
+			sourceEventId: null,
+			status: "in-progress",
+		});
+		const [first, second] = projection.spatial.actors;
+		expect(first?.positionMm).toEqual(second?.positionMm);
+		expect(first?.interactionTarget).toBe(second?.citizenId);
+		expect(second?.interactionTarget).toBe(first?.citizenId);
+		expect(first?.action.affordanceSlotIndex).toBe(0);
+		expect(second?.action.affordanceSlotIndex).toBe(1);
+		const firstActivity = activities[0];
+		const secondActivity = activities[1];
+		if (firstActivity === undefined || secondActivity === undefined)
+			throw new Error("fixture lacks paired social activities");
+		const unlinked = projectGeneratedCivilizationSpatial({
+			world: run.world,
+			civilization: socialState,
+			checkpoint: run,
+			settlementId: run.seedConditions.originSettlementId,
+			activities: [
+				firstActivity,
+				{
+					...secondActivity,
+					canonicalAction: {
+						...secondActivity.canonicalAction,
+						targetId: null,
+					},
+				},
+			],
+			presentationTick: 61,
+		});
+		expect(unlinked.spatial.interactions).toEqual([]);
 	});
 
 	it("is deterministic across seeds and never mutates world or civilization Reality", async () => {
@@ -417,9 +628,36 @@ describe("generated civilization spatial adapter", () => {
 
 	it("caps the typed projection at eight actors without changing canonical population", async () => {
 		const run = await checkpoint();
-		const state = withCitizens(run, 9);
-		const activities = Object.keys(state.citizens).map((citizenId, ordinal) =>
-			slotActivity({ run, state, citizenId, ordinal }),
+		const baseState = withCitizens(run, 9);
+		const sharedSlot = Object.values(run.world.interactionSlots)
+			.map((record) => record.value)
+			.find((slot) => slot.capacity >= 8);
+		if (sharedSlot === undefined)
+			throw new Error("fixture lacks an eight-person canonical slot");
+		const state: GeneratedSpatialCivilizationInput = {
+			...baseState,
+			citizens: Object.fromEntries(
+				Object.entries(baseState.citizens).map(([citizenId, citizen]) => [
+					citizenId,
+					{ ...citizen, siteId: sharedSlot.siteId },
+				]),
+			),
+		};
+		const activities = Object.keys(state.citizens).map(
+			(citizenId, ordinal) => ({
+				...slotActivity({ run, state, citizenId, ordinal }),
+				canonicalAction: {
+					...slotActivity({ run, state, citizenId, ordinal }).canonicalAction,
+					originPlaceId: sharedSlot.siteId,
+					destinationPlaceId: sharedSlot.siteId,
+					affordanceId: sharedSlot.interactionSlotId,
+					affordanceSlotIndex: ordinal,
+				},
+				location: {
+					kind: "interaction-slot" as const,
+					interactionSlotId: sharedSlot.interactionSlotId,
+				},
+			}),
 		);
 		const projection = projectGeneratedCivilizationSpatial({
 			world: run.world,
