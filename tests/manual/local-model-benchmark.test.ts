@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	createMacOsLoopbackOllamaTransport,
+	LocalProcessTransportError,
 	type LocalProcessInvocationTelemetry,
 } from "../../apps/web/src/cognition/local-process-transport.node.js";
 import {
@@ -82,6 +83,7 @@ interface ExecutionEvidence {
 	readonly contextHash: string;
 	readonly selectedSource: "primary" | "deterministic-fallback";
 	readonly primaryFailure: string | null;
+	readonly primaryFailureDetail: string | null;
 	readonly actionId: string;
 	readonly preferredActionId: string;
 	readonly preferredAgreement: boolean;
@@ -96,6 +98,15 @@ function requiredEnvironment(name: string): string {
 	if (value === undefined || value.length === 0)
 		throw new Error(`missing required benchmark environment ${name}`);
 	return value;
+}
+
+function boundedPrimaryFailureDetail(error: unknown): string {
+	if (!(error instanceof LocalProcessTransportError)) return "unclassified";
+	const adapterFailure =
+		/^local model adapter failed: ([a-z][a-z-]{0,63})$/u.exec(
+			error.message,
+		)?.[1];
+	return adapterFailure ?? error.code;
 }
 
 function sha256(bytes: Uint8Array | string): string {
@@ -1021,6 +1032,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 						},
 					});
 					let currentTelemetry: LocalProcessInvocationTelemetry | null = null;
+					let currentPrimaryFailureDetail: string | null = null;
 					const transport = await createMacOsLoopbackOllamaTransport({
 						adapterPath,
 						ollamaExecutablePath: service.path,
@@ -1043,6 +1055,17 @@ describe("manual bounded local Model Brain benchmark", () => {
 						contract,
 						transport,
 					);
+					const observedBrain = {
+						async propose(context: DecisionContext, signal?: AbortSignal) {
+							try {
+								return await brain.propose(context, signal);
+							} catch (error) {
+								currentPrimaryFailureDetail =
+									boundedPrimaryFailureDetail(error);
+								throw error;
+							}
+						},
+					};
 					for (let index = 0; index < contexts.length; index += 1) {
 						const pair = contexts[index]!;
 						for (const [hiddenVariant, context] of [
@@ -1052,6 +1075,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 							const before = safetySample();
 							assertSafeMachine(before);
 							currentTelemetry = null;
+							currentPrimaryFailureDetail = null;
 							const prngState = await seedPrng(
 								new Uint8Array(32).fill(modelSeed & 0xff),
 								"model-benchmark-fallback",
@@ -1061,7 +1085,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 							const started = performance.now();
 							const decision = await runDecisionGateway({
 								context,
-								primary: brain,
+								primary: observedBrain,
 								primaryTimeoutMilliseconds:
 									results.length === 0 ? 15_000 : 3_000,
 								validate: validateIntentProposal,
@@ -1085,6 +1109,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 								contextHash: context.contextHash,
 								selectedSource: decision.selectedSource,
 								primaryFailure: decision.primaryFailure,
+								primaryFailureDetail: currentPrimaryFailureDetail,
 								actionId: decision.proposal.actionId,
 								preferredActionId: pair.scenario.preferredActionId,
 								preferredAgreement:
