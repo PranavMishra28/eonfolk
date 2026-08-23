@@ -54,7 +54,6 @@ const PR_STEPS = Object.freeze([
 const DEEP_ONLY_STEPS = Object.freeze([
 	step("targeted-mutation", "pnpm", ["test:mutation"]),
 	step("property-deep", "pnpm", ["test:property:deep"]),
-	step("local-model-benchmark", "pnpm", ["test:model:benchmark"]),
 	step("browser-cohort", "pnpm", ["browser-cohort:check"]),
 	step("persistence-benchmark", "node", [
 		"scripts/benchmark-persistence.mjs",
@@ -73,13 +72,26 @@ const DEEP_ONLY_STEPS = Object.freeze([
 	]),
 	step("canonical-web-performance", "pnpm", ["test:performance"]),
 ]);
+const DEEP_MODEL_STEP = step("local-model-benchmark", "pnpm", [
+	"test:model:benchmark",
+]);
+const DEEP_MODEL_INSERTION_INDEX = PR_STEPS.findIndex(
+	(entry) => entry.id === "timing",
+);
+if (DEEP_MODEL_INSERTION_INDEX < 0)
+	throw new Error("DEEP model gate requires the PR timing boundary");
 const PORTABLE_EXTENDED_ONLY_STEPS = Object.freeze([
 	step("targeted-mutation", "pnpm", ["test:mutation"]),
 	step("property-deep", "pnpm", ["test:property:deep"]),
 ]);
 const TIER_STEPS = Object.freeze({
 	pr: PR_STEPS,
-	deep: Object.freeze([...PR_STEPS, ...DEEP_ONLY_STEPS]),
+	deep: Object.freeze([
+		...PR_STEPS.slice(0, DEEP_MODEL_INSERTION_INDEX),
+		DEEP_MODEL_STEP,
+		...PR_STEPS.slice(DEEP_MODEL_INSERTION_INDEX),
+		...DEEP_ONLY_STEPS,
+	]),
 	"portable-extended": Object.freeze([
 		...PR_STEPS,
 		...PORTABLE_EXTENDED_ONLY_STEPS,

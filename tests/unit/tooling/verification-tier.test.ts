@@ -194,8 +194,8 @@ describe("V1 CI hardening", () => {
 			resolve("scripts/run-verification-tier.mjs"),
 			"utf8",
 		);
-		expect(runner).toContain(
-			'step("local-model-benchmark", "pnpm", ["test:model:benchmark"])',
+		expect(runner).toMatch(
+			/step\("local-model-benchmark",\s*"pnpm",\s*\[\s*"test:model:benchmark",?\s*\]\)/u,
 		);
 		expect(runner).toContain("tmp/eonfolk-local-model-benchmark.json");
 	});

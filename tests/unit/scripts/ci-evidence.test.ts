@@ -266,7 +266,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			expect(artifactPathsForTier("deep")).toContain(benchmark.path);
 	});
 
-	it("keeps PR and DEEP ordering while adding one portable extended superset", () => {
+	it("keeps PR relative ordering while running the DEEP model gate before heat-intensive checks", () => {
 		const pr = verificationStepsForTier("pr");
 		const deep = verificationStepsForTier("deep");
 		const portableExtended = verificationStepsForTier("portable-extended");
@@ -294,11 +294,17 @@ describe("Founder Alpha CI evidence controls", () => {
 			"production-audit",
 			"formal",
 		]);
-		expect(deep.slice(0, pr.length)).toEqual(pr);
-		expect(deep.slice(pr.length).map((entry) => entry.id)).toEqual([
+		expect(
+			deep
+				.filter((entry) => entry.id !== "local-model-benchmark")
+				.slice(0, pr.length),
+		).toEqual(pr);
+		expect(
+			deep.findIndex((entry) => entry.id === "local-model-benchmark"),
+		).toBe(pr.findIndex((entry) => entry.id === "timing"));
+		expect(deep.slice(pr.length + 1).map((entry) => entry.id)).toEqual([
 			"targeted-mutation",
 			"property-deep",
-			"local-model-benchmark",
 			"browser-cohort",
 			"persistence-benchmark",
 			"diagnostics-source-benchmark",
