@@ -20,6 +20,7 @@
 		"@eonfolk/protocol": "workspace:*",
 		"@eonfolk/sim": "workspace:*",
 		"@eonfolk/world-presentation": "workspace:*",
+		"@eonfolk/worldgen": "workspace:*",
 		"@playcanvas/react": "0.11.5",
 		"playcanvas": "2.21.4",
 		"react": "19.2.8",

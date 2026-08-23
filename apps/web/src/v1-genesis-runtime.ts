@@ -5,7 +5,7 @@ import {
 	type GeneratedSettlementLocalProjection,
 	type GeneratedWorldOverviewProjection,
 } from "@eonfolk/world-presentation";
-import { generateWorld } from "../../../packages/worldgen/src/index.js";
+import { generateWorld } from "@eonfolk/worldgen";
 
 export const V1_GENESIS_RELEASE_ID = "release-genesis-browser-v1";
 export const V1_GENESIS_WORLD_ID = "eonfolk-genesis-world-v1";

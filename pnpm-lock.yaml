@@ -98,6 +98,9 @@ importers:
       '@eonfolk/world-presentation':
         specifier: workspace:*
         version: link:../../packages/world-presentation
+      '@eonfolk/worldgen':
+        specifier: workspace:*
+        version: link:../../packages/worldgen
       '@playcanvas/react':
         specifier: 0.11.5
         version: 0.11.5(playcanvas@2.21.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
