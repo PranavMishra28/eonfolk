@@ -62,9 +62,17 @@ const DEEP_ONLY_STEPS = Object.freeze([
 	]),
 	step("canonical-web-performance", "pnpm", ["test:performance"]),
 ]);
+const PORTABLE_EXTENDED_ONLY_STEPS = Object.freeze([
+	step("targeted-mutation", "pnpm", ["test:mutation"]),
+	step("property-deep", "pnpm", ["test:property:deep"]),
+]);
 const TIER_STEPS = Object.freeze({
 	pr: PR_STEPS,
 	deep: Object.freeze([...PR_STEPS, ...DEEP_ONLY_STEPS]),
+	"portable-extended": Object.freeze([
+		...PR_STEPS,
+		...PORTABLE_EXTENDED_ONLY_STEPS,
+	]),
 });
 const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 	pr: Object.freeze(["apps/web/dist"]),
@@ -75,6 +83,7 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 		"tmp/eonfolk-diagnostics-browser-comparison.json",
 		"tmp/eonfolk-canonical-performance.json",
 	]),
+	"portable-extended": Object.freeze(["apps/web/dist"]),
 });
 const PRODUCTION_CRASH_MARKERS = Object.freeze([
 	"injected browser crash after durable transition",
@@ -85,8 +94,23 @@ const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
 
 export function verificationStepsForTier(tier) {
 	if (!Object.hasOwn(TIER_STEPS, tier))
-		throw new Error("usage: run-verification-tier.mjs pr|deep");
+		throw new Error(
+			"usage: run-verification-tier.mjs pr|deep|portable-extended",
+		);
 	return TIER_STEPS[tier];
+}
+
+export function claimBoundaryForTier(tier, status) {
+	if (status === "FAIL") {
+		return "At least one declared constituent failed; later constituents were not run and no acceptance claim is permitted.";
+	}
+	if (status === "SMOKE_ONLY") {
+		return "Checks passed from an unchanged but dirty source tree; this is not exact-candidate acceptance evidence.";
+	}
+	if (tier === "portable-extended") {
+		return "Supplementary exact-source portable evidence only; this does not establish target-Mac DEEP acceptance or V1 readiness.";
+	}
+	return "Exact-tier evidence bound to one clean, unchanged source state.";
 }
 
 export function runVerificationSteps(
@@ -225,12 +249,7 @@ function main() {
 		schemaVersion: "eonfolk-verification-tier-v2",
 		tier,
 		status,
-		claimBoundary:
-			status === "FAIL"
-				? "At least one declared constituent failed; later constituents were not run and no acceptance claim is permitted."
-				: status === "SMOKE_ONLY"
-					? "Checks passed from an unchanged but dirty source tree; this is not exact-candidate acceptance evidence."
-					: "Exact-tier evidence bound to one clean, unchanged source state.",
+		claimBoundary: claimBoundaryForTier(tier, status),
 		recordedAt: new Date().toISOString(),
 		source: {
 			start,
@@ -252,14 +271,23 @@ function main() {
 						persistenceMode: "gating",
 						canonicalWebProfile: "5 repetitions x 3 states x 3 viewports",
 					}
-				: {
-						formalToolIdentity: "repository-pinned TLC SHA-256",
-						propertyProfile: "PR: 50/32 deterministic runs",
-						browserJourney:
-							process.env.EONFOLK_ALLOW_LINUX_CI === "1"
-								? "two semantic injected-fault journeys plus fourteen semantic production journeys; relevant UI changes additionally require a three-viewport PlayCanvas/WebGL2 renderer smoke"
-								: "two semantic injected-fault journeys plus sixteen illustrated production journeys, including target-renderer lifecycle and spatial picking",
-					},
+				: tier === "portable-extended"
+					? {
+							formalToolIdentity: "repository-pinned TLC SHA-256",
+							propertyProfile: "deep portable deterministic properties",
+							browserJourney:
+								"two semantic injected-fault journeys plus fourteen semantic production journeys on Linux CI",
+							readinessEvidence: false,
+							targetMacDeepEvidence: false,
+						}
+					: {
+							formalToolIdentity: "repository-pinned TLC SHA-256",
+							propertyProfile: "PR: 50/32 deterministic runs",
+							browserJourney:
+								process.env.EONFOLK_ALLOW_LINUX_CI === "1"
+									? "two semantic injected-fault journeys plus fourteen semantic production journeys; relevant UI changes additionally require a three-viewport PlayCanvas/WebGL2 renderer smoke"
+									: "two semantic injected-fault journeys plus sixteen illustrated production journeys, including target-renderer lifecycle and spatial picking",
+						},
 		subcommands: execution.steps,
 		artifactAssertions,
 		artifacts: hashArtifacts(ARTIFACT_PATHS_BY_TIER[tier]),

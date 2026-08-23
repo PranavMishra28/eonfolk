@@ -387,23 +387,18 @@ jobs:
             --output "${RUNNER_TEMP}/tla2tools.jar"
           echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
 
-      - name: Run protected pull-request baseline
+      - name: Run supplementary portable extended verification
         env:
           EONFOLK_ALLOW_LINUX_CI: "1"
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
-        run: pnpm verify:pr
+        run: pnpm verify:portable-extended
 
-      - name: Run portable extended correctness checks
-        run: |
-          pnpm test:mutation
-          pnpm test:property:deep
-
-      - name: Retain accepted extended evidence
+      - name: Retain accepted supplementary portable extended evidence
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: extended-verification-${{ github.run_id }}
-          path: tmp/eonfolk-verification-pr.json
+          name: portable-extended-verification-${{ github.run_id }}
+          path: tmp/eonfolk-verification-portable-extended.json
           if-no-files-found: error
           retention-days: 30
 
@@ -413,7 +408,7 @@ jobs:
         with:
           name: founder-alpha-regression-extended-failure-${{ github.run_id }}
           path: |
-            tmp/eonfolk-verification-pr.json
+            tmp/eonfolk-verification-portable-extended.json
             tmp/riverhold-playwright
             apps/web/evidence
           if-no-files-found: ignore

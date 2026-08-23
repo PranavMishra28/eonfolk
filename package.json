@@ -44,6 +44,8 @@
 		"verify:fast": "pnpm runtime:check && pnpm cohort:check && pnpm architecture:check && pnpm docs:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit",
 		"verify:pr:checks": "node scripts/run-verification-tier.mjs pr --checks-only",
 		"verify:pr": "node scripts/run-verification-tier.mjs pr",
+		"verify:portable-extended:checks": "node scripts/run-verification-tier.mjs portable-extended --checks-only",
+		"verify:portable-extended": "node scripts/run-verification-tier.mjs portable-extended",
 		"verify:deep:checks": "node scripts/run-verification-tier.mjs deep --checks-only",
 		"verify:deep": "node scripts/run-verification-tier.mjs deep",
 		"alpha:verify": "pnpm verify:deep",

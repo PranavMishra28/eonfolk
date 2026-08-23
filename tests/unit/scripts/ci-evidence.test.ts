@@ -7,6 +7,7 @@ import { parsePersistenceBenchmarkArguments } from "../../../scripts/benchmark-p
 import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
 import {
+	claimBoundaryForTier,
 	runVerificationSteps,
 	verificationStepsForTier,
 } from "../../../scripts/run-verification-tier.mjs";
@@ -72,7 +73,7 @@ describe("Founder Alpha CI evidence controls", () => {
 	});
 
 	it("uses tier-specific artifact allowlists", () => {
-		const describeArtifacts = (tier: "pr" | "deep") => {
+		const describeArtifacts = (tier: "pr" | "deep" | "portable-extended") => {
 			const result = spawnSync(
 				process.execPath,
 				["scripts/run-verification-tier.mjs", tier, "--describe-artifacts"],
@@ -89,11 +90,13 @@ describe("Founder Alpha CI evidence controls", () => {
 			"tmp/eonfolk-diagnostics-browser-comparison.json",
 			"tmp/eonfolk-canonical-performance.json",
 		]);
+		expect(describeArtifacts("portable-extended")).toEqual(["apps/web/dist"]);
 	});
 
-	it("declares every PR constituent once and makes DEEP a strict ordered superset", () => {
+	it("keeps PR and DEEP ordering while adding one portable extended superset", () => {
 		const pr = verificationStepsForTier("pr");
 		const deep = verificationStepsForTier("deep");
+		const portableExtended = verificationStepsForTier("portable-extended");
 		expect(pr.map((entry) => entry.id)).toEqual([
 			"runtime",
 			"dependency-cohort",
@@ -126,6 +129,38 @@ describe("Founder Alpha CI evidence controls", () => {
 			"canonical-web-performance",
 		]);
 		expect(new Set(deep.map((entry) => entry.id)).size).toBe(deep.length);
+		expect(portableExtended.slice(0, pr.length)).toEqual(pr);
+		expect(portableExtended.slice(pr.length).map((entry) => entry.id)).toEqual([
+			"targeted-mutation",
+			"property-deep",
+		]);
+		expect(new Set(portableExtended.map((entry) => entry.id)).size).toBe(
+			portableExtended.length,
+		);
+	});
+
+	it("marks portable extended evidence as supplementary and not readiness", () => {
+		expect(claimBoundaryForTier("portable-extended", "PASS")).toBe(
+			"Supplementary exact-source portable evidence only; this does not establish target-Mac DEEP acceptance or V1 readiness.",
+		);
+		expect(claimBoundaryForTier("pr", "PASS")).toBe(
+			"Exact-tier evidence bound to one clean, unchanged source state.",
+		);
+	});
+
+	it("runs and retains the portable extended runner manifest in CI", () => {
+		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
+		const extendedJob = workflow.slice(
+			workflow.indexOf("  extended:"),
+			workflow.indexOf("  formal:"),
+		);
+		expect(extendedJob).toContain("run: pnpm verify:portable-extended");
+		expect(extendedJob).toContain(
+			"path: tmp/eonfolk-verification-portable-extended.json",
+		);
+		expect(extendedJob).not.toContain("run: pnpm verify:pr");
+		expect(extendedJob).not.toContain("pnpm test:mutation");
+		expect(extendedJob).not.toContain("pnpm test:property:deep");
 	});
 
 	it("records individual results and fails closed without running later steps", () => {
