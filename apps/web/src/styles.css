@@ -3098,6 +3098,328 @@ em {
 	}
 }
 
+/* The Release Genesis world reuses the accepted PlayCanvas settlement, but its
+   surrounding interface stays world-first and does not expose diagnostic data. */
+.v1-living-stage {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+	min-height: 0;
+	height: calc(100svh - 6.2rem);
+	background: #111711;
+}
+
+.v1-world-canvas-frame {
+	position: relative;
+	min-width: 0;
+	min-height: 34rem;
+	overflow: hidden;
+	background: #889b7d;
+}
+
+.v1-world-canvas-frame .world-canvas {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+.v1-world-canvas-frame .world-canvas canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.v1-world-vignette {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	background:
+		radial-gradient(circle at 48% 48%, transparent 38%, rgba(9, 16, 10, 0.22)),
+		linear-gradient(180deg, rgba(255, 244, 204, 0.13), transparent 35%);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.v1-camera-rail {
+	position: absolute;
+	z-index: 3;
+	left: 1rem;
+	top: 1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.35rem;
+	color: #eee7d4;
+	background: rgba(17, 24, 18, 0.84);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	backdrop-filter: blur(8px);
+}
+
+.v1-camera-rail button {
+	min-height: 2.5rem;
+	padding: 0.45rem 0.7rem;
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	color: inherit;
+	background: rgba(255, 255, 255, 0.06);
+	font-weight: 750;
+	cursor: pointer;
+}
+
+.v1-camera-rail button:hover,
+.v1-camera-rail button:focus-visible {
+	background: #e1ac64;
+	color: #172018;
+}
+
+.v1-camera-rail span {
+	padding-inline: 0.45rem;
+	color: #c2c9b9;
+	font-size: 0.72rem;
+	text-transform: capitalize;
+}
+
+.v1-context-panel {
+	position: relative;
+	z-index: 4;
+	min-width: 0;
+	overflow: auto;
+	padding: 1rem;
+	color: #25281f;
+	background: #e8dcc0;
+	box-shadow: -18px 0 50px rgba(0, 0, 0, 0.2);
+}
+
+.v1-context-panel > section,
+.v1-context-now,
+.v1-place-selection {
+	margin: 0 0 0.8rem;
+	padding: 0.9rem;
+	border: 1px solid rgba(35, 38, 31, 0.2);
+	background: rgba(255, 250, 232, 0.5);
+}
+
+.v1-context-now {
+	display: grid;
+	gap: 0.4rem;
+	border-left: 4px solid #bd6e37;
+}
+
+.v1-context-now strong,
+.v1-context-now span {
+	display: block;
+}
+
+.v1-context-now span,
+.v1-context-role,
+.v1-context-panel dd,
+.v1-project-card p {
+	color: #5f6256;
+}
+
+.v1-context-panel h2 {
+	margin: 0.25rem 0 0;
+	font-size: clamp(1.7rem, 2.4vw, 2.45rem);
+	font-weight: 500;
+}
+
+.v1-context-role {
+	margin: 0 0 0.7rem;
+	font-size: 0.78rem;
+	font-weight: 800;
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+}
+
+.v1-context-panel dl {
+	display: grid;
+	gap: 0.4rem;
+	margin: 1rem 0 0;
+}
+
+.v1-context-panel dl > div {
+	display: grid;
+	grid-template-columns: 6.2rem minmax(0, 1fr);
+	gap: 0.6rem;
+	padding-top: 0.45rem;
+	border-top: 1px solid rgba(35, 38, 31, 0.14);
+}
+
+.v1-context-panel dt {
+	font-size: 0.66rem;
+	font-weight: 850;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.v1-context-panel dd {
+	margin: 0;
+	font-size: 0.78rem;
+}
+
+.v1-project-card {
+	border-left: 4px solid #c88945 !important;
+}
+
+.v1-project-card[data-project-state="complete"] {
+	border-left-color: #647747 !important;
+	background: rgba(218, 228, 185, 0.52);
+}
+
+.v1-project-card h3 {
+	margin: 0.25rem 0 0.45rem;
+}
+
+.v1-project-card p:last-child {
+	margin: 0.45rem 0 0;
+	font-size: 0.78rem;
+	line-height: 1.45;
+}
+
+.v1-people-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.35rem;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.v1-people-list button {
+	display: grid;
+	grid-template-columns: 0.6rem minmax(0, 1fr);
+	gap: 0.5rem;
+	align-items: start;
+	min-width: 0;
+	min-height: 4.6rem;
+	padding: 0.55rem;
+	border: 1px solid rgba(35, 38, 31, 0.2);
+	color: #272b23;
+	background: rgba(255, 250, 232, 0.45);
+	text-align: left;
+	cursor: pointer;
+}
+
+.v1-people-list button[aria-pressed="true"] {
+	border-color: #874429;
+	background: #fff5d9;
+	box-shadow: inset 3px 0 #bd6e37;
+}
+
+.v1-people-list strong,
+.v1-people-list small {
+	display: block;
+}
+
+.v1-people-list strong {
+	font-size: 0.76rem;
+}
+
+.v1-people-list small {
+	margin-top: 0.2rem;
+	color: #66695c;
+	font-size: 0.64rem;
+	line-height: 1.35;
+}
+
+.v1-living-loading {
+	display: grid;
+	align-content: center;
+	justify-items: start;
+	min-height: 65vh;
+	padding: clamp(2rem, 8vw, 8rem);
+	color: #eee7d3;
+	background: #19231b;
+}
+
+.v1-living-loading h2 {
+	max-width: 19ch;
+	margin: 0.45rem 0;
+}
+
+.v1-semantic-world {
+	min-height: 70vh;
+	padding: clamp(1rem, 4vw, 3rem);
+	color: #eee7d3;
+	background: #20251f;
+}
+
+.v1-semantic-world .semantic-world {
+	width: min(80rem, 100%);
+	margin: 0 auto;
+}
+
+@media (max-width: 980px) {
+	.v1-living-stage {
+		grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+	}
+
+	.v1-people-list {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 720px) {
+	.v1-living-stage {
+		display: block;
+		height: auto;
+	}
+
+	.v1-world-canvas-frame {
+		height: 58svh;
+		min-height: 26rem;
+	}
+
+	.v1-context-panel {
+		overflow: visible;
+		padding: 0.75rem;
+		box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
+	}
+
+	.v1-people-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	.v1-world-header {
+		padding: 0.75rem;
+	}
+
+	.v1-view-controls {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.v1-view-controls button {
+		min-width: 0;
+		padding-inline: 0.35rem;
+		font-size: 0.66rem;
+	}
+
+	.v1-world-canvas-frame {
+		height: 55svh;
+		min-height: 22rem;
+	}
+
+	.v1-camera-rail {
+		left: 0.55rem;
+		top: 0.55rem;
+	}
+
+	.v1-camera-rail span {
+		display: none;
+	}
+
+	.v1-context-panel > section:nth-of-type(1) dl,
+	.v1-context-now span {
+		display: none;
+	}
+
+	.v1-people-list button {
+		min-height: 4rem;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.detail-sheet--world-selection {
 		animation: none;
