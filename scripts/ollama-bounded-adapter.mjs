@@ -17,6 +17,7 @@ const CHOICE_KEYS = [
 	"valueIdsRead",
 	"visibleRecordIdsRead",
 ].sort();
+const TELEMETRY_SCHEMA_VERSION = "eonfolk-local-model-telemetry-v1";
 
 function fail(message) {
 	throw new Error(message);
@@ -64,6 +65,10 @@ function uniqueSubset(value, allowed, maximum) {
 		new Set(value).size === value.length &&
 		value.every((item) => safeString(item, 256) && allowed.has(item))
 	);
+}
+
+function metric(value) {
+	return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 function parsePort(arguments_) {
@@ -316,7 +321,21 @@ function validateChoice(ollamaResponse, references) {
 		)
 	)
 		fail("Ollama choice violates the closed schema");
-	return canonicalJson(choice);
+	return {
+		choice: canonicalJson(choice),
+		telemetry: canonicalJson({
+			doneReason: safeString(ollamaResponse.done_reason, 64)
+				? ollamaResponse.done_reason
+				: null,
+			evalCount: metric(ollamaResponse.eval_count),
+			evalDurationNs: metric(ollamaResponse.eval_duration),
+			loadDurationNs: metric(ollamaResponse.load_duration),
+			promptEvalCount: metric(ollamaResponse.prompt_eval_count),
+			promptEvalDurationNs: metric(ollamaResponse.prompt_eval_duration),
+			schemaVersion: TELEMETRY_SCHEMA_VERSION,
+			totalDurationNs: metric(ollamaResponse.total_duration),
+		}),
+	};
 }
 
 async function main() {
@@ -324,7 +343,9 @@ async function main() {
 	const envelope = await readInvocation();
 	const prepared = prepareOllamaRequest(envelope);
 	const ollamaResponse = await invokeOllama(port, prepared.requestBody);
-	process.stdout.write(validateChoice(ollamaResponse, prepared));
+	const validated = validateChoice(ollamaResponse, prepared);
+	process.stderr.write(validated.telemetry);
+	process.stdout.write(validated.choice);
 }
 
 main().catch(() => {

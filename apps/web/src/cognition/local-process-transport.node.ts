@@ -58,6 +58,7 @@ export interface MacOsLocalProcessTransportConfiguration {
 	readonly runtimeArguments: readonly string[];
 	readonly environment: Readonly<Record<string, string>>;
 	readonly cohort: "cold" | "warm";
+	readonly onTelemetry?: (telemetry: LocalProcessInvocationTelemetry) => void;
 	/**
 	 * Omitted by default. This host-only exception permits one loopback TCP port
 	 * while the macOS kernel denies every other network destination.
@@ -66,6 +67,17 @@ export interface MacOsLocalProcessTransportConfiguration {
 		readonly kind: "ollama-loopback";
 		readonly port: number;
 	};
+}
+
+export interface LocalProcessInvocationTelemetry {
+	readonly schemaVersion: "eonfolk-local-model-telemetry-v1";
+	readonly doneReason: string | null;
+	readonly evalCount: number | null;
+	readonly evalDurationNs: number | null;
+	readonly loadDurationNs: number | null;
+	readonly promptEvalCount: number | null;
+	readonly promptEvalDurationNs: number | null;
+	readonly totalDurationNs: number | null;
 }
 
 export interface MacOsLoopbackOllamaTransportConfiguration
@@ -255,6 +267,46 @@ function decodeCanonicalOutput(chunks: readonly Buffer[]): string {
 	return text;
 }
 
+function decodeTelemetry(
+	chunks: readonly Buffer[],
+): LocalProcessInvocationTelemetry {
+	const text = decodeCanonicalOutput(chunks);
+	const value = JSON.parse(text) as Record<string, unknown>;
+	const expectedKeys = [
+		"doneReason",
+		"evalCount",
+		"evalDurationNs",
+		"loadDurationNs",
+		"promptEvalCount",
+		"promptEvalDurationNs",
+		"schemaVersion",
+		"totalDurationNs",
+	].sort();
+	const actualKeys = Object.keys(value).sort();
+	const metric = (candidate: unknown): candidate is number | null =>
+		candidate === null ||
+		(Number.isSafeInteger(candidate) && Number(candidate) >= 0);
+	if (
+		actualKeys.length !== expectedKeys.length ||
+		actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+		value.schemaVersion !== "eonfolk-local-model-telemetry-v1" ||
+		!metric(value.evalCount) ||
+		!metric(value.evalDurationNs) ||
+		!metric(value.loadDurationNs) ||
+		!metric(value.promptEvalCount) ||
+		!metric(value.promptEvalDurationNs) ||
+		!metric(value.totalDurationNs) ||
+		!(
+			(typeof value.doneReason === "string" &&
+				value.doneReason.length <= 64 &&
+				value.doneReason === value.doneReason.normalize("NFC")) ||
+			value.doneReason === null
+		)
+	)
+		throw failure("malformed-output", "local model telemetry is invalid");
+	return value as unknown as LocalProcessInvocationTelemetry;
+}
+
 function terminateProcess(child: ChildProcessWithoutNullStreams): void {
 	if (child.pid === undefined) return;
 	try {
@@ -282,6 +334,7 @@ async function invokeProcess(input: {
 	readonly timeoutMs: number;
 	readonly signal?: AbortSignal;
 	readonly sandboxProfile: string;
+	readonly onTelemetry?: (telemetry: LocalProcessInvocationTelemetry) => void;
 }): Promise<string> {
 	if (input.signal?.aborted)
 		throw failure("aborted", "local model invocation was cancelled");
@@ -302,6 +355,7 @@ async function invokeProcess(input: {
 			},
 		);
 		const stdout: Buffer[] = [];
+		const stderr: Buffer[] = [];
 		let stdoutBytes = 0;
 		let stderrBytes = 0;
 		let pendingFailure: LocalProcessTransportError | null = null;
@@ -316,6 +370,14 @@ async function invokeProcess(input: {
 			if (error !== undefined) reject(error);
 			else {
 				try {
+					if (input.onTelemetry !== undefined && stderrBytes > 0) {
+						const telemetry = decodeTelemetry(stderr);
+						try {
+							input.onTelemetry(telemetry);
+						} catch {
+							// Observatory consumers cannot affect Brain liveness or authority.
+						}
+					}
 					resolve(decodeCanonicalOutput(stdout));
 				} catch (decodeError) {
 					reject(decodeError);
@@ -355,6 +417,7 @@ async function invokeProcess(input: {
 				stop(
 					failure("stderr-too-large", "local model stderr exceeded its budget"),
 				);
+			else stderr.push(chunk);
 		});
 		child.once("error", () => {
 			settle(failure("process-failed", "local model process could not start"));
@@ -524,6 +587,9 @@ export async function createMacOsLocalProcessTransport(
 					maxStderrBytes: configuration.contract.limits.maxStderrBytes,
 					timeoutMs,
 					sandboxProfile,
+					...(configuration.onTelemetry === undefined
+						? {}
+						: { onTelemetry: configuration.onTelemetry }),
 					...(signal === undefined ? {} : { signal }),
 				});
 			} finally {

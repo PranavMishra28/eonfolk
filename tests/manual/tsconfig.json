@@ -1,0 +1,15 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "../..",
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"*.ts",
+		"../../apps/web/src/cognition/local-process-transport.node.ts",
+		"../../packages/cognition/src/**/*.ts",
+		"../../packages/protocol/src/**/*.ts",
+		"../../packages/sim/src/**/*.ts",
+		"../fixtures/riverhold/**/*.ts"
+	]
+}

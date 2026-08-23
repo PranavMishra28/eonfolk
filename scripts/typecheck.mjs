@@ -22,6 +22,7 @@ const projects = [
 	"tests/property/worldgen/tsconfig.json",
 	"tests/property/civilization/tsconfig.json",
 	"tests/property/cognition/tsconfig.json",
+	"tests/manual/tsconfig.json",
 	"apps/web/tsconfig.json",
 ];
 

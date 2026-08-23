@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
 	createMacOsLocalProcessTransport,
 	createMacOsLoopbackOllamaTransport,
+	type LocalProcessInvocationTelemetry,
 } from "../../../apps/web/src/cognition/local-process-transport.node.js";
 import {
 	createContractBoundModelBrain,
@@ -161,7 +162,11 @@ async function startServer(
 	return { port: address.port, server };
 }
 
-async function ollamaHarness(port: number, timeoutMs = 1_000) {
+async function ollamaHarness(
+	port: number,
+	timeoutMs = 1_000,
+	onTelemetry?: (telemetry: LocalProcessInvocationTelemetry) => void,
+) {
 	const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
 	const contract = await contractFor(
 		process.execPath,
@@ -182,6 +187,7 @@ async function ollamaHarness(port: number, timeoutMs = 1_000) {
 		cohort: "warm",
 		contract,
 		environment: {},
+		...(onTelemetry === undefined ? {} : { onTelemetry }),
 		ollamaPort: port,
 	});
 	return {
@@ -289,6 +295,7 @@ describe("bounded Ollama loopback adapter", () => {
 		async () => {
 			let capturedPath = "";
 			let capturedBody: Record<string, unknown> | undefined;
+			const telemetry: LocalProcessInvocationTelemetry[] = [];
 			const { port } = await startServer((request, response) => {
 				capturedPath = request.url ?? "";
 				const chunks: Buffer[] = [];
@@ -297,11 +304,24 @@ describe("bounded Ollama loopback adapter", () => {
 					capturedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 					response.writeHead(200, { "content-type": "application/json" });
 					response.end(
-						JSON.stringify({ done: true, response: canonicalChoice() }),
+						JSON.stringify({
+							done: true,
+							done_reason: "stop",
+							eval_count: 41,
+							eval_duration: 820_000_000,
+							load_duration: 12_000_000,
+							prompt_eval_count: 301,
+							prompt_eval_duration: 602_000_000,
+							response: canonicalChoice(),
+							total_duration: 1_500_000_000,
+						}),
 					);
 				});
 			});
-			const test = await ollamaHarness(port);
+			const test = await ollamaHarness(port, 1_000, (value) => {
+				telemetry.push(value);
+				throw new Error("telemetry observer failure must not affect cognition");
+			});
 
 			const proposal = await test.brain.propose(test.context);
 
@@ -323,6 +343,15 @@ describe("bounded Ollama loopback adapter", () => {
 				"action-verify-reserve",
 			]);
 			expect(capturedBody).not.toHaveProperty("messages");
+			expect(telemetry).toEqual([
+				expect.objectContaining({
+					doneReason: "stop",
+					evalCount: 41,
+					evalDurationNs: 820_000_000,
+					promptEvalCount: 301,
+					totalDurationNs: 1_500_000_000,
+				}),
+			]);
 		},
 	);
 
