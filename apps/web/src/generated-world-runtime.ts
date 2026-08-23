@@ -212,6 +212,8 @@ export async function buildGeneratedWorldExperience(
 	): void => {
 		previousRun = admittedPreviousRun;
 		run = admittedRun;
+		authorityState = prepared.plan.finalState;
+		authorityStateHash = prepared.plan.finalSnapshot.stateHash;
 		persistence = Object.freeze({
 			kind,
 			claim: "admitted-deterministic-view",

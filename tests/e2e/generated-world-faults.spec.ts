@@ -63,10 +63,12 @@ async function expectRecoverableWorld(
 async function authorityFingerprint(page: Page): Promise<unknown> {
 	return page.evaluate(async () => {
 		const databases = await indexedDB.databases();
-		if (!databases.some(({ name }) => name === "eonfolk-generated-authority"))
+		if (
+			!databases.some(({ name }) => name === "eonfolk-generated-authority-v4")
+		)
 			return null;
 		return await new Promise((resolve, reject) => {
-			const request = indexedDB.open("eonfolk-generated-authority");
+			const request = indexedDB.open("eonfolk-generated-authority-v4");
 			request.onerror = () => reject(request.error);
 			request.onsuccess = () => {
 				const database = request.result;
@@ -244,7 +246,7 @@ test.describe
 				expect(await authorityFingerprint(page)).toEqual(before);
 				await expect(
 					page.getByRole("heading", {
-						name: "No incomplete world is being shown as fact.",
+						name: "No incomplete world is shown as fact.",
 					}),
 				).toBeVisible();
 				await page
@@ -404,13 +406,13 @@ test.describe
 			await page.evaluate(async () => {
 				await new Promise<void>((resolve, reject) => {
 					const deletion = indexedDB.deleteDatabase(
-						"eonfolk-generated-authority",
+						"eonfolk-generated-authority-v4",
 					);
 					deletion.onsuccess = () => resolve();
 					deletion.onerror = () => reject(deletion.error);
 				});
 				await new Promise<void>((resolve, reject) => {
-					const open = indexedDB.open("eonfolk-generated-authority", 1);
+					const open = indexedDB.open("eonfolk-generated-authority-v4", 1);
 					open.onsuccess = () => {
 						open.result.close();
 						resolve();
@@ -448,7 +450,7 @@ test.describe
 			await page.evaluate(
 				() =>
 					new Promise<void>((resolve, reject) => {
-						const open = indexedDB.open("eonfolk-generated-authority");
+						const open = indexedDB.open("eonfolk-generated-authority-v4");
 						open.onerror = () => reject(open.error);
 						open.onsuccess = () => {
 							const database = open.result;
