@@ -2,7 +2,7 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** FOUNDER ALPHA ACTIVE — 001 technical evidence retained; human product gates not run
+**Status:** V1 CIVILIZATION IN PROGRESS — Founder Alpha retained as prior evidence; human product gates not run
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
@@ -10,20 +10,22 @@
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
-## Default six-file read order
+## V1 restart read order
 
-1. **This index.**
-2. [Product](product/PRODUCT.md).
-3. [Human loop](product/HUMAN_LOOP.md).
-4. [Distribution](product/DISTRIBUTION.md).
+1. [V1 execution ledger](../GOAL.md).
+2. [Operational restart](../RESUME.md).
+3. **This index.**
+4. [Product](product/PRODUCT.md).
 5. [Architecture](engineering/ARCHITECTURE.md).
-6. [002 Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md).
+6. [Founder Alpha evidence plan](exec-plans/active/002-founder-alpha.md), retained until V1 documentation consolidation replaces its active status.
 
 ## Coordinator-owned shared authorities
 
 | Concern | Sole authority |
 |---|---|
 | Planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](../PLAN.md) |
+| Executable V1 requirement state | [GOAL.md](../GOAL.md) |
+| Exact V1 operational restart | [RESUME.md](../RESUME.md) |
 | This ownership map and retained-artifact inventory | `INDEX.md` |
 | External and measured claim provenance | [SOURCE_LEDGER.md](research/SOURCE_LEDGER.md) |
 | Accepted decisions and review reconciliation | [DECISIONS.md](decisions/DECISIONS.md) |
@@ -111,6 +113,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
 | World-as-Product city-simulation, camera, residency, task, and animation principles | [WORLD_AS_PRODUCT_RESEARCH.md](research/WORLD_AS_PRODUCT_RESEARCH.md) |
 | Frozen World-as-Product technical truth and bounded-delta audit | [WORLD_AS_PRODUCT_TECH_SPIKE.md](research/WORLD_AS_PRODUCT_TECH_SPIKE.md) |
+| Exact read-only M4 Max local-model experiment and non-promotion evidence | [LOCAL_MODEL_LAB.md](research/LOCAL_MODEL_LAB.md) |
 
 ## Reviews
 
@@ -169,5 +172,6 @@ Each concern has one authority. Research records evidence; reviews record object
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |
+| Generated V1 repository archaeology and cleanup inventory | [REPO_INVENTORY.md](generated/REPO_INVENTORY.md) |
 
 Production code, pinned dependencies, workflows, and handoff evidence may now exist on `main` under the operator bootstrap override. Credentials, deployment artifacts, model weights, paid integrations, and generated concept pixels as runtime assets remain forbidden.
