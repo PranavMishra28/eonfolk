@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled commit: `2540bd45d0df30b7b8e1f660a190a6936808df3d`
+- Last reconciled commit: `ebd182990d31b57444e436168f32c0ba775c3026`
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -29,14 +29,15 @@
 
 - Repository archaeology is captured in `docs/generated/REPO_INVENTORY.md`.
 - Versioned Release Genesis, experiment-world, generalized world, and civilization protocol contracts are committed with focused tests.
-- A read-only local Ollama lab tested the one cached `qwen3-coder:30b` model. It is not promoted: one response produced broken public copy at the schema boundary, memory pressure reached warning level, and no executable model gateway exists yet.
+- The Application counsel path now crosses one validating decision gateway. Primary timeout, throw, and malformed output choose a validated deterministic fallback; no executable model adapter is connected.
+- A read-only local Ollama lab tested the one cached `qwen3-coder:30b` model and is recorded in `docs/research/LOCAL_MODEL_LAB.md`. It is not promoted: one response produced broken public copy at the schema boundary and memory pressure reached warning level.
 
 ## Next executable tasks
 
 1. Implement deterministic generalized world generation and its property tests against the frozen contracts.
-2. Integrate local-model lab evidence without promoting a treatment.
-3. Implement generalized civilization state and resource conservation on top of generated worlds.
-4. Add the validating decision gateway before any executable Model Brain adapter.
+2. Implement generalized civilization state and resource conservation on top of generated worlds.
+3. Implement the routine and project planners on actor-visible state and legal affordances.
+4. Extend the gateway with a closed Model Brain proposal/provenance contract and process adapter only after the deterministic kernel is green.
 5. Run the first fresh V1 DEEP checkpoint after the generalized world and civilization kernel are integrated.
 
 ## Resume commands

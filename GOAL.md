@@ -33,7 +33,7 @@
 | Stale Founder Alpha active terminology retired or archived | NOT STARTED |
 | README rebuilt as the current front door | NOT STARTED |
 | Active documentation hierarchy simplified and non-contradictory | NOT STARTED |
-| Research bibliography and durable provenance captured | NOT STARTED |
+| Research bibliography and durable provenance captured | IN PROGRESS |
 | Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
 | Release Genesis is the product entry identity | IN PROGRESS |
 | Landing, immersive game, research, and developer surfaces are separated | NOT STARTED |
@@ -82,8 +82,8 @@
 | Executable local Model Brain treatment | NOT STARTED |
 | Real M4 Max model/runtime benchmark and promoted treatment | IN PROGRESS |
 | Versioned structured model-decision contract and provenance | NOT STARTED |
-| Schema, semantic, authority, and world validation after model output | NOT STARTED |
-| Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | NOT STARTED |
+| Schema, semantic, authority, and world validation after model output | IN PROGRESS |
+| Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | IN PROGRESS |
 | Episodic, semantic, social, goal, commitment, and reflection memory | NOT STARTED |
 | Retrieval by relevance, recency, salience, relationship, and goal | NOT STARTED |
 | Historical replay never reruns model inference | NOT STARTED |
@@ -130,7 +130,7 @@
 
 | Requirement | State |
 |---|---|
-| FAST lane covers V1 architecture, code, build, and focused properties | NOT STARTED |
+| FAST lane covers V1 architecture, code, build, and focused properties | IN PROGRESS |
 | DEEP lane covers all V1 software and exact candidate evidence | NOT STARTED |
 | Generator/world/project/resource/migration/founding properties | NOT STARTED |
 | Cognition/model validation, fallback, epistemic isolation, and replay tests | NOT STARTED |
