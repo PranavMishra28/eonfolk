@@ -23,9 +23,9 @@
 |---|---|---|
 | 1. Exact base, V1 ledger, repository archaeology | Complete | Base `8eb6afa`; archive tag; `GOAL.md`; `RESUME.md`; generated inventory |
 | 2. Release Genesis, generalized protocol, deterministic world generator | Complete for pure contracts | Versioned identities; three differentiated seeds; 160-seed deep properties; golden world hash |
-| 3. Civilization kernel and long-horizon emergence | In progress | Deterministic 30/90/365 harness integrated; scheduler, demographic pressure, rule-triggered expansion, route traversal, and founding materialization pending |
-| 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice and local lab integrated; executable isolated model host and memory pending |
-| 5. Persistence, replay, recovery, diagnostics | Not complete | Founder Alpha regression exists; generalized V1 adapter/migrations/catch-up evidence pending |
+| 3. Civilization kernel and long-horizon emergence | Pure experiment gate complete; product integration pending | Pressure/affordance scheduling, canonical least-cost migration routes, physical traversal, second-settlement materialization, legitimate stagnation, and deterministic 30/90/365 evidence pass; population/needs and browser integration remain pending |
+| 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice, local lab, and macOS zero-egress process host integrated; real-model treatment promotion and memory pending |
+| 5. Persistence, replay, recovery, diagnostics | In progress | Generalized exact-version authority stream, atomic/idempotent append, fencing, snapshots, range continuity, corruption rejection, and inference-free replay pass in-memory conformance; browser adapter, civilization wiring, catch-up, and diagnostics remain pending |
 | 6. Generated-world product presentation | In progress | `/genesis` and `/world` expose immutable generated projections with semantic fallback; browser audit still shows an abstract map, so living citizens, temporal world, default-entry migration, and performance/visual evidence remain pending |
 | 7. CI, security, documentation and developer experience | In progress | Readiness guard, inventory freshness, 14-mutant gate, secret/formal checks, and supplementary portable-extended manifest integrated; V1 evidence lanes pending |
 | 8. Exact-candidate DEEP, frozen reviews, fixes, merge | Not started | No V1 frozen SHA or release verdict exists |
@@ -44,6 +44,9 @@
 | Generalized presentation | `cd06797`, `35091bb` | Immutable semantic projections; no renderer/browser acceptance |
 | Genesis browser checkpoint | `939079b`, `fce9646` | Fixed-seed account-free entry, generated region/settlement views, semantic fallback, reduced motion, and six focused browser journeys; visual audit fails the World Presence bar |
 | CI hardening | `60e6c61`, `76b2389`, `b53f884`, `bb84028`, `3cbc40d` | 14/14 targeted mutants, fail-closed V1 readiness, legacy artifact boundary, deterministic inventory, and separately bounded portable-extended evidence |
+| Local cognition host | `fa72abf`, `1d2edb8` | macOS-only verified-artifact subprocess, deny-network sandbox, canonical framing, bounded failure/kill behavior, deterministic fallback, and inference-free recorded-proposal restoration; no actual model promoted |
+| Rule-driven founding | `bab3fce`, `c89580b` | No absolute-day expansion trigger; pressure/affordance start, canonical route traversal, physical carried stocks, canonical second settlement, geography-driven stagnation, and 30/90/365 replay properties |
+| Versioned authority persistence seam | `ae94cc5` | Exact-version port and in-memory conformance adapter with atomic/idempotent append, fencing, snapshots/ranges, corruption rejection, and replay without cognition; no browser/database V1 adapter yet |
 
 Every integration was required to have bounded ownership, an actual diff inspection, focused verification, a clean commit, and coordinator reconciliation. Detailed limitations and the next exact commands live in `RESUME.md`.
 

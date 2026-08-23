@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled integration commit: `fa72abf` (`feat(cognition): add bounded local process host`)
+- Last reconciled integration commit: `ae94cc5` (`feat(persistence): add versioned authority stream`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -48,13 +48,15 @@
 - The active authority path is now V1-only: `GOAL.md` → `RESUME.md` → `docs/INDEX.md` → ExecPlan 003. Founder Alpha ExecPlan 002 moved to completed history, its old path is a compatibility redirect, and README/PLAN no longer present it as current work.
 - V1 explicitly does not promote POMCP because no calibrated actor-authorized transition/observation sampler exists; D-016 defines the executable reopen gate rather than treating arbitrary rollout probabilities as research progress.
 - `docs/RESEARCH.md`, `references.bib`, and new `S-V1-RES-*` ledger rows now provide a compact primary-source map, durable BibTeX, access dates, confidence, consumers, and reopen rules on top of the existing claim ledger.
+- Civilization expansion no longer reads an absolute day threshold. Housing pressure, traversable geography, material stocks, completed physical prerequisites, and legal affordances start the expedition; a canonical least-cost land route advances by accounted legs before arrival; a viable founding materializes a migration-provenanced second settlement. Progression and geography-driven stagnation pass deterministic 30/90/365 runs and randomized deep properties. The second settlement is intentionally undeveloped, and generalized needs/population integration remains pending.
+- The generalized `VersionedPersistencePort` and in-memory conformance adapter now verify exact schemas, engine/state versions, heads, events, snapshots, receipts, fencing, bounded half-open ranges, atomic/idempotent append, crash boundaries, and inference-free reducer replay. It fails unknown versions closed. It is not yet wired to IndexedDB or the civilization scheduler, and implements no semantic upcaster.
 
 ## Next executable tasks
 
-1. Replace fixed-day civilization expansion with pressure- and affordance-triggered scheduling, then materialize the second settlement in generated-world Reality.
-2. Integrate the civilization kernel with persistence and routine/project decision boundaries, including physically accounted route traversal.
-3. Replace the abstract `/world` diagram with a world-dominant embodied presentation driven by canonical citizens/actions, then add temporal Living World tests and measured V1-specific visual/performance evidence.
-4. Build the predeclared real-model corpus runner on the bounded host, compare the cached model and one resource-safe current candidate only if the machine remains healthy, and promote no treatment unless every correctness, isolation, performance, and product-copy gate passes.
+1. Integrate the civilization kernel with the versioned persistence seam and routine/project decision boundaries; implement the browser adapter and bounded reload/catch-up recovery.
+2. Replace the abstract `/world` diagram with a world-dominant embodied presentation driven by canonical citizens/actions, then add temporal Living World tests and measured V1-specific visual/performance evidence.
+3. Build the predeclared real-model corpus runner on the bounded host, compare the cached model and one resource-safe current candidate only if the machine remains healthy, and promote no treatment unless every correctness, isolation, performance, and product-copy gate passes.
+4. Implement grounded needs/population/memory integration, then connect Chronicle, Research, diagnostics, and failure injection to the generalized run.
 5. Add V1-specific CI evidence tiers and readiness guards, then run the first fresh V1 DEEP checkpoint.
 
 ## Resume commands

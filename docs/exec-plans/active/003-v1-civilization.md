@@ -45,7 +45,7 @@ Outcome: people and institutions act on conserved physical resources through rec
 
 Evidence: atomic accounting, resource conservation, prerequisite and lifecycle tests, multi-seed long-horizon metrics, viable and stagnant/failing outcomes, deterministic replay.
 
-Status: pure stocks/recipes/projects, physical gate records, and a deterministic horizon harness exist; fixed-day scheduling, population pressure, route traversal, and real world materialization remain incomplete.
+Status: pure stocks/recipes/projects, pressure/affordance scheduling, canonical land-route traversal, physical carried stocks, canonical second-settlement materialization, legitimate stagnation, and deterministic 30/90/365 evidence pass. Generalized needs/population and product integration remain incomplete.
 
 ### M3 — Cognition and experiments
 
@@ -61,7 +61,7 @@ Outcome: generated worlds survive reload, crash, long absence, version change, a
 
 Evidence: command atomicity/idempotency, fencing, migrations, replay equivalence, 1/7/30/90/365-day catch-up, injected faults, persistence benchmark, diagnostic correlation and noninterference.
 
-Status: V1 integration not complete; Founder Alpha coverage is regression only.
+Status: the exact-version authority-stream port and in-memory conformance adapter pass atomicity, idempotency, fencing, snapshots/ranges, crash, corruption, version, and inference-free replay tests. IndexedDB/browser wiring, civilization envelopes, catch-up, and diagnostics remain incomplete; Founder Alpha coverage is regression only.
 
 ### M5 — World as product
 
@@ -88,6 +88,8 @@ Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](
 - 2026-08-22 — Integrated `/genesis` and `/world` with six cross-viewport browser checks. An independent visual inspection failed the World Presence bar; no visual acceptance claim is permitted.
 - 2026-08-22 — Closed the POMCP disposition through D-016 and consolidated primary research into `docs/RESEARCH.md`, `references.bib`, and dated source-ledger rows. POMCP remains rejected until a calibrated actor-authorized sampler and failing information-value case exist.
 - 2026-08-22 — Integrated the bounded macOS local-process host. Exact artifact verification, canonical framing, deny-network sandboxing, timeout/kill/cancellation, hidden-fact rejection, deterministic fallback, and inference-free recorded-proposal restoration pass focused native tests. This is an executable safety seam, not an actual-model promotion or product integration.
+- 2026-08-22 — Replaced fixed calendar expansion with pressure/affordance rules, canonical least-cost migration routes, physically accounted traversal, and a migration-provenanced second generated settlement. Coordinator review removed duplicate experiment logic and made a registered route mandatory. Deterministic 30/90/365 and deep randomized properties pass; needs/population/product integration remain open.
+- 2026-08-22 — Integrated the V1 versioned persistence seam and in-memory conformance adapter. Atomic/idempotent append, fencing, exact-head snapshots, continuous ranges, crash recovery, corruption/version rejection, and replay without cognition pass; IndexedDB/civilization/catch-up integration remains open.
 
 ## Review roles
 

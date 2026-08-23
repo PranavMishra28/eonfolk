@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 416 files excluding this generated file; SHA-256 `5689b4cc1fe2b61c305b226218d42a0225d7ee4406721f7b50edda3b57aa13b7`.
+**File-set identity:** 420 files excluding this generated file; SHA-256 `2056d287a90b9039d7324092eaef96f565f0a5c250bde4578362e17519a61f96`.
 
 ## Tracked topology
 
@@ -17,11 +17,11 @@
 | Frozen execution evidence | 32 |
 | GitHub automation | 3 |
 | Other tracked assets | 3 |
-| Packages | 86 |
+| Packages | 88 |
 | Repository tooling | 28 |
 | Research and reviews | 48 |
 | Root controls and configuration | 23 |
-| Tests and fixtures | 86 |
+| Tests and fixtures | 88 |
 
 ## Workspaces
 
@@ -33,7 +33,7 @@
 | `packages/cognition` | `@eonfolk/cognition` | 13 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
 | `packages/observatory` | `@eonfolk/observatory` | 1 |
-| `packages/persistence` | `@eonfolk/persistence` | 8 |
+| `packages/persistence` | `@eonfolk/persistence` | 10 |
 | `packages/protocol` | `@eonfolk/protocol` | 9 |
 | `packages/sim` | `@eonfolk/sim` | 9 |
 | `packages/world-presentation` | `@eonfolk/world-presentation` | 10 |
@@ -45,10 +45,10 @@
 |---|---:|
 | `tests/e2e` | 2 |
 | `tests/fixtures` | 2 |
-| `tests/property` | 8 |
+| `tests/property` | 9 |
 | `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 47 |
+| `tests/unit` | 48 |
 
 ## Root controls and configuration
 

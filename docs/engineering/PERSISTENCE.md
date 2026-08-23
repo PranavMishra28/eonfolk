@@ -2,15 +2,23 @@
 
 **Purpose:** lock crash-safe browser durability, run-scoped canonical/cognitive ledger separation, experiment identity, genesis, command receipts, single-writer fencing, snapshots, and replay interval semantics.
 
-**Status:** ACCEPTED AFTER RED TEAM — no backup/import surface in the first slice
+**Status:** IMPLEMENTED FOUNDER-ALPHA ADAPTER PLUS V1 VERSIONED CONFORMANCE SEAM — V1 browser wiring incomplete
 
-**Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
+**Authority boundary:** this file owns the Founder Alpha `PersistencePort`, V1 `VersionedPersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
 **Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Owned decision
 
-The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The slice cannot back up, export, import, replace, fork, merge, migrate, or promote a world; that honest limitation is disclosed before commitment.
+The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. V1 adds a provider-neutral exact-version authority-stream seam for Release Genesis/civilization state; its in-memory conformance adapter is implemented, while its IndexedDB/browser integration is still incomplete. The slice cannot back up, export, import, replace, fork, merge, migrate, or promote a world; that honest limitation is disclosed before commitment.
+
+## V1 versioned authority stream
+
+`VersionedPersistencePort` is the future exhibition/server boundary and coexists temporarily with the Founder Alpha port. It scopes every operation by run and region; initializes a hash-verified genesis head/snapshot atomically and idempotently; acquires a monotonically increasing writer fence; appends one bounded event batch against exact revision, sequence, state hash, prior event hash, runtime versions, and fencing token; returns a hashed receipt; retrieves verified continuous half-open ranges; and saves only snapshots that exactly describe the durable head.
+
+The current conformance adapter stages all changed maps before a single commit point. Injected crashes before that point leave no mutation; crashes after it recover through exact idempotent retry. Changed retries, duplicate batch/event IDs, stale writers, gaps, corrupt hashes, out-of-order simulation time, incompatible schemas, engines, or state versions fail closed. Replay accepts a caller-supplied deterministic reducer and snapshot/event bytes only—there is no Brain or transport parameter—and checks every pre/post state and prior-event hash.
+
+This is not yet V1 durability acceptance. The adapter is memory-only, the civilization scheduler does not emit this envelope, the existing IndexedDB adapter still implements the Founder Alpha contract, and catch-up/decision-ledger composition is pending. V1 has no automatic upcaster: the migration policy is explicitly exact-only until a separately reviewed migration proves semantic and hash equivalence.
 
 ## Locked port
 

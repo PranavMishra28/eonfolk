@@ -66,11 +66,11 @@
 | Physical construction/project progress | IN PROGRESS |
 | Generic Institution, membership, authority, resources, commitments, and norms | IN PROGRESS |
 | Minimal agreement/policy primitive needed for collective action | IN PROGRESS |
-| Migration with physical people/resource accounting | IN PROGRESS |
-| Generic settlement-founding process | IN PROGRESS |
-| Legitimate seeded second viable settlement evidence without a time trigger | NOT STARTED |
-| Legitimate stagnant/failing seed evidence | NOT STARTED |
-| 30/90/365-day civilization experiment matrix and metrics | IN PROGRESS |
+| Migration with physical people/resource accounting | VERIFIED |
+| Generic settlement-founding process | VERIFIED |
+| Legitimate seeded second viable settlement evidence without a time trigger | VERIFIED |
+| Legitimate stagnant/failing seed evidence | VERIFIED |
+| 30/90/365-day civilization experiment matrix and metrics | VERIFIED |
 
 ## Cognition and experiment
 
@@ -100,7 +100,7 @@
 | Bounded causal catch-up for reload, 1 day, 7 days, and long absence | NOT STARTED |
 | Catch-up crash and no-model recovery | NOT STARTED |
 | IndexedDB versus SQLite-WASM/OPFS benchmark and decision | NOT STARTED |
-| Future exhibition authority/persistence adapter seam | NOT STARTED |
+| Future exhibition authority/persistence adapter seam | VERIFIED |
 | Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | NOT STARTED |
 | Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | NOT STARTED |
 | Injected model, persistence, checkpoint, renderer, asset, navigation, invariant, and latency failures | NOT STARTED |
