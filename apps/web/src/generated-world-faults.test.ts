@@ -3,7 +3,6 @@ import {
 	clearGeneratedWorldFault,
 	GENERATED_WORLD_FAULT_KINDS,
 	GENERATED_WORLD_FAULT_STORAGE_KEY,
-	GeneratedWorldFaultBoundaryError,
 	generatedPersistenceBoundaryFailure,
 	generatedWorldAssetFetcherForFault,
 	generatedWorldBuildOptionsForFault,
@@ -57,9 +56,7 @@ describe("generated-world fault boundary", () => {
 		expect(checkpointOptions.checkpointTransform?.(checkpoint)).toMatchObject({
 			finalStateHash: "0".repeat(64),
 		});
-		expect(
-			checkpointOptions.mapAuthorityFailure?.(new Error("rejected")),
-		).toMatchObject({ fault: { kind: "checkpoint" } });
+		expect(checkpointOptions).not.toHaveProperty("mapAuthorityFailure");
 
 		const invariantFault = parseGeneratedWorldFault("authoritative-invariant");
 		const invariantOptions = generatedWorldBuildOptionsForFault(invariantFault);
@@ -128,14 +125,5 @@ describe("generated-world fault boundary", () => {
 		const removed: string[] = [];
 		clearGeneratedWorldFault({ removeItem: (key) => removed.push(key) });
 		expect(removed).toEqual([GENERATED_WORLD_FAULT_STORAGE_KEY]);
-	});
-
-	it("exposes a typed public error without hidden diagnostic state", () => {
-		const fault = parseGeneratedWorldFault("checkpoint");
-		if (fault === null) throw new Error("expected checkpoint fault");
-		const error = new GeneratedWorldFaultBoundaryError(fault);
-		expect(error.message).toBe(fault.message);
-		expect(error.fault).toEqual(fault);
-		expect(error).not.toHaveProperty("reasoning");
 	});
 });

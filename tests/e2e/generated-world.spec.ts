@@ -120,24 +120,36 @@ async function generatedAuthorityFingerprint(page: Page) {
 					const database = request.result;
 					const stores = [...database.objectStoreNames].sort();
 					const transaction = database.transaction(stores, "readonly");
-					const counts = Object.fromEntries(
+					const rows = Object.fromEntries(
 						stores.map((store) => [
 							store,
-							transaction.objectStore(store).count(),
+							transaction.objectStore(store).getAll(),
 						]),
-					) as Record<string, IDBRequest<number>>;
-					const streams = transaction.objectStore("authorityStreams").getAll();
+					) as Record<string, IDBRequest<unknown[]>>;
 					transaction.onerror = () => reject(transaction.error);
 					transaction.oncomplete = async () => {
 						try {
 							const values = Object.fromEntries(
-								Object.entries(counts).map(([store, count]) => [
+								Object.entries(rows).map(([store, result]) => [
 									store,
-									count.result,
+									result.result,
 								]),
 							);
+							const canonical = (value: unknown): string => {
+								if (value === null || typeof value !== "object")
+									return JSON.stringify(value);
+								if (Array.isArray(value))
+									return `[${value.map(canonical).join(",")}]`;
+								return `{${Object.entries(value)
+									.sort(([left], [right]) => left.localeCompare(right))
+									.map(
+										([key, entry]) =>
+											`${JSON.stringify(key)}:${canonical(entry)}`,
+									)
+									.join(",")}}`;
+							};
 							const encoded = new TextEncoder().encode(
-								JSON.stringify({ counts: values, streams: streams.result }),
+								canonical({ stores: values }),
 							);
 							const digest = [
 								...new Uint8Array(
@@ -146,7 +158,15 @@ async function generatedAuthorityFingerprint(page: Page) {
 							]
 								.map((value) => value.toString(16).padStart(2, "0"))
 								.join("");
-							resolve({ counts: values, digest });
+							resolve({
+								counts: Object.fromEntries(
+									Object.entries(values).map(([store, entries]) => [
+										store,
+										entries.length,
+									]),
+								),
+								digest,
+							});
 						} catch (error) {
 							reject(error);
 						} finally {
@@ -162,64 +182,123 @@ async function corruptGeneratedAuthority(
 	page: Page,
 	kind: "genesis-schema" | "engine-version" | "range-gap",
 ): Promise<void> {
-	await page.evaluate(
-		(kind) =>
-			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority");
+	await page.evaluate(async (kind) => {
+		const requested = <T>(request: IDBRequest<T>) =>
+			new Promise<T>((resolve, reject) => {
+				request.onsuccess = () => resolve(request.result);
 				request.onerror = () => reject(request.error);
-				request.onsuccess = () => {
-					const database = request.result;
-					const storeName =
-						kind === "range-gap" ? "authorityOperations" : "authorityStreams";
-					const transaction = database.transaction(storeName, "readwrite");
-					const store = transaction.objectStore(storeName);
-					if (kind === "range-gap") {
-						const keys = store.getAllKeys();
-						keys.onsuccess = () => {
-							const first = keys.result[0];
-							if (first === undefined) transaction.abort();
-							else store.delete(first);
+			});
+		const completed = (transaction: IDBTransaction) =>
+			new Promise<void>((resolve, reject) => {
+				transaction.oncomplete = () => resolve();
+				transaction.onerror = () => reject(transaction.error);
+				transaction.onabort = () =>
+					reject(transaction.error ?? new Error("corruption fixture aborted"));
+			});
+		const database = await requested(
+			indexedDB.open("eonfolk-generated-authority"),
+		);
+		try {
+			if (kind === "range-gap") {
+				const transaction = database.transaction(
+					"authorityOperations",
+					"readwrite",
+				);
+				const done = completed(transaction);
+				const keys = await requested(
+					transaction.objectStore("authorityOperations").getAllKeys(),
+				);
+				const first = keys[0];
+				if (first === undefined) throw new Error("operation fixture missing");
+				transaction.objectStore("authorityOperations").delete(first);
+				await done;
+				return;
+			}
+			const read = database.transaction(
+				["authorityStreams", "authoritySnapshots"],
+				"readonly",
+			);
+			const readDone = completed(read);
+			const [streamRows, snapshotRows] = await Promise.all([
+				requested(read.objectStore("authorityStreams").getAll()),
+				requested(read.objectStore("authoritySnapshots").getAll()),
+			]);
+			await readDone;
+			const stream = streamRows[0] as
+				| {
+						key: string;
+						genesis: {
+							schemaVersion: string;
+							head: Record<string, unknown>;
+							snapshot: Record<string, unknown>;
 						};
-					} else {
-						const rows = store.getAll();
-						rows.onsuccess = () => {
-							const row = rows.result[0] as
-								| {
-										genesis: {
-											schemaVersion: string;
-											head: Record<string, unknown>;
-											snapshot: Record<string, unknown>;
-										};
-										head: Record<string, unknown>;
-								  }
-								| undefined;
-							if (row === undefined) {
-								transaction.abort();
-								return;
-							}
-							if (kind === "genesis-schema")
-								row.genesis.schemaVersion = "eonfolk-authority-genesis-v999";
-							else {
-								row.genesis.head.engineVersion = "foreign-engine-v999";
-								row.genesis.snapshot.engineVersion = "foreign-engine-v999";
-								row.head.engineVersion = "foreign-engine-v999";
-							}
-							store.put(row);
-						};
-					}
-					transaction.oncomplete = () => {
-						database.close();
-						resolve();
-					};
-					transaction.onerror = () => reject(transaction.error);
-					transaction.onabort = () =>
-						reject(
-							transaction.error ?? new Error("corruption fixture aborted"),
-						);
+				  }
+				| undefined;
+			if (stream === undefined) throw new Error("stream fixture missing");
+			if (kind === "genesis-schema") {
+				stream.genesis.schemaVersion = "eonfolk-authority-genesis-v999";
+			} else {
+				const canonical = (value: unknown): string => {
+					if (value === null || typeof value !== "object")
+						return JSON.stringify(value);
+					if (Array.isArray(value))
+						return `[${value.map(canonical).join(",")}]`;
+					return `{${Object.entries(value)
+						.sort(([left], [right]) => left.localeCompare(right))
+						.map(([key, entry]) => `${JSON.stringify(key)}:${canonical(entry)}`)
+						.join(",")}}`;
 				};
-			}),
-		kind,
-	);
+				const hashWithout = async (
+					domain: string,
+					value: Record<string, unknown>,
+					key: string,
+				) => {
+					const unsigned = { ...value };
+					delete unsigned[key];
+					const bytes = new TextEncoder().encode(
+						`${domain}\u0000${canonical(unsigned)}`,
+					);
+					return [
+						...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+					]
+						.map((byte) => byte.toString(16).padStart(2, "0"))
+						.join("");
+				};
+				stream.genesis.head.engineVersion = "foreign-engine-v999";
+				stream.genesis.snapshot.engineVersion = "foreign-engine-v999";
+				stream.genesis.head.headHash = await hashWithout(
+					"eonfolk-authority-head-v1",
+					stream.genesis.head,
+					"headHash",
+				);
+				stream.genesis.snapshot.snapshotHash = await hashWithout(
+					"eonfolk-authority-snapshot-v1",
+					stream.genesis.snapshot,
+					"snapshotHash",
+				);
+			}
+			const write = database.transaction(
+				["authorityStreams", "authoritySnapshots"],
+				"readwrite",
+			);
+			const writeDone = completed(write);
+			write.objectStore("authorityStreams").put(stream);
+			if (kind === "engine-version") {
+				const genesis = snapshotRows.find(
+					(candidate: { value?: { snapshotId?: string } }) =>
+						candidate.value?.snapshotId === stream.genesis.snapshot.snapshotId,
+				) as { key: string; streamKey: string; value: unknown } | undefined;
+				if (genesis === undefined) throw new Error("genesis snapshot missing");
+				write.objectStore("authoritySnapshots").put({
+					...genesis,
+					value: structuredClone(stream.genesis.snapshot),
+				});
+			}
+			await writeDone;
+		} finally {
+			database.close();
+		}
+	}, kind);
 }
 
 async function stableGeneratedPickTargets(
@@ -725,6 +804,14 @@ test("production degrades an IndexedDB SecurityError without leaking detail @gen
 	await expect(world).toHaveAttribute("data-persistence", "unavailable", {
 		timeout: 30_000,
 	});
+	await expect(world).toHaveAttribute(
+		"data-persistence-claim",
+		"admitted-deterministic-view",
+	);
+	await expect(world).toHaveAttribute(
+		"data-persistence-failure-code",
+		"SecurityError",
+	);
 	await expect(page.getByText(/Local persistence unavailable/u)).toBeVisible();
 	await expect(page.getByText("injected production open denial")).toHaveCount(
 		0,
@@ -755,6 +842,10 @@ for (const boundary of [
 		await expect(world).toHaveAttribute("data-persistence", "unavailable", {
 			timeout: 30_000,
 		});
+		await expect(world).toHaveAttribute(
+			"data-persistence-failure-code",
+			boundary.name,
+		);
 		await expect(
 			page.getByText(/Local persistence unavailable/u),
 		).toBeVisible();
@@ -765,9 +856,21 @@ for (const boundary of [
 }
 
 for (const corruption of [
-	{ kind: "genesis-schema", label: "unsupported genesis schema" },
-	{ kind: "engine-version", label: "foreign engine version" },
-	{ kind: "range-gap", label: "operation range gap" },
+	{
+		kind: "genesis-schema",
+		label: "unsupported genesis schema",
+		failureCode: "UNSUPPORTED_VERSION",
+	},
+	{
+		kind: "engine-version",
+		label: "hash-valid foreign engine version",
+		failureCode: "UNSUPPORTED_VERSION",
+	},
+	{
+		kind: "range-gap",
+		label: "operation range gap",
+		failureCode: "RANGE_GAP",
+	},
 ] as const) {
 	test(`production quarantines a persisted ${corruption.label} until explicit recovery @generated-world`, async ({
 		page,
@@ -791,6 +894,14 @@ for (const corruption of [
 		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 			timeout: 30_000,
 		});
+		await expect(world).toHaveAttribute(
+			"data-persistence-claim",
+			"admitted-deterministic-view",
+		);
+		await expect(world).toHaveAttribute(
+			"data-persistence-failure-code",
+			corruption.failureCode,
+		);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			corruptedAuthority,
@@ -809,6 +920,52 @@ for (const corruption of [
 		expect(externalRequests).toEqual([]);
 	});
 }
+
+test("production recovery explains a blocked database deletion and resumes after the other tab closes @generated-world", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	const world = page.locator("main.v1-world");
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+		timeout: 30_000,
+	});
+	await corruptGeneratedAuthority(page, "genesis-schema");
+	const blocker = await page.context().newPage();
+	await blocker.goto("/research", { waitUntil: "domcontentloaded" });
+	await blocker.evaluate(
+		() =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-generated-authority");
+				request.onerror = () => reject(request.error);
+				request.onsuccess = () => {
+					request.result.onversionchange = () => undefined;
+					(
+						window as unknown as { heldGeneratedAuthority?: IDBDatabase }
+					).heldGeneratedAuthority = request.result;
+					resolve();
+				};
+			}),
+	);
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+		timeout: 30_000,
+	});
+	await page.getByRole("button", { name: "Rebuild local checkpoint" }).click();
+	await expect(
+		page.getByText(/Close other EONFOLK tabs; recovery will continue/u),
+	).toBeVisible();
+	await blocker.evaluate(() => {
+		(
+			window as unknown as { heldGeneratedAuthority?: IDBDatabase }
+		).heldGeneratedAuthority?.close();
+	});
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+		timeout: 30_000,
+	});
+	await blocker.close();
+});
 
 for (const viewport of [
 	{ width: 1728, height: 1117 },

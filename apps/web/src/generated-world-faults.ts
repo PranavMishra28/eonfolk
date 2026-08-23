@@ -92,16 +92,6 @@ const FAULT_SPECS: Readonly<
 	}),
 });
 
-export class GeneratedWorldFaultBoundaryError extends Error {
-	readonly fault: GeneratedWorldFaultSpec;
-
-	constructor(fault: GeneratedWorldFaultSpec) {
-		super(fault.message);
-		this.name = "GeneratedWorldFaultBoundaryError";
-		this.fault = fault;
-	}
-}
-
 export function parseGeneratedWorldFault(
 	value: unknown,
 ): GeneratedWorldFaultSpec | null {
@@ -271,17 +261,19 @@ export function generatedWorldBuildOptionsForFault(
 			});
 		case "checkpoint":
 			return Object.freeze({
-				checkpointTransform: (checkpoint: CivilizationExperimentRun) =>
-					Object.freeze({
+				checkpointTransform: (checkpoint: CivilizationExperimentRun) => {
+					recordCandidateCheckpoint();
+					return Object.freeze({
 						...checkpoint,
 						finalStateHash: "0".repeat(64),
-					}),
-				mapAuthorityFailure: () => new GeneratedWorldFaultBoundaryError(fault),
+					});
+				},
 			});
 		case "authoritative-invariant":
 			return Object.freeze({
-				checkpointTransform: (checkpoint: CivilizationExperimentRun) =>
-					Object.freeze({
+				checkpointTransform: (checkpoint: CivilizationExperimentRun) => {
+					recordCandidateCheckpoint();
+					return Object.freeze({
 						...checkpoint,
 						metrics: Object.freeze({
 							...checkpoint.metrics,
@@ -289,11 +281,8 @@ export function generatedWorldBuildOptionsForFault(
 								"injected-pre-commit-authority-invariant",
 							]),
 						}),
-					}),
-				mapAuthorityFailure: (error: unknown) =>
-					error instanceof GeneratedWorldFaultBoundaryError
-						? error
-						: new GeneratedWorldFaultBoundaryError(fault),
+					});
+				},
 			});
 		case "latency":
 			return Object.freeze({
@@ -305,6 +294,14 @@ export function generatedWorldBuildOptionsForFault(
 		case "renderer-webgl":
 			return Object.freeze({});
 	}
+}
+
+function recordCandidateCheckpoint(): void {
+	const dataset = globalThis.document?.documentElement.dataset;
+	if (dataset === undefined) return;
+	dataset.faultCandidateCheckpoints = String(
+		Number(dataset.faultCandidateCheckpoints ?? "0") + 1,
+	);
 }
 
 export function generatedPersistenceBoundaryFailure(

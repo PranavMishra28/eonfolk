@@ -22,6 +22,8 @@ describe("canonical generated-world browser experience", () => {
 		expect(first.previousHorizonDays).toBe(1);
 		expect(first.persistence).toEqual({
 			kind: "unavailable",
+			claim: "admitted-deterministic-view",
+			failureCode: "INDEXEDDB_UNAVAILABLE",
 			restored: false,
 			catchUpReceipts: 0,
 		});
@@ -76,6 +78,8 @@ describe("canonical generated-world browser experience", () => {
 		});
 		expect(experience.persistence).toEqual({
 			kind: "unavailable",
+			claim: "admitted-deterministic-view",
+			failureCode: "SecurityError",
 			restored: false,
 			catchUpReceipts: 0,
 		});

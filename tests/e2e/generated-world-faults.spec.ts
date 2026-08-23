@@ -68,34 +68,76 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 		return await new Promise((resolve, reject) => {
 			const request = indexedDB.open("eonfolk-generated-authority");
 			request.onerror = () => reject(request.error);
-			request.onsuccess = async () => {
+			request.onsuccess = () => {
 				const database = request.result;
-				try {
-					const stores = [...database.objectStoreNames].sort();
-					const counts: Record<string, number> = {};
-					for (const store of stores)
-						counts[store] = await new Promise<number>((done, failed) => {
-							const count = database
-								.transaction(store, "readonly")
-								.objectStore(store)
-								.count();
-							count.onsuccess = () => done(count.result);
-							count.onerror = () => failed(count.error);
-						});
-					const streams = stores.includes("authorityStreams")
-						? await new Promise<unknown[]>((done, failed) => {
-								const rows = database
-									.transaction("authorityStreams", "readonly")
-									.objectStore("authorityStreams")
-									.getAll();
-								rows.onsuccess = () => done(rows.result);
-								rows.onerror = () => failed(rows.error);
-							})
-						: [];
-					resolve({ counts, stores, streams });
-				} finally {
-					database.close();
+				const stores = [...database.objectStoreNames].sort();
+				if (stores.length === 0) {
+					void crypto.subtle
+						.digest("SHA-256", new TextEncoder().encode('{"stores":{}}'))
+						.then((result) => {
+							resolve({
+								counts: {},
+								digest: [...new Uint8Array(result)]
+									.map((byte) => byte.toString(16).padStart(2, "0"))
+									.join(""),
+							});
+						})
+						.catch(reject)
+						.finally(() => database.close());
+					return;
 				}
+				const transaction = database.transaction(stores, "readonly");
+				const rows = Object.fromEntries(
+					stores.map((store) => [
+						store,
+						transaction.objectStore(store).getAll(),
+					]),
+				) as Record<string, IDBRequest<unknown[]>>;
+				transaction.onerror = () => reject(transaction.error);
+				transaction.oncomplete = async () => {
+					try {
+						const canonical = (value: unknown): string => {
+							if (value === null || typeof value !== "object")
+								return JSON.stringify(value);
+							if (Array.isArray(value))
+								return `[${value.map(canonical).join(",")}]`;
+							return `{${Object.entries(value)
+								.sort(([left], [right]) => left.localeCompare(right))
+								.map(
+									([key, entry]) =>
+										`${JSON.stringify(key)}:${canonical(entry)}`,
+								)
+								.join(",")}}`;
+						};
+						const values = Object.fromEntries(
+							Object.entries(rows).map(([store, result]) => [
+								store,
+								result.result,
+							]),
+						);
+						const bytes = new TextEncoder().encode(
+							canonical({ stores: values }),
+						);
+						const digest = [
+							...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
+						]
+							.map((byte) => byte.toString(16).padStart(2, "0"))
+							.join("");
+						resolve({
+							counts: Object.fromEntries(
+								Object.entries(values).map(([store, entries]) => [
+									store,
+									entries.length,
+								]),
+							),
+							digest,
+						});
+					} catch (error) {
+						reject(error);
+					} finally {
+						database.close();
+					}
+				};
 			};
 		});
 	});
@@ -189,6 +231,15 @@ test.describe
 					"data-fault-disposition",
 					"fail-closed",
 				);
+				await expect(page.locator("html")).toHaveAttribute(
+					"data-fault-candidate-checkpoints",
+					"5",
+				);
+				if (kind === "checkpoint")
+					await expect(error).toHaveAttribute(
+						"data-fault-error-code",
+						"STALE_STATE",
+					);
 				await expect(page.locator("main.v1-world")).toHaveCount(0);
 				expect(await authorityFingerprint(page)).toEqual(before);
 				await expect(
@@ -367,11 +418,13 @@ test.describe
 					open.onerror = () => reject(open.error);
 				});
 			});
+			const staleAuthority = await authorityFingerprint(page);
 			await page.goto("/world", { waitUntil: "domcontentloaded" });
 			const world = page.locator("main.v1-world");
 			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 				timeout: 30_000,
 			});
+			expect(await authorityFingerprint(page)).toEqual(staleAuthority);
 			await page
 				.getByRole("button", { name: "Rebuild local checkpoint" })
 				.click();
@@ -391,6 +444,7 @@ test.describe
 				timeout: 30_000,
 			});
 			const canonicalHash = await world.getAttribute("data-state-hash");
+			const canonicalAuthority = await authorityFingerprint(page);
 			await page.evaluate(
 				() =>
 					new Promise<void>((resolve, reject) => {
@@ -427,6 +481,8 @@ test.describe
 						};
 					}),
 			);
+			const corruptedAuthority = await authorityFingerprint(page);
+			expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 			await page.reload({ waitUntil: "domcontentloaded" });
 			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 				timeout: 30_000,
@@ -435,6 +491,7 @@ test.describe
 				"data-state-hash",
 				canonicalHash ?? "",
 			);
+			expect(await authorityFingerprint(page)).toEqual(corruptedAuthority);
 			await page
 				.getByRole("button", { name: "Rebuild local checkpoint" })
 				.click();

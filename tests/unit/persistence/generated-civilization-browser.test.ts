@@ -1,20 +1,20 @@
-import { MemoryVersionedPersistence } from "../../../packages/persistence/src/index.js";
-import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
-import { generateWorld } from "../../../packages/worldgen/src/index.js";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	advanceGeneratedCivilization,
 	GENERATED_CIVILIZATION_CATCH_UP_HORIZONS,
 	migrateLegacyGeneratedCheckpoint,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
-import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	initializeV1Checkpoint,
 	type V1CheckpointStoragePort,
 	type V1PersistedCheckpoint,
 } from "../../../apps/web/src/v1-indexeddb.js";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import { MemoryVersionedPersistence } from "../../../packages/persistence/src/index.js";
+import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
+import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
 class LegacyMemoryPort implements V1CheckpointStoragePort {
 	value: V1PersistedCheckpoint | null = null;
@@ -78,6 +78,25 @@ describe("generated civilization versioned persistence", () => {
 		).toBe(true);
 		expect(result.head.lastSequence).toBe(5);
 		expect(result.snapshot.snapshotId).toBe("civilization-day-365");
+	});
+
+	it("rejects an invalid computed candidate before touching durable authority", async () => {
+		const port = new MemoryVersionedPersistence();
+		const initialize = vi.spyOn(port, "initialize");
+		const authorityRunner = vi.fn(async (input) => {
+			const run = await runCivilizationExperiment(input);
+			return { ...run, finalStateHash: "0".repeat(64) };
+		});
+		await expect(
+			advanceGeneratedCivilization({
+				port,
+				genesisWorld: world,
+				targetHorizonDays: 365,
+				authorityRunner,
+			}),
+		).rejects.toMatchObject({ code: "STALE_STATE" });
+		expect(authorityRunner).toHaveBeenCalledTimes(5);
+		expect(initialize).not.toHaveBeenCalled();
 	});
 
 	it("resumes a shorter stream idempotently and replays snapshot plus suffix", async () => {

@@ -17,8 +17,9 @@ import {
 import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-versioned";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
-	advanceGeneratedCivilization,
 	type GeneratedCivilizationCatchUpHorizon,
+	persistPreparedGeneratedCivilization,
+	prepareGeneratedCivilization,
 } from "./persistence/generated-civilization";
 
 const generatedFaultHooks =
@@ -38,6 +39,8 @@ export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
+	readonly claim: "durable-authority" | "admitted-deterministic-view";
+	readonly failureCode: string | null;
 	readonly restored: boolean;
 	readonly catchUpReceipts: number;
 }
@@ -68,7 +71,6 @@ export interface GeneratedWorldBuildOptions {
 	readonly checkpointTransform?: (
 		checkpoint: CivilizationExperimentRun,
 	) => CivilizationExperimentRun;
-	readonly mapAuthorityFailure?: (error: unknown) => Error;
 }
 
 let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
@@ -152,27 +154,31 @@ export async function buildGeneratedWorldExperience(
 	let run: CivilizationExperimentRun | null = null;
 	let previousRun: CivilizationExperimentRun | null = null;
 	let persistence: GeneratedWorldPersistenceStatus | null = null;
-	const runWithoutPersistence = async (
+	const prepared = await prepareGeneratedCivilization({
+		genesisWorld: generatedWorld,
+		targetHorizonDays,
+		authorityRunner,
+	});
+	const admittedRun = prepared.checkpoints.at(-1);
+	const admittedPreviousRun = prepared.checkpoints[0];
+	if (admittedRun === undefined || admittedPreviousRun === undefined)
+		throw new Error("Checkpoint missing");
+	const selectAdmittedView = (
 		kind: "quarantined" | "unavailable",
-	): Promise<void> => {
-		[previousRun, run] = await Promise.all([
-			authorityRunner({
-				world: generatedWorld,
-				horizonDays: GENERATED_WORLD_COMPARISON_HORIZON_DAYS,
-			}),
-			authorityRunner({
-				world: generatedWorld,
-				horizonDays: targetHorizonDays,
-			}),
-		]);
+		failureCode: string,
+	): void => {
+		previousRun = admittedPreviousRun;
+		run = admittedRun;
 		persistence = Object.freeze({
 			kind,
+			claim: "admitted-deterministic-view",
+			failureCode,
 			restored: false,
 			catchUpReceipts: 0,
 		});
 	};
 	if (indexedDbFactory === null || indexedDbFactory === undefined) {
-		await runWithoutPersistence("unavailable");
+		selectAdmittedView("unavailable", "INDEXEDDB_UNAVAILABLE");
 	} else {
 		let port: BrowserVersionedPersistence | null = null;
 		try {
@@ -184,11 +190,9 @@ export async function buildGeneratedWorldExperience(
 					? { boundaryInjector: options.persistenceBoundaryInjector }
 					: {}),
 			});
-			const advanced = await advanceGeneratedCivilization({
+			const advanced = await persistPreparedGeneratedCivilization({
 				port,
-				genesisWorld: generatedWorld,
-				targetHorizonDays,
-				authorityRunner,
+				prepared,
 			});
 			const finalCheckpoint = advanced.checkpoints.at(-1);
 			if (finalCheckpoint === undefined) throw new Error("Checkpoint missing");
@@ -196,17 +200,17 @@ export async function buildGeneratedWorldExperience(
 			previousRun = advanced.checkpoints[0] ?? finalCheckpoint;
 			persistence = Object.freeze({
 				kind: "indexeddb",
+				claim: "durable-authority",
+				failureCode: null,
 				restored:
 					advanced.receipts.length > 0 &&
 					advanced.idempotentAppends === advanced.receipts.length,
 				catchUpReceipts: advanced.receipts.length,
 			});
 		} catch (error) {
-			if (generatedFaultHooks && options.mapAuthorityFailure !== undefined)
-				throw options.mapAuthorityFailure(error);
-			const quarantine = shouldQuarantine(error);
-			if (!quarantine && !shouldDegradePersistence(error)) throw error;
-			await runWithoutPersistence(quarantine ? "quarantined" : "unavailable");
+			const failure = classifyDurableFailure(error);
+			if (failure === null) throw error;
+			selectAdmittedView(failure.kind, failure.code);
 		} finally {
 			port?.close();
 		}
@@ -252,16 +256,6 @@ export async function buildGeneratedWorldExperience(
 	});
 }
 
-function shouldQuarantine(error: unknown): boolean {
-	return (
-		(error instanceof PersistenceError &&
-			(error.code === "STALE_STATE" ||
-				error.code === "RANGE_GAP" ||
-				error.code === "UNSUPPORTED_VERSION")) ||
-		(error instanceof DOMException && error.name === "VersionError")
-	);
-}
-
 const INDEXED_DB_UNAVAILABLE_ERRORS = [
 	"AbortError",
 	"ConstraintError",
@@ -273,14 +267,32 @@ const INDEXED_DB_UNAVAILABLE_ERRORS = [
 	"UnknownError",
 ] as const;
 
-function shouldDegradePersistence(error: unknown): boolean {
-	return (
-		(error instanceof DOMException &&
-			INDEXED_DB_UNAVAILABLE_ERRORS.includes(
-				error.name as (typeof INDEXED_DB_UNAVAILABLE_ERRORS)[number],
-			)) ||
-		(generatedFaultHooks && error instanceof Error)
-	);
+function classifyDurableFailure(error: unknown): Readonly<{
+	readonly kind: "quarantined" | "unavailable";
+	readonly code: string;
+}> | null {
+	if (
+		error instanceof PersistenceError &&
+		[
+			"RANGE_GAP",
+			"RUN_ID_COLLISION",
+			"STALE_STATE",
+			"UNSUPPORTED_VERSION",
+		].includes(error.code)
+	)
+		return Object.freeze({ kind: "quarantined", code: error.code });
+	if (error instanceof DOMException && error.name === "VersionError")
+		return Object.freeze({ kind: "quarantined", code: "DATABASE_VERSION" });
+	if (
+		error instanceof DOMException &&
+		INDEXED_DB_UNAVAILABLE_ERRORS.includes(
+			error.name as (typeof INDEXED_DB_UNAVAILABLE_ERRORS)[number],
+		)
+	)
+		return Object.freeze({ kind: "unavailable", code: error.name });
+	if (generatedFaultHooks && error instanceof Error)
+		return Object.freeze({ kind: "unavailable", code: "INJECTED_BOUNDARY" });
+	return null;
 }
 
 /** One immutable generated civilization shared by every view in this session. */

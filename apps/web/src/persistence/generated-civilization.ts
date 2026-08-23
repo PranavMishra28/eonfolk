@@ -1,21 +1,22 @@
 import {
-	createAuthoritySnapshot,
-	createCivilizationPersistencePlan,
-	replayCivilizationHistory,
+	type CivilizationExperimentRun,
+	runCivilizationExperiment,
+} from "@eonfolk/civilization";
+import {
 	type AuthorityAppendReceipt,
 	type AuthorityHead,
 	type AuthoritySnapshotRecord,
+	type CivilizationPersistencePlan,
+	createAuthoritySnapshot,
+	createCivilizationPersistencePlan,
 	type ReleaseGenesisCivilizationState,
+	replayCivilizationHistory,
 	type VersionedPersistencePort,
 } from "@eonfolk/persistence";
 import type { GeneratedWorldState } from "@eonfolk/protocol";
 import {
-	runCivilizationExperiment,
-	type CivilizationExperimentRun,
-} from "@eonfolk/civilization";
-import {
-	validateV1PersistedCheckpoint,
 	type V1PersistedCheckpoint,
+	validateV1PersistedCheckpoint,
 } from "../v1-indexeddb";
 
 export const GENERATED_CIVILIZATION_CATCH_UP_HORIZONS = Object.freeze([
@@ -44,6 +45,12 @@ export interface AdvanceGeneratedCivilizationResult {
 	readonly snapshot: AuthoritySnapshotRecord;
 	readonly receipts: readonly AuthorityAppendReceipt[];
 	readonly idempotentAppends: number;
+}
+
+export interface PreparedGeneratedCivilization {
+	readonly targetHorizonDays: GeneratedCivilizationCatchUpHorizon;
+	readonly checkpoints: readonly CivilizationExperimentRun[];
+	readonly plan: CivilizationPersistencePlan;
 }
 
 export interface LegacyCheckpointMigrationResult {
@@ -90,8 +97,7 @@ export function assertGeneratedPreCommitInvariants(
 
 async function persistPlan(input: {
 	readonly port: VersionedPersistencePort;
-	readonly genesisWorld: GeneratedWorldState;
-	readonly checkpoints: readonly CivilizationExperimentRun[];
+	readonly plan: CivilizationPersistencePlan;
 	readonly targetHorizonDays: number;
 }): Promise<{
 	readonly head: AuthorityHead;
@@ -99,27 +105,17 @@ async function persistPlan(input: {
 	readonly receipts: readonly AuthorityAppendReceipt[];
 	readonly idempotentAppends: number;
 }> {
-	const plan = await createCivilizationPersistencePlan({
-		runId: GENERATED_CIVILIZATION_RUN_ID,
-		regionId: input.genesisWorld.identity.worldId,
-		genesisId: "generated-civilization-genesis",
-		genesisWorld: input.genesisWorld,
-		checkpoints: input.checkpoints,
-		batchSize: 1,
-		snapshotId: "civilization",
-	});
-	assertGeneratedPreCommitInvariants(input.checkpoints);
-	await input.port.initialize(plan.genesis);
+	await input.port.initialize(input.plan.genesis);
 	const receipts: AuthorityAppendReceipt[] = [];
 	let idempotentAppends = 0;
-	for (const batch of plan.batches) {
+	for (const batch of input.plan.batches) {
 		const result = await input.port.appendEventBatch(batch);
 		receipts.push(result.receipt);
 		if (result.idempotent) idempotentAppends += 1;
 	}
-	const head = await input.port.loadHead(plan.scope);
+	const head = await input.port.loadHead(input.plan.scope);
 	const snapshot = await createAuthoritySnapshot({
-		...plan.scope,
+		...input.plan.scope,
 		engineVersion: head.engineVersion,
 		stateSchemaVersion: head.stateSchemaVersion,
 		snapshotId: snapshotId(input.targetHorizonDays),
@@ -127,20 +123,23 @@ async function persistPlan(input: {
 		baseSequence: head.lastSequence,
 		simulationTime: head.simulationTime,
 		lastEventHash: head.lastEventHash,
-		state: plan.finalState,
+		state: input.plan.finalState,
 	});
 	await input.port.saveSnapshot({ snapshot, fencingToken: head.fencingToken });
 	return { head, snapshot, receipts, idempotentAppends };
 }
 
 /**
- * Deterministically recomputes only the reviewed catch-up checkpoints. The
- * civilization runner remains the sole simulation authority and must report
- * zero model invocations at every horizon.
+ * Computes and fully validates a deterministic candidate before any durable
+ * authority is opened or mutated. A caller may present this separately
+ * admitted view when storage is unavailable, but must never treat it as a
+ * hydrated checkpoint.
  */
-export async function advanceGeneratedCivilization(
-	input: AdvanceGeneratedCivilizationRequest,
-): Promise<AdvanceGeneratedCivilizationResult> {
+export async function prepareGeneratedCivilization(input: {
+	readonly genesisWorld: GeneratedWorldState;
+	readonly targetHorizonDays: GeneratedCivilizationCatchUpHorizon;
+	readonly authorityRunner?: typeof runCivilizationExperiment;
+}): Promise<PreparedGeneratedCivilization> {
 	const authorityRunner = input.authorityRunner ?? runCivilizationExperiment;
 	const checkpoints: CivilizationExperimentRun[] = [];
 	for (const horizonDays of selectedHorizons(input.targetHorizonDays)) {
@@ -152,17 +151,58 @@ export async function advanceGeneratedCivilization(
 			throw new Error("generated civilization catch-up invoked a model");
 		checkpoints.push(generated);
 	}
-	const persisted = await persistPlan({
-		port: input.port,
+	const plan = await createCivilizationPersistencePlan({
+		runId: GENERATED_CIVILIZATION_RUN_ID,
+		regionId: input.genesisWorld.identity.worldId,
+		genesisId: "generated-civilization-genesis",
 		genesisWorld: input.genesisWorld,
 		checkpoints,
+		batchSize: 1,
+		snapshotId: "civilization",
+	});
+	assertGeneratedPreCommitInvariants(checkpoints);
+	return Object.freeze({
 		targetHorizonDays: input.targetHorizonDays,
+		checkpoints: Object.freeze(checkpoints),
+		plan,
+	});
+}
+
+export async function persistPreparedGeneratedCivilization(input: {
+	readonly port: VersionedPersistencePort;
+	readonly prepared: PreparedGeneratedCivilization;
+}): Promise<AdvanceGeneratedCivilizationResult> {
+	const persisted = await persistPlan({
+		port: input.port,
+		plan: input.prepared.plan,
+		targetHorizonDays: input.prepared.targetHorizonDays,
 	});
 	return {
-		targetHorizonDays: input.targetHorizonDays,
-		checkpoints,
+		targetHorizonDays: input.prepared.targetHorizonDays,
+		checkpoints: input.prepared.checkpoints,
 		...persisted,
 	};
+}
+
+/**
+ * Deterministically recomputes only the reviewed catch-up checkpoints. The
+ * civilization runner remains the sole simulation authority and must report
+ * zero model invocations at every horizon.
+ */
+export async function advanceGeneratedCivilization(
+	input: AdvanceGeneratedCivilizationRequest,
+): Promise<AdvanceGeneratedCivilizationResult> {
+	const prepared = await prepareGeneratedCivilization({
+		genesisWorld: input.genesisWorld,
+		targetHorizonDays: input.targetHorizonDays,
+		...(input.authorityRunner === undefined
+			? {}
+			: { authorityRunner: input.authorityRunner }),
+	});
+	return await persistPreparedGeneratedCivilization({
+		port: input.port,
+		prepared,
+	});
 }
 
 export async function replayGeneratedCivilization(input: {
@@ -206,10 +246,18 @@ export async function migrateLegacyGeneratedCheckpoint(input: {
 		input.legacy,
 		input.legacy.storageKey,
 	);
+	assertGeneratedPreCommitInvariants([legacy.checkpoint]);
 	const persisted = await persistPlan({
 		port: input.port,
-		genesisWorld: legacy.genesisWorld,
-		checkpoints: [legacy.checkpoint],
+		plan: await createCivilizationPersistencePlan({
+			runId: GENERATED_CIVILIZATION_RUN_ID,
+			regionId: legacy.genesisWorld.identity.worldId,
+			genesisId: "generated-civilization-genesis",
+			genesisWorld: legacy.genesisWorld,
+			checkpoints: [legacy.checkpoint],
+			batchSize: 1,
+			snapshotId: "civilization",
+		}),
 		targetHorizonDays: legacy.horizonDays,
 	});
 	return {

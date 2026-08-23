@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	compactProductionErrorDetails,
-	resolveBuildSha,
-} from "../../../apps/web/vite.config";
+import { resolveBuildSha } from "../../../apps/web/vite.config";
 import { summarizeDurations } from "../../../scripts/benchmark-diagnostics.mjs";
 import {
 	summarizePhysicalObservation,
@@ -47,30 +44,6 @@ function observation() {
 }
 
 describe("evidence scripts", () => {
-	it("compacts only static repository runtime error detail in production", () => {
-		const source = [
-			'fail("RANGE_GAP", "private durable detail");',
-			'new PersistenceError("STALE_STATE", "private hash detail");',
-			'throw new Error("private browser detail");',
-			'fail("private projection detail");',
-		].join("\n");
-		expect(
-			compactProductionErrorDetails(
-				source,
-				"/repo/packages/persistence/src/example.ts",
-			),
-		).toBe(
-			[
-				'fail("RANGE_GAP", "RANGE_GAP");',
-				'new PersistenceError("STALE_STATE", "STALE_STATE");',
-				'throw new Error("LOCAL_RUNTIME_FAILURE");',
-				'fail("invalid");',
-			].join("\n"),
-		);
-		expect(
-			compactProductionErrorDetails(source, "/repo/tests/unit/example.test.ts"),
-		).toBe(source);
-	});
 	it("uses explicit build identity and fails safely without Git metadata", () => {
 		expect(resolveBuildSha("a".repeat(40), () => "ignored")).toBe(
 			"a".repeat(40),

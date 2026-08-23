@@ -37,40 +37,8 @@ function appVersion(): string {
 	}
 }
 
-const REPOSITORY_RUNTIME_SOURCE =
-	/\/(?:apps\/web\/src|packages\/[^/]+\/src)\/.*\.tsx?$/u;
-
-export function compactProductionErrorDetails(
-	source: string,
-	id: string,
-): string {
-	if (!REPOSITORY_RUNTIME_SOURCE.test(id) || id.includes(".test."))
-		return source;
-	return source
-		.replace(
-			/((?:fail|new PersistenceError)\(\s*("[A-Z_]+")\s*,\s*)"(?:[^"\\]|\\.)*"/gu,
-			(_match, prefix: string, code: string) => `${prefix}${code}`,
-		)
-		.replace(
-			/new (Error|RangeError)\(\s*"(?:[^"\\]|\\.)*"\s*\)/gu,
-			(_match, constructorName: string) =>
-				`new ${constructorName}("LOCAL_RUNTIME_FAILURE")`,
-		)
-		.replace(/fail\(\s*"(?:[^"\\]|\\.)*"\s*\)/gu, 'fail("invalid")');
-}
-
 export default defineConfig({
-	plugins: [
-		react(),
-		{
-			name: "compact-production-error-details",
-			apply: "build",
-			transform(source, id) {
-				const code = compactProductionErrorDetails(source, id);
-				return code === source ? null : { code, map: null };
-			},
-		},
-	],
+	plugins: [react()],
 	define: {
 		__EONFOLK_APP_VERSION__: JSON.stringify(appVersion()),
 		__EONFOLK_BUILD_SHA__: JSON.stringify(
@@ -85,6 +53,14 @@ export default defineConfig({
 	},
 	build: {
 		target: "es2022",
+		modulePreload: false,
+		rolldownOptions: {
+			treeshake: {
+				moduleSideEffects: (id) =>
+					!id.includes("/node_modules/@playcanvas/react/") &&
+					!id.endsWith("/playcanvas/src/deprecated/deprecated.js"),
+			},
+		},
 		cssCodeSplit: true,
 		manifest: true,
 		reportCompressedSize: true,

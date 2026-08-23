@@ -183,13 +183,19 @@ function WorldLoading() {
 	);
 }
 
-function WorldError({ error }: { readonly error: Error }) {
+function WorldError({
+	error,
+	fault = null,
+}: {
+	readonly error: Error;
+	readonly fault?: GeneratedWorldFaultSpec | null;
+}) {
 	const boundaryFault =
-		generatedFaultHooks &&
-		error.name === "GeneratedWorldFaultBoundaryError" &&
-		"fault" in error
-			? (error.fault as GeneratedWorldFaultSpec)
-			: null;
+		generatedFaultHooks && fault?.disposition === "fail-closed" ? fault : null;
+	const faultErrorCode =
+		generatedFaultHooks && "code" in error && typeof error.code === "string"
+			? error.code
+			: undefined;
 	const retry = () => {
 		void generatedWorldFaultModule.then((module) => {
 			module?.clearGeneratedWorldFault();
@@ -204,6 +210,7 @@ function WorldError({ error }: { readonly error: Error }) {
 				? {
 						"data-fault-kind": boundaryFault?.kind,
 						"data-fault-disposition": boundaryFault?.disposition,
+						"data-fault-error-code": faultErrorCode,
 					}
 				: {})}
 		>
@@ -741,6 +748,9 @@ function GeneratedWorld({
 		() => !reduceMotion,
 	);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
+	const [rebuildState, setRebuildState] = useState<
+		"idle" | "deleting" | "blocked" | "error"
+	>("idle");
 	const [navigation, dispatch] = useReducer(
 		reduceGeneratedNavigation,
 		INITIAL_GENERATED_NAVIGATION,
@@ -877,8 +887,11 @@ function GeneratedWorld({
 		window.location.reload();
 	};
 	const rebuildPersistence = () => {
+		setRebuildState("deleting");
 		const request = indexedDB.deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
 		request.onsuccess = () => window.location.reload();
+		request.onblocked = () => setRebuildState("blocked");
+		request.onerror = () => setRebuildState("error");
 	};
 	const reportRendererFailure = () => {
 		setRendererFailed(true);
@@ -911,6 +924,10 @@ function GeneratedWorld({
 			data-simulation-time={experience.simulationTime}
 			data-projection-status={projection.availability.status}
 			data-persistence={experience.persistence.kind}
+			data-persistence-claim={experience.persistence.claim}
+			data-persistence-failure-code={
+				experience.persistence.failureCode ?? undefined
+			}
 			data-persistence-restored={String(experience.persistence.restored)}
 			data-catch-up-receipts={experience.persistence.catchUpReceipts}
 			data-previous-state-hash={experience.previousStateHash}
@@ -986,9 +1003,22 @@ function GeneratedWorld({
 			)}
 			{experience.persistence.kind === "quarantined" ? (
 				<p className="renderer-note" role="status">
-					<button type="button" onClick={rebuildPersistence}>
-						Rebuild local checkpoint
+					The stored authority was rejected. This separately admitted
+					deterministic view does not derive facts from that checkpoint.{" "}
+					<button
+						type="button"
+						onClick={rebuildPersistence}
+						disabled={rebuildState === "deleting" || rebuildState === "blocked"}
+					>
+						{rebuildState === "idle" || rebuildState === "error"
+							? "Rebuild local checkpoint"
+							: "Rebuilding local checkpoint"}
 					</button>
+					{rebuildState === "blocked"
+						? " Close other EONFOLK tabs; recovery will continue automatically."
+						: rebuildState === "error"
+							? " Recovery could not start. Retry after checking browser storage access."
+							: null}
 				</p>
 			) : null}
 			{experience.persistence.kind === "unavailable" ? (
@@ -1157,7 +1187,7 @@ export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
 				: "EONFOLK — Canonical generated world";
 	}, [route]);
 	const { experience, error } = useGeneratedExperience(fault);
-	if (error !== null) return <WorldError error={error} />;
+	if (error !== null) return <WorldError error={error} fault={fault} />;
 	if (fault === undefined || experience === null) return <WorldLoading />;
 	return route === "entry" ? (
 		<GenesisEntry experience={experience} />
