@@ -6,6 +6,19 @@ type GeneratedPickTarget = Readonly<{
 	readonly y: number;
 }>;
 
+async function readAttributes(
+	locator: Locator,
+	names: readonly string[],
+): Promise<Readonly<Record<string, string | null>>> {
+	return locator.evaluate(
+		(element, requestedNames) =>
+			Object.fromEntries(
+				requestedNames.map((name) => [name, element.getAttribute(name)]),
+			),
+		[...names],
+	);
+}
+
 async function isolateLocalWorld(page: Page): Promise<string[]> {
 	const externalRequests: string[] = [];
 	await page.route("**/*", async (route) => {
@@ -195,37 +208,73 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		page.getByRole("heading", { name: "Dawnmere", level: 1 }),
 	).toBeVisible();
 	const world = page.locator("main.v1-world");
-	await expect(world).toHaveAttribute(
-		"data-world-id",
-		"eonfolk-genesis-world-v1",
-	);
-	await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u);
-	await expect(world).toHaveAttribute("data-projection-status", "available");
-	await expect(world).toHaveAttribute("data-persistence", "indexeddb");
-	await expect(world).toHaveAttribute("data-persistence-restored", "true");
-	await expect(world).toHaveAttribute("data-catch-up-receipts", "5");
-	await expect(world).toHaveAttribute("data-asset-integrity", "verified");
-	await expect(world).toHaveAttribute(
-		"data-previous-state-hash",
-		/^[0-9a-f]{64}$/u,
-	);
 	const canvas = page.getByTestId("generated-world-canvas");
-	await expect(canvas).toHaveAttribute("data-engine", "playcanvas");
-	await expect(canvas).toHaveAttribute("data-actor-count", "7");
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await expect(canvas).toHaveAttribute("data-embodiment-schema", /v1$/u);
-	await expect(canvas).toHaveAttribute("data-canonical-action-ids", /.+/u);
-	await expect(canvas).toHaveAttribute(
+	const worldTruth = await readAttributes(world, [
+		"data-world-id",
+		"data-state-hash",
+		"data-projection-status",
+		"data-persistence",
+		"data-persistence-restored",
+		"data-catch-up-receipts",
+		"data-asset-integrity",
+		"data-previous-state-hash",
+	]);
+	expect(worldTruth).toMatchObject({
+		"data-world-id": "eonfolk-genesis-world-v1",
+		"data-projection-status": "available",
+		"data-persistence": "indexeddb",
+		"data-persistence-restored": "true",
+		"data-catch-up-receipts": "5",
+		"data-asset-integrity": "verified",
+	});
+	expect(worldTruth["data-state-hash"]).toMatch(/^[0-9a-f]{64}$/u);
+	expect(worldTruth["data-previous-state-hash"]).toMatch(/^[0-9a-f]{64}$/u);
+	const canvasTruth = await readAttributes(canvas, [
+		"data-engine",
+		"data-actor-count",
+		"data-embodiment-schema",
+		"data-canonical-action-ids",
 		"data-route-segment-count",
-		/^[1-9]\d*$/u,
+		"data-actor-route-states",
+		"data-actor-positions",
+		"data-rendered-actor-positions",
+		"data-actor-diagnostics",
+		"data-interaction-count",
+		"data-teleport-count",
+		"data-contradiction-count",
+		"data-citizen-height-mm",
+		"data-door-height-mm",
+		"data-road-width-mm",
+		"data-semantic-scale",
+		"data-fidelity-class",
+		"data-navigation-mode",
+		"data-moving-actor-count",
+	]);
+	expect(canvasTruth).toMatchObject({
+		"data-engine": "playcanvas",
+		"data-actor-count": "7",
+		"data-interaction-count": "1",
+		"data-teleport-count": "0",
+		"data-contradiction-count": "0",
+		"data-citizen-height-mm": "1750",
+		"data-door-height-mm": "2050",
+		"data-road-width-mm": "1800",
+		"data-navigation-mode": "smooth",
+	});
+	expect(canvasTruth["data-embodiment-schema"]).toMatch(/v1$/u);
+	expect(canvasTruth["data-canonical-action-ids"]).toMatch(/.+/u);
+	expect(canvasTruth["data-route-segment-count"]).toMatch(/^[1-9]\d*$/u);
+	expect(canvasTruth["data-actor-route-states"]).toMatch(/.+/u);
+	expect(canvasTruth["data-actor-positions"]).toMatch(/.+/u);
+	expect(canvasTruth["data-rendered-actor-positions"]).toMatch(/.+/u);
+	expect(canvasTruth["data-actor-diagnostics"]).toMatch(/.+/u);
+	expect(canvasTruth["data-semantic-scale"]).toMatch(
+		/^(?:region|town|citizen)$/u,
 	);
-	await expect(canvas).toHaveAttribute("data-actor-route-states", /.+/u);
-	await expect(canvas).toHaveAttribute("data-actor-positions", /.+/u);
-	await expect(canvas).toHaveAttribute("data-rendered-actor-positions", /.+/u);
-	await expect(canvas).toHaveAttribute("data-actor-diagnostics", /.+/u);
-	await expect(canvas).toHaveAttribute("data-interaction-count", "1");
+	expect(canvasTruth["data-fidelity-class"]).toMatch(/^LOD[0-3]$/u);
 	const sceneTruth = page.getByTestId("generated-scene-truth");
 	await expect(sceneTruth).toBeVisible();
 	await expect(sceneTruth).toHaveAttribute(
@@ -246,23 +295,10 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 			.getByRole("list", { name: "Other visible work in the scene" })
 			.getByRole("listitem"),
 	).toHaveCount(4);
-	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
-	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
-	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
-	await expect(canvas).toHaveAttribute("data-door-height-mm", "2050");
-	await expect(canvas).toHaveAttribute("data-road-width-mm", "1800");
-	await expect(canvas).toHaveAttribute(
-		"data-semantic-scale",
-		/^(?:region|town|citizen)$/u,
-	);
-	await expect(canvas).toHaveAttribute("data-fidelity-class", /^LOD[0-3]$/u);
-	await expect(canvas).toHaveAttribute("data-navigation-mode", "smooth");
-	const routeStates = (await canvas.getAttribute("data-actor-route-states"))
+	const routeStates = canvasTruth["data-actor-route-states"]
 		?.split(",")
 		.filter(Boolean);
-	const movingActorCount = Number(
-		await canvas.getAttribute("data-moving-actor-count"),
-	);
+	const movingActorCount = Number(canvasTruth["data-moving-actor-count"]);
 	expect(
 		routeStates?.filter((state) => state.includes(":travelling:")).length,
 	).toBe(movingActorCount);
@@ -271,7 +307,7 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		"/assets/generated/eonfolk-folk-proxy.gltf",
 	]);
 
-	const stateHashBeforeNavigation = await world.getAttribute("data-state-hash");
+	const stateHashBeforeNavigation = worldTruth["data-state-hash"];
 	const canvasBounds = await canvas.boundingBox();
 	if (canvasBounds === null) throw new Error("generated canvas has no bounds");
 	const distanceBeforeWheel = Number(
