@@ -68,9 +68,9 @@ const genesisRoute =
 
 reactRoot.render(
 	<RuntimeBoundary>
-		{genesisRoute === null ? (
+		{normalizedPath === "/" || normalizedPath === "/legacy" ? (
 			<RiverholdApp />
-		) : (
+		) : genesisRoute !== null ? (
 			<Suspense
 				fallback={
 					<main className="v1-genesis-shell" aria-busy="true">
@@ -80,6 +80,12 @@ reactRoot.render(
 			>
 				<V1GenesisApp route={genesisRoute} />
 			</Suspense>
+		) : (
+			<main className="runtime-failure" aria-labelledby="not-found-title">
+				<p className="eyebrow">UNKNOWN PLACE</p>
+				<h1 id="not-found-title">This route is outside the canonical world.</h1>
+				<a href="/">Return to EONFOLK</a>
+			</main>
 		)}
 	</RuntimeBoundary>,
 );

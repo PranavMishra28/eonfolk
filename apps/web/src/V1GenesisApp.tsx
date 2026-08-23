@@ -1,49 +1,52 @@
-import type { SemanticScale } from "@eonfolk/world-presentation";
+import type {
+	GeneratedCivilizationSpatialProjection,
+	SpatialActorProjection,
+} from "@eonfolk/world-presentation";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
-import type { WorldFocus } from "./components/RiverholdWorld";
-import { SemanticWorld } from "./components/SemanticWorld";
-import type { RiverholdProjection } from "./projection";
-import { createRiverholdRuntimeBridge } from "./runtime";
 import {
-	loadV1GenesisExperience,
-	V1_GENESIS_RELEASE_ID,
-	V1_GENESIS_SEED,
-	type V1GenesisExperience,
-} from "./v1-genesis-runtime";
+	loadGeneratedWorldExperience,
+	type GeneratedWorldExperience,
+} from "./generated-world-runtime";
+import { V1_GENESIS_RELEASE_ID, V1_GENESIS_SEED } from "./v1-genesis-runtime";
 
-const RiverholdWorld = lazy(async () => {
-	const module = await import("./components/RiverholdWorld");
-	return { default: module.RiverholdWorld };
+const GeneratedWorldCanvas = lazy(async () => {
+	const module = await import("./generated-world-canvas");
+	return { default: module.GeneratedWorldCanvas };
 });
 
 type GenesisRoute = "entry" | "world";
+type WorldView = "embodied" | "semantic" | "overview";
 
 function shorten(value: string): string {
 	return `${value.slice(0, 12)}…${value.slice(-8)}`;
 }
 
-function useGenesisExperience(): {
-	readonly experience: V1GenesisExperience | null;
+function readableId(value: string): string {
+	return value.replace(/[-_:]+/gu, " ");
+}
+
+function useGeneratedExperience(): {
+	readonly experience: GeneratedWorldExperience | null;
 	readonly error: Error | null;
 } {
-	const [experience, setExperience] = useState<V1GenesisExperience | null>(
+	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
 	);
 	const [error, setError] = useState<Error | null>(null);
 	useEffect(() => {
 		let active = true;
-		void loadV1GenesisExperience().then(
+		void loadGeneratedWorldExperience().then(
 			(value) => {
 				if (active) setExperience(value);
 			},
 			(reason: unknown) => {
-				if (active)
-					setError(
-						reason instanceof Error
-							? reason
-							: new Error("Release Genesis could not be projected"),
-					);
+				if (!active) return;
+				setError(
+					reason instanceof Error
+						? reason
+						: new Error("The generated civilization could not be projected"),
+				);
 			},
 		);
 		return () => {
@@ -53,73 +56,34 @@ function useGenesisExperience(): {
 	return { experience, error };
 }
 
-function useCanonicalLivingWorld(): {
-	readonly projection: RiverholdProjection | null;
-	readonly error: Error | null;
-} {
-	const [projection, setProjection] = useState<RiverholdProjection | null>(
-		null,
-	);
-	const [error, setError] = useState<Error | null>(null);
-	useEffect(() => {
-		let active = true;
-		let bridge: ReturnType<typeof createRiverholdRuntimeBridge>;
-		try {
-			bridge = createRiverholdRuntimeBridge();
-		} catch (reason) {
-			setError(reason instanceof Error ? reason : new Error(String(reason)));
-			return;
-		}
-		const unsubscribe = bridge.subscribe(
-			(value) => {
-				if (active) setProjection(value);
-			},
-			(reason) => {
-				if (active) setError(reason);
-			},
-		);
-		void bridge.ready().then(
-			(value) => {
-				if (active) setProjection(value);
-			},
-			(reason: unknown) => {
-				if (active)
-					setError(
-						reason instanceof Error ? reason : new Error(String(reason)),
-					);
-			},
-		);
-		return () => {
-			active = false;
-			unsubscribe();
-			bridge.clear();
-		};
-	}, []);
-	return { projection, error };
-}
-
-function GenesisLoading() {
+function WorldLoading() {
 	return (
 		<main className="v1-genesis-shell v1-genesis-loading" aria-busy="true">
-			<p className="v1-kicker">RELEASE GENESIS</p>
-			<h1>Reading the same world from the same seed.</h1>
-			<p>Generation is local, deterministic, and needs no account or model.</p>
+			<p className="v1-kicker">GENERATING CANONICAL REALITY</p>
+			<h1>Advancing one world through its first year.</h1>
+			<p>
+				World generation and civilization simulation are deterministic, local,
+				and complete without an external model.
+			</p>
 		</main>
 	);
 }
 
-function GenesisError({ error }: { readonly error: Error }) {
+function WorldError({ error }: { readonly error: Error }) {
 	return (
 		<main className="v1-genesis-shell" aria-labelledby="v1-error-title">
 			<p className="v1-kicker">WORLD UNAVAILABLE</p>
-			<h1 id="v1-error-title">No world is being presented as factual.</h1>
-			<p>The canonical projection stopped before it could be shown safely.</p>
+			<h1 id="v1-error-title">No incomplete world is being shown as fact.</h1>
+			<p>
+				The canonical generation, simulation, or projection boundary failed
+				closed.
+			</p>
 			<details>
 				<summary>Technical detail</summary>
 				<code>{error.message}</code>
 			</details>
 			<a className="v1-text-link" href="/genesis">
-				Return to Release Genesis
+				Try the canonical origin again
 			</a>
 		</main>
 	);
@@ -128,30 +92,27 @@ function GenesisError({ error }: { readonly error: Error }) {
 function WorldIdentity({
 	experience,
 }: {
-	readonly experience: V1GenesisExperience;
+	readonly experience: GeneratedWorldExperience;
 }) {
-	const { overview } = experience;
 	return (
 		<dl className="v1-identity" aria-label="Immutable world identity">
 			<div>
 				<dt>World</dt>
-				<dd>{overview.source.worldId}</dd>
+				<dd>{experience.worldId}</dd>
 			</div>
 			<div>
 				<dt>Identity hash</dt>
-				<dd title={overview.source.identityHash}>
-					{shorten(overview.source.identityHash)}
+				<dd title={experience.worldIdentityHash}>
+					{shorten(experience.worldIdentityHash)}
 				</dd>
 			</div>
 			<div>
-				<dt>Genesis hash</dt>
-				<dd title={overview.source.releaseGenesisHash}>
-					{shorten(overview.source.releaseGenesisHash)}
-				</dd>
+				<dt>State hash</dt>
+				<dd title={experience.stateHash}>{shorten(experience.stateHash)}</dd>
 			</div>
 			<div>
-				<dt>Simulation time</dt>
-				<dd>{overview.source.generatedAtSimulationTime}</dd>
+				<dt>Simulation horizon</dt>
+				<dd>{experience.horizonDays} days</dd>
 			</div>
 		</dl>
 	);
@@ -160,32 +121,36 @@ function WorldIdentity({
 function GenesisEntry({
 	experience,
 }: {
-	readonly experience: V1GenesisExperience;
+	readonly experience: GeneratedWorldExperience;
 }) {
-	const { overview, settlement } = experience;
+	const origin = experience.projections[0];
 	return (
-		<main className="v1-genesis-entry">
+		<main
+			className="v1-genesis-entry"
+			data-world-id={experience.worldId}
+			data-state-hash={experience.stateHash}
+		>
 			<header className="v1-entry-hero">
 				<a className="v1-brand" href="/" aria-label="Eonfolk home">
 					<EonfolkMark label="" />
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-entry-copy">
-					<p className="v1-kicker">RELEASE GENESIS · LOCAL PROOF</p>
-					<h1>A living place, already in motion.</h1>
+					<p className="v1-kicker">ONE WORLD · ONE YEAR · NO ACCOUNT</p>
+					<h1>A civilization has already begun.</h1>
 					<p>
-						Riverhold's eight people work, travel, exchange goods, and react
-						from canonical local state—not ambient animation. The generated
-						origin is kept separate until simulation and world generation share
-						one adapter.
+						Eight canonical people have gathered, worked, formed relationships,
+						and founded what the world could sustain. Enter their current
+						reality; the scene never invents a person or action missing from
+						simulation.
 					</p>
 					<a className="v1-primary-link" href="/world">
-						Enter the Riverhold local proof
+						Enter the living world
 					</a>
 				</div>
 				<section className="v1-genesis-proof" aria-labelledby="v1-proof-title">
-					<p className="v1-kicker">IMMUTABLE ORIGIN</p>
-					<h2 id="v1-proof-title">One generated world. One factual origin.</h2>
+					<p className="v1-kicker">CANONICAL CHECKPOINT</p>
+					<h2 id="v1-proof-title">One generated origin, advanced in full.</h2>
 					<WorldIdentity experience={experience} />
 					<details>
 						<summary>Show the complete fixed seed</summary>
@@ -198,22 +163,28 @@ function GenesisEntry({
 				<div>
 					<p className="v1-kicker">THE WORLD NOW</p>
 					<h2 id="v1-world-now-title">
-						A settlement to read through its people.
+						{origin?.local.settlement.name ?? "A settlement"} is no longer
+						alone.
 					</h2>
 				</div>
-				<ul aria-label="Release proof summary">
+				<ul aria-label="Canonical world summary">
 					<li>
-						<strong>8</strong> canonical Riverhold citizens
+						<strong>{experience.population}</strong> canonical people
 					</li>
 					<li>
-						<strong>{settlement.semanticCounts.sites}</strong> generated sites
+						<strong>{experience.settlementCount}</strong> grounded settlements
 					</li>
 					<li>
-						<strong>{settlement.semanticCounts.routes}</strong> generated routes
+						<strong>{experience.horizonDays}</strong> simulated days
 					</li>
 					<li>
-						<strong>{overview.semanticCounts.terrainCells}</strong> terrain
-						cells
+						<strong>
+							{experience.projections.reduce(
+								(total, projection) => total + projection.projects.length,
+								0,
+							)}
+						</strong>{" "}
+						canonical projects
 					</li>
 				</ul>
 			</section>
@@ -221,109 +192,229 @@ function GenesisEntry({
 	);
 }
 
-function LivingWorldLoading() {
+function ProjectionUnavailable({
+	projection,
+}: {
+	readonly projection: GeneratedCivilizationSpatialProjection;
+}) {
 	return (
-		<section className="v1-living-loading" aria-busy="true">
-			<p className="v1-kicker">OPENING LOCAL REALITY</p>
-			<h2>The settlement is taking its first measured step.</h2>
-			<p>Canonical events and citizens are loading in the world worker.</p>
+		<section className="generated-unavailable" role="status">
+			<p className="v1-kicker">EMBODIED VIEW UNAVAILABLE</p>
+			<h2>No activity is being inferred for this settlement.</h2>
+			<p>
+				Canonical projection stopped because{" "}
+				{projection.availability.reasons.map(readableId).join(" and ")}. The
+				grounded places remain inspectable below.
+			</p>
 		</section>
 	);
 }
 
-function ContextPanel({
-	projection,
-	selectedCitizenId,
-	selectedPlaceId,
-	onCitizen,
-}: {
-	readonly projection: RiverholdProjection;
-	readonly selectedCitizenId: string | null;
-	readonly selectedPlaceId: string | null;
-	readonly onCitizen: (citizenId: string) => void;
-}) {
-	const citizen =
-		projection.citizens.find(({ id }) => id === selectedCitizenId) ??
-		projection.citizens.find(({ focal }) => focal === true) ??
-		projection.citizens[0];
-	const millworker = projection.citizens.find(
-		({ canonicalAction }) => canonicalAction.affordanceId === "mill-repair",
-	);
+function ActorDetail({ actor }: { readonly actor: SpatialActorProjection }) {
 	return (
-		<aside className="v1-context-panel" aria-label="World context">
+		<section className="generated-actor-detail" aria-labelledby="actor-title">
+			<p className="v1-kicker">SELECTED PERSON</p>
+			<h2 id="actor-title">{actor.name}</h2>
+			<p className="v1-context-role">{readableId(actor.role)}</p>
+			<p>{actor.semanticLabel}</p>
+			<dl>
+				<div>
+					<dt>Action</dt>
+					<dd>{readableId(actor.animationClass)}</dd>
+				</div>
+				<div>
+					<dt>Place</dt>
+					<dd>{actor.action.destinationPlaceId}</dd>
+				</div>
+				<div>
+					<dt>Authority</dt>
+					<dd>
+						{actor.action.sourceKind === "world-event"
+							? `Committed event ${actor.action.eventId ?? "unavailable"}`
+							: "Scheduler-owned current behavior; no result claimed"}
+					</dd>
+				</div>
+				<div>
+					<dt>Carrying</dt>
+					<dd>{actor.prop === null ? "nothing" : readableId(actor.prop)}</dd>
+				</div>
+			</dl>
+		</section>
+	);
+}
+
+function SemanticSettlement({
+	projection,
+	selectedActorId,
+	onActor,
+}: {
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly selectedActorId: string | null;
+	readonly onActor: (citizenId: string) => void;
+}) {
+	return (
+		<section
+			className="generated-semantic"
+			data-testid="generated-semantic-world"
+		>
+			<div>
+				<p className="v1-kicker">WORLD IN WORDS</p>
+				<h2>{projection.local.settlement.semanticLabel}</h2>
+				<p>
+					{projection.local.semanticCounts.sites} grounded sites,{" "}
+					{projection.local.semanticCounts.routes} routes, and{" "}
+					{projection.spatial.actors.length} visibly scheduled residents.
+				</p>
+			</div>
+			<section aria-labelledby="semantic-people-title">
+				<h3 id="semantic-people-title">People and current actions</h3>
+				{projection.spatial.actors.length === 0 ? (
+					<p>No canonical resident activity is available.</p>
+				) : (
+					<ul>
+						{projection.spatial.actors.map((actor) => (
+							<li key={actor.citizenId}>
+								<button
+									type="button"
+									aria-pressed={actor.citizenId === selectedActorId}
+									onClick={() => onActor(actor.citizenId)}
+								>
+									<strong>{actor.name}</strong>
+									<span>{actor.semanticLabel}</span>
+								</button>
+							</li>
+						))}
+					</ul>
+				)}
+			</section>
+			<section aria-labelledby="semantic-places-title">
+				<h3 id="semantic-places-title">Grounded places</h3>
+				<ul>
+					{projection.local.sites.map((site) => (
+						<li key={site.siteId}>
+							<strong>{site.name}</strong>
+							<span>{site.semanticLabel}</span>
+						</li>
+					))}
+				</ul>
+			</section>
+		</section>
+	);
+}
+
+function SettlementOverview({
+	experience,
+	selectedSettlementId,
+	onSettlement,
+}: {
+	readonly experience: GeneratedWorldExperience;
+	readonly selectedSettlementId: string;
+	readonly onSettlement: (settlementId: string) => void;
+}) {
+	return (
+		<section
+			className="generated-overview"
+			data-testid="generated-world-overview"
+		>
+			<header>
+				<p className="v1-kicker">CIVILIZATION OVERVIEW</p>
+				<h2>One world, {experience.settlementCount} inhabited places.</h2>
+				<p>
+					This is a semantic equivalent to the embodied views. Counts and
+					actions come from the same validated civilization checkpoint.
+				</p>
+			</header>
+			<div className="generated-settlement-cards">
+				{experience.projections.map((projection) => (
+					<article key={projection.local.settlement.settlementId}>
+						<p className="v1-kicker">
+							{projection.local.settlement.foundedAtSimulationTime === 0
+								? "ORIGIN SETTLEMENT"
+								: "FOUNDED SETTLEMENT"}
+						</p>
+						<h3>{projection.local.settlement.name}</h3>
+						<p>{projection.local.settlement.semanticLabel}</p>
+						<ul>
+							<li>{projection.spatial.actors.length} resident activities</li>
+							<li>{projection.local.semanticCounts.sites} grounded sites</li>
+							<li>{projection.projects.length} canonical projects</li>
+						</ul>
+						<button
+							type="button"
+							aria-pressed={
+								projection.local.settlement.settlementId ===
+								selectedSettlementId
+							}
+							onClick={() =>
+								onSettlement(projection.local.settlement.settlementId)
+							}
+						>
+							Open {projection.local.settlement.name}
+						</button>
+					</article>
+				))}
+			</div>
+		</section>
+	);
+}
+
+function GeneratedContextPanel({
+	projection,
+	selectedActorId,
+	onActor,
+}: {
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly selectedActorId: string | null;
+	readonly onActor: (citizenId: string) => void;
+}) {
+	const selected =
+		projection.spatial.actors.find(
+			(actor) => actor.citizenId === selectedActorId,
+		) ?? projection.spatial.actors[0];
+	return (
+		<aside
+			className="v1-context-panel"
+			aria-label="Canonical settlement context"
+		>
 			<div className="v1-context-now" aria-live="polite">
 				<p className="v1-kicker">HAPPENING NOW</p>
-				<strong>{projection.worldNotices[0]}</strong>
-				<span>{projection.worldNotices[1]}</span>
+				<strong>{projection.local.settlement.name}</strong>
+				<span>
+					{projection.spatial.actors.length} residents have scheduler-owned
+					activities at this checkpoint.
+				</span>
 			</div>
-			{citizen === undefined ? null : (
-				<section aria-labelledby="v1-citizen-title">
-					<p className="v1-kicker">SELECTED CITIZEN</p>
-					<h2 id="v1-citizen-title">{citizen.name}</h2>
-					<p className="v1-context-role">{citizen.role}</p>
-					<p>{citizen.activity}</p>
-					<dl>
-						<div>
-							<dt>Place</dt>
-							<dd>{citizen.place}</dd>
-						</div>
-						<div>
-							<dt>Visible action</dt>
-							<dd>{citizen.canonicalAction.kind}</dd>
-						</div>
-						<div>
-							<dt>Authority</dt>
-							<dd>
-								{citizen.canonicalAction.status === "committed"
-									? "Committed world event"
-									: "Current typed behavior; no result claimed"}
-							</dd>
-						</div>
-					</dl>
+			{selected === undefined ? (
+				<ProjectionUnavailable projection={projection} />
+			) : (
+				<ActorDetail actor={selected} />
+			)}
+			{projection.projects.map((project) => (
+				<section className="v1-project-card" key={project.projectId}>
+					<p className="v1-kicker">CANONICAL PROJECT</p>
+					<h3>{project.name}</h3>
+					<p>{project.semanticLabel}</p>
+					<progress max={10_000} value={project.progressBasisPoints}>
+						{project.progressBasisPoints / 100}%
+					</progress>
 				</section>
-			)}
-			<section
-				className="v1-project-card"
-				data-testid="v1-project-state"
-				data-project-state={
-					projection.worldProcesses.millRepaired ? "complete" : "active"
-				}
-				aria-labelledby="v1-project-title"
-			>
-				<p className="v1-kicker">SETTLEMENT PROJECT</p>
-				<h3 id="v1-project-title">River Mill repair</h3>
-				<strong>
-					{projection.worldProcesses.millRepaired
-						? "Wheel repaired and operational"
-						: "Repair active at the mill wheel"}
-				</strong>
-				<p>
-					{projection.worldProcesses.millRepaired
-						? "The changed wheel is backed by the committed mill-repair event."
-						: `${millworker?.name ?? "A repair hand"} is working from a reserved mill affordance.`}
-				</p>
-			</section>
-			{selectedPlaceId === null ? null : (
-				<p className="v1-place-selection" role="status">
-					Viewing place: <strong>{selectedPlaceId}</strong>
-				</p>
-			)}
+			))}
 			<fieldset className="v1-people-list">
-				<legend className="sr-only">Eight citizens</legend>
-				{projection.citizens.map((person) => (
+				<legend className="sr-only">Canonical residents</legend>
+				{projection.spatial.actors.map((actor) => (
 					<button
-						key={person.id}
+						key={actor.citizenId}
 						type="button"
-						aria-pressed={person.id === citizen?.id}
-						onClick={() => onCitizen(person.id)}
+						aria-pressed={actor.citizenId === selected?.citizenId}
+						onClick={() => onActor(actor.citizenId)}
 					>
 						<span
-							className={`activity-dot activity-dot--${person.activityKind}`}
+							className={`generated-activity-dot generated-activity-dot--${actor.animationClass}`}
 							aria-hidden="true"
 						/>
 						<span>
-							<strong>{person.name}</strong>
-							<small>{person.activity}</small>
+							<strong>{actor.name}</strong>
+							<small>{actor.semanticLabel}</small>
 						</span>
 					</button>
 				))}
@@ -332,80 +423,84 @@ function ContextPanel({
 	);
 }
 
-function GenesisWorld({
+function GeneratedWorld({
 	experience,
 }: {
-	readonly experience: V1GenesisExperience;
+	readonly experience: GeneratedWorldExperience;
 }) {
-	const { overview } = experience;
-	const { projection, error } = useCanonicalLivingWorld();
-	const [semanticOnly, setSemanticOnly] = useState(false);
+	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
 	const [reduceMotion, setReduceMotion] = useState(() =>
 		typeof window === "undefined"
 			? false
 			: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 	);
-	const [selectedCitizenId, setSelectedCitizenId] = useState<string | null>(
-		null,
+	const [selectedSettlementId, setSelectedSettlementId] = useState(
+		experience.projections[0]?.local.settlement.settlementId ?? "",
 	);
-	const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-	const [semanticScale, setSemanticScale] = useState<SemanticScale>("region");
-	const [focus, setFocus] = useState<WorldFocus>({ kind: "overview" });
-	const focalCitizenId = useMemo(
-		() => projection?.citizens.find(({ focal }) => focal === true)?.id ?? null,
-		[projection],
+	const projection = useMemo(
+		() =>
+			experience.projections.find(
+				(candidate) =>
+					candidate.local.settlement.settlementId === selectedSettlementId,
+			) ?? experience.projections[0],
+		[experience, selectedSettlementId],
 	);
+	const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
 
-	const selectCitizen = (citizenId: string) => {
-		setSelectedCitizenId(citizenId);
-		setSelectedPlaceId(null);
-		setFocus({ kind: "citizen", id: citizenId, follow: true });
+	if (projection === undefined)
+		return <WorldError error={new Error("No settlement projection exists")} />;
+	const openSettlement = (settlementId: string) => {
+		setSelectedSettlementId(settlementId);
+		setSelectedActorId(null);
+		setRendererFailed(false);
+		setView("embodied");
 	};
-	const selectPlace = (placeId: string) => {
-		setSelectedPlaceId(placeId);
-		setFocus({ kind: "place", id: placeId });
-	};
-	if (error !== null) return <GenesisError error={error} />;
+	const effectiveView = rendererFailed ? "semantic" : view;
 
 	return (
 		<main
 			className={`v1-world ${reduceMotion ? "v1-reduced-motion" : ""}`}
-			data-world-id={projection?.spatial.source.runId ?? "pending"}
-			data-generated-origin-id={overview.source.worldId}
+			data-world-id={experience.worldId}
+			data-world-identity-hash={experience.worldIdentityHash}
+			data-state-hash={experience.stateHash}
+			data-simulation-time={experience.simulationTime}
+			data-projection-status={projection.availability.status}
 		>
 			<header className="v1-world-header">
-				<a
-					className="v1-brand"
-					href="/genesis"
-					aria-label="Release Genesis entry"
-				>
+				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
 					<EonfolkMark label="" />
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-world-title">
-					<p className="v1-kicker">RIVERHOLD · CANONICAL LOCAL REALITY</p>
-					<h1>Riverhold</h1>
+					<p className="v1-kicker">CANONICAL GENERATED CIVILIZATION</p>
+					<h1>{projection.local.settlement.name}</h1>
 					<p>
-						{projection === null
-							? "Opening the settlement"
-							: `Day ${projection.day} · ${projection.timeLabel} · ${projection.citizens.length} citizens`}
+						Day {experience.horizonDays} · {projection.spatial.actors.length}{" "}
+						visible residents · state {shorten(experience.stateHash)}
 					</p>
 				</div>
 				<nav className="v1-view-controls" aria-label="World view">
 					<button
 						type="button"
-						aria-pressed={!semanticOnly}
-						onClick={() => setSemanticOnly(false)}
+						aria-pressed={effectiveView === "embodied"}
+						onClick={() => setView("embodied")}
 					>
-						Embodied world
+						Embodied
 					</button>
 					<button
 						type="button"
-						aria-pressed={semanticOnly}
-						onClick={() => setSemanticOnly(true)}
+						aria-pressed={effectiveView === "semantic"}
+						onClick={() => setView("semantic")}
 					>
 						World in words
+					</button>
+					<button
+						type="button"
+						aria-pressed={effectiveView === "overview"}
+						onClick={() => setView("overview")}
+					>
+						Settlements
 					</button>
 					<button
 						type="button"
@@ -417,78 +512,81 @@ function GenesisWorld({
 				</nav>
 			</header>
 
-			{projection === null ? (
-				<LivingWorldLoading />
-			) : semanticOnly || rendererFailed ? (
-				<div className="v1-semantic-world" data-testid="v1-semantic-world">
+			<nav className="generated-settlement-switcher" aria-label="Settlements">
+				{experience.projections.map((candidate) => (
+					<button
+						key={candidate.local.settlement.settlementId}
+						type="button"
+						aria-pressed={
+							candidate.local.settlement.settlementId ===
+							projection.local.settlement.settlementId
+						}
+						onClick={() =>
+							openSettlement(candidate.local.settlement.settlementId)
+						}
+					>
+						{candidate.local.settlement.name}
+						<small>{candidate.spatial.actors.length} residents</small>
+					</button>
+				))}
+			</nav>
+
+			{effectiveView === "overview" ? (
+				<SettlementOverview
+					experience={experience}
+					selectedSettlementId={projection.local.settlement.settlementId}
+					onSettlement={openSettlement}
+				/>
+			) : effectiveView === "semantic" ? (
+				<>
 					{rendererFailed ? (
-						<p className="renderer-note">
-							The illustrated world is unavailable. Every important action
-							remains playable here.
+						<p className="renderer-note" role="status">
+							The embodied renderer failed. The same canonical world remains
+							inspectable in semantic form.
 						</p>
 					) : null}
-					<SemanticWorld
+					<SemanticSettlement
 						projection={projection}
-						onCitizen={selectCitizen}
-						compact
+						selectedActorId={selectedActorId}
+						onActor={setSelectedActorId}
 					/>
-				</div>
+				</>
+			) : projection.availability.status === "unavailable" ? (
+				<ProjectionUnavailable projection={projection} />
 			) : (
 				<section className="v1-living-stage" aria-label="Embodied settlement">
 					<div className="v1-world-canvas-frame">
-						<Suspense fallback={<LivingWorldLoading />}>
-							<RiverholdWorld
+						<Suspense
+							fallback={
+								<section className="v1-living-loading" aria-busy="true">
+									<p>Opening canonical local space…</p>
+								</section>
+							}
+						>
+							<GeneratedWorldCanvas
 								projection={projection}
 								reducedMotion={reduceMotion}
+								selectedActorId={selectedActorId}
 								onFailure={() => setRendererFailed(true)}
-								focus={focus}
-								onSemanticScaleChange={setSemanticScale}
-								onCitizenSelect={selectCitizen}
-								onPlaceSelect={selectPlace}
-								onFocusChange={setFocus}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
-						<div
-							className="v1-camera-rail"
-							role="toolbar"
-							aria-label="World camera controls"
-						>
-							<button
-								type="button"
-								onClick={() => setFocus({ kind: "overview" })}
-							>
-								Settlement
-							</button>
-							<button
-								type="button"
-								disabled={focalCitizenId === null}
-								onClick={() => {
-									if (focalCitizenId !== null) selectCitizen(focalCitizenId);
-								}}
-							>
-								Follow Mara
-							</button>
-							<span aria-live="polite">{semanticScale} view</span>
-						</div>
 					</div>
-					<ContextPanel
+					<GeneratedContextPanel
 						projection={projection}
-						selectedCitizenId={selectedCitizenId}
-						selectedPlaceId={selectedPlaceId}
-						onCitizen={selectCitizen}
+						selectedActorId={selectedActorId}
+						onActor={setSelectedActorId}
 					/>
 				</section>
 			)}
 
 			<footer className="v1-world-footer">
 				<p>
-					Movement, work, exchange, and project state are read from typed local
-					Reality. Camera and selection never write back to it. The generated
-					origin remains a separate read-only record until its simulation
-					adapter is implemented.
+					Every person, place, project, and action above is read from the
+					generated world and validated civilization checkpoint. Selection and
+					camera state never write back to Reality.
 				</p>
-				<a href="/">Open the legacy regression build</a>
+				<a href="/legacy">Open the frozen Riverhold regression surface</a>
 			</footer>
 		</main>
 	);
@@ -498,15 +596,15 @@ export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
 	useEffect(() => {
 		document.title =
 			route === "entry"
-				? "EONFOLK — Release Genesis"
-				: "EONFOLK — Genesis World";
+				? "EONFOLK — A civilization has begun"
+				: "EONFOLK — Canonical generated world";
 	}, [route]);
-	const { experience, error } = useGenesisExperience();
-	if (error !== null) return <GenesisError error={error} />;
-	if (experience === null) return <GenesisLoading />;
+	const { experience, error } = useGeneratedExperience();
+	if (error !== null) return <WorldError error={error} />;
+	if (experience === null) return <WorldLoading />;
 	return route === "entry" ? (
 		<GenesisEntry experience={experience} />
 	) : (
-		<GenesisWorld experience={experience} />
+		<GeneratedWorld experience={experience} />
 	);
 }

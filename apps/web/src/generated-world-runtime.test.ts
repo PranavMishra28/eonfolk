@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import {
+	buildGeneratedWorldExperience,
+	GENERATED_WORLD_HORIZON_DAYS,
+	loadGeneratedWorldExperience,
+} from "./generated-world-runtime";
+import { V1_GENESIS_WORLD_ID } from "./v1-genesis-runtime";
+
+describe("canonical generated-world browser experience", () => {
+	it("memoizes one identity-bound 365-day civilization", async () => {
+		const first = await loadGeneratedWorldExperience();
+		const second = await loadGeneratedWorldExperience();
+
+		expect(second).toBe(first);
+		expect(first.worldId).toBe(V1_GENESIS_WORLD_ID);
+		expect(first.horizonDays).toBe(GENERATED_WORLD_HORIZON_DAYS);
+		expect(first.simulationTime).toBe(GENERATED_WORLD_HORIZON_DAYS * 86_400);
+		expect(first.worldIdentityHash).toMatch(/^[0-9a-f]{64}$/u);
+		expect(first.stateHash).toMatch(/^[0-9a-f]{64}$/u);
+	});
+
+	it("projects every actual resident exactly once across founded settlements", async () => {
+		const experience = await buildGeneratedWorldExperience();
+		const actors = experience.projections.flatMap(
+			(projection) => projection.spatial.actors,
+		);
+
+		expect(experience.population).toBe(8);
+		expect(experience.settlementCount).toBe(2);
+		expect(actors).toHaveLength(8);
+		expect(new Set(actors.map(({ citizenId }) => citizenId)).size).toBe(8);
+		expect(
+			experience.projections.map(({ spatial }) => spatial.actors.length).sort(),
+		).toEqual([1, 7]);
+		expect(
+			experience.projections.map(
+				({ local }) => local.settlement.foundedAtSimulationTime,
+			),
+		).toEqual([0, 432_000]);
+		expect(
+			experience.projections.every(
+				({ availability }) => availability.status === "available",
+			),
+		).toBe(true);
+	});
+
+	it("exposes only scheduler-owned actions and grounded settlement sources", async () => {
+		const experience = await buildGeneratedWorldExperience();
+
+		for (const projection of experience.projections) {
+			expect(projection.spatial.source.runId).toBe(experience.worldId);
+			expect(projection.spatial.source.stateHash).toBe(experience.stateHash);
+			expect(projection.spatial.contradictionCount).toBe(0);
+			expect(projection.spatial.teleportCount).toBe(0);
+			for (const actor of projection.spatial.actors) {
+				expect(actor.action.sourceKind).toBe("current-behavior");
+				expect(actor.action.status).toBe("in-progress");
+				expect(actor.action.eventId).toBeNull();
+				expect(
+					projection.local.sites.some(
+						({ siteId }) => siteId === actor.action.destinationPlaceId,
+					),
+				).toBe(true);
+			}
+		}
+	});
+});

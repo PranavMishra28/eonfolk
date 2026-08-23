@@ -1,0 +1,101 @@
+import { createReleaseGenesis } from "@eonfolk/protocol";
+import {
+	projectGeneratedCivilizationSpatial,
+	type GeneratedCivilizationSpatialProjection,
+} from "@eonfolk/world-presentation";
+import { generateWorld } from "@eonfolk/worldgen";
+import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import {
+	V1_GENESIS_RELEASE_ID,
+	V1_GENESIS_SEED,
+	V1_GENESIS_WORLD_ID,
+} from "./v1-genesis-runtime";
+
+export const GENERATED_WORLD_HORIZON_DAYS = 365;
+
+export interface GeneratedWorldExperience {
+	readonly worldId: string;
+	readonly worldIdentityHash: string;
+	readonly stateHash: string;
+	readonly simulationTime: number;
+	readonly horizonDays: number;
+	readonly population: number;
+	readonly settlementCount: number;
+	readonly projections: readonly GeneratedCivilizationSpatialProjection[];
+}
+
+let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
+
+/**
+ * Builds the browser's read-only V1 projection from the same generated world,
+ * deterministic civilization run, and scheduler-owned activities used by the
+ * kernel tests. Presentation is not permitted to invent missing inhabitants or
+ * actions.
+ */
+export async function buildGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
+	const releaseGenesis = await createReleaseGenesis({
+		releaseId: V1_GENESIS_RELEASE_ID,
+		seedHex: V1_GENESIS_SEED,
+	});
+	const generatedWorld = await generateWorld({
+		releaseGenesis,
+		worldId: V1_GENESIS_WORLD_ID,
+		treatmentId: "standard-brain",
+	});
+	const run = await runCivilizationExperiment({
+		world: generatedWorld,
+		horizonDays: GENERATED_WORLD_HORIZON_DAYS,
+	});
+	const settlementIds = Object.values(run.world.settlements)
+		.map(({ value }) => value.settlementId)
+		.sort();
+	if (settlementIds.length === 0)
+		throw new Error("The civilization checkpoint contains no settlement");
+	const projections = Object.freeze(
+		settlementIds
+			.map((settlementId) =>
+				projectGeneratedCivilizationSpatial({
+					world: run.world,
+					civilization: run.state,
+					checkpoint: run,
+					activities: run.activities,
+					settlementId,
+					presentationTick: run.metrics.simulationTime * 30,
+				}),
+			)
+			.sort((left, right) => {
+				const founded =
+					left.local.settlement.foundedAtSimulationTime -
+					right.local.settlement.foundedAtSimulationTime;
+				if (founded !== 0) return founded;
+				return left.local.settlement.settlementId <
+					right.local.settlement.settlementId
+					? -1
+					: 1;
+			}),
+	);
+	const projectedPopulation = projections.reduce(
+		(total, projection) => total + projection.spatial.actors.length,
+		0,
+	);
+	if (projectedPopulation !== run.metrics.residentPopulation)
+		throw new Error(
+			`The spatial projection accounts for ${projectedPopulation} of ${run.metrics.residentPopulation} residents`,
+		);
+	return Object.freeze({
+		worldId: run.world.identity.worldId,
+		worldIdentityHash: run.world.identity.identityHash,
+		stateHash: run.finalStateHash,
+		simulationTime: run.metrics.simulationTime,
+		horizonDays: run.horizonDays,
+		population: run.metrics.population,
+		settlementCount: projections.length,
+		projections,
+	});
+}
+
+/** One immutable generated civilization shared by every view in this session. */
+export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
+	pendingExperience ??= buildGeneratedWorldExperience();
+	return pendingExperience;
+}

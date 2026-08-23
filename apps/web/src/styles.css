@@ -3098,8 +3098,7 @@ em {
 	}
 }
 
-/* The Release Genesis world reuses the accepted PlayCanvas settlement, but its
-   surrounding interface stays world-first and does not expose diagnostic data. */
+/* The generated civilization uses the same world-first shell as Release Genesis. */
 .v1-living-stage {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
@@ -3423,6 +3422,249 @@ em {
 @media (prefers-reduced-motion: reduce) {
 	.detail-sheet--world-selection {
 		animation: none;
+	}
+}
+
+/* Canonical generated-world presentation. These selectors intentionally do not
+   style the frozen /legacy Riverhold regression surface. */
+.generated-world-canvas,
+.generated-playcanvas {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.generated-world-canvas canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.generated-settlement-switcher {
+	display: flex;
+	gap: 1px;
+	padding: 1px clamp(1rem, 3vw, 2.5rem);
+	color: #ede6d1;
+	background: #101710;
+}
+
+.generated-settlement-switcher button {
+	display: grid;
+	gap: 0.12rem;
+	min-width: 10rem;
+	min-height: 3rem;
+	padding: 0.5rem 0.8rem;
+	border: 1px solid rgba(232, 225, 198, 0.18);
+	color: inherit;
+	background: #1b271d;
+	font: inherit;
+	font-size: 0.76rem;
+	font-weight: 800;
+	text-align: left;
+	cursor: pointer;
+}
+
+.generated-settlement-switcher button[aria-pressed="true"] {
+	border-color: #dfb170;
+	background: #3b4b32;
+	box-shadow: inset 3px 0 #dfb170;
+}
+
+.generated-settlement-switcher small {
+	color: #aeb5a7;
+	font-size: 0.62rem;
+	font-weight: 500;
+}
+
+.generated-unavailable {
+	min-height: 52vh;
+	padding: clamp(2rem, 8vw, 8rem);
+	color: #eee7d3;
+	background: #20251f;
+}
+
+.generated-unavailable h2 {
+	max-width: 22ch;
+	margin: 0.45rem 0;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: clamp(2rem, 5vw, 4rem);
+	font-weight: 500;
+}
+
+.generated-actor-detail > p:not(.v1-kicker, .v1-context-role) {
+	color: #5f6256;
+	font-size: 0.82rem;
+	line-height: 1.5;
+}
+
+.generated-activity-dot {
+	width: 0.58rem;
+	height: 0.58rem;
+	margin-top: 0.15rem;
+	border: 1px solid rgba(35, 38, 31, 0.35);
+	border-radius: 50%;
+	background: #6e805e;
+}
+
+.generated-activity-dot--carry,
+.generated-activity-dot--exchange,
+.generated-activity-dot--gather {
+	background: #bf7a43;
+}
+
+.generated-activity-dot--walk {
+	background: #4f8992;
+}
+
+.generated-activity-dot--talk,
+.generated-activity-dot--listen {
+	background: #8d6da0;
+}
+
+.generated-semantic,
+.generated-overview {
+	display: grid;
+	gap: clamp(1rem, 3vw, 2rem);
+	min-height: 65vh;
+	padding: clamp(1rem, 4vw, 4rem);
+	color: #242820;
+	background: #e8dcc0;
+}
+
+.generated-semantic {
+	grid-template-columns: minmax(14rem, 0.75fr) repeat(2, minmax(16rem, 1fr));
+}
+
+.generated-semantic h2,
+.generated-overview h2 {
+	max-width: 18ch;
+	margin: 0.5rem 0;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: clamp(2rem, 4vw, 4rem);
+	font-weight: 500;
+	line-height: 1;
+}
+
+.generated-semantic h3,
+.generated-settlement-cards h3 {
+	margin: 0 0 0.75rem;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 1.45rem;
+	font-weight: 500;
+}
+
+.generated-semantic ul,
+.generated-settlement-cards ul {
+	display: grid;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.generated-semantic li,
+.generated-settlement-cards article {
+	border: 1px solid rgba(35, 38, 31, 0.2);
+	background: rgba(255, 250, 232, 0.45);
+}
+
+.generated-semantic li:not(:has(button)) {
+	display: grid;
+	gap: 0.25rem;
+	padding: 0.75rem;
+}
+
+.generated-semantic button {
+	display: grid;
+	gap: 0.25rem;
+	width: 100%;
+	min-height: 4rem;
+	padding: 0.75rem;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.generated-semantic button[aria-pressed="true"] {
+	background: #fff5d9;
+	box-shadow: inset 3px 0 #bd6e37;
+}
+
+.generated-semantic li span {
+	color: #62665b;
+	font-size: 0.72rem;
+	line-height: 1.4;
+}
+
+.generated-overview > header {
+	max-width: 54rem;
+}
+
+.generated-settlement-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+	gap: 1rem;
+}
+
+.generated-settlement-cards article {
+	padding: clamp(1rem, 3vw, 2rem);
+}
+
+.generated-settlement-cards button {
+	min-height: 2.8rem;
+	margin-top: 1rem;
+	padding: 0.55rem 0.8rem;
+	border: 1px solid #75452d;
+	color: #fff7df;
+	background: #75452d;
+	font: inherit;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.generated-settlement-cards button[aria-pressed="true"] {
+	color: #2a2d24;
+	background: #dfb170;
+}
+
+.renderer-note {
+	margin: 0;
+	padding: 0.8rem clamp(1rem, 4vw, 4rem);
+	color: #fff2d0;
+	background: #773f2d;
+}
+
+@media (max-width: 900px) {
+	.generated-semantic {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.generated-semantic > div:first-child {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 560px) {
+	.generated-settlement-switcher {
+		overflow-x: auto;
+		padding-inline: 0.75rem;
+	}
+
+	.generated-settlement-switcher button {
+		min-width: 8.5rem;
+	}
+
+	.generated-semantic {
+		grid-template-columns: 1fr;
+	}
+
+	.generated-semantic > div:first-child {
+		grid-column: auto;
 	}
 }
 
