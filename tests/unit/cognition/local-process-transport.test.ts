@@ -116,6 +116,7 @@ async function harness(input: {
 		modelConfiguration: artifact,
 		modelSource: "preprovisioned-local",
 		networkPolicy: "deny-all-required",
+		localEndpoint: null,
 		promptTemplateHash: digests.promptTemplateHash,
 		proposalSchemaHash: digests.proposalSchemaHash,
 		runtime: {

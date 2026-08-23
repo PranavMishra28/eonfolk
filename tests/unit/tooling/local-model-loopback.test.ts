@@ -78,6 +78,7 @@ async function contractFor(
 	runtimePath: string,
 	adapterPath = runtimePath,
 	timeoutMs = 1_000,
+	ollamaPort?: number,
 ) {
 	const runtime = await artifactIdentity(runtimePath, "bounded-ollama-adapter");
 	const adapter = await artifactIdentity(adapterPath, "bounded-ollama-adapter");
@@ -108,7 +109,18 @@ async function contractFor(
 			artifactId: "fixture-model-configuration",
 		},
 		modelSource: "preprovisioned-local",
-		networkPolicy: "deny-all-required",
+		networkPolicy:
+			ollamaPort === undefined
+				? "deny-all-required"
+				: "loopback-single-port-required",
+		localEndpoint:
+			ollamaPort === undefined
+				? null
+				: {
+						kind: "ollama-loopback",
+						host: "127.0.0.1",
+						port: ollamaPort,
+					},
 		promptTemplateHash: digests.promptTemplateHash,
 		proposalSchemaHash: digests.proposalSchemaHash,
 		runtime: {
@@ -143,7 +155,12 @@ async function startServer(
 
 async function ollamaHarness(port: number, timeoutMs = 1_000) {
 	const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
-	const contract = await contractFor(process.execPath, adapterPath, timeoutMs);
+	const contract = await contractFor(
+		process.execPath,
+		adapterPath,
+		timeoutMs,
+		port,
+	);
 	const transport = await createMacOsLoopbackOllamaTransport({
 		adapterPath,
 		artifactPaths: {
@@ -169,7 +186,12 @@ const macIt = process.platform === "darwin" ? it : it.skip;
 describe("bounded Ollama loopback adapter", () => {
 	it("rejects an adapter whose bytes do not match the contract", async () => {
 		const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
-		const contract = await contractFor(process.execPath, adapterPath);
+		const contract = await contractFor(
+			process.execPath,
+			adapterPath,
+			1_000,
+			11_434,
+		);
 		const directory = await mkdtemp(join(tmpdir(), "eonfolk-adapter-tamper-"));
 		temporaryDirectories.push(directory);
 		const tamperedPath = join(directory, "ollama-adapter.mjs");
@@ -191,6 +213,32 @@ describe("bounded Ollama loopback adapter", () => {
 				contract,
 				environment: {},
 				ollamaPort: 11_434,
+			}),
+		).rejects.toMatchObject({ code: "artifact-mismatch" });
+	});
+
+	it("rejects an Ollama port not bound into contract provenance", async () => {
+		const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
+		const contract = await contractFor(
+			process.execPath,
+			adapterPath,
+			1_000,
+			11_434,
+		);
+		await expect(
+			createMacOsLoopbackOllamaTransport({
+				adapterPath,
+				artifactPaths: {
+					chatTemplate: adapterPath,
+					model: adapterPath,
+					modelConfiguration: adapterPath,
+					runtimeExecutable: process.execPath,
+					tokenizer: adapterPath,
+				},
+				cohort: "warm",
+				contract,
+				environment: {},
+				ollamaPort: 11_435,
 			}),
 		).rejects.toMatchObject({ code: "artifact-mismatch" });
 	});
@@ -344,7 +392,7 @@ describe("bounded Ollama loopback adapter", () => {
 			const script = `#!${process.execPath}\nconst http=require("node:http");const chunks=[];process.stdin.on("data",c=>chunks.push(c));process.stdin.on("end",()=>{const local=http.request({host:"127.0.0.1",port:${port},path:"/",method:"GET"},res=>{res.resume();res.on("end",()=>{const external=require("node:net").connect({host:"1.1.1.1",port:80});const timer=setTimeout(()=>process.exit(51),500);external.on("connect",()=>{clearTimeout(timer);process.stdout.write(${JSON.stringify(canonicalChoice({ actionId: "external-egress-breach" }))});external.destroy();});external.on("error",()=>{clearTimeout(timer);process.stdout.write(${JSON.stringify(canonicalChoice())});});});});local.on("error",()=>process.exit(50));local.end();});\n`;
 			await writeFile(runtimePath, script, { mode: 0o700 });
 			await chmod(runtimePath, 0o700);
-			const contract = await contractFor(runtimePath, runtimePath, 3_000);
+			const contract = await contractFor(runtimePath, runtimePath, 3_000, port);
 			const transport = await createMacOsLocalProcessTransport({
 				artifactPaths: {
 					chatTemplate: runtimePath,

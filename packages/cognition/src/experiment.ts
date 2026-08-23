@@ -6,9 +6,9 @@ const SAFE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 const ISO_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export const LOCAL_PROCESS_BRAIN_CONTRACT_VERSION =
-	"eonfolk-local-process-brain-contract-v1" as const;
+	"eonfolk-local-process-brain-contract-v2" as const;
 export const EXPERIMENT_MANIFEST_VERSION =
-	"eonfolk-experiment-manifest-v2" as const;
+	"eonfolk-experiment-manifest-v3" as const;
 export const EXPERIMENT_RESULT_VERSION =
 	"eonfolk-experiment-result-v2" as const;
 
@@ -39,7 +39,12 @@ export interface LocalProcessBrainContract {
 	readonly proposalSchemaHash: string;
 	readonly transport: "length-prefixed-jcs-stdin-single-jcs-stdout";
 	readonly modelSource: "preprovisioned-local";
-	readonly networkPolicy: "deny-all-required";
+	readonly networkPolicy: "deny-all-required" | "loopback-single-port-required";
+	readonly localEndpoint: {
+		readonly kind: "ollama-loopback";
+		readonly host: "127.0.0.1";
+		readonly port: number;
+	} | null;
 	readonly trustRemoteCode: false;
 	readonly environmentNames: readonly string[];
 	readonly generation: {
@@ -142,7 +147,10 @@ export interface ExperimentManifestV2 {
 		readonly maxRequestBytes: number;
 		readonly maxOutputBytes: number;
 		readonly timeoutMs: number;
-		readonly networkPolicy: "not-applicable" | "deny-all-required";
+		readonly networkPolicy:
+			| "not-applicable"
+			| "deny-all-required"
+			| "loopback-single-port-required";
 		readonly trustRemoteCode: false;
 	};
 	readonly manifestHash: string;
@@ -308,11 +316,27 @@ export async function createLocalProcessBrainContract(
 	if (
 		input.transport !== "length-prefixed-jcs-stdin-single-jcs-stdout" ||
 		input.modelSource !== "preprovisioned-local" ||
-		input.networkPolicy !== "deny-all-required" ||
+		(input.networkPolicy !== "deny-all-required" &&
+			input.networkPolicy !== "loopback-single-port-required") ||
 		input.trustRemoteCode !== false ||
 		input.limits.retries !== 0
 	)
 		throw new Error("local process contract weakens a required safety control");
+	if (
+		(input.networkPolicy === "deny-all-required") !==
+		(input.localEndpoint === null)
+	)
+		throw new Error("local endpoint must match the network policy");
+	if (input.localEndpoint !== null) {
+		if (
+			input.localEndpoint.kind !== "ollama-loopback" ||
+			input.localEndpoint.host !== "127.0.0.1" ||
+			!Number.isSafeInteger(input.localEndpoint.port) ||
+			input.localEndpoint.port < 1 ||
+			input.localEndpoint.port > 65_535
+		)
+			throw new Error("local endpoint is invalid");
+	}
 	assertSafeId(input.adapterId, "adapterId");
 	assertSafeText(input.adapterVersion, "adapterVersion", 128);
 	assertSha256(input.adapterHash, "adapterHash");
@@ -391,6 +415,7 @@ export async function createLocalProcessBrainContract(
 		transport: input.transport,
 		modelSource: input.modelSource,
 		networkPolicy: input.networkPolicy,
+		localEndpoint: input.localEndpoint,
 		trustRemoteCode: input.trustRemoteCode,
 		environmentNames: [...input.environmentNames].sort(),
 		generation: input.generation,
@@ -399,7 +424,7 @@ export async function createLocalProcessBrainContract(
 	const contract = {
 		...withoutHash,
 		contractHash: await domainHash(
-			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v1",
+			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v2",
 			withoutHash,
 		),
 	} as LocalProcessBrainContract;
@@ -537,7 +562,8 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 		throw new Error("experiment controls weaken a required safety control");
 	if (
 		(input.brain.kind === "local-process-model") !==
-		(input.controls.networkPolicy === "deny-all-required")
+		(input.controls.networkPolicy === "deny-all-required" ||
+			input.controls.networkPolicy === "loopback-single-port-required")
 	)
 		throw new Error("network policy must match the selected brain kind");
 	assertBoundedInteger(
@@ -603,7 +629,7 @@ export async function createExperimentManifestV2(
 	const manifest = {
 		...withoutHash,
 		manifestHash: await domainHash(
-			"EONFOLK:EXPERIMENT-MANIFEST:v2",
+			"EONFOLK:EXPERIMENT-MANIFEST:v3",
 			withoutHash,
 		),
 	} as ExperimentManifestV2;

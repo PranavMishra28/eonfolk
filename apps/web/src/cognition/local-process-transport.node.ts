@@ -403,6 +403,27 @@ export async function createMacOsLocalProcessTransport(
 		throw failure("artifact-mismatch", "local model contract hash is invalid");
 	assertArguments(configuration.runtimeArguments);
 	assertEnvironment(configuration.contract, configuration.environment);
+	if (
+		(configuration.contract.networkPolicy ===
+			"loopback-single-port-required") !==
+		(configuration.localEndpoint !== undefined)
+	)
+		throw failure(
+			"artifact-mismatch",
+			"transport endpoint does not match the contract network policy",
+		);
+	if (
+		configuration.localEndpoint !== undefined &&
+		(configuration.contract.localEndpoint?.kind !==
+			configuration.localEndpoint.kind ||
+			configuration.contract.localEndpoint.host !== "127.0.0.1" ||
+			configuration.contract.localEndpoint.port !==
+				configuration.localEndpoint.port)
+	)
+		throw failure(
+			"artifact-mismatch",
+			"transport endpoint differs from contract provenance",
+		);
 	const sandboxProfile = sandboxProfileFor(configuration.localEndpoint);
 
 	const checks = [
@@ -502,6 +523,16 @@ export async function createMacOsLoopbackOllamaTransport(
 	configuration: MacOsLoopbackOllamaTransportConfiguration,
 ): Promise<ContractBoundModelChoiceTransport> {
 	assertTcpPort(configuration.ollamaPort);
+	if (
+		configuration.contract.networkPolicy !== "loopback-single-port-required" ||
+		configuration.contract.localEndpoint?.kind !== "ollama-loopback" ||
+		configuration.contract.localEndpoint.host !== "127.0.0.1" ||
+		configuration.contract.localEndpoint.port !== configuration.ollamaPort
+	)
+		throw failure(
+			"artifact-mismatch",
+			"Ollama endpoint is not pinned by the contract",
+		);
 	if (configuration.contract.runtime.kind !== "other-local")
 		throw failure("artifact-mismatch", "the Ollama adapter runtime is invalid");
 	if (

@@ -134,6 +134,7 @@ describe("BrainPort experiment contracts", () => {
 			transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
 			modelSource: "preprovisioned-local",
 			networkPolicy: "deny-all-required",
+			localEndpoint: null,
 			trustRemoteCode: false,
 			environmentNames: [],
 			generation: {
@@ -179,6 +180,7 @@ describe("BrainPort experiment contracts", () => {
 			transport: "length-prefixed-jcs-stdin-single-jcs-stdout" as const,
 			modelSource: "preprovisioned-local" as const,
 			networkPolicy: "deny-all-required" as const,
+			localEndpoint: null,
 			trustRemoteCode: false as const,
 			environmentNames: ["API_KEY"],
 			generation: {
@@ -206,6 +208,26 @@ describe("BrainPort experiment contracts", () => {
 				limits: { ...base.limits, maxStdoutBytes: 16_385 },
 			}),
 		).rejects.toThrow("limits.maxStdoutBytes is outside its integer budget");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				networkPolicy: "loopback-single-port-required",
+				localEndpoint: null,
+			}),
+		).rejects.toThrow("local endpoint must match the network policy");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				networkPolicy: "loopback-single-port-required",
+				localEndpoint: {
+					kind: "ollama-loopback",
+					host: "127.0.0.1",
+					port: 70_000,
+				},
+			}),
+		).rejects.toThrow("local endpoint is invalid");
 	});
 
 	it("binds an ordered 2 x 2 x 5 execution plan into the manifest", async () => {

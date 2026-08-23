@@ -99,6 +99,7 @@ async function contractBoundBrain(output: () => string) {
 		modelConfiguration: artifact,
 		modelSource: "preprovisioned-local",
 		networkPolicy: "deny-all-required",
+		localEndpoint: null,
 		promptTemplateHash: digests.promptTemplateHash,
 		proposalSchemaHash: digests.proposalSchemaHash,
 		runtime: {
