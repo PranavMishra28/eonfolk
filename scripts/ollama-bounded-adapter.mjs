@@ -171,10 +171,14 @@ function prepareOllamaRequest(envelope) {
 		)
 			fail("request-invalid");
 	}
-	const commitmentId = context.activeStandingPlan?.commitmentId;
-	if (commitmentId !== null && !safeString(commitmentId, 256))
+	const commitmentIds = context.visibleRecords
+		.filter((record) => record?.kind === "commitment")
+		.map((record) => record.recordId);
+	if (
+		commitmentIds.some((id) => !safeString(id, 256)) ||
+		new Set(commitmentIds).size !== commitmentIds.length
+	)
 		fail("request-invalid");
-	const commitmentIds = commitmentId === null ? [] : [commitmentId];
 	const schema = {
 		type: "object",
 		additionalProperties: false,
@@ -317,7 +321,7 @@ function validateChoice(ollamaResponse, references) {
 		!references.actionIds.has(choice.actionId) ||
 		!safeString(choice.publicJustification, 180) ||
 		[...choice.publicJustification].length < 8 ||
-		!/[.!?…]$/u.test(choice.publicJustification) ||
+		!/[.!?]$/u.test(choice.publicJustification) ||
 		!uniqueSubset(
 			choice.visibleRecordIdsRead,
 			references.visibleRecordIds,

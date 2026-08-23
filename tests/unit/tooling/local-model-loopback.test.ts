@@ -339,12 +339,18 @@ describe("bounded Ollama loopback adapter", () => {
 				think: "low",
 			});
 			const format = capturedBody?.format as {
-				properties?: { actionId?: { enum?: string[] } };
+				properties?: {
+					actionId?: { enum?: string[] };
+					commitmentIdsRead?: { items?: { enum?: string[] } };
+				};
 			};
 			expect(format.properties?.actionId?.enum).toEqual([
 				"action-accuse-publicly",
 				"action-follow-plan",
 				"action-verify-reserve",
+			]);
+			expect(format.properties?.commitmentIdsRead?.items?.enum ?? []).toEqual([
+				"commitment-ledger-accuracy",
 			]);
 			expect(capturedBody?.messages).toEqual([
 				expect.objectContaining({ role: "system" }),
