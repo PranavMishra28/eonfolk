@@ -671,9 +671,9 @@ async function main() {
 	const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 	const productionBrowserCoverage = Object.freeze({
 		mode: linuxSemanticCi ? "linux-semantic-ci" : "target-mac",
-		productionJourneysExecuted: linuxSemanticCi ? 24 : 26,
+		productionJourneysExecuted: linuxSemanticCi ? 26 : 28,
 		legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0,
-		generatedWorldJourneysExecuted: 8,
+		generatedWorldJourneysExecuted: 10,
 		generatedTargetExecuted: true,
 	});
 	const reportWithoutHash = {
@@ -711,7 +711,7 @@ async function main() {
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "deep portable deterministic properties",
 							browserJourney:
-								"two semantic injected-fault journeys plus 26 production journeys on Linux CI; only two legacy illustrated-only journeys are excluded, while all eight generated-world journeys run",
+								"two semantic injected-fault journeys plus 28 production journeys on Linux CI; only two legacy illustrated-only journeys are excluded, while all ten generated-world journeys run",
 							readinessEvidence: false,
 							targetMacDeepEvidence: false,
 						}
@@ -721,8 +721,8 @@ async function main() {
 							propertyProfile: "PR: 50/32 deterministic runs",
 							browserJourney:
 								process.env.EONFOLK_ALLOW_LINUX_CI === "1"
-									? "two semantic injected-fault journeys plus 26 production journeys, including all eight generated-world journeys; only two legacy illustrated-only journeys are excluded; relevant UI changes additionally require three-viewport PlayCanvas/WebGL2 evidence"
-									: "two semantic injected-fault journeys plus all 28 production journeys, including both legacy illustrated journeys and all eight generated-world journeys",
+									? "two semantic injected-fault journeys plus 28 production journeys, including all ten generated-world journeys; only two legacy illustrated-only journeys are excluded; relevant UI changes additionally require three-viewport PlayCanvas/WebGL2 evidence"
+									: "two semantic injected-fault journeys plus all 30 production journeys, including both legacy illustrated journeys and all ten generated-world journeys",
 						},
 		subcommands: execution.steps,
 		artifactAssertions,

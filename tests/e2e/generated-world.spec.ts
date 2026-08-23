@@ -380,7 +380,7 @@ test("generated camera and canvas selection preserve the authoritative head @gen
 	expect(externalRequests).toEqual([]);
 });
 
-test("generated controls preserve the durable head @generated-world", async ({
+test("generated pose controls preserve authoritative state @generated-world", async ({
 	page,
 }) => {
 	test.setTimeout(90_000);
@@ -418,7 +418,25 @@ test("generated controls preserve the durable head @generated-world", async ({
 		"data-actor-positions",
 		positionsBeforePose ?? "",
 	);
-	await page.getByRole("button", { name: "Motion reduced" }).click();
+	expect(externalRequests).toEqual([]);
+});
+
+test("generated citizen follow remains presentation-only @generated-world", async ({
+	page,
+}) => {
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const stateHashBeforeFollow = await world.getAttribute("data-state-hash");
+	const worldTools = page.locator("details.v1-world-tools");
+	if (!(await worldTools.evaluate((details) => details.open)))
+		await worldTools.locator("summary").click();
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "smooth");
 	const firstResident = worldTools
 		.getByRole("group", { name: "Canonical residents" })
@@ -429,7 +447,25 @@ test("generated controls preserve the durable head @generated-world", async ({
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 	await worldTools.getByRole("button", { name: "Follow citizen" }).click();
 	await expect(canvas).toHaveAttribute("data-following", "true");
+	await expect(world).toHaveAttribute(
+		"data-state-hash",
+		stateHashBeforeFollow ?? "",
+	);
+	expect(externalRequests).toEqual([]);
+});
 
+test("generated founded settlement preserves the durable checkpoint @generated-world", async ({
+	page,
+}) => {
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 20_000 },
+	);
 	await page.getByRole("button", { name: "Settlements", exact: true }).click();
 	await expect(page.getByTestId("generated-world-overview")).toBeVisible();
 	await page

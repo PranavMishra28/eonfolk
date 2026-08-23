@@ -74,12 +74,12 @@ describe("V1 CI hardening", () => {
 		expect(runner).toContain("readinessBudgetMs: maximumWorldReadyMs");
 		expect(runner).toContain('routes: { entry: "/", world: "/world" }');
 		expect(runner).toContain(
-			"productionJourneysExecuted: linuxSemanticCi ? 24 : 26",
+			"productionJourneysExecuted: linuxSemanticCi ? 26 : 28",
 		);
 		expect(runner).toContain(
 			"legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0",
 		);
-		expect(runner).toContain("generatedWorldJourneysExecuted: 8");
+		expect(runner).toContain("generatedWorldJourneysExecuted: 10");
 		expect(runner).toContain("generatedTargetExecuted: true");
 	});
 
