@@ -145,7 +145,7 @@ function routeVariant(input: {
 }
 
 describe("generated embodiment projection", () => {
-	it("keeps every visible citizen on its authoritative interaction slot", async () => {
+	it("keeps every visible citizen on its authoritative route sample or interaction slot", async () => {
 		const { projection, activities } = await fixture();
 		const model = projectGeneratedEmbodiment({
 			current: projection,
@@ -154,12 +154,26 @@ describe("generated embodiment projection", () => {
 
 		expect(model.actors).toHaveLength(projection.spatial.actors.length);
 		expect(model.actors.length).toBeGreaterThanOrEqual(3);
-		expect(
-			model.actors.every((actor) => actor.grounding.kind !== "route"),
-		).toBe(true);
+		expect(model.actors.some((actor) => actor.grounding.kind === "route")).toBe(
+			true,
+		);
 		expect(model.growth.visibleChangeCount).toBe(0);
 		expect(model.projects.every((project) => !project.changed)).toBe(true);
 		for (const actor of model.actors) {
+			const authoritative = projection.spatial.actors.find(
+				(candidate) => candidate.citizenId === actor.citizenId,
+			);
+			expect(authoritative).toBeDefined();
+			if (actor.grounding.kind === "route") {
+				expect(actor.grounding.routeId).toBe(
+					authoritative?.travelState.routeId,
+				);
+				expect(actor.grounding.progressBasisPoints).toBe(
+					authoritative?.travelState.progressBasisPoints,
+				);
+				expect(actor.positionMm).toEqual(authoritative?.positionMm);
+				continue;
+			}
 			const nodeId = actor.grounding.interactionSlotId;
 			if (nodeId === null) throw new Error("expected interaction slot");
 			const node = projection.scene.nodes[nodeId];
