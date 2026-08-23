@@ -20,11 +20,11 @@ import {
 const incidentSummaries: Readonly<Record<IncidentSummaryCode, string>> =
 	Object.freeze({
 		"reality-protected":
-			"Riverhold paused before showing further world state. Your durable local record was not replaced.",
+			"The world paused before showing further state. Your durable local record was not replaced.",
 		"write-authority-transferred":
-			"This tab paused because another Riverhold tab holds write authority. Your durable local record was not replaced.",
+			"This tab paused because another tab holds write authority. Your durable local record was not replaced.",
 		"diagnostic-capture":
-			"A bounded diagnostic snapshot was captured without changing Riverhold.",
+			"A bounded diagnostic snapshot was captured without changing the world.",
 	});
 
 const defaultCapabilities: DiagnosticCapabilities = Object.freeze({
@@ -116,11 +116,25 @@ function diagnosticIdentity(
 			input?.protocolVersion ?? "unknown",
 			"protocolVersion",
 		),
+		genesisId: safeLabel(input?.genesisId ?? "genesis-unknown", "genesisId"),
+		worldId: safeLabel(input?.worldId ?? "world-unknown", "worldId"),
 		experimentId: safeLabel(
 			input?.experimentId ?? "experiment-none",
 			"experimentId",
 		),
 		runId: safeLabel(input?.runId ?? "run-unknown", "identity runId"),
+		cognitionTreatmentId: safeLabel(
+			input?.cognitionTreatmentId ?? "cognition-standard-v1",
+			"cognitionTreatmentId",
+		),
+		rendererVersion: safeLabel(
+			input?.rendererVersion ?? "renderer-unknown",
+			"rendererVersion",
+		),
+		persistenceVersion: safeLabel(
+			input?.persistenceVersion ?? "persistence-unknown",
+			"persistenceVersion",
+		),
 		runtimeClass,
 		viewportClass,
 	});

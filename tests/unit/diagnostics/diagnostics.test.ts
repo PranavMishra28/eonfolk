@@ -4,6 +4,7 @@ import {
 	disabledReplayCapturePort,
 	FlightRecorder,
 	projectLocalObserver,
+	SENTINEL_INVARIANTS,
 	Sentinel,
 	sanitizeDiagnosticFields,
 	sanitizeDiagnosticFieldsForCategory,
@@ -97,8 +98,13 @@ describe("Founder Alpha diagnostics", () => {
 			buildSha: "unknown",
 			appVersion: "unknown",
 			protocolVersion: "unknown",
+			genesisId: "genesis-unknown",
+			worldId: "world-unknown",
 			experimentId: "experiment-none",
 			runId: "run-unknown",
+			cognitionTreatmentId: "cognition-standard-v1",
+			rendererVersion: "renderer-unknown",
+			persistenceVersion: "persistence-unknown",
 			runtimeClass: "unknown",
 			viewportClass: "unknown",
 			diagnosticsMode: "off",
@@ -161,8 +167,13 @@ describe("Founder Alpha diagnostics", () => {
 				buildSha: "a".repeat(40),
 				appVersion: "0.0.0",
 				protocolVersion: "1",
+				genesisId: "release-genesis-v1",
+				worldId: "world-release-genesis",
 				experimentId: "founder-alpha-standard-brain",
 				runId: "run_riverhold_0001",
+				cognitionTreatmentId: "standard-brain-v1",
+				rendererVersion: "playcanvas-scene-v1",
+				persistenceVersion: "authority-stream-v1",
 				runtimeClass: "browser-worker-capable",
 				viewportClass: "wide",
 			},
@@ -173,8 +184,13 @@ describe("Founder Alpha diagnostics", () => {
 			buildSha: "a".repeat(40),
 			appVersion: "0.0.0",
 			protocolVersion: "1",
+			genesisId: "release-genesis-v1",
+			worldId: "world-release-genesis",
 			experimentId: "founder-alpha-standard-brain",
 			runId: "run_riverhold_0001",
+			cognitionTreatmentId: "standard-brain-v1",
+			rendererVersion: "playcanvas-scene-v1",
+			persistenceVersion: "authority-stream-v1",
 			runtimeClass: "browser-worker-capable",
 			viewportClass: "wide",
 			diagnosticsMode: "local",
@@ -353,8 +369,37 @@ describe("Founder Alpha diagnostics", () => {
 				worldHead: null,
 			}),
 		);
-		expect(incident.safeSummary).toContain("Riverhold paused");
+		expect(incident.safeSummary).toContain("The world paused");
 		expect(serialized).not.toContain("ghp_");
 		expect(incident.incidentId).toMatch(/^inc_[a-f0-9]{24}$/u);
+	});
+
+	it("covers every V1 anomaly domain with a closed Sentinel invariant", async () => {
+		expect(new Set(Object.values(SENTINEL_INVARIANTS))).toEqual(
+			new Set([
+				"integrity",
+				"privacy",
+				"cognition",
+				"navigation",
+				"render",
+				"network",
+				"persistence",
+			]),
+		);
+		const recorder = new FlightRecorder({ mode: "off", now: clock() });
+		const sentinel = new Sentinel({
+			recorder,
+			protectReality: () => undefined,
+			recover: () => true,
+		});
+		await expect(
+			sentinel.check({
+				invariant: "unknown-invariant" as never,
+				holds: false,
+				component: "test",
+				code: "UNKNOWN",
+				summaryCode: "reality-protected",
+			}),
+		).rejects.toThrow("closed catalog");
 	});
 });
