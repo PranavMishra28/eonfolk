@@ -26,8 +26,17 @@ import {
 	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
 
+let generatedWorldCanvasModule:
+	| Promise<typeof import("./generated-world-canvas")>
+	| undefined;
+
+function loadGeneratedWorldCanvasModule() {
+	generatedWorldCanvasModule ??= import("./generated-world-canvas");
+	return generatedWorldCanvasModule;
+}
+
 const GeneratedWorldCanvas = lazy(async () => {
-	const module = await import("./generated-world-canvas");
+	const module = await loadGeneratedWorldCanvasModule();
 	return { default: module.GeneratedWorldCanvas };
 });
 
@@ -842,6 +851,9 @@ function GeneratedWorld({
 }
 
 export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
+	useEffect(() => {
+		if (route === "world") void loadGeneratedWorldCanvasModule();
+	}, [route]);
 	useEffect(() => {
 		document.title =
 			route === "entry"

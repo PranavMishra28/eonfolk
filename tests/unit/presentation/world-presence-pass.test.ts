@@ -55,6 +55,10 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("PROP_WORDS[actor.prop]");
 		expect(app).not.toContain("Seven lives");
 		expect(app).not.toContain("progress basis points");
+		expect(app).toContain("generatedWorldCanvasModule ??=");
+		expect(app).toContain(
+			'if (route === "world") void loadGeneratedWorldCanvasModule()',
+		);
 		expect(canvas).toContain(
 			'data-environment-context="presentation-only-ground-apron"',
 		);
