@@ -16,7 +16,7 @@ Founder Alpha is the playable regression surface today:
 - travel, gathering, exchange, repair, social interaction, counsel, Chronicle, and Story Card paths; and
 - keyboard access, reduced motion, mobile reflow, renderer degradation, diagnostics, and zero-egress checks.
 
-The V1 branch additionally contains generalized Release Genesis/protocol contracts, deterministic generated geography, immutable overview/local presentation projections, a pure civilization resource/project kernel, bounded planners, a closed model-choice adapter, and V1-specific CI readiness controls. These pieces are not yet an integrated playable civilization. Migration scheduling, founding materialization, long-horizon experiments, generated-world persistence, the V1 browser experience, and final evidence remain incomplete.
+The V1 branch additionally contains generalized Release Genesis/protocol contracts, deterministic generated geography, immutable overview/local presentation projections, a pure civilization resource/project kernel, bounded planners, a closed model-choice adapter, and V1-specific CI readiness controls. These pieces are not yet an integrated playable civilization. Migration scheduling, founding materialization, generated-world persistence, the embodied V1 browser experience, and final evidence remain incomplete. The [research map](docs/RESEARCH.md) and [BibTeX catalog](references.bib) preserve primary sources behind durable technical choices.
 
 ## Run locally
 

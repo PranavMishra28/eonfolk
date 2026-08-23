@@ -95,6 +95,7 @@ Each concern has one authority. Research records evidence; reviews record object
 
 | Evidence set | Retained artifact |
 |---|---|
+| Compact primary-source map and root BibTeX catalog | [RESEARCH.md](RESEARCH.md) and [references.bib](../references.bib) |
 | Named competitors and adjacent substitutes | [COMPETITORS.md](research/COMPETITORS.md) |
 | Review/community/player behavior evidence | [PLAYER_RESEARCH.md](research/PLAYER_RESEARCH.md) |
 | Structures A–H, challenger comparison and scenario tournament | [GAME_DESIGN_RESEARCH.md](research/GAME_DESIGN_RESEARCH.md) |

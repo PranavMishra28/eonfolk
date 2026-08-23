@@ -6,21 +6,21 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 410 files excluding this generated file; SHA-256 `f7fa3752b13a01860f8f811627ebce3b6227171ae1c12cc56435a0cd97c192d2`.
+**File-set identity:** 412 files excluding this generated file; SHA-256 `68a849493eb34d4d9f3f692d516821099a153c9bfac3c069df6648b2557d6ea7`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
 | Application code | 44 |
-| Documentation | 61 |
+| Documentation | 62 |
 | Frozen execution evidence | 32 |
 | GitHub automation | 3 |
 | Other tracked assets | 3 |
 | Packages | 86 |
 | Repository tooling | 27 |
 | Research and reviews | 48 |
-| Root controls and configuration | 22 |
+| Root controls and configuration | 23 |
 | Tests and fixtures | 84 |
 
 ## Workspaces
@@ -70,6 +70,7 @@
 - `playwright.gate0.config.ts`
 - `pnpm-lock.yaml`
 - `pnpm-workspace.yaml`
+- `references.bib`
 - `tsconfig.base.json`
 - `tsconfig.gate0.json`
 - `vite.gate0.config.ts`

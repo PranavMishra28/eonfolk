@@ -86,6 +86,7 @@ Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](
 - 2026-08-22 — Integrated a deterministic 30/90/365 experiment harness. It establishes replayable test infrastructure but cannot satisfy emergence while its decisions are fixed-day and its founding remains record-only.
 - 2026-08-22 — Added the supplementary portable-extended GitHub Actions tier. Its exact-source manifest explicitly cannot substitute for target-Mac DEEP or V1 readiness.
 - 2026-08-22 — Integrated `/genesis` and `/world` with six cross-viewport browser checks. An independent visual inspection failed the World Presence bar; no visual acceptance claim is permitted.
+- 2026-08-22 — Closed the POMCP disposition through D-016 and consolidated primary research into `docs/RESEARCH.md`, `references.bib`, and dated source-ledger rows. POMCP remains rejected until a calibrated actor-authorized sampler and failing information-value case exist.
 
 ## Review roles
 

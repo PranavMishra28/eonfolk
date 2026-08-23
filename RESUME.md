@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled integration commit: `3cbc40d` (`ci: record portable extended verification`)
+- Last reconciled integration commit: `05385c2` (`docs(cognition): decide POMCP non-promotion`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -46,6 +46,8 @@
 - Targeted mutation coverage expanded from eight to fourteen killed mutants, adding generated settlement safety, actor-visible fact filtering, planner prerequisites and expansion budgets, and Standing Plan active/retry invariants. Civilization-kernel and later integration mutations are still required before the V1 mutation row can be verified.
 - Manual GitHub Actions now run one fail-fast `portable-extended` tier containing the complete protected PR lattice followed by mutation and deep-property checks. It writes a dedicated exact-source manifest whose claim boundary explicitly excludes target-Mac DEEP and V1 readiness.
 - The active authority path is now V1-only: `GOAL.md` → `RESUME.md` → `docs/INDEX.md` → ExecPlan 003. Founder Alpha ExecPlan 002 moved to completed history, its old path is a compatibility redirect, and README/PLAN no longer present it as current work.
+- V1 explicitly does not promote POMCP because no calibrated actor-authorized transition/observation sampler exists; D-016 defines the executable reopen gate rather than treating arbitrary rollout probabilities as research progress.
+- `docs/RESEARCH.md`, `references.bib`, and new `S-V1-RES-*` ledger rows now provide a compact primary-source map, durable BibTeX, access dates, confidence, consumers, and reopen rules on top of the existing claim ledger.
 
 ## Next executable tasks
 

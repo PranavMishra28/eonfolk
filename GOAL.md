@@ -33,7 +33,7 @@
 | Stale Founder Alpha active terminology retired or archived | VERIFIED |
 | README rebuilt as the current front door | VERIFIED |
 | Active documentation hierarchy simplified and non-contradictory | VERIFIED |
-| Research bibliography and durable provenance captured | IN PROGRESS |
+| Research bibliography and durable provenance captured | VERIFIED |
 | Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
 | Release Genesis is the product entry identity | IN PROGRESS |
 | Landing, immersive game, research, and developer surfaces are separated | NOT STARTED |
