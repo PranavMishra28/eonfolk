@@ -26,6 +26,9 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(source).toContain(
 			'page.locator("ul.v1-presence-roster button").first()',
 		);
+		expect(source).toContain(
+			'.getByRole("button", { name: "Back to settlement" })',
+		);
 		expect(source).toContain("verifyGeneratedPersistenceReload");
 		expect(source).toContain(
 			'world?.getAttribute("data-persistence") === "indexeddb"',

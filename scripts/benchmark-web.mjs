@@ -325,11 +325,16 @@ async function focusCanonicalResident(page) {
 async function openSettlementOverview(page) {
 	const started = performance.now();
 	await page
-		.getByRole("button", { name: "Settlement overview" })
+		.getByRole("button", { name: "Back to settlement" })
 		.click({ timeout: 5_000 });
-	await page
-		.getByTestId("generated-world-overview")
-		.waitFor({ state: "visible", timeout: 5_000 });
+	await page.waitForFunction(
+		() =>
+			document
+				.querySelector('[data-testid="generated-world-canvas"]')
+				?.getAttribute("data-focus-kind") === "overview",
+		undefined,
+		{ timeout: 5_000 },
+	);
 	return performance.now() - started;
 }
 
