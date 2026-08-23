@@ -309,7 +309,12 @@ async function isolateNetwork(page, externalAttempts) {
 	});
 }
 
-async function releaseGenesisViewportEvidence(browser, root, viewport) {
+async function releaseGenesisViewportEvidence(
+	browser,
+	root,
+	viewport,
+	{ enforceReadinessBudget },
+) {
 	const context = await browser.newContext({
 		colorScheme: "light",
 		deviceScaleFactor: 1,
@@ -366,7 +371,7 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 		const worldReadyMs = performance.now() - worldNavigationStartedAt;
 		const maximumWorldReadyMs =
 			viewport.name === "mobile-390x844" ? 5_000 : 3_000;
-		if (worldReadyMs > maximumWorldReadyMs)
+		if (enforceReadinessBudget && worldReadyMs > maximumWorldReadyMs)
 			throw new Error(
 				`${viewport.name}: /world readiness ${worldReadyMs.toFixed(1)}ms exceeds ${maximumWorldReadyMs}ms`,
 			);
@@ -470,7 +475,11 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			externalAttempts: observed.externalAttempts.length,
 			pageErrors: observed.pageErrors.length,
 			probe,
+			readinessBudgetEnforced: enforceReadinessBudget,
 			readinessBudgetMs: maximumWorldReadyMs,
+			readinessBudgetStatus: enforceReadinessBudget
+				? "PASS"
+				: "SUPPLEMENTARY_NOT_EVALUATED",
 			routes: { entry: "/", world: "/world" },
 			world: `${viewport.name}-world.png`,
 			worldReadyMs,
@@ -547,6 +556,7 @@ async function legacyRegressionEvidence(browser, root) {
 }
 
 export async function captureV1BrowserEvidence({ outputDirectory }) {
+	const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 	const output = safeEvidenceDirectory(outputDirectory);
 	rmSync(output, { force: true, recursive: true });
 	const source = sourceState();
@@ -588,17 +598,21 @@ export async function captureV1BrowserEvidence({ outputDirectory }) {
 				{ name: "mobile-390x844", width: 390, height: 844 },
 			])
 				evidence.push(
-					await releaseGenesisViewportEvidence(browser, v1Root, viewport),
+					await releaseGenesisViewportEvidence(browser, v1Root, viewport, {
+						enforceReadinessBudget: !linuxSemanticCi,
+					}),
 				);
 			const legacy = await legacyRegressionEvidence(browser, legacyRoot);
 			const v1Report = {
 				schemaVersion: "eonfolk-v1-release-genesis-browser-evidence-v1",
 				status: "PASS",
-				claimBoundary:
-					"Release Genesis entry-to-world browser evidence for the exact built candidate; target-Mac DEEP and independent review remain separate release gates.",
+				claimBoundary: linuxSemanticCi
+					? "Supplementary Linux software-renderer entry-to-world evidence for the exact built candidate; target-Mac performance budgets are not evaluated and target-Mac DEEP remains required."
+					: "Release Genesis entry-to-world browser evidence for the exact built candidate with target-Mac readiness budgets enforced; independent review remains a separate release gate.",
 				entryRoute: "/",
 				worldRoute: "/world",
 				source,
+				targetMacPerformanceEvaluated: !linuxSemanticCi,
 				evidence,
 			};
 			writeFileSync(

@@ -72,7 +72,11 @@ describe("V1 CI hardening", () => {
 			'viewport.name === "mobile-390x844" ? 5_000 : 3_000',
 		);
 		expect(runner).toContain("readinessBudgetMs: maximumWorldReadyMs");
+		expect(runner).toContain("readinessBudgetEnforced: enforceReadinessBudget");
+		expect(runner).toContain('"SUPPLEMENTARY_NOT_EVALUATED"');
+		expect(runner).toContain("targetMacPerformanceEvaluated: !linuxSemanticCi");
 		expect(runner).toContain('routes: { entry: "/", world: "/world" }');
+		expect(workflow.match(/EONFOLK_ALLOW_LINUX_CI: "1"/gu)).toHaveLength(4);
 		expect(runner).toContain(
 			"productionJourneysExecuted: linuxSemanticCi ? 26 : 28",
 		);

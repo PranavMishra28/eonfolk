@@ -137,6 +137,8 @@ jobs:
 
       - name: Capture Release Genesis and legacy regression browser evidence
         if: steps.classify.outputs.ui == 'true'
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
         run: node scripts/run-verification-tier.mjs v1-browser-evidence --output-dir tmp/v1-browser-evidence
 
       - name: Retain Release Genesis browser evidence
@@ -235,6 +237,8 @@ jobs:
         run: pnpm verify:portable-extended
 
       - name: Capture extended Release Genesis and legacy browser evidence
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
         run: node scripts/run-verification-tier.mjs v1-browser-evidence --output-dir tmp/v1-browser-evidence
 
       - name: Retain accepted supplementary portable extended evidence
