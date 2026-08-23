@@ -40,6 +40,26 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(ctaQualification).not.toContain("canvas");
 	});
 
+	it("scopes semantic resident parity to canonical resident controls", () => {
+		const source = readFileSync(
+			resolve("scripts/run-verification-tier.mjs"),
+			"utf8",
+		);
+		const parityFailure = source.indexOf(
+			"semantic world does not preserve resident parity",
+		);
+		expect(parityFailure).toBeGreaterThan(-1);
+		const parityCheck = source.slice(
+			Math.max(0, parityFailure - 500),
+			parityFailure,
+		);
+		expect(parityCheck).toContain(
+			'.getByRole("group", { name: "Canonical residents" })',
+		);
+		expect(parityCheck).toContain('.getByRole("button")');
+		expect(parityCheck).not.toContain('semantic.locator("button")');
+	});
+
 	it("does not misclassify macOS interface-change metadata as attempted egress", () => {
 		const evidence = inspectNetlogEgress({
 			constants: {

@@ -423,7 +423,10 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 		await page.getByRole("button", { name: "World in words" }).click();
 		const semantic = page.getByTestId("generated-semantic-world");
 		await semantic.waitFor({ state: "visible" });
-		if ((await semantic.locator("button").count()) !== probe.actorCount)
+		const semanticResidents = semantic
+			.getByRole("group", { name: "Canonical residents" })
+			.getByRole("button");
+		if ((await semanticResidents.count()) !== probe.actorCount)
 			failures.push("semantic world does not preserve resident parity");
 		await page.getByRole("button", { name: "Embodied" }).click();
 		await canvas.waitFor({ state: "visible" });
