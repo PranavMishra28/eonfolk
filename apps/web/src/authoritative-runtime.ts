@@ -1,7 +1,7 @@
 import {
 	buildDecisionContext,
+	civilizationCounselCatalog,
 	createCognitiveDecisionRecord,
-	riverholdCounselCatalog,
 	runDecisionGateway,
 	standardBrain,
 	validateIntentProposal,
@@ -572,6 +572,8 @@ function activityFor(citizen: WorldState["citizens"][string]): {
 function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 	const payload = event.eventPayload;
 	switch (payload.kind) {
+		case "SponsorshipEstablished":
+			return [payload.citizenId];
 		case "CitizenMoved":
 		case "TravelStarted":
 		case "TravelArrived":
@@ -600,6 +602,8 @@ function eventActorIds(event: WorldEventEnvelope): readonly string[] {
 
 function animationForEvent(event: WorldEventEnvelope): AnimationClass {
 	switch (event.eventPayload.kind) {
+		case "SponsorshipEstablished":
+			return "inspect";
 		case "CitizenMoved":
 		case "TravelStarted":
 			return "walk";
@@ -679,6 +683,12 @@ function spatialDetailsForEvent(
 }> {
 	const payload = event.eventPayload;
 	switch (payload.kind) {
+		case "SponsorshipEstablished":
+			return {
+				originPlaceId: currentPlaceId,
+				destinationPlaceId: currentPlaceId,
+				targetId: payload.citizenId,
+			};
 		case "CitizenMoved":
 			return {
 				originPlaceId: payload.fromPlaceId,
@@ -1222,7 +1232,7 @@ export class AuthoritativeRiverholdRuntime {
 			revision: state.revision,
 			simulationTime: state.simulationTime,
 			decisionReason: "sponsor-counsel",
-			actionCatalog: riverholdCounselCatalog({
+			actionCatalog: civilizationCounselCatalog({
 				actorId: mara.citizenId,
 				targetCitizenId: citizenBySlug(state, "toma").citizenId,
 				planId: mara.standingPlan.planId,

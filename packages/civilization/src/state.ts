@@ -1,6 +1,10 @@
 import { checkedQuantity } from "@eonfolk/protocol";
 
-import type { CivilizationReferences, CivilizationState } from "./types.js";
+import type {
+	CivilizationMindState,
+	CivilizationReferences,
+	CivilizationState,
+} from "./types.js";
 import { CivilizationError } from "./types.js";
 
 export function identifier(value: string, label: string): string {
@@ -165,6 +169,9 @@ export function createCivilizationState(
 		projects: {},
 		citizens: {},
 		relationships: {},
+		sponsorships: {},
+		minds: {},
+		counsels: {},
 		households: {},
 		institutions: {},
 		agreements: {},
@@ -186,6 +193,113 @@ export function createCivilizationState(
 		materializedProjects: {},
 		provenance: [],
 		accounting: [],
+	});
+}
+
+/**
+ * Registers the typed Mind snapshot that later cognition decisions must be
+ * reconstructed from. This is a genesis/setup operation, not Brain authority.
+ */
+export function registerCivilizationMind(
+	state: CivilizationState,
+	mind: CivilizationMindState,
+): CivilizationState {
+	identifier(mind.citizenId, "mind citizenId");
+	if (state.citizens[mind.citizenId] === undefined)
+		throw new CivilizationError(
+			"INVALID_REFERENCE",
+			`mind references unknown citizen ${mind.citizenId}`,
+		);
+	if (state.minds[mind.citizenId] !== undefined)
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`mind ${mind.citizenId} already exists`,
+		);
+	if (
+		mind.schemaVersion !== "eonfolk-civilization-mind-v1" ||
+		mind.snapshot.citizenId !== mind.citizenId ||
+		mind.committedAtRevision !== state.revision ||
+		mind.committedAtSimulationTime !== state.simulationTime
+	)
+		throw new CivilizationError("INVALID_INPUT", "mind commitment is invalid");
+	const citizen = state.citizens[mind.citizenId]!;
+	if (
+		new Set(mind.snapshot.values.map(({ valueId }) => valueId)).size !==
+			mind.snapshot.values.length ||
+		mind.snapshot.values.length !== citizen.valueIds.length ||
+		mind.snapshot.values.some(
+			(value) =>
+				!citizen.valueIds.includes(value.valueId) ||
+				!Number.isSafeInteger(value.weight) ||
+				value.weight < 0,
+		)
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind values are not canonical",
+		);
+	if (
+		new Set(
+			mind.snapshot.relationships.map(({ relationshipId }) => relationshipId),
+		).size !== mind.snapshot.relationships.length ||
+		mind.snapshot.relationships.some((relationship) => {
+			const canonical = state.relationships[relationship.relationshipId];
+			return (
+				canonical === undefined ||
+				canonical.fromCitizenId !== mind.citizenId ||
+				canonical.fromCitizenId !== relationship.fromCitizenId ||
+				canonical.toCitizenId !== relationship.toCitizenId ||
+				canonical.familiarityBasisPoints !== relationship.familiarity ||
+				canonical.trustBasisPoints !== relationship.trust ||
+				canonical.strainBasisPoints !== relationship.strain ||
+				relationship.createdRevision > state.revision
+			);
+		})
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind relationships are not canonical",
+		);
+	const provenanceIds = new Set(state.provenance.map(({ eventId }) => eventId));
+	if (
+		new Set(mind.snapshot.records.map(({ recordId }) => recordId)).size !==
+			mind.snapshot.records.length ||
+		mind.snapshot.records.some(
+			(record) =>
+				record.subjectCitizenId !== mind.citizenId ||
+				record.sourceIds.length === 0 ||
+				record.sourceIds.some((sourceId) => !provenanceIds.has(sourceId)) ||
+				record.createdRevision > state.revision ||
+				(record.confidence !== null &&
+					(!Number.isSafeInteger(record.confidence) ||
+						record.confidence < 0 ||
+						record.confidence > 10_000)),
+		)
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind records are not authoritative",
+		);
+	const plan = mind.snapshot.standingPlan;
+	const stepIds = new Set(plan.steps.map(({ stepId }) => stepId));
+	if (
+		plan.citizenId !== mind.citizenId ||
+		plan.status !== "active" ||
+		!stepIds.has(plan.currentStepId) ||
+		plan.targetIds.some(
+			(targetId) =>
+				targetId !== mind.citizenId &&
+				state.citizens[targetId] === undefined &&
+				!state.references.siteIds.includes(targetId),
+		) ||
+		plan.startBoundary > plan.expiryBoundary
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind standing plan is not canonical",
+		);
+	return evolve(state, {
+		minds: { ...state.minds, [mind.citizenId]: clonePlain(mind) },
 	});
 }
 

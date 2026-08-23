@@ -73,6 +73,7 @@ function validPayload(payload: unknown): payload is WorldCommand["payload"] {
 	const record = payload as Record<string, unknown>;
 	const keyMap: Record<string, readonly string[]> = {
 		Observe: ["kind", "targetId"],
+		EstablishSponsorship: ["kind", "covenantId", "citizenId"],
 		MoveCitizen: ["kind", "citizenId", "toPlaceId"],
 		GatherResource: ["kind", "citizenId", "resource", "quantity"],
 		ConsumeResource: ["kind", "citizenId", "resource", "quantity"],
@@ -115,6 +116,8 @@ function validPayload(payload: unknown): payload is WorldCommand["payload"] {
 	switch (payload.kind) {
 		case "Observe":
 			return nonempty(record.targetId);
+		case "EstablishSponsorship":
+			return nonempty(record.covenantId) && nonempty(record.citizenId);
 		case "MoveCitizen":
 			return nonempty(record.citizenId) && nonempty(record.toPlaceId);
 		case "GatherResource":
@@ -324,6 +327,8 @@ function commandEvents(
 ): readonly PendingEvent[] {
 	const payload = command.payload;
 	switch (payload.kind) {
+		case "EstablishSponsorship":
+			throw new Error("ACTION_UNAVAILABLE");
 		case "Observe":
 			return [
 				pending({

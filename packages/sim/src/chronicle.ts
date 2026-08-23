@@ -73,6 +73,8 @@ export function projectChronicle(input: {
 			visibleIds.has(related.eventId),
 		);
 		switch (payload.kind) {
+			case "SponsorshipEstablished":
+				break;
 			case "CounselIssued":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,

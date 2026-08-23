@@ -1,6 +1,6 @@
 import {
 	buildDecisionContext,
-	riverholdCounselCatalog,
+	civilizationCounselCatalog,
 } from "../../../packages/cognition/src/index.js";
 import {
 	type CitizenMindSnapshot,
@@ -171,7 +171,7 @@ export async function riverholdDecisionFixture(
 		revision: state.revision,
 		simulationTime: state.simulationTime,
 		decisionReason: "sponsor-counsel",
-		actionCatalog: riverholdCounselCatalog({
+		actionCatalog: civilizationCounselCatalog({
 			actorId: actor.citizenId,
 			targetCitizenId: toma.citizenId,
 			planId: actor.standingPlan.planId,

@@ -1,8 +1,9 @@
 import type {
 	AgreementState,
 	CapabilityId,
-	CivilizationEventProvenance,
 	CitizenId,
+	CitizenMindSnapshot,
+	CivilizationEventProvenance,
 	FoundingId,
 	HouseholdState,
 	InstitutionState,
@@ -56,6 +57,43 @@ export interface CivilizationRelationshipState {
 	readonly strainBasisPoints: number;
 	readonly lastInteractionSimulationTime: number;
 	readonly sourceEventIds: readonly string[];
+}
+
+export interface CivilizationSponsorshipState {
+	readonly schemaVersion: "eonfolk-civilization-sponsorship-v1";
+	readonly covenantId: string;
+	readonly patronPrincipalId: string;
+	readonly beneficiaryCitizenId: CitizenId;
+	readonly settlementId: string;
+	readonly establishedAtSimulationTime: number;
+	readonly establishedAtRevision: number;
+	readonly sourceEventId: string;
+}
+
+/** Persisted typed Mind state. Reality may authorize against it but never invent it. */
+export interface CivilizationMindState {
+	readonly schemaVersion: "eonfolk-civilization-mind-v1";
+	readonly citizenId: CitizenId;
+	readonly snapshot: CitizenMindSnapshot;
+	readonly committedAtRevision: number;
+	readonly committedAtSimulationTime: number;
+}
+
+export interface CivilizationCounselState {
+	readonly schemaVersion: "eonfolk-civilization-counsel-v1";
+	readonly interventionId: string;
+	readonly covenantId: string;
+	readonly citizenId: CitizenId;
+	readonly intent: "verify-reserve" | "accuse-publicly";
+	readonly sourceEventId: string;
+	readonly issuedAtSimulationTime: number;
+	readonly resolution: {
+		readonly sourceEventId: string;
+		readonly decisionId: string;
+		readonly proposalId: string;
+		readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
+		readonly disposition: "accepted" | "rejected" | "reinterpreted";
+	} | null;
 }
 
 export interface GroundedPressureState {
@@ -193,6 +231,9 @@ export interface CivilizationState {
 	readonly relationships: Readonly<
 		Record<string, CivilizationRelationshipState>
 	>;
+	readonly sponsorships: Readonly<Record<string, CivilizationSponsorshipState>>;
+	readonly minds: Readonly<Record<CitizenId, CivilizationMindState>>;
+	readonly counsels: Readonly<Record<string, CivilizationCounselState>>;
 	readonly households: Readonly<Record<string, HouseholdState>>;
 	readonly institutions: Readonly<Record<string, InstitutionState>>;
 	readonly agreements: Readonly<Record<string, AgreementState>>;

@@ -71,6 +71,11 @@ export type Principal =
 export type WorldCommandPayload =
 	| { readonly kind: "Observe"; readonly targetId: string }
 	| {
+			readonly kind: "EstablishSponsorship";
+			readonly covenantId: string;
+			readonly citizenId: CitizenId;
+	  }
+	| {
 			readonly kind: "MoveCitizen";
 			readonly citizenId: CitizenId;
 			readonly toPlaceId: string;
@@ -179,6 +184,7 @@ export interface Provenance {
 
 export interface SponsorshipEstablishedPayload {
 	readonly kind: "SponsorshipEstablished";
+	readonly covenantId: string;
 	readonly patronPrincipalId: string;
 	readonly citizenId: CitizenId;
 	readonly settlementId: string;
@@ -190,6 +196,7 @@ export type WorldEventPayload =
 			readonly observerId: CitizenId;
 			readonly targetId: string;
 	  }
+	| SponsorshipEstablishedPayload
 	| {
 			readonly kind: "CitizenMoved";
 			readonly citizenId: CitizenId;
@@ -312,9 +319,7 @@ export type WorldEventPayload =
 	  };
 
 export interface WorldEventEnvelope<
-	E extends
-		| WorldEventPayload
-		| SponsorshipEstablishedPayload = WorldEventPayload,
+	E extends WorldEventPayload = WorldEventPayload,
 > {
 	readonly schemaVersion: typeof PROTOCOL_SCHEMA_VERSION;
 	readonly engineVersion: typeof ENGINE_VERSION;
@@ -649,7 +654,7 @@ export interface DecisionContext {
 	readonly values: readonly ValuePriority[];
 	readonly relationships: readonly RelationshipState[];
 	readonly activeStandingPlan: StandingPlan;
-	readonly actionCatalogVersion: "riverhold-actions-v1";
+	readonly actionCatalogVersion: "civilization-actions-v1";
 	readonly actionCatalog: readonly ActionCatalogEntry[];
 	readonly budgets: DecisionBudgets;
 	readonly counselIntent: "verify-reserve" | "accuse-publicly" | null;

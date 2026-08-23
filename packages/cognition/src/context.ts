@@ -96,7 +96,7 @@ export async function buildDecisionContext(input: {
 				: 0,
 	);
 	const catalogDigest = await catalogHash({
-		version: "riverhold-actions-v1",
+		version: "civilization-actions-v1",
 		entries: actionCatalog,
 	});
 	const withoutHash = {
@@ -113,7 +113,7 @@ export async function buildDecisionContext(input: {
 		values,
 		relationships,
 		activeStandingPlan: input.actorMind.standingPlan,
-		actionCatalogVersion: "riverhold-actions-v1" as const,
+		actionCatalogVersion: "civilization-actions-v1" as const,
 		actionCatalog,
 		budgets,
 		counselIntent: input.counselIntent,
@@ -131,7 +131,8 @@ export async function buildDecisionContext(input: {
 	return context;
 }
 
-export function riverholdCounselCatalog(input: {
+/** General counsel affordances; callers supply only canonically derived IDs. */
+export function civilizationCounselCatalog(input: {
 	readonly actorId: string;
 	readonly targetCitizenId: string;
 	readonly planId: string;

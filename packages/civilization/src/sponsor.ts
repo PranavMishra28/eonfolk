@@ -1,19 +1,25 @@
-import { validateIntentProposal } from "@eonfolk/cognition";
 import {
+	buildDecisionContext,
+	civilizationCounselCatalog,
+	validateIntentProposal,
+} from "@eonfolk/cognition";
+import {
+	batchHash,
+	batchId,
 	type CausalParent,
+	type CognitiveDecisionRecord,
 	type CommandReceipt,
 	type CommandRejectionCode,
 	type DecisionContext,
-	batchHash as deriveBatchHash,
-	batchId as deriveBatchId,
-	eventHash as deriveEventHash,
-	payloadFingerprint as derivePayloadFingerprint,
+	decisionRecordHash,
 	ENGINE_VERSION,
+	eventHash,
 	type IntentProposal,
 	jcs,
 	PROTOCOL_SCHEMA_VERSION,
-	type SponsorshipEstablishedPayload,
+	payloadFingerprint,
 	stateHash,
+	VISIBILITY_POLICY_VERSION,
 	type WorldBatchHeader,
 	type WorldCommand,
 	type WorldCommandPayload,
@@ -23,41 +29,20 @@ import {
 
 import { assertCivilizationInvariants } from "./audit.js";
 import { deepFreeze } from "./state.js";
-import type {
-	CivilizationCitizenState,
-	CivilizationRelationshipState,
-	CivilizationState,
-} from "./types.js";
+import type { CivilizationCounselState, CivilizationState } from "./types.js";
 
 export const CIVILIZATION_SPONSOR_MECHANISM_VERSION =
-	"eonfolk-civilization-sponsor-v1" as const;
+	"eonfolk-civilization-sponsor-v2" as const;
 
 type SponsorCommandPayload = Extract<
 	WorldCommandPayload,
-	{ readonly kind: "IssueCounsel" | "ResolveCounsel" }
+	{ kind: "EstablishSponsorship" | "IssueCounsel" | "ResolveCounsel" }
 >;
-
-export type CivilizationSponsorEventPayload =
-	| SponsorshipEstablishedPayload
-	| Extract<
-			WorldEventPayload,
-			{
-				readonly kind:
-					| "CounselIssued"
-					| "CounselInterpreted"
-					| "BeliefChanged"
-					| "StatementMade"
-					| "RelationshipChanged";
-			}
-	  >;
-
-export type CivilizationAuthorityEventPayload =
-	| WorldEventPayload
-	| SponsorshipEstablishedPayload;
-
-export type CivilizationAuthorityEventEnvelope =
-	WorldEventEnvelope<CivilizationAuthorityEventPayload>;
-
+export type CivilizationSponsorEventPayload = Extract<
+	WorldEventPayload,
+	{ kind: "SponsorshipEstablished" | "CounselIssued" | "CounselInterpreted" }
+>;
+export type CivilizationAuthorityEventEnvelope = WorldEventEnvelope;
 export type CivilizationSponsorEventEnvelope =
 	WorldEventEnvelope<CivilizationSponsorEventPayload>;
 
@@ -65,6 +50,7 @@ export interface ValidatedStandardBrainResolution {
 	readonly decisionId: string;
 	readonly context: DecisionContext;
 	readonly proposal: IntentProposal;
+	readonly decisionRecord: CognitiveDecisionRecord;
 }
 
 export interface CivilizationSponsorTransitionInput {
@@ -72,8 +58,11 @@ export interface CivilizationSponsorTransitionInput {
 	readonly runId: string;
 	readonly regionId: string;
 	readonly priorWorldHeadHash: string;
+	/** Snapshot metadata owns this cursor; history may be empty after compaction. */
+	readonly nextSequence: number;
 	readonly fencingToken: number;
 	readonly command: WorldCommand<SponsorCommandPayload>;
+	/** Contiguous, already-applied suffix that ends at state. */
 	readonly authoritativeHistory: readonly CivilizationAuthorityEventEnvelope[];
 	readonly priorReceipts?: readonly CommandReceipt[];
 	readonly resolution?: ValidatedStandardBrainResolution;
@@ -93,242 +82,33 @@ export interface CivilizationSponsorTransition {
 	readonly receipt: CommandReceipt;
 }
 
-interface PendingSponsorEvent {
+interface PendingEvent {
 	readonly payload: CivilizationSponsorEventPayload;
 	readonly visibility: CivilizationSponsorEventEnvelope["visibility"];
-	readonly externalParents: readonly CausalParent[];
-	readonly parentIndexes: readonly {
-		readonly index: number;
-		readonly relation: CausalParent["relation"];
-		readonly mechanismId: string;
-	}[];
+	readonly causalParents: readonly CausalParent[];
 }
 
 const hashPattern = /^[0-9a-f]{64}$/u;
+const identifier = (value: unknown): value is string =>
+	typeof value === "string" &&
+	value.length > 0 &&
+	value.length <= 160 &&
+	!/\p{Cc}/u.test(value);
+const nonnegative = (value: unknown): value is number =>
+	Number.isSafeInteger(value) && Number(value) >= 0;
 
-function isIdentifier(value: unknown): value is string {
-	return (
-		typeof value === "string" &&
-		value.length >= 1 &&
-		value.length <= 160 &&
-		!/\p{Cc}/u.test(value)
-	);
-}
-
-function isNonNegativeSafeInteger(value: unknown): value is number {
-	return Number.isSafeInteger(value) && Number(value) >= 0;
-}
-
-function hasExactKeys(value: object, expected: readonly string[]): boolean {
+function exactKeys(value: object, expected: readonly string[]): boolean {
 	const actual = Object.keys(value).sort();
 	const sorted = [...expected].sort();
 	return (
 		actual.length === sorted.length &&
-		actual.every((key, index) => key === sorted[index])
+		actual.every((key, i) => key === sorted[i])
 	);
 }
 
-function samePrincipal(
-	left: WorldCommand["principal"],
-	right: WorldCommand["principal"],
-): boolean {
-	return jcs(left) === jcs(right);
-}
-
-function citizen(
-	state: CivilizationState,
-	citizenId: string,
-): CivilizationCitizenState | null {
-	return state.citizens[citizenId] ?? null;
-}
-
-function localResident(
-	state: CivilizationState,
-	citizenId: string,
-	settlementId: string,
-): CivilizationCitizenState | null {
-	const value = citizen(state, citizenId);
-	return value?.residenceState === "resident" &&
-		value.settlementId === settlementId
-		? value
-		: null;
-}
-
-function appendUnique(
-	values: readonly string[],
-	value: string,
-): readonly string[] {
-	return values.includes(value) ? values : [...values, value];
-}
-
-function clampBasisPoints(value: number): number {
-	return Math.max(0, Math.min(10_000, value));
-}
-
-function applySponsorPayload(
-	state: CivilizationState,
-	payload: CivilizationSponsorEventPayload,
-	eventId: string,
-	causalParents: readonly CausalParent[],
-	finalInBatch: boolean,
-): CivilizationState {
-	let citizens = state.citizens;
-	let relationships = state.relationships;
-	const updateCitizen = (citizenId: string): void => {
-		const current = citizen(state, citizenId);
-		if (current === null) throw new Error("ACTION_UNAVAILABLE");
-		citizens = {
-			...citizens,
-			[citizenId]: {
-				...current,
-				sourceEventIds: appendUnique(current.sourceEventIds, eventId),
-			},
-		};
-	};
-	let mechanismId: string;
-	switch (payload.kind) {
-		case "SponsorshipEstablished": {
-			const sponsored = citizen(state, payload.citizenId);
-			if (
-				sponsored === null ||
-				sponsored.residenceState !== "resident" ||
-				sponsored.settlementId !== payload.settlementId ||
-				!isIdentifier(payload.patronPrincipalId)
-			)
-				throw new Error("ACTION_UNAVAILABLE");
-			updateCitizen(payload.citizenId);
-			mechanismId = "sponsor.covenant.established.v1";
-			break;
-		}
-		case "CounselIssued":
-			if (
-				!isIdentifier(payload.interventionId) ||
-				(payload.intent !== "verify-reserve" &&
-					payload.intent !== "accuse-publicly")
-			)
-				throw new Error("INVALID_COMMAND");
-			updateCitizen(payload.citizenId);
-			mechanismId = "sponsor.counsel.issued.v1";
-			break;
-		case "CounselInterpreted":
-			if (
-				payload.interventionId === null ||
-				!isIdentifier(payload.interventionId) ||
-				!isIdentifier(payload.planId) ||
-				!["verify-reserve", "accuse-publicly", "follow-plan"].includes(
-					payload.action,
-				) ||
-				!["accepted", "rejected", "reinterpreted"].includes(payload.disposition)
-			)
-				throw new Error("INVALID_COMMAND");
-			updateCitizen(payload.citizenId);
-			mechanismId = "brain.counsel.interpreted.v1";
-			break;
-		case "BeliefChanged":
-			if (
-				!isIdentifier(payload.beliefId) ||
-				!Number.isSafeInteger(payload.confidence) ||
-				payload.confidence < 0 ||
-				payload.confidence > 10_000 ||
-				payload.proposition.length === 0 ||
-				payload.proposition.length > 512 ||
-				payload.sourceEventIds.some(
-					(sourceEventId) =>
-						!causalParents.some(
-							({ eventId: parentId }) => parentId === sourceEventId,
-						),
-				)
-			)
-				throw new Error("INVALID_COMMAND");
-			updateCitizen(payload.citizenId);
-			mechanismId = "epistemics.belief.recorded.v1";
-			break;
-		case "StatementMade": {
-			const speaker = citizen(state, payload.speakerId);
-			const recipients = payload.recipientIds.map((recipientId) =>
-				localResident(state, recipientId, speaker?.settlementId ?? ""),
-			);
-			if (
-				speaker === null ||
-				speaker.residenceState !== "resident" ||
-				payload.allegation !== true ||
-				payload.proposition.length === 0 ||
-				payload.proposition.length > 512 ||
-				new Set(payload.recipientIds).size !== payload.recipientIds.length ||
-				payload.recipientIds.includes(payload.speakerId) ||
-				recipients.some((recipient) => recipient === null)
-			)
-				throw new Error("ACTION_UNAVAILABLE");
-			updateCitizen(payload.speakerId);
-			mechanismId = "communication.statement.recorded.v1";
-			break;
-		}
-		case "RelationshipChanged": {
-			const relationship = Object.values(state.relationships).find(
-				(candidate) =>
-					candidate.fromCitizenId === payload.fromCitizenId &&
-					candidate.toCitizenId === payload.toCitizenId,
-			);
-			if (
-				relationship === undefined ||
-				!Number.isSafeInteger(payload.trustDelta) ||
-				!Number.isSafeInteger(payload.strainDelta) ||
-				Math.abs(payload.trustDelta) > 1_500 ||
-				Math.abs(payload.strainDelta) > 1_500 ||
-				relationship.trustBasisPoints + payload.trustDelta < 0 ||
-				relationship.trustBasisPoints + payload.trustDelta > 10_000 ||
-				relationship.strainBasisPoints + payload.strainDelta < 0 ||
-				relationship.strainBasisPoints + payload.strainDelta > 10_000
-			)
-				throw new Error("ACTION_UNAVAILABLE");
-			const updated: CivilizationRelationshipState = {
-				...relationship,
-				trustBasisPoints: clampBasisPoints(
-					relationship.trustBasisPoints + payload.trustDelta,
-				),
-				strainBasisPoints: clampBasisPoints(
-					relationship.strainBasisPoints + payload.strainDelta,
-				),
-				lastInteractionSimulationTime: state.simulationTime,
-				sourceEventIds: appendUnique(relationship.sourceEventIds, eventId),
-			};
-			relationships = {
-				...relationships,
-				[relationship.relationshipId]: updated,
-			};
-			mechanismId = "relationships.bounded-update.v1";
-			break;
-		}
-	}
-	const next = deepFreeze({
-		...state,
-		revision: finalInBatch ? state.revision + 1 : state.revision,
-		citizens,
-		relationships,
-		provenance: [
-			...state.provenance,
-			{
-				eventId,
-				mechanismId,
-				causeEventIds: causalParents.map(({ eventId: parentId }) => parentId),
-				actorVisibleSourceEventIds: causalParents.map(
-					({ eventId: parentId }) => parentId,
-				),
-				// This reducer accepts Standard Brain resolutions only. A decision ID is
-				// retained in the envelope, while the model-only provenance field stays null.
-				modelDecisionId: null,
-			},
-		],
-	});
-	assertCivilizationInvariants(next);
-	return next;
-}
-
-function commandShapeIsValid(
-	command: WorldCommand<SponsorCommandPayload>,
-): boolean {
+function validCommand(command: WorldCommand<SponsorCommandPayload>): boolean {
 	if (
-		!hasExactKeys(command, [
+		!exactKeys(command, [
 			"schemaVersion",
 			"commandId",
 			"payloadFingerprint",
@@ -340,39 +120,40 @@ function commandShapeIsValid(
 			...(command.provenanceRef === undefined ? [] : ["provenanceRef"]),
 		]) ||
 		command.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
-		!isIdentifier(command.commandId) ||
+		!identifier(command.commandId) ||
 		!hashPattern.test(command.payloadFingerprint) ||
-		!isNonNegativeSafeInteger(command.expectedRevision) ||
-		!isIdentifier(command.runId) ||
-		!isIdentifier(command.regionId)
+		!nonnegative(command.expectedRevision) ||
+		!identifier(command.runId) ||
+		!identifier(command.regionId) ||
+		!identifier(command.payload.citizenId) ||
+		!identifier(command.principal.principalId)
 	)
 		return false;
 	const payload = command.payload;
-	if (
-		!isIdentifier(payload.citizenId) ||
-		!isIdentifier(command.principal.principalId)
-	)
-		return false;
-	if (payload.kind === "IssueCounsel")
+	if (payload.kind === "EstablishSponsorship")
 		return (
-			hasExactKeys(payload, [
-				"kind",
-				"interventionId",
-				"citizenId",
-				"intent",
-			]) &&
+			exactKeys(payload, ["kind", "covenantId", "citizenId"]) &&
+			identifier(payload.covenantId) &&
 			command.principal.kind === "patron" &&
-			hasExactKeys(command.principal, [
+			exactKeys(command.principal, [
 				"kind",
 				"principalId",
 				"beneficiaryCitizenId",
-			]) &&
-			isIdentifier(payload.interventionId) &&
-			(payload.intent === "verify-reserve" ||
-				payload.intent === "accuse-publicly")
+			])
+		);
+	if (payload.kind === "IssueCounsel")
+		return (
+			exactKeys(payload, ["kind", "interventionId", "citizenId", "intent"]) &&
+			identifier(payload.interventionId) &&
+			command.principal.kind === "patron" &&
+			exactKeys(command.principal, [
+				"kind",
+				"principalId",
+				"beneficiaryCitizenId",
+			])
 		);
 	return (
-		hasExactKeys(payload, [
+		exactKeys(payload, [
 			"kind",
 			"citizenId",
 			"interventionId",
@@ -381,69 +162,505 @@ function commandShapeIsValid(
 			"action",
 		]) &&
 		command.principal.kind === "citizen" &&
-		hasExactKeys(command.principal, ["kind", "principalId"]) &&
-		(payload.interventionId === null || isIdentifier(payload.interventionId)) &&
-		isIdentifier(payload.decisionId) &&
-		isIdentifier(payload.proposalId) &&
-		["verify-reserve", "accuse-publicly", "follow-plan"].includes(
-			payload.action,
-		)
+		exactKeys(command.principal, ["kind", "principalId"]) &&
+		(payload.interventionId === null || identifier(payload.interventionId)) &&
+		identifier(payload.decisionId) &&
+		identifier(payload.proposalId)
 	);
 }
 
-async function historyIsValid(
-	history: readonly CivilizationAuthorityEventEnvelope[],
+function validEventProvenance(event: WorldEventEnvelope): boolean {
+	if (event.eventPayload.kind === "SponsorshipEstablished")
+		return (
+			event.provenance.kind === "patron-intervention" &&
+			identifier(event.provenance.commandId) &&
+			event.provenance.interventionId === undefined
+		);
+	if (event.eventPayload.kind === "CounselIssued")
+		return (
+			event.provenance.kind === "patron-intervention" &&
+			event.provenance.interventionId === event.eventPayload.interventionId
+		);
+	if (event.eventPayload.kind === "CounselInterpreted")
+		return (
+			event.provenance.kind === "cognition" &&
+			identifier(event.provenance.decisionId) &&
+			identifier(event.provenance.proposalId) &&
+			event.provenance.interventionId === event.eventPayload.interventionId
+		);
+	return true;
+}
+
+async function validHistory(
+	state: CivilizationState,
+	currentHash: string,
+	history: readonly WorldEventEnvelope[],
 	runId: string,
 	regionId: string,
+	nextSequence: number,
 ): Promise<boolean> {
-	let priorSequence = -1;
-	const eventIds = new Set<string>();
+	if (!nonnegative(nextSequence)) return false;
+	if (history.length === 0) return true;
+	if (
+		history.at(-1)?.postStateHash !== currentHash ||
+		history.at(-1)!.sequence + 1 !== nextSequence
+	)
+		return false;
+	const suffixIds = new Set(history.map(({ eventId }) => eventId));
+	const known = new Set(
+		state.provenance
+			.map(({ eventId }) => eventId)
+			.filter((eventId) => !suffixIds.has(eventId)),
+	);
+	let priorSequence: number | null = null;
+	let priorHash: string | null = null;
 	for (const event of history) {
+		const { eventHash: digest, ...withoutHash } = event;
 		if (
+			event.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
+			event.engineVersion !== ENGINE_VERSION ||
 			event.runId !== runId ||
 			event.regionId !== regionId ||
-			event.sequence !== priorSequence + 1 ||
-			eventIds.has(event.eventId)
-		)
-			return false;
-		const { eventHash, ...withoutHash } = event;
-		if (
-			!hashPattern.test(eventHash) ||
-			(await deriveEventHash(withoutHash)) !== eventHash ||
+			!nonnegative(event.sequence) ||
+			(priorSequence !== null && event.sequence !== priorSequence + 1) ||
+			(priorHash !== null && event.preStateHash !== priorHash) ||
+			known.has(event.eventId) ||
+			!hashPattern.test(event.preStateHash) ||
+			!hashPattern.test(event.postStateHash) ||
+			!hashPattern.test(digest) ||
+			(await eventHash(withoutHash)) !== digest ||
+			!validEventProvenance(event) ||
+			!state.provenance.some(({ eventId }) => eventId === event.eventId) ||
 			event.causalParents.some(
 				(parent) =>
-					!eventIds.has(parent.eventId) || !isIdentifier(parent.mechanismId),
+					!known.has(parent.eventId) || !identifier(parent.mechanismId),
 			)
 		)
 			return false;
+		known.add(event.eventId);
 		priorSequence = event.sequence;
-		eventIds.add(event.eventId);
+		priorHash = event.postStateHash;
 	}
 	return true;
 }
 
-function eventProvenanceIsValid(
-	event: CivilizationSponsorEventEnvelope,
-): boolean {
-	const patronEvent =
-		event.eventPayload.kind === "SponsorshipEstablished" ||
-		event.eventPayload.kind === "CounselIssued";
-	if (patronEvent)
-		return (
-			event.provenance.kind === "patron-intervention" &&
-			isIdentifier(event.provenance.commandId) &&
-			isIdentifier(event.provenance.interventionId)
+const appendUnique = (
+	values: readonly string[],
+	value: string,
+): readonly string[] => (values.includes(value) ? values : [...values, value]);
+
+function applyPayload(
+	state: CivilizationState,
+	payload: CivilizationSponsorEventPayload,
+	event: Pick<
+		CivilizationSponsorEventEnvelope,
+		"eventId" | "causalParents" | "provenance"
+	>,
+	finalInBatch: boolean,
+): CivilizationState {
+	const citizen = state.citizens[payload.citizenId];
+	if (citizen === undefined || citizen.residenceState !== "resident")
+		throw new Error("ACTION_UNAVAILABLE");
+	let sponsorships = state.sponsorships;
+	let counsels = state.counsels;
+	let mechanismId: string;
+	if (payload.kind === "SponsorshipEstablished") {
+		if (
+			citizen.settlementId !== payload.settlementId ||
+			state.sponsorships[payload.covenantId] !== undefined ||
+			Object.values(state.sponsorships).some(
+				(item) =>
+					item.beneficiaryCitizenId === payload.citizenId ||
+					item.patronPrincipalId === payload.patronPrincipalId,
+			)
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		sponsorships = {
+			...sponsorships,
+			[payload.covenantId]: {
+				schemaVersion: "eonfolk-civilization-sponsorship-v1",
+				covenantId: payload.covenantId,
+				patronPrincipalId: payload.patronPrincipalId,
+				beneficiaryCitizenId: payload.citizenId,
+				settlementId: payload.settlementId,
+				establishedAtSimulationTime: state.simulationTime,
+				establishedAtRevision: state.revision + (finalInBatch ? 1 : 0),
+				sourceEventId: event.eventId,
+			},
+		};
+		mechanismId = "sponsor.covenant.established.v1";
+	} else if (payload.kind === "CounselIssued") {
+		const covenant = Object.values(state.sponsorships).find(
+			(item) => item.beneficiaryCitizenId === payload.citizenId,
 		);
+		if (
+			covenant === undefined ||
+			state.counsels[payload.interventionId] !== undefined
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		const counsel: CivilizationCounselState = {
+			schemaVersion: "eonfolk-civilization-counsel-v1",
+			interventionId: payload.interventionId,
+			covenantId: covenant.covenantId,
+			citizenId: payload.citizenId,
+			intent: payload.intent,
+			sourceEventId: event.eventId,
+			issuedAtSimulationTime: state.simulationTime,
+			resolution: null,
+		};
+		counsels = { ...counsels, [payload.interventionId]: counsel };
+		mechanismId = "sponsor.counsel.issued.v1";
+	} else {
+		const counsel =
+			payload.interventionId === null
+				? undefined
+				: state.counsels[payload.interventionId];
+		if (
+			counsel === undefined ||
+			counsel.citizenId !== payload.citizenId ||
+			counsel.resolution !== null ||
+			payload.disposition === "not-applicable" ||
+			event.provenance.kind !== "cognition" ||
+			!identifier(event.provenance.decisionId) ||
+			!identifier(event.provenance.proposalId)
+		)
+			throw new Error("ACTION_UNAVAILABLE");
+		counsels = {
+			...counsels,
+			[counsel.interventionId]: {
+				...counsel,
+				resolution: {
+					sourceEventId: event.eventId,
+					decisionId: event.provenance.decisionId,
+					proposalId: event.provenance.proposalId,
+					action: payload.action,
+					disposition: payload.disposition,
+				},
+			},
+		};
+		mechanismId = "brain.counsel.interpreted.v1";
+	}
+	const visibleSources = event.causalParents
+		.map(({ eventId }) => eventId)
+		.filter((eventId) => citizen.sourceEventIds.includes(eventId));
+	const next = deepFreeze({
+		...state,
+		revision: finalInBatch ? state.revision + 1 : state.revision,
+		citizens: {
+			...state.citizens,
+			[citizen.citizenId]: {
+				...citizen,
+				sourceEventIds: appendUnique(citizen.sourceEventIds, event.eventId),
+			},
+		},
+		sponsorships,
+		counsels,
+		provenance: [
+			...state.provenance,
+			{
+				eventId: event.eventId,
+				mechanismId,
+				causeEventIds: event.causalParents.map(({ eventId }) => eventId),
+				actorVisibleSourceEventIds: visibleSources,
+				modelDecisionId: null,
+			},
+		],
+	});
+	assertCivilizationInvariants(next);
+	return next;
+}
+
+function contextMatchesState(
+	state: CivilizationState,
+	context: DecisionContext,
+): boolean {
+	const mind = state.minds[context.actorId]?.snapshot;
+	const actor = state.citizens[context.actorId];
+	if (mind === undefined || actor === undefined) return false;
+	if (
+		mind.values.some((value) => !actor.valueIds.includes(value.valueId)) ||
+		mind.records.some((record) =>
+			record.sourceIds.some(
+				(sourceId) =>
+					!state.provenance.some(({ eventId }) => eventId === sourceId),
+			),
+		)
+	)
+		return false;
+	return mind.relationships.every((relationship) => {
+		const canonical = state.relationships[relationship.relationshipId];
+		return (
+			canonical !== undefined &&
+			canonical.fromCitizenId === relationship.fromCitizenId &&
+			canonical.toCitizenId === relationship.toCitizenId &&
+			canonical.familiarityBasisPoints === relationship.familiarity &&
+			canonical.trustBasisPoints === relationship.trust &&
+			canonical.strainBasisPoints === relationship.strain
+		);
+	});
+}
+
+async function validResolution(
+	state: CivilizationState,
+	command: WorldCommand<
+		Extract<SponsorCommandPayload, { kind: "ResolveCounsel" }>
+	>,
+	resolution: ValidatedStandardBrainResolution,
+	counsel: CivilizationCounselState,
+	wholePreStateHash: string,
+): Promise<boolean> {
+	const { context, proposal, decisionRecord: record } = resolution;
+	const mind = state.minds[command.payload.citizenId]?.snapshot;
+	const covenant = Object.values(state.sponsorships).find(
+		(item) => item.beneficiaryCitizenId === command.payload.citizenId,
+	);
+	if (
+		mind === undefined ||
+		covenant === undefined ||
+		!contextMatchesState(state, context) ||
+		resolution.decisionId !== command.payload.decisionId ||
+		context.actorId !== command.payload.citizenId ||
+		context.runId !== command.runId ||
+		context.regionId !== command.regionId ||
+		context.revision !== state.revision ||
+		context.simulationTime !== state.simulationTime ||
+		context.decisionReason !== "sponsor-counsel" ||
+		context.counselIntent !== counsel.intent ||
+		proposal.provenance.cognitionKind !== "standard-brain" ||
+		proposal.proposalId !== command.payload.proposalId ||
+		proposal.actorId !== context.actorId ||
+		(await validateIntentProposal(context, proposal)) !== "accepted"
+	)
+		return false;
+	const targetId = mind.standingPlan.targetIds.find(
+		(candidate) =>
+			candidate !== mind.citizenId &&
+			state.citizens[candidate]?.residenceState === "resident" &&
+			state.citizens[candidate]?.settlementId ===
+				state.citizens[mind.citizenId]?.settlementId,
+	);
+	const relationship = mind.relationships.find(
+		(item) => item.toCitizenId === targetId,
+	);
+	if (targetId === undefined || relationship === undefined) return false;
+	const canonicalCatalog = civilizationCounselCatalog({
+		actorId: mind.citizenId,
+		targetCitizenId: targetId,
+		planId: mind.standingPlan.planId,
+		relationshipId: relationship.relationshipId,
+		evidenceRecordIds: mind.records.map(({ recordId }) => recordId).sort(),
+	});
+	const rebuilt = await buildDecisionContext({
+		contextId: context.contextId,
+		actorMind: mind,
+		runId: command.runId,
+		regionId: command.regionId,
+		revision: state.revision,
+		simulationTime: state.simulationTime,
+		decisionReason: "sponsor-counsel",
+		actionCatalog: canonicalCatalog,
+		visibilityContext: {
+			policyVersion: VISIBILITY_POLICY_VERSION,
+			covenants: Object.values(state.sponsorships).map((item) => ({
+				patronPrincipalId: item.patronPrincipalId,
+				beneficiaryCitizenId: item.beneficiaryCitizenId,
+				grantRevision: item.establishedAtRevision,
+				revokeRevision: null,
+			})),
+			localOwnerPrincipalId: covenant.patronPrincipalId,
+			nonproduction: false,
+		},
+		counselIntent: counsel.intent,
+	});
+	if (jcs(rebuilt) !== jcs(context)) return false;
+	const { decisionRecordHash: digest, ...withoutHash } = record;
+	if (
+		(await decisionRecordHash(withoutHash)) !== digest ||
+		record.decisionId !== command.payload.decisionId ||
+		record.actorId !== context.actorId ||
+		record.runId !== command.runId ||
+		record.regionId !== command.regionId ||
+		record.revision !== state.revision ||
+		record.simulationTime !== state.simulationTime ||
+		record.wholePreStateHash !== wholePreStateHash ||
+		record.contextHash !== context.contextHash ||
+		record.actionCatalogHash !== context.catalogHash ||
+		record.proposalCanonicalBytes !== jcs(proposal) ||
+		record.proposalHash !== proposal.proposalHash ||
+		record.proposedCommandId !== command.commandId ||
+		record.receiptRef !== null ||
+		record.acceptedEventInterval !== null ||
+		record.failureCode !== null ||
+		record.validator.outcome !== "accepted" ||
+		record.cognitionKind !== "standard-brain" ||
+		record.provider !== null ||
+		record.model !== null ||
+		record.explanation === null ||
+		jcs(record.explanation) !== jcs(proposal.explanation) ||
+		jcs(record.suppliedRecordIds) !==
+			jcs(context.visibleRecords.map(({ recordId }) => recordId))
+	)
+		return false;
+	const action = proposal.action;
+	if (action.kind === "FollowStandingPlan")
+		return (
+			command.payload.action === "follow-plan" &&
+			action.planId === mind.standingPlan.planId &&
+			mind.standingPlan.status === "active"
+		);
+	if (action.kind !== "VerifyReserve" && action.kind !== "AccusePublicly")
+		return false;
+	if (
+		(action.kind === "VerifyReserve" &&
+			command.payload.action !== "verify-reserve") ||
+		(action.kind === "AccusePublicly" &&
+			command.payload.action !== "accuse-publicly")
+	)
+		return false;
+	const actor = state.citizens[context.actorId]!;
+	const target = state.citizens[action.targetCitizenId];
+	if (
+		target === undefined ||
+		target.citizenId === actor.citizenId ||
+		target.residenceState !== "resident" ||
+		target.settlementId !== actor.settlementId
+	)
+		return false;
 	return (
-		event.provenance.kind === "cognition" &&
-		isIdentifier(event.provenance.commandId) &&
-		isIdentifier(event.provenance.interventionId) &&
-		isIdentifier(event.provenance.decisionId) &&
-		isIdentifier(event.provenance.proposalId)
+		action.kind !== "AccusePublicly" ||
+		Object.values(state.relationships).some(
+			(item) =>
+				item.fromCitizenId === actor.citizenId &&
+				item.toCitizenId === target.citizenId,
+		)
 	);
 }
 
-function receiptFor(
+async function pending(
+	input: CivilizationSponsorTransitionInput,
+	priorStateHash: string,
+): Promise<PendingEvent | CommandRejectionCode> {
+	const { state, command } = input;
+	const actor = state.citizens[command.payload.citizenId];
+	if (actor === undefined || actor.residenceState !== "resident")
+		return "ACTION_UNAVAILABLE";
+	if (command.payload.kind === "EstablishSponsorship") {
+		if (
+			command.principal.kind !== "patron" ||
+			command.principal.beneficiaryCitizenId !== actor.citizenId
+		)
+			return "INVALID_PRINCIPAL";
+		if (
+			state.sponsorships[command.payload.covenantId] !== undefined ||
+			Object.values(state.sponsorships).some(
+				(item) =>
+					item.beneficiaryCitizenId === actor.citizenId ||
+					item.patronPrincipalId === command.principal.principalId,
+			)
+		)
+			return "NO_OP";
+		return {
+			payload: {
+				kind: "SponsorshipEstablished",
+				covenantId: command.payload.covenantId,
+				patronPrincipalId: command.principal.principalId,
+				citizenId: actor.citizenId,
+				settlementId: actor.settlementId,
+			},
+			visibility: { kind: "public" },
+			causalParents: [],
+		};
+	}
+	const covenant = Object.values(state.sponsorships).find(
+		(item) => item.beneficiaryCitizenId === actor.citizenId,
+	);
+	if (command.payload.kind === "IssueCounsel") {
+		if (
+			command.principal.kind !== "patron" ||
+			command.principal.beneficiaryCitizenId !== actor.citizenId ||
+			covenant?.patronPrincipalId !== command.principal.principalId ||
+			covenant.settlementId !== actor.settlementId
+		)
+			return "INVALID_PRINCIPAL";
+		if (state.counsels[command.payload.interventionId] !== undefined)
+			return "NO_OP";
+		return {
+			payload: {
+				kind: "CounselIssued",
+				interventionId: command.payload.interventionId,
+				citizenId: command.payload.citizenId,
+				intent: command.payload.intent,
+			},
+			visibility: {
+				kind: "patron-visible-through-covenant",
+				subjectCitizenId: actor.citizenId,
+			},
+			causalParents: [
+				{
+					eventId: covenant.sourceEventId,
+					relation: "direct",
+					mechanismId: "sponsor.covenant.authorizes-counsel.v1",
+				},
+			],
+		};
+	}
+	if (
+		command.principal.kind !== "citizen" ||
+		command.principal.principalId !== actor.citizenId
+	)
+		return "INVALID_PRINCIPAL";
+	if (command.payload.interventionId === null) return "ACTION_UNAVAILABLE";
+	const counsel = state.counsels[command.payload.interventionId];
+	if (
+		covenant === undefined ||
+		covenant.settlementId !== actor.settlementId ||
+		counsel === undefined ||
+		counsel.covenantId !== covenant.covenantId ||
+		counsel.citizenId !== actor.citizenId ||
+		counsel.resolution !== null ||
+		input.resolution === undefined ||
+		!(await validResolution(
+			state,
+			command as WorldCommand<
+				Extract<SponsorCommandPayload, { kind: "ResolveCounsel" }>
+			>,
+			input.resolution,
+			counsel,
+			priorStateHash,
+		))
+	)
+		return "ACTION_UNAVAILABLE";
+	const disposition = input.resolution.proposal.explanation.counselDisposition;
+	if (
+		disposition !== "accepted" &&
+		disposition !== "rejected" &&
+		disposition !== "reinterpreted"
+	)
+		return "ACTION_UNAVAILABLE";
+	return {
+		payload: {
+			kind: "CounselInterpreted",
+			citizenId: actor.citizenId,
+			interventionId: counsel.interventionId,
+			action: command.payload.action,
+			disposition,
+			planId: input.resolution.context.activeStandingPlan.planId,
+		},
+		visibility: {
+			kind: "patron-visible-through-covenant",
+			subjectCitizenId: actor.citizenId,
+		},
+		causalParents: [
+			{
+				eventId: counsel.sourceEventId,
+				relation: "trigger",
+				mechanismId: "counsel.considered-at-decision-boundary.v1",
+			},
+		],
+	};
+}
+
+function receipt(
 	state: CivilizationState,
 	command: WorldCommand<SponsorCommandPayload>,
 	worldHeadHash: string,
@@ -479,11 +696,11 @@ function receiptFor(
 	};
 }
 
-async function rejected(
+function reject(
 	input: CivilizationSponsorTransitionInput,
 	priorStateHash: string,
 	code: CommandRejectionCode,
-): Promise<CivilizationSponsorTransition> {
+): CivilizationSponsorTransition {
 	return {
 		accepted: false,
 		duplicate: false,
@@ -495,7 +712,7 @@ async function rejected(
 		resultingWorldHeadHash: input.priorWorldHeadHash,
 		events: [],
 		batchHeader: null,
-		receipt: receiptFor(
+		receipt: receipt(
 			input.state,
 			input.command,
 			input.priorWorldHeadHash,
@@ -508,447 +725,63 @@ async function rejected(
 	};
 }
 
-function sponsorshipsFor(
-	history: readonly CivilizationAuthorityEventEnvelope[],
-	citizenId: string,
-): readonly WorldEventEnvelope<SponsorshipEstablishedPayload>[] {
-	return history.filter(
-		(event): event is WorldEventEnvelope<SponsorshipEstablishedPayload> =>
-			event.eventPayload.kind === "SponsorshipEstablished" &&
-			event.eventPayload.citizenId === citizenId,
-	);
-}
-
-function counselFor(
-	history: readonly CivilizationAuthorityEventEnvelope[],
-	interventionId: string,
-): WorldEventEnvelope<
-	Extract<WorldEventPayload, { readonly kind: "CounselIssued" }>
-> | null {
-	return (
-		history.find(
-			(
-				event,
-			): event is WorldEventEnvelope<
-				Extract<WorldEventPayload, { readonly kind: "CounselIssued" }>
-			> =>
-				event.eventPayload.kind === "CounselIssued" &&
-				event.eventPayload.interventionId === interventionId,
-		) ?? null
-	);
-}
-
-function resolveAction(
-	state: CivilizationState,
-	command: Pick<
-		WorldCommand<Extract<SponsorCommandPayload, { kind: "ResolveCounsel" }>>,
-		"payload" | "runId" | "regionId"
-	>,
-	resolution: ValidatedStandardBrainResolution,
-): {
-	readonly targetCitizenId: string | null;
-	readonly planId: string;
-	readonly relationship: CivilizationRelationshipState | null;
-} | null {
-	const actor = localResident(
-		state,
-		command.payload.citizenId,
-		state.citizens[command.payload.citizenId]?.settlementId ?? "",
-	);
-	if (
-		actor === null ||
-		resolution.decisionId !== command.payload.decisionId ||
-		resolution.context.actorId !== actor.citizenId ||
-		resolution.context.runId !== command.runId ||
-		resolution.context.regionId !== command.regionId ||
-		resolution.context.revision !== state.revision ||
-		resolution.context.decisionReason !== "sponsor-counsel" ||
-		resolution.proposal.actorId !== actor.citizenId ||
-		resolution.proposal.proposalId !== command.payload.proposalId ||
-		resolution.proposal.provenance.cognitionKind !== "standard-brain"
-	)
-		return null;
-	const action = resolution.proposal.action;
-	if (action.kind === "FollowStandingPlan") {
-		return command.payload.action === "follow-plan" &&
-			action.planId === resolution.context.activeStandingPlan.planId
-			? { targetCitizenId: null, planId: action.planId, relationship: null }
-			: null;
-	}
-	if (action.kind !== "VerifyReserve" && action.kind !== "AccusePublicly")
-		return null;
-	if (
-		(action.kind === "VerifyReserve" &&
-			command.payload.action !== "verify-reserve") ||
-		(action.kind === "AccusePublicly" &&
-			command.payload.action !== "accuse-publicly")
-	)
-		return null;
-	const target = localResident(
-		state,
-		action.targetCitizenId,
-		actor.settlementId,
-	);
-	if (target === null || target.citizenId === actor.citizenId) return null;
-	const relationship =
-		Object.values(state.relationships).find(
-			(candidate) =>
-				candidate.fromCitizenId === actor.citizenId &&
-				candidate.toCitizenId === target.citizenId,
-		) ?? null;
-	if (action.kind === "AccusePublicly" && relationship === null) return null;
-	return {
-		targetCitizenId: target.citizenId,
-		planId: resolution.context.activeStandingPlan.planId,
-		relationship,
-	};
-}
-
-async function pendingEvents(
-	input: CivilizationSponsorTransitionInput,
-): Promise<readonly PendingSponsorEvent[] | CommandRejectionCode> {
-	const { state, command, authoritativeHistory: history } = input;
-	const actor = citizen(state, command.payload.citizenId);
-	if (actor === null || actor.residenceState !== "resident")
-		return "ACTION_UNAVAILABLE";
-	if (command.payload.kind === "IssueCounsel") {
-		if (
-			command.principal.kind !== "patron" ||
-			command.principal.beneficiaryCitizenId !== actor.citizenId
-		)
-			return "INVALID_PRINCIPAL";
-		if (
-			history.some(
-				(event) =>
-					event.eventPayload.kind === "CounselIssued" &&
-					event.eventPayload.interventionId === command.payload.interventionId,
-			)
-		)
-			return "NO_OP";
-		const sponsorships = sponsorshipsFor(history, actor.citizenId);
-		if (
-			sponsorships.some(
-				(event) =>
-					!eventProvenanceIsValid(event) ||
-					event.eventPayload.settlementId !== actor.settlementId,
-			)
-		)
-			return "INVALID_COMMAND";
-		if (
-			sponsorships.some(
-				(event) =>
-					event.eventPayload.patronPrincipalId !==
-					command.principal.principalId,
-			)
-		)
-			return "INVALID_PRINCIPAL";
-		const established = sponsorships.find(
-			(event) =>
-				event.eventPayload.patronPrincipalId === command.principal.principalId,
-		);
-		if (
-			established !== undefined &&
-			!actor.sourceEventIds.includes(established.eventId)
-		)
-			return "INVALID_COMMAND";
-		const events: PendingSponsorEvent[] = [];
-		if (established === undefined) {
-			events.push({
-				payload: {
-					kind: "SponsorshipEstablished",
-					patronPrincipalId: command.principal.principalId,
-					citizenId: actor.citizenId,
-					settlementId: actor.settlementId,
-				},
-				visibility: { kind: "public" },
-				externalParents: [],
-				parentIndexes: [],
-			});
-		}
-		events.push({
-			payload: {
-				kind: "CounselIssued",
-				interventionId: command.payload.interventionId,
-				citizenId: actor.citizenId,
-				intent: command.payload.intent,
-			},
-			visibility: {
-				kind: "patron-visible-through-covenant",
-				subjectCitizenId: actor.citizenId,
-			},
-			externalParents:
-				established === undefined
-					? []
-					: [
-							{
-								eventId: established.eventId,
-								relation: "direct",
-								mechanismId: "sponsor.covenant.authorizes-counsel.v1",
-							},
-						],
-			parentIndexes:
-				established === undefined
-					? [
-							{
-								index: 0,
-								relation: "direct",
-								mechanismId: "sponsor.covenant.authorizes-counsel.v1",
-							},
-						]
-					: [],
-		});
-		return events;
-	}
-	if (
-		command.principal.kind !== "citizen" ||
-		command.principal.principalId !== actor.citizenId
-	)
-		return "INVALID_PRINCIPAL";
-	if (command.payload.interventionId === null) return "ACTION_UNAVAILABLE";
-	const counsel = counselFor(history, command.payload.interventionId);
-	const sponsorParent =
-		counsel?.causalParents.find(
-			(parent) =>
-				parent.relation === "direct" &&
-				parent.mechanismId === "sponsor.covenant.authorizes-counsel.v1",
-		) ?? null;
-	const sponsorEvent =
-		sponsorParent === null
-			? null
-			: (sponsorshipsFor(history, actor.citizenId).find(
-					(event) => event.eventId === sponsorParent.eventId,
-				) ?? null);
-	if (
-		counsel === null ||
-		!eventProvenanceIsValid(counsel) ||
-		sponsorEvent === null ||
-		!eventProvenanceIsValid(sponsorEvent) ||
-		counsel.eventPayload.citizenId !== actor.citizenId ||
-		!actor.sourceEventIds.includes(counsel.eventId) ||
-		history.some(
-			(event) =>
-				event.eventPayload.kind === "CounselInterpreted" &&
-				event.eventPayload.interventionId === command.payload.interventionId,
-		)
-	)
-		return "ACTION_UNAVAILABLE";
-	if (input.resolution === undefined) return "ACTION_UNAVAILABLE";
-	if (
-		(await validateIntentProposal(
-			input.resolution.context,
-			input.resolution.proposal,
-		)) !== "accepted"
-	)
-		return "ACTION_UNAVAILABLE";
-	const resolved = resolveAction(
-		state,
-		{
-			payload: command.payload,
-			runId: command.runId,
-			regionId: command.regionId,
-		},
-		input.resolution,
-	);
-	if (resolved === null) return "ACTION_UNAVAILABLE";
-	const disposition =
-		command.payload.action === "follow-plan"
-			? "rejected"
-			: command.payload.action === counsel.eventPayload.intent
-				? "accepted"
-				: "reinterpreted";
-	const events: PendingSponsorEvent[] = [
-		{
-			payload: {
-				kind: "CounselInterpreted",
-				citizenId: actor.citizenId,
-				interventionId: command.payload.interventionId,
-				action: command.payload.action,
-				disposition,
-				planId: resolved.planId,
-			},
-			visibility: {
-				kind: "patron-visible-through-covenant",
-				subjectCitizenId: actor.citizenId,
-			},
-			externalParents: [
-				{
-					eventId: counsel.eventId,
-					relation: "trigger",
-					mechanismId: "counsel.considered-at-decision-boundary.v1",
-				},
-			],
-			parentIndexes: [],
-		},
-	];
-	if (command.payload.action === "verify-reserve") {
-		events.push({
-			payload: {
-				kind: "BeliefChanged",
-				citizenId: actor.citizenId,
-				beliefId: `belief:${command.payload.interventionId}:reserve-check`,
-				proposition: `Reserve claim involving ${resolved.targetCitizenId} remains unverified pending direct inspection.`,
-				confidence: 6_000,
-				sourceEventIds: [],
-			},
-			visibility: {
-				kind: "patron-visible-through-covenant",
-				subjectCitizenId: actor.citizenId,
-			},
-			externalParents: [],
-			parentIndexes: [
-				{
-					index: 0,
-					relation: "direct",
-					mechanismId: "reserve.claim-inspection-requested.v1",
-				},
-			],
-		});
-		if (resolved.relationship !== null) {
-			const trustDelta = Math.min(
-				500,
-				10_000 - resolved.relationship.trustBasisPoints,
-			);
-			const strainDelta = -Math.min(
-				300,
-				resolved.relationship.strainBasisPoints,
-			);
-			if (trustDelta !== 0 || strainDelta !== 0)
-				events.push({
-					payload: {
-						kind: "RelationshipChanged",
-						fromCitizenId: actor.citizenId,
-						toCitizenId: resolved.targetCitizenId!,
-						trustDelta,
-						strainDelta,
-						reasonCode: "reserve-verification-restraint",
-					},
-					visibility: {
-						kind: "patron-visible-through-covenant",
-						subjectCitizenId: actor.citizenId,
-					},
-					externalParents: [],
-					parentIndexes: [
-						{
-							index: 1,
-							relation: "direct",
-							mechanismId: "restraint.preserves-relationship.v1",
-						},
-					],
-				});
-		}
-	} else if (command.payload.action === "accuse-publicly") {
-		const recipients = Object.values(state.citizens)
-			.filter(
-				(candidate) =>
-					candidate.residenceState === "resident" &&
-					candidate.settlementId === actor.settlementId &&
-					candidate.citizenId !== actor.citizenId,
-			)
-			.map(({ citizenId }) => citizenId)
-			.sort();
-		events.push(
-			{
-				payload: {
-					kind: "StatementMade",
-					speakerId: actor.citizenId,
-					recipientIds: recipients,
-					proposition: `${resolved.targetCitizenId} may have concealed reserve information.`,
-					allegation: true,
-				},
-				visibility: { kind: "public" },
-				externalParents: [],
-				parentIndexes: [
-					{
-						index: 0,
-						relation: "direct",
-						mechanismId: "counsel.public-allegation-selected.v1",
-					},
-				],
-			},
-			{
-				payload: {
-					kind: "RelationshipChanged",
-					fromCitizenId: actor.citizenId,
-					toCitizenId: resolved.targetCitizenId!,
-					trustDelta: -Math.min(1_500, resolved.relationship!.trustBasisPoints),
-					strainDelta: Math.min(
-						1_500,
-						10_000 - resolved.relationship!.strainBasisPoints,
-					),
-					reasonCode: "public-allegation",
-				},
-				visibility: {
-					kind: "patron-visible-through-covenant",
-					subjectCitizenId: actor.citizenId,
-				},
-				externalParents: [],
-				parentIndexes: [
-					{
-						index: 1,
-						relation: "direct",
-						mechanismId: "public-allegation.strains-relationship.v1",
-					},
-				],
-			},
-		);
-	}
-	return events;
-}
-
 export async function prepareCivilizationSponsorTransition(
 	input: CivilizationSponsorTransitionInput,
 ): Promise<CivilizationSponsorTransition> {
 	assertCivilizationInvariants(input.state);
 	const priorStateHash = await stateHash(input.state);
 	if (
-		!isIdentifier(input.runId) ||
-		!isIdentifier(input.regionId) ||
+		!identifier(input.runId) ||
+		!identifier(input.regionId) ||
 		!hashPattern.test(input.priorWorldHeadHash) ||
-		!isNonNegativeSafeInteger(input.fencingToken) ||
-		!(await historyIsValid(
+		!nonnegative(input.nextSequence) ||
+		!nonnegative(input.fencingToken) ||
+		!(await validHistory(
+			input.state,
+			priorStateHash,
 			input.authoritativeHistory,
 			input.runId,
 			input.regionId,
+			input.nextSequence,
 		))
 	)
-		return rejected(input, priorStateHash, "INVALID_COMMAND");
+		return reject(input, priorStateHash, "INVALID_COMMAND");
 	if (
 		input.command.runId !== input.runId ||
 		input.command.regionId !== input.regionId
 	)
-		return rejected(input, priorStateHash, "RUN_REGION_MISMATCH");
-	if (!commandShapeIsValid(input.command))
-		return rejected(input, priorStateHash, "INVALID_COMMAND");
-	const actualFingerprint = await derivePayloadFingerprint(
-		input.command.payload,
+		return reject(input, priorStateHash, "RUN_REGION_MISMATCH");
+	if (!validCommand(input.command))
+		return reject(input, priorStateHash, "INVALID_COMMAND");
+	if (
+		(await payloadFingerprint(input.command.payload)) !==
+		input.command.payloadFingerprint
+	)
+		return reject(input, priorStateHash, "BAD_FINGERPRINT");
+	const prior = input.priorReceipts?.find(
+		({ commandId }) => commandId === input.command.commandId,
 	);
-	if (actualFingerprint !== input.command.payloadFingerprint)
-		return rejected(input, priorStateHash, "BAD_FINGERPRINT");
-	const priorReceipt = input.priorReceipts?.find(
-		(receipt) => receipt.commandId === input.command.commandId,
-	);
-	if (priorReceipt !== undefined) {
+	if (prior !== undefined) {
 		if (
-			priorReceipt.runId !== input.runId ||
-			priorReceipt.regionId !== input.regionId ||
-			priorReceipt.payloadFingerprint !== input.command.payloadFingerprint ||
-			priorReceipt.expectedRevision !== input.command.expectedRevision ||
-			!samePrincipal(priorReceipt.principal, input.command.principal) ||
-			input.priorWorldHeadHash !== priorReceipt.resultingWorldHeadHash
+			prior.runId !== input.runId ||
+			prior.regionId !== input.regionId ||
+			prior.payloadFingerprint !== input.command.payloadFingerprint ||
+			prior.expectedRevision !== input.command.expectedRevision ||
+			jcs(prior.principal) !== jcs(input.command.principal)
 		)
-			return rejected(input, priorStateHash, "INVALID_COMMAND");
+			return reject(input, priorStateHash, "INVALID_COMMAND");
 		return {
-			accepted: priorReceipt.outcome === "accepted",
+			accepted: prior.outcome === "accepted",
 			duplicate: true,
 			priorState: input.state,
 			postState: input.state,
 			priorStateHash,
 			finalStateHash: priorStateHash,
 			priorWorldHeadHash: input.priorWorldHeadHash,
-			resultingWorldHeadHash: priorReceipt.resultingWorldHeadHash,
+			resultingWorldHeadHash: input.priorWorldHeadHash,
 			events: [],
 			batchHeader: null,
-			receipt: priorReceipt,
+			receipt: prior,
 		};
 	}
 	if (
@@ -956,140 +789,108 @@ export async function prepareCivilizationSponsorTransition(
 			(event) => event.provenance.commandId === input.command.commandId,
 		)
 	)
-		return rejected(input, priorStateHash, "INVALID_COMMAND");
+		return reject(input, priorStateHash, "INVALID_COMMAND");
 	if (input.command.expectedRevision !== input.state.revision)
-		return rejected(input, priorStateHash, "STALE_REVISION");
-	const specifications = await pendingEvents(input);
-	if (typeof specifications === "string")
-		return rejected(input, priorStateHash, specifications);
-	if (specifications.length === 0)
-		return rejected(input, priorStateHash, "NO_OP");
-	const derivedBatchId = await deriveBatchId(
+		return reject(input, priorStateHash, "STALE_REVISION");
+	const specification = await pending(input, priorStateHash);
+	if (typeof specification === "string")
+		return reject(input, priorStateHash, specification);
+	const id = await batchId(
 		input.runId,
 		input.regionId,
 		input.state.revision,
 		input.command.commandId,
 	);
-	let current = input.state;
-	let preHash = priorStateHash;
-	const events: CivilizationSponsorEventEnvelope[] = [];
-	const firstSequence = (input.authoritativeHistory.at(-1)?.sequence ?? -1) + 1;
-	for (const [index, specification] of specifications.entries()) {
-		const eventId = `event:${derivedBatchId}:${String(index)}`;
-		const causalParents = [
-			...specification.externalParents,
-			...specification.parentIndexes.map((parent) => {
-				if (parent.index >= index)
-					throw new Error("invalid causal parent index");
-				return {
-					eventId: `event:${derivedBatchId}:${String(parent.index)}`,
-					relation: parent.relation,
-					mechanismId: parent.mechanismId,
+	const eventId = `event:${id}:0`;
+	const provenance: CivilizationSponsorEventEnvelope["provenance"] =
+		input.command.payload.kind === "ResolveCounsel"
+			? {
+					kind: "cognition",
+					commandId: input.command.commandId,
+					interventionId: input.command.payload.interventionId!,
+					decisionId: input.command.payload.decisionId,
+					proposalId: input.command.payload.proposalId,
+				}
+			: {
+					kind: "patron-intervention",
+					commandId: input.command.commandId,
+					...(input.command.payload.kind === "IssueCounsel"
+						? { interventionId: input.command.payload.interventionId }
+						: {}),
 				};
-			}),
-		];
-		const finalInBatch = index === specifications.length - 1;
-		const provenance: CivilizationSponsorEventEnvelope["provenance"] =
-			input.command.payload.kind === "IssueCounsel"
-				? {
-						kind: "patron-intervention",
-						commandId: input.command.commandId,
-						interventionId: input.command.payload.interventionId,
-					}
-				: {
-						kind: "cognition",
-						commandId: input.command.commandId,
-						interventionId: input.command.payload.interventionId!,
-						decisionId: input.command.payload.decisionId,
-						proposalId: input.command.payload.proposalId,
-					};
-		const eventPayload: CivilizationSponsorEventPayload =
-			specification.payload.kind === "BeliefChanged"
-				? {
-						...specification.payload,
-						sourceEventIds: causalParents.map(
-							({ eventId: parentEventId }) => parentEventId,
-						),
-					}
-				: specification.payload;
-		const postState = applySponsorPayload(
-			current,
-			eventPayload,
-			eventId,
-			causalParents,
-			finalInBatch,
-		);
-		const postHash = await stateHash(postState);
-		const withoutHash = {
-			schemaVersion: PROTOCOL_SCHEMA_VERSION,
-			engineVersion: ENGINE_VERSION,
-			eventId,
-			runId: input.runId,
-			regionId: input.regionId,
-			sequence: firstSequence + index,
-			simulationTime: postState.simulationTime,
-			eventPayload,
-			causalParents,
-			relatedEvents: [],
-			visibility: specification.visibility,
-			provenance,
-			preStateHash: preHash,
-			postStateHash: postHash,
-			batchId: derivedBatchId,
-		};
-		const envelope: CivilizationSponsorEventEnvelope = {
-			...withoutHash,
-			eventHash: await deriveEventHash(withoutHash),
-		};
-		events.push(envelope);
-		current = postState;
-		preHash = postHash;
-	}
-	const digest = await deriveBatchHash({
+	const postState = applyPayload(
+		input.state,
+		specification.payload,
+		{ eventId, causalParents: specification.causalParents, provenance },
+		true,
+	);
+	const finalStateHash = await stateHash(postState);
+	const withoutHash = {
+		schemaVersion: PROTOCOL_SCHEMA_VERSION,
+		engineVersion: ENGINE_VERSION,
+		eventId,
 		runId: input.runId,
 		regionId: input.regionId,
-		batchId: derivedBatchId,
+		sequence: input.nextSequence,
+		simulationTime: postState.simulationTime,
+		eventPayload: specification.payload,
+		causalParents: specification.causalParents,
+		relatedEvents: [],
+		visibility: specification.visibility,
+		provenance,
+		preStateHash: priorStateHash,
+		postStateHash: finalStateHash,
+		batchId: id,
+	};
+	const event: CivilizationSponsorEventEnvelope = {
+		...withoutHash,
+		eventHash: await eventHash(withoutHash),
+	};
+	const digest = await batchHash({
+		runId: input.runId,
+		regionId: input.regionId,
+		batchId: id,
 		priorWorldHeadHash: input.priorWorldHeadHash,
-		firstSequence,
-		eventHashes: events.map(({ eventHash }) => eventHash),
+		firstSequence: input.nextSequence,
+		eventHashes: [event.eventHash],
 		payloadFingerprint: input.command.payloadFingerprint,
-		resultRevision: current.revision,
-		finalStateHash: preHash,
+		resultRevision: postState.revision,
+		finalStateHash,
 	});
-	const batchHeader: WorldBatchHeader = {
+	const header: WorldBatchHeader = {
 		schemaVersion: PROTOCOL_SCHEMA_VERSION,
 		runId: input.runId,
 		regionId: input.regionId,
-		batchId: derivedBatchId,
+		batchId: id,
 		priorWorldHeadHash: input.priorWorldHeadHash,
-		firstSequence,
-		eventCount: events.length,
-		eventHashes: events.map(({ eventHash }) => eventHash),
+		firstSequence: input.nextSequence,
+		eventCount: 1,
+		eventHashes: [event.eventHash],
 		payloadFingerprint: input.command.payloadFingerprint,
-		resultRevision: current.revision,
-		finalStateHash: preHash,
+		resultRevision: postState.revision,
+		finalStateHash,
 		batchHash: digest,
 	};
 	return {
 		accepted: true,
 		duplicate: false,
 		priorState: input.state,
-		postState: current,
+		postState,
 		priorStateHash,
-		finalStateHash: preHash,
+		finalStateHash,
 		priorWorldHeadHash: input.priorWorldHeadHash,
 		resultingWorldHeadHash: digest,
-		events,
-		batchHeader,
-		receipt: receiptFor(
+		events: [event],
+		batchHeader: header,
+		receipt: receipt(
 			input.state,
 			input.command,
 			digest,
 			input.fencingToken,
 			"accepted",
 			null,
-			events,
-			current.revision,
+			[event],
+			postState.revision,
 		),
 	};
 }
@@ -1099,48 +900,46 @@ export async function replayCivilizationSponsorEvents(input: {
 	readonly snapshotStateHash: string;
 	readonly runId: string;
 	readonly regionId: string;
+	readonly nextSequence: number;
 	readonly events: readonly CivilizationSponsorEventEnvelope[];
-	readonly priorEventIds?: readonly string[];
 }): Promise<{ readonly state: CivilizationState; readonly stateHash: string }> {
+	assertCivilizationInvariants(input.snapshotState);
 	let current = input.snapshotState;
 	let currentHash = await stateHash(current);
 	if (currentHash !== input.snapshotStateHash)
 		throw new Error("snapshot state hash mismatch");
-	const knownEventIds = new Set(input.priorEventIds ?? []);
-	let priorSequence: number | null = null;
+	const known = new Set(current.provenance.map(({ eventId }) => eventId));
+	let sequence = input.nextSequence;
 	for (const [index, event] of input.events.entries()) {
+		const { eventHash: digest, ...withoutHash } = event;
 		if (
 			event.schemaVersion !== PROTOCOL_SCHEMA_VERSION ||
 			event.engineVersion !== ENGINE_VERSION ||
 			event.runId !== input.runId ||
 			event.regionId !== input.regionId ||
+			event.sequence !== sequence ||
 			event.preStateHash !== currentHash ||
-			!eventProvenanceIsValid(event) ||
-			(priorSequence !== null && event.sequence !== priorSequence + 1) ||
-			knownEventIds.has(event.eventId) ||
+			known.has(event.eventId) ||
+			!validEventProvenance(event) ||
 			event.causalParents.some(
 				(parent) =>
-					!knownEventIds.has(parent.eventId) ||
-					!isIdentifier(parent.mechanismId),
+					!known.has(parent.eventId) || !identifier(parent.mechanismId),
 			)
 		)
 			throw new Error("invalid sponsor event chain");
-		const { eventHash, ...withoutHash } = event;
-		if ((await deriveEventHash(withoutHash)) !== eventHash)
+		if ((await eventHash(withoutHash)) !== digest)
 			throw new Error("sponsor event hash mismatch");
-		const finalInBatch = input.events[index + 1]?.batchId !== event.batchId;
-		current = applySponsorPayload(
+		current = applyPayload(
 			current,
 			event.eventPayload,
-			event.eventId,
-			event.causalParents,
-			finalInBatch,
+			event,
+			input.events[index + 1]?.batchId !== event.batchId,
 		);
 		currentHash = await stateHash(current);
 		if (currentHash !== event.postStateHash)
 			throw new Error("sponsor event post-state hash mismatch");
-		knownEventIds.add(event.eventId);
-		priorSequence = event.sequence;
+		known.add(event.eventId);
+		sequence += 1;
 	}
 	return { state: current, stateHash: currentHash };
 }

@@ -204,6 +204,8 @@ export function reducePayload(
 ): WorldState {
 	let state: WorldState = prior;
 	switch (payload.kind) {
+		case "SponsorshipEstablished":
+			throw new Error("ACTION_UNAVAILABLE");
 		case "Observed": {
 			if (!state.citizens[payload.observerId])
 				throw new Error("ACTION_UNAVAILABLE");
