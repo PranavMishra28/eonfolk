@@ -8,8 +8,9 @@ The checked invariants mean:
 2. **Atomic append:** revision, last sequence, batch keys, event keys, and accepted command receipts advance together. There is no reachable partial batch or receipt-only acceptance.
 3. **Idempotency:** retrying a command already in `receipts` is a durable no-op. A command can contribute at most one revision.
 4. **Fencing:** append actions require the exact current fencing token. The modeled stale-writer action changes no durable variable, while writer transfer changes only the fence.
-5. **Catch-up progress:** chapters advance exactly one at a time, never exceed the declared bound, and only the final chapter marks the operation complete.
-6. **Crash/recovery:** crash and recovery change only process state. They never roll back or partially expose a durable transaction.
+5. **Exact-head snapshots:** genesis installs revision zero atomically, later snapshots require the current writer fence and durable revision, stale writes are no-ops, and exact retries do not create a second record.
+6. **Catch-up progress:** chapters advance exactly one at a time, never exceed the declared bound, and only the final chapter marks the operation complete.
+7. **Crash/recovery:** crash and recovery change only process state. They never roll back or partially expose a durable transaction.
 
 The abstraction deliberately treats a committed batch as one event. Production tests separately cover the 1–32-event intra-batch state-hash chain, IndexedDB abort behavior, quota errors, supplied hashes, record bounds, and browser reloads.
 
