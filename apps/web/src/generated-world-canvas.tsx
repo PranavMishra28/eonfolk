@@ -679,6 +679,15 @@ function SiteLife({
 				/>
 			</Entity>
 		);
+	if (kind === "residential")
+		return (
+			<Primitive
+				position={position}
+				scale={[2, 0.22, 2]}
+				color={palette.soil}
+				castShadows={false}
+			/>
+		);
 	return null;
 }
 
@@ -996,7 +1005,7 @@ export function GeneratedWorldCanvas({
 			ref={host}
 			className="generated-world-canvas"
 			role="img"
-			aria-label={`${projection.local.settlement.name}, an embodied generated settlement with ${projection.spatial.actors.length} visible residents. Drag to pan, scroll to zoom, or use the adjacent semantic camera controls.`}
+			aria-label={`${projection.local.settlement.name}, settlement with ${projection.spatial.actors.length} residents. Drag to pan, scroll to zoom, or use semantic camera controls.`}
 			data-testid="generated-world-canvas"
 			data-ready="false"
 			data-engine="playcanvas"
