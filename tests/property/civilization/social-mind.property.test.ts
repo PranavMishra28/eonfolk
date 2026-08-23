@@ -32,10 +32,12 @@ function person(citizenId: string) {
 	return {
 		schemaVersion: CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 		citizenId,
+		name: `Person ${citizenId}`,
+		valueIds: ["care", "reliability"],
 		settlementId: SETTLEMENT,
 		siteId: SITE,
 		householdId: null,
-		primaryRoleId: null,
+		primaryRoleId: "resident",
 		residenceState: "resident" as const,
 		arrivedAtSimulationTime: 0,
 		departedAtSimulationTime: null,

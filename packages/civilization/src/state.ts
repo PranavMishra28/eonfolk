@@ -129,6 +129,10 @@ export function deepFreeze<T>(value: T): T {
 }
 
 function clonePlain<T>(value: T): T {
+	// Frozen values are already isolated canonical state. Reusing them preserves
+	// immutability while avoiding quadratic deep copies of append-only histories.
+	if (value !== null && typeof value === "object" && Object.isFrozen(value))
+		return value;
 	if (Array.isArray(value)) {
 		return value.map((entry) => clonePlain(entry)) as T;
 	}
@@ -170,6 +174,14 @@ export function createCivilizationState(
 		foundings: {},
 		materializedFoundings: {},
 		foundingRequirements: {},
+		accountingCheckpoint: null,
+		schedulerTotals: {
+			completedProductionRuns: 0,
+			consumedNeedUnits: 0,
+			transportedResourceUnits: 0,
+			groundedNeedOutcomes: 0,
+			unmetNeedUnits: 0,
+		},
 		needOutcomes: [],
 		materializedProjects: {},
 		provenance: [],

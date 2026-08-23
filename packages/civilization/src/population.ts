@@ -41,6 +41,29 @@ function assertCitizenShape(
 	value: CivilizationCitizenState,
 ): void {
 	identifier(value.citizenId, "citizenId");
+	if (
+		value.name.length < 1 ||
+		value.name.length > 64 ||
+		value.name !== value.name.trim() ||
+		[...value.name].some((character) => {
+			const codePoint = character.codePointAt(0) ?? 0;
+			return codePoint < 32 || codePoint === 127;
+		})
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"citizen name must be canonical visible text",
+		);
+	if (
+		value.valueIds.length < 1 ||
+		value.valueIds.length > 4 ||
+		new Set(value.valueIds).size !== value.valueIds.length
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"citizen values must contain one to four unique identifiers",
+		);
+	for (const valueId of value.valueIds) identifier(valueId, "citizen valueId");
 	requireReference(state.references.citizenIds, value.citizenId, "citizen");
 	requireReference(
 		state.references.settlementIds,

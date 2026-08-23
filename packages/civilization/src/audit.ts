@@ -27,6 +27,13 @@ export function auditCivilizationState(
 			issues.push(`citizen key ${citizenId} differs from its identifier`);
 		if (!state.references.citizenIds.includes(citizenId))
 			issues.push(`citizen ${citizenId} lacks a genesis reference`);
+		if (
+			citizen.name.length < 1 ||
+			citizen.name !== citizen.name.trim() ||
+			citizen.valueIds.length < 1 ||
+			new Set(citizen.valueIds).size !== citizen.valueIds.length
+		)
+			issues.push(`citizen ${citizenId} lacks canonical identity`);
 		if (!state.references.settlementIds.includes(citizen.settlementId))
 			issues.push(`citizen ${citizenId} has an unknown settlement`);
 		if (!state.references.siteIds.includes(citizen.siteId))
@@ -110,8 +117,25 @@ export function auditCivilizationState(
 				);
 		}
 	}
-	const reconstructed: Record<string, number> = {};
-	const consumedByProjectResource: Record<string, number> = {};
+	const reconstructed: Record<string, number> = {
+		...(state.accountingCheckpoint?.stockQuantities ?? {}),
+	};
+	const consumedByProjectResource: Record<string, number> = {
+		...(state.accountingCheckpoint?.consumedByProjectResource ?? {}),
+	};
+	if (
+		state.accountingCheckpoint !== null &&
+		state.accountingCheckpoint.simulationTime > state.simulationTime
+	)
+		issues.push("accounting checkpoint is from the future");
+	for (const [stockId, checkpointQuantity] of Object.entries(
+		state.accountingCheckpoint?.stockQuantities ?? {},
+	))
+		if (state.stocks[stockId] === undefined || checkpointQuantity < 0)
+			issues.push(`accounting checkpoint has invalid stock ${stockId}`);
+	for (const value of Object.values(state.schedulerTotals))
+		if (!Number.isSafeInteger(value) || value < 0)
+			issues.push("scheduler totals contain an invalid quantity");
 	const consumedByCitizenTime: Record<string, number> = {};
 	const consumedByCitizenTimeResource: Record<string, number> = {};
 	const seenEntries = new Set<string>();
@@ -173,7 +197,7 @@ export function auditCivilizationState(
 				`accounting entry ${entry.entryId} is not a valid stock creation`,
 			);
 		if (
-			entry.kind === "transfer" &&
+			(entry.kind === "transfer" || entry.kind === "transport") &&
 			Object.values(byResource).some((net) => net !== 0)
 		)
 			issues.push(

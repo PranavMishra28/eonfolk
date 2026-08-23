@@ -55,6 +55,8 @@ function stockIsActorObservable(
 			) ?? false
 		);
 	}
+	if (stock.owner.kind === "settlement")
+		return stock.owner.settlementId === actor.settlementId;
 	return false;
 }
 

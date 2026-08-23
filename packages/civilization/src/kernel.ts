@@ -15,6 +15,7 @@ import type {
 	StorageState,
 } from "@eonfolk/protocol";
 
+import { assertCivilizationInvariants } from "./audit.js";
 import {
 	appendSettlementAndSiteReferences,
 	appendSettlementReference,
@@ -117,10 +118,11 @@ function nextEntry(
 		readonly recipeId?: string;
 		readonly projectId?: string;
 		readonly subjectCitizenId?: string;
+		readonly entryOffset?: number;
 	} = {},
 ): AccountingEntry {
 	return {
-		entryId: `accounting:${state.revision + 1}:${state.accounting.length + 1}`,
+		entryId: `accounting:${state.revision + 1}:${state.accounting.length + (context.entryOffset ?? 1)}`,
 		kind,
 		simulationTime: atSimulationTime,
 		stockDeltas,
@@ -158,131 +160,210 @@ function stockIsAccessibleToCitizen(
 	}
 }
 
-/** Atomically consumes reachable food and water and persists any unmet need. */
-export function consumeCitizenDailyNeeds(
+export interface DailyNeedInput {
+	readonly citizenId: string;
+	readonly foodResourceTypeIds: readonly string[];
+	readonly waterResourceTypeIds: readonly string[];
+	readonly stockIds: readonly string[];
+}
+
+/** Atomically consumes reachable food and water for a deterministic citizen batch. */
+export function consumeCitizensDailyNeeds(
 	state: CivilizationState,
-	input: {
-		readonly citizenId: string;
-		readonly foodResourceTypeIds: readonly string[];
-		readonly waterResourceTypeIds: readonly string[];
-		readonly stockIds: readonly string[];
-		readonly atSimulationTime: number;
-	},
+	inputs: readonly DailyNeedInput[],
+	atSimulationTime: number,
 ): CivilizationState {
-	simulationTime(input.atSimulationTime);
-	const citizen = present(state.citizens, input.citizenId, "citizen");
-	if (citizen.residenceState !== "resident")
-		throw new CivilizationError(
-			"INVALID_STATE",
-			"only a resident citizen consumes daily needs",
-		);
-	if (
-		input.foodResourceTypeIds.length === 0 ||
-		input.waterResourceTypeIds.length === 0 ||
-		new Set(input.foodResourceTypeIds).size !==
-			input.foodResourceTypeIds.length ||
-		new Set(input.waterResourceTypeIds).size !==
-			input.waterResourceTypeIds.length ||
-		input.foodResourceTypeIds.some((id) =>
-			input.waterResourceTypeIds.includes(id),
-		)
-	)
+	simulationTime(atSimulationTime);
+	if (new Set(inputs.map(({ citizenId }) => citizenId)).size !== inputs.length)
 		throw new CivilizationError(
 			"INVALID_INPUT",
-			"food and water resource classes must be non-empty and disjoint",
+			"daily need batch contains duplicate citizens",
 		);
-	for (const resourceTypeId of [
-		...input.foodResourceTypeIds,
-		...input.waterResourceTypeIds,
-	])
-		present(state.resourceDefinitions, resourceTypeId, "need resource");
-	const outcomeId = `need:${input.citizenId}:${input.atSimulationTime}`;
-	if (state.needOutcomes.some((outcome) => outcome.outcomeId === outcomeId))
-		throw new CivilizationError(
-			"ALREADY_EXISTS",
-			`daily need outcome ${outcomeId} already exists`,
-		);
-	const uniqueStockIds = [...new Set(input.stockIds)].sort();
-	const deltas: Record<string, number> = {};
-	const consume = (
-		resourceTypeIds: readonly string[],
-		required: number,
-	): number => {
-		let remaining = required;
-		for (const stockId of uniqueStockIds) {
-			if (remaining === 0) break;
-			const stock = present(state.stocks, stockId, "need stock");
-			if (
-				!resourceTypeIds.includes(stock.resourceTypeId) ||
-				!stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+	if (inputs.length === 0) return state;
+	const quantities = Object.fromEntries(
+		Object.values(state.stocks).map((stock) => [stock.stockId, stock.quantity]),
+	);
+	const touchedStockIds = new Set<string>();
+	const outcomes: DailyNeedOutcome[] = [];
+	const entries: AccountingEntry[] = [];
+	for (const input of inputs) {
+		const citizen = present(state.citizens, input.citizenId, "citizen");
+		if (citizen.residenceState !== "resident")
+			throw new CivilizationError(
+				"INVALID_STATE",
+				"only a resident citizen consumes daily needs",
+			);
+		if (
+			input.foodResourceTypeIds.length === 0 ||
+			input.waterResourceTypeIds.length === 0 ||
+			new Set(input.foodResourceTypeIds).size !==
+				input.foodResourceTypeIds.length ||
+			new Set(input.waterResourceTypeIds).size !==
+				input.waterResourceTypeIds.length ||
+			input.foodResourceTypeIds.some((id) =>
+				input.waterResourceTypeIds.includes(id),
 			)
-				continue;
-			const available = stock.quantity - stock.reservedQuantity;
-			const amount = Math.min(remaining, available);
-			if (amount > 0) {
-				deltas[stockId] = (deltas[stockId] ?? 0) - amount;
-				remaining -= amount;
+		)
+			throw new CivilizationError(
+				"INVALID_INPUT",
+				"food and water resource classes must be non-empty and disjoint",
+			);
+		for (const resourceTypeId of [
+			...input.foodResourceTypeIds,
+			...input.waterResourceTypeIds,
+		])
+			present(state.resourceDefinitions, resourceTypeId, "need resource");
+		const outcomeId = `need:${input.citizenId}:${atSimulationTime}`;
+		if (state.needOutcomes.some((outcome) => outcome.outcomeId === outcomeId))
+			throw new CivilizationError(
+				"ALREADY_EXISTS",
+				`daily need outcome ${outcomeId} already exists`,
+			);
+		const uniqueStockIds = [...new Set(input.stockIds)].sort();
+		const deltas: Record<string, number> = {};
+		const consume = (
+			resourceTypeIds: readonly string[],
+			required: number,
+		): number => {
+			let remaining = required;
+			for (const stockId of uniqueStockIds) {
+				if (remaining === 0) break;
+				const stock = present(state.stocks, stockId, "need stock");
+				if (
+					!resourceTypeIds.includes(stock.resourceTypeId) ||
+					!stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+				)
+					continue;
+				const available = (quantities[stockId] ?? 0) - stock.reservedQuantity;
+				const amount = Math.min(remaining, available);
+				if (amount > 0) {
+					deltas[stockId] = (deltas[stockId] ?? 0) - amount;
+					quantities[stockId] = (quantities[stockId] ?? 0) - amount;
+					touchedStockIds.add(stockId);
+					remaining -= amount;
+				}
 			}
-		}
-		return required - remaining;
-	};
-	const foodConsumedUnits = consume(
-		input.foodResourceTypeIds,
-		citizen.foodRequiredUnitsPerDay,
-	);
-	const waterConsumedUnits = consume(
-		input.waterResourceTypeIds,
-		citizen.waterRequiredUnitsPerDay,
-	);
-	const groundedStockIds = uniqueStockIds.filter((stockId) => {
-		const stock = present(state.stocks, stockId, "need stock");
-		return (
-			[...input.foodResourceTypeIds, ...input.waterResourceTypeIds].includes(
-				stock.resourceTypeId,
-			) && stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+			return required - remaining;
+		};
+		const foodConsumedUnits = consume(
+			input.foodResourceTypeIds,
+			citizen.foodRequiredUnitsPerDay,
 		);
-	});
+		const waterConsumedUnits = consume(
+			input.waterResourceTypeIds,
+			citizen.waterRequiredUnitsPerDay,
+		);
+		const groundedStockIds = uniqueStockIds.filter((stockId) => {
+			const stock = present(state.stocks, stockId, "need stock");
+			return (
+				[...input.foodResourceTypeIds, ...input.waterResourceTypeIds].includes(
+					stock.resourceTypeId,
+				) && stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+			);
+		});
+		outcomes.push({
+			outcomeId,
+			citizenId: citizen.citizenId,
+			evaluatedAtSimulationTime: atSimulationTime,
+			foodRequiredUnits: citizen.foodRequiredUnitsPerDay,
+			foodConsumedUnits,
+			foodResourceTypeIds: [...input.foodResourceTypeIds].sort(),
+			waterRequiredUnits: citizen.waterRequiredUnitsPerDay,
+			waterConsumedUnits,
+			waterResourceTypeIds: [...input.waterResourceTypeIds].sort(),
+			sourceStockIds: groundedStockIds,
+		});
+		const stockDeltas = Object.entries(deltas)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([stockId, quantityDelta]) => ({ stockId, quantityDelta }));
+		if (stockDeltas.length > 0)
+			entries.push(
+				nextEntry(state, "need-consumption", stockDeltas, atSimulationTime, {
+					subjectCitizenId: citizen.citizenId,
+					entryOffset: entries.length + 1,
+				}),
+			);
+	}
 	const stocks = { ...state.stocks };
-	for (const [stockId, delta] of Object.entries(deltas)) {
+	for (const stockId of [...touchedStockIds].sort()) {
 		const stock = present(state.stocks, stockId, "need stock");
 		stocks[stockId] = {
 			...stock,
-			quantity: stock.quantity + delta,
-			updatedAtSimulationTime: input.atSimulationTime,
+			quantity: quantities[stockId] ?? stock.quantity,
+			updatedAtSimulationTime: atSimulationTime,
 		};
 	}
-	const outcome: DailyNeedOutcome = {
-		outcomeId,
-		citizenId: citizen.citizenId,
-		evaluatedAtSimulationTime: input.atSimulationTime,
-		foodRequiredUnits: citizen.foodRequiredUnitsPerDay,
-		foodConsumedUnits,
-		foodResourceTypeIds: [...input.foodResourceTypeIds].sort(),
-		waterRequiredUnits: citizen.waterRequiredUnitsPerDay,
-		waterConsumedUnits,
-		waterResourceTypeIds: [...input.waterResourceTypeIds].sort(),
-		sourceStockIds: groundedStockIds,
-	};
-	const stockDeltas = Object.entries(deltas)
-		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([stockId, quantityDelta]) => ({ stockId, quantityDelta }));
-	const accounting =
-		stockDeltas.length === 0
-			? state.accounting
-			: [
-					...state.accounting,
-					nextEntry(
-						state,
-						"need-consumption",
-						stockDeltas,
-						input.atSimulationTime,
-						{ subjectCitizenId: citizen.citizenId },
-					),
-				];
 	return evolve(
 		state,
-		{ stocks, needOutcomes: [...state.needOutcomes, outcome], accounting },
-		input.atSimulationTime,
+		{
+			stocks,
+			needOutcomes: [...state.needOutcomes, ...outcomes],
+			accounting: [...state.accounting, ...entries],
+		},
+		atSimulationTime,
+	);
+}
+
+/** Atomically consumes reachable food and water and persists any unmet need. */
+export function consumeCitizenDailyNeeds(
+	state: CivilizationState,
+	input: DailyNeedInput & { readonly atSimulationTime: number },
+): CivilizationState {
+	const { atSimulationTime, ...need } = input;
+	return consumeCitizensDailyNeeds(state, [need], atSimulationTime);
+}
+
+/** Creates a bounded authoritative baseline after append-only history was audited. */
+export function checkpointCivilizationAccounting(
+	state: CivilizationState,
+): CivilizationState {
+	assertCivilizationInvariants(state);
+	const consumedByProjectResource: Record<string, number> = {
+		...(state.accountingCheckpoint?.consumedByProjectResource ?? {}),
+	};
+	for (const entry of state.accounting) {
+		if (entry.kind !== "project-consumption" || entry.projectId === null)
+			continue;
+		for (const delta of entry.stockDeltas) {
+			const resourceTypeId = present(
+				state.stocks,
+				delta.stockId,
+				"checkpoint stock",
+			).resourceTypeId;
+			const key = `${entry.projectId}:${resourceTypeId}`;
+			consumedByProjectResource[key] =
+				(consumedByProjectResource[key] ?? 0) - delta.quantityDelta;
+		}
+	}
+	const processes = Object.fromEntries(
+		Object.values(state.processes)
+			.filter((process) => process.state === "active")
+			.map((process) => [process.processId, process]),
+	);
+	const processBindings = Object.fromEntries(
+		Object.keys(processes).map((processId) => [
+			processId,
+			present(state.processBindings, processId, "active process binding"),
+		]),
+	);
+	return evolve(
+		state,
+		{
+			accountingCheckpoint: {
+				simulationTime: state.simulationTime,
+				stockQuantities: Object.fromEntries(
+					Object.values(state.stocks)
+						.sort((left, right) => left.stockId.localeCompare(right.stockId))
+						.map((stock) => [stock.stockId, stock.quantity]),
+				),
+				consumedByProjectResource,
+			},
+			accounting: [],
+			needOutcomes: [],
+			processes,
+			processBindings,
+		},
+		state.simulationTime,
 	);
 }
 
@@ -439,6 +520,7 @@ export function transferResources(
 	state: CivilizationState,
 	lines: readonly TransferLine[],
 	atSimulationTime: number,
+	context: { readonly kind?: "transfer" | "transport" } = {},
 ): CivilizationState {
 	simulationTime(atSimulationTime);
 	if (atSimulationTime < state.simulationTime)
@@ -493,7 +575,7 @@ export function transferResources(
 	}
 	const entry = nextEntry(
 		state,
-		"transfer",
+		context.kind ?? "transfer",
 		Object.entries(deltas)
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([stockId, quantityDelta]) => ({ stockId, quantityDelta })),

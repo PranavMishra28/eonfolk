@@ -107,6 +107,7 @@ describe("deterministic civilization experiment", () => {
 		expect(new Set(first.steps.map((step) => step.stepHash))).toHaveLength(365);
 		expect(first.finalStateHash).toBe(first.steps.at(-1)?.postStateHash);
 		expect(first.events.map((event) => event.kind)).toEqual([
+			"project-stalled",
 			"project-approved",
 			"project-completed",
 			"migration-prepared",
@@ -167,6 +168,11 @@ describe("deterministic civilization experiment", () => {
 		expect(first.metrics.departedPopulation).toBe(0);
 		expect(first.metrics.householdCount).toBe(4);
 		expect(first.metrics.relationshipCount).toBe(8);
+		expect(first.metrics.completedProductionRuns).toBeGreaterThan(0);
+		expect(first.metrics.consumedNeedUnits).toBeGreaterThan(0);
+		expect(first.metrics.transportedResourceUnits).toBeGreaterThan(0);
+		expect(first.metrics.groundedNeedOutcomes).toBeGreaterThanOrEqual(8 * 364);
+		expect(first.metrics.agreementGatedInstitutionProjects).toBe(1);
 		expect(first.metrics.averagePressureBasisPointsByKind).toEqual({
 			food: expect.any(Number),
 			water: expect.any(Number),
@@ -184,10 +190,22 @@ describe("deterministic civilization experiment", () => {
 				(activity) =>
 					activity.canonicalAction.sourceKind === "current-behavior" &&
 					activity.canonicalAction.eventId === null &&
-					activity.location.kind === "interaction-slot",
+					activity.location.kind === "interaction-slot" &&
+					activity.routine.schemaVersion === "eonfolk-civilization-routine-v1",
+			),
+		).toBe(true);
+		expect(
+			first.activities.some(
+				(activity) =>
+					activity.routine.kind === "transport" &&
+					activity.routine.route !== null &&
+					first.world.routes[activity.routine.route.routeId] !== undefined,
 			),
 		).toBe(true);
 		expect(first.state.citizens["citizen-01"]).toMatchObject({
+			name: "Mara Vale",
+			valueIds: ["stewardship", "curiosity"],
+			primaryRoleId: "expedition-steward",
 			settlementId: "settlement-second",
 			siteId: "settlement-second:founding-site",
 			residenceState: "resident",
@@ -249,13 +267,23 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			(first.state.stocks["stock-migrant-timber"]?.quantity ?? 0) >= 8,
 		).toBe(true);
-		expect(first.metrics.stockTotalsByResource.grain).toBe(
-			first.seedConditions.initialGrain,
-		);
+		const identities = Object.values(first.state.citizens).map((citizen) => ({
+			name: citizen.name,
+			roleId: citizen.primaryRoleId,
+			valueIds: citizen.valueIds,
+		}));
+		expect(new Set(identities.map(({ name }) => name)).size).toBe(8);
 		expect(
-			(first.metrics.stockTotalsByResource.timber ?? 0) +
-				first.metrics.consumedProjectTimber,
-		).toBe(first.seedConditions.initialTimber);
+			identities.every(
+				({ name, roleId, valueIds }) =>
+					name.length > 0 && roleId !== null && valueIds.length >= 1,
+			),
+		).toBe(true);
+		expect(JSON.parse(jcs(first.state)).citizens["citizen-01"]).toMatchObject({
+			name: "Mara Vale",
+			primaryRoleId: "expedition-steward",
+			valueIds: ["stewardship", "curiosity"],
+		});
 		expect(first.metrics.invariantIssues).toEqual([]);
 		expect(first.limitations.join(" ")).not.toMatch(/cannot materialize/u);
 		assertCivilizationInvariants(first.state);
@@ -277,6 +305,11 @@ describe("deterministic civilization experiment", () => {
 			"destination-suitability-below-threshold",
 		);
 		expect(run.metrics.completedProjects).toBe(0);
+		expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
+		expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
+		expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
+		expect(run.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
+		expect(run.metrics.agreementGatedInstitutionProjects).toBe(0);
 		expect(run.metrics.arrivedMigrations).toBe(0);
 		expect(run.metrics.viableFoundings).toBe(0);
 		expect(run.metrics.materializedSettlements).toBe(0);
@@ -326,6 +359,15 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			stagnationRuns.every((run) => run.metrics.materializedSettlements === 0),
 		).toBe(true);
+		for (const run of first.runs) {
+			expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
+			expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
+			expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
+			expect(run.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
+			expect(run.metrics.modelInvocations).toBe(0);
+			expect(run.metrics.population).toBeLessThanOrEqual(8);
+			expect(run.metrics.invariantIssues).toEqual([]);
+		}
 
 		const thirty = progressionRuns[0];
 		const year = progressionRuns[2];
@@ -352,16 +394,32 @@ describe("deterministic civilization experiment", () => {
 			horizonDays: 1,
 		});
 		expect(firstEvaluation.events.map((event) => event.kind)).toEqual([
+			"project-stalled",
+		]);
+		expect(
+			firstEvaluation.events.every((event) => event.simulationTime === 86_400),
+		).toBe(true);
+		expect(
+			firstEvaluation.state.migrationJourneys["migration-founding-party"],
+		).toBeUndefined();
+		const resourceAuthorized = await runCivilizationExperiment({
+			world,
+			horizonDays: 2,
+		});
+		expect(resourceAuthorized.events.map((event) => event.kind)).toEqual([
+			"project-stalled",
 			"project-approved",
 			"project-completed",
 			"migration-prepared",
 			"migration-departed",
 		]);
 		expect(
-			firstEvaluation.events.every((event) => event.simulationTime === 86_400),
+			resourceAuthorized.events
+				.slice(1)
+				.every((event) => event.simulationTime === 2 * 86_400),
 		).toBe(true);
 		expect(
-			firstEvaluation.state.migrationJourneys["migration-founding-party"]
+			resourceAuthorized.state.migrationJourneys["migration-founding-party"]
 				?.completedTraversalUnits,
 		).toBe(0);
 		const completed = await runCivilizationExperiment({

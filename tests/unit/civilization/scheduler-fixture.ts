@@ -30,10 +30,12 @@ function citizen(citizenId: string, residenceState: "resident" | "departed") {
 	return {
 		schemaVersion: "eonfolk-civilization-social-v1" as const,
 		citizenId,
+		name: `Person ${citizenId}`,
+		valueIds: ["care", "reliability"],
 		settlementId: SETTLEMENT,
 		siteId: WORK_SITE,
 		householdId: null,
-		primaryRoleId: null,
+		primaryRoleId: "resident",
 		residenceState,
 		arrivedAtSimulationTime: 0,
 		departedAtSimulationTime: residenceState === "departed" ? 0 : null,
@@ -333,6 +335,7 @@ export function schedulerFixture(
 		transportLanes: [
 			{
 				laneId: "lane-grain",
+				routeId: "route-grain",
 				fromStockId: "stock-grain-source",
 				toStockId: "stock-grain-work",
 				carrierCitizenId: "citizen-a",
@@ -388,6 +391,16 @@ export function registerSchedulerTests(): void {
 			const { state, policy } = schedulerFixture();
 			const result = advanceGeneralizedScheduler(state, policy);
 			expect(result.modelInvocations).toBe(0);
+			expect(result.routines).toHaveLength(3);
+			expect(
+				result.routines.find(({ citizenId }) => citizenId === "citizen-a"),
+			).toMatchObject({
+				schemaVersion: "eonfolk-civilization-routine-v1",
+				citizenId: "citizen-a",
+			});
+			expect(
+				result.state.accounting.some((entry) => entry.kind === "transport"),
+			).toBe(true);
 			expect(result.actions.map(({ kind }) => kind)).toEqual(
 				expect.arrayContaining([
 					"transported",
@@ -569,6 +582,7 @@ export function registerSchedulerTests(): void {
 				expect(jcs(first.state)).toBe(jcs(second.state));
 				expect(first.completedSteps).toBe(days);
 				expect(first.modelInvocations).toBe(0);
+				expect(first.routines).toHaveLength(3);
 				expect(first.state.simulationTime).toBe(days * DAY);
 				expect(first.state.citizens["citizen-c"]?.residenceState).toBe(
 					"resident",

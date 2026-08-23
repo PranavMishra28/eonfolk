@@ -5,7 +5,7 @@ import {
 	completeProduction,
 	completeProject,
 	completeProjectMilestone,
-	consumeCitizenDailyNeeds,
+	consumeCitizensDailyNeeds,
 	consumeProjectResource,
 	contributeProjectLabor,
 	deliverProjectResource,
@@ -26,6 +26,7 @@ const DAY_SECONDS = 86_400;
 
 export interface SchedulerTransportLane {
 	readonly laneId: string;
+	readonly routeId: string;
 	readonly fromStockId: string;
 	readonly toStockId: string;
 	readonly carrierCitizenId: string;
@@ -98,7 +99,30 @@ export interface SchedulerAction {
 export interface SchedulerStepResult {
 	readonly state: CivilizationState;
 	readonly actions: readonly SchedulerAction[];
+	readonly routines: readonly SchedulerRoutineAssignment[];
 	readonly modelInvocations: 0;
+}
+
+export interface SchedulerRoutineAssignment {
+	readonly schemaVersion: "eonfolk-civilization-routine-v1";
+	readonly routineId: string;
+	readonly citizenId: string;
+	readonly kind:
+		| "produce"
+		| "transport"
+		| "construct"
+		| "consume"
+		| "social-maintenance"
+		| "travel"
+		| "away";
+	readonly subjectId: string;
+	readonly assignedAtSimulationTime: number;
+	readonly route: {
+		readonly routeId: string;
+		readonly fromSiteId: string;
+		readonly toSiteId: string;
+		readonly traversalUnits: number;
+	} | null;
 }
 
 export interface SchedulerHorizonResult extends SchedulerStepResult {
@@ -173,6 +197,7 @@ function validatePolicy(
 		"demographic ruleId",
 	);
 	for (const lane of policy.transportLanes) {
+		identifier(lane.routeId, "transport routeId");
 		positiveQuantity(lane.traversalUnits, "lane traversalUnits");
 		positiveQuantity(lane.capacityUnitsPerStep, "lane capacityUnitsPerStep");
 		positiveQuantity(
@@ -313,6 +338,95 @@ function validatePolicy(
 				`demographic rule ${rule.ruleId} is invalid`,
 			);
 	}
+}
+
+function routineAssignments(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	actions: readonly SchedulerAction[],
+	atSimulationTime: number,
+): readonly SchedulerRoutineAssignment[] {
+	const action = (kind: SchedulerActionKind, subjectId?: string) =>
+		actions.find(
+			(candidate) =>
+				candidate.kind === kind &&
+				(subjectId === undefined || candidate.subjectId === subjectId),
+		);
+	return Object.values(state.citizens)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+		.map((citizen) => {
+			let kind: SchedulerRoutineAssignment["kind"] = "social-maintenance";
+			let subjectId = citizen.citizenId;
+			let route: SchedulerRoutineAssignment["route"] = null;
+			if (citizen.residenceState === "departed") kind = "away";
+			else if (citizen.residenceState === "travelling") {
+				kind = "travel";
+				subjectId =
+					Object.values(state.migrations)
+						.filter((migration) =>
+							migration.citizenIds.includes(citizen.citizenId),
+						)
+						.sort((left, right) =>
+							left.migrationId.localeCompare(right.migrationId),
+						)[0]?.migrationId ?? citizen.citizenId;
+			} else {
+				const project = Object.values(state.projects)
+					.filter(
+						(candidate) =>
+							candidate.participantCitizenIds.includes(citizen.citizenId) &&
+							action("project-labor", candidate.projectId) !== undefined,
+					)
+					.sort((left, right) =>
+						left.projectId.localeCompare(right.projectId),
+					)[0];
+				const process = Object.values(state.processes)
+					.filter(
+						(candidate) =>
+							candidate.participantCitizenIds.includes(citizen.citizenId) &&
+							action("process-started", candidate.processId) !== undefined,
+					)
+					.sort((left, right) =>
+						left.processId.localeCompare(right.processId),
+					)[0];
+				const lane = [...policy.transportLanes]
+					.filter(
+						(candidate) =>
+							candidate.carrierCitizenId === citizen.citizenId &&
+							action("transported", candidate.laneId) !== undefined,
+					)
+					.sort((left, right) => left.laneId.localeCompare(right.laneId))[0];
+				if (project !== undefined) {
+					kind = "construct";
+					subjectId = project.projectId;
+				} else if (process !== undefined) {
+					kind = "produce";
+					subjectId = process.processId;
+				} else if (lane !== undefined) {
+					const from = state.stocks[lane.fromStockId];
+					const to = state.stocks[lane.toStockId];
+					kind = "transport";
+					subjectId = lane.laneId;
+					route = {
+						routeId: lane.routeId,
+						fromSiteId: state.storages[from?.storageId ?? ""]?.siteId ?? "",
+						toSiteId: state.storages[to?.storageId ?? ""]?.siteId ?? "",
+						traversalUnits: lane.traversalUnits,
+					};
+				} else if (action("need-evaluated", citizen.citizenId) !== undefined) {
+					kind = "consume";
+					subjectId = `need:${citizen.citizenId}:${atSimulationTime}`;
+				}
+			}
+			return {
+				schemaVersion: "eonfolk-civilization-routine-v1" as const,
+				routineId: `routine:${atSimulationTime}:${citizen.citizenId}`,
+				citizenId: citizen.citizenId,
+				kind,
+				subjectId,
+				assignedAtSimulationTime: atSimulationTime,
+				route,
+			};
+		});
 }
 
 function availableLabor(state: CivilizationState): Record<string, number> {
@@ -740,6 +854,7 @@ export function advanceGeneralizedScheduler(
 						},
 					],
 					atSimulationTime,
+					{ kind: "transport" },
 				);
 				labor[lane.carrierCitizenId] =
 					(labor[lane.carrierCitizenId] ?? 0) - transportLabor;
@@ -799,17 +914,20 @@ export function advanceGeneralizedScheduler(
 			quantity: recipe.laborSeconds,
 		});
 	}
-	for (const citizen of Object.values(next.citizens).sort((left, right) =>
-		left.citizenId.localeCompare(right.citizenId),
-	)) {
-		if (citizen.residenceState !== "resident") continue;
-		next = consumeCitizenDailyNeeds(next, {
+	const residents = Object.values(next.citizens)
+		.filter((citizen) => citizen.residenceState === "resident")
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId));
+	next = consumeCitizensDailyNeeds(
+		next,
+		residents.map((citizen) => ({
 			citizenId: citizen.citizenId,
 			foodResourceTypeIds: policy.foodResourceTypeIds,
 			waterResourceTypeIds: policy.waterResourceTypeIds,
 			stockIds: policy.needStockIdsByCitizen[citizen.citizenId] ?? [],
-			atSimulationTime,
-		});
+		})),
+		atSimulationTime,
+	);
+	for (const citizen of residents) {
 		actions.push({
 			kind: "need-evaluated",
 			subjectId: citizen.citizenId,
@@ -872,7 +990,49 @@ export function advanceGeneralizedScheduler(
 	}
 	if (next.simulationTime < atSimulationTime)
 		next = evolve(next, {}, atSimulationTime);
-	return { state: next, actions, modelInvocations: 0 };
+	const dailyOutcomes = next.needOutcomes.filter(
+		(outcome) => outcome.evaluatedAtSimulationTime === atSimulationTime,
+	);
+	next = evolve(
+		next,
+		{
+			schedulerTotals: {
+				completedProductionRuns:
+					state.schedulerTotals.completedProductionRuns +
+					actions.filter(({ kind }) => kind === "process-completed").length,
+				consumedNeedUnits:
+					state.schedulerTotals.consumedNeedUnits +
+					dailyOutcomes.reduce(
+						(total, outcome) =>
+							total + outcome.foodConsumedUnits + outcome.waterConsumedUnits,
+						0,
+					),
+				transportedResourceUnits:
+					state.schedulerTotals.transportedResourceUnits +
+					actions
+						.filter(({ kind }) => kind === "transported")
+						.reduce((total, action) => total + action.quantity, 0),
+				groundedNeedOutcomes:
+					state.schedulerTotals.groundedNeedOutcomes + dailyOutcomes.length,
+				unmetNeedUnits:
+					state.schedulerTotals.unmetNeedUnits +
+					dailyOutcomes.reduce(
+						(total, outcome) =>
+							total +
+							(outcome.foodRequiredUnits - outcome.foodConsumedUnits) +
+							(outcome.waterRequiredUnits - outcome.waterConsumedUnits),
+						0,
+					),
+			},
+		},
+		atSimulationTime,
+	);
+	return {
+		state: next,
+		actions,
+		routines: routineAssignments(next, policy, actions, atSimulationTime),
+		modelInvocations: 0,
+	};
 }
 
 export function runGeneralizedSchedulerHorizon(
@@ -883,10 +1043,18 @@ export function runGeneralizedSchedulerHorizon(
 	quantity(steps, "scheduler horizon steps");
 	let next = state;
 	const actions: SchedulerAction[] = [];
+	let routines: readonly SchedulerRoutineAssignment[] = [];
 	for (let index = 0; index < steps; index += 1) {
 		const result = advanceGeneralizedScheduler(next, policy);
 		next = result.state;
 		actions.push(...result.actions);
+		routines = result.routines;
 	}
-	return { state: next, actions, modelInvocations: 0, completedSteps: steps };
+	return {
+		state: next,
+		actions,
+		routines,
+		modelInvocations: 0,
+		completedSteps: steps,
+	};
 }

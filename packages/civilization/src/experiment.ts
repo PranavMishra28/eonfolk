@@ -21,21 +21,18 @@ import {
 	advanceFounding,
 	advanceMigration,
 	advanceMigrationJourney,
-	approveProject,
-	completeProject,
-	completeProjectMilestone,
-	consumeProjectResource,
-	contributeProjectLabor,
-	deliverProjectResource,
+	checkpointCivilizationAccounting,
 	registerFounding,
+	registerAgreement,
+	registerInstitution,
 	registerMigration,
 	registerMigrationJourney,
 	registerProject,
+	registerRecipe,
 	registerResourceDefinition,
 	registerStock,
 	registerStorage,
 	recordFoundingMaterialization,
-	startProject,
 } from "./kernel.js";
 import {
 	formHousehold,
@@ -43,7 +40,14 @@ import {
 	registerRelationship,
 } from "./population.js";
 import { deriveCanonicalPressures } from "./pressures.js";
-import { createCivilizationState, evolve } from "./state.js";
+import {
+	advanceGeneralizedScheduler,
+	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
+	type GeneralizedSchedulerPolicy,
+	type SchedulerAction,
+	type SchedulerRoutineAssignment,
+} from "./scheduler.js";
+import { createCivilizationState } from "./state.js";
 import type { CivilizationState } from "./types.js";
 
 export const CIVILIZATION_EXPERIMENT_SCHEMA_VERSION =
@@ -92,7 +96,58 @@ const RESOURCE_DEFINITIONS: readonly ResourceDefinition[] = [
 		divisible: true,
 		decayBasisPointsPerDay: 0,
 	},
+	{
+		resourceTypeId: "food",
+		name: "prepared-food",
+		unit: "count",
+		conserved: false,
+		divisible: false,
+		decayBasisPointsPerDay: 0,
+	},
+	{
+		resourceTypeId: "spring-water",
+		name: "spring-water",
+		unit: "milliliters",
+		conserved: true,
+		divisible: true,
+		decayBasisPointsPerDay: 0,
+	},
+	{
+		resourceTypeId: "standing-timber",
+		name: "standing-timber",
+		unit: "millimeters",
+		conserved: true,
+		divisible: true,
+		decayBasisPointsPerDay: 0,
+	},
 ] as const;
+
+const CITIZEN_IDENTITIES = Object.freeze([
+	{
+		name: "Mara Vale",
+		roleId: "expedition-steward",
+		valueIds: ["stewardship", "curiosity"],
+	},
+	{
+		name: "Iven Rook",
+		roleId: "provisioner",
+		valueIds: ["reliability", "care"],
+	},
+	{
+		name: "Sela Thorn",
+		roleId: "water-keeper",
+		valueIds: ["care", "prudence"],
+	},
+	{ name: "Orin Ash", roleId: "forester", valueIds: ["stewardship", "craft"] },
+	{ name: "Toma Reed", roleId: "builder", valueIds: ["craft", "solidarity"] },
+	{ name: "Nia Wren", roleId: "mediator", valueIds: ["fairness", "care"] },
+	{
+		name: "Bram Moss",
+		roleId: "keeper",
+		valueIds: ["continuity", "reliability"],
+	},
+	{ name: "Edda Fen", roleId: "scout", valueIds: ["curiosity", "prudence"] },
+] as const);
 
 export type CivilizationExperimentEventKind =
 	| "project-approved"
@@ -172,6 +227,12 @@ export interface CivilizationExperimentMetrics {
 		Record<"food" | "water" | "housing" | "labor" | "travel" | "social", number>
 	>;
 	readonly stockTotalsByResource: Readonly<Record<string, number>>;
+	readonly completedProductionRuns: number;
+	readonly consumedNeedUnits: number;
+	readonly transportedResourceUnits: number;
+	readonly groundedNeedOutcomes: number;
+	readonly unmetNeedUnits: number;
+	readonly agreementGatedInstitutionProjects: number;
 	readonly consumedProjectTimber: number;
 	readonly completedProjects: number;
 	readonly stalledProjects: number;
@@ -189,6 +250,7 @@ export interface CivilizationExperimentMetrics {
 export interface CivilizationScheduledActivity {
 	readonly schemaVersion: "eonfolk-generated-spatial-activity-v1";
 	readonly citizenId: string;
+	readonly routine: SchedulerRoutineAssignment;
 	readonly canonicalAction: Readonly<{
 		readonly actionId: string;
 		readonly sourceKind: "current-behavior";
@@ -252,9 +314,10 @@ export interface CivilizationExperimentMatrix {
 }
 
 export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
-	"The experiment materializes an undeveloped canonical settlement and founding ground, but does not yet add housing, institutions, or a generalized construction economy.",
+	"The experiment materializes an undeveloped second settlement and founding ground; the origin has one agreement-gated institution project, not a generalized construction economy.",
 	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
-	"Seeded grain, water, and timber are deterministic terrain-derived genesis proxies; canonical people, households, relationships, and grounded pressures exist, but daily production, consumption, birth/death, and ecology are not yet complete.",
+	"Terrain-derived source stocks feed audited daily transport, production, and consumption; birth, death, ecology, and replenishment beyond the bounded horizon remain excluded.",
+	"Scheduler routines expose canonical route and task inputs, but visual route traversal still requires downstream temporal-location authority and must not be inferred by presentation.",
 	"The experiment uses deterministic standard rules and invokes no model, cognition provider, training, or inference path.",
 ]);
 
@@ -424,14 +487,21 @@ function storage(
 	storageId: string,
 	siteId: string,
 	owner: StockOwner,
+	acceptedResourceTypeIds: readonly string[] = ["grain", "timber", "water"],
+	accessInstitutionId: string | null = null,
 ): StorageState {
 	return {
 		storageId,
 		siteId,
 		owner,
-		acceptedResourceTypeIds: ["grain", "timber", "water"],
-		capacityByResource: { grain: 100_000, timber: 100_000, water: 100_000 },
-		accessInstitutionId: null,
+		acceptedResourceTypeIds,
+		capacityByResource: Object.fromEntries(
+			acceptedResourceTypeIds.map((resourceTypeId) => [
+				resourceTypeId,
+				100_000,
+			]),
+		),
+		accessInstitutionId,
 	};
 }
 
@@ -439,7 +509,7 @@ function stock(
 	stockId: string,
 	storageId: string,
 	owner: StockOwner,
-	resourceTypeId: "grain" | "timber" | "water",
+	resourceTypeId: string,
 	quantity: number,
 	updatedAtSimulationTime = 0,
 ): StockState {
@@ -465,7 +535,10 @@ function projectRecord(
 		name: "expedition-kit",
 		settlementId,
 		siteId,
-		sponsor: { kind: "citizen", citizenId: participantCitizenId },
+		sponsor: {
+			kind: "institution",
+			institutionId: "institution-origin-council",
+		},
 		state: "proposed",
 		dependencyProjectIds: [],
 		milestones: [
@@ -501,16 +574,52 @@ function projectRecord(
 	};
 }
 
+interface CivilizationBootstrap {
+	readonly state: CivilizationState;
+	readonly schedulerPolicy: GeneralizedSchedulerPolicy;
+}
+
 function bootstrapCivilization(
 	world: GeneratedWorldState,
 	conditions: CivilizationExperimentSeedConditions,
-): CivilizationState {
+): CivilizationBootstrap {
 	const siteIds = Object.keys(world.sites).sort();
+	const origin = required(
+		values(world.settlements).find(
+			(settlement) => settlement.settlementId === conditions.originSettlementId,
+		),
+		"the origin settlement",
+	);
+	const originSiteIdSet = new Set(origin.siteIds);
 	const workSite =
 		values(world.sites)
-			.filter((site) => site.kind === "production")
+			.filter(
+				(site) =>
+					originSiteIdSet.has(site.siteId) && site.kind === "production",
+			)
 			.sort((left, right) => left.siteId.localeCompare(right.siteId))[0] ??
-		required(values(world.sites)[0], "a work site");
+		required(
+			values(world.sites)
+				.filter((site) => originSiteIdSet.has(site.siteId))
+				.sort((left, right) => left.siteId.localeCompare(right.siteId))[0],
+			"an origin work site",
+		);
+	const supplyRoute = required(
+		values(world.routes)
+			.filter(
+				(route) =>
+					originSiteIdSet.has(route.fromSiteId) &&
+					originSiteIdSet.has(route.toSiteId) &&
+					(route.fromSiteId === workSite.siteId ||
+						route.toSiteId === workSite.siteId),
+			)
+			.sort((left, right) => left.routeId.localeCompare(right.routeId))[0],
+		"an origin supply route",
+	);
+	const sourceSiteId =
+		supplyRoute.fromSiteId === workSite.siteId
+			? supplyRoute.toSiteId
+			: supplyRoute.fromSiteId;
 	const migrant = citizenId(0);
 	let state = createCivilizationState({
 		citizenIds: Array.from({ length: POPULATION }, (_, index) =>
@@ -523,18 +632,18 @@ function bootstrapCivilization(
 		capabilitiesByCitizen: Object.fromEntries(
 			Array.from({ length: POPULATION }, (_, index) => [
 				citizenId(index),
-				index === 0 ? { build: 8_000 } : { build: 2_000 },
+				{
+					build: index === 0 ? 8_000 : 2_000,
+					craft: index === 1 ? 8_000 : 2_000,
+					haul: index >= 4 && index <= 6 ? 8_000 : 2_000,
+					water: index === 2 ? 8_000 : 2_000,
+					forestry: index === 3 ? 8_000 : 2_000,
+				},
 			]),
 		),
 	});
 	for (const definition of RESOURCE_DEFINITIONS)
 		state = registerResourceDefinition(state, definition);
-	const origin = required(
-		values(world.settlements).find(
-			(settlement) => settlement.settlementId === conditions.originSettlementId,
-		),
-		"the origin settlement",
-	);
 	const originSites = values(world.sites)
 		.filter((site) => origin.siteIds.includes(site.siteId))
 		.sort((left, right) => left.siteId.localeCompare(right.siteId));
@@ -545,6 +654,7 @@ function bootstrapCivilization(
 		.sort((left, right) => left.buildingId.localeCompare(right.buildingId))[0];
 	for (let index = 0; index < POPULATION; index += 1) {
 		const id = citizenId(index);
+		const identity = required(CITIZEN_IDENTITIES[index], `identity for ${id}`);
 		const site = required(
 			originSites[index % originSites.length],
 			"an origin citizen site",
@@ -552,17 +662,19 @@ function bootstrapCivilization(
 		state = registerCitizen(state, {
 			schemaVersion: "eonfolk-civilization-social-v1",
 			citizenId: id,
+			name: identity.name,
+			valueIds: identity.valueIds,
 			settlementId: conditions.originSettlementId,
 			siteId: site.siteId,
 			householdId: null,
-			primaryRoleId: null,
+			primaryRoleId: identity.roleId,
 			residenceState: "resident",
 			arrivedAtSimulationTime: 0,
 			departedAtSimulationTime: null,
 			foodRequiredUnitsPerDay: 3,
 			waterRequiredUnitsPerDay: 4,
 			laborCapacitySecondsPerDay: 24_000,
-			committedLaborSecondsPerDay: index === 0 ? 3_600 : 0,
+			committedLaborSecondsPerDay: 0,
 			lastSocialSimulationTime: 0,
 			sourceEventIds: [],
 		});
@@ -630,7 +742,338 @@ function bootstrapCivilization(
 			conditions.initialTimber,
 		),
 	);
-	return state;
+	state = registerInstitution(state, {
+		institutionId: "institution-origin-council",
+		settlementId: conditions.originSettlementId,
+		name: "Origin Council",
+		kind: "settlement-council",
+		roles: [
+			{
+				roleId: "expedition-steward",
+				name: "Expedition Steward",
+				authorityKinds: ["work-project"],
+				capacity: 1,
+			},
+		],
+		memberships: [
+			{
+				citizenId: citizenId(0),
+				roleId: "expedition-steward",
+				joinedAtSimulationTime: 0,
+				leftAtSimulationTime: null,
+				sourceEventIds: [],
+			},
+		],
+		storageIds: [],
+		projectIds: [],
+		agreementIds: [],
+		normIds: [],
+		foundedAtSimulationTime: 0,
+		dissolvedAtSimulationTime: null,
+	});
+	state = registerAgreement(state, {
+		agreementId: "agreement-expedition-work",
+		parties: [
+			{ kind: "institution", institutionId: "institution-origin-council" },
+			{ kind: "settlement", settlementId: conditions.originSettlementId },
+		],
+		kind: "policy",
+		commitments: ["allow-project:expedition-preparation"],
+		authorityInstitutionId: "institution-origin-council",
+		effectiveFromSimulationTime: 0,
+		expiresAtSimulationTime: null,
+		state: "active",
+		sourceEventIds: [],
+	});
+	const settlementOwner = {
+		kind: "settlement" as const,
+		settlementId: conditions.originSettlementId,
+	};
+	const institutionOwner = {
+		kind: "institution" as const,
+		institutionId: "institution-origin-council",
+	};
+	state = registerStorage(
+		state,
+		storage("storage-origin-source", sourceSiteId, settlementOwner, [
+			"grain",
+			"spring-water",
+			"standing-timber",
+		]),
+	);
+	state = registerStorage(
+		state,
+		storage("storage-origin-work", workSite.siteId, settlementOwner, [
+			"grain",
+			"spring-water",
+			"standing-timber",
+			"food",
+			"water",
+		]),
+	);
+	state = registerStorage(
+		state,
+		storage(
+			"storage-origin-council",
+			workSite.siteId,
+			institutionOwner,
+			["timber"],
+			"institution-origin-council",
+		),
+	);
+	for (const item of [
+		stock(
+			"stock-source-grain",
+			"storage-origin-source",
+			settlementOwner,
+			"grain",
+			conditions.initialGrain * 500,
+		),
+		stock(
+			"stock-source-spring-water",
+			"storage-origin-source",
+			settlementOwner,
+			"spring-water",
+			conditions.initialWater * 600,
+		),
+		stock(
+			"stock-source-standing-timber",
+			"storage-origin-source",
+			settlementOwner,
+			"standing-timber",
+			conditions.initialTimber * 20,
+		),
+		stock(
+			"stock-work-grain",
+			"storage-origin-work",
+			settlementOwner,
+			"grain",
+			0,
+		),
+		stock(
+			"stock-work-spring-water",
+			"storage-origin-work",
+			settlementOwner,
+			"spring-water",
+			0,
+		),
+		stock(
+			"stock-work-standing-timber",
+			"storage-origin-work",
+			settlementOwner,
+			"standing-timber",
+			0,
+		),
+		stock(
+			"stock-origin-food",
+			"storage-origin-work",
+			settlementOwner,
+			"food",
+			24,
+		),
+		stock(
+			"stock-origin-water",
+			"storage-origin-work",
+			settlementOwner,
+			"water",
+			32,
+		),
+		stock(
+			"stock-origin-timber",
+			"storage-origin-council",
+			institutionOwner,
+			"timber",
+			0,
+		),
+	])
+		state = registerStock(state, item);
+	for (const recipe of [
+		{
+			recipeId: "recipe-daily-food",
+			name: "prepare-daily-food",
+			durationSeconds: 3_600,
+			laborSeconds: 7_200,
+			requiredCapabilities: [
+				{
+					capabilityId: "craft",
+					levelBasisPoints: 5_000,
+					sourceEventIds: [],
+				},
+			],
+			requiredBuildingKinds: [],
+			inputs: [{ resourceTypeId: "grain", quantity: 32 }],
+			outputs: [{ resourceTypeId: "food", quantity: 32 }],
+			byproducts: [],
+		},
+		{
+			recipeId: "recipe-daily-water",
+			name: "draw-daily-water",
+			durationSeconds: 3_600,
+			laborSeconds: 5_400,
+			requiredCapabilities: [
+				{
+					capabilityId: "water",
+					levelBasisPoints: 5_000,
+					sourceEventIds: [],
+				},
+			],
+			requiredBuildingKinds: [],
+			inputs: [{ resourceTypeId: "spring-water", quantity: 40 }],
+			outputs: [{ resourceTypeId: "water", quantity: 40 }],
+			byproducts: [],
+		},
+		{
+			recipeId: "recipe-building-timber",
+			name: "prepare-building-timber",
+			durationSeconds: 7_200,
+			laborSeconds: 7_200,
+			requiredCapabilities: [
+				{
+					capabilityId: "forestry",
+					levelBasisPoints: 5_000,
+					sourceEventIds: [],
+				},
+			],
+			requiredBuildingKinds: [],
+			inputs: [{ resourceTypeId: "standing-timber", quantity: 8 }],
+			outputs: [{ resourceTypeId: "timber", quantity: 8 }],
+			byproducts: [],
+		},
+	] as const)
+		state = registerRecipe(state, recipe);
+	if (conditions.expansionEligible) {
+		const project = projectRecord(
+			conditions.originSettlementId,
+			workSite.siteId,
+			citizenId(0),
+		);
+		state = registerProject(
+			state,
+			project,
+			storage(
+				project.storageId,
+				workSite.siteId,
+				{ kind: "project", projectId: project.projectId },
+				["timber"],
+			),
+		);
+		state = registerStock(
+			state,
+			stock(
+				"stock-project-timber",
+				project.storageId,
+				{ kind: "project", projectId: project.projectId },
+				"timber",
+				0,
+			),
+		);
+	}
+	const traversalUnits = Math.max(
+		1,
+		Math.ceil(supplyRoute.distanceMillimeters / 1_000),
+	);
+	const commonLane = {
+		routeId: supplyRoute.routeId,
+		traversalUnits,
+		laborSecondsPerTraversalUnit: 10,
+		minimumCapabilityBasisPoints: 5_000,
+	} as const;
+	const schedulerPolicy: GeneralizedSchedulerPolicy = {
+		schemaVersion: CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
+		stepSeconds: SECONDS_PER_DAY,
+		foodResourceTypeIds: ["food"],
+		waterResourceTypeIds: ["water"],
+		needStockIdsByCitizen: Object.fromEntries(
+			Array.from({ length: POPULATION }, (_, index) => [
+				citizenId(index),
+				["stock-origin-food", "stock-origin-water"],
+			]),
+		),
+		transportLanes: [
+			{
+				...commonLane,
+				laneId: "lane-daily-grain",
+				fromStockId: "stock-source-grain",
+				toStockId: "stock-work-grain",
+				carrierCitizenId: citizenId(4),
+				capacityUnitsPerStep: 32,
+				requiredCapabilityId: "haul",
+			},
+			{
+				...commonLane,
+				laneId: "lane-daily-water",
+				fromStockId: "stock-source-spring-water",
+				toStockId: "stock-work-spring-water",
+				carrierCitizenId: citizenId(5),
+				capacityUnitsPerStep: 40,
+				requiredCapabilityId: "haul",
+			},
+			{
+				...commonLane,
+				laneId: "lane-building-timber",
+				fromStockId: "stock-source-standing-timber",
+				toStockId: "stock-work-standing-timber",
+				carrierCitizenId: citizenId(6),
+				capacityUnitsPerStep: 8,
+				requiredCapabilityId: "haul",
+			},
+		],
+		productionJobs: [
+			{
+				jobId: "job-daily-food",
+				recipeId: "recipe-daily-food",
+				siteId: workSite.siteId,
+				participantCitizenIds: [citizenId(1)],
+				binding: {
+					inputStockIds: { grain: "stock-work-grain" },
+					outputStockIds: { food: "stock-origin-food" },
+				},
+				outputStockId: "stock-origin-food",
+				targetQuantity: 64,
+				inputLaneIds: ["lane-daily-grain"],
+			},
+			{
+				jobId: "job-daily-water",
+				recipeId: "recipe-daily-water",
+				siteId: workSite.siteId,
+				participantCitizenIds: [citizenId(2)],
+				binding: {
+					inputStockIds: { "spring-water": "stock-work-spring-water" },
+					outputStockIds: { water: "stock-origin-water" },
+				},
+				outputStockId: "stock-origin-water",
+				targetQuantity: 80,
+				inputLaneIds: ["lane-daily-water"],
+			},
+			{
+				jobId: "job-building-timber",
+				recipeId: "recipe-building-timber",
+				siteId: workSite.siteId,
+				participantCitizenIds: [citizenId(3)],
+				binding: {
+					inputStockIds: {
+						"standing-timber": "stock-work-standing-timber",
+					},
+					outputStockIds: { timber: "stock-origin-timber" },
+				},
+				outputStockId: "stock-origin-timber",
+				targetQuantity: 12,
+				inputLaneIds: ["lane-building-timber"],
+			},
+		],
+		collectiveProjects: conditions.expansionEligible
+			? [
+					{
+						projectId: "project-expedition-kit",
+						actorCitizenId: citizenId(0),
+						buildingKind: "expedition-cache",
+					},
+				]
+			: [],
+		demographicRules: [],
+		maxDemographicTransitionsPerStep: 1,
+	};
+	return { state, schedulerPolicy };
 }
 
 function activityKind(activityKinds: readonly string[]): {
@@ -647,9 +1090,47 @@ function activityKind(activityKinds: readonly string[]): {
 	return { kind: "inspect", prop: null };
 }
 
+function initialRoutineAssignments(
+	state: CivilizationState,
+): readonly SchedulerRoutineAssignment[] {
+	return Object.values(state.citizens)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+		.map((citizen) => ({
+			schemaVersion: "eonfolk-civilization-routine-v1" as const,
+			routineId: `routine:0:${citizen.citizenId}`,
+			citizenId: citizen.citizenId,
+			kind: "social-maintenance" as const,
+			subjectId: citizen.citizenId,
+			assignedAtSimulationTime: 0,
+			route: null,
+		}));
+}
+
+function preferredActivityKinds(
+	routine: SchedulerRoutineAssignment,
+): readonly string[] {
+	switch (routine.kind) {
+		case "produce":
+			return ["work", "gather"];
+		case "transport":
+			return ["store", "work"];
+		case "construct":
+			return ["work"];
+		case "consume":
+			return ["rest"];
+		case "social-maintenance":
+			return ["meet", "rendezvous"];
+		case "travel":
+			return ["store"];
+		case "away":
+			return [];
+	}
+}
+
 function scheduleActivities(
 	state: CivilizationState,
 	world: GeneratedWorldState,
+	routines: readonly SchedulerRoutineAssignment[],
 ): readonly CivilizationScheduledActivity[] {
 	const slots = values(world.interactionSlots).sort((left, right) =>
 		left.interactionSlotId.localeCompare(right.interactionSlotId),
@@ -659,12 +1140,20 @@ function scheduleActivities(
 		.filter((citizen) => citizen.residenceState === "resident")
 		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
 		.flatMap((citizen, index) => {
-			const siteSlots = slots.filter((slot) => slot.siteId === citizen.siteId);
-			const slot = siteSlots.find(
-				(candidate) =>
-					(occupancy.get(candidate.interactionSlotId) ?? 0) <
-					candidate.capacity,
+			const routine = required(
+				routines.find((candidate) => candidate.citizenId === citizen.citizenId),
+				`routine for ${citizen.citizenId}`,
 			);
+			const siteSlots = slots.filter((slot) => slot.siteId === citizen.siteId);
+			const preferred = preferredActivityKinds(routine);
+			const available = (candidate: (typeof siteSlots)[number]) =>
+				(occupancy.get(candidate.interactionSlotId) ?? 0) < candidate.capacity;
+			const slot =
+				siteSlots.find(
+					(candidate) =>
+						available(candidate) &&
+						candidate.activityKinds.some((kind) => preferred.includes(kind)),
+				) ?? siteSlots.find((candidate) => available(candidate));
 			if (slot === undefined) return [];
 			const affordanceSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
 			occupancy.set(slot.interactionSlotId, affordanceSlotIndex + 1);
@@ -683,6 +1172,7 @@ function scheduleActivities(
 				{
 					schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
 					citizenId: citizen.citizenId,
+					routine,
 					canonicalAction: {
 						actionId: `scheduled:${state.revision}:${citizen.citizenId}:${slot.interactionSlotId}`,
 						sourceKind: "current-behavior" as const,
@@ -752,14 +1242,20 @@ async function eventRecord(input: {
 }
 
 function projectTimberConsumed(state: CivilizationState): number {
-	return state.accounting
-		.filter(
-			(entry) =>
-				entry.kind === "project-consumption" &&
-				entry.projectId === "project-expedition-kit",
-		)
-		.flatMap((entry) => entry.stockDeltas)
-		.reduce((total, delta) => total + Math.max(0, -delta.quantityDelta), 0);
+	return (
+		state.projects["project-expedition-kit"]?.milestones.reduce(
+			(total, milestone) =>
+				total +
+				milestone.resources
+					.filter(({ resourceTypeId }) => resourceTypeId === "timber")
+					.reduce(
+						(resourceTotal, resource) =>
+							resourceTotal + resource.consumedQuantity,
+						0,
+					),
+			0,
+		) ?? 0
+	);
 }
 
 function averagePressures(
@@ -783,7 +1279,7 @@ function averagePressures(
 					state,
 					citizen.citizenId,
 					{
-						foodResourceTypeIds: ["grain"],
+						foodResourceTypeIds: ["food"],
 						waterResourceTypeIds: ["water"],
 						habitableBuildingIds,
 						quantityObservationGranularity: 1,
@@ -854,6 +1350,15 @@ function metrics(
 		relationshipCount: Object.keys(state.relationships).length,
 		averagePressureBasisPointsByKind: averagePressures(state),
 		stockTotalsByResource: audit.stockTotalsByResource,
+		completedProductionRuns: state.schedulerTotals.completedProductionRuns,
+		consumedNeedUnits: state.schedulerTotals.consumedNeedUnits,
+		transportedResourceUnits: state.schedulerTotals.transportedResourceUnits,
+		groundedNeedOutcomes: state.schedulerTotals.groundedNeedOutcomes,
+		unmetNeedUnits: state.schedulerTotals.unmetNeedUnits,
+		agreementGatedInstitutionProjects: projects.filter(
+			(project) =>
+				project.state === "completed" && project.sponsor.kind === "institution",
+		).length,
 		consumedProjectTimber: projectTimberConsumed(state),
 		completedProjects,
 		stalledProjects,
@@ -884,25 +1389,30 @@ export async function runCivilizationExperiment(input: {
 	)
 		throw new RangeError("horizonDays must be an integer from 1 through 365");
 	const conditions = deriveCivilizationSeedConditions(input.world);
-	let state = bootstrapCivilization(input.world, conditions);
+	const bootstrap = bootstrapCivilization(input.world, conditions);
+	let state = bootstrap.state;
+	const schedulerPolicy = bootstrap.schedulerPolicy;
 	let world = input.world;
 	let worldStateHash = await domainHash(
 		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v5",
 		world,
 	);
-	let activities = scheduleActivities(state, world);
+	let routines = initialRoutineAssignments(state);
+	let activities = scheduleActivities(state, world, routines);
 	assertCivilizationInvariants(state);
 	const initialStateHash = await stateHash(state, worldStateHash, activities);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
 	let priorEventHash: string | null = null;
 	let expansionDeferralRecorded = false;
+	let projectStallRecorded = false;
+	let priorStateHash = initialStateHash;
 
 	const appendEvent = async (
 		kind: CivilizationExperimentEventKind,
 		details: CivilizationExperimentEvent["details"],
 	): Promise<void> => {
-		activities = scheduleActivities(state, world);
+		activities = scheduleActivities(state, world, routines);
 		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const event = await eventRecord({
 			eventIndex: events.length,
@@ -918,102 +1428,38 @@ export async function runCivilizationExperiment(input: {
 
 	for (let day = 1; day <= input.horizonDays; day += 1) {
 		const fromSimulationTime = state.simulationTime;
-		const preStateHash = await stateHash(state, worldStateHash, activities);
+		const preStateHash = priorStateHash;
 		const beforeEventIndex = events.length;
 		const atSimulationTime = day * SECONDS_PER_DAY;
 		let departedThisEvaluation = false;
-		state = evolve(state, {}, atSimulationTime);
-
-		if (
-			conditions.expansionEligible &&
-			state.projects["project-expedition-kit"] === undefined
-		) {
-			const workSite = required(
-				values(input.world.sites)
-					.filter((site) => site.kind === "production")
-					.sort((left, right) => left.siteId.localeCompare(right.siteId))[0] ??
-					values(input.world.sites)[0],
-				"a project site",
-			);
-			const project = projectRecord(
-				conditions.originSettlementId,
-				workSite.siteId,
-				citizenId(0),
-			);
-			state = registerProject(
-				state,
-				project,
-				storage(project.storageId, workSite.siteId, {
-					kind: "project",
-					projectId: project.projectId,
-				}),
-			);
-			state = registerStock(
-				state,
-				stock(
-					"stock-project-timber",
-					project.storageId,
-					{ kind: "project", projectId: project.projectId },
-					"timber",
-					0,
-					atSimulationTime,
-				),
-			);
-			state = approveProject(state, project.projectId);
+		const scheduled = advanceGeneralizedScheduler(state, schedulerPolicy);
+		state = scheduled.state;
+		routines = scheduled.routines;
+		const schedulerAction = (
+			kind: SchedulerAction["kind"],
+		): SchedulerAction | undefined =>
+			scheduled.actions.find((action) => action.kind === kind);
+		if (schedulerAction("project-authorized") !== undefined)
 			await appendEvent("project-approved", {
-				projectId: project.projectId,
+				projectId: "project-expedition-kit",
 				physicalTimberRequired: PROJECT_TIMBER,
 			});
-		}
-
-		if (state.projects["project-expedition-kit"]?.state === "approved") {
-			const available = state.stocks["stock-migrant-timber"]?.quantity ?? 0;
-			if (available >= PROJECT_TIMBER) {
-				state = startProject(state, "project-expedition-kit", atSimulationTime);
-				state = deliverProjectResource(state, {
-					projectId: "project-expedition-kit",
-					milestoneId: "milestone-expedition-kit",
-					fromStockId: "stock-migrant-timber",
-					toStockId: "stock-project-timber",
-					quantity: PROJECT_TIMBER,
-					atSimulationTime,
-				});
-				state = consumeProjectResource(state, {
-					projectId: "project-expedition-kit",
-					milestoneId: "milestone-expedition-kit",
-					stockId: "stock-project-timber",
-					quantity: PROJECT_TIMBER,
-					atSimulationTime,
-				});
-				state = contributeProjectLabor(state, {
-					projectId: "project-expedition-kit",
-					milestoneId: "milestone-expedition-kit",
-					citizenId: citizenId(0),
-					capabilityId: "build",
-					laborSeconds: 3_600,
-					atSimulationTime,
-				});
-				state = completeProjectMilestone(
-					state,
-					"project-expedition-kit",
-					"milestone-expedition-kit",
-				);
-				state = completeProject(
-					state,
-					"project-expedition-kit",
-					atSimulationTime,
-				);
-				await appendEvent("project-completed", {
-					projectId: "project-expedition-kit",
-					consumedTimber: PROJECT_TIMBER,
-				});
-			} else {
-				await appendEvent("project-stalled", {
-					projectId: "project-expedition-kit",
-					availableTimber: available,
-					requiredTimber: PROJECT_TIMBER,
-				});
-			}
+		if (schedulerAction("project-completed") !== undefined)
+			await appendEvent("project-completed", {
+				projectId: "project-expedition-kit",
+				consumedTimber: PROJECT_TIMBER,
+			});
+		if (
+			conditions.expansionEligible &&
+			!projectStallRecorded &&
+			state.projects["project-expedition-kit"]?.state === "proposed"
+		) {
+			projectStallRecorded = true;
+			await appendEvent("project-stalled", {
+				projectId: "project-expedition-kit",
+				availableTimber: state.stocks["stock-origin-timber"]?.quantity ?? 0,
+				requiredTimber: PROJECT_TIMBER,
+			});
 		}
 
 		const projectComplete =
@@ -1212,7 +1658,8 @@ export async function runCivilizationExperiment(input: {
 		}
 
 		assertCivilizationInvariants(state);
-		activities = scheduleActivities(state, world);
+		state = checkpointCivilizationAccounting(state);
+		activities = scheduleActivities(state, world, routines);
 		const postStateHash = await stateHash(state, worldStateHash, activities);
 		const eventHashes = events
 			.slice(beforeEventIndex)
@@ -1233,8 +1680,10 @@ export async function runCivilizationExperiment(input: {
 				stepBody,
 			),
 		});
+		priorStateHash = postStateHash;
 	}
 
+	assertCivilizationInvariants(state);
 	const finalStateHash = await stateHash(state, worldStateHash, activities);
 	return {
 		schemaVersion: CIVILIZATION_EXPERIMENT_SCHEMA_VERSION,

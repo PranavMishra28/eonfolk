@@ -51,18 +51,37 @@ describe("civilization long-horizon properties", () => {
 						expect(first.metrics.invariantIssues).toEqual([]);
 						const audit = auditCivilizationState(first.state);
 						expect(audit.ok).toBe(true);
-						expect(audit.stockTotalsByResource.grain).toBe(
-							first.seedConditions.initialGrain,
-						);
+						expect(first.metrics.completedProductionRuns).toBeGreaterThan(0);
+						expect(first.metrics.consumedNeedUnits).toBeGreaterThan(0);
+						expect(first.metrics.transportedResourceUnits).toBeGreaterThan(0);
+						expect(first.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
+						expect(first.metrics.population).toBeLessThanOrEqual(8);
+						expect(Object.keys(first.state.citizens)).toHaveLength(8);
 						expect(
-							(audit.stockTotalsByResource.timber ?? 0) +
-								first.metrics.consumedProjectTimber,
-						).toBe(first.seedConditions.initialTimber);
+							new Set(
+								Object.values(first.state.citizens).map(({ name }) => name),
+							).size,
+						).toBe(8);
+						expect(first.state.citizens["citizen-01"]).toMatchObject({
+							name: "Mara Vale",
+							primaryRoleId: "expedition-steward",
+							valueIds: ["stewardship", "curiosity"],
+						});
+						for (const entry of first.state.accounting.filter(
+							(entry) => entry.kind === "transport",
+						))
+							expect(
+								entry.stockDeltas.reduce(
+									(total, delta) => total + delta.quantityDelta,
+									0,
+								),
+							).toBe(0);
 
 						const founding =
 							first.state.foundings["founding-second-settlement"];
 						if (first.seedConditions.expansionEligible) {
 							expect(founding?.state).toBe("viable");
+							expect(first.metrics.agreementGatedInstitutionProjects).toBe(1);
 							expect(first.metrics.materializedSettlements).toBe(1);
 							expect(Object.keys(first.world.settlements)).toHaveLength(2);
 						}
@@ -114,6 +133,7 @@ describe("civilization long-horizon properties", () => {
 							}
 						}
 						if (!first.seedConditions.expansionEligible && horizonDays >= 30) {
+							expect(first.metrics.agreementGatedInstitutionProjects).toBe(0);
 							expect(Object.keys(first.state.migrations)).toEqual([]);
 							expect(Object.keys(first.state.foundings)).toEqual([]);
 							expect(first.metrics.outcome).toBe("stagnation");

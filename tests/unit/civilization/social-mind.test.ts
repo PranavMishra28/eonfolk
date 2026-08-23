@@ -42,10 +42,12 @@ function person(citizenId: string) {
 	return {
 		schemaVersion: CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 		citizenId,
+		name: `Person ${citizenId}`,
+		valueIds: ["care", "reliability"],
 		settlementId: SETTLEMENT,
 		siteId: SITE,
 		householdId: null,
-		primaryRoleId: null,
+		primaryRoleId: "resident",
 		residenceState: "resident" as const,
 		arrivedAtSimulationTime: 0,
 		departedAtSimulationTime: null,
@@ -109,6 +111,27 @@ describe("grounded population and social systems", () => {
 		expect(() =>
 			registerCitizen(initial, person("citizen-not-in-genesis")),
 		).toThrow(/unknown/u);
+	});
+
+	it("requires canonical identity, role inputs, and stable values", () => {
+		const initial = stateWithCitizenStocks();
+		expect(() =>
+			registerCitizen(initial, { ...person(CITIZEN_A), name: " " }),
+		).toThrow(/name/u);
+		expect(() =>
+			registerCitizen(initial, { ...person(CITIZEN_A), valueIds: [] }),
+		).toThrow(/citizen values/u);
+		const registered = registerCitizen(initial, person(CITIZEN_A));
+		expect(registered.citizens[CITIZEN_A]).toMatchObject({
+			name: `Person ${CITIZEN_A}`,
+			primaryRoleId: "resident",
+			valueIds: ["care", "reliability"],
+		});
+		expect(JSON.parse(jcs(registered)).citizens[CITIZEN_A]).toMatchObject({
+			name: `Person ${CITIZEN_A}`,
+			primaryRoleId: "resident",
+			valueIds: ["care", "reliability"],
+		});
 	});
 
 	it("derives exact pressure from stocks and a coarser actor estimate", () => {

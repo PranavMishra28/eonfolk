@@ -28,6 +28,8 @@ export type CitizenResidenceState = "resident" | "travelling" | "departed";
 export interface CivilizationCitizenState {
 	readonly schemaVersion: typeof CIVILIZATION_SOCIAL_SCHEMA_VERSION;
 	readonly citizenId: CitizenId;
+	readonly name: string;
+	readonly valueIds: readonly string[];
 	readonly settlementId: string;
 	readonly siteId: string;
 	readonly householdId: string | null;
@@ -109,6 +111,7 @@ export interface CivilizationReferences {
 export type AccountingKind =
 	| "stock-created"
 	| "transfer"
+	| "transport"
 	| "recipe-input"
 	| "recipe-output"
 	| "project-consumption"
@@ -205,6 +208,18 @@ export interface CivilizationState {
 	readonly foundingRequirements: Readonly<
 		Record<FoundingId, readonly PhysicalResourceRequirement[]>
 	>;
+	readonly accountingCheckpoint: {
+		readonly simulationTime: number;
+		readonly stockQuantities: Readonly<Record<string, number>>;
+		readonly consumedByProjectResource: Readonly<Record<string, number>>;
+	} | null;
+	readonly schedulerTotals: {
+		readonly completedProductionRuns: number;
+		readonly consumedNeedUnits: number;
+		readonly transportedResourceUnits: number;
+		readonly groundedNeedOutcomes: number;
+		readonly unmetNeedUnits: number;
+	};
 	readonly needOutcomes: readonly DailyNeedOutcome[];
 	readonly materializedProjects: Readonly<
 		Record<ProjectId, PhysicalProjectMaterialization>
