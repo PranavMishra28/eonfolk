@@ -307,9 +307,10 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await expect
 		.poll(() => canvas.getAttribute("data-camera-target-mm"))
 		.not.toBe(targetBeforePan);
-	const worldTools = page.locator("details.v1-world-tools");
-	await worldTools.locator("summary").click();
-	await worldTools.getByRole("button", { name: "Settlement overview" }).click();
+	await page
+		.getByRole("navigation", { name: "Settlements" })
+		.getByRole("button", { name: "Dawnmere 7 residents" })
+		.click();
 	await expect(world).toHaveAttribute(
 		"data-state-hash",
 		stateHashBeforeNavigation ?? "",
@@ -324,13 +325,17 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await expect(canvas).toHaveAttribute("data-semantic-scale", "citizen");
 	await page.getByRole("button", { name: "Back to settlement" }).click();
 
-	await page.getByRole("button", { name: "Pause motion" }).click();
+	const worldTools = page.locator("details.v1-world-tools");
+	if (!(await worldTools.evaluate((details) => details.open)))
+		await worldTools.locator("summary").click();
+	await expect(worldTools).toHaveAttribute("open", "");
+	await worldTools.getByRole("button", { name: "Pause motion" }).click();
 	const stateHashBeforePose = await world.getAttribute("data-state-hash");
 	const tickBefore = Number(
 		await canvas.getAttribute("data-presentation-tick"),
 	);
 	const positionsBeforePose = await canvas.getAttribute("data-actor-positions");
-	await page.getByRole("button", { name: "Step one pose" }).click();
+	await worldTools.getByRole("button", { name: "Step one pose" }).click();
 	await expect(canvas).toHaveAttribute(
 		"data-presentation-tick",
 		String(tickBefore + 1),
@@ -343,14 +348,14 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		"data-actor-positions",
 		positionsBeforePose ?? "",
 	);
-	const firstResident = page
+	const firstResident = worldTools
 		.getByRole("group", { name: "Canonical residents" })
 		.getByRole("button")
 		.first();
 	await firstResident.click();
 	await expect(firstResident).toHaveAttribute("aria-pressed", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
-	await page.getByRole("button", { name: "Follow citizen" }).click();
+	await worldTools.getByRole("button", { name: "Follow citizen" }).click();
 	await expect(canvas).toHaveAttribute("data-following", "true");
 
 	await page.getByRole("button", { name: "Settlements", exact: true }).click();
