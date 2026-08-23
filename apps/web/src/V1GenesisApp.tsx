@@ -760,7 +760,9 @@ function GeneratedWorld({
 	const assetVerified = asset.status === "verified";
 	const effectiveView = rendererFailed || !assetVerified ? "semantic" : view;
 	const embodiedAvailable =
-		assetVerified && projection.availability.status !== "unavailable";
+		assetVerified &&
+		!rendererFailed &&
+		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
 	const togglePresentation = () =>
 		setPresentationPlaying((playing) => !playing);
