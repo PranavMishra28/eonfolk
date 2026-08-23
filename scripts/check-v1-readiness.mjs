@@ -144,6 +144,25 @@ export function validateCanonicalGoalRoster(
 	};
 }
 
+export function canonicalGoalCommit({
+	baseSha,
+	baseContainsGoal,
+	introductionCommits,
+}) {
+	if (!SHA_PATTERN.test(baseSha))
+		throw new Error("canonical GOAL base SHA is invalid");
+	if (baseContainsGoal) return baseSha;
+	if (
+		!Array.isArray(introductionCommits) ||
+		introductionCommits.length !== 1 ||
+		!SHA_PATTERN.test(introductionCommits[0] ?? "")
+	)
+		throw new Error(
+			"canonical GOAL requires exactly one immutable introduction commit",
+		);
+	return introductionCommits[0];
+}
+
 function sha256(value) {
 	return sha256Bytes(value);
 }
@@ -1527,9 +1546,36 @@ function main() {
 	};
 	const goalSource = readFileSync(goalPath, "utf8");
 	const rows = parseRequiredStateRows(goalSource);
+	const baseContainsGoal =
+		spawnSync("git", ["cat-file", "-e", `${testedIdentity.baseSha}:GOAL.md`], {
+			stdio: "ignore",
+		}).status === 0;
+	const introductionCommits = baseContainsGoal
+		? []
+		: execFileSync(
+				"git",
+				[
+					"log",
+					"--diff-filter=A",
+					"--format=%H",
+					"--reverse",
+					testedIdentity.candidateSha,
+					"--",
+					"GOAL.md",
+				],
+				{ encoding: "utf8" },
+			)
+				.trim()
+				.split(/\s+/u)
+				.filter(Boolean);
+	const canonicalGoalSha = canonicalGoalCommit({
+		baseSha: testedIdentity.baseSha,
+		baseContainsGoal,
+		introductionCommits,
+	});
 	const canonicalGoalSource = execFileSync(
 		"git",
-		["show", `${testedIdentity.baseSha}:GOAL.md`],
+		["show", `${canonicalGoalSha}:GOAL.md`],
 		{ encoding: "utf8" },
 	);
 	const canonicalRows = parseRequiredStateRows(canonicalGoalSource);

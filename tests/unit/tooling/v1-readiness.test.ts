@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import { contentSha256 } from "../../../scripts/evidence-integrity.mjs";
 
 import {
+	canonicalGoalCommit,
 	evaluateV1Readiness,
 	isAllowedPostFreezePath,
 	parseRequiredStateRows,
@@ -1074,6 +1075,33 @@ describe("V1 readiness and generated inventory tooling", () => {
 			ok: false,
 			failures: ["GOAL changed outside state and evidence cells"],
 		});
+	});
+
+	it("uses one immutable GOAL introduction when protected main predates it", () => {
+		const baseSha = "a".repeat(40);
+		const introductionSha = "b".repeat(40);
+		expect(
+			canonicalGoalCommit({
+				baseSha,
+				baseContainsGoal: true,
+				introductionCommits: [],
+			}),
+		).toBe(baseSha);
+		expect(
+			canonicalGoalCommit({
+				baseSha,
+				baseContainsGoal: false,
+				introductionCommits: [introductionSha],
+			}),
+		).toBe(introductionSha);
+		for (const introductionCommits of [[], [introductionSha, "c".repeat(40)]])
+			expect(() =>
+				canonicalGoalCommit({
+					baseSha,
+					baseContainsGoal: false,
+					introductionCommits,
+				}),
+			).toThrow(/exactly one immutable introduction/u);
 	});
 
 	it("rejects shared review artifacts, untrusted runs, and duplicate dispositions", () => {
