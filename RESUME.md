@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled implementation commit: `cd06797` (`feat(presentation): project generated worlds`)
+- Last reconciled integration commit: `b53f884` (`docs(generated): refresh repository inventory`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -39,6 +39,8 @@
 - A pure immutable civilization kernel now provides integer resource stocks, storage and atomic transfers, conservation audits, recipe/process gates, project dependencies and milestones, households, institutions, agreements, and physically gated migration/founding records. Focused tests passed 11/11, deep conservation properties passed 500 runs each, all 20 TypeScript project graphs passed, and `verify:fast` passed 30 files / 224 tests.
 - Migration/founding are not complete V1 evidence: no generalized-world scheduler, route traversal, persistence adapter, new-settlement materialization, or long-horizon seed matrix exists yet.
 - Renderer-neutral generated-world projections now expose immutable region, settlement-local, and entity-follow semantic views while preserving canonical input bytes and hashes. Four focused tests and the full FAST lane passed; no browser renderer integration, visual proof, or performance evidence exists yet.
+- CI now regenerates/checks the repository topology, labels all Riverhold browser artifacts as Founder Alpha regression evidence that is ineligible for V1 readiness, and fails closed when a non-draft PR has any incomplete required row or lacks an exact-HEAD clean verification manifest. Draft mode remains green only with an explicit `V1 INCOMPLETE` claim boundary.
+- Targeted mutation coverage expanded from eight to fourteen killed mutants, adding generated settlement safety, actor-visible fact filtering, planner prerequisites and expansion budgets, and Standing Plan active/retry invariants. Civilization-kernel and later integration mutations are still required before the V1 mutation row can be verified.
 
 ## Next executable tasks
 

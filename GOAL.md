@@ -141,8 +141,8 @@
 | Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | NOT STARTED |
 | Security, secrets, dependency, zero-egress, and authority checks | IN PROGRESS |
 | High-value formal models | IN PROGRESS |
-| Targeted mutation suite for V1 pure logic | NOT STARTED |
-| Generated documentation freshness checks | NOT STARTED |
+| Targeted mutation suite for V1 pure logic | IN PROGRESS |
+| Generated documentation freshness checks | VERIFIED |
 | Six frozen-SHA independent reviews | NOT STARTED |
 | Every accepted P0/P1 repaired | NOT STARTED |
 | Fresh post-fix confirmation | NOT STARTED |
