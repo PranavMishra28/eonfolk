@@ -1218,7 +1218,7 @@ function GeneratedWorld({
 				module?.recordGeneratedWorldFaultOutcome("asset"),
 			);
 		void browserDiagnostics.captureRuntimeFailure({
-			code: "GENERATED_ASSET_REJECTED",
+			code: generatedFaultHooks ? "GENERATED_ASSET_REJECTED" : "ASSET_REJECTED",
 			component: "generated-world-asset",
 			protectReality: () => setView("semantic"),
 		});
@@ -1262,7 +1262,9 @@ function GeneratedWorld({
 				module?.recordGeneratedWorldFaultOutcome("renderer-webgl"),
 			);
 		void browserDiagnostics.captureRuntimeFailure({
-			code: "GENERATED_RENDERER_UNAVAILABLE",
+			code: generatedFaultHooks
+				? "GENERATED_RENDERER_UNAVAILABLE"
+				: "RENDERER_UNAVAILABLE",
 			component: "generated-world-renderer",
 			invariant: "render-reality-noninterference",
 			protectReality: () => setRendererFailed(true),
