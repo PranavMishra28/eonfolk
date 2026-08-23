@@ -899,6 +899,124 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 	expect(externalRequests).toEqual([]);
 });
 
+test("canonical citizen, building, and project focus preserve authority across desktop and mobile @generated-world", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const stateHash = await world.getAttribute("data-state-hash");
+	const fingerprint = await generatedAuthorityFingerprint(page);
+	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
+	await expect(canvas).toHaveAttribute("data-door-height-mm", "2050");
+	await expect(canvas).toHaveAttribute("data-actor-count", "7");
+	const tools = page.locator("details.v1-world-tools");
+	await tools.locator("summary").click();
+	await expect(tools.locator("button[data-building-id]")).toHaveCount(4);
+	const desktopBuilding = tools.locator("button[data-building-id]").first();
+	await desktopBuilding.focus();
+	await expect(desktopBuilding).toBeFocused();
+	await desktopBuilding.press("Space");
+	await expect(desktopBuilding).toHaveAttribute("aria-pressed", "true");
+	await expect(desktopBuilding).toHaveAttribute("aria-current", "true");
+	await expect(canvas).toHaveAttribute("data-focus-kind", "building");
+	await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
+	await expect(
+		page.getByRole("link", { name: "Link to this building" }),
+	).toHaveAttribute("href", /focus-kind=object/u);
+	await page.getByRole("button", { name: "Back to settlement" }).click();
+	if (!(await tools.evaluate((details) => details.open)))
+		await tools.locator("summary").click();
+	const citizenButton = tools.locator("button[data-citizen-id]").first();
+	await citizenButton.focus();
+	await citizenButton.press("Enter");
+	await expect(citizenButton).toHaveAttribute("aria-pressed", "true");
+	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
+
+	await page.getByRole("button", { name: "Back to settlement" }).click();
+	if (!(await tools.evaluate((details) => details.open)))
+		await tools.locator("summary").click();
+	const projectButton = tools.locator("button[data-project-id]").first();
+	await projectButton.focus();
+	await projectButton.press("Enter");
+	await expect(projectButton).toHaveAttribute("aria-pressed", "true");
+	await expect(projectButton).toHaveAttribute("aria-current", "true");
+	await expect(canvas).toHaveAttribute("data-focus-kind", "project");
+	await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
+	const projectHref = await page
+		.getByRole("link", { name: "Link to this project" })
+		.getAttribute("href");
+	if (projectHref === null) throw new Error("project focus link missing");
+	await page.goto(projectHref);
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-focus-kind",
+		"project",
+		{ timeout: 20_000 },
+	);
+	await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
+
+	for (const viewport of [
+		{ width: 1366, height: 768 },
+		{ width: 390, height: 844 },
+	]) {
+		await page.setViewportSize(viewport);
+		const back = page.getByRole("button", { name: "Back to settlement" });
+		if (await back.isVisible()) await back.click();
+		if (!(await tools.evaluate((details) => details.open)))
+			await tools.locator("summary").click();
+		const buildingButton = tools.locator("button[data-building-id]").first();
+		await buildingButton.focus();
+		await buildingButton.press("Enter");
+		await expect(buildingButton).toHaveAttribute("aria-pressed", "true");
+		await expect(buildingButton).toHaveAttribute("aria-current", "true");
+		await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
+		if (viewport.width === 390) {
+			await page.getByRole("button", { name: "Back to settlement" }).click();
+			if (!(await tools.evaluate((details) => details.open)))
+				await tools.locator("summary").click();
+			const mobileCitizen = tools.locator("button[data-citizen-id]").first();
+			await mobileCitizen.focus();
+			await mobileCitizen.press("Enter");
+			await expect(mobileCitizen).toHaveAttribute("aria-pressed", "true");
+			await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
+			await page.getByRole("button", { name: "Back to settlement" }).click();
+			if (!(await tools.evaluate((details) => details.open)))
+				await tools.locator("summary").click();
+			const mobileProject = tools.locator("button[data-project-id]").first();
+			await mobileProject.focus();
+			await mobileProject.press("Enter");
+			await expect(mobileProject).toHaveAttribute("aria-pressed", "true");
+			await expect(mobileProject).toHaveAttribute("aria-current", "true");
+			await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
+		}
+		await expect
+			.poll(() =>
+				page.evaluate(
+					() => document.documentElement.scrollWidth <= window.innerWidth + 1,
+				),
+			)
+			.toBe(true);
+		await expect
+			.poll(() =>
+				page
+					.locator(".v1-context-panel")
+					.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
+			)
+			.toBe(true);
+	}
+
+	expect(await world.getAttribute("data-state-hash")).toBe(stateHash);
+	expect(await generatedAuthorityFingerprint(page)).toEqual(fingerprint);
+	expect(externalRequests).toEqual([]);
+});
+
 test("generated founded settlement preserves the durable checkpoint @generated-world", async ({
 	page,
 }) => {

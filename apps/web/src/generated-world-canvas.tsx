@@ -273,8 +273,8 @@ function GeneratedCamera({
 	const navigationRef = useRef(navigation);
 	navigationRef.current = navigation;
 	const requested = useMemo(
-		() => cameraIntentForGeneratedNavigation(model, navigation),
-		[model, navigation],
+		() => cameraIntentForGeneratedNavigation(projection, model, navigation),
+		[model, navigation, projection],
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
 		const focus = navigation.focus;
@@ -383,10 +383,10 @@ function GeneratedCamera({
 			const bounds = surface.getBoundingClientRect();
 			const x = event.clientX - bounds.left;
 			const y = event.clientY - bounds.top;
-			const targets = JSON.parse(
+			const citizenTargets = JSON.parse(
 				surface.dataset.citizenPickTargets ?? "[]",
 			) as readonly { id: string; x: number; y: number }[];
-			const nearest = targets
+			const nearest = citizenTargets
 				.map((target) => ({
 					citizenId: target.id,
 					distance: Math.hypot(target.x - x, target.y - y),
@@ -1015,7 +1015,11 @@ export function GeneratedWorldCanvas({
 	readonly reducedMotion: boolean;
 	readonly onFailure: () => void;
 }) {
-	const cameraIntent = cameraIntentForGeneratedNavigation(model, navigation);
+	const cameraIntent = cameraIntentForGeneratedNavigation(
+		projection,
+		model,
+		navigation,
+	);
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
 	const effectiveDistanceMm =
 		navigation.focus.kind === "overview"

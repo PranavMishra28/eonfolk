@@ -86,7 +86,7 @@ describe("world-as-product presentation", () => {
 			/\.v1-context-panel\s*\{[^}]*width:\s*min\(20rem, 24vw\)/su,
 		);
 		expect(styles).toContain("overflow-wrap: anywhere");
-		expect(styles).toContain(":has(.v1-context-role)");
+		expect(styles).toContain(':not([data-focus-kind="overview"])');
 		expect(styles).toMatch(
 			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*58svh/su,
 		);

@@ -1,10 +1,14 @@
-import type { SpatialPointMm } from "@eonfolk/world-presentation";
+import type {
+	GeneratedCivilizationSpatialProjection,
+	SpatialPointMm,
+} from "@eonfolk/world-presentation";
 
 import type { GeneratedEmbodimentProjection } from "./embodiment";
 
 export type GeneratedFocus =
 	| Readonly<{ readonly kind: "overview" }>
 	| Readonly<{ readonly kind: "citizen"; readonly citizenId: string }>
+	| Readonly<{ readonly kind: "building"; readonly buildingId: string }>
 	| Readonly<{ readonly kind: "project"; readonly projectId: string }>;
 
 export interface GeneratedNavigationState {
@@ -19,6 +23,7 @@ export interface GeneratedNavigationState {
 export type GeneratedNavigationAction =
 	| Readonly<{ readonly type: "overview" }>
 	| Readonly<{ readonly type: "select-citizen"; readonly citizenId: string }>
+	| Readonly<{ readonly type: "select-building"; readonly buildingId: string }>
 	| Readonly<{ readonly type: "select-project"; readonly projectId: string }>
 	| Readonly<{ readonly type: "toggle-follow" }>
 	| Readonly<{ readonly type: "zoom"; readonly deltaMm: number }>
@@ -72,6 +77,15 @@ export function parseGeneratedNavigationAction(
 						citizenId: candidate.citizenId,
 					})
 				: null;
+		case "select-building":
+			return keyCount === 2 &&
+				typeof candidate.buildingId === "string" &&
+				candidate.buildingId.length > 0
+				? Object.freeze({
+						type: "select-building",
+						buildingId: candidate.buildingId,
+					})
+				: null;
 		case "select-project":
 			return keyCount === 2 &&
 				typeof candidate.projectId === "string" &&
@@ -120,9 +134,14 @@ export function parseGeneratedNavigationAction(
 export function generatedNavigationReferencesExist(
 	action: GeneratedNavigationAction,
 	model: GeneratedEmbodimentProjection,
+	projection: GeneratedCivilizationSpatialProjection,
 ): boolean {
 	if (action.type === "select-citizen")
 		return model.actors.some(({ citizenId }) => citizenId === action.citizenId);
+	if (action.type === "select-building")
+		return projection.local.buildings.some(
+			({ buildingId }) => buildingId === action.buildingId,
+		);
 	if (action.type === "select-project")
 		return model.projects.some(
 			({ projectId }) => projectId === action.projectId,
@@ -169,6 +188,7 @@ function assertNavigationState(state: GeneratedNavigationState): void {
 		throw new Error("Camera bounds exceeded");
 	if (
 		(state.focus.kind === "citizen" && state.focus.citizenId.length === 0) ||
+		(state.focus.kind === "building" && state.focus.buildingId.length === 0) ||
 		(state.focus.kind === "project" && state.focus.projectId.length === 0)
 	)
 		throw new Error("Focus missing");
@@ -217,6 +237,18 @@ export function reduceGeneratedNavigation(
 				}),
 				followCitizen: false,
 				distanceMm: Math.min(state.distanceMm, 9_000),
+				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
+			});
+		case "select-building":
+			if (action.buildingId.length === 0) throw new Error("Building missing");
+			return Object.freeze({
+				...state,
+				focus: Object.freeze({
+					kind: "building",
+					buildingId: action.buildingId,
+				}),
+				followCitizen: false,
+				distanceMm: Math.min(state.distanceMm, 18_000),
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":
@@ -353,6 +385,7 @@ function overviewCenter(model: GeneratedEmbodimentProjection): SpatialPointMm {
 }
 
 export function cameraIntentForGeneratedNavigation(
+	projection: GeneratedCivilizationSpatialProjection,
 	model: GeneratedEmbodimentProjection,
 	state: GeneratedNavigationState,
 ): GeneratedCameraIntent {
@@ -369,33 +402,39 @@ export function cameraIntentForGeneratedNavigation(
 		targetMm = actor.positionMm;
 		followCitizenId = state.followCitizen ? actor.citizenId : null;
 		semanticLabel = `${state.followCitizen ? "Following" : "Viewing"} ${actor.name}: ${actor.semanticLabel}`;
+	} else if (state.focus.kind === "building") {
+		const buildingId = state.focus.buildingId;
+		const building = projection.local.buildings.find(
+			(candidate) => candidate.buildingId === buildingId,
+		);
+		if (building === undefined) throw new Error("Building not visible");
+		targetMm = Object.freeze({
+			x: building.position.xMillimeters,
+			y: building.position.elevationMillimeters,
+			z: building.position.yMillimeters,
+		});
+		semanticLabel = `Viewing ${building.semanticLabel}`;
 	} else if (state.focus.kind === "project") {
 		const projectId = state.focus.projectId;
 		const project = model.projects.find(
 			(candidate) => candidate.projectId === projectId,
 		);
 		if (project === undefined) throw new Error("Project not visible");
-		const participants = model.actors.filter(
-			(actor) =>
-				actor.interactionTarget === project.projectId ||
-				actor.placeId === project.siteId,
+		const site = projection.local.sites.find(
+			(candidate) => candidate.siteId === project.siteId,
 		);
-		if (participants.length > 0) {
-			targetMm = Object.freeze({
-				x: Math.round(
-					participants.reduce((total, actor) => total + actor.positionMm.x, 0) /
-						participants.length,
-				),
-				y: Math.round(
-					participants.reduce((total, actor) => total + actor.positionMm.y, 0) /
-						participants.length,
-				),
-				z: Math.round(
-					participants.reduce((total, actor) => total + actor.positionMm.z, 0) /
-						participants.length,
-				),
-			});
-		}
+		if (site === undefined) throw new Error("Project site not visible");
+		targetMm = Object.freeze({
+			x: Math.round(
+				(site.bounds.minimum.xMillimeters + site.bounds.maximum.xMillimeters) /
+					2,
+			),
+			y: site.bounds.minimum.elevationMillimeters,
+			z: Math.round(
+				(site.bounds.minimum.yMillimeters + site.bounds.maximum.yMillimeters) /
+					2,
+			),
+		});
 		semanticLabel = `Viewing ${project.semanticLabel}`;
 	}
 	targetMm = Object.freeze({

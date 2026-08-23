@@ -479,7 +479,9 @@ main {
 	min-height: 0;
 }
 
-.generated-residents li button {
+.generated-residents li button,
+.generated-buildings li button,
+.generated-projects li button {
 	display: block;
 	width: 100%;
 	min-height: 2.65rem;
@@ -493,7 +495,9 @@ main {
 	cursor: pointer;
 }
 
-.generated-residents li button[aria-pressed="true"] {
+.generated-residents li button[aria-pressed="true"],
+.generated-buildings li button[aria-pressed="true"],
+.generated-projects li button[aria-pressed="true"] {
 	background: #fff5d9;
 	box-shadow: inset 3px 0 #bd6e37;
 }
@@ -3572,7 +3576,7 @@ em {
 		text-overflow: ellipsis;
 	}
 
-	.v1-context-panel:not(:hover, :focus-within):has(.v1-context-role)
+	.v1-context-panel:not(:hover, :focus-within):not([data-focus-kind="overview"])
 		.v1-presence-card
 		> p {
 		display: block;
@@ -3615,8 +3619,7 @@ em {
 
 .v1-context-now span,
 .v1-context-role,
-.v1-context-panel dd,
-.v1-project-card p {
+.v1-context-panel dd {
 	color: #5f6256;
 }
 
@@ -3663,6 +3666,7 @@ em {
 }
 
 .v1-focus-actions button,
+.v1-focus-actions a,
 .v1-presence-roster button {
 	min-height: 2.55rem;
 	border: 1px solid rgba(35, 38, 31, 0.28);
@@ -3672,12 +3676,13 @@ em {
 	cursor: pointer;
 }
 
-.v1-focus-actions button {
+.v1-focus-actions button,
+.v1-focus-actions a {
 	padding: 0.45rem 0.65rem;
 	overflow-wrap: normal;
 	font-size: 0.7rem;
 	font-weight: 800;
-	white-space: nowrap;
+	text-decoration: none;
 }
 
 .v1-focus-actions button[aria-pressed="true"] {
@@ -3738,8 +3743,7 @@ em {
 }
 
 .v1-world-tools .generated-camera-status,
-.v1-world-tools .generated-embodiment-controls > article,
-.v1-world-tools .generated-embodiment-controls > ul {
+.v1-world-tools .generated-embodiment-controls > article {
 	display: none;
 }
 
@@ -3775,25 +3779,6 @@ em {
 .v1-context-panel dd {
 	margin: 0;
 	font-size: 0.78rem;
-}
-
-.v1-project-card {
-	border-left: 4px solid #c88945 !important;
-}
-
-.v1-project-card[data-project-state="complete"] {
-	border-left-color: #647747 !important;
-	background: rgba(218, 228, 185, 0.52);
-}
-
-.v1-project-card h3 {
-	margin: 0.25rem 0 0.45rem;
-}
-
-.v1-project-card p:last-child {
-	margin: 0.45rem 0 0;
-	font-size: 0.78rem;
-	line-height: 1.45;
 }
 
 .v1-people-list {
@@ -3914,7 +3899,7 @@ em {
 		padding: 0.75rem;
 	}
 
-	.v1-context-panel:has(.v1-context-role)
+	.v1-context-panel:not([data-focus-kind="overview"])
 		:is(.v1-presence-roster, .v1-world-tools) {
 		display: none;
 	}

@@ -1,3 +1,4 @@
+import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
 import { type Dispatch, useEffect } from "react";
 
 import {
@@ -16,20 +17,20 @@ import {
  * a second DOM-only selection state.
  */
 export function GeneratedEmbodimentControls({
+	projection,
 	model,
 	navigation,
 	dispatch,
-	presentationTick,
 	presentationPlaying,
 	reducedMotion,
 	onTogglePresentation,
 	onStepPresentation,
 	onNavigationRejected,
 }: {
+	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
 	readonly navigation: GeneratedNavigationState;
 	readonly dispatch: Dispatch<GeneratedNavigationAction>;
-	readonly presentationTick: number;
 	readonly presentationPlaying: boolean;
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
@@ -44,7 +45,7 @@ export function GeneratedEmbodimentControls({
 				(event as CustomEvent<unknown>).detail,
 			);
 			if (action === null) onNavigationRejected?.("invalid-envelope");
-			else if (!generatedNavigationReferencesExist(action, model))
+			else if (!generatedNavigationReferencesExist(action, model, projection))
 				onNavigationRejected?.("foreign-reference");
 			else dispatch(action);
 		};
@@ -54,18 +55,18 @@ export function GeneratedEmbodimentControls({
 				GENERATED_NAVIGATION_EVENT,
 				onCanvasNavigation,
 			);
-	}, [dispatch, model, onNavigationRejected]);
+	}, [dispatch, model, onNavigationRejected, projection]);
 	const fidelity = generatedCameraFidelity(navigation.distanceMm);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
-	const selectedActor =
-		selectedCitizenId !== null
-			? model.actors.find((actor) => actor.citizenId === selectedCitizenId)
-			: undefined;
+	const selectedBuildingId =
+		navigation.focus.kind === "building" ? navigation.focus.buildingId : null;
+	const selectedProjectId =
+		navigation.focus.kind === "project" ? navigation.focus.projectId : null;
 	return (
 		<section
 			className="generated-embodiment-controls"
-			aria-label="World navigation and citizen context"
+			aria-label="World navigation"
 		>
 			<fieldset className="generated-camera-controls">
 				<legend>World camera controls</legend>
@@ -126,7 +127,7 @@ export function GeneratedEmbodimentControls({
 				</button>
 				<button
 					type="button"
-					disabled={selectedActor === undefined}
+					disabled={selectedCitizenId === null}
 					aria-pressed={navigation.followCitizen}
 					onClick={() => dispatch({ type: "toggle-follow" })}
 				>
@@ -147,16 +148,10 @@ export function GeneratedEmbodimentControls({
 			<p
 				className="generated-camera-status"
 				data-testid="generated-camera-status"
-				data-focus-kind={navigation.focus.kind}
-				data-following={String(navigation.followCitizen)}
 				data-camera-distance-mm={navigation.distanceMm}
 				data-semantic-scale={fidelity.semanticScale}
-				data-fidelity-class={fidelity.fidelityClass}
-				data-presentation-tick={presentationTick}
 			>
-				{fidelity.semanticScale} scale · {fidelity.fidelityClass}. Presentation
-				tick {presentationTick}. Camera distance {navigation.distanceMm / 1_000}
-				metres.
+				{navigation.distanceMm / 1_000}m
 			</p>
 			<fieldset className="generated-residents">
 				<legend>Canonical residents</legend>
@@ -182,26 +177,42 @@ export function GeneratedEmbodimentControls({
 					))}
 				</ul>
 			</fieldset>
-			{selectedActor === undefined ? null : (
-				<article
-					aria-live="polite"
-					aria-label={`${selectedActor.name} context`}
-				>
-					<h2>{selectedActor.name}</h2>
-					<p>{selectedActor.semanticLabel}</p>
-					<p>
-						{selectedActor.grounding.kind === "route"
-							? `On ${selectedActor.grounding.routeId} at ${selectedActor.grounding.progressBasisPoints} basis points.`
-							: `At ${selectedActor.grounding.interactionSlotId}.`}
-					</p>
-				</article>
+			{projection.local.buildings.length === 0 ? null : (
+				<ul className="generated-buildings" aria-label="Canonical buildings">
+					{projection.local.buildings.map((building) => {
+						const selected = selectedBuildingId === building.buildingId;
+						return (
+							<li key={building.buildingId}>
+								<button
+									type="button"
+									data-building-id={building.buildingId}
+									aria-pressed={selected}
+									aria-current={selected ? "true" : undefined}
+									onClick={() =>
+										dispatch({
+											type: "select-building",
+											buildingId: building.buildingId,
+										})
+									}
+								>
+									{building.buildingKind}
+								</button>
+							</li>
+						);
+					})}
+				</ul>
 			)}
 			{model.projects.length === 0 ? null : (
-				<ul aria-label="Visible projects">
+				<ul className="generated-projects" aria-label="Canonical projects">
 					{model.projects.map((project) => (
 						<li key={project.projectId}>
 							<button
 								type="button"
+								data-project-id={project.projectId}
+								aria-pressed={selectedProjectId === project.projectId}
+								aria-current={
+									selectedProjectId === project.projectId ? "true" : undefined
+								}
 								onClick={() =>
 									dispatch({
 										type: "select-project",

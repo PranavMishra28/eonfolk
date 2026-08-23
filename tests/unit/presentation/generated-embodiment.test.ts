@@ -356,7 +356,11 @@ describe("generated navigation parity", () => {
 		const following = reduceGeneratedNavigation(selected, {
 			type: "toggle-follow",
 		});
-		const intent = cameraIntentForGeneratedNavigation(model, following);
+		const intent = cameraIntentForGeneratedNavigation(
+			projection,
+			model,
+			following,
+		);
 
 		expect(intent.targetMm).toEqual(actor.positionMm);
 		expect(intent.followCitizenId).toBe(actor.citizenId);
@@ -399,7 +403,11 @@ describe("generated navigation parity", () => {
 			yawDeltaDegrees: 20,
 			pitchDeltaDegrees: -8,
 		});
-		const intent = cameraIntentForGeneratedNavigation(model, orbited);
+		const intent = cameraIntentForGeneratedNavigation(
+			projection,
+			model,
+			orbited,
+		);
 
 		expect(orbited.panOffsetMm).toEqual({ x: 8_000, z: -4_000 });
 		expect(intent.yawDegrees).toBe(62);
@@ -435,7 +443,23 @@ describe("generated navigation parity", () => {
 
 	it("fails closed on malformed DOM actions and corrupt navigation state", () => {
 		expect(
+			parseGeneratedNavigationAction({
+				type: "select-building",
+				buildingId: "building-authoritative",
+			}),
+		).toEqual({
+			type: "select-building",
+			buildingId: "building-authoritative",
+		});
+		expect(
 			parseGeneratedNavigationAction({ type: "zoom", deltaMm: Number.NaN }),
+		).toBeNull();
+		expect(
+			parseGeneratedNavigationAction({
+				type: "select-building",
+				buildingId: "building-authoritative",
+				stateHash: "forged-authority",
+			}),
 		).toBeNull();
 		expect(
 			parseGeneratedNavigationAction({
@@ -458,7 +482,7 @@ describe("generated navigation parity", () => {
 		).toThrow(/must be finite/u);
 	});
 
-	it("rejects exact but foreign citizen and project identities", async () => {
+	it("admits only authoritative citizen, building, and project identities", async () => {
 		const { projection, activities } = await fixture();
 		const model = projectGeneratedEmbodiment({
 			current: projection,
@@ -468,20 +492,88 @@ describe("generated navigation parity", () => {
 			generatedNavigationReferencesExist(
 				{ type: "select-citizen", citizenId: "foreign-citizen" },
 				model,
+				projection,
 			),
 		).toBe(false);
 		expect(
 			generatedNavigationReferencesExist(
 				{ type: "select-project", projectId: "foreign-project" },
 				model,
+				projection,
+			),
+		).toBe(false);
+		expect(
+			generatedNavigationReferencesExist(
+				{ type: "select-building", buildingId: "foreign-building" },
+				model,
+				projection,
 			),
 		).toBe(false);
 		expect(
 			generatedNavigationReferencesExist(
 				{ type: "select-citizen", citizenId: model.actors[0]?.citizenId ?? "" },
 				model,
+				projection,
 			),
 		).toBe(true);
+		expect(
+			generatedNavigationReferencesExist(
+				{
+					type: "select-building",
+					buildingId: projection.local.buildings[0]?.buildingId ?? "",
+				},
+				model,
+				projection,
+			),
+		).toBe(true);
+	});
+
+	it("targets authoritative building positions and project sites", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const building = projection.local.buildings[0];
+		const project = model.projects[0];
+		if (building === undefined || project === undefined)
+			throw new Error("fixture lacks contextual objects");
+		const buildingIntent = cameraIntentForGeneratedNavigation(
+			projection,
+			model,
+			reduceGeneratedNavigation(INITIAL_GENERATED_NAVIGATION, {
+				type: "select-building",
+				buildingId: building.buildingId,
+			}),
+		);
+		expect(buildingIntent.targetMm).toEqual({
+			x: building.position.xMillimeters,
+			y: building.position.elevationMillimeters,
+			z: building.position.yMillimeters,
+		});
+		const site = projection.local.sites.find(
+			({ siteId }) => siteId === project.siteId,
+		);
+		if (site === undefined) throw new Error("fixture project site missing");
+		const projectIntent = cameraIntentForGeneratedNavigation(
+			projection,
+			model,
+			reduceGeneratedNavigation(INITIAL_GENERATED_NAVIGATION, {
+				type: "select-project",
+				projectId: project.projectId,
+			}),
+		);
+		expect(projectIntent.targetMm).toEqual({
+			x: Math.round(
+				(site.bounds.minimum.xMillimeters + site.bounds.maximum.xMillimeters) /
+					2,
+			),
+			y: site.bounds.minimum.elevationMillimeters,
+			z: Math.round(
+				(site.bounds.minimum.yMillimeters + site.bounds.maximum.yMillimeters) /
+					2,
+			),
+		});
 	});
 });
 

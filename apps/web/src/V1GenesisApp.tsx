@@ -272,7 +272,6 @@ function SemanticSettlement({
 	model,
 	navigation,
 	dispatch,
-	presentationTick,
 	presentationPlaying,
 	reducedMotion,
 	onTogglePresentation,
@@ -284,7 +283,6 @@ function SemanticSettlement({
 	readonly model: GeneratedEmbodimentProjection;
 	readonly navigation: GeneratedNavigationState;
 	readonly dispatch: (action: GeneratedNavigationAction) => void;
-	readonly presentationTick: number;
 	readonly presentationPlaying: boolean;
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
@@ -309,10 +307,10 @@ function SemanticSettlement({
 				</p>
 			</div>
 			<GeneratedEmbodimentControls
+				projection={projection}
 				model={model}
 				navigation={navigation}
 				dispatch={dispatch}
-				presentationTick={presentationTick}
 				presentationPlaying={presentationPlaying}
 				reducedMotion={reducedMotion}
 				onTogglePresentation={onTogglePresentation}
@@ -499,7 +497,6 @@ function GeneratedContextPanel({
 	model,
 	navigation,
 	dispatch,
-	presentationTick,
 	presentationPlaying,
 	reducedMotion,
 	onTogglePresentation,
@@ -517,7 +514,6 @@ function GeneratedContextPanel({
 	readonly model: GeneratedEmbodimentProjection;
 	readonly navigation: GeneratedNavigationState;
 	readonly dispatch: (action: GeneratedNavigationAction) => void;
-	readonly presentationTick: number;
 	readonly presentationPlaying: boolean;
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
@@ -560,6 +556,43 @@ function GeneratedContextPanel({
 		selectedCitizenId === null
 			? undefined
 			: model.actors.find(({ citizenId }) => citizenId === selectedCitizenId);
+	const selectedBuildingId =
+		navigation.focus.kind === "building" ? navigation.focus.buildingId : null;
+	const selectedBuilding =
+		selectedBuildingId !== null
+			? projection.local.buildings.find(
+					({ buildingId }) => buildingId === selectedBuildingId,
+				)
+			: undefined;
+	const selectedProjectId =
+		navigation.focus.kind === "project" ? navigation.focus.projectId : null;
+	const selectedProject =
+		selectedProjectId !== null
+			? model.projects.find(({ projectId }) => projectId === selectedProjectId)
+			: undefined;
+	const selectedObjectSite =
+		selectedBuilding === undefined && selectedProject === undefined
+			? undefined
+			: projection.local.sites.find(
+					({ siteId }) =>
+						siteId === (selectedBuilding?.siteId ?? selectedProject?.siteId),
+				);
+	const selectedObject =
+		selectedBuilding !== undefined
+			? {
+					kind: "building",
+					id: selectedBuilding.buildingId,
+					name: selectedBuilding.buildingKind,
+					status: `Condition ${Math.round(selectedBuilding.conditionBasisPoints / 100)}% · capacity ${selectedBuilding.capacity}.`,
+				}
+			: selectedProject === undefined
+				? undefined
+				: {
+						kind: "project",
+						id: selectedProject.projectId,
+						name: selectedProject.name,
+						status: `State ${selectedProject.state} · ${Math.round(selectedProject.progressBasisPoints / 100)}% complete.`,
+					};
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
 		const href = buildWorldFocusHref(focus);
@@ -654,13 +687,42 @@ function GeneratedContextPanel({
 		<aside
 			className="v1-context-panel"
 			aria-label="Canonical settlement context"
+			data-focus-kind={navigation.focus.kind}
 		>
 			<section className="v1-presence-card" aria-live="polite">
 				<p className="v1-kicker">
-					{selectedActor === undefined ? "HAPPENING NOW" : "PERSON IN FOCUS"}
+					{selectedActor !== undefined
+						? "PERSON IN FOCUS"
+						: selectedObject !== undefined
+							? `${selectedObject.kind.toUpperCase()} IN FOCUS`
+							: "HAPPENING NOW"}
 				</p>
-				<h2>{selectedActor?.name ?? projection.local.settlement.name}</h2>
-				{selectedActor === undefined ? (
+				<h2>
+					{selectedActor?.name ??
+						selectedObject?.name ??
+						projection.local.settlement.name}
+				</h2>
+				{selectedObject !== undefined ? (
+					<>
+						<p>
+							<strong>Grounded at:</strong>{" "}
+							{selectedObjectSite?.name ?? "canonical site"}.
+						</p>
+						<p>{selectedObject.status}</p>
+						<div className="v1-focus-actions">
+							<button
+								type="button"
+								onClick={() => dispatch({ type: "overview" })}
+							>
+								Back to settlement
+							</button>
+							{worldLink(
+								{ kind: "object", objectId: selectedObject.id },
+								`Link to this ${selectedObject.kind}`,
+							)}
+						</div>
+					</>
+				) : selectedActor === undefined ? (
 					<>
 						{activeInteraction !== undefined &&
 						interactionParticipants.length >= 2 ? (
@@ -917,31 +979,16 @@ function GeneratedContextPanel({
 			<details className="v1-world-tools">
 				<summary>Camera, playback, and evidence</summary>
 				<GeneratedEmbodimentControls
+					projection={projection}
 					model={model}
 					navigation={navigation}
 					dispatch={dispatch}
-					presentationTick={presentationTick}
 					presentationPlaying={presentationPlaying}
 					reducedMotion={reducedMotion}
 					onTogglePresentation={onTogglePresentation}
 					onStepPresentation={onStepPresentation}
 					onNavigationRejected={onNavigationRejected}
 				/>
-				{projection.projects.map((project) => (
-					<section className="v1-project-card" key={project.projectId}>
-						<p className="v1-kicker">SETTLEMENT RECORD</p>
-						<h3>{project.name}</h3>
-						<p>{project.state}</p>
-						<progress
-							aria-label={`${project.name} progress`}
-							max={10_000}
-							value={project.progressBasisPoints}
-						>
-							{project.progressBasisPoints / 100}%
-						</progress>
-						<p>{Math.round(project.progressBasisPoints / 100)}% complete</p>
-					</section>
-				))}
 			</details>
 		</aside>
 	);
@@ -1029,38 +1076,54 @@ function GeneratedWorld({
 				return;
 			}
 			const targetId = worldFocusId(focus);
-			const matches = experience.embodiments.filter((settlement) => {
-				if (focus.kind === "citizen")
-					return settlement.actors.some(
-						({ citizenId }) => citizenId === targetId,
-					);
-				if (focus.kind === "object")
-					return settlement.projects.some(
-						({ projectId }) => projectId === targetId,
-					);
-				return experience.projections.some(
-					(candidate) =>
-						candidate.local.settlement.settlementId ===
-							settlement.settlementId &&
-						candidate.local.sites.some(({ siteId }) => siteId === targetId),
+			const matches = experience.projections.flatMap((candidate) => {
+				const settlement = experience.embodiments.find(
+					({ settlementId }) =>
+						settlementId === candidate.local.settlement.settlementId,
 				);
+				if (settlement === undefined) return [];
+				const kinds =
+					focus.kind === "citizen"
+						? settlement.actors.some(({ citizenId }) => citizenId === targetId)
+							? ["citizen" as const]
+							: []
+						: focus.kind === "location"
+							? candidate.local.sites.some(({ siteId }) => siteId === targetId)
+								? ["location" as const]
+								: []
+							: [
+									...(settlement.projects.some(
+										({ projectId }) => projectId === targetId,
+									)
+										? (["project"] as const)
+										: []),
+									...(candidate.local.buildings.some(
+										({ buildingId }) => buildingId === targetId,
+									)
+										? (["building"] as const)
+										: []),
+								];
+				return kinds.map((kind) => ({ settlement, kind }));
 			});
 			if (matches.length !== 1) {
 				reportNavigationRejection("foreign-reference");
 				return;
 			}
 
-			setSelectedSettlementId(matches[0]!.settlementId);
-			setFocusedLocationId(focus.kind === "location" ? targetId : null);
+			const match = matches[0]!;
+			setSelectedSettlementId(match.settlement.settlementId);
+			setFocusedLocationId(match.kind === "location" ? targetId : null);
 			setNavigationRejection(null);
-			if (focus.kind === "citizen") {
-				dispatch({ type: "select-citizen", citizenId: focus.citizenId });
-			} else if (focus.kind === "location") {
+			if (match.kind === "citizen") {
+				dispatch({ type: "select-citizen", citizenId: targetId });
+			} else if (match.kind === "location") {
 				dispatch({ type: "overview" });
-			} else if (focus.kind === "object") {
-				dispatch({ type: "select-project", projectId: focus.objectId });
+			} else if (match.kind === "project") {
+				dispatch({ type: "select-project", projectId: targetId });
+			} else {
+				dispatch({ type: "select-building", buildingId: targetId });
 			}
-			if (focus.kind === "location") setView("semantic");
+			if (match.kind === "location") setView("semantic");
 			if (updateHistory) window.history.pushState(null, "", href);
 		},
 		[experience, reportNavigationRejection],
@@ -1379,7 +1442,6 @@ function GeneratedWorld({
 						model={model}
 						navigation={navigation}
 						dispatch={dispatch}
-						presentationTick={presentationTick}
 						presentationPlaying={presentationPlaying}
 						reducedMotion={reduceMotion}
 						onTogglePresentation={togglePresentation}
@@ -1424,7 +1486,6 @@ function GeneratedWorld({
 						model={model}
 						navigation={navigation}
 						dispatch={dispatch}
-						presentationTick={presentationTick}
 						presentationPlaying={presentationPlaying}
 						reducedMotion={reduceMotion}
 						onTogglePresentation={togglePresentation}
