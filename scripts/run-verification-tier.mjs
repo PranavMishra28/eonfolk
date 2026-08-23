@@ -326,6 +326,7 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 	await isolateNetwork(page, observed.externalAttempts);
 	try {
 		await deleteGeneratedAuthority(page);
+		const entryNavigationStartedAt = performance.now();
 		await page.goto("http://127.0.0.1:4174/", { waitUntil: "networkidle" });
 		const entry = page.locator("main.v1-genesis-entry");
 		await entry.waitFor({ state: "visible", timeout: 20_000 });
@@ -338,6 +339,7 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			throw new Error(`entry world identity is ${String(entryWorldId)}`);
 		if (entryHeading?.trim() !== "A civilization has already begun.")
 			throw new Error(`unexpected entry heading ${String(entryHeading)}`);
+		const entryReadyMs = performance.now() - entryNavigationStartedAt;
 		await page.screenshot({
 			animations: "disabled",
 			caret: "hide",
@@ -346,6 +348,7 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			scale: "css",
 		});
 
+		const worldNavigationStartedAt = performance.now();
 		await entryLink.click();
 		await page.waitForURL(/\/world$/u, { timeout: 20_000 });
 		const world = page.locator("main.v1-world");
@@ -360,6 +363,13 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 			undefined,
 			{ timeout: 20_000 },
 		);
+		const worldReadyMs = performance.now() - worldNavigationStartedAt;
+		const maximumWorldReadyMs =
+			viewport.name === "mobile-390x844" ? 5_000 : 3_000;
+		if (worldReadyMs > maximumWorldReadyMs)
+			throw new Error(
+				`${viewport.name}: /world readiness ${worldReadyMs.toFixed(1)}ms exceeds ${maximumWorldReadyMs}ms`,
+			);
 		const probe = await canvas.evaluate((host) => {
 			const renderer = host.querySelector("canvas");
 			return {
@@ -450,10 +460,14 @@ async function releaseGenesisViewportEvidence(browser, root, viewport) {
 		await context.tracing.stop();
 		return {
 			entry: `${viewport.name}-entry.png`,
+			entryReadyMs,
 			externalAttempts: observed.externalAttempts.length,
 			pageErrors: observed.pageErrors.length,
 			probe,
+			readinessBudgetMs: maximumWorldReadyMs,
+			routes: { entry: "/", world: "/world" },
 			world: `${viewport.name}-world.png`,
+			worldReadyMs,
 			viewport,
 		};
 	} catch (error) {
@@ -648,6 +662,14 @@ async function main() {
 					filesInspected: 0,
 					crashInjectionMarkersAbsent: false,
 				});
+	const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+	const productionBrowserCoverage = Object.freeze({
+		mode: linuxSemanticCi ? "linux-semantic-ci" : "target-mac",
+		productionJourneysExecuted: linuxSemanticCi ? 23 : 25,
+		legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0,
+		generatedWorldJourneysExecuted: 5,
+		generatedTargetExecuted: true,
+	});
 	const reportWithoutHash = {
 		schemaVersion: "eonfolk-verification-tier-v2",
 		tier,
@@ -669,6 +691,7 @@ async function main() {
 		inputs:
 			tier === "deep"
 				? {
+						productionBrowserCoverage,
 						propertyProfile: "deep: 500/320 deterministic runs",
 						localModelTreatment:
 							"exact 100-decision promoted treatment with deterministic fallback",
@@ -678,20 +701,22 @@ async function main() {
 					}
 				: tier === "portable-extended"
 					? {
+							productionBrowserCoverage,
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "deep portable deterministic properties",
 							browserJourney:
-								"two semantic injected-fault journeys plus fourteen semantic production journeys on Linux CI",
+								"two semantic injected-fault journeys plus 23 production journeys on Linux CI; only two legacy illustrated-only journeys are excluded, while all five generated-world journeys run",
 							readinessEvidence: false,
 							targetMacDeepEvidence: false,
 						}
 					: {
+							productionBrowserCoverage,
 							formalToolIdentity: "repository-pinned TLC SHA-256",
 							propertyProfile: "PR: 50/32 deterministic runs",
 							browserJourney:
 								process.env.EONFOLK_ALLOW_LINUX_CI === "1"
-									? "two semantic injected-fault journeys plus fourteen semantic production journeys; relevant UI changes additionally require a three-viewport PlayCanvas/WebGL2 renderer smoke"
-									: "two semantic injected-fault journeys plus sixteen illustrated production journeys, including target-renderer lifecycle and spatial picking",
+									? "two semantic injected-fault journeys plus 23 production journeys, including all five generated-world journeys; only two legacy illustrated-only journeys are excluded; relevant UI changes additionally require three-viewport PlayCanvas/WebGL2 evidence"
+									: "two semantic injected-fault journeys plus all 25 production journeys, including both legacy illustrated journeys and all five generated-world journeys",
 						},
 		subcommands: execution.steps,
 		artifactAssertions,

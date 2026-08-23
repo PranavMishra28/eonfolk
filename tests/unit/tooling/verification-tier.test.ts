@@ -58,6 +58,29 @@ describe("V1 CI hardening", () => {
 		expect(runner).toContain('worldRoute: "/world"');
 		expect(runner).toContain('page.goto("http://127.0.0.1:4174/legacy"');
 		expect(runner).toContain("INELIGIBLE FOR V1 READINESS");
+		expect(runner).toContain(
+			'{ name: "desktop-1728x1117", width: 1728, height: 1117 }',
+		);
+		expect(runner).toContain(
+			'{ name: "laptop-1366x768", width: 1366, height: 768 }',
+		);
+		expect(runner).toContain(
+			'{ name: "mobile-390x844", width: 390, height: 844 }',
+		);
+		expect(runner).toContain("worldReadyMs");
+		expect(runner).toContain(
+			'viewport.name === "mobile-390x844" ? 5_000 : 3_000',
+		);
+		expect(runner).toContain("readinessBudgetMs: maximumWorldReadyMs");
+		expect(runner).toContain('routes: { entry: "/", world: "/world" }');
+		expect(runner).toContain(
+			"productionJourneysExecuted: linuxSemanticCi ? 23 : 25",
+		);
+		expect(runner).toContain(
+			"legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0",
+		);
+		expect(runner).toContain("generatedWorldJourneysExecuted: 5");
+		expect(runner).toContain("generatedTargetExecuted: true");
 	});
 
 	it("requires frozen target-Mac and review evidence only when the PR becomes ready", () => {

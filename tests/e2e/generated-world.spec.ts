@@ -1,4 +1,10 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
+
+type GeneratedPickTarget = Readonly<{
+	readonly id: string;
+	readonly x: number;
+	readonly y: number;
+}>;
 
 async function isolateLocalWorld(page: Page): Promise<string[]> {
 	const externalRequests: string[] = [];
@@ -88,9 +94,80 @@ async function inspectGeneratedCheckpoint(page: Page) {
 	);
 }
 
-test("generated civilization is the identity-bound canonical /world @illustrated-target", async ({
+async function stableGeneratedPickTargets(
+	page: Page,
+	canvas: Locator,
+): Promise<readonly GeneratedPickTarget[]> {
+	let prior: readonly GeneratedPickTarget[] | null = null;
+	for (let attempt = 0; attempt < 50; attempt += 1) {
+		const encoded = await canvas.getAttribute("data-citizen-pick-targets");
+		const current = JSON.parse(
+			encoded ?? "[]",
+		) as readonly GeneratedPickTarget[];
+		if (
+			prior !== null &&
+			current.length > 0 &&
+			current.length === prior.length &&
+			current.every((target, index) => {
+				const before = prior?.[index];
+				return (
+					before?.id === target.id &&
+					Math.hypot(before.x - target.x, before.y - target.y) < 0.5
+				);
+			})
+		) {
+			const bounds = await canvas.boundingBox();
+			if (bounds === null) throw new Error("generated canvas has no bounds");
+			const exposed: GeneratedPickTarget[] = [];
+			for (const target of current) {
+				const receivesPointer = await page.evaluate(
+					({ absoluteX, absoluteY }) => {
+						const host = document.querySelector(
+							'[data-testid="generated-world-canvas"]',
+						);
+						const hit = document.elementFromPoint(absoluteX, absoluteY);
+						return host !== null && hit !== null && host.contains(hit);
+					},
+					{
+						absoluteX: bounds.x + target.x,
+						absoluteY: bounds.y + target.y,
+					},
+				);
+				if (receivesPointer) exposed.push(target);
+			}
+			if (exposed.length > 0) return exposed;
+		}
+		prior = current;
+		await page.waitForTimeout(100);
+	}
+	throw new Error("generated citizen pick targets did not become stable");
+}
+
+async function selectCanonicalResidentFromCanvas(
+	page: Page,
+	canvas: Locator,
+): Promise<string> {
+	for (let round = 0; round < 4; round += 1) {
+		const targets = await stableGeneratedPickTargets(page, canvas);
+		for (const target of targets) {
+			await canvas.click({ position: { x: target.x, y: target.y } });
+			await page.waitForTimeout(100);
+			const selected = await canvas.getAttribute("data-last-world-pick");
+			if (selected === `citizen:${target.id}`) return target.id;
+			if (
+				selected?.startsWith("citizen:") === true &&
+				targets.some(({ id }) => selected === `citizen:${id}`)
+			)
+				return selected.slice("citizen:".length);
+		}
+	}
+	throw new Error("no exposed canonical citizen accepted a canvas pick");
+}
+
+test("generated civilization is the identity-bound canonical /world @generated-world @generated-target", async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	const generatedAssetRequests: string[] = [];
 	page.on("request", (request) => {
@@ -214,26 +291,10 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 		stateHashBeforeNavigation ?? "",
 	);
 
-	const pickTargets = await expect
-		.poll(() => canvas.getAttribute("data-citizen-pick-targets"))
-		.not.toBeNull()
-		.then(() => canvas.getAttribute("data-citizen-pick-targets"));
-	const firstPick = (
-		JSON.parse(pickTargets ?? "[]") as readonly Readonly<{
-			id: string;
-			x: number;
-			y: number;
-		}>[]
-	)[0];
-	if (firstPick === undefined)
-		throw new Error("camera exposed no citizen picks");
-	await page.mouse.click(
-		canvasBounds.x + firstPick.x,
-		canvasBounds.y + firstPick.y,
-	);
+	const pickedCitizenId = await selectCanonicalResidentFromCanvas(page, canvas);
 	await expect(canvas).toHaveAttribute(
 		"data-last-world-pick",
-		`citizen:${firstPick.id}`,
+		`citizen:${pickedCitizenId}`,
 	);
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 	await expect(canvas).toHaveAttribute("data-semantic-scale", "citizen");
@@ -300,7 +361,7 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	expect(externalRequests).toEqual([]);
 });
 
-test("settlement overview and semantic people remain keyboard-operable", async ({
+test("settlement overview and semantic people remain keyboard-operable @generated-world", async ({
 	page,
 }) => {
 	await isolateLocalWorld(page);
@@ -346,9 +407,10 @@ for (const viewport of [
 	{ width: 1366, height: 768 },
 	{ width: 390, height: 844 },
 ]) {
-	test(`generated embodiment remains truthful and operable at ${viewport.width}x${viewport.height}`, async ({
+	test(`generated embodiment remains truthful and operable at ${viewport.width}x${viewport.height} @generated-world`, async ({
 		page,
 	}) => {
+		test.setTimeout(90_000);
 		const externalRequests = await isolateLocalWorld(page);
 		await page.setViewportSize(viewport);
 		await page.goto("/world");

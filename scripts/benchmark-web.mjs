@@ -202,43 +202,33 @@ async function waitForQualificationMark(page, name, timeout) {
 		);
 	} catch (error) {
 		const diagnostics = await page.evaluate((markName) => {
-			const canvas = document.querySelector("[data-testid='riverhold-canvas']");
-			const citizens = [
-				...document.querySelectorAll(
-					"[aria-label='Eight Riverhold citizens and their current activities'] li",
-				),
-			];
-			const interaction = [
-				...document.querySelectorAll(".semantic-summary div"),
-			]
-				.find((entry) =>
-					/(?:visible interaction|named interaction)/iu.test(
-						entry.querySelector("dt")?.textContent ?? "",
-					),
-				)
-				?.querySelector("dd")
-				?.textContent?.trim();
-			const citizenNames = citizens.map(
-				(citizen) => citizen.querySelector("strong")?.textContent?.trim() ?? "",
+			const world = document.querySelector("main.v1-world");
+			const canvas = document.querySelector(
+				"[data-testid='generated-world-canvas']",
 			);
+			const residents = document.querySelectorAll(
+				"fieldset.generated-residents button",
+			);
+			const canonicalPopulation = [
+				...document.querySelectorAll("[aria-label='Settlements'] button small"),
+			].reduce((total, entry) => {
+				const count = Number.parseInt(entry.textContent ?? "", 10);
+				return total + (Number.isFinite(count) ? count : 0);
+			}, 0);
 			return {
 				markName,
 				readyState: document.readyState,
 				canvasReady: canvas?.dataset.ready ?? null,
-				canvasInteractions: canvas?.dataset.interactions ?? null,
-				citizenCount: citizens.length,
-				citizenNames,
-				interaction: interaction ?? null,
-				interactionCitizenCount:
-					typeof interaction === "string"
-						? citizenNames.filter(
-								(name) => name.length > 0 && interaction.includes(name),
-							).length
-						: 0,
-				illustratedInteraction:
-					document.querySelector(".world-notice")?.textContent?.trim() ?? null,
-				runtimeError:
-					document.querySelector(".runtime-error")?.textContent?.trim() ?? null,
+				actorCount: canvas?.dataset.actorCount ?? null,
+				canonicalPopulation,
+				visibleInteractionCount: canvas?.dataset.interactionCount ?? null,
+				residentControlCount: residents.length,
+				worldId: world?.getAttribute("data-world-id") ?? null,
+				stateHash: world?.getAttribute("data-state-hash") ?? null,
+				assetIntegrity: world?.getAttribute("data-asset-integrity") ?? null,
+				worldError:
+					document.querySelector("#v1-error-title")?.textContent?.trim() ??
+					null,
 				marks: performance.getEntriesByType("mark").map((mark) => mark.name),
 			};
 		}, name);
@@ -256,72 +246,115 @@ async function waitForQualificationMark(page, name, timeout) {
 	}, name);
 }
 
-async function captureArrivalInvariant(page) {
+async function captureWorldInvariant(page) {
 	return page.evaluate(() => {
-		const buttons = [...document.querySelectorAll("button")];
-		const decisionPanel = document.querySelector(
-			'[aria-label="Current Riverhold decision"]',
+		const world = document.querySelector("main.v1-world");
+		const canvas = document.querySelector(
+			"[data-testid='generated-world-canvas']",
 		);
-		const followButtons = [
-			...(decisionPanel?.querySelectorAll("button") ?? []),
-		].filter((button) => button.textContent?.trim().startsWith("Follow Mara"));
+		const residentButtons = [
+			...document.querySelectorAll("fieldset.generated-residents button"),
+		];
+		const canonicalPopulation = [
+			...document.querySelectorAll("[aria-label='Settlements'] button small"),
+		].reduce((total, entry) => {
+			const count = Number.parseInt(entry.textContent ?? "", 10);
+			return total + (Number.isFinite(count) ? count : 0);
+		}, 0);
 		return {
-			arrivalPanelCount: document.querySelectorAll(".phase-panel--arrival")
-				.length,
-			followButtonCount: followButtons.length,
-			followButtonEnabled:
-				followButtons.length === 1 && !followButtons[0].disabled,
-			runtimeErrorCount: document.querySelectorAll(".runtime-error").length,
-			visibleButtonNames: buttons
-				.filter((button) => button.getClientRects().length > 0)
-				.map((button) => button.textContent?.replace(/\s+/g, " ").trim() ?? "")
-				.filter((name) => name.length > 0),
+			actorCount: Number(canvas?.dataset.actorCount ?? "0"),
+			assetIntegrity: world?.getAttribute("data-asset-integrity") ?? null,
+			canvasReady: canvas?.dataset.ready ?? null,
+			canonicalActionIds: canvas?.dataset.canonicalActionIds ?? "",
+			canonicalPopulation,
+			contradictionCount: Number(canvas?.dataset.contradictionCount ?? "-1"),
+			persistenceRestored:
+				world?.getAttribute("data-persistence-restored") ?? null,
+			residentControlCount: residentButtons.length,
+			routeSegmentCount: Number(canvas?.dataset.routeSegmentCount ?? "0"),
+			stateHash: world?.getAttribute("data-state-hash") ?? null,
+			teleportCount: Number(canvas?.dataset.teleportCount ?? "-1"),
+			worldId: world?.getAttribute("data-world-id") ?? null,
 		};
 	});
 }
 
-function assertArrivalInvariant(invariant, boundary) {
+function assertWorldInvariant(invariant, boundary) {
 	if (
-		invariant.arrivalPanelCount !== 1 ||
-		invariant.followButtonCount !== 1 ||
-		!invariant.followButtonEnabled ||
-		invariant.runtimeErrorCount !== 0
+		invariant.worldId !== "eonfolk-genesis-world-v1" ||
+		!/^[a-f0-9]{64}$/u.test(invariant.stateHash ?? "") ||
+		invariant.assetIntegrity !== "verified" ||
+		invariant.persistenceRestored !== "true" ||
+		invariant.canvasReady !== "true" ||
+		invariant.actorCount !== 7 ||
+		invariant.canonicalPopulation !== 8 ||
+		invariant.residentControlCount !== invariant.actorCount ||
+		invariant.canonicalActionIds.length === 0 ||
+		invariant.routeSegmentCount < 1 ||
+		invariant.teleportCount !== 0 ||
+		invariant.contradictionCount !== 0
 	)
 		throw new Error(
-			`arrival invariant failed ${boundary}: ${JSON.stringify(invariant)}`,
+			`generated-world invariant failed ${boundary}: ${JSON.stringify(invariant)}`,
 		);
 }
 
-async function reachBusyMarket(page) {
-	await page
-		.getByLabel("Current Riverhold decision")
-		.getByRole("button", { name: "Follow Mara", exact: true })
-		.click({ timeout: 5_000 });
+async function focusCanonicalResident(page) {
 	const started = performance.now();
-	await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-	await page.getByText("OBSERVED", { exact: true }).waitFor();
+	const resident = page
+		.getByRole("group", { name: "Canonical residents" })
+		.getByRole("button")
+		.first();
+	await resident.click({ timeout: 5_000 });
+	await page
+		.getByTestId("generated-world-canvas")
+		.waitFor({ state: "visible", timeout: 5_000 });
+	await page.waitForFunction(
+		() =>
+			document
+				.querySelector('[data-testid="generated-world-canvas"]')
+				?.getAttribute("data-focus-kind") === "citizen",
+		undefined,
+		{ timeout: 5_000 },
+	);
 	return performance.now() - started;
 }
 
-async function reachChronicle(page) {
-	await page.getByRole("button", { name: /Review Mara's choices/i }).click();
-	await page.getByText("Verify the count privately", { exact: true }).click();
-	await page.getByRole("button", { name: "Offer counsel" }).click();
+async function openSettlementOverview(page) {
+	const started = performance.now();
 	await page
-		.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
-		.click();
-	await page.getByRole("button", { name: /Return to Riverhold/i }).click();
-	const catchUpStarted = performance.now();
-	await page.getByRole("button", { name: /Advance Riverhold/i }).click();
-	await page.getByText(/WHILE YOU WERE AWAY/i).waitFor();
-	const catchUpMs = performance.now() - catchUpStarted;
+		.getByRole("button", { name: "Settlement overview" })
+		.click({ timeout: 5_000 });
 	await page
-		.getByRole("button", { name: /Ask Mara to publish the verified count/i })
-		.click();
-	await page
-		.getByRole("heading", { name: /What entered the record/i })
-		.waitFor();
-	return catchUpMs;
+		.getByTestId("generated-world-overview")
+		.waitFor({ state: "visible", timeout: 5_000 });
+	return performance.now() - started;
+}
+
+async function verifyGeneratedPersistenceReload(page, expectedStateHash) {
+	const started = performance.now();
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await page.waitForFunction(
+		() =>
+			document
+				.querySelector('[data-testid="generated-world-canvas"]')
+				?.getAttribute("data-ready") === "true",
+		undefined,
+		{ timeout: 20_000 },
+	);
+	const invariant = await captureWorldInvariant(page);
+	assertWorldInvariant(invariant, "after persistence reload");
+	if (invariant.stateHash !== expectedStateHash)
+		throw new Error(
+			`generated-world state hash changed across reload: ${String(expectedStateHash)} -> ${String(invariant.stateHash)}`,
+		);
+	return {
+		latencyMs: performance.now() - started,
+		persistenceRestored: invariant.persistenceRestored,
+		route: new URL(page.url()).pathname,
+		stateHash: invariant.stateHash,
+		stateHashStable: true,
+	};
 }
 
 const outputDirectory = resolve("tmp");
@@ -463,101 +496,94 @@ try {
 						};
 						const check = () => {
 							markWhen("eonfolk-shell", () => {
-								const loading = document.querySelector(".runtime-loading");
+								const loading = document.querySelector(".v1-genesis-loading");
 								const factSurfaces = document.querySelectorAll(
-									"[data-testid='riverhold-canvas'], .semantic-world, .world-notice, [data-testid='story-card']",
+									"main.v1-world, [data-testid='generated-world-canvas'], [data-testid='generated-semantic-world'], [data-testid='generated-world-overview']",
 								);
 								return loading !== null && factSurfaces.length === 0
 									? {
 											factFreeAuthorityShell: true,
 											factSurfaceCount: factSurfaces.length,
 											loadingHeading:
-												document.querySelector(".runtime-loading h1")
+												document.querySelector(".v1-genesis-loading h1")
 													?.textContent ?? "",
 										}
 									: null;
 							});
-							const follow = document
-								.querySelector('[aria-label="Current Riverhold decision"]')
-								?.querySelector("button.primary-action");
+							const world = document.querySelector("main.v1-world");
 							const canvas = document.querySelector(
-								"[data-testid='riverhold-canvas']",
+								"[data-testid='generated-world-canvas']",
 							);
-							const citizens = [
+							const residents = [
 								...document.querySelectorAll(
-									"[aria-label='Eight Riverhold citizens and their current activities'] li",
+									"fieldset.generated-residents button",
 								),
 							];
+							const canonicalPopulation = [
+								...document.querySelectorAll(
+									"[aria-label='Settlements'] button small",
+								),
+							].reduce((total, entry) => {
+								const count = Number.parseInt(entry.textContent ?? "", 10);
+								return total + (Number.isFinite(count) ? count : 0);
+							}, 0);
+							const semanticToggle = [
+								...document.querySelectorAll("button"),
+							].find(
+								(button) => button.textContent?.trim() === "World in words",
+							);
 							markWhen("eonfolk-cta", () =>
-								follow instanceof HTMLButtonElement &&
-								!follow.disabled &&
-								follow.tabIndex >= 0 &&
-								follow.getClientRects().length > 0 &&
-								citizens.length === 8
+								semanticToggle instanceof HTMLButtonElement &&
+								!semanticToggle.disabled &&
+								semanticToggle.tabIndex >= 0 &&
+								semanticToggle.getClientRects().length > 0 &&
+								world?.getAttribute("data-world-id") ===
+									"eonfolk-genesis-world-v1"
 									? {
 											authorityReady: true,
-											followEnabled: true,
-											followFocusable: true,
-											semanticCitizenCount: citizens.length,
+											controlEnabled: true,
+											controlFocusable: true,
+											route: window.location.pathname,
 										}
 									: null,
 							);
 							markWhen("eonfolk-meaningful-world", () => {
-								const activityTexts = citizens.map(
-									(citizen) =>
-										citizen.querySelector("button")?.textContent?.trim() ?? "",
+								const actorCount = Number(canvas?.dataset.actorCount ?? "0");
+								const renderer = canvas?.querySelector("canvas");
+								const stateHash = world?.getAttribute("data-state-hash") ?? "";
+								const routeSegmentCount = Number(
+									canvas?.dataset.routeSegmentCount ?? "0",
 								);
-								const citizenNames = citizens.map(
-									(citizen) =>
-										citizen.querySelector("strong")?.textContent?.trim() ?? "",
-								);
-								const maraCount = citizens.filter((citizen) =>
-									citizen
-										.querySelector("strong")
-										?.textContent?.includes("Mara"),
-								).length;
-								const interaction = [
-									...document.querySelectorAll(".semantic-summary div"),
-								]
-									.find((entry) =>
-										/(?:visible interaction|named interaction)/iu.test(
-											entry.querySelector("dt")?.textContent ?? "",
-										),
-									)
-									?.querySelector("dd")
-									?.textContent?.trim();
-								const illustratedInteraction = document
-									.querySelector(".world-notice")
-									?.textContent?.trim();
-								const interactionCitizenCount =
-									typeof interaction === "string"
-										? citizenNames.filter(
-												(name) => name.length > 0 && interaction.includes(name),
-											).length
-										: 0;
-								const illustratedInteractionCount = Number(
-									canvas?.dataset.interactions ?? "0",
+								const visibleInteractionCount = Number(
+									canvas?.dataset.interactionCount ?? "0",
 								);
 								return canvas?.dataset.ready === "true" &&
-									citizens.length === 8 &&
-									activityTexts.every((text) => text.length > 0) &&
-									maraCount === 1 &&
-									typeof interaction === "string" &&
-									interaction.length > 0 &&
-									interactionCitizenCount >= 2 &&
-									/(?:exchange|confer|compare|tally)/i.test(interaction) &&
-									illustratedInteractionCount >= 1 &&
-									typeof illustratedInteraction === "string" &&
-									illustratedInteraction.length > 0
+									actorCount === 7 &&
+									residents.length === actorCount &&
+									canonicalPopulation === 8 &&
+									routeSegmentCount >= 1 &&
+									visibleInteractionCount >= 1 &&
+									(canvas?.dataset.canonicalActionIds ?? "").length > 0 &&
+									canvas?.dataset.teleportCount === "0" &&
+									canvas?.dataset.contradictionCount === "0" &&
+									world?.getAttribute("data-asset-integrity") === "verified" &&
+									world?.getAttribute("data-persistence-restored") === "true" &&
+									/^[a-f0-9]{64}$/.test(stateHash) &&
+									renderer instanceof HTMLCanvasElement &&
+									renderer.width > 0 &&
+									renderer.height > 0
 									? {
 											canvasPainted: true,
-											semanticCitizenCount: citizens.length,
-											activityCount: activityTexts.length,
-											maraCount,
-											interactionCue: interaction,
-											interactionCitizenCount,
-											illustratedInteractionCount,
-											semanticIllustratedParity: true,
+											actorCount,
+											assetIntegrityVerified: true,
+											canonicalPopulation,
+											canonicalActivityGrounded: true,
+											residentControlCount: residents.length,
+											route: window.location.pathname,
+											routeSegmentCount,
+											stateHash,
+											visibleInteractionCount,
+											worldId: world?.getAttribute("data-world-id"),
 										}
 									: null;
 							});
@@ -605,18 +631,18 @@ try {
 						connectionType: "cellular4g",
 					});
 				await page.bringToFront();
-				await page.goto(origin, { waitUntil: "domcontentloaded" });
+				await page.goto(`${origin}/world`, { waitUntil: "domcontentloaded" });
 				const shell = await waitForQualificationMark(
 					page,
 					"eonfolk-shell",
 					2_000,
 				);
-				const follow = page
-					.getByLabel("Current Riverhold decision")
-					.getByRole("button", { name: "Follow Mara", exact: true });
-				await follow.waitFor({ timeout: profile.maximumDisplayMs });
-				if (!(await follow.isEnabled()))
-					throw new Error("Follow Mara is visible but not operable");
+				const worldInWords = page.getByRole("button", {
+					name: "World in words",
+				});
+				await worldInWords.waitFor({ timeout: profile.maximumDisplayMs });
+				if (!(await worldInWords.isEnabled()))
+					throw new Error("World in words is visible but not operable");
 				const cta = await waitForQualificationMark(
 					page,
 					"eonfolk-cta",
@@ -634,9 +660,9 @@ try {
 					uploadThroughput: 0,
 				});
 				const states = [];
-				const arrivalBeforeSample = await captureArrivalInvariant(page);
-				assertArrivalInvariant(arrivalBeforeSample, "before sample");
-				for (const stateName of ["arrival"]) {
+				const worldBeforeSample = await captureWorldInvariant(page);
+				assertWorldInvariant(worldBeforeSample, "before sample");
+				for (const stateName of ["world-arrival"]) {
 					const measured = await frameState(
 						page,
 						stateName,
@@ -648,30 +674,41 @@ try {
 						...measured.samples,
 					]);
 				}
-				const arrivalAfterSample = await captureArrivalInvariant(page);
-				assertArrivalInvariant(arrivalAfterSample, "after sample");
-				const investigationLatencyMs = await reachBusyMarket(page);
-				const busyMarket = await frameState(
+				const worldAfterSample = await captureWorldInvariant(page);
+				assertWorldInvariant(worldAfterSample, "after sample");
+				const residentFocusLatencyMs = await focusCanonicalResident(page);
+				const citizenFocus = await frameState(
 					page,
-					"busy-market",
+					"citizen-focus",
 					profile.maximumP95FrameMs,
 				);
-				states.push(busyMarket.summary);
-				pooledFrameSamples.set(`${profile.name}:busy-market`, [
-					...(pooledFrameSamples.get(`${profile.name}:busy-market`) ?? []),
-					...busyMarket.samples,
+				states.push(citizenFocus.summary);
+				pooledFrameSamples.set(`${profile.name}:citizen-focus`, [
+					...(pooledFrameSamples.get(`${profile.name}:citizen-focus`) ?? []),
+					...citizenFocus.samples,
 				]);
-				const catchUpMs = await reachChronicle(page);
-				const chronicle = await frameState(
+				const overviewLatencyMs = await openSettlementOverview(page);
+				const overview = await frameState(
 					page,
-					"chronicle",
+					"settlement-overview",
 					profile.maximumP95FrameMs,
 				);
-				states.push(chronicle.summary);
-				pooledFrameSamples.set(`${profile.name}:chronicle`, [
-					...(pooledFrameSamples.get(`${profile.name}:chronicle`) ?? []),
-					...chronicle.samples,
+				states.push(overview.summary);
+				pooledFrameSamples.set(`${profile.name}:settlement-overview`, [
+					...(pooledFrameSamples.get(`${profile.name}:settlement-overview`) ??
+						[]),
+					...overview.samples,
 				]);
+				await cdp.send("Network.emulateNetworkConditions", {
+					offline: false,
+					latency: 0,
+					downloadThroughput: -1,
+					uploadThroughput: -1,
+				});
+				const persistenceReload = await verifyGeneratedPersistenceReload(
+					page,
+					worldAfterSample.stateHash,
+				);
 				const diagnostics = await page.evaluate(() => ({
 					longTasksMs: window.__eonfolkLongTasks,
 					usedJsHeapBytes: performance.memory?.usedJSHeapSize ?? "unsupported",
@@ -693,12 +730,13 @@ try {
 						cta: cta.evidence,
 						meaningfulWorld: meaningfulWorld.evidence,
 					},
-					arrivalInvariant: {
-						beforeSample: arrivalBeforeSample,
-						afterSample: arrivalAfterSample,
+					worldInvariant: {
+						beforeSample: worldBeforeSample,
+						afterSample: worldAfterSample,
 					},
-					investigationLatencyMs,
-					catchUpMs,
+					residentFocusLatencyMs,
+					overviewLatencyMs,
+					persistenceReload,
 					states,
 					diagnostics,
 				});
@@ -729,10 +767,12 @@ const externalNetlogAttempts = [
 	...new Set(parsedNetlogRuns.flatMap((run) => run.externalAttempts)),
 ].sort();
 const aggregates = profiles.map((profile) => {
-	const states = ["arrival", "busy-market", "chronicle"].map((state) => {
-		const samples = pooledFrameSamples.get(`${profile.name}:${state}`) ?? [];
-		return { state, ...summarize(samples, profile.maximumP95FrameMs) };
-	});
+	const states = ["world-arrival", "citizen-focus", "settlement-overview"].map(
+		(state) => {
+			const samples = pooledFrameSamples.get(`${profile.name}:${state}`) ?? [];
+			return { state, ...summarize(samples, profile.maximumP95FrameMs) };
+		},
+	);
 	const allSamples = states.flatMap(
 		(state) => pooledFrameSamples.get(`${profile.name}:${state.state}`) ?? [],
 	);
@@ -785,20 +825,28 @@ const failed =
 			run.markEvidence.shell.factFreeAuthorityShell !== true ||
 			run.markEvidence.shell.factSurfaceCount !== 0 ||
 			run.markEvidence.cta.authorityReady !== true ||
-			run.markEvidence.cta.followEnabled !== true ||
-			run.markEvidence.cta.followFocusable !== true ||
-			run.markEvidence.cta.semanticCitizenCount !== 8 ||
+			run.markEvidence.cta.controlEnabled !== true ||
+			run.markEvidence.cta.controlFocusable !== true ||
+			run.markEvidence.cta.route !== "/world" ||
 			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
-			run.markEvidence.meaningfulWorld.semanticCitizenCount !== 8 ||
-			run.markEvidence.meaningfulWorld.activityCount !== 8 ||
-			run.markEvidence.meaningfulWorld.maraCount !== 1 ||
-			run.markEvidence.meaningfulWorld.interactionCitizenCount < 2 ||
-			run.markEvidence.meaningfulWorld.semanticIllustratedParity !== true ||
+			run.markEvidence.meaningfulWorld.actorCount !== 7 ||
+			run.markEvidence.meaningfulWorld.assetIntegrityVerified !== true ||
+			run.markEvidence.meaningfulWorld.canonicalPopulation !== 8 ||
+			run.markEvidence.meaningfulWorld.canonicalActivityGrounded !== true ||
+			run.markEvidence.meaningfulWorld.residentControlCount !==
+				run.markEvidence.meaningfulWorld.actorCount ||
+			run.markEvidence.meaningfulWorld.route !== "/world" ||
+			run.markEvidence.meaningfulWorld.routeSegmentCount < 1 ||
+			run.markEvidence.meaningfulWorld.visibleInteractionCount < 1 ||
+			run.markEvidence.meaningfulWorld.worldId !== "eonfolk-genesis-world-v1" ||
+			run.persistenceReload.persistenceRestored !== "true" ||
+			run.persistenceReload.route !== "/world" ||
+			run.persistenceReload.stateHashStable !== true ||
 			run.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
 		);
 	});
 const report = {
-	schemaVersion: "eonfolk-canonical-web-performance-v1",
+	schemaVersion: "eonfolk-release-genesis-web-performance-v2",
 	measuredAt: new Date().toISOString(),
 	canonical,
 	runtime: {
@@ -842,9 +890,11 @@ const report = {
 		},
 	},
 	fixture: {
-		run: "canonical-local-proof",
-		region: "region_riverhold",
-		citizens: 8,
+		run: "release-genesis-generated-world",
+		route: "/world",
+		worldId: "eonfolk-genesis-world-v1",
+		population: 8,
+		visibleSettlementResidents: 7,
 		motion: "no-preference",
 		quality: "default",
 		focus: "foreground",
@@ -855,9 +905,10 @@ const report = {
 		coldContextPerRun: true,
 		cacheDisabled: true,
 		serviceWorkersBlocked: true,
+		persistenceReload: "required same-route reload with stable state hash",
 		stateWarmupMs,
 		stateMeasurementMs: stateDurationMs,
-		states: ["arrival", "busy-market", "chronicle"],
+		states: ["world-arrival", "citizen-focus", "settlement-overview"],
 	},
 	runs,
 	aggregates,
@@ -871,6 +922,7 @@ const report = {
 		"Mobile is canonical throttled emulation on the target Mac, not a physical phone.",
 		"Memory is reported only when Chromium exposes performance.memory.",
 		"This is a local pre-release measurement, not field telemetry or a human gate.",
+		"The persisted-authority claim is limited to an actual warm /world reload with the same state hash; it does not claim server durability.",
 	],
 };
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);

@@ -14,15 +14,19 @@ import {
 import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
-	it("keeps every DEEP browser journey on the current counsel phase contract", () => {
-		for (const script of [
-			"scripts/benchmark-diagnostics-browser.mjs",
-			"scripts/benchmark-web.mjs",
-		]) {
-			const source = readFileSync(resolve(script), "utf8");
-			expect(source).toContain("Review Mara's choices");
-			expect(source).not.toContain("Reach the counsel boundary");
-		}
+	it("keeps the canonical web benchmark on Release Genesis /world", () => {
+		const source = readFileSync(resolve("scripts/benchmark-web.mjs"), "utf8");
+		expect(source).toContain("await page.goto(`" + "$" + "{origin}/world`");
+		expect(source).toContain('route: "/world"');
+		expect(source).toContain('worldId: "eonfolk-genesis-world-v1"');
+		expect(source).toContain("generated-world-canvas");
+		expect(source).toContain("actorCount === 7");
+		expect(source).toContain("canonicalPopulation === 8");
+		expect(source).toContain("visibleInteractionCount >= 1");
+		expect(source).toContain("verifyGeneratedPersistenceReload");
+		expect(source).toContain("stateHashStable: true");
+		expect(source).not.toContain("region_riverhold");
+		expect(source).not.toContain("riverhold-canvas");
 	});
 
 	it("times the operable CTA independently from the meaningful WebGL world", () => {
@@ -35,9 +39,31 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(ctaStart).toBeGreaterThan(-1);
 		expect(worldStart).toBeGreaterThan(ctaStart);
 		const ctaQualification = source.slice(ctaStart, worldStart);
-		expect(ctaQualification).toContain("follow.tabIndex >= 0");
-		expect(ctaQualification).toContain("follow.getClientRects().length > 0");
+		expect(ctaQualification).toContain("semanticToggle.tabIndex >= 0");
+		expect(ctaQualification).toContain(
+			"semanticToggle.getClientRects().length > 0",
+		);
 		expect(ctaQualification).not.toContain("canvas");
+	});
+
+	it("runs the strongest generated-world journey in Linux CI with fail-closed WebGL", () => {
+		const config = readFileSync(
+			resolve("apps/web/playwright.config.ts"),
+			"utf8",
+		);
+		expect(config).toContain("linuxCi ? /@fault|@illustrated-target/u");
+		expect(config).not.toContain("@fault|@generated-target");
+		expect(config).not.toContain("@fault|@generated-world");
+
+		const journey = readFileSync(
+			resolve("tests/e2e/generated-world.spec.ts"),
+			"utf8",
+		);
+		expect(journey).toContain("@generated-target");
+		expect(journey).toContain(
+			'await expect(canvas).toHaveAttribute("data-ready", "true"',
+		);
+		expect(journey).toContain("firstCheckpoint.headHash");
 	});
 
 	it("scopes semantic resident parity to canonical resident controls", () => {
