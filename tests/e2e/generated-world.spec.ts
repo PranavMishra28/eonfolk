@@ -380,7 +380,7 @@ test("generated camera and canvas selection preserve the authoritative head @gen
 	expect(externalRequests).toEqual([]);
 });
 
-test("generated controls and reload preserve the durable head @generated-world @generated-target", async ({
+test("generated controls preserve the durable head @generated-world", async ({
 	page,
 }) => {
 	test.setTimeout(90_000);
@@ -449,6 +449,22 @@ test("generated controls and reload preserve the durable head @generated-world @
 		receiptCount: 5,
 		snapshotCount: 2,
 	});
+	expect(externalRequests).toEqual([]);
+});
+
+test("generated reload restores the durable head @generated-world @generated-target", async ({
+	page,
+}) => {
+	const externalRequests = await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
+	await page.goto("/world");
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 20_000 },
+	);
+	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
 	await page.reload();
 	await expect(page.locator("main.v1-world")).toHaveAttribute(
 		"data-persistence-restored",
