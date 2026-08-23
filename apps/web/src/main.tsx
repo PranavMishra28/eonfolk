@@ -1,9 +1,20 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import {
+	Component,
+	lazy,
+	Suspense,
+	type ErrorInfo,
+	type ReactNode,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { RiverholdApp } from "./RiverholdApp";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Riverhold root is missing");
+
+const V1GenesisApp = lazy(async () => {
+	const module = await import("./V1GenesisApp");
+	return { default: module.V1GenesisApp };
+});
 
 class RuntimeBoundary extends Component<
 	{ readonly children: ReactNode },
@@ -47,8 +58,28 @@ class RuntimeBoundary extends Component<
 const reactRoot: Root = import.meta.hot?.data.reactRoot ?? createRoot(root);
 if (import.meta.hot) import.meta.hot.data.reactRoot = reactRoot;
 
+const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+const genesisRoute =
+	normalizedPath === "/genesis"
+		? "entry"
+		: normalizedPath === "/world"
+			? "world"
+			: null;
+
 reactRoot.render(
 	<RuntimeBoundary>
-		<RiverholdApp />
+		{genesisRoute === null ? (
+			<RiverholdApp />
+		) : (
+			<Suspense
+				fallback={
+					<main className="v1-genesis-shell" aria-busy="true">
+						<p>Preparing Release Genesis…</p>
+					</main>
+				}
+			>
+				<V1GenesisApp route={genesisRoute} />
+			</Suspense>
+		)}
 	</RuntimeBoundary>,
 );
