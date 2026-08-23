@@ -702,10 +702,21 @@ export interface IntentProposal {
 		readonly summaryKey: string;
 		readonly sourceIds: readonly string[];
 	} | null;
-	readonly provenance: {
-		readonly cognitionKind: "standard-brain";
-		readonly cognitionVersion: typeof COGNITION_VERSION;
-	};
+	readonly provenance:
+		| {
+				readonly cognitionKind: "standard-brain";
+				readonly cognitionVersion: typeof COGNITION_VERSION;
+		  }
+		| {
+				readonly cognitionKind: "model";
+				readonly cognitionVersion: typeof COGNITION_VERSION;
+				readonly provider: string;
+				readonly model: string;
+				readonly modelVersion: string;
+				readonly promptTemplateHash: string;
+				readonly proposalSchemaHash: string;
+				readonly artifactHash: string;
+		  };
 	readonly publicJustification: string;
 	readonly explanation: DecisionExplanation;
 	readonly proposalHash: string;

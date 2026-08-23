@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+	createCognitiveDecisionRecord,
 	runDecisionGateway,
 	standardBrain,
 	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
-import { seedPrng } from "../../../packages/protocol/src/index.js";
+import {
+	proposalHash,
+	seedPrng,
+} from "../../../packages/protocol/src/index.js";
 import { riverholdDecisionFixture } from "../../fixtures/riverhold/index.js";
 
 async function fixture() {
@@ -121,5 +125,76 @@ describe("post-cognition decision gateway", () => {
 				primaryTimeoutMilliseconds: 100,
 			}),
 		).rejects.toThrow(/deterministic fallback violated/u);
+	});
+
+	it("accepts a closed model proposal and preserves exact artifact provenance", async () => {
+		const test = await fixture();
+		const standard = await test.fallback();
+		const { proposalHash: _standardHash, ...standardWithoutHash } = standard;
+		const withoutHash = {
+			...standardWithoutHash,
+			proposalId: "proposal-model",
+			provenance: {
+				cognitionKind: "model" as const,
+				cognitionVersion: standard.provenance.cognitionVersion,
+				provider: "ollama-local",
+				model: "qwen3-coder-30b",
+				modelVersion: "06c1097efce0",
+				promptTemplateHash: "11".repeat(32),
+				proposalSchemaHash: "22".repeat(32),
+				artifactHash: "33".repeat(32),
+			},
+			publicJustification:
+				"I will verify the reserve before making a public accusation.",
+			explanation: {
+				...standard.explanation,
+				templateId: "model-proposal-v1",
+				decisiveReasonCodes: [],
+				scoreTerms: [],
+				totalScore: 0,
+				tieBreak: { used: false, draw: null, tiedActionIds: [] },
+				discardedCandidates: [],
+			},
+		};
+		const proposal = {
+			...withoutHash,
+			proposalHash: await proposalHash(withoutHash),
+		};
+
+		expect(await validateIntentProposal(test.context, proposal)).toBe(
+			"accepted",
+		);
+		const record = await createCognitiveDecisionRecord({
+			decisionId: "decision-model",
+			decisionBoundaryId: "boundary-model",
+			wholePreStateHash: "44".repeat(32),
+			context: test.context,
+			proposal,
+			failureCode: null,
+			validator: {
+				stage: "committed",
+				outcome: "accepted",
+				reason: "accepted",
+			},
+			proposedCommandId: "command-model",
+			receiptRef: "command-model",
+			acceptedEventInterval: null,
+		});
+		expect(record.cognitionKind).toBe("model");
+		expect(record.provider).toBe("ollama-local");
+		expect(record.artifactHash).toBe("33".repeat(32));
+
+		const brokenCopy = {
+			...proposal,
+			publicJustification:
+				"I will verify the reserve before making a public accus",
+		};
+		const { proposalHash: _oldHash, ...brokenWithoutHash } = brokenCopy;
+		expect(
+			await validateIntentProposal(test.context, {
+				...brokenWithoutHash,
+				proposalHash: await proposalHash(brokenWithoutHash),
+			}),
+		).toBe("ACTION_UNAVAILABLE");
 	});
 });

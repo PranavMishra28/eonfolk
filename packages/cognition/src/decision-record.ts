@@ -40,6 +40,10 @@ export async function createCognitiveDecisionRecord(input: {
 			throw new Error("proposal hash mismatch");
 	}
 	const explanation = input.proposal?.explanation ?? null;
+	const modelProvenance =
+		input.proposal?.provenance.cognitionKind === "model"
+			? input.proposal.provenance
+			: null;
 	const withoutHash = {
 		schemaVersion: "eonfolk-cognitive-decision-record-v1" as const,
 		recordVersion: "1" as const,
@@ -66,13 +70,13 @@ export async function createCognitiveDecisionRecord(input: {
 		actionCatalogVersion: input.context.actionCatalogVersion,
 		budgets: input.context.budgets,
 		cognitionConfigurationVersion: COGNITION_VERSION,
-		cognitionKind: "standard-brain" as const,
-		provider: null,
-		model: null,
-		modelVersion: null,
-		promptTemplateHash: null,
-		proposalSchemaHash: null,
-		artifactHash: null,
+		cognitionKind: input.proposal?.provenance.cognitionKind ?? "standard-brain",
+		provider: modelProvenance?.provider ?? null,
+		model: modelProvenance?.model ?? null,
+		modelVersion: modelProvenance?.modelVersion ?? null,
+		promptTemplateHash: modelProvenance?.promptTemplateHash ?? null,
+		proposalSchemaHash: modelProvenance?.proposalSchemaHash ?? null,
+		artifactHash: modelProvenance?.artifactHash ?? null,
 		proposalCanonicalBytes:
 			input.proposal === null ? null : jcs(input.proposal),
 		proposalHash: input.proposal?.proposalHash ?? null,

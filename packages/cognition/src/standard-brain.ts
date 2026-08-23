@@ -373,17 +373,24 @@ export async function validateIntentProposal(
 		proposal.revision !== context.revision ||
 		proposal.schemaVersion !== "eonfolk-intent-proposal-v1" ||
 		!isPlainRecord(proposal.provenance) ||
-		!hasExactKeys(proposal.provenance, ["cognitionKind", "cognitionVersion"]) ||
-		proposal.provenance.cognitionKind !== "standard-brain" ||
-		proposal.provenance.cognitionVersion !== COGNITION_VERSION ||
 		proposal.planProposal !== null ||
 		proposal.memoryProposal !== null ||
 		typeof proposal.publicJustification !== "string" ||
 		proposal.publicJustification.length > 512 ||
-		!isClosedExplanation(proposal.explanation, context) ||
+		!isClosedProvenance(proposal.provenance) ||
+		!isClosedExplanation(
+			proposal.explanation,
+			context,
+			proposal.provenance.cognitionKind,
+		) ||
 		proposal.explanation.selectedActionId !== proposal.actionId ||
-		proposal.publicJustification !==
-			renderPublicJustification(proposal.explanation as DecisionExplanation)
+		(proposal.provenance.cognitionKind === "standard-brain" &&
+			proposal.publicJustification !==
+				renderPublicJustification(
+					proposal.explanation as DecisionExplanation,
+				)) ||
+		(proposal.provenance.cognitionKind === "model" &&
+			!isPublicModelJustification(proposal.publicJustification))
 	)
 		return "ACTION_UNAVAILABLE";
 	const catalogEntry = context.actionCatalog.find(
@@ -399,6 +406,67 @@ export async function validateIntentProposal(
 	if ((await proposalHash(withoutHash)) !== claimedHash)
 		return "ACTION_UNAVAILABLE";
 	return "accepted";
+}
+
+function isSha256(value: unknown): value is string {
+	return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
+}
+
+function containsControlCharacter(value: string): boolean {
+	return [...value].some((character) => {
+		const code = character.codePointAt(0);
+		return code !== undefined && (code <= 0x1f || code === 0x7f);
+	});
+}
+
+function isBoundedLabel(value: unknown): value is string {
+	return (
+		typeof value === "string" &&
+		value.length >= 1 &&
+		value.length <= 128 &&
+		!containsControlCharacter(value)
+	);
+}
+
+function isClosedProvenance(
+	value: Record<string, unknown>,
+): value is IntentProposal["provenance"] {
+	if (value.cognitionKind === "standard-brain") {
+		return (
+			hasExactKeys(value, ["cognitionKind", "cognitionVersion"]) &&
+			value.cognitionVersion === COGNITION_VERSION
+		);
+	}
+	return (
+		value.cognitionKind === "model" &&
+		hasExactKeys(value, [
+			"cognitionKind",
+			"cognitionVersion",
+			"provider",
+			"model",
+			"modelVersion",
+			"promptTemplateHash",
+			"proposalSchemaHash",
+			"artifactHash",
+		]) &&
+		value.cognitionVersion === COGNITION_VERSION &&
+		isBoundedLabel(value.provider) &&
+		isBoundedLabel(value.model) &&
+		isBoundedLabel(value.modelVersion) &&
+		isSha256(value.promptTemplateHash) &&
+		isSha256(value.proposalSchemaHash) &&
+		isSha256(value.artifactHash)
+	);
+}
+
+function isPublicModelJustification(value: string): boolean {
+	return (
+		[...value].length >= 8 &&
+		[...value].length <= 180 &&
+		value === value.normalize("NFC") &&
+		!containsControlCharacter(value) &&
+		/[.!?]$/u.test(value)
+	);
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -444,6 +512,7 @@ function isStringArray(value: unknown, maximum: number): value is string[] {
 function isClosedExplanation(
 	value: unknown,
 	context: DecisionContext,
+	cognitionKind: IntentProposal["provenance"]["cognitionKind"],
 ): value is DecisionExplanation {
 	if (
 		!isPlainRecord(value) ||
@@ -466,7 +535,9 @@ function isClosedExplanation(
 	if (
 		typeof value.selectedActionId !== "string" ||
 		typeof value.templateId !== "string" ||
-		!value.templateId.startsWith("standard-") ||
+		(cognitionKind === "standard-brain"
+			? !value.templateId.startsWith("standard-")
+			: value.templateId !== "model-proposal-v1") ||
 		!isStringArray(value.decisiveReasonCodes, 3) ||
 		!isStringArray(value.visibleRecordIdsRead, 128) ||
 		!isStringArray(value.relationshipIdsRead, 128) ||
@@ -479,6 +550,18 @@ function isClosedExplanation(
 		value.discardedCandidates.length > context.actionCatalog.length ||
 		!isPlainRecord(value.tieBreak) ||
 		!hasExactKeys(value.tieBreak, ["used", "draw", "tiedActionIds"])
+	)
+		return false;
+	if (
+		cognitionKind === "model" &&
+		(value.decisiveReasonCodes.length !== 0 ||
+			value.scoreTerms.length !== 0 ||
+			value.totalScore !== 0 ||
+			value.discardedCandidates.length !== 0 ||
+			value.tieBreak.used !== false ||
+			value.tieBreak.draw !== null ||
+			!Array.isArray(value.tieBreak.tiedActionIds) ||
+			value.tieBreak.tiedActionIds.length !== 0)
 	)
 		return false;
 	const visibleIds = new Set(
