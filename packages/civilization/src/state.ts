@@ -170,8 +170,45 @@ export function createCivilizationState(
 		foundings: {},
 		materializedFoundings: {},
 		foundingRequirements: {},
+		needOutcomes: [],
+		materializedProjects: {},
 		provenance: [],
 		accounting: [],
+	});
+}
+
+export function appendBuildingKindReference(
+	state: CivilizationState,
+	siteId: string,
+	buildingKind: string,
+	patch: Partial<
+		Omit<CivilizationState, "schemaVersion" | "revision" | "references">
+	>,
+	atSimulationTime = state.simulationTime,
+): CivilizationState {
+	simulationTime(atSimulationTime);
+	requireReference(state.references.siteIds, siteId, "site");
+	identifier(buildingKind, "buildingKind");
+	if (atSimulationTime < state.simulationTime)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"simulation time cannot move backwards",
+		);
+	const existing = state.references.buildingKindsBySite[siteId] ?? [];
+	return deepFreeze({
+		...state,
+		...clonePlain(patch),
+		references: normalizeReferences({
+			...state.references,
+			buildingKindsBySite: {
+				...state.references.buildingKindsBySite,
+				[siteId]: existing.includes(buildingKind)
+					? existing
+					: [...existing, buildingKind],
+			},
+		}),
+		revision: state.revision + 1,
+		simulationTime: atSimulationTime,
 	});
 }
 

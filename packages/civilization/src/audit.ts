@@ -112,6 +112,8 @@ export function auditCivilizationState(
 	}
 	const reconstructed: Record<string, number> = {};
 	const consumedByProjectResource: Record<string, number> = {};
+	const consumedByCitizenTime: Record<string, number> = {};
+	const consumedByCitizenTimeResource: Record<string, number> = {};
 	const seenEntries = new Set<string>();
 	for (const entry of state.accounting) {
 		if (seenEntries.has(entry.entryId))
@@ -136,6 +138,14 @@ export function auditCivilizationState(
 				`accounting entry ${entry.entryId} lacks an authorized project`,
 			);
 		}
+		if (
+			entry.kind === "need-consumption" &&
+			(entry.subjectCitizenId === undefined ||
+				state.citizens[entry.subjectCitizenId] === undefined)
+		)
+			issues.push(
+				`accounting entry ${entry.entryId} lacks a need subject citizen`,
+			);
 		const byResource: Record<string, number> = {};
 		for (const delta of entry.stockDeltas) {
 			const stock = state.stocks[delta.stockId];
@@ -200,6 +210,21 @@ export function auditCivilizationState(
 					(consumedByProjectResource[`${entry.projectId}:${resourceTypeId}`] ??
 						0) - net;
 		}
+		if (entry.kind === "need-consumption") {
+			if (Object.values(byResource).some((net) => net > 0))
+				issues.push(
+					`accounting entry ${entry.entryId} creates a consumed need resource`,
+				);
+			if (entry.subjectCitizenId !== undefined)
+				consumedByCitizenTime[
+					`${entry.subjectCitizenId}:${entry.simulationTime}`
+				] = -Object.values(byResource).reduce((sum, net) => sum + net, 0);
+			if (entry.subjectCitizenId !== undefined)
+				for (const [resourceTypeId, net] of Object.entries(byResource))
+					consumedByCitizenTimeResource[
+						`${entry.subjectCitizenId}:${entry.simulationTime}:${resourceTypeId}`
+					] = -net;
+		}
 	}
 
 	const totals: Record<ResourceTypeId, number> = {};
@@ -248,6 +273,111 @@ export function auditCivilizationState(
 				issues.push(
 					`project ${project.projectId} consumption accounting differs for ${resourceTypeId}`,
 				);
+	}
+	const seenNeedOutcomes = new Set<string>();
+	for (const outcome of state.needOutcomes) {
+		if (seenNeedOutcomes.has(outcome.outcomeId))
+			issues.push(`duplicate need outcome ${outcome.outcomeId}`);
+		seenNeedOutcomes.add(outcome.outcomeId);
+		if (state.citizens[outcome.citizenId] === undefined)
+			issues.push(`need outcome ${outcome.outcomeId} has unknown citizen`);
+		if (
+			outcome.outcomeId !==
+			`need:${outcome.citizenId}:${outcome.evaluatedAtSimulationTime}`
+		)
+			issues.push(`need outcome ${outcome.outcomeId} has a non-canonical id`);
+		if (outcome.evaluatedAtSimulationTime > state.simulationTime)
+			issues.push(`need outcome ${outcome.outcomeId} is from the future`);
+		if (
+			outcome.foodConsumedUnits < 0 ||
+			outcome.foodConsumedUnits > outcome.foodRequiredUnits ||
+			outcome.waterConsumedUnits < 0 ||
+			outcome.waterConsumedUnits > outcome.waterRequiredUnits
+		)
+			issues.push(`need outcome ${outcome.outcomeId} has invalid quantities`);
+		if (
+			outcome.foodResourceTypeIds.length === 0 ||
+			outcome.waterResourceTypeIds.length === 0 ||
+			outcome.foodResourceTypeIds.some((resourceTypeId) =>
+				outcome.waterResourceTypeIds.includes(resourceTypeId),
+			)
+		)
+			issues.push(
+				`need outcome ${outcome.outcomeId} has invalid resource classes`,
+			);
+		const expectedConsumed =
+			outcome.foodConsumedUnits + outcome.waterConsumedUnits;
+		if (
+			(consumedByCitizenTime[
+				`${outcome.citizenId}:${outcome.evaluatedAtSimulationTime}`
+			] ?? 0) !== expectedConsumed
+		)
+			issues.push(`need outcome ${outcome.outcomeId} differs from accounting`);
+		const consumedFor = (resourceTypeIds: readonly string[]) =>
+			resourceTypeIds.reduce(
+				(sum, resourceTypeId) =>
+					sum +
+					(consumedByCitizenTimeResource[
+						`${outcome.citizenId}:${outcome.evaluatedAtSimulationTime}:${resourceTypeId}`
+					] ?? 0),
+				0,
+			);
+		if (consumedFor(outcome.foodResourceTypeIds) !== outcome.foodConsumedUnits)
+			issues.push(
+				`need outcome ${outcome.outcomeId} has wrong food accounting`,
+			);
+		if (
+			consumedFor(outcome.waterResourceTypeIds) !== outcome.waterConsumedUnits
+		)
+			issues.push(
+				`need outcome ${outcome.outcomeId} has wrong water accounting`,
+			);
+		for (const stockId of outcome.sourceStockIds)
+			if (state.stocks[stockId] === undefined)
+				issues.push(
+					`need outcome ${outcome.outcomeId} has unknown source stock`,
+				);
+		if (new Set(outcome.sourceStockIds).size !== outcome.sourceStockIds.length)
+			issues.push(`need outcome ${outcome.outcomeId} repeats a source stock`);
+	}
+	for (const key of Object.keys(consumedByCitizenTime)) {
+		const separator = key.lastIndexOf(":");
+		const citizenId = key.slice(0, separator);
+		const atSimulationTime = Number(key.slice(separator + 1));
+		if (
+			!state.needOutcomes.some(
+				(outcome) =>
+					outcome.citizenId === citizenId &&
+					outcome.evaluatedAtSimulationTime === atSimulationTime,
+			)
+		)
+			issues.push(`need accounting ${key} has no outcome`);
+	}
+	for (const [projectId, materialization] of Object.entries(
+		state.materializedProjects,
+	)) {
+		const project = state.projects[projectId];
+		if (
+			project === undefined ||
+			project.state !== "completed" ||
+			project.siteId !== materialization.siteId ||
+			materialization.projectId !== projectId ||
+			materialization.materializedAtSimulationTime > state.simulationTime ||
+			(project.endedAtSimulationTime !== null &&
+				materialization.materializedAtSimulationTime <
+					project.endedAtSimulationTime)
+		)
+			issues.push(
+				`materialized project ${projectId} is not physically complete`,
+			);
+		if (
+			!(
+				state.references.buildingKindsBySite[materialization.siteId] ?? []
+			).includes(materialization.buildingKind)
+		)
+			issues.push(
+				`materialized project ${projectId} lacks its building reference`,
+			);
 	}
 	for (const [migrationId, journey] of Object.entries(
 		state.migrationJourneys,

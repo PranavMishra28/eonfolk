@@ -18,6 +18,7 @@ import type {
 import {
 	appendSettlementAndSiteReferences,
 	appendSettlementReference,
+	appendBuildingKindReference,
 	evolve,
 	identifier,
 	positiveQuantity,
@@ -28,6 +29,7 @@ import {
 import type {
 	AccountingEntry,
 	CivilizationState,
+	DailyNeedOutcome,
 	MigrationJourneyState,
 	PhysicalResourceRequirement,
 	ProcessBinding,
@@ -111,7 +113,11 @@ function nextEntry(
 	kind: AccountingEntry["kind"],
 	stockDeltas: AccountingEntry["stockDeltas"],
 	atSimulationTime: number,
-	context: { readonly recipeId?: string; readonly projectId?: string } = {},
+	context: {
+		readonly recipeId?: string;
+		readonly projectId?: string;
+		readonly subjectCitizenId?: string;
+	} = {},
 ): AccountingEntry {
 	return {
 		entryId: `accounting:${state.revision + 1}:${state.accounting.length + 1}`,
@@ -120,7 +126,164 @@ function nextEntry(
 		stockDeltas,
 		recipeId: context.recipeId ?? null,
 		projectId: context.projectId ?? null,
+		...(context.subjectCitizenId === undefined
+			? {}
+			: { subjectCitizenId: context.subjectCitizenId }),
 	};
+}
+
+function stockIsAccessibleToCitizen(
+	state: CivilizationState,
+	stock: StockState,
+	citizenId: string,
+): boolean {
+	const citizen = present(state.citizens, citizenId, "citizen");
+	switch (stock.owner.kind) {
+		case "citizen":
+			return stock.owner.citizenId === citizenId;
+		case "household":
+			return stock.owner.householdId === citizen.householdId;
+		case "settlement":
+			return stock.owner.settlementId === citizen.settlementId;
+		case "institution":
+			return (
+				state.institutions[stock.owner.institutionId]?.memberships.some(
+					(membership) =>
+						membership.citizenId === citizenId &&
+						membership.leftAtSimulationTime === null,
+				) ?? false
+			);
+		case "project":
+			return false;
+	}
+}
+
+/** Atomically consumes reachable food and water and persists any unmet need. */
+export function consumeCitizenDailyNeeds(
+	state: CivilizationState,
+	input: {
+		readonly citizenId: string;
+		readonly foodResourceTypeIds: readonly string[];
+		readonly waterResourceTypeIds: readonly string[];
+		readonly stockIds: readonly string[];
+		readonly atSimulationTime: number;
+	},
+): CivilizationState {
+	simulationTime(input.atSimulationTime);
+	const citizen = present(state.citizens, input.citizenId, "citizen");
+	if (citizen.residenceState !== "resident")
+		throw new CivilizationError(
+			"INVALID_STATE",
+			"only a resident citizen consumes daily needs",
+		);
+	if (
+		input.foodResourceTypeIds.length === 0 ||
+		input.waterResourceTypeIds.length === 0 ||
+		new Set(input.foodResourceTypeIds).size !==
+			input.foodResourceTypeIds.length ||
+		new Set(input.waterResourceTypeIds).size !==
+			input.waterResourceTypeIds.length ||
+		input.foodResourceTypeIds.some((id) =>
+			input.waterResourceTypeIds.includes(id),
+		)
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"food and water resource classes must be non-empty and disjoint",
+		);
+	for (const resourceTypeId of [
+		...input.foodResourceTypeIds,
+		...input.waterResourceTypeIds,
+	])
+		present(state.resourceDefinitions, resourceTypeId, "need resource");
+	const outcomeId = `need:${input.citizenId}:${input.atSimulationTime}`;
+	if (state.needOutcomes.some((outcome) => outcome.outcomeId === outcomeId))
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`daily need outcome ${outcomeId} already exists`,
+		);
+	const uniqueStockIds = [...new Set(input.stockIds)].sort();
+	const deltas: Record<string, number> = {};
+	const consume = (
+		resourceTypeIds: readonly string[],
+		required: number,
+	): number => {
+		let remaining = required;
+		for (const stockId of uniqueStockIds) {
+			if (remaining === 0) break;
+			const stock = present(state.stocks, stockId, "need stock");
+			if (
+				!resourceTypeIds.includes(stock.resourceTypeId) ||
+				!stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+			)
+				continue;
+			const available = stock.quantity - stock.reservedQuantity;
+			const amount = Math.min(remaining, available);
+			if (amount > 0) {
+				deltas[stockId] = (deltas[stockId] ?? 0) - amount;
+				remaining -= amount;
+			}
+		}
+		return required - remaining;
+	};
+	const foodConsumedUnits = consume(
+		input.foodResourceTypeIds,
+		citizen.foodRequiredUnitsPerDay,
+	);
+	const waterConsumedUnits = consume(
+		input.waterResourceTypeIds,
+		citizen.waterRequiredUnitsPerDay,
+	);
+	const groundedStockIds = uniqueStockIds.filter((stockId) => {
+		const stock = present(state.stocks, stockId, "need stock");
+		return (
+			[...input.foodResourceTypeIds, ...input.waterResourceTypeIds].includes(
+				stock.resourceTypeId,
+			) && stockIsAccessibleToCitizen(state, stock, citizen.citizenId)
+		);
+	});
+	const stocks = { ...state.stocks };
+	for (const [stockId, delta] of Object.entries(deltas)) {
+		const stock = present(state.stocks, stockId, "need stock");
+		stocks[stockId] = {
+			...stock,
+			quantity: stock.quantity + delta,
+			updatedAtSimulationTime: input.atSimulationTime,
+		};
+	}
+	const outcome: DailyNeedOutcome = {
+		outcomeId,
+		citizenId: citizen.citizenId,
+		evaluatedAtSimulationTime: input.atSimulationTime,
+		foodRequiredUnits: citizen.foodRequiredUnitsPerDay,
+		foodConsumedUnits,
+		foodResourceTypeIds: [...input.foodResourceTypeIds].sort(),
+		waterRequiredUnits: citizen.waterRequiredUnitsPerDay,
+		waterConsumedUnits,
+		waterResourceTypeIds: [...input.waterResourceTypeIds].sort(),
+		sourceStockIds: groundedStockIds,
+	};
+	const stockDeltas = Object.entries(deltas)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([stockId, quantityDelta]) => ({ stockId, quantityDelta }));
+	const accounting =
+		stockDeltas.length === 0
+			? state.accounting
+			: [
+					...state.accounting,
+					nextEntry(
+						state,
+						"need-consumption",
+						stockDeltas,
+						input.atSimulationTime,
+						{ subjectCitizenId: citizen.citizenId },
+					),
+				];
+	return evolve(
+		state,
+		{ stocks, needOutcomes: [...state.needOutcomes, outcome], accounting },
+		input.atSimulationTime,
+	);
 }
 
 export function registerResourceDefinition(
@@ -1323,6 +1486,45 @@ export function completeProject(
 		state,
 		{ ...project, state: "completed", endedAtSimulationTime: atSimulationTime },
 		atSimulationTime,
+	);
+}
+
+/** Converts one completed construction project into a canonical site capability. */
+export function materializeCompletedProject(
+	state: CivilizationState,
+	input: {
+		readonly projectId: string;
+		readonly buildingKind: string;
+		readonly atSimulationTime: number;
+	},
+): CivilizationState {
+	const project = present(state.projects, input.projectId, "project");
+	if (project.state !== "completed" || project.siteId === null)
+		throw new CivilizationError(
+			"PREREQUISITE_UNMET",
+			"only a completed site project can materialize",
+		);
+	if (state.materializedProjects[project.projectId] !== undefined)
+		throw new CivilizationError(
+			"ALREADY_EXISTS",
+			`project ${project.projectId} is already materialized`,
+		);
+	return appendBuildingKindReference(
+		state,
+		project.siteId,
+		input.buildingKind,
+		{
+			materializedProjects: {
+				...state.materializedProjects,
+				[project.projectId]: {
+					projectId: project.projectId,
+					siteId: project.siteId,
+					buildingKind: input.buildingKind,
+					materializedAtSimulationTime: input.atSimulationTime,
+				},
+			},
+		},
+		input.atSimulationTime,
 	);
 }
 

@@ -111,7 +111,8 @@ export type AccountingKind =
 	| "transfer"
 	| "recipe-input"
 	| "recipe-output"
-	| "project-consumption";
+	| "project-consumption"
+	| "need-consumption";
 
 export interface StockDelta {
 	readonly stockId: string;
@@ -125,6 +126,30 @@ export interface AccountingEntry {
 	readonly stockDeltas: readonly StockDelta[];
 	readonly recipeId: string | null;
 	readonly projectId: string | null;
+	/** Present only for a person's authoritative daily need consumption. */
+	readonly subjectCitizenId?: CitizenId;
+}
+
+/** Persisted fact of what a resident could actually consume during one scheduler step. */
+export interface DailyNeedOutcome {
+	readonly outcomeId: string;
+	readonly citizenId: CitizenId;
+	readonly evaluatedAtSimulationTime: number;
+	readonly foodRequiredUnits: number;
+	readonly foodConsumedUnits: number;
+	readonly foodResourceTypeIds: readonly ResourceTypeId[];
+	readonly waterRequiredUnits: number;
+	readonly waterConsumedUnits: number;
+	readonly waterResourceTypeIds: readonly ResourceTypeId[];
+	readonly sourceStockIds: readonly string[];
+}
+
+/** A completed project's canonical physical consequence, separate from presentation. */
+export interface PhysicalProjectMaterialization {
+	readonly projectId: ProjectId;
+	readonly siteId: string;
+	readonly buildingKind: string;
+	readonly materializedAtSimulationTime: number;
 }
 
 export interface ProcessBinding {
@@ -179,6 +204,10 @@ export interface CivilizationState {
 	readonly materializedFoundings: Readonly<Record<FoundingId, string>>;
 	readonly foundingRequirements: Readonly<
 		Record<FoundingId, readonly PhysicalResourceRequirement[]>
+	>;
+	readonly needOutcomes: readonly DailyNeedOutcome[];
+	readonly materializedProjects: Readonly<
+		Record<ProjectId, PhysicalProjectMaterialization>
 	>;
 	readonly provenance: readonly CivilizationEventProvenance[];
 	readonly accounting: readonly AccountingEntry[];
