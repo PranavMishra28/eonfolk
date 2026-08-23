@@ -147,4 +147,12 @@
 | Every accepted P0/P1 repaired | NOT STARTED |
 | Fresh post-fix confirmation | NOT STARTED |
 | V1 handoff with evidence and honest limitations | NOT STARTED |
-| Draft PR marked ready, protected merge completed, and post-merge main verified | NOT STARTED |
+| Draft PR marked ready after exact-candidate premerge evidence | NOT STARTED |
+
+## Post-merge operational reattestation
+
+This operational row is not part of the premerge readiness roster: requiring a completed merge before marking the PR ready would deadlock the release. It remains mandatory after the protected merge and before branch/tag/worktree cleanup.
+
+| Requirement | State | Evidence |
+|---|---|---|
+| Protected merge completed and a fresh push-to-main run reattested the exact merge commit | NOT STARTED | Must be a new `push` run whose head is the protected merge commit; premerge dispatches cannot be reclassified by ancestry |

@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { contentSha256 } from "../../../scripts/evidence-integrity.mjs";
 
 import {
 	evaluateV1Readiness,
@@ -41,7 +42,7 @@ const hash = (value: string | Uint8Array) =>
 	createHash("sha256").update(value).digest("hex");
 const selfHashed = <T extends object>(value: T) => ({
 	...value,
-	outputSha256: hash(JSON.stringify(value)),
+	outputSha256: contentSha256(value),
 });
 
 function trustedRunRecord({
@@ -80,6 +81,7 @@ function trustedRunRecord({
 		macExternalProbe: purpose === "target-mac-deep" ? {} : null,
 		macLifecycle: purpose === "target-mac-deep" ? {} : null,
 		payloadSha256,
+		phaseAttestation: null,
 		provider: "github-actions-live-api",
 		purpose,
 		repository: "owner/repo",
@@ -287,9 +289,9 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 				: [],
 	};
 	const report = selfHashed(unsigned);
-	const { outputSha256: _output, ...payload } = report;
 	const initialReviewSha = "a".repeat(40);
 	const evidenceSha = "e".repeat(40);
+	const rawSha256 = hash(JSON.stringify(report));
 	const trustedRuns = new Map([
 		[
 			"target-mac-deep",
@@ -300,11 +302,18 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 				initialReviewSha,
 				frozenCandidateSha: head,
 				evidenceSha,
-				payloadSha256: hash(JSON.stringify(payload)),
+				payloadSha256: rawSha256,
 			}),
 		],
 	]);
-	return { report, stored, trustedRuns, evidenceSha, initialReviewSha };
+	return {
+		report,
+		stored,
+		trustedRuns,
+		evidenceSha,
+		initialReviewSha,
+		rawSha256,
+	};
 }
 
 const disciplines = [
@@ -472,13 +481,12 @@ function reviewEvidence(
 		}),
 	);
 	const report = {
-		schemaVersion: "eonfolk-v1-review-confirmation-v5",
+		schemaVersion: "eonfolk-v1-review-confirmation-v6",
 		status: "PASS",
 		integrityClaim:
 			"REPOSITORY_COMPUTABLE_PLUS_LIVE_GITHUB_RECEIPTS; REVIEWER_AGENT_IDENTITY_SELF_REPORTED",
 		initialReviewSha,
 		frozenCandidateSha: frozenSoftwareSha,
-		evidenceSha,
 		reviews,
 		reconciliation: {
 			unrepairedP0: 0,
@@ -501,9 +509,7 @@ function reviewEvidence(
 	};
 	const signed = {
 		...report,
-		outputSha256: createHash("sha256")
-			.update(JSON.stringify(report))
-			.digest("hex"),
+		outputSha256: contentSha256(report),
 	};
 	return {
 		report: signed,
@@ -517,6 +523,7 @@ function reviewEvidence(
 				sha === initialReviewSha ? binding.baseTreeSha : binding.headTreeSha,
 			fullDiffSha256: () => binding.diffSha256,
 			deepEvidenceOutputSha256,
+			deepEvidenceRawSha256: null,
 			trustedRuns,
 			readArtifact: (_commit: string, path: string) => {
 				const bytes = stored.get(path);
@@ -552,6 +559,7 @@ function releaseFixture(initialReviewSha: string, frozenSoftwareSha: string) {
 		reviews,
 		context: {
 			...reviews.context,
+			deepEvidenceRawSha256: deep.rawSha256,
 			trustedRuns,
 			readArtifact: (commit: string, path: string) => {
 				const bytes =
@@ -564,6 +572,45 @@ function releaseFixture(initialReviewSha: string, frozenSoftwareSha: string) {
 }
 
 describe("V1 readiness and generated inventory tooling", () => {
+	it("uses one strict key-ordered internal content-hash contract", () => {
+		expect(contentSha256({ b: 2, a: 1 })).toBe(contentSha256({ a: 1, b: 2 }));
+		expect(() => contentSha256({ a: undefined })).toThrow(
+			/undefined object fields/u,
+		);
+	});
+
+	it("bridges exact producer bytes through receipt hashing into readiness", () => {
+		const fixture = evidence("b".repeat(40));
+		const producerBytes = Buffer.from(
+			`${JSON.stringify(fixture.report, null, 2)}\n`,
+		);
+		const rawSha256 = hash(producerBytes);
+		fixture.trustedRuns.get("target-mac-deep").payloadSha256 = rawSha256;
+		const context = {
+			attestationClass: "PREMERGE_CANDIDATE_CONTROL",
+			evidenceSha: fixture.evidenceSha,
+			initialReviewSha: fixture.initialReviewSha,
+			deepEvidenceRawSha256: rawSha256,
+			readArtifact: (_commit: string, path: string) =>
+				fixture.stored.get(path) as Uint8Array,
+			trustedRuns: fixture.trustedRuns,
+		};
+		expect(
+			validateTargetMacDeepEvidence(
+				JSON.parse(producerBytes.toString("utf8")),
+				"b".repeat(40),
+				context,
+			).failures,
+		).toEqual([]);
+		context.deepEvidenceRawSha256 = fixture.report.outputSha256;
+		expect(
+			validateTargetMacDeepEvidence(fixture.report, "b".repeat(40), context)
+				.failures,
+		).toContain(
+			"DEEP evidence is not bound to the required live GitHub control/blob attestation",
+		);
+	});
+
 	it("parses only required software rows and rejects unknown states", () => {
 		expect(parseRequiredStateRows(goal("IN PROGRESS"))).toMatchObject([
 			{ requirement: "First requirement", state: "IN PROGRESS" },
@@ -698,8 +745,17 @@ describe("V1 readiness and generated inventory tooling", () => {
 			"review V1-RV-PRODUCT is not bound to the required live GitHub control/blob attestation",
 		);
 
-		for (const record of release.context.trustedRuns.values())
+		for (const record of release.context.trustedRuns.values()) {
 			record.attestationClass = "POSTMERGE_PROTECTED_MAIN";
+			record.phaseAttestation = {
+				event: "push",
+				headSha: mainHead,
+				mergeCommittedAt: "2026-08-23T03:00:00.000Z",
+				runAttempt: 1,
+				runId: 700,
+				runStartedAt: "2026-08-23T03:01:00.000Z",
+			};
+		}
 		const postMerge = evaluateV1Readiness({
 			rows: parseRequiredStateRows(goal("VERIFIED")),
 			mode: "ready",
@@ -728,15 +784,13 @@ describe("V1 readiness and generated inventory tooling", () => {
 		const linuxFixture = evidence(frozenSoftwareSha);
 		const linux = linuxFixture.report;
 		linux.environment.host = "linux 6.0.0 x64";
-		const { outputSha256: _oldHash, ...linuxWithoutHash } = linux;
-		linux.outputSha256 = createHash("sha256")
-			.update(JSON.stringify(linuxWithoutHash))
-			.digest("hex");
+		linux.outputSha256 = contentSha256(linux);
 		expect(
 			validateTargetMacDeepEvidence(linux, frozenSoftwareSha, {
 				attestationClass: "PREMERGE_CANDIDATE_CONTROL",
 				evidenceSha: linuxFixture.evidenceSha,
 				initialReviewSha: linuxFixture.initialReviewSha,
+				deepEvidenceRawSha256: linuxFixture.rawSha256,
 				readArtifact: (_commit: string, path: string) =>
 					linuxFixture.stored.get(path) as Uint8Array,
 				trustedRuns: linuxFixture.trustedRuns,
@@ -750,10 +804,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		const duplicate = duplicateFixture.report;
 		duplicate.reviews[1].reviewerSessionId =
 			duplicate.reviews[0].reviewerSessionId;
-		const { outputSha256: _reviewHash, ...duplicateWithoutHash } = duplicate;
-		duplicate.outputSha256 = createHash("sha256")
-			.update(JSON.stringify(duplicateWithoutHash))
-			.digest("hex");
+		duplicate.outputSha256 = contentSha256(duplicate);
 		expect(
 			validateReviewConfirmationEvidence(duplicate, duplicateFixture.context)
 				.failures,
@@ -890,9 +941,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		};
 		const tinySigned = {
 			...tiny,
-			outputSha256: createHash("sha256")
-				.update(JSON.stringify(tiny))
-				.digest("hex"),
+			outputSha256: contentSha256(tiny),
 		};
 		const tinyResult = validateTargetMacDeepEvidence(tinySigned, head);
 		expect(tinyResult.ok).toBe(false);
@@ -912,10 +961,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		tampered.artifacts.files.find(
 			(file) => file.path === DEEP_BENCHMARK_CONTRACT[1].path,
 		).sha256 = "f".repeat(64);
-		const { outputSha256: _old, ...tamperedWithoutHash } = tampered;
-		tampered.outputSha256 = createHash("sha256")
-			.update(JSON.stringify(tamperedWithoutHash))
-			.digest("hex");
+		tampered.outputSha256 = contentSha256(tampered);
 		const failures = validateTargetMacDeepEvidence(tampered, head, {
 			attestationClass: "PREMERGE_CANDIDATE_CONTROL",
 			evidenceSha: tamperedFixture.evidenceSha,
@@ -942,10 +988,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		fixture.report.reviews[1].artifact.sha256 = "0".repeat(64);
 		fixture.report.reconciliation.dispositions.pop();
 		fixture.report.reconciliation.dispositions.pop();
-		const { outputSha256: _old, ...withoutHash } = fixture.report;
-		fixture.report.outputSha256 = createHash("sha256")
-			.update(JSON.stringify(withoutHash))
-			.digest("hex");
+		fixture.report.outputSha256 = contentSha256(fixture.report);
 		const failures = validateReviewConfirmationEvidence(fixture.report, {
 			...fixture.context,
 			isAncestor: () => false,
@@ -965,10 +1008,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 	it("requires a separately hashed fresh-confirmation artifact", () => {
 		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
 		fixture.report.confirmation.artifact.sha256 = "0".repeat(64);
-		const { outputSha256: _old, ...withoutHash } = fixture.report;
-		fixture.report.outputSha256 = createHash("sha256")
-			.update(JSON.stringify(withoutHash))
-			.digest("hex");
+		fixture.report.outputSha256 = contentSha256(fixture.report);
 		expect(
 			validateReviewConfirmationEvidence(fixture.report, fixture.context)
 				.failures,
@@ -977,14 +1017,12 @@ describe("V1 readiness and generated inventory tooling", () => {
 
 	it("rejects a non-distinct review/frozen/evidence SHA chain", () => {
 		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
-		fixture.report.evidenceSha = fixture.report.frozenCandidateSha;
-		const { outputSha256: _old, ...withoutHash } = fixture.report;
-		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		fixture.context.evidenceSha = fixture.report.frozenCandidateSha;
 		expect(
 			validateReviewConfirmationEvidence(fixture.report, fixture.context)
 				.failures,
 		).toContain(
-			"initialReviewSha, frozenCandidateSha, and evidenceSha must be pairwise distinct",
+			"initialReviewSha, frozenCandidateSha, and trusted evidence checkout SHA must be pairwise distinct",
 		);
 	});
 
@@ -1046,8 +1084,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		);
 		shared.report.reconciliation.dispositions[0].rationale = "too short";
 		shared.context.trustedRuns.delete("review:V1-RV-VISUAL");
-		const { outputSha256: _old, ...withoutHash } = shared.report;
-		shared.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		shared.report.outputSha256 = contentSha256(shared.report);
 		const failures = validateReviewConfirmationEvidence(
 			shared.report,
 			shared.context,
@@ -1072,7 +1109,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 		const parsed = JSON.parse(
 			Buffer.from(
 				fixture.context.readArtifact(
-					fixture.report.evidenceSha,
+					fixture.context.evidenceSha,
 					artifactReference.path,
 				),
 			).toString("utf8"),
@@ -1088,8 +1125,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 			path === artifactReference.path
 				? bytes
 				: originalReadArtifact(commit, path);
-		const { outputSha256: _old, ...withoutHash } = fixture.report;
-		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		fixture.report.outputSha256 = contentSha256(fixture.report);
 		expect(
 			validateReviewConfirmationEvidence(fixture.report, fixture.context)
 				.failures,
@@ -1099,8 +1135,7 @@ describe("V1 readiness and generated inventory tooling", () => {
 	it("requires an explicit structured no-P0/P1 conclusion", () => {
 		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
 		fixture.report.reviews[0].findings = { p0: [], p1: [] };
-		const { outputSha256: _old, ...withoutHash } = fixture.report;
-		fixture.report.outputSha256 = hash(JSON.stringify(withoutHash));
+		fixture.report.outputSha256 = contentSha256(fixture.report);
 		expect(
 			validateReviewConfirmationEvidence(fixture.report, fixture.context)
 				.failures,

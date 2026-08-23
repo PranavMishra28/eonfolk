@@ -17,6 +17,7 @@ import {
 import { arch, platform, release } from "node:os";
 import { relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentSha256 } from "./evidence-integrity.mjs";
 
 const step = (id, command, arguments_ = []) =>
 	Object.freeze({ id, command, arguments: Object.freeze(arguments_) });
@@ -408,8 +409,7 @@ function assertArtifactSelfHash(report, hashField = "outputSha256") {
 		throw new Error(
 			`benchmark ${report.schemaVersion} has no valid ${hashField}`,
 		);
-	const { [hashField]: _hash, ...withoutHash } = report;
-	if (sha256(JSON.stringify(withoutHash)) !== expected)
+	if (contentSha256(report, hashField) !== expected)
 		throw new Error(
 			`benchmark ${report.schemaVersion} ${hashField} is invalid`,
 		);
@@ -1080,7 +1080,7 @@ async function main() {
 	};
 	const report = {
 		...reportWithoutHash,
-		outputSha256: sha256(JSON.stringify(reportWithoutHash)),
+		outputSha256: contentSha256(reportWithoutHash),
 	};
 	mkdirSync(resolve("tmp"), { recursive: true });
 	const output = resolve("tmp", `eonfolk-verification-${tier}.json`);

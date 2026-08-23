@@ -1,5 +1,16 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { contentSha256 } from "../../../scripts/evidence-integrity.mjs";
 
 import {
 	CONTROL_PATHS,
@@ -28,7 +39,7 @@ const intermediateTag = "refs/tags/eonfolk-evidence-intermediate01";
 const controlFiles = CONTROL_PATHS.map((path, index) => ({
 	path,
 	mode: "100644",
-	blobSha: String(index + 1).repeat(40),
+	blobSha: (index + 1).toString(16).padStart(40, "0"),
 }));
 
 function payloadFor(purpose: string, index: number) {
@@ -43,6 +54,7 @@ function payloadFor(purpose: string, index: number) {
 						start: { commit: frozenCandidateSha },
 						end: { commit: frozenCandidateSha },
 					},
+					recordedAt: "2026-08-23T00:30:00.000Z",
 				}),
 			),
 			reviewerAgentId: null,
@@ -59,6 +71,7 @@ function payloadFor(purpose: string, index: number) {
 					sourceSha: frozenCandidateSha,
 					reviewerAgentId,
 					reviewerSessionId,
+					completedAt: "2026-08-23T02:30:00.000Z",
 				}),
 			),
 			reviewerAgentId,
@@ -73,6 +86,7 @@ function payloadFor(purpose: string, index: number) {
 				sourceSha: initialReviewSha,
 				reviewerAgentId,
 				reviewerSessionId,
+				completedAt: "2026-08-23T02:00:00.000Z",
 			}),
 		),
 		reviewerAgentId,
@@ -86,6 +100,7 @@ type Mutation = Readonly<{
 	readonly postMergeWorkflowSource?: boolean;
 	readonly wrongControlBlob?: boolean;
 	readonly badExternalProbe?: boolean;
+	readonly badProbeOrdering?: boolean;
 	readonly run?: (value: Record<string, any>) => void;
 	readonly workflow?: (value: Record<string, any>) => void;
 	readonly receipt?: (value: Record<string, any>) => void;
@@ -93,11 +108,9 @@ type Mutation = Readonly<{
 }>;
 
 function fixture(mutation: Mutation = {}) {
-	const workflowSourceSha = mutation.postMergeWorkflowSource
-		? "d".repeat(40)
-		: evidenceSha;
+	const workflowSourceSha = evidenceSha;
 	const mainSha = mutation.postMergeWorkflowSource
-		? workflowSourceSha
+		? "d".repeat(40)
 		: "f".repeat(40);
 	const archives = new Map<number, ReadonlyMap<string, Uint8Array>>();
 	const archiveBytes = new Map<number, Uint8Array>();
@@ -160,7 +173,7 @@ function fixture(mutation: Mutation = {}) {
 							preflight: "JOB_ASSIGNED_EXACT_NONCE_RUNNER",
 							teardown: "EXTERNAL_COORDINATOR_PROBE_REQUIRED",
 							payloadSha256: hash(payload.bytes),
-							finalizedAt: "2026-08-23T00:00:00.000Z",
+							finalizedAt: "2026-08-23T00:45:00.000Z",
 						}
 					: null,
 			macExternalProbe: null,
@@ -170,6 +183,7 @@ function fixture(mutation: Mutation = {}) {
 				sha256: hash(payload.bytes),
 			},
 		};
+		mutation.receipt?.(receipt);
 		if (purpose === "target-mac-deep") {
 			const probeUnsigned = {
 				schemaVersion: "eonfolk-v1-mac-external-probe-v1",
@@ -187,24 +201,41 @@ function fixture(mutation: Mutation = {}) {
 					runnerCount: mutation.badExternalProbe === true ? 1 : 0,
 				},
 				afterRun: {
-					observedAt: "2026-08-23T01:00:00.000Z",
+					observedAt:
+						mutation.badProbeOrdering === true
+							? "2026-08-23T00:30:00.000Z"
+							: "2026-08-23T01:00:00.000Z",
 					operatorActor: "release-operator",
 					runnerAbsent: true,
 				},
 			};
-			receipt.macExternalProbe = {
+			const probe = {
 				...probeUnsigned,
-				outputSha256: hash(JSON.stringify(probeUnsigned)),
+				outputSha256: contentSha256(probeUnsigned),
 			};
+			const probeBytes = Buffer.from(JSON.stringify(probe));
+			receipt.macExternalProbe = {
+				path: "mac-external-probe.json",
+				bytes: probeBytes.byteLength,
+				sha256: hash(probeBytes),
+			};
+			archives.set(
+				runId,
+				new Map([
+					["receipt.json", Buffer.from(JSON.stringify(receipt))],
+					["payload.json", payload.bytes],
+					["mac-external-probe.json", probeBytes],
+				]),
+			);
 		}
-		mutation.receipt?.(receipt);
-		archives.set(
-			runId,
-			new Map([
-				["receipt.json", Buffer.from(JSON.stringify(receipt))],
-				["payload.json", payload.bytes],
-			]),
-		);
+		if (purpose !== "target-mac-deep")
+			archives.set(
+				runId,
+				new Map([
+					["receipt.json", Buffer.from(JSON.stringify(receipt))],
+					["payload.json", payload.bytes],
+				]),
+			);
 		const zipped = Buffer.from(`archive-${runId}`);
 		archiveBytes.set(runId, zipped);
 		const run: Record<string, any> = {
@@ -218,6 +249,9 @@ function fixture(mutation: Mutation = {}) {
 			run_attempt: 1,
 			actor: { login: "release-operator" },
 			workflow_id: 42,
+			created_at: "2026-08-23T04:00:00.000Z",
+			run_started_at: "2026-08-23T04:01:00.000Z",
+			updated_at: "2026-08-23T04:02:00.000Z",
 		};
 		if (runId === 1) mutation.run?.(run);
 		runs.set(runId, run);
@@ -283,6 +317,9 @@ function fixture(mutation: Mutation = {}) {
 						head_sha: frozenCandidateSha,
 						run_attempt: 1,
 						actor: { login: "release-operator" },
+						created_at: "2026-08-23T00:10:00.000Z",
+						run_started_at: "2026-08-23T00:15:00.000Z",
+						updated_at: "2026-08-23T00:50:00.000Z",
 					};
 				if (run === undefined) throw new Error("not found");
 				return run;
@@ -291,35 +328,36 @@ function fixture(mutation: Mutation = {}) {
 			const jobsMatch = /\/actions\/runs\/(\d+)\/jobs/u.exec(path);
 			if (jobsMatch !== null) {
 				const runId = Number(jobsMatch[1]);
-				return {
-					jobs:
-						runId === 99
-							? [
-									{
-										name: "Mac immutable control preflight",
-										conclusion: "success",
-									},
-									{
-										name: "Target-Mac exact 30-step DEEP intermediate",
-										conclusion: "success",
-										runner_id: 501,
-										runner_name: runnerName,
-										labels: runnerLabels,
-									},
-									{
-										name: "Clean hosted Mac evidence finalizer",
-										conclusion: "success",
-									},
-								]
-							: [
-									{
-										conclusion: "success",
-										name: "Release evidence finalizer",
-										runner_name: "GitHub Actions 1",
-										labels: ["ubuntu-24.04"],
-									},
-								],
-				};
+				const entries =
+					runId === 99
+						? [
+								{
+									name: "Mac immutable control preflight",
+									conclusion: "success",
+								},
+								{
+									name: "Target-Mac exact 30-step DEEP intermediate",
+									conclusion: "success",
+									runner_id: 501,
+									runner_name: runnerName,
+									labels: runnerLabels,
+									started_at: "2026-08-23T00:20:00.000Z",
+									completed_at: "2026-08-23T00:40:00.000Z",
+								},
+								{
+									name: "Clean hosted Mac evidence finalizer",
+									conclusion: "success",
+								},
+							]
+						: [
+								{
+									conclusion: "success",
+									name: "Release evidence finalizer",
+									runner_name: "GitHub Actions 1",
+									labels: ["ubuntu-24.04"],
+								},
+							];
+				return { jobs: entries, total_count: entries.length };
 			}
 			if (path.includes("/git/trees/"))
 				return {
@@ -336,7 +374,10 @@ function fixture(mutation: Mutation = {}) {
 				};
 			const artifactMatch = /\/actions\/runs\/(\d+)\/artifacts/u.exec(path);
 			if (artifactMatch !== null)
-				return { artifacts: [artifacts.get(Number(artifactMatch[1]))] };
+				return {
+					artifacts: [artifacts.get(Number(artifactMatch[1]))],
+					total_count: 1,
+				};
 			if (path.includes("/compare/")) {
 				const pair = path.split("/compare/")[1];
 				const [ancestor, descendant] = pair.split("...");
@@ -351,6 +392,12 @@ function fixture(mutation: Mutation = {}) {
 					};
 				return { status: "ahead", merge_base_commit: { sha: ancestor } };
 			}
+			if (path === `/repos/${repository}/commits/${mainSha}`)
+				return {
+					sha: mainSha,
+					parents: [{ sha: "0".repeat(40) }, { sha: evidenceSha }],
+					commit: { committer: { date: "2026-08-23T03:00:00.000Z" } },
+				};
 			if (path.includes("/commits/")) return { sha: path.split("/").at(-1) };
 			throw new Error(`unexpected path ${path}`);
 		},
@@ -373,6 +420,108 @@ function fixture(mutation: Mutation = {}) {
 }
 
 describe("live GitHub V1 evidence verification", () => {
+	it("constructs and validates a non-self-referential three-commit evidence chain", () => {
+		const root = mkdtempSync(join(tmpdir(), "eonfolk-evidence-chain-"));
+		const output = join(root, "output");
+		try {
+			const git = (cwd: string, ...args: string[]) =>
+				execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+			git(root, "init", "--quiet");
+			git(root, "config", "user.email", "test@example.invalid");
+			git(root, "config", "user.name", "Evidence Test");
+			for (const path of CONTROL_PATHS) {
+				mkdirSync(dirname(join(root, path)), { recursive: true });
+				writeFileSync(join(root, path), `control:${path}\n`);
+			}
+			writeFileSync(join(root, "software.txt"), "initial\n");
+			git(root, "add", ".");
+			git(root, "commit", "--quiet", "-m", "initial review");
+			const initial = git(root, "rev-parse", "HEAD");
+			writeFileSync(join(root, "software.txt"), "frozen\n");
+			git(root, "add", "software.txt");
+			git(root, "commit", "--quiet", "-m", "frozen candidate");
+			const frozen = git(root, "rev-parse", "HEAD");
+			const reviewPath = "docs/reviews/V1-RV-PRODUCT.json";
+			mkdirSync(dirname(join(root, reviewPath)), { recursive: true });
+			writeFileSync(
+				join(root, reviewPath),
+				`${JSON.stringify({
+					schemaVersion: "eonfolk-v1-structured-review-v3",
+					reviewId: "V1-RV-PRODUCT",
+					sourceSha: initial,
+					reviewerAgentId: "agent-product-001",
+					reviewerSessionId: "session-product-001",
+					completedAt: "2026-08-23T01:00:00.000Z",
+				})}\n`,
+			);
+			git(root, "add", reviewPath);
+			git(root, "commit", "--quiet", "-m", "evidence bytes");
+			const evidence = git(root, "rev-parse", "HEAD");
+			expect(readFileSync(join(root, reviewPath), "utf8")).not.toContain(
+				evidence,
+			);
+
+			const checkout = (name: string, sha: string) => {
+				const path = join(root, name);
+				execFileSync("git", ["clone", "--quiet", "--no-hardlinks", root, path]);
+				git(path, "checkout", "--quiet", "--detach", sha);
+				return path;
+			};
+			const control = checkout("control", frozen);
+			const evidenceRoot = checkout("evidence", evidence);
+			const workflow = checkout("workflow", evidence);
+			execFileSync(
+				process.execPath,
+				[
+					resolve("scripts/v1-github-evidence.mjs"),
+					"prepare",
+					"--purpose",
+					"review:V1-RV-PRODUCT",
+					"--control-root",
+					control,
+					"--evidence-root",
+					evidenceRoot,
+					"--workflow-root",
+					workflow,
+					"--initial-review-sha",
+					initial,
+					"--frozen-candidate-sha",
+					frozen,
+					"--payload",
+					reviewPath,
+					"--reviewer-agent-id",
+					"agent-product-001",
+					"--reviewer-session-id",
+					"session-product-001",
+					"--output",
+					output,
+				],
+				{
+					env: {
+						...process.env,
+						GITHUB_ACTOR: "owner",
+						GITHUB_EVENT_NAME: "workflow_dispatch",
+						GITHUB_REF: "refs/tags/eonfolk-evidence-construct01",
+						GITHUB_REPOSITORY: "owner/repo",
+						GITHUB_RUN_ATTEMPT: "1",
+						GITHUB_RUN_ID: "123",
+						GITHUB_SHA: evidence,
+						GITHUB_WORKFLOW: "CI",
+						GITHUB_WORKFLOW_REF:
+							"owner/repo/.github/workflows/ci.yml@refs/tags/eonfolk-evidence-construct01",
+					},
+				},
+			);
+			const receipt = JSON.parse(
+				readFileSync(join(output, "receipt.json"), "utf8"),
+			);
+			const payload = readFileSync(join(output, "payload.json"));
+			expect(receipt.evidenceSha).toBe(evidence);
+			expect(receipt.payload.sha256).toBe(hash(payload));
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 	it("accepts configuration that enumerates only the exact run-ID roster", () => {
 		expect(
 			parseRunIdConfiguration({
@@ -416,6 +565,7 @@ describe("live GitHub V1 evidence verification", () => {
 
 	it("supports protected-main re-attestation without rewriting evidence bytes", async () => {
 		const built = fixture({ postMergeWorkflowSource: true });
+		const mainSha = "d".repeat(40);
 		const registry = await verifyGithubEvidenceRuns({
 			runIds: [1, 2, 3, 4, 5, 6, 7, 8],
 			repository,
@@ -424,14 +574,26 @@ describe("live GitHub V1 evidence verification", () => {
 			expectedOperator: "release-operator",
 			client: built.client,
 			archiveReader: built.archiveReader,
+			attestationRun: {
+				id: 700,
+				run_attempt: 1,
+				workflow_id: 42,
+				repository: { full_name: repository },
+				actor: { login: "release-operator" },
+				status: "in_progress",
+				conclusion: null,
+				event: "push",
+				head_branch: "main",
+				head_sha: mainSha,
+				created_at: "2026-08-23T03:00:30.000Z",
+				run_started_at: "2026-08-23T03:01:00.000Z",
+			},
 		});
 		expect(
 			registry.runs.every(({ evidenceSha: sha }) => sha === evidenceSha),
 		).toBe(true);
 		expect(
-			registry.runs.every(
-				({ workflowSourceSha: sha }) => sha === "d".repeat(40),
-			),
+			registry.runs.every(({ workflowSourceSha: sha }) => sha === evidenceSha),
 		).toBe(true);
 		expect(
 			registry.runs.every(
@@ -569,5 +731,49 @@ describe("live GitHub V1 evidence verification", () => {
 				archiveReader: built.archiveReader,
 			}),
 		).rejects.toThrow(/probe is malformed/u);
+	});
+
+	it("rejects lifecycle, probe, and producer timestamps out of order", async () => {
+		const built = fixture({ badProbeOrdering: true });
+		await expect(
+			verifyGithubEvidenceRuns({
+				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+				repository,
+				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
+				client: built.client,
+				archiveReader: built.archiveReader,
+			}),
+		).rejects.toThrow(/timestamp ordering/u);
+	});
+
+	it("rejects postmerge ancestry without a new timely push run", async () => {
+		const built = fixture({ postMergeWorkflowSource: true });
+		await expect(
+			verifyGithubEvidenceRuns({
+				runIds: [1, 2, 3, 4, 5, 6, 7, 8],
+				repository,
+				expectedEvidenceSha: evidenceSha,
+				expectedOwner: "owner",
+				expectedOperator: "release-operator",
+				client: built.client,
+				archiveReader: built.archiveReader,
+				attestationRun: {
+					id: 700,
+					run_attempt: 1,
+					workflow_id: 42,
+					repository: { full_name: repository },
+					actor: { login: "release-operator" },
+					status: "in_progress",
+					conclusion: null,
+					event: "push",
+					head_branch: "main",
+					head_sha: "d".repeat(40),
+					created_at: "2026-08-23T02:59:58.000Z",
+					run_started_at: "2026-08-23T02:59:59.000Z",
+				},
+			}),
+		).rejects.toThrow(/actual protected merge commit and time/u);
 	});
 });

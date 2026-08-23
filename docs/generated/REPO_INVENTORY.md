@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 484 files excluding this generated file; SHA-256 `d07a0eb8e09024a8076404de59e7e279e0b999753c74bb9a18d2e86565dffcfc`.
+**File-set identity:** 487 files excluding this generated file; SHA-256 `9a90cc3f3e08aa39a2f3ea1be1a98ffc0d4280c79ebac0da3df1f8a45f5a50e8`.
 
 ## Tracked topology
 
@@ -18,9 +18,9 @@
 | GitHub automation | 4 |
 | Other tracked assets | 3 |
 | Packages | 95 |
-| Repository tooling | 32 |
+| Repository tooling | 33 |
 | Research and reviews | 48 |
-| Root controls and configuration | 23 |
+| Root controls and configuration | 25 |
 | Tests and fixtures | 119 |
 
 ## Workspaces
@@ -67,6 +67,8 @@
 - `README.md`
 - `RESUME.md`
 - `biome.json`
+- `package.json`
+- `package.json`
 - `package.json`
 - `playwright.gate0.config.ts`
 - `pnpm-lock.yaml`

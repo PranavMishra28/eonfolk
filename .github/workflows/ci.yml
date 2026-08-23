@@ -39,10 +39,6 @@ on:
         description: Full frozen software/control SHA
         required: false
         type: string
-      evidence_sha:
-        description: Full evidence-only descendant SHA; workflow source is the dispatch tag target
-        required: false
-        type: string
       artifact_path:
         description: Evidence-SHA-relative structured review or confirmation JSON
         required: false
@@ -67,8 +63,8 @@ on:
         description: Exact successful target-Mac intermediate run attempt
         required: false
         type: string
-      runner_probe_path:
-        description: Evidence-SHA-relative external coordinator runner-probe receipt
+      runner_probe_json_base64:
+        description: Canonical base64 JSON coordinator probe; procedural evidence, never repository bytes
         required: false
         type: string
 
@@ -214,7 +210,14 @@ jobs:
             verified_payloads="${RUNNER_TEMP}/v1-live-verified-payloads"
             expected_evidence_sha="${V1_BRANCH_HEAD}"
             if [[ "${V1_EVENT_NAME}" == "push" ]]; then
-              expected_evidence_sha="$(node --input-type=module -e 'import { readFileSync } from "node:fs"; const value = JSON.parse(readFileSync("docs/exec-plans/evidence/003/release/review-confirmation.json", "utf8")); process.stdout.write(value.evidenceSha ?? "")')"
+              mapfile -t merge_parents < <(git show -s --format='%P' "${V1_TESTED_HEAD}" | tr ' ' '\n')
+              [[ "${#merge_parents[@]}" -eq 2 ]]
+              [[ "${merge_parents[0]}" == "${V1_BASE_HEAD}" || "${merge_parents[1]}" == "${V1_BASE_HEAD}" ]]
+              if [[ "${merge_parents[0]}" == "${V1_BASE_HEAD}" ]]; then
+                expected_evidence_sha="${merge_parents[1]}"
+              else
+                expected_evidence_sha="${merge_parents[0]}"
+              fi
             fi
             [[ "${expected_evidence_sha}" =~ ^[a-f0-9]{40}$ ]]
             printf '%s' "${V1_EVIDENCE_RUN_IDS_JSON}" > "${run_ids}"
@@ -635,10 +638,10 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Checkout exact evidence SHA as inert bytes
+      - name: Checkout dispatch-tag target as inert evidence bytes
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.evidence_sha }}
+          ref: ${{ github.sha }}
           path: evidence
           fetch-depth: 0
           persist-credentials: false
@@ -656,14 +659,14 @@ jobs:
         env:
           ARTIFACT_PATH: ${{ inputs.artifact_path }}
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
-          EVIDENCE_SHA: ${{ inputs.evidence_sha }}
+          EVIDENCE_SHA: ${{ github.sha }}
           INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
           INTERMEDIATE_RUN_ATTEMPT: ${{ inputs.intermediate_run_attempt }}
           INTERMEDIATE_RUN_ID: ${{ inputs.intermediate_run_id }}
           PURPOSE: ${{ inputs.evidence_purpose }}
           REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
           REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
-          RUNNER_PROBE_PATH: ${{ inputs.runner_probe_path }}
+          RUNNER_PROBE_JSON_BASE64: ${{ inputs.runner_probe_json_base64 }}
           WORKFLOW_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -680,7 +683,7 @@ jobs:
           if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
             [[ "${INTERMEDIATE_RUN_ID}" =~ ^[1-9][0-9]*$ ]]
             [[ "${INTERMEDIATE_RUN_ATTEMPT}" =~ ^[1-9][0-9]*$ ]]
-            [[ "${RUNNER_PROBE_PATH}" =~ ^docs/exec-plans/evidence/003/release/[^./][A-Za-z0-9._/-]*\.json$ ]]
+            [[ "${#RUNNER_PROBE_JSON_BASE64}" -ge 128 && "${#RUNNER_PROBE_JSON_BASE64}" -le 12288 ]]
             [[ -z "${ARTIFACT_PATH}" && -z "${REVIEWER_AGENT_ID}" && -z "${REVIEWER_SESSION_ID}" ]]
           else
             [[ "${ARTIFACT_PATH}" =~ ^docs/(reviews|exec-plans/evidence/003/release)/[^./][A-Za-z0-9._/-]*\.json$ ]]
@@ -693,7 +696,7 @@ jobs:
         env:
           ARTIFACT_PATH: ${{ inputs.artifact_path }}
           CONTROL_SHA: ${{ inputs.frozen_candidate_sha }}
-          EVIDENCE_SHA: ${{ inputs.evidence_sha }}
+          EVIDENCE_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           INITIAL_REVIEW_SHA: ${{ inputs.initial_review_sha }}
           INTERMEDIATE_RUN_ATTEMPT: ${{ inputs.intermediate_run_attempt }}
@@ -701,7 +704,7 @@ jobs:
           PURPOSE: ${{ inputs.evidence_purpose }}
           REVIEWER_AGENT_ID: ${{ inputs.reviewer_agent_id }}
           REVIEWER_SESSION_ID: ${{ inputs.reviewer_session_id }}
-          RUNNER_PROBE_PATH: ${{ inputs.runner_probe_path }}
+          RUNNER_PROBE_JSON_BASE64: ${{ inputs.runner_probe_json_base64 }}
         run: |
           node control/scripts/v1-github-evidence.mjs repository-preflight \
             --repository "${GITHUB_REPOSITORY}" \
@@ -714,14 +717,13 @@ jobs:
             --workflow-root workflow-control
             --initial-review-sha "${INITIAL_REVIEW_SHA}"
             --frozen-candidate-sha "${CONTROL_SHA}"
-            --evidence-sha "${EVIDENCE_SHA}"
             --output "${RUNNER_TEMP}/v1-evidence"
           )
           if [[ "${PURPOSE}" == "target-mac-deep" ]]; then
             args+=(
               --intermediate-run-id "${INTERMEDIATE_RUN_ID}"
               --intermediate-run-attempt "${INTERMEDIATE_RUN_ATTEMPT}"
-              --runner-probe-payload "${RUNNER_PROBE_PATH}"
+              --runner-probe-base64 "${RUNNER_PROBE_JSON_BASE64}"
             )
           else
             args+=(

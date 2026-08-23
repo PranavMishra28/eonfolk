@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
 	lstatSync,
 	mkdtempSync,
@@ -12,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentSha256, sha256Bytes } from "./evidence-integrity.mjs";
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
@@ -25,8 +25,11 @@ const EVIDENCE_TAG_PATTERN =
 export const CONTROL_PATHS = Object.freeze([
 	WORKFLOW_PATH,
 	"scripts/v1-github-evidence.mjs",
+	"scripts/evidence-integrity.mjs",
 	"scripts/check-v1-readiness.mjs",
 	"scripts/run-verification-tier.mjs",
+	"scripts/benchmark-persistence.mjs",
+	"scripts/benchmark-diagnostics-browser.mjs",
 	"scripts/validate-dependency-cohort.mjs",
 	"scripts/formal-toolchain.mjs",
 	"scripts/check-formal.mjs",
@@ -45,7 +48,7 @@ export const REQUIRED_EVIDENCE_PURPOSES = Object.freeze([
 	"final-confirmation",
 ]);
 
-const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+const sha256 = (value) => sha256Bytes(value);
 
 function exactKeys(value, keys) {
 	return (
@@ -126,6 +129,7 @@ function inspectPayload(purpose, bytes) {
 			sourceSha: payload.source.start.commit,
 			reviewerAgentId: null,
 			reviewerSessionId: null,
+			observedAt: payload.recordedAt,
 		});
 	}
 	if (purpose === "final-confirmation") {
@@ -141,6 +145,7 @@ function inspectPayload(purpose, bytes) {
 			sourceSha: payload.sourceSha,
 			reviewerAgentId: payload.reviewerAgentId,
 			reviewerSessionId: payload.reviewerSessionId,
+			observedAt: payload.completedAt,
 		});
 	}
 	const reviewId = purpose.slice("review:".length);
@@ -156,6 +161,7 @@ function inspectPayload(purpose, bytes) {
 		sourceSha: payload.sourceSha,
 		reviewerAgentId: payload.reviewerAgentId,
 		reviewerSessionId: payload.reviewerSessionId,
+		observedAt: payload.completedAt,
 	});
 }
 
@@ -317,9 +323,25 @@ function validateExternalMacProbe(probe, lifecycle, repository) {
 		!Number.isFinite(Date.parse(probe.afterRun.observedAt ?? ""))
 	)
 		throw new Error("external Mac runner probe is malformed or mismatched");
-	const { outputSha256, ...unsigned } = probe;
-	if (outputSha256 !== sha256(JSON.stringify(unsigned)))
+	if (probe.outputSha256 !== contentSha256(probe))
 		throw new Error("external Mac runner probe self-hash does not match");
+}
+
+function decodeExternalProbeBase64(source) {
+	if (
+		typeof source !== "string" ||
+		source.length < 128 ||
+		source.length > 12_288
+	)
+		throw new Error("external Mac runner probe input size is invalid");
+	const bytes = Buffer.from(source, "base64");
+	if (
+		bytes.byteLength < 96 ||
+		bytes.byteLength > 8_192 ||
+		bytes.toString("base64") !== source
+	)
+		throw new Error("external Mac runner probe input is not canonical base64");
+	return bytes;
 }
 
 function validateReceipt(receipt) {
@@ -387,11 +409,13 @@ function validateReceipt(receipt) {
 			receipt.frozenCandidateSha,
 			receipt.control.sha,
 		);
-		validateExternalMacProbe(
-			receipt.macExternalProbe,
-			receipt.macLifecycle,
-			receipt.repository,
-		);
+		if (
+			!exactKeys(receipt.macExternalProbe, ["bytes", "path", "sha256"]) ||
+			receipt.macExternalProbe.path !== "mac-external-probe.json" ||
+			!positiveInteger(receipt.macExternalProbe.bytes) ||
+			!HASH_PATTERN.test(receipt.macExternalProbe.sha256 ?? "")
+		)
+			throw new Error("external Mac runner probe reference is invalid");
 	} else if (receipt.macLifecycle !== null || receipt.macExternalProbe !== null)
 		throw new Error("non-Mac evidence cannot assert Mac lifecycle evidence");
 }
@@ -487,9 +511,72 @@ function validateRun(run, repository, runId) {
 	if (
 		!SHA_PATTERN.test(run?.head_sha ?? "") ||
 		!positiveInteger(run?.run_attempt) ||
-		!nonemptyIdentity(run?.actor?.login)
+		!nonemptyIdentity(run?.actor?.login) ||
+		![run?.created_at, run?.run_started_at, run?.updated_at].every((value) =>
+			Number.isFinite(Date.parse(value ?? "")),
+		) ||
+		Date.parse(run.created_at) > Date.parse(run.run_started_at) ||
+		Date.parse(run.run_started_at) > Date.parse(run.updated_at)
 	)
 		throw new Error(`run ${runId} actor, source, or attempt is invalid`);
+}
+
+async function validatePostmergeAttestation(
+	client,
+	repository,
+	mainSha,
+	evidenceSha,
+	attestationRun,
+	expectedOperator,
+	producerRunIds,
+) {
+	if (attestationRun === null) return null;
+	if (
+		attestationRun?.repository?.full_name !== repository ||
+		attestationRun?.event !== "push" ||
+		attestationRun?.head_branch !== "main" ||
+		attestationRun?.head_sha !== mainSha ||
+		attestationRun?.actor?.login !== expectedOperator ||
+		attestationRun?.status !== "in_progress" ||
+		attestationRun?.conclusion !== null ||
+		!positiveInteger(attestationRun?.id) ||
+		producerRunIds.includes(attestationRun.id) ||
+		!positiveInteger(attestationRun?.run_attempt) ||
+		!positiveInteger(attestationRun?.workflow_id) ||
+		!Number.isFinite(Date.parse(attestationRun?.created_at ?? "")) ||
+		!Number.isFinite(Date.parse(attestationRun?.run_started_at ?? ""))
+	)
+		throw new Error("postmerge attestation is not a live push-to-main run");
+	const merge = await client.json(`/repos/${repository}/commits/${mainSha}`);
+	const workflow = await client.json(
+		`/repos/${repository}/actions/workflows/${attestationRun.workflow_id}`,
+	);
+	const parents = Array.isArray(merge?.parents)
+		? merge.parents.map(({ sha }) => sha)
+		: [];
+	const mergeAt = Date.parse(merge?.commit?.committer?.date ?? "");
+	if (
+		merge?.sha !== mainSha ||
+		parents.length !== 2 ||
+		!parents.includes(evidenceSha) ||
+		!Number.isFinite(mergeAt) ||
+		workflow?.path !== WORKFLOW_PATH ||
+		workflow?.name !== WORKFLOW_NAME ||
+		workflow?.state !== "active" ||
+		Date.parse(attestationRun.created_at) < mergeAt ||
+		Date.parse(attestationRun.run_started_at) < mergeAt
+	)
+		throw new Error(
+			"postmerge push run does not bind the actual protected merge commit and time",
+		);
+	return Object.freeze({
+		event: "push",
+		headSha: mainSha,
+		mergeCommittedAt: new Date(mergeAt).toISOString(),
+		runAttempt: attestationRun.run_attempt,
+		runId: attestationRun.id,
+		runStartedAt: new Date(attestationRun.run_started_at).toISOString(),
+	});
 }
 
 async function downloadSingleArtifact(client, repository, runId, artifactName) {
@@ -499,6 +586,11 @@ async function downloadSingleArtifact(client, repository, runId, artifactName) {
 	const matches = (
 		Array.isArray(listed?.artifacts) ? listed.artifacts : []
 	).filter(({ name }) => name === artifactName);
+	if (
+		!Number.isSafeInteger(listed?.total_count) ||
+		listed.total_count !== (listed.artifacts?.length ?? -1)
+	)
+		throw new Error(`run ${runId} artifact listing is incomplete or paginated`);
 	if (matches.length !== 1)
 		throw new Error(`run ${runId} has no unique ${artifactName} artifact`);
 	const artifact = matches[0];
@@ -518,7 +610,13 @@ async function downloadSingleArtifact(client, repository, runId, artifactName) {
 	return { archiveBytes, archiveSha256, artifact };
 }
 
-async function verifyMacLifecycle(client, repository, lifecycle, control) {
+async function verifyMacLifecycle(
+	client,
+	repository,
+	lifecycle,
+	probe,
+	control,
+) {
 	const run = await client.json(
 		`/repos/${repository}/actions/runs/${lifecycle.intermediateRunId}`,
 	);
@@ -553,6 +651,11 @@ async function verifyMacLifecycle(client, repository, lifecycle, control) {
 		`/repos/${repository}/actions/runs/${lifecycle.intermediateRunId}/jobs?per_page=100`,
 	);
 	const entries = Array.isArray(jobs?.jobs) ? jobs.jobs : [];
+	if (
+		!Number.isSafeInteger(jobs?.total_count) ||
+		jobs.total_count !== entries.length
+	)
+		throw new Error("Mac lifecycle job listing is incomplete or paginated");
 	for (const name of [
 		"Mac immutable control preflight",
 		"Target-Mac exact 30-step DEEP intermediate",
@@ -573,6 +676,19 @@ async function verifyMacLifecycle(client, repository, lifecycle, control) {
 			JSON.stringify(macLabels(lifecycle.runnerNonce))
 	)
 		throw new Error("Mac lifecycle runner identity or labels do not match");
+	if (
+		!Number.isFinite(Date.parse(macJob?.started_at ?? "")) ||
+		!Number.isFinite(Date.parse(macJob?.completed_at ?? "")) ||
+		Date.parse(macJob.started_at) < Date.parse(run.run_started_at) ||
+		Date.parse(macJob.completed_at) < Date.parse(macJob.started_at) ||
+		Date.parse(lifecycle.finalizedAt) < Date.parse(macJob.completed_at) ||
+		Date.parse(lifecycle.finalizedAt) > Date.parse(run.updated_at) ||
+		Date.parse(probe.beforeRegistration.observedAt) >=
+			Date.parse(run.created_at) ||
+		Date.parse(probe.afterRun.observedAt) <= Date.parse(run.updated_at) ||
+		Date.parse(probe.afterRun.observedAt) <= Date.parse(lifecycle.finalizedAt)
+	)
+		throw new Error("Mac lifecycle/probe/run timestamp ordering is invalid");
 }
 
 export async function verifyGithubEvidenceRuns({
@@ -585,6 +701,7 @@ export async function verifyGithubEvidenceRuns({
 	archiveReader = defaultArchiveReader,
 	now = () => new Date().toISOString(),
 	onPayload = () => {},
+	attestationRun = null,
 }) {
 	if (!Array.isArray(runIds) || runIds.length === 0)
 		throw new Error("no evidence producer runs were configured");
@@ -616,6 +733,15 @@ export async function verifyGithubEvidenceRuns({
 	)
 		throw new Error("main is not API-verified as protected");
 	const records = [];
+	const postmergeAttestation = await validatePostmergeAttestation(
+		client,
+		repository,
+		main.commit.sha,
+		expectedEvidenceSha,
+		attestationRun,
+		expectedOperator,
+		runIds,
+	);
 	for (const runId of runIds) {
 		let run;
 		try {
@@ -647,6 +773,11 @@ export async function verifyGithubEvidenceRuns({
 				job.conclusion === "success",
 		);
 		if (
+			!Number.isSafeInteger(jobs?.total_count) ||
+			jobs.total_count !== (jobs.jobs?.length ?? -1)
+		)
+			throw new Error(`run ${runId} job listing is incomplete or paginated`);
+		if (
 			finalizers.length !== 1 ||
 			finalizers[0].labels?.includes("self-hosted")
 		)
@@ -657,6 +788,13 @@ export async function verifyGithubEvidenceRuns({
 		const finalArtifacts = (
 			Array.isArray(listed?.artifacts) ? listed.artifacts : []
 		).filter(({ name }) => name?.startsWith("v1-evidence-"));
+		if (
+			!Number.isSafeInteger(listed?.total_count) ||
+			listed.total_count !== (listed.artifacts?.length ?? -1)
+		)
+			throw new Error(
+				`run ${runId} artifact listing is incomplete or paginated`,
+			);
 		if (finalArtifacts.length !== 1)
 			throw new Error(
 				`run ${runId} must expose exactly one final evidence artifact`,
@@ -670,7 +808,6 @@ export async function verifyGithubEvidenceRuns({
 		const files = archiveReader(downloaded.archiveBytes);
 		if (
 			!(files instanceof Map) ||
-			files.size !== 2 ||
 			!files.has("receipt.json") ||
 			!files.has("payload.json")
 		)
@@ -681,10 +818,32 @@ export async function verifyGithubEvidenceRuns({
 		);
 		const payloadBytes = files.get("payload.json");
 		validateReceipt(receipt);
+		const expectedEntries =
+			receipt.purpose === "target-mac-deep"
+				? ["mac-external-probe.json", "payload.json", "receipt.json"]
+				: ["payload.json", "receipt.json"];
+		if (
+			JSON.stringify([...files.keys()].sort()) !==
+			JSON.stringify(expectedEntries)
+		)
+			throw new Error(`run ${runId} final artifact entries are invalid`);
+		let externalProbe = null;
+		if (receipt.purpose === "target-mac-deep") {
+			const probeBytes = files.get("mac-external-probe.json");
+			if (
+				!(probeBytes instanceof Uint8Array) ||
+				probeBytes.byteLength !== receipt.macExternalProbe.bytes ||
+				sha256(probeBytes) !== receipt.macExternalProbe.sha256
+			)
+				throw new Error(
+					"external Mac runner probe raw bytes do not match receipt",
+				);
+			externalProbe = parseJson(probeBytes, "external Mac runner probe");
+			validateExternalMacProbe(externalProbe, receipt.macLifecycle, repository);
+		}
 		if (
 			receipt.purpose === "target-mac-deep" &&
-			receipt.macExternalProbe.beforeRegistration.operatorActor !==
-				expectedOperator
+			externalProbe.beforeRegistration.operatorActor !== expectedOperator
 		)
 			throw new Error(
 				"external Mac probe operator is not the expected operator",
@@ -713,6 +872,16 @@ export async function verifyGithubEvidenceRuns({
 				`run ${runId} receipt does not match live GitHub metadata`,
 			);
 		const identity = inspectPayload(receipt.purpose, payloadBytes);
+		if (
+			!Number.isFinite(Date.parse(identity.observedAt ?? "")) ||
+			Date.parse(identity.observedAt) > Date.parse(run.created_at) ||
+			(receipt.purpose === "target-mac-deep" &&
+				Date.parse(externalProbe.afterRun.observedAt) >=
+					Date.parse(run.created_at))
+		)
+			throw new Error(
+				"evidence payload/probe/run timestamp ordering is invalid",
+			);
 		const expectedSource = receipt.purpose.startsWith("review:")
 			? receipt.initialReviewSha
 			: receipt.frozenCandidateSha;
@@ -751,18 +920,13 @@ export async function verifyGithubEvidenceRuns({
 				client,
 				repository,
 				receipt.macLifecycle,
+				externalProbe,
 				receipt.control,
 			);
-		const mainComparison = await client.json(
-			`/repos/${repository}/compare/${receipt.evidenceSha}...${main.commit.sha}`,
-		);
-		const inProtectedMain =
-			receipt.evidenceSha === main.commit.sha ||
-			(["ahead", "identical"].includes(mainComparison?.status) &&
-				mainComparison?.merge_base_commit?.sha === receipt.evidenceSha);
-		const attestationClass = inProtectedMain
-			? "POSTMERGE_PROTECTED_MAIN"
-			: "PREMERGE_CANDIDATE_CONTROL";
+		const attestationClass =
+			postmergeAttestation !== null
+				? "POSTMERGE_PROTECTED_MAIN"
+				: "PREMERGE_CANDIDATE_CONTROL";
 		onPayload(receipt.purpose, payloadBytes);
 		records.push(
 			Object.freeze({
@@ -777,7 +941,7 @@ export async function verifyGithubEvidenceRuns({
 				evidenceSha: receipt.evidenceSha,
 				frozenCandidateSha: receipt.frozenCandidateSha,
 				initialReviewSha: receipt.initialReviewSha,
-				macExternalProbe: receipt.macExternalProbe,
+				macExternalProbe: externalProbe,
 				macLifecycle: receipt.macLifecycle,
 				payloadSha256: receipt.payload.sha256,
 				provider: "github-actions-live-api",
@@ -785,6 +949,7 @@ export async function verifyGithubEvidenceRuns({
 				repository,
 				reviewerAgentId: receipt.reviewerAgentId,
 				reviewerSessionId: receipt.reviewerSessionId,
+				phaseAttestation: postmergeAttestation,
 				runnerLabels: [...(finalizers[0].labels ?? [])].sort(),
 				runnerName: finalizers[0].runner_name,
 				runAttempt: run.run_attempt,
@@ -812,7 +977,9 @@ export async function verifyGithubEvidenceRuns({
 			record.evidenceSha !== first.evidenceSha ||
 			record.control.sha !== first.control.sha ||
 			record.workflowSourceSha !== first.workflowSourceSha ||
-			record.attestationClass !== first.attestationClass
+			record.attestationClass !== first.attestationClass ||
+			JSON.stringify(record.phaseAttestation) !==
+				JSON.stringify(first.phaseAttestation)
 		)
 			throw new Error(
 				"evidence runs do not bind one immutable candidate chain",
@@ -833,14 +1000,14 @@ export async function verifyGithubEvidenceRuns({
 		runs: records.sort((left, right) =>
 			left.purpose.localeCompare(right.purpose),
 		),
-		schemaVersion: "eonfolk-live-verified-github-runs-v2",
+		schemaVersion: "eonfolk-live-verified-github-runs-v3",
 		trustBoundary:
 			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; MAC_RUNNER_ABSENCE_IS_PROCEDURAL; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED",
 		verifiedAt: now(),
 	});
 	return Object.freeze({
 		...unsigned,
-		outputSha256: sha256(JSON.stringify(unsigned)),
+		outputSha256: contentSha256(unsigned),
 	});
 }
 
@@ -968,6 +1135,11 @@ async function finalizeMacIntermediate() {
 			conclusion === "success",
 	);
 	if (
+		!Number.isSafeInteger(jobs?.total_count) ||
+		jobs.total_count !== (jobs.jobs?.length ?? -1)
+	)
+		throw new Error("Mac finalizer job listing is incomplete or paginated");
+	if (
 		macJobs.length !== 1 ||
 		!positiveInteger(macJobs[0].runner_id) ||
 		macJobs[0].runner_name !== runnerName ||
@@ -1013,7 +1185,9 @@ async function prepareEvidenceBundle() {
 	const workflowRoot = requiredArgument("--workflow-root");
 	const initialReviewSha = requiredArgument("--initial-review-sha");
 	const frozenCandidateSha = requiredArgument("--frozen-candidate-sha");
-	const evidenceSha = requiredArgument("--evidence-sha");
+	const evidenceSha = process.env.GITHUB_SHA;
+	if (!SHA_PATTERN.test(evidenceSha ?? ""))
+		throw new Error("trusted workflow evidence SHA is invalid");
 	const output = resolve(requiredArgument("--output"));
 	validateShaChain(initialReviewSha, frozenCandidateSha, evidenceSha);
 	const workflowSourceSha = process.env.GITHUB_SHA;
@@ -1059,6 +1233,7 @@ async function prepareEvidenceBundle() {
 	let payload;
 	let macLifecycle = null;
 	let macExternalProbe = null;
+	let macExternalProbeBytes = null;
 	if (purpose === "target-mac-deep") {
 		const intermediateRunId = Number(requiredArgument("--intermediate-run-id"));
 		const intermediateRunAttempt = Number(
@@ -1084,10 +1259,11 @@ async function prepareEvidenceBundle() {
 			throw new Error("Mac intermediate run attempt does not match");
 		if (macLifecycle.payloadSha256 !== sha256(payload))
 			throw new Error("Mac lifecycle payload hash does not match");
+		macExternalProbeBytes = decodeExternalProbeBase64(
+			requiredArgument("--runner-probe-base64"),
+		);
 		macExternalProbe = parseJson(
-			readFileSync(
-				safePayload(evidenceRoot, requiredArgument("--runner-probe-payload")),
-			),
+			macExternalProbeBytes,
 			"external Mac runner probe",
 		);
 		validateExternalMacProbe(
@@ -1095,6 +1271,11 @@ async function prepareEvidenceBundle() {
 			macLifecycle,
 			process.env.GITHUB_REPOSITORY,
 		);
+		macExternalProbe = {
+			path: "mac-external-probe.json",
+			bytes: macExternalProbeBytes.byteLength,
+			sha256: sha256(macExternalProbeBytes),
+		};
 	} else {
 		payload = readFileSync(
 			safePayload(evidenceRoot, requiredArgument("--payload")),
@@ -1127,6 +1308,11 @@ async function prepareEvidenceBundle() {
 		);
 	mkdirSync(output, { recursive: false });
 	writeFileSync(join(output, "payload.json"), payload);
+	if (macExternalProbeBytes !== null)
+		writeFileSync(
+			join(output, "mac-external-probe.json"),
+			macExternalProbeBytes,
+		);
 	const receipt = {
 		schemaVersion: "eonfolk-v1-github-evidence-receipt-v2",
 		identityBoundary:
@@ -1214,13 +1400,24 @@ async function verifyConfiguredEvidence() {
 			"run ID configuration must be an absolute non-symlink file",
 		);
 	mkdirSync(payloadDir, { recursive: false });
+	const client = githubClient(process.env.GITHUB_TOKEN);
+	let attestationRun = null;
+	if (process.env.GITHUB_EVENT_NAME === "push") {
+		const currentRunId = Number(process.env.GITHUB_RUN_ID);
+		if (!positiveInteger(currentRunId))
+			throw new Error("postmerge push run ID is invalid");
+		attestationRun = await client.json(
+			`/repos/${requiredArgument("--repository")}/actions/runs/${currentRunId}`,
+		);
+	}
 	const registry = await verifyGithubEvidenceRuns({
 		runIds: parseRunIdConfiguration(readFileSync(configPath, "utf8")),
 		repository: requiredArgument("--repository"),
 		expectedEvidenceSha: requiredArgument("--expected-evidence-sha"),
 		expectedOwner: requiredArgument("--expected-owner"),
 		expectedOperator: requiredArgument("--expected-operator"),
-		client: githubClient(process.env.GITHUB_TOKEN),
+		client,
+		attestationRun,
 		onPayload: (purpose, bytes) =>
 			writeFileSync(join(payloadDir, `${purposeSlug(purpose)}.json`), bytes, {
 				flag: "wx",

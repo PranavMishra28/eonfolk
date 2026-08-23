@@ -134,7 +134,11 @@ describe("V1 CI hardening", () => {
 			"format('eonfolk-ephemeral-deep-{0}', inputs.runner_nonce)",
 		);
 		expect(workflow).toContain("runs-on: ubuntu-24.04");
-		expect(workflow).toContain("Checkout exact evidence SHA as inert bytes");
+		expect(workflow).toContain(
+			"Checkout dispatch-tag target as inert evidence bytes",
+		);
+		expect(workflow).not.toContain("inputs.evidence_sha");
+		expect(workflow).toContain("inputs.runner_probe_json_base64");
 		expect(workflow).toContain(
 			"Prove dedicated non-admin identity before checkout",
 		);

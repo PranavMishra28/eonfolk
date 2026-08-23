@@ -12,7 +12,7 @@
 - Last reconciled integration commit: `7254659` (`fix(diagnostics): bind observer to Release Genesis`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
-- V1 status: INCOMPLETE; do not mark ready or merge
+- V1 status: INCOMPLETE; do not mark ready or merge. Premerge readiness and mandatory postmerge protected-main reattestation are distinct phases; the latter cannot be a premerge prerequisite.
 
 ## Green starting evidence
 

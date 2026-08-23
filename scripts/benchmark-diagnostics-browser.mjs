@@ -5,6 +5,7 @@ import { arch, platform, release } from "node:os";
 import { relative, resolve, sep } from "node:path";
 import { chromium } from "@playwright/test";
 import { preview } from "vite";
+import { contentSha256 } from "./evidence-integrity.mjs";
 
 const MODES = Object.freeze(["off", "local", "alpha"]);
 const FRAME_SAMPLE_MS = 1_000;
@@ -288,7 +289,7 @@ async function run() {
 	};
 	const report = {
 		...reportWithoutHash,
-		outputSha256: sha256(JSON.stringify(reportWithoutHash)),
+		outputSha256: contentSha256(reportWithoutHash),
 	};
 	const serialized = `${JSON.stringify(report, null, 2)}\n`;
 	if (output === null || output === undefined) process.stdout.write(serialized);

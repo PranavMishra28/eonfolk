@@ -1,8 +1,8 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentSha256, sha256Bytes } from "./evidence-integrity.mjs";
 import {
 	artifactPathsForTier,
 	DEEP_BENCHMARK_CONTRACT,
@@ -18,6 +18,11 @@ const ALLOWED_STATES = new Set([
 	"BLOCKED EXTERNALLY",
 ]);
 const REQUIRED_START_HEADING = "## Repository and product";
+const POSTMERGE_HEADING = "## Post-merge operational reattestation";
+const LEGACY_MERGE_REQUIREMENT =
+	"Draft PR marked ready, protected merge completed, and post-merge main verified";
+const PREMERGE_REQUIREMENT =
+	"Draft PR marked ready after exact-candidate premerge evidence";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const REQUIRED_REVIEW_DISCIPLINES = new Set([
 	"product-game",
@@ -52,6 +57,7 @@ export function parseRequiredStateRows(source) {
 	if (start < 0) throw new Error(`GOAL is missing ${REQUIRED_START_HEADING}`);
 	const rows = [];
 	for (const line of lines.slice(start + 1)) {
+		if (line.trim() === POSTMERGE_HEADING) break;
 		if (!line.startsWith("|")) continue;
 		const cells = line
 			.split("|")
@@ -71,9 +77,13 @@ export function parseRequiredStateRows(source) {
 			throw new Error(
 				`invalid GOAL state ${JSON.stringify(state)} for ${requirement}`,
 			);
+		const canonicalRequirement =
+			requirement === LEGACY_MERGE_REQUIREMENT
+				? PREMERGE_REQUIREMENT
+				: requirement;
 		rows.push({
-			id: `goal-${sha256(requirement).slice(0, 16)}`,
-			requirement,
+			id: `goal-${sha256(canonicalRequirement).slice(0, 16)}`,
+			requirement: canonicalRequirement,
 			state,
 		});
 	}
@@ -88,18 +98,27 @@ export function goalRosterSha256(rows) {
 }
 
 function immutableGoalStructureSha256(source) {
-	const normalized = source.split(/\r?\n/u).map((line) => {
-		if (!line.startsWith("|")) return line;
+	const normalized = [];
+	for (const line of source.split(/\r?\n/u)) {
+		if (line.trim() === POSTMERGE_HEADING) break;
+		if (!line.startsWith("|")) {
+			normalized.push(line);
+			continue;
+		}
 		const cells = line
 			.split("|")
 			.slice(1, -1)
 			.map((cell) => cell.trim());
-		if (cells.length === 2 && ALLOWED_STATES.has(cells[1]))
-			return `| ${cells[0]} | <STATE> |`;
+		if (cells.length === 2 && ALLOWED_STATES.has(cells[1])) {
+			const requirement =
+				cells[0] === LEGACY_MERGE_REQUIREMENT ? PREMERGE_REQUIREMENT : cells[0];
+			normalized.push(`| ${requirement} | <STATE> |`);
+			continue;
+		}
 		if (cells.length === 3 && ALLOWED_STATES.has(cells[1]))
-			return `| ${cells[0]} | <STATE> | <EVIDENCE> |`;
-		return line;
-	});
+			normalized.push(`| ${cells[0]} | <STATE> | <EVIDENCE> |`);
+		else normalized.push(line);
+	}
 	return sha256(normalized.join("\n"));
 }
 
@@ -126,18 +145,12 @@ export function validateCanonicalGoalRoster(
 }
 
 function sha256(value) {
-	return createHash("sha256").update(value).digest("hex");
+	return sha256Bytes(value);
 }
 
 function verifySelfHash(report, failures) {
-	const { outputSha256, ...withoutHash } = report;
-	if (outputSha256 !== sha256(JSON.stringify(withoutHash)))
+	if (report.outputSha256 !== contentSha256(report))
 		failures.push("evidence output hash does not match");
-}
-
-function attestablePayloadSha256(report) {
-	const { outputSha256: _output, ...payload } = report;
-	return sha256(JSON.stringify(payload));
 }
 
 function validateTrustedRun(expected, label, failures, context) {
@@ -171,6 +184,14 @@ function validateTrustedRun(expected, label, failures, context) {
 		failures.push(
 			`${label} is not bound to the required live GitHub control/blob attestation`,
 		);
+	if (
+		(expected.attestationClass === "PREMERGE_CANDIDATE_CONTROL" &&
+			trusted?.phaseAttestation !== null) ||
+		(expected.attestationClass === "POSTMERGE_PROTECTED_MAIN" &&
+			(trusted?.phaseAttestation?.event !== "push" ||
+				trusted.phaseAttestation.headSha !== context.currentHead))
+	)
+		failures.push(`${label} is not bound to the required release phase run`);
 }
 
 function isFiniteMeasurements(value) {
@@ -489,7 +510,7 @@ export function validateTargetMacDeepEvidence(
 				evidenceSha: context.evidenceSha,
 				frozenCandidateSha: frozenSoftwareSha,
 				initialReviewSha: context.initialReviewSha,
-				payloadSha256: attestablePayloadSha256(report),
+				payloadSha256: context.deepEvidenceRawSha256,
 				purpose: "target-mac-deep",
 				sourceSha: frozenSoftwareSha,
 			},
@@ -586,14 +607,14 @@ function validTimestamp(value) {
 
 export function validateReviewConfirmationEvidence(report, context = {}) {
 	const failures = [];
+	const evidenceSha = context.evidenceSha;
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["review evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v5")
+	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v6")
 		failures.push("unsupported review evidence schema");
 	if (
 		!exactKeys(report, [
 			"confirmation",
-			"evidenceSha",
 			"frozenCandidateSha",
 			"initialReviewSha",
 			"integrityClaim",
@@ -614,24 +635,23 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"review evidence integrity boundary is missing or overstated",
 		);
 	verifySelfHash(report, failures);
-	for (const field of ["initialReviewSha", "frozenCandidateSha", "evidenceSha"])
+	for (const field of ["initialReviewSha", "frozenCandidateSha"])
 		if (!SHA_PATTERN.test(report[field] ?? ""))
 			failures.push(`${field} is not a full Git SHA`);
+	if (!SHA_PATTERN.test(evidenceSha ?? ""))
+		failures.push("trusted evidence checkout SHA is not a full Git SHA");
 	if (
-		new Set([
-			report.initialReviewSha,
-			report.frozenCandidateSha,
-			report.evidenceSha,
-		]).size !== 3
+		new Set([report.initialReviewSha, report.frozenCandidateSha, evidenceSha])
+			.size !== 3
 	)
 		failures.push(
-			"initialReviewSha, frozenCandidateSha, and evidenceSha must be pairwise distinct",
+			"initialReviewSha, frozenCandidateSha, and trusted evidence checkout SHA must be pairwise distinct",
 		);
 	if (typeof context?.isAncestor !== "function")
 		failures.push("review ancestry was not verified");
 	else if (
 		!context.isAncestor(report.initialReviewSha, report.frozenCandidateSha) ||
-		!context.isAncestor(report.frozenCandidateSha, report.evidenceSha)
+		!context.isAncestor(report.frozenCandidateSha, evidenceSha)
 	)
 		failures.push(
 			"initialReviewSha -> frozenCandidateSha -> evidenceSha ancestry is invalid",
@@ -699,7 +719,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			label,
 			failures,
 			context,
-			report.evidenceSha,
+			evidenceSha,
 		);
 		const artifact = parseJsonArtifact(contents, label, failures);
 		const p0 = Array.isArray(review?.findings?.p0) ? review.findings.p0 : [];
@@ -759,7 +779,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		validateTrustedRun(
 			{
 				attestationClass: context.attestationClass,
-				evidenceSha: report.evidenceSha,
+				evidenceSha,
 				frozenCandidateSha: report.frozenCandidateSha,
 				initialReviewSha: report.initialReviewSha,
 				payloadSha256: review?.artifact?.sha256,
@@ -854,7 +874,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 					"disposition evidence",
 					failures,
 					context,
-					report.evidenceSha,
+					evidenceSha,
 				);
 			else failures.push("disposition evidence reference is malformed");
 		}
@@ -886,7 +906,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"reconciliation",
 		failures,
 		context,
-		report.evidenceSha,
+		evidenceSha,
 	);
 	const reconciliationArtifact = parseJsonArtifact(
 		reconciliationContents,
@@ -935,7 +955,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"final diff",
 		failures,
 		context,
-		report.evidenceSha,
+		evidenceSha,
 	);
 	const finalDiffArtifact = parseJsonArtifact(
 		finalDiffContents,
@@ -954,7 +974,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		"fresh confirmation",
 		failures,
 		context,
-		report.evidenceSha,
+		evidenceSha,
 	);
 	const confirmation = parseJsonArtifact(
 		confirmationContents,
@@ -1014,7 +1034,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	validateTrustedRun(
 		{
 			attestationClass: context.attestationClass,
-			evidenceSha: report.evidenceSha,
+			evidenceSha,
 			frozenCandidateSha: report.frozenCandidateSha,
 			initialReviewSha: report.initialReviewSha,
 			payloadSha256: report.confirmation?.artifact?.sha256,
@@ -1031,7 +1051,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 		ok: failures.length === 0,
 		failures,
 		frozenSoftwareSha: report.frozenCandidateSha ?? null,
-		evidenceSha: report.evidenceSha ?? null,
+		evidenceSha: evidenceSha ?? null,
 	};
 }
 
@@ -1203,7 +1223,7 @@ export function evaluateV1Readiness({
 				? "POSTMERGE_PROTECTED_MAIN"
 				: "PREMERGE_CANDIDATE_CONTROL",
 		deepEvidenceOutputSha256: deepEvidence?.outputSha256,
-		evidenceSha: reviewEvidence?.evidenceSha,
+		evidenceSha: reviewValidationContext.evidenceSha,
 		initialReviewSha: reviewEvidence?.initialReviewSha,
 	};
 	const reviewResult = validateReviewConfirmationEvidence(
@@ -1268,10 +1288,6 @@ function argument(name) {
 	return index < 0 ? null : (process.argv[index + 1] ?? null);
 }
 
-function readJson(path) {
-	return path === null ? null : JSON.parse(readFileSync(resolve(path), "utf8"));
-}
-
 function inspectPostFreeze(frozenSoftwareSha, head) {
 	if (!SHA_PATTERN.test(frozenSoftwareSha ?? ""))
 		return { ancestor: false, paths: [] };
@@ -1323,15 +1339,14 @@ function loadTrustedRuns(path) {
 			"trustBoundary",
 			"verifiedAt",
 		]) ||
-		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v2" ||
+		registry?.schemaVersion !== "eonfolk-live-verified-github-runs-v3" ||
 		registry?.trustBoundary !==
 			"LIVE_GITHUB_AND_CONTROL_BLOB_VERIFICATION; MAC_RUNNER_ABSENCE_IS_PROCEDURAL; PREMERGE_CLASS_IS_CANDIDATE_CONTROLLED; REVIEWER_AGENT_IDENTITY_IS_SELF_REPORTED" ||
 		!validTimestamp(registry?.verifiedAt) ||
 		!Array.isArray(registry?.runs)
 	)
 		throw new Error("trusted GitHub run registry schema is invalid");
-	const { outputSha256, ...unsigned } = registry;
-	if (outputSha256 !== sha256(JSON.stringify(unsigned)))
+	if (registry.outputSha256 !== contentSha256(registry))
 		throw new Error("trusted GitHub run registry hash is invalid");
 	const runs = new Map();
 	for (const run of registry.runs) {
@@ -1351,6 +1366,7 @@ function loadTrustedRuns(path) {
 				"macExternalProbe",
 				"macLifecycle",
 				"payloadSha256",
+				"phaseAttestation",
 				"provider",
 				"purpose",
 				"repository",
@@ -1370,6 +1386,30 @@ function loadTrustedRuns(path) {
 			runs.has(run.purpose)
 		)
 			throw new Error("trusted GitHub run IDs are missing or duplicated");
+		if (
+			(run.attestationClass === "PREMERGE_CANDIDATE_CONTROL" &&
+				run.phaseAttestation !== null) ||
+			(run.attestationClass === "POSTMERGE_PROTECTED_MAIN" &&
+				(!exactKeys(run.phaseAttestation, [
+					"event",
+					"headSha",
+					"mergeCommittedAt",
+					"runAttempt",
+					"runId",
+					"runStartedAt",
+				]) ||
+					run.phaseAttestation.event !== "push" ||
+					!SHA_PATTERN.test(run.phaseAttestation.headSha ?? "") ||
+					!validTimestamp(run.phaseAttestation.mergeCommittedAt) ||
+					!validTimestamp(run.phaseAttestation.runStartedAt) ||
+					Date.parse(run.phaseAttestation.runStartedAt) <
+						Date.parse(run.phaseAttestation.mergeCommittedAt) ||
+					!Number.isSafeInteger(run.phaseAttestation.runId) ||
+					run.phaseAttestation.runId <= 0 ||
+					!Number.isSafeInteger(run.phaseAttestation.runAttempt) ||
+					run.phaseAttestation.runAttempt <= 0))
+		)
+			throw new Error("trusted GitHub run phase attestation is invalid");
 		runs.set(run.purpose, run);
 	}
 	if (runs.size !== 8)
@@ -1497,8 +1537,15 @@ function main() {
 		mode === "ready"
 			? loadTrustedRuns(argument("--trusted-attestations"))
 			: { runs: new Map() };
+	const deepEvidencePath = argument("--deep-evidence");
+	const deepEvidenceBytes =
+		mode === "ready" && deepEvidencePath !== null
+			? readFileSync(resolve(deepEvidencePath))
+			: null;
 	const deepEvidence =
-		mode === "ready" ? readJson(argument("--deep-evidence")) : null;
+		deepEvidenceBytes === null
+			? null
+			: JSON.parse(deepEvidenceBytes.toString("utf8"));
 	const reviewEvidence =
 		mode === "ready"
 			? JSON.parse(
@@ -1524,7 +1571,11 @@ function main() {
 		mode,
 		deepEvidence,
 		reviewEvidence,
-		reviewValidationContext: reviewValidationContext(trustedRuns),
+		reviewValidationContext: {
+			...reviewValidationContext(trustedRuns),
+			deepEvidenceRawSha256:
+				deepEvidenceBytes === null ? null : sha256(deepEvidenceBytes),
+		},
 		head,
 		testedIdentity,
 		postFreeze,

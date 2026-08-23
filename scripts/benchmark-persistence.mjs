@@ -5,6 +5,7 @@ import { arch, platform, release } from "node:os";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { createServer } from "vite";
+import { contentSha256 } from "./evidence-integrity.mjs";
 
 export const PERSISTENCE_BENCHMARK_VERSION = "eonfolk-persistence-benchmark-v2";
 const REPETITIONS = 5;
@@ -272,7 +273,7 @@ async function run() {
 				"No SQLite dependency is authorized. OPFS needs a later measured spike.",
 		},
 	};
-	const outputSha256 = sha256(JSON.stringify(reportWithoutHash));
+	const outputSha256 = contentSha256(reportWithoutHash);
 	const report = Object.freeze({ ...reportWithoutHash, outputSha256 });
 	const serialized = `${JSON.stringify(report, null, 2)}\n`;
 	if (arguments_.output === null) process.stdout.write(serialized);
