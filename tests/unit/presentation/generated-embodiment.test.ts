@@ -6,7 +6,6 @@ import {
 	advanceGeneratedCameraIntent,
 	assertGeneratedAssetBudget,
 	cameraIntentForGeneratedNavigation,
-	GENERATED_FOLK_ASSET,
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
@@ -497,16 +496,19 @@ describe("generated asset provenance", () => {
 		const gltf = JSON.parse(bytes.toString("utf8")) as {
 			readonly buffers: readonly Readonly<{ readonly uri: string }>[];
 		};
-		expect(bytes.byteLength).toBe(GENERATED_FOLK_ASSET.byteLength);
+		expect(bytes.byteLength).toBe(3_929);
 		expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-			GENERATED_FOLK_ASSET.sha256,
+			"3056495e5471989dfce1eb41982f74760c89c457f6b00aec44f2c469ae0cc624",
 		);
 		expect(gltf.buffers.every((buffer) => buffer.uri.startsWith("data:"))).toBe(
 			true,
 		);
-		expect(GENERATED_FOLK_ASSET.provenance.thirdPartyMaterial).toBe(false);
+		expect(
+			(gltf as { extras: { eonfolk: { thirdPartyMaterial: boolean } } }).extras
+				.eonfolk.thirdPartyMaterial,
+		).toBe(false);
 		expect(() =>
-			assertGeneratedAssetBudget(GENERATED_FOLK_ASSET),
+			assertGeneratedAssetBudget({ byteLength: bytes.byteLength }),
 		).not.toThrow();
 	});
 
@@ -526,9 +528,11 @@ describe("generated asset provenance", () => {
 			),
 		]);
 		const requests: string[] = [];
-		const fetcher = async (input: RequestInfo | URL) => {
+		const requestOptions: RequestInit[] = [];
+		const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = String(input);
 			requests.push(url);
+			requestOptions.push(init ?? {});
 			return url.endsWith("ASSET_MANIFEST.json")
 				? new Response(manifestBytes, { status: 200 })
 				: new Response(assetBytes, { status: 200 });
@@ -539,15 +543,18 @@ describe("generated asset provenance", () => {
 			"/assets/generated/ASSET_MANIFEST.json",
 			"/assets/generated/eonfolk-folk-proxy.glb",
 		]);
+		expect(requestOptions).toEqual([
+			{ cache: "no-store", credentials: "same-origin", redirect: "error" },
+			{ cache: "no-store", credentials: "same-origin", redirect: "error" },
+		]);
 		expect(integrity).toMatchObject({
 			status: "verified",
 			assetId: GENERATED_FOLK_BINARY_ASSET.assetId,
 			byteLength: GENERATED_FOLK_BINARY_ASSET.byteLength,
 			sha256: GENERATED_FOLK_BINARY_ASSET.sha256,
+			manifestSha256:
+				"43e8c051150acd704a1c711d15d27c2de9c01177a937da9cb2cba03fe05b3f74",
 			rendererIntegration: "procedural-reference-only",
-			authoringSource: {
-				assetId: GENERATED_FOLK_ASSET.assetId,
-			},
 		});
 
 		await expect(
@@ -568,6 +575,17 @@ describe("generated asset provenance", () => {
 					? new Response(JSON.stringify(manifest), { status: 200 })
 					: new Response(assetBytes, { status: 200 });
 			}) as typeof fetch),
-		).rejects.toThrow(/pipeline is inconsistent/u);
+		).rejects.toThrow(/manifest byte length|manifest digest/u);
+
+		const sameLengthManifestCorruption = Buffer.from(manifestBytes);
+		sameLengthManifestCorruption[0] ^= 1;
+		await expect(
+			verifyGeneratedFolkAsset((async (input: RequestInfo | URL) => {
+				const url = String(input);
+				return url.endsWith("ASSET_MANIFEST.json")
+					? new Response(sameLengthManifestCorruption, { status: 200 })
+					: new Response(assetBytes, { status: 200 });
+			}) as typeof fetch),
+		).rejects.toThrow(/manifest digest/u);
 	});
 });

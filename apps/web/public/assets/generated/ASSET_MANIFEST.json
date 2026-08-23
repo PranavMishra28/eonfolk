@@ -3,8 +3,8 @@
 	"authoredOn": "2026-08-23",
 	"budget": {
 		"maximumInitialGeneratedAssetBytes": 4194304,
-		"trackedBytes": 6322,
-		"deliveryBytes": 2800
+		"trackedBytes": 7081,
+		"deliveryBytes": 3152
 	},
 	"pipeline": {
 		"validator": "scripts/validate-generated-assets.mjs",
@@ -21,8 +21,8 @@
 			"role": "authoring-source",
 			"path": "/assets/generated/eonfolk-folk-proxy.gltf",
 			"mediaType": "model/gltf+json",
-			"byteLength": 3522,
-			"sha256": "8314ce09ca546ce516de51c04d444de12f75b92409f1fcbc955068c31da6b533",
+			"byteLength": 3929,
+			"sha256": "3056495e5471989dfce1eb41982f74760c89c457f6b00aec44f2c469ae0cc624",
 			"generatedFrom": null,
 			"source": "repository-authored deterministic geometry",
 			"generator": "repository-authored glTF 2.0 JSON with embedded cuboid geometry; no Blender authorship claimed",
@@ -45,8 +45,8 @@
 			"role": "delivery",
 			"path": "/assets/generated/eonfolk-folk-proxy.glb",
 			"mediaType": "model/gltf-binary",
-			"byteLength": 2800,
-			"sha256": "b08c8222619bee068144d0d8b50e508d74cbde9c95f499916eaa2ff0fc219cfe",
+			"byteLength": 3152,
+			"sha256": "7d738a548521e82f955dbc58fd8214aa99956c3cd79920b7143ceb2f35831330",
 			"generatedFrom": "/assets/generated/eonfolk-folk-proxy.gltf",
 			"source": "repository-authored deterministic geometry",
 			"generator": "scripts/validate-generated-assets.mjs deterministic glTF-to-GLB conversion",

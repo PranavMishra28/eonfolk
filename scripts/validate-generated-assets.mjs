@@ -33,7 +33,70 @@ const GENERATED_ASSET_FILENAMES = Object.freeze([
 	"eonfolk-folk-proxy.gltf",
 	"eonfolk-folk-proxy.glb",
 ]);
-const EXPECTED_NODE_MESHES = Object.freeze([null, 0, 1, 2, 2, 3, 3, 4]);
+const DOCUMENT_KEYS = Object.freeze([
+	"accessors",
+	"asset",
+	"buffers",
+	"bufferViews",
+	"extras",
+	"materials",
+	"meshes",
+	"nodes",
+	"scene",
+	"scenes",
+]);
+const EXPECTED_NODES = Object.freeze([
+	null,
+	Object.freeze({
+		name: "torso",
+		mesh: 0,
+		translation: [0, 1.05, 0],
+		scale: [0.46, 0.68, 0.28],
+	}),
+	Object.freeze({
+		name: "head",
+		mesh: 1,
+		translation: [0, 1.82, 0],
+		scale: [0.33, 0.36, 0.33],
+	}),
+	Object.freeze({
+		name: "arm-left",
+		mesh: 2,
+		translation: [-0.58, 1.08, 0],
+		scale: [0.13, 0.58, 0.14],
+	}),
+	Object.freeze({
+		name: "arm-right",
+		mesh: 2,
+		translation: [0.58, 1.08, 0],
+		scale: [0.13, 0.58, 0.14],
+	}),
+	Object.freeze({
+		name: "leg-left",
+		mesh: 3,
+		translation: [-0.22, 0.35, 0],
+		scale: [0.16, 0.58, 0.18],
+	}),
+	Object.freeze({
+		name: "leg-right",
+		mesh: 3,
+		translation: [0.22, 0.35, 0],
+		scale: [0.16, 0.58, 0.18],
+	}),
+	Object.freeze({
+		name: "task-prop-anchor",
+		mesh: 4,
+		translation: [0.72, 0.92, 0],
+		scale: [0.2, 0.2, 0.2],
+	}),
+]);
+const EXPECTED_MATERIALS = Object.freeze([
+	["hearth-cloth", [0.18, 0.42, 0.43, 1], 0.86],
+	["warm-skin", [0.78, 0.59, 0.42, 1], 0.92],
+	["sleeve", [0.28, 0.33, 0.29, 1], 0.9],
+	["boots", [0.16, 0.13, 0.1, 1], 0.96],
+	["task-prop", [0.47, 0.3, 0.16, 1], 0.92],
+]);
 const COMPONENT_BYTES = Object.freeze({ 5123: 2, 5126: 4 });
 const ACCESSOR_COMPONENTS = Object.freeze({ SCALAR: 1, VEC3: 3 });
 
@@ -69,9 +132,29 @@ function safeInteger(value, label) {
 	return value;
 }
 
+function boundedNumber(value, minimum, maximum, label) {
+	if (
+		typeof value !== "number" ||
+		!Number.isFinite(value) ||
+		value < minimum ||
+		value > maximum
+	)
+		fail(`${label} is outside its admitted finite range`);
+	return value;
+}
+
+function finiteVector(value, length, label) {
+	if (!Array.isArray(value) || value.length !== length)
+		fail(`${label} must be a finite ${length}-vector`);
+	for (const component of value)
+		boundedNumber(component, -Number.MAX_VALUE, Number.MAX_VALUE, label);
+	return value;
+}
+
 function parseJson(bytes, label) {
 	try {
-		return record(JSON.parse(Buffer.from(bytes).toString("utf8")), label);
+		const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+		return record(JSON.parse(text), label);
 	} catch (error) {
 		throw new Error(`generated assets: ${label} JSON is malformed`, {
 			cause: error,
@@ -126,24 +209,43 @@ function validateNamedNodes(document, label) {
 	const scene = record(document.scenes[0], `${label} scene 0`);
 	exactKeys(scene, ["name", "nodes"], `${label} scene 0`);
 	if (
+		scene.name !== "EONFOLK folk proxy" ||
 		!Array.isArray(scene.nodes) ||
 		scene.nodes.length !== 1 ||
 		scene.nodes[0] !== 0
 	)
 		fail(`${label} scene does not select the folk root`);
-	for (const [index, expectedMesh] of EXPECTED_NODE_MESHES.entries()) {
+	for (const [index, expected] of EXPECTED_NODES.entries()) {
 		const node = record(document.nodes[index], `${label} node ${index}`);
-		if (expectedMesh === null) {
+		if (expected === null) {
 			if (Object.hasOwn(node, "mesh"))
 				fail(`${label} root node must not bind a mesh`);
-		} else if (node.mesh !== expectedMesh) {
-			fail(`${label} node ${index} does not bind its declared mesh`);
 		} else {
 			exactKeys(
 				node,
-				["mesh", "name", "scale", "translation"],
+				["mesh", "name", "rotation", "scale", "translation"],
 				`${label} node ${index}`,
 			);
+			const translation = finiteVector(
+				node.translation,
+				3,
+				`${label} node ${index} translation`,
+			);
+			const rotation = finiteVector(
+				node.rotation,
+				4,
+				`${label} node ${index} rotation`,
+			);
+			const scale = finiteVector(node.scale, 3, `${label} node ${index} scale`);
+			if (
+				node.name !== expected.name ||
+				node.mesh !== expected.mesh ||
+				JSON.stringify(translation) !== JSON.stringify(expected.translation) ||
+				JSON.stringify(rotation) !== JSON.stringify([0, 0, 0, 1]) ||
+				JSON.stringify(scale) !== JSON.stringify(expected.scale) ||
+				scale.some((component) => component <= 0)
+			)
+				fail(`${label} node ${index} transform is outside the proxy contract`);
 		}
 	}
 	return names;
@@ -164,26 +266,12 @@ function validateNoExternalUris(document, label, mode) {
 	} else {
 		exactKeys(buffer, ["byteLength"], `${label} buffer`);
 	}
-	if (document.images !== undefined && !Array.isArray(document.images))
-		fail(`${label} images must be an array`);
-	for (const [index, imageValue] of (document.images ?? []).entries()) {
-		const image = record(imageValue, `${label} image ${index}`);
-		if (Object.hasOwn(image, "uri")) {
-			const uri = nonEmptyString(image.uri, `${label} image ${index} URI`);
-			if (!uri.startsWith("data:"))
-				fail(`${label} contains an external image URI`);
-		}
-	}
-	if (
-		Object.hasOwn(document, "extensionsRequired") ||
-		Object.hasOwn(document, "extensionsUsed")
-	)
-		fail(`${label} extensions are not admitted by the V1 contract`);
 	return { buffer, byteLength };
 }
 
 function validateProvenance(document, label) {
 	const asset = record(document.asset, `${label} asset`);
+	exactKeys(asset, ["copyright", "generator", "version"], `${label} asset`);
 	if (asset.version !== "2.0") fail(`${label} must be glTF 2.0`);
 	if (
 		asset.generator !== "EONFOLK repository-authored proxy asset v1" ||
@@ -241,6 +329,7 @@ function validateGeometryTables(document, label, binaryBytes) {
 		if (
 			view.buffer !== 0 ||
 			length < 1 ||
+			offset % 4 !== 0 ||
 			offset > binary.byteLength - length ||
 			view.target !== (index === 0 ? 34962 : 34963)
 		)
@@ -279,24 +368,43 @@ function validateGeometryTables(document, label, binaryBytes) {
 			`${label} accessor ${index} count`,
 		);
 		const admittedView = admittedViews[bufferView];
+		const accessorBytes = count * componentBytes * componentCount;
 		if (
 			admittedView === undefined ||
 			componentBytes === undefined ||
 			componentCount === undefined ||
 			count < 1 ||
-			count * componentBytes * componentCount > admittedView.length
+			!Number.isSafeInteger(accessorBytes) ||
+			admittedView.offset % componentBytes !== 0 ||
+			accessorBytes !== admittedView.length
 		)
 			fail(`${label} accessor ${index} escapes its buffer view`);
 	}
 	const positions = record(document.accessors[0], `${label} position accessor`);
 	const indices = record(document.accessors[1], `${label} index accessor`);
+	const declaredMinimum = finiteVector(
+		positions.min,
+		3,
+		`${label} position minimum`,
+	);
+	const declaredMaximum = finiteVector(
+		positions.max,
+		3,
+		`${label} position maximum`,
+	);
+	if (
+		declaredMinimum.some(
+			(value, component) => value > declaredMaximum[component],
+		)
+	)
+		fail(`${label} declared position bounds are inverted`);
 	if (
 		positions.bufferView !== 0 ||
 		positions.componentType !== 5126 ||
 		positions.count !== 8 ||
 		positions.type !== "VEC3" ||
-		JSON.stringify(positions.min) !== JSON.stringify([-0.5, -0.5, -0.5]) ||
-		JSON.stringify(positions.max) !== JSON.stringify([0.5, 0.5, 0.5]) ||
+		JSON.stringify(declaredMinimum) !== JSON.stringify([-0.5, -0.5, -0.5]) ||
+		JSON.stringify(declaredMaximum) !== JSON.stringify([0.5, 0.5, 0.5]) ||
 		indices.bufferView !== 1 ||
 		indices.componentType !== 5123 ||
 		indices.count !== 36 ||
@@ -312,6 +420,58 @@ function validateGeometryTables(document, label, binaryBytes) {
 	];
 	if (!Array.isArray(document.materials) || document.materials.length !== 5)
 		fail(`${label} material table does not match the proxy contract`);
+	for (const [index, value] of document.materials.entries()) {
+		const material = record(value, `${label} material ${index}`);
+		exactKeys(
+			material,
+			["alphaMode", "doubleSided", "name", "pbrMetallicRoughness"],
+			`${label} material ${index}`,
+		);
+		const pbr = record(
+			material.pbrMetallicRoughness,
+			`${label} material ${index} PBR`,
+		);
+		exactKeys(
+			pbr,
+			["baseColorFactor", "metallicFactor", "roughnessFactor"],
+			`${label} material ${index} PBR`,
+		);
+		const baseColor = finiteVector(
+			pbr.baseColorFactor,
+			4,
+			`${label} material ${index} base color`,
+		);
+		for (const [componentIndex, component] of baseColor.entries())
+			boundedNumber(
+				component,
+				0,
+				1,
+				`${label} material ${index} base color ${componentIndex}`,
+			);
+		const metallic = boundedNumber(
+			pbr.metallicFactor,
+			0,
+			1,
+			`${label} material ${index} metallic factor`,
+		);
+		const roughness = boundedNumber(
+			pbr.roughnessFactor,
+			0,
+			1,
+			`${label} material ${index} roughness factor`,
+		);
+		const expected = EXPECTED_MATERIALS[index];
+		if (
+			expected === undefined ||
+			material.name !== expected[0] ||
+			material.alphaMode !== "OPAQUE" ||
+			material.doubleSided !== false ||
+			JSON.stringify(baseColor) !== JSON.stringify(expected[1]) ||
+			metallic !== 0 ||
+			roughness !== expected[2]
+		)
+			fail(`${label} material ${index} is outside the proxy contract`);
+	}
 	for (const [index, value] of document.meshes.entries()) {
 		const mesh = record(value, `${label} mesh ${index}`);
 		exactKeys(mesh, ["name", "primitives"], `${label} mesh ${index}`);
@@ -342,13 +502,37 @@ function validateGeometryTables(document, label, binaryBytes) {
 		)
 			fail(`${label} mesh ${index} primitive references are invalid`);
 	}
-	for (
-		let offset = positionsView.offset;
-		offset < indicesView.offset;
-		offset += 4
+	const actualMinimum = [
+		Number.POSITIVE_INFINITY,
+		Number.POSITIVE_INFINITY,
+		Number.POSITIVE_INFINITY,
+	];
+	const actualMaximum = [
+		Number.NEGATIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+		Number.NEGATIVE_INFINITY,
+	];
+	for (let vertex = 0; vertex < 8; vertex += 1)
+		for (let component = 0; component < 3; component += 1) {
+			const value = binary.readFloatLE(
+				positionsView.offset + vertex * 12 + component * 4,
+			);
+			boundedNumber(
+				value,
+				-Number.MAX_VALUE,
+				Number.MAX_VALUE,
+				`${label} position ${vertex}:${component}`,
+			);
+			actualMinimum[component] = Math.min(actualMinimum[component], value);
+			actualMaximum[component] = Math.max(actualMaximum[component], value);
+		}
+	if (
+		JSON.stringify(actualMinimum) !== JSON.stringify(declaredMinimum) ||
+		JSON.stringify(actualMaximum) !== JSON.stringify(declaredMaximum)
 	)
-		if (!Number.isFinite(binary.readFloatLE(offset)))
-			fail(`${label} position accessor contains a non-finite value`);
+		fail(`${label} declared position bounds do not match binary geometry`);
+	if (indices.count % 3 !== 0)
+		fail(`${label} triangle index count is malformed`);
 	for (
 		let offset = indicesView.offset;
 		offset < indicesView.offset + 72;
@@ -360,6 +544,7 @@ function validateGeometryTables(document, label, binaryBytes) {
 
 export function validateGeneratedSourceGltf(bytes) {
 	const document = parseJson(bytes, "source glTF");
+	exactKeys(document, DOCUMENT_KEYS, "source glTF document");
 	validateProvenance(document, "source glTF");
 	const names = validateNamedNodes(document, "source glTF");
 	const { buffer, byteLength } = validateNoExternalUris(
@@ -419,10 +604,18 @@ export function parseGeneratedGlb(bytes) {
 	)
 		fail("GLB JSON chunk length is malformed");
 	const jsonChunk = input.subarray(20, 20 + jsonLength);
-	const jsonText = jsonChunk.toString("utf8");
-	const trimmedJson = jsonText.replace(/ +$/u, "");
-	if (jsonText.length - trimmedJson.length > 3)
-		fail("GLB JSON padding exceeds three spaces");
+	let jsonText;
+	try {
+		jsonText = new TextDecoder("utf-8", { fatal: true }).decode(jsonChunk);
+	} catch (error) {
+		throw new Error("generated assets: GLB JSON is not valid UTF-8", {
+			cause: error,
+		});
+	}
+	const trimmedJson = jsonText.trimEnd();
+	const jsonPadding = jsonText.slice(trimmedJson.length);
+	if (!/^ {0,3}$/u.test(jsonPadding))
+		fail("GLB JSON padding is not zero to three spaces");
 	let document;
 	try {
 		document = record(JSON.parse(trimmedJson), "GLB document");
@@ -431,6 +624,7 @@ export function parseGeneratedGlb(bytes) {
 			cause: error,
 		});
 	}
+	exactKeys(document, DOCUMENT_KEYS, "GLB document");
 	const binaryHeader = 20 + jsonLength;
 	const binaryLength = input.readUInt32LE(binaryHeader);
 	if (input.readUInt32LE(binaryHeader + 4) !== GLB_BINARY_CHUNK)
@@ -449,6 +643,9 @@ export function parseGeneratedGlb(bytes) {
 		binaryHeader + 8,
 		binaryHeader + 8 + byteLength,
 	);
+	for (let offset = byteLength; offset < binaryLength; offset += 1)
+		if (input[binaryHeader + 8 + offset] !== 0)
+			fail("GLB BIN padding is not zero-filled");
 	validateGeometryTables(document, "GLB", binary);
 	return Object.freeze({ document, binary, nodeNames: Object.freeze(names) });
 }

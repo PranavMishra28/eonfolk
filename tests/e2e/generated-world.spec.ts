@@ -727,8 +727,11 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	).toBe(movingActorCount);
 	expect(generatedAssetRequests.sort()).toEqual([
 		"/assets/generated/ASSET_MANIFEST.json",
-		"/assets/generated/eonfolk-folk-proxy.gltf",
+		"/assets/generated/eonfolk-folk-proxy.glb",
 	]);
+	expect(generatedAssetRequests).not.toContain(
+		"/assets/generated/eonfolk-folk-proxy.gltf",
+	);
 	expect(externalRequests).toEqual([]);
 });
 

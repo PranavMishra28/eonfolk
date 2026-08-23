@@ -10,10 +10,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import {
-	GENERATED_FOLK_ASSET,
-	GENERATED_FOLK_BINARY_ASSET,
-} from "../../../apps/web/src/generated-presentation/assets.js";
+import { GENERATED_FOLK_BINARY_ASSET } from "../../../apps/web/src/generated-presentation/assets.js";
 import {
 	buildGeneratedGlb,
 	createGeneratedAssetManifest,
@@ -52,9 +49,9 @@ describe("generated asset pipeline", () => {
 		expect(generatedAssetSha256(first)).toBe(
 			GENERATED_FOLK_BINARY_ASSET.sha256,
 		);
-		expect(assets.sourceBytes.byteLength).toBe(GENERATED_FOLK_ASSET.byteLength);
+		expect(assets.sourceBytes.byteLength).toBe(3_929);
 		expect(generatedAssetSha256(assets.sourceBytes)).toBe(
-			GENERATED_FOLK_ASSET.sha256,
+			"3056495e5471989dfce1eb41982f74760c89c457f6b00aec44f2c469ae0cc624",
 		);
 		expect(first.byteLength).toBe(GENERATED_FOLK_BINARY_ASSET.byteLength);
 		expect(
@@ -62,11 +59,11 @@ describe("generated asset pipeline", () => {
 		).toEqual(assets.manifestBytes);
 		expect(validateGeneratedAssetSet(assets)).toMatchObject({
 			status: "verified",
-			deliveryBytes: 2_800,
+			deliveryBytes: 3_152,
 			externalDependencies: 0,
 		});
 		expect(validateGeneratedAssetsOnDisk()).toMatchObject({
-			trackedBytes: 6_322,
+			trackedBytes: 7_081,
 		});
 	});
 
@@ -169,7 +166,25 @@ describe("generated asset pipeline", () => {
 		const wrongNodeMesh = structuredClone(source);
 		wrongNodeMesh.nodes[1].mesh = 4;
 		expect(() => validateGeneratedSourceGltf(encoded(wrongNodeMesh))).toThrow(
-			/does not bind its declared mesh/u,
+			/transform is outside the proxy contract/u,
+		);
+
+		const invalidTranslation = structuredClone(source);
+		invalidTranslation.nodes[1].translation = "not-a-vector";
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(invalidTranslation)),
+		).toThrow(/finite 3-vector/u);
+
+		const invalidRotation = structuredClone(source);
+		invalidRotation.nodes[1].rotation = [0, 0, 0, 2];
+		expect(() => validateGeneratedSourceGltf(encoded(invalidRotation))).toThrow(
+			/transform is outside the proxy contract/u,
+		);
+
+		const invalidScale = structuredClone(source);
+		invalidScale.nodes[1].scale = [0, 0.68, 0.28];
+		expect(() => validateGeneratedSourceGltf(encoded(invalidScale))).toThrow(
+			/transform is outside the proxy contract/u,
 		);
 
 		const wrongPrimitive = structuredClone(source);
@@ -190,6 +205,12 @@ describe("generated asset pipeline", () => {
 			/buffer view 1 escapes the admitted buffer/u,
 		);
 
+		const unapprovedStride = structuredClone(source);
+		unapprovedStride.bufferViews[0].byteStride = 16;
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(unapprovedStride)),
+		).toThrow(/buffer view 0 keys are not the closed schema/u);
+
 		const missingPosition = structuredClone(source);
 		const prefix = "data:application/octet-stream;base64,";
 		const geometry = Buffer.from(
@@ -201,6 +222,77 @@ describe("generated asset pipeline", () => {
 		expect(() => validateGeneratedSourceGltf(encoded(missingPosition))).toThrow(
 			/index accessor references a missing position/u,
 		);
+
+		const lyingBounds = structuredClone(source);
+		const lyingGeometry = Buffer.from(
+			lyingBounds.buffers[0].uri.slice(prefix.length),
+			"base64",
+		);
+		lyingGeometry.writeFloatLE(99, 0);
+		lyingBounds.buffers[0].uri = `${prefix}${lyingGeometry.toString("base64")}`;
+		expect(() => validateGeneratedSourceGltf(encoded(lyingBounds))).toThrow(
+			/declared position bounds do not match/u,
+		);
+
+		const nonFinitePosition = structuredClone(source);
+		const nonFiniteGeometry = Buffer.from(
+			nonFinitePosition.buffers[0].uri.slice(prefix.length),
+			"base64",
+		);
+		nonFiniteGeometry.writeFloatLE(Number.NaN, 0);
+		nonFinitePosition.buffers[0].uri = `${prefix}${nonFiniteGeometry.toString("base64")}`;
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(nonFinitePosition)),
+		).toThrow(/outside its admitted finite range/u);
+	});
+
+	it("rejects unapproved top-level tables and malformed materials", async () => {
+		const { sourceBytes } = await trackedAssets();
+		const source = JSON.parse(sourceBytes.toString("utf8"));
+		for (const key of [
+			"animations",
+			"cameras",
+			"images",
+			"samplers",
+			"skins",
+			"textures",
+			"extensions",
+			"extensionsRequired",
+			"extensionsUsed",
+		]) {
+			const unapproved = structuredClone(source);
+			unapproved[key] =
+				key === "cameras"
+					? [{ type: "perspective", perspective: { yfov: 1, znear: 0.1 } }]
+					: [];
+			expect(() => validateGeneratedSourceGltf(encoded(unapproved))).toThrow(
+				/keys are not the closed schema/u,
+			);
+		}
+
+		const malformedMaterial = structuredClone(source);
+		malformedMaterial.materials[0].pbrMetallicRoughness = "invalid";
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(malformedMaterial)),
+		).toThrow(/PBR must be an object/u);
+
+		const outOfRangeColor = structuredClone(source);
+		outOfRangeColor.materials[0].pbrMetallicRoughness.baseColorFactor[3] = 1.1;
+		expect(() => validateGeneratedSourceGltf(encoded(outOfRangeColor))).toThrow(
+			/outside its admitted finite range/u,
+		);
+
+		const outOfRangeMetallic = structuredClone(source);
+		outOfRangeMetallic.materials[0].pbrMetallicRoughness.metallicFactor = -0.1;
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(outOfRangeMetallic)),
+		).toThrow(/outside its admitted finite range/u);
+
+		const wrongDoubleSided = structuredClone(source);
+		wrongDoubleSided.materials[0].doubleSided = true;
+		expect(() =>
+			validateGeneratedSourceGltf(encoded(wrongDoubleSided)),
+		).toThrow(/outside the proxy contract/u);
 	});
 
 	it("rejects symlinked files and generated directories that escape root", async () => {
@@ -308,5 +400,9 @@ describe("generated asset pipeline", () => {
 		);
 
 		expect(parseGeneratedGlb(binaryBytes).binary.byteLength).toBe(168);
+		for (const length of [0, 1, 11, 12, 19, 20, 27, 28, 100, 1_024])
+			expect(() =>
+				parseGeneratedGlb(binaryBytes.subarray(0, length)),
+			).toThrow();
 	});
 });
