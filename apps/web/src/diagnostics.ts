@@ -48,15 +48,18 @@ function routeIdentity() {
 		typeof window === "undefined"
 			? "/"
 			: window.location.pathname.replace(/\/+$/u, "") || "/";
-	if (path === "/genesis")
+	if (path === "/genesis" || path === "/world")
 		return Object.freeze({
 			genesisId: "release-genesis-browser-v1",
 			worldId: "eonfolk-genesis-world-v1",
-			experimentId: "release-genesis-readonly-v1",
-			runId: "run-release-genesis-readonly-v1",
+			experimentId: "v1-civilization-standard-v5",
+			runId: "eonfolk-genesis-world-v1",
 			cognitionTreatmentId: "cognition-standard-v1",
-			rendererVersion: "generated-origin-dom-v1",
-			persistenceVersion: "persistence-none-readonly-v1",
+			rendererVersion:
+				path === "/world"
+					? "playcanvas-generated-civilization-v1"
+					: "generated-civilization-entry-v1",
+			persistenceVersion: "v1-browser-checkpoint-v1",
 		});
 	return Object.freeze({
 		genesisId: "riverhold-local-genesis-v1",

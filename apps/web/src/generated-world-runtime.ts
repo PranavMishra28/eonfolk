@@ -4,14 +4,32 @@ import {
 	type GeneratedCivilizationSpatialProjection,
 } from "@eonfolk/world-presentation";
 import { generateWorld } from "@eonfolk/worldgen";
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import {
+	type CivilizationExperimentRun,
+	runCivilizationExperiment,
+} from "@eonfolk/civilization";
 import {
 	V1_GENESIS_RELEASE_ID,
 	V1_GENESIS_SEED,
 	V1_GENESIS_WORLD_ID,
 } from "./v1-genesis-runtime";
+import {
+	catchUpV1Checkpoint,
+	createV1IndexedDbStorage,
+	initializeV1Checkpoint,
+	loadV1Checkpoint,
+} from "./v1-indexeddb";
 
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
+export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
+export const GENERATED_WORLD_STORAGE_KEY =
+	"release-genesis:eonfolk-genesis-world-v1";
+
+export interface GeneratedWorldPersistenceStatus {
+	readonly kind: "indexeddb" | "unavailable";
+	readonly restored: boolean;
+	readonly catchUpReceipts: number;
+}
 
 export interface GeneratedWorldExperience {
 	readonly worldId: string;
@@ -22,6 +40,14 @@ export interface GeneratedWorldExperience {
 	readonly population: number;
 	readonly settlementCount: number;
 	readonly projections: readonly GeneratedCivilizationSpatialProjection[];
+	readonly persistence: GeneratedWorldPersistenceStatus;
+}
+
+export interface GeneratedWorldBuildOptions {
+	readonly indexedDbFactory?: IDBFactory | null;
+	readonly storageKey?: string;
+	readonly initialHorizonDays?: number;
+	readonly targetHorizonDays?: number;
 }
 
 let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
@@ -32,7 +58,9 @@ let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
  * kernel tests. Presentation is not permitted to invent missing inhabitants or
  * actions.
  */
-export async function buildGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
+export async function buildGeneratedWorldExperience(
+	options: GeneratedWorldBuildOptions = {},
+): Promise<GeneratedWorldExperience> {
 	const releaseGenesis = await createReleaseGenesis({
 		releaseId: V1_GENESIS_RELEASE_ID,
 		seedHex: V1_GENESIS_SEED,
@@ -42,10 +70,71 @@ export async function buildGeneratedWorldExperience(): Promise<GeneratedWorldExp
 		worldId: V1_GENESIS_WORLD_ID,
 		treatmentId: "standard-brain",
 	});
-	const run = await runCivilizationExperiment({
-		world: generatedWorld,
-		horizonDays: GENERATED_WORLD_HORIZON_DAYS,
-	});
+	const targetHorizonDays =
+		options.targetHorizonDays ?? GENERATED_WORLD_HORIZON_DAYS;
+	const initialHorizonDays =
+		options.initialHorizonDays ?? GENERATED_WORLD_INITIAL_HORIZON_DAYS;
+	const storageKey = options.storageKey ?? GENERATED_WORLD_STORAGE_KEY;
+	const indexedDbFactory =
+		options.indexedDbFactory === undefined
+			? globalThis.indexedDB
+			: options.indexedDbFactory;
+	const availability = createV1IndexedDbStorage(indexedDbFactory);
+	let run: CivilizationExperimentRun;
+	let persistence: GeneratedWorldPersistenceStatus;
+	if (!availability.available) {
+		run = await runCivilizationExperiment({
+			world: generatedWorld,
+			horizonDays: targetHorizonDays,
+		});
+		persistence = Object.freeze({
+			kind: "unavailable",
+			restored: false,
+			catchUpReceipts: 0,
+		});
+	} else {
+		let stored = await loadV1Checkpoint(availability.port, storageKey);
+		const restored = stored !== null;
+		if (stored === null) {
+			const initial = await runCivilizationExperiment({
+				world: generatedWorld,
+				horizonDays: initialHorizonDays,
+			});
+			stored = (
+				await initializeV1Checkpoint({
+					storage: availability.port,
+					storageKey,
+					genesisWorld: generatedWorld,
+					checkpoint: initial,
+				})
+			).checkpoint;
+		}
+		if (
+			stored.worldId !== generatedWorld.identity.worldId ||
+			stored.worldIdentityHash !== generatedWorld.identity.identityHash
+		)
+			throw new Error(
+				"Stored civilization identity does not match Release Genesis",
+			);
+		if (stored.horizonDays > targetHorizonDays)
+			throw new Error("Stored civilization is ahead of the requested horizon");
+		if (stored.horizonDays < targetHorizonDays) {
+			stored = (
+				await catchUpV1Checkpoint({
+					storage: availability.port,
+					storageKey,
+					requestId: `catchup:${stored.horizonDays}:${targetHorizonDays}`,
+					targetHorizonDays,
+				})
+			).checkpoint;
+		}
+		run = stored.checkpoint;
+		persistence = Object.freeze({
+			kind: "indexeddb",
+			restored,
+			catchUpReceipts: stored.catchUpReceipts.length,
+		});
+	}
 	const settlementIds = Object.values(run.world.settlements)
 		.map(({ value }) => value.settlementId)
 		.sort();
@@ -91,6 +180,7 @@ export async function buildGeneratedWorldExperience(): Promise<GeneratedWorldExp
 		population: run.metrics.population,
 		settlementCount: projections.length,
 		projections,
+		persistence,
 	});
 }
 

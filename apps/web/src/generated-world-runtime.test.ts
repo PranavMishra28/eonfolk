@@ -17,6 +17,11 @@ describe("canonical generated-world browser experience", () => {
 		expect(first.simulationTime).toBe(GENERATED_WORLD_HORIZON_DAYS * 86_400);
 		expect(first.worldIdentityHash).toMatch(/^[0-9a-f]{64}$/u);
 		expect(first.stateHash).toMatch(/^[0-9a-f]{64}$/u);
+		expect(first.persistence).toEqual({
+			kind: "unavailable",
+			restored: false,
+			catchUpReceipts: 0,
+		});
 	});
 
 	it("projects every actual resident exactly once across founded settlements", async () => {

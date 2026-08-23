@@ -6,7 +6,6 @@ import {
 	type ReactNode,
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { RiverholdApp } from "./RiverholdApp";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Riverhold root is missing");
@@ -14,6 +13,11 @@ if (!root) throw new Error("Riverhold root is missing");
 const V1GenesisApp = lazy(async () => {
 	const module = await import("./V1GenesisApp");
 	return { default: module.V1GenesisApp };
+});
+
+const RiverholdApp = lazy(async () => {
+	const module = await import("./RiverholdApp");
+	return { default: module.RiverholdApp };
 });
 
 class RuntimeBoundary extends Component<
@@ -69,7 +73,15 @@ const genesisRoute =
 reactRoot.render(
 	<RuntimeBoundary>
 		{normalizedPath === "/" || normalizedPath === "/legacy" ? (
-			<RiverholdApp />
+			<Suspense
+				fallback={
+					<main className="loading-state" aria-busy="true">
+						<p>Opening the local world…</p>
+					</main>
+				}
+			>
+				<RiverholdApp />
+			</Suspense>
 		) : genesisRoute !== null ? (
 			<Suspense
 				fallback={

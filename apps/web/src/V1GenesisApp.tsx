@@ -466,6 +466,9 @@ function GeneratedWorld({
 			data-state-hash={experience.stateHash}
 			data-simulation-time={experience.simulationTime}
 			data-projection-status={projection.availability.status}
+			data-persistence={experience.persistence.kind}
+			data-persistence-restored={String(experience.persistence.restored)}
+			data-catch-up-receipts={experience.persistence.catchUpReceipts}
 		>
 			<header className="v1-world-header">
 				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">

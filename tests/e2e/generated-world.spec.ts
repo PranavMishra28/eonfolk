@@ -13,11 +13,86 @@ async function isolateLocalWorld(page: Page): Promise<string[]> {
 	return externalRequests;
 }
 
+async function resetGeneratedCheckpoint(page: Page): Promise<void> {
+	await page.goto("/outside-canon");
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.deleteDatabase("eonfolk-v1-civilization");
+				request.addEventListener("success", () => resolve(), { once: true });
+				request.addEventListener("error", () => reject(request.error), {
+					once: true,
+				});
+			}),
+	);
+}
+
+async function inspectGeneratedCheckpoint(page: Page) {
+	return page.evaluate(
+		() =>
+			new Promise<{
+				readonly initializedHorizonDays: number;
+				readonly horizonDays: number;
+				readonly receiptCount: number;
+				readonly firstFrom: number | null;
+				readonly firstTo: number | null;
+				readonly modelInvocations: number;
+				readonly recordHash: string;
+			}>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-v1-civilization", 1);
+				request.addEventListener("error", () => reject(request.error), {
+					once: true,
+				});
+				request.addEventListener(
+					"success",
+					() => {
+						const database = request.result;
+						const transaction = database.transaction(
+							"canonical-checkpoints",
+							"readonly",
+						);
+						const get = transaction
+							.objectStore("canonical-checkpoints")
+							.get("release-genesis:eonfolk-genesis-world-v1");
+						get.addEventListener(
+							"success",
+							() => {
+								const value = get.result as {
+									initializedHorizonDays: number;
+									horizonDays: number;
+									catchUpReceipts: Array<{
+										fromHorizonDays: number;
+										toHorizonDays: number;
+									}>;
+									checkpoint: { metrics: { modelInvocations: number } };
+									recordHash: string;
+								};
+								resolve({
+									initializedHorizonDays: value.initializedHorizonDays,
+									horizonDays: value.horizonDays,
+									receiptCount: value.catchUpReceipts.length,
+									firstFrom: value.catchUpReceipts[0]?.fromHorizonDays ?? null,
+									firstTo: value.catchUpReceipts[0]?.toHorizonDays ?? null,
+									modelInvocations: value.checkpoint.metrics.modelInvocations,
+									recordHash: value.recordHash,
+								});
+								database.close();
+							},
+							{ once: true },
+						);
+					},
+					{ once: true },
+				);
+			}),
+	);
+}
+
 test("generated civilization is the identity-bound canonical /world @illustrated-target", async ({
 	page,
 }) => {
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
 	await page.goto("/genesis");
 	await expect(page).toHaveTitle("EONFOLK — A civilization has begun");
 	await expect(
@@ -38,6 +113,9 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	);
 	await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u);
 	await expect(world).toHaveAttribute("data-projection-status", "available");
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb");
+	await expect(world).toHaveAttribute("data-persistence-restored", "true");
+	await expect(world).toHaveAttribute("data-catch-up-receipts", "1");
 	const canvas = page.getByTestId("generated-world-canvas");
 	await expect(canvas).toHaveAttribute("data-engine", "playcanvas");
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
@@ -61,6 +139,23 @@ test("generated civilization is the identity-bound canonical /world @illustrated
 	await expect(
 		page.getByText("Scheduler-owned current behavior", { exact: false }),
 	).toBeVisible();
+	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
+	expect(firstCheckpoint).toMatchObject({
+		initializedHorizonDays: 1,
+		horizonDays: 365,
+		receiptCount: 1,
+		firstFrom: 1,
+		firstTo: 365,
+		modelInvocations: 0,
+	});
+	await page.reload();
+	await expect(page.locator("main.v1-world")).toHaveAttribute(
+		"data-persistence-restored",
+		"true",
+	);
+	expect((await inspectGeneratedCheckpoint(page)).recordHash).toBe(
+		firstCheckpoint.recordHash,
+	);
 	expect(externalRequests).toEqual([]);
 });
 
