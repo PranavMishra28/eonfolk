@@ -13,7 +13,7 @@ on:
         type: choice
         options:
           - pr
-          - deep
+          - extended
 
 permissions:
   contents: read
@@ -25,7 +25,7 @@ concurrency:
 jobs:
   verify:
     name: Verify
-    if: github.event_name != 'workflow_dispatch' || inputs.tier != 'deep'
+    if: github.event_name != 'workflow_dispatch' || inputs.tier != 'extended'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -60,7 +60,7 @@ jobs:
           fi
 
           changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
-          if grep -Eq '^(apps/web/|packages/(cognition|protocol|sim|world-presentation)/|tests/e2e/|package\.json$|pnpm-lock\.yaml$|vite\..*\.ts$|playwright\..*\.ts$)' <<<"${changed_files}"; then
+          if grep -Eq '^(apps/web/|packages/|tests/e2e/|\.github/workflows/ci\.yml$|package\.json$|pnpm-lock\.yaml$|vite\..*\.ts$|playwright\..*\.ts$)' <<<"${changed_files}"; then
             echo "ui=true" >> "${GITHUB_OUTPUT}"
           else
             echo "ui=false" >> "${GITHUB_OUTPUT}"
@@ -331,11 +331,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  deep:
-    name: Deep verification
-    if: github.event_name == 'workflow_dispatch' && inputs.tier == 'deep'
+  extended:
+    name: Extended verification
+    if: github.event_name == 'workflow_dispatch' && inputs.tier == 'extended'
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -378,37 +378,40 @@ jobs:
             --output "${RUNNER_TEMP}/tla2tools.jar"
           echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
 
-      - name: Run manually requested deep verification
+      - name: Run protected pull-request baseline
         env:
           EONFOLK_ALLOW_LINUX_CI: "1"
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
-        run: pnpm verify:deep
+        run: pnpm verify:pr
 
-      - name: Retain accepted deep evidence
+      - name: Run portable extended correctness checks
+        run: |
+          pnpm test:mutation
+          pnpm test:property:deep
+          node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json
+          pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json
+
+      - name: Retain accepted extended evidence
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: deep-verification-${{ github.run_id }}
+          name: extended-verification-${{ github.run_id }}
           path: |
-            tmp/eonfolk-verification-deep.json
+            tmp/eonfolk-verification-pr.json
             tmp/eonfolk-persistence-benchmark.json
             tmp/eonfolk-diagnostics-overhead.json
-            tmp/eonfolk-diagnostics-browser-comparison.json
-            tmp/eonfolk-canonical-performance.json
           if-no-files-found: error
           retention-days: 30
 
-      - name: Retain failing deep evidence
+      - name: Retain failing extended evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: deep-failure-${{ github.run_id }}
+          name: extended-failure-${{ github.run_id }}
           path: |
-            tmp/eonfolk-verification-deep.json
+            tmp/eonfolk-verification-pr.json
             tmp/eonfolk-persistence-benchmark.json
             tmp/eonfolk-diagnostics-overhead.json
-            tmp/eonfolk-diagnostics-browser-comparison.json
-            tmp/eonfolk-canonical-performance.json
             tmp/riverhold-playwright
             apps/web/evidence
           if-no-files-found: ignore

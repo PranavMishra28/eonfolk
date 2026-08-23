@@ -41,13 +41,16 @@ Use the smallest useful tier while working:
 
 ```sh
 corepack pnpm verify:fast
-corepack pnpm verify:pr
-corepack pnpm verify:deep
+corepack pnpm exec playwright install chromium
+TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:pr
+TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:deep
 ```
 
-`verify:pr` is the merge baseline. It covers formatting, lint, strict types, unit/property tests, IndexedDB, deterministic simulation and replay, fault recovery, production build and payload budgets, browser journeys, dependency audit, zero network egress, and the bounded formal model. `verify:deep` adds mutation, expanded fuzz/property, browser-cohort, persistence, diagnostics, and repeated performance evidence.
+`verify:pr` is the merge baseline. It covers formatting, lint, strict types, unit/property tests, IndexedDB, deterministic simulation and replay, fault recovery, production build and payload budgets, browser journeys, dependency audit, zero network egress, and the bounded formal model. Read the pinned TLC URL and SHA-256 with `node scripts/formal-toolchain.mjs --url` and `--sha256`; never substitute an unverified jar.
 
-The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **deep** workflow-dispatch tier exists for milestone evidence; it is not scheduled so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
+`verify:deep` is the target-Apple-Silicon release lattice. It additionally verifies the exact Playwright browser cohort, mutation/fuzz depth, persistence, diagnostics, and repeated three-viewport performance. Run `corepack pnpm browser-cohort:check` before committing to the longer tier; a different OS/browser cohort is not equivalent release evidence.
+
+The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **extended** Linux workflow-dispatch tier adds portable mutation, deep-property, persistence, and source-diagnostics checks without pretending to be the target-Mac DEEP/performance run. It is not scheduled, so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
 
 ## Architecture and developer guide
 

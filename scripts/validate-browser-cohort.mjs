@@ -1,9 +1,12 @@
 import { createHash } from "node:crypto";
 import { lstat, readdir, readFile, readlink } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join, relative, sep } from "node:path";
 
-const ROOT =
-	"/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app";
+const ROOT = join(
+	homedir(),
+	"Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app",
+);
 const LAUNCHER = join(ROOT, "Contents/MacOS/Google Chrome for Testing");
 const FRAMEWORK = join(
 	ROOT,

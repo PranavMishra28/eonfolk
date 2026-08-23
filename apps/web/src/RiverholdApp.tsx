@@ -916,7 +916,7 @@ export function RiverholdApp() {
 	if (runtimeError !== null)
 		return (
 			<main className="runtime-failure" aria-labelledby="runtime-failure-title">
-				<EonfolkMark className="eonfolk-mark--standalone" />
+				<EonfolkMark className="eonfolk-mark--standalone" label="EONFOLK" />
 				<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
 				<h1 id="runtime-failure-title">
 					Riverhold stopped before showing further world state.
@@ -947,7 +947,7 @@ export function RiverholdApp() {
 	if (projection === null)
 		return (
 			<main className="runtime-loading" aria-labelledby="runtime-loading-title">
-				<EonfolkMark className="eonfolk-mark--standalone" />
+				<EonfolkMark className="eonfolk-mark--standalone" label="EONFOLK" />
 				<p className="eyebrow">OPENING RIVERHOLD'S RECORD</p>
 				<h1 id="runtime-loading-title">Checking Riverhold's durable record…</h1>
 				<p>

@@ -751,6 +751,7 @@ test("shows no world facts while the authoritative worker is delayed", async ({
 	await expect(
 		page.getByRole("heading", { name: /Checking Riverhold's durable record/i }),
 	).toBeVisible();
+	await expect(page.getByRole("img", { name: "EONFOLK" })).toBeVisible();
 	await expect(page.getByText(/YOU ADVISED/i)).toHaveCount(0);
 	await expect(
 		page.getByRole("region", { name: /Riverhold Story Card/i }),
@@ -816,6 +817,7 @@ test("safe-stop redacts a raw worker error while keeping a local report path", a
 			name: /Riverhold stopped before showing further world state/i,
 		}),
 	).toBeVisible();
+	await expect(page.getByRole("img", { name: "EONFOLK" })).toBeVisible();
 	await expect(page.getByText(/Reproduction ID:/i)).toContainText(
 		/inc_[a-f0-9]{24}/u,
 	);
