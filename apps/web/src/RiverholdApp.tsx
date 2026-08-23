@@ -13,6 +13,7 @@ import {
 	useState,
 } from "react";
 import { Chronicle } from "./components/Chronicle";
+import { EonfolkMark } from "./components/EonfolkMark";
 import { FeedbackPanel } from "./components/FeedbackPanel";
 import type { WorldFocus } from "./components/RiverholdWorld";
 import { SemanticWorld } from "./components/SemanticWorld";
@@ -50,16 +51,6 @@ function runtimeFailure(error: unknown): RuntimeFailure {
 	if (error instanceof RiverholdRuntimeError)
 		return { writeAuthorityTransferred: error.code === "STALE_FENCE" };
 	return { writeAuthorityTransferred: false };
-}
-
-function InkMark() {
-	return (
-		<span className="ink-mark" aria-hidden="true">
-			<i />
-			<i />
-			<i />
-		</span>
-	);
 }
 
 function CounselCard({
@@ -173,7 +164,7 @@ function WorldHeader({
 	return (
 		<header className="topbar">
 			<a className="brand" href="#world" aria-label="EONFOLK Riverhold home">
-				<InkMark />
+				<EonfolkMark />
 				<span>
 					<strong>EONFOLK</strong>
 					<small>RIVERHOLD · FOUNDER ALPHA · LOCAL</small>
@@ -925,7 +916,7 @@ export function RiverholdApp() {
 	if (runtimeError !== null)
 		return (
 			<main className="runtime-failure" aria-labelledby="runtime-failure-title">
-				<InkMark />
+				<EonfolkMark className="eonfolk-mark--standalone" label="EONFOLK" />
 				<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
 				<h1 id="runtime-failure-title">
 					Riverhold stopped before showing further world state.
@@ -956,7 +947,7 @@ export function RiverholdApp() {
 	if (projection === null)
 		return (
 			<main className="runtime-loading" aria-labelledby="runtime-loading-title">
-				<InkMark />
+				<EonfolkMark className="eonfolk-mark--standalone" label="EONFOLK" />
 				<p className="eyebrow">OPENING RIVERHOLD'S RECORD</p>
 				<h1 id="runtime-loading-title">Checking Riverhold's durable record…</h1>
 				<p>
@@ -1126,7 +1117,7 @@ export function RiverholdApp() {
 			)}
 			<FeedbackPanel />
 			<footer>
-				<InkMark />
+				<EonfolkMark />
 				<p>
 					<strong>Riverhold Founder Alpha · local and account-free</strong>
 					<span>

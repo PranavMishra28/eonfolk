@@ -1,7 +1,7 @@
 require "digest"
 require "find"
 
-root = "/Users/pranav/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app"
+root = File.join(Dir.home, "Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app")
 launcher = File.join(root, "Contents/MacOS/Google Chrome for Testing")
 framework = File.join(root, "Contents/Frameworks/Google Chrome for Testing Framework.framework/Versions/151.0.7922.34/Google Chrome for Testing Framework")
 expected = {

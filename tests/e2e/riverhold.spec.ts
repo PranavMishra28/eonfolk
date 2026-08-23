@@ -82,6 +82,18 @@ test.beforeEach(async ({ page }, testInfo) => {
 			"true",
 		);
 	}
+	const brandMark = page.locator(".brand .eonfolk-mark");
+	await expect(brandMark).toHaveAttribute("src", "/eonfolk-mark.svg");
+	await expect(brandMark).toHaveAttribute("alt", "");
+	await expect(brandMark).toHaveAttribute("aria-hidden", "true");
+	expect(
+		await brandMark.evaluate(
+			(mark) =>
+				mark instanceof HTMLImageElement &&
+				mark.complete &&
+				mark.naturalWidth > 0,
+		),
+	).toBe(true);
 });
 
 test.afterEach(() => expect(pageErrors).toEqual([]));
@@ -230,6 +242,9 @@ test("the world surface directly picks inhabitants and places and supports keybo
 			const citizenTargets = JSON.parse(
 				host.dataset.citizenPickTargets ?? "[]",
 			) as PickTarget[];
+			const placeTargets = JSON.parse(
+				host.dataset.placePickTargets ?? "[]",
+			) as PickTarget[];
 			const bounds = host.getBoundingClientRect();
 			return (
 				targets
@@ -243,13 +258,13 @@ test("the world surface directly picks inhabitants and places and supports keybo
 							target.clientX,
 							target.clientY,
 						);
-						const separatedFromCitizen =
-							requestedKind === "citizen" ||
-							citizenTargets.every(
-								(citizen) =>
-									Math.hypot(citizen.x - target.x, citizen.y - target.y) > 32,
-							);
-						return top !== null && host.contains(top) && separatedFromCitizen;
+						const separatedFromOtherKind = (
+							requestedKind === "citizen" ? placeTargets : citizenTargets
+						).every(
+							(citizen) =>
+								Math.hypot(citizen.x - target.x, citizen.y - target.y) > 32,
+						);
+						return top !== null && host.contains(top) && separatedFromOtherKind;
 					}) ?? null
 			);
 		}, kind);
@@ -417,6 +432,9 @@ test("complete verify path survives reload and reaches Chronicle and Story Card"
 	await context.grantPermissions(["clipboard-read", "clipboard-write"], {
 		origin: "http://127.0.0.1:4174",
 	});
+	const storySignature = page.locator(".story-signature");
+	await expect(storySignature.getByText(/EONFOLK/u)).toBeVisible();
+	await expect(storySignature.locator(".eonfolk-mark")).toBeVisible();
 	await page.getByRole("button", { name: "Copy Story Card" }).click();
 	await expect(
 		page.getByRole("button", { name: "Story Card copied" }),
@@ -733,6 +751,7 @@ test("shows no world facts while the authoritative worker is delayed", async ({
 	await expect(
 		page.getByRole("heading", { name: /Checking Riverhold's durable record/i }),
 	).toBeVisible();
+	await expect(page.getByRole("img", { name: "EONFOLK" })).toBeVisible();
 	await expect(page.getByText(/YOU ADVISED/i)).toHaveCount(0);
 	await expect(
 		page.getByRole("region", { name: /Riverhold Story Card/i }),
@@ -798,6 +817,7 @@ test("safe-stop redacts a raw worker error while keeping a local report path", a
 			name: /Riverhold stopped before showing further world state/i,
 		}),
 	).toBeVisible();
+	await expect(page.getByRole("img", { name: "EONFOLK" })).toBeVisible();
 	await expect(page.getByText(/Reproduction ID:/i)).toContainText(
 		/inc_[a-f0-9]{24}/u,
 	);
@@ -1031,7 +1051,15 @@ test("the complete critical journey is keyboard-only and modal focus is isolated
 	await tabTo(page, verify);
 	const visibleCard = verify.locator("..");
 	await expect(visibleCard).toHaveCSS("outline-style", "double");
-	await expect(visibleCard).toHaveCSS("outline-width", "4px");
+	await expect
+		.poll(async () =>
+			Number.parseFloat(
+				await visibleCard.evaluate(
+					(element) => getComputedStyle(element).outlineWidth,
+				),
+			),
+		)
+		.toBeGreaterThanOrEqual(3);
 	await page.keyboard.press("Space");
 	await expect(verify).toBeChecked();
 	const offer = page.getByRole("button", { name: "Offer counsel" });

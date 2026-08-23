@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED — exact-YES confirmation, final implementation-head GitHub CI, and exact clean target-Mac DEEP passed; final docs-head CI and merge pending
+**Status:** IMPLEMENTED — Founder Alpha mega PR #7 merged; current identity and CI hardening must pass the same protected lattice before its mega-PR integration
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 
@@ -10,11 +10,11 @@
 
 ## Owned decision
 
-Every relevant implementation PR runs a short, blocking baseline. Expensive horizons and matrices run nightly/manual. The repository uses a PR-based solo-maintainer workflow with no automatic merges and no invented enterprise ceremony. `.github/workflows/ci.yml` now implements Verify, Formal model, and Secret scan jobs with actions pinned by commit SHA.
+Every relevant implementation PR runs a short, blocking baseline. Expensive horizons and matrices run manually at milestones. The repository uses a PR-based solo-maintainer workflow with no automatic merges and no invented enterprise ceremony. `.github/workflows/ci.yml` implements Verify, Formal model, and Secret scan jobs with actions pinned by commit SHA. Verify also downloads checksum-pinned actionlint 1.7.12 and rejects invalid workflow expressions or shell contracts before the product lattice starts [S-FA-PLATFORM-024].
 
 The exact local baseline is `pnpm verify`. At `4a677a743d4efcdc337c6ffc0c79d63edee69e8f` it passed 63 unit tests, two property tests, a real Chromium IndexedDB reload test, the fixed 20-warmup/200-cycle decision-trace timing analyzer, build/bundle checks, production dependency audit, eight Playwright journeys, 334 routed requests and 36,489 Chromium-netlog events with zero external attempts, and bounded TLC model checking (3,480 generated/350 distinct states, depth 10, five invariants). Gitleaks 8.30.1 separately scanned all then-existing local history with no leaks. Pushed candidate `7d857a216cb9fbd76f2a0afd64418822a84b9a2e` passed GitHub Verify, Formal model, and full-history Secret scan in [run 32481390293](https://github.com/PranavMishra28/eonfolk/actions/runs/32481390293). The [review reconciliation](../reviews/IMPLEMENTATION_FINAL_REVIEW.md) states what this does not prove.
 
-Final implementation head `f818d1069401a1f8e14d2ca6badec29841afbd81` passed protected GitHub `Verify`, `Formal model`, and full-history `Secret scan` in [run 32559456985](https://github.com/PranavMishra28/eonfolk/actions/runs/32559456985). Its Linux PR manifest recorded nineteen passing constituents, including two semantic injected-fault journeys, fourteen semantic product journeys, and a real trace-free PlayCanvas/WebGL2 renderer smoke at all three required viewports. The same exact clean source then completed target-Mac `pnpm verify:deep`: **26/26** ordered constituents passed with unchanged source/lockfile, **191 tests in 23 files**, all sixteen illustrated production journeys, all deep-only profiles, and output SHA-256 `21e85a3e875ca79d0d6e31b25d4ba19f1c871bb6c22c780cf777ba877cfb689d`. This closes implementation-head local and remote verification. The final docs-only Mega PR head must still pass the three protected checks before merge.
+Final implementation head `f818d1069401a1f8e14d2ca6badec29841afbd81` passed protected GitHub `Verify`, `Formal model`, and full-history `Secret scan` in [run 32559456985](https://github.com/PranavMishra28/eonfolk/actions/runs/32559456985). Its Linux PR manifest recorded nineteen passing constituents, including two semantic injected-fault journeys, fourteen semantic product journeys, and a real trace-free PlayCanvas/WebGL2 renderer smoke at all three required viewports. The same exact clean source then completed target-Mac `pnpm verify:deep`: **26/26** ordered constituents passed with unchanged source/lockfile, **191 tests in 23 files**, all sixteen illustrated production journeys, all deep-only profiles, and output SHA-256 `21e85a3e875ca79d0d6e31b25d4ba19f1c871bb6c22c780cf777ba877cfb689d`. This closes historical implementation-head local and remote verification. The current identity, browser-cohort portability, run-surface, and CI-workflow candidate must receive fresh exact-head local and protected remote evidence before merge.
 
 ## Blocking PR baseline
 
@@ -75,7 +75,7 @@ Keep PR CI short enough for a solo loop. Use small seed sets and bounded fuzzing
 - repeated independent-run/manifest analysis only after a real model or Observatory experiment is authorized;
 - repeated performance profiles to identify variance.
 
-A nightly failure blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR.
+A failed target-Mac DEEP run or manually requested portable Linux extended run blocks milestone acceptance even if it does not retroactively block an unrelated documentation PR. GitHub workflow dispatch exposes `pr` and `extended` tiers; the canonical browser-cohort/performance DEEP remains a local target-Mac command. Remote extended evidence is intentional rather than scheduled so the private solo repository does not consume hosted minutes without a milestone decision.
 
 ## Founder Alpha verification lattice
 
@@ -164,6 +164,14 @@ The operator override authorized best-effort repository hardening. The coordinat
 | Action maintenance | CI emitted Node-20 runtime and `setup-java` v4 deprecation notices | Non-blocking dependency-maintenance debt; Dependabot #3 is left for explicit diff/test review |
 
 The obsolete implementation PR and its branches were cleaned only after green pushed-candidate CI and remote archive-tag verification. The two Dependabot PRs remain open/unmerged; no paid or plan-gated security feature was enabled.
+
+### Current repository probe and CI hardening — 2026-08-22
+
+A live REST, GraphQL, and `gh repo view` probe briefly found the repository public at 19:02 Pacific despite the private requirement. The coordinator immediately restored private visibility after verifying there was no Pages site and no fork, then re-probed the resulting state. This is a corrected privacy incident, not evidence that the repository remained private continuously.
+
+The current repository is private with default `main`; no remote feature branch, open PR, deployment, environment, release, fork, or Pages site exists. Classic `main` protection requires strict `Verify`, `Formal model`, and `Secret scan`, enforces the rules for administrators, blocks force-push/deletion, and requires no outside approval. Actions are enabled with a read-only default token and repository-level SHA pinning required. Vulnerability alerts, Dependabot security updates, and automated security fixes are enabled; native private-repository secret scanning/push protection and code scanning remain disabled or unavailable, so checksum-pinned full-history Gitleaks remains the active secret control. Rulesets remain empty because classic protection supplies the required controls [S-FA-PLATFORM-025].
+
+The workflow now classifies changes under the web app, every runtime package, end-to-end tests, the CI workflow itself, root dependency manifests, and Vite/Playwright configuration as renderer-relevant. Those changes receive the three-viewport evidence step. Workflow dispatch offers a manual `extended` Linux tier with a 45-minute fail-safe and 30-day accepted evidence / 14-day failure evidence; it reruns the protected PR baseline plus the portable mutation gate and expanded deterministic properties. Target-Mac persistence, diagnostics-browser, browser-cohort, and canonical performance measurements remain exclusively in local DEEP. The remote lane does not claim them and is not scheduled. Checksum-pinned actionlint runs inside protected `Verify`, so no extra required-status context or enterprise control is needed.
 
 ## Artifact retention
 
