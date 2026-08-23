@@ -1,6 +1,7 @@
 export * from "./brain-port.js";
 export * from "./context.js";
 export * from "./decision-record.js";
+export * from "./decision-gateway.js";
 export * from "./experiment.js";
 export * from "./planner-benchmark.js";
 export * from "./standard-brain.js";

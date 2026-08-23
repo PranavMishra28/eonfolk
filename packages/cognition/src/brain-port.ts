@@ -3,7 +3,7 @@ import type { LocalProcessBrainContract } from "./experiment.js";
 
 /** Future proposal-source shape only; Founder Alpha ships no executable adapter. */
 export interface BrainPort {
-	propose(context: DecisionContext): Promise<unknown>;
+	propose(context: DecisionContext, signal?: AbortSignal): Promise<unknown>;
 }
 
 /** Contract-only seam. No subprocess, model, download, or network is provided. */

@@ -2,7 +2,9 @@ import {
 	buildDecisionContext,
 	createCognitiveDecisionRecord,
 	riverholdCounselCatalog,
+	runDecisionGateway,
 	standardBrain,
+	validateIntentProposal,
 } from "@eonfolk/cognition";
 
 import {
@@ -1225,9 +1227,18 @@ export class AuthoritativeRiverholdRuntime {
 		);
 		const decisionId = `decision_${state.revision}_counsel`;
 		const proposalId = `proposal_${state.revision}_counsel`;
-		const { proposal } = await standardBrain(context, {
-			proposalId,
-			prngState,
+		const { proposal } = await runDecisionGateway({
+			context,
+			primary: null,
+			deterministicFallback: async () =>
+				(
+					await standardBrain(context, {
+						proposalId,
+						prngState,
+					})
+				).proposal,
+			validate: validateIntentProposal,
+			primaryTimeoutMilliseconds: 1_000,
 		});
 		const action =
 			proposal.action.kind === "VerifyReserve"
