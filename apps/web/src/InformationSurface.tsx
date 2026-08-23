@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { EonfolkMark } from "./components/EonfolkMark";
 import informationSurfaceStylesheet from "./information-surface.css?url";
+import type { ResearchEvidenceStatus } from "./research-evidence";
 
 type InformationRoute = "research" | "developer";
 
@@ -94,6 +95,30 @@ export function InformationSurface({
 }
 
 function ResearchEvidence() {
+	const [currentEvidence, setCurrentEvidence] = useState<
+		ResearchEvidenceStatus | "loading"
+	>("loading");
+
+	useEffect(() => {
+		let mounted = true;
+		void import("./research-evidence").then(
+			async ({ readCurrentReleaseGenesisEvidence }) => {
+				const evidence = await readCurrentReleaseGenesisEvidence();
+				if (mounted) setCurrentEvidence(evidence);
+			},
+			() => {
+				if (mounted)
+					setCurrentEvidence({
+						status: "unavailable",
+						reason: "unverified-authority",
+					});
+			},
+		);
+		return () => {
+			mounted = false;
+		};
+	}, []);
+
 	return (
 		<>
 			<header className="v1-record-intro">
@@ -109,6 +134,8 @@ function ResearchEvidence() {
 					separate from the living world.
 				</p>
 			</header>
+
+			<CurrentAcceptedEvidence evidence={currentEvidence} />
 
 			<section className="v1-record-guide" aria-labelledby="record-guide-title">
 				<header>
@@ -203,5 +230,160 @@ function ResearchEvidence() {
 				</ul>
 			</aside>
 		</>
+	);
+}
+
+function CurrentAcceptedEvidence({
+	evidence,
+}: {
+	readonly evidence: ResearchEvidenceStatus | "loading";
+}) {
+	if (evidence === "loading")
+		return (
+			<section
+				aria-labelledby="current-evidence-title"
+				aria-live="polite"
+				className="v1-current-evidence v1-current-evidence--quiet"
+				data-evidence-status="loading"
+			>
+				<p className="v1-kicker">CURRENT ACCEPTED RECORD</p>
+				<h2 id="current-evidence-title">Checking this browser’s world…</h2>
+				<p>Only a verified, accepted local event will appear here.</p>
+			</section>
+		);
+
+	if (evidence.status === "empty")
+		return (
+			<section
+				aria-labelledby="current-evidence-title"
+				aria-live="polite"
+				className="v1-current-evidence v1-current-evidence--quiet"
+				data-evidence-status="empty"
+			>
+				<p className="v1-kicker">CURRENT ACCEPTED RECORD</p>
+				<h2 id="current-evidence-title">Nothing to inspect yet</h2>
+				<p>
+					{evidence.reason === "no-authority"
+						? "No local Release Genesis authority exists in this browser. Enter the world to begin its record."
+						: "This local world has no accepted counsel consequence yet. Research mode will not invent one."}
+				</p>
+				<a href="/world">Enter Release Genesis</a>
+			</section>
+		);
+
+	if (evidence.status === "unavailable")
+		return (
+			<section
+				aria-labelledby="current-evidence-title"
+				aria-live="assertive"
+				className="v1-current-evidence v1-current-evidence--quiet"
+				data-evidence-status="unavailable"
+			>
+				<p className="v1-kicker">CURRENT ACCEPTED RECORD</p>
+				<h2 id="current-evidence-title">Evidence unavailable</h2>
+				<p>
+					{evidence.reason === "unsupported"
+						? "This browser cannot perform the required read-only authority inspection. No event is presented as fact."
+						: "The local authority could not be verified. No event is presented as fact."}
+				</p>
+			</section>
+		);
+
+	const { beat } = evidence;
+	return (
+		<section
+			aria-labelledby="current-evidence-title"
+			aria-live="polite"
+			className="v1-current-evidence"
+			data-evidence-status="available"
+		>
+			<header>
+				<div>
+					<p className="v1-kicker">CURRENT ACCEPTED RECORD</p>
+					<h2 id="current-evidence-title">{beat.title}</h2>
+				</div>
+				<p className="v1-record-seal">Accepted world record</p>
+			</header>
+			<p className="v1-evidence-summary">{beat.summary}</p>
+			<dl className="v1-evidence-relationship">
+				<div>
+					<dt>Causal relation</dt>
+					<dd>{beat.causalRelation.replaceAll("-", " ")}</dd>
+				</div>
+				<div>
+					<dt>Mechanism</dt>
+					<dd>{beat.mechanismId}</dd>
+				</div>
+				<div>
+					<dt>Accepted at</dt>
+					<dd>
+						Sequence {beat.provenance.sequence} · simulation time{" "}
+						{beat.provenance.simulationTime}
+					</dd>
+				</div>
+			</dl>
+			{beat.allegation === null ? (
+				<p className="v1-evidence-allegation">
+					This accepted beat contains no allegation.
+				</p>
+			) : (
+				<aside
+					aria-labelledby="accepted-allegation-title"
+					className="v1-evidence-allegation"
+				>
+					<p className="v1-kicker">ATTRIBUTED ALLEGATION</p>
+					<h3 id="accepted-allegation-title">
+						{beat.allegation.speakerName} spoke about{" "}
+						{beat.allegation.targetName}
+					</h3>
+					<p>
+						The accepted record proves that the allegation was made and records
+						its relationship consequences. It does not prove the allegation’s
+						claim.
+					</p>
+					<p>
+						Trust {beat.allegation.trustDeltaBasisPoints} basis points · strain
+						+{beat.allegation.strainDeltaBasisPoints} basis points
+					</p>
+				</aside>
+			)}
+			<details className="v1-evidence-provenance">
+				<summary>Accepted event IDs and provenance</summary>
+				<dl>
+					<div>
+						<dt>Events</dt>
+						<dd>
+							{beat.acceptedEventIds.map((eventId) => (
+								<code key={eventId}>{eventId}</code>
+							))}
+						</dd>
+					</div>
+					<div>
+						<dt>Event type</dt>
+						<dd>{beat.provenance.eventType}</dd>
+					</div>
+					<div>
+						<dt>Versions</dt>
+						<dd>
+							{beat.provenance.engineVersion} ·{" "}
+							{beat.provenance.stateSchemaVersion}
+						</dd>
+					</div>
+					<div>
+						<dt>Brain provenance</dt>
+						<dd>
+							{beat.provenance.brainKind ?? "not recorded"} · decision{" "}
+							{beat.provenance.cognitionDecisionId ?? "not recorded"}
+						</dd>
+					</div>
+					{beat.allegation !== null ? (
+						<div>
+							<dt>Statement record</dt>
+							<dd>{beat.allegation.statementRecordId}</dd>
+						</div>
+					) : null}
+				</dl>
+			</details>
+		</section>
 	);
 }
