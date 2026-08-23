@@ -1,27 +1,27 @@
 import {
-	AUTHORITY_APPEND_SCHEMA_VERSION,
-	AUTHORITY_GENESIS_SCHEMA_VERSION,
-	EMPTY_EVENT_HASH,
-	type PersistenceError,
-	createAuthorityEvent,
-	createAuthorityHead,
-	createAuthoritySnapshot,
-	replayAuthoritativeEvents,
-	type AppendAuthorityBatchRequest,
-	type AuthorityHead,
-	type VersionedCrashPoint,
-} from "../../../packages/persistence/src/index.js";
-import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
-import { generateWorld } from "../../../packages/worldgen/src/index.js";
-import {
-	BrowserVersionedPersistence,
 	type BrowserPersistenceBoundaryPoint,
+	BrowserVersionedPersistence,
 	GENERATED_AUTHORITY_STORES,
 } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	advanceGeneratedCivilization,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
+import {
+	type AppendAuthorityBatchRequest,
+	AUTHORITY_APPEND_SCHEMA_VERSION,
+	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	type AuthorityHead,
+	createAuthorityEvent,
+	createAuthorityHead,
+	createAuthoritySnapshot,
+	EMPTY_EVENT_HASH,
+	type PersistenceError,
+	replayAuthoritativeEvents,
+	type VersionedCrashPoint,
+} from "../../../packages/persistence/src/index.js";
+import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
+import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
 declare global {
 	interface Window {
@@ -51,10 +51,23 @@ class OneShotCrash {
 
 class OneShotBoundary {
 	point: BrowserPersistenceBoundaryPoint | null = null;
+	errorName: string | null = null;
 
-	hit(point: BrowserPersistenceBoundaryPoint): void {
+	hit(
+		point: BrowserPersistenceBoundaryPoint,
+		transaction?: IDBTransaction,
+	): void {
 		if (point === this.point) {
 			this.point = null;
+			if (point === "transaction-abort") {
+				transaction?.abort();
+				return;
+			}
+			if (this.errorName !== null) {
+				const name = this.errorName;
+				this.errorName = null;
+				throw new DOMException(`injected ${name}`, name);
+			}
 			throw new Error(`injected IndexedDB ${point} boundary`);
 		}
 	}
@@ -214,11 +227,56 @@ async function inspectStores(): Promise<readonly string[]> {
 	return stores;
 }
 
+async function inspectStoreCounts(): Promise<Readonly<Record<string, number>>> {
+	const request = indexedDB.open(DATABASE);
+	const database = await new Promise<IDBDatabase>((resolve, reject) => {
+		request.addEventListener("success", () => resolve(request.result), {
+			once: true,
+		});
+		request.addEventListener("error", () => reject(request.error), {
+			once: true,
+		});
+	});
+	const stores = [...database.objectStoreNames].sort();
+	const transaction = database.transaction(stores, "readonly");
+	const done = new Promise<void>((resolve, reject) => {
+		transaction.addEventListener("complete", () => resolve(), { once: true });
+		transaction.addEventListener("abort", () => reject(transaction.error), {
+			once: true,
+		});
+		transaction.addEventListener("error", () => reject(transaction.error), {
+			once: true,
+		});
+	});
+	const entries = await Promise.all(
+		stores.map(
+			(store) =>
+				new Promise<readonly [string, number]>((resolve, reject) => {
+					const count = transaction.objectStore(store).count();
+					count.addEventListener(
+						"success",
+						() => resolve([store, count.result]),
+						{
+							once: true,
+						},
+					);
+					count.addEventListener("error", () => reject(count.error), {
+						once: true,
+					});
+				}),
+		),
+	);
+	await done;
+	database.close();
+	return Object.freeze(Object.fromEntries(entries));
+}
+
 async function run(): Promise<void> {
 	await deleteDatabase();
 	const crash = new OneShotCrash();
 	const boundary = new OneShotBoundary();
 	boundary.point = "open";
+	boundary.errorName = "SecurityError";
 	let openBoundaryFailed = false;
 	try {
 		await BrowserVersionedPersistence.open({
@@ -229,6 +287,7 @@ async function run(): Promise<void> {
 		openBoundaryFailed = true;
 	}
 	boundary.point = "upgrade";
+	boundary.errorName = "AbortError";
 	let upgradeBoundaryFailed = false;
 	try {
 		await BrowserVersionedPersistence.open({
@@ -246,6 +305,7 @@ async function run(): Promise<void> {
 	});
 	const created = await genesis();
 	boundary.point = "read";
+	boundary.errorName = "NotReadableError";
 	let readBoundaryFailed = false;
 	try {
 		await port.initialize(created);
@@ -253,8 +313,10 @@ async function run(): Promise<void> {
 		readBoundaryFailed = true;
 	}
 	await port.initialize(created);
+	const countsAfterGenesis = await inspectStoreCounts();
 	const firstRequest = await append(created.head, 1);
 	boundary.point = "write";
+	boundary.errorName = "UnknownError";
 	let writeBoundaryFailed = false;
 	try {
 		await port.appendEventBatch(firstRequest);
@@ -262,6 +324,26 @@ async function run(): Promise<void> {
 		writeBoundaryFailed = true;
 	}
 	const headAfterWriteBoundary = await port.loadHead(SCOPE);
+	const countsAfterWriteBoundary = await inspectStoreCounts();
+	boundary.point = "write";
+	boundary.errorName = "QuotaExceededError";
+	let quotaFailed = false;
+	try {
+		await port.appendEventBatch(firstRequest);
+	} catch {
+		quotaFailed = true;
+	}
+	const headAfterQuota = await port.loadHead(SCOPE);
+	const countsAfterQuota = await inspectStoreCounts();
+	boundary.point = "transaction-abort";
+	let transactionAbortFailed = false;
+	try {
+		await port.appendEventBatch(firstRequest);
+	} catch {
+		transactionAbortFailed = true;
+	}
+	const headAfterTransactionAbort = await port.loadHead(SCOPE);
+	const countsAfterTransactionAbort = await inspectStoreCounts();
 	await port.appendEventBatch(firstRequest);
 	const retry = await port.appendEventBatch(firstRequest);
 	const preFence = await port.loadHead(SCOPE);
@@ -369,8 +451,26 @@ async function run(): Promise<void> {
 				read: readBoundaryFailed,
 				upgrade: upgradeBoundaryFailed,
 				write: writeBoundaryFailed,
+				quota: quotaFailed,
+				transactionAbort: transactionAbortFailed,
 			},
-			writeBoundaryRevisionUnchanged: headAfterWriteBoundary.revision === 0,
+			writeBoundaryHeadUnchanged:
+				headAfterWriteBoundary.revision === 0 &&
+				headAfterWriteBoundary.stateHash === created.head.stateHash,
+			writeBoundaryStoreCountsUnchanged:
+				JSON.stringify(countsAfterWriteBoundary) ===
+				JSON.stringify(countsAfterGenesis),
+			quotaHeadUnchanged:
+				headAfterQuota.revision === 0 &&
+				headAfterQuota.stateHash === created.head.stateHash,
+			quotaStoreCountsUnchanged:
+				JSON.stringify(countsAfterQuota) === JSON.stringify(countsAfterGenesis),
+			transactionAbortHeadUnchanged:
+				headAfterTransactionAbort.revision === 0 &&
+				headAfterTransactionAbort.stateHash === created.head.stateHash,
+			transactionAbortStoreCountsUnchanged:
+				JSON.stringify(countsAfterTransactionAbort) ===
+				JSON.stringify(countsAfterGenesis),
 			civilizationDay: civilizationReplay.state.scheduler.completedDay,
 			civilizationEvents: civilization.head.lastSequence,
 			civilizationReplayHashMatches:

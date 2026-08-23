@@ -65,6 +65,23 @@ describe("canonical generated-world browser experience", () => {
 		).toBe(true);
 	});
 
+	it("degrades a production IndexedDB SecurityError without exposing its detail", async () => {
+		const factory = {
+			open: () => {
+				throw new DOMException("secret browser denial", "SecurityError");
+			},
+		} as unknown as IDBFactory;
+		const experience = await buildGeneratedWorldExperience({
+			indexedDbFactory: factory,
+		});
+		expect(experience.persistence).toEqual({
+			kind: "unavailable",
+			restored: false,
+			catchUpReceipts: 0,
+		});
+		expect(JSON.stringify(experience)).not.toContain("secret browser denial");
+	});
+
 	it("exposes only scheduler-owned actions and grounded settlement sources", async () => {
 		const experience = await buildGeneratedWorldExperience();
 

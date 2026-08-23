@@ -93,12 +93,28 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 	]),
 	"portable-extended": Object.freeze(["apps/web/dist"]),
 });
-const PRODUCTION_CRASH_MARKERS = Object.freeze([
+export const PRODUCTION_FAULT_SCAFFOLDING_MARKERS = Object.freeze([
 	"injected browser crash after durable transition",
 	"eonfolk:e2e-crash-after-transition",
 	"eonfolk:e2e-generated-world-fault-v1",
 	"GENERATED_MODEL_PROVIDER_UNAVAILABLE",
 	"GENERATED_CHECKPOINT_REJECTED",
+	"GeneratedWorldFaultBoundaryError",
+	"Generated fault module is unavailable",
+	"data-fault-kind",
+	"data-fault-disposition",
+	"generated-world-fault-status",
+	"Retry without the failed local input",
+	"generated-world-faults",
+	"GENERATED_PERSISTENCE_UNAVAILABLE",
+	"GENERATED_NAVIGATION_REJECTED",
+	"GENERATED_RENDERER_UNAVAILABLE",
+	"GENERATED_ASSET_REJECTED",
+	"GENERATED_AUTHORITY_INVARIANT_FAILED",
+	"GENERATED_AUTHORITY_PENDING",
+	"model-provider",
+	"renderer-webgl",
+	"authoritative-invariant",
 ]);
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -211,7 +227,11 @@ function inspectProductionDist() {
 		throw new Error("production dist is missing or empty");
 	for (const file of files) {
 		const contents = readFileSync(resolve(file.path)).toString("utf8");
-		if (PRODUCTION_CRASH_MARKERS.some((marker) => contents.includes(marker)))
+		if (
+			PRODUCTION_FAULT_SCAFFOLDING_MARKERS.some((marker) =>
+				contents.includes(marker),
+			)
+		)
 			throw new Error(`fault-injection marker remained in ${file.path}`);
 	}
 	return Object.freeze({

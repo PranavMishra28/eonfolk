@@ -24,6 +24,7 @@ export function GeneratedEmbodimentControls({
 	reducedMotion,
 	onTogglePresentation,
 	onStepPresentation,
+	onNavigationRejected,
 }: {
 	readonly model: GeneratedEmbodimentProjection;
 	readonly navigation: GeneratedNavigationState;
@@ -33,14 +34,19 @@ export function GeneratedEmbodimentControls({
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
+	readonly onNavigationRejected?: (
+		reason: "invalid-envelope" | "foreign-reference",
+	) => void;
 }) {
 	useEffect(() => {
 		const onCanvasNavigation = (event: Event) => {
 			const action = parseGeneratedNavigationAction(
 				(event as CustomEvent<unknown>).detail,
 			);
-			if (action !== null && generatedNavigationReferencesExist(action, model))
-				dispatch(action);
+			if (action === null) onNavigationRejected?.("invalid-envelope");
+			else if (!generatedNavigationReferencesExist(action, model))
+				onNavigationRejected?.("foreign-reference");
+			else dispatch(action);
 		};
 		window.addEventListener(GENERATED_NAVIGATION_EVENT, onCanvasNavigation);
 		return () =>
@@ -48,7 +54,7 @@ export function GeneratedEmbodimentControls({
 				GENERATED_NAVIGATION_EVENT,
 				onCanvasNavigation,
 			);
-	}, [dispatch, model]);
+	}, [dispatch, model, onNavigationRejected]);
 	const fidelity = generatedCameraFidelity(navigation.distanceMm);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;

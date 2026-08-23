@@ -150,8 +150,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function finite(value: number, label: string): number {
-	if (!Number.isFinite(value))
-		throw new Error(`generated navigation: ${label} must be finite`);
+	if (!Number.isFinite(value)) throw new Error(`${label} must be finite`);
 	return value;
 }
 
@@ -167,12 +166,12 @@ function assertNavigationState(state: GeneratedNavigationState): void {
 		state.pitchDegrees < -75 ||
 		state.pitchDegrees > -18
 	)
-		throw new Error("generated navigation: state is outside camera bounds");
+		throw new Error("Camera bounds exceeded");
 	if (
 		(state.focus.kind === "citizen" && state.focus.citizenId.length === 0) ||
 		(state.focus.kind === "project" && state.focus.projectId.length === 0)
 	)
-		throw new Error("generated navigation: focused identity is empty");
+		throw new Error("Focus missing");
 }
 
 /** Distance alone determines semantic scale and renderer fidelity. */
@@ -181,7 +180,7 @@ export function generatedCameraFidelity(
 ): GeneratedCameraFidelity {
 	const distance = finite(distanceMm, "fidelity distance");
 	if (distance < MIN_CAMERA_DISTANCE_MM)
-		throw new Error("generated navigation: fidelity distance is too near");
+		throw new Error("Fidelity distance too near");
 	if (distance <= 18_000)
 		return Object.freeze({ semanticScale: "citizen", fidelityClass: "LOD0" });
 	if (distance <= 34_000)
@@ -206,8 +205,7 @@ export function reduceGeneratedNavigation(
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-citizen":
-			if (action.citizenId.length === 0)
-				throw new Error("generated navigation: citizen identity is empty");
+			if (action.citizenId.length === 0) throw new Error("Citizen missing");
 			return Object.freeze({
 				...state,
 				focus: Object.freeze({
@@ -219,8 +217,7 @@ export function reduceGeneratedNavigation(
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":
-			if (action.projectId.length === 0)
-				throw new Error("generated navigation: project identity is empty");
+			if (action.projectId.length === 0) throw new Error("Project missing");
 			return Object.freeze({
 				...state,
 				focus: Object.freeze({
@@ -364,8 +361,7 @@ export function cameraIntentForGeneratedNavigation(
 		const actor = model.actors.find(
 			(candidate) => candidate.citizenId === citizenId,
 		);
-		if (actor === undefined)
-			throw new Error("generated navigation: selected citizen is not visible");
+		if (actor === undefined) throw new Error("Citizen not visible");
 		targetMm = actor.positionMm;
 		followCitizenId = state.followCitizen ? actor.citizenId : null;
 		semanticLabel = `${state.followCitizen ? "Following" : "Viewing"} ${actor.name}: ${actor.semanticLabel}`;
@@ -374,8 +370,7 @@ export function cameraIntentForGeneratedNavigation(
 		const project = model.projects.find(
 			(candidate) => candidate.projectId === projectId,
 		);
-		if (project === undefined)
-			throw new Error("generated navigation: selected project is not visible");
+		if (project === undefined) throw new Error("Project not visible");
 		const participants = model.actors.filter(
 			(actor) =>
 				actor.interactionTarget === project.projectId ||

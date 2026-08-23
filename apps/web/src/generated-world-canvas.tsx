@@ -22,9 +22,6 @@ import {
 	useRef,
 } from "react";
 
-const generatedFaultHooks =
-	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
-	__EONFOLK_E2E_CRASH_HOOKS__;
 import {
 	GENERATED_FOLK_SOURCE_HEIGHT_UNITS,
 	GeneratedFolkProxy,
@@ -219,16 +216,13 @@ function renderedActorFacing(
 
 function SceneProbe({
 	host,
-	injectContextLoss,
 	onFailure,
 }: {
 	readonly host: RefObject<HTMLDivElement | null>;
-	readonly injectContextLoss: boolean;
 	readonly onFailure: () => void;
 }) {
 	const app = useApp();
 	const ready = useRef(false);
-	const contextLossInjected = useRef(false);
 	useEffect(() => {
 		app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
 		const resize = () => {
@@ -254,21 +248,6 @@ function SceneProbe({
 		ready.current = true;
 		host.current.dataset.ready = "true";
 		host.current.dataset.deviceType = app.graphicsDevice.deviceType;
-		if (
-			generatedFaultHooks &&
-			injectContextLoss &&
-			!contextLossInjected.current
-		) {
-			contextLossInjected.current = true;
-			const canvas = app.graphicsDevice.canvas;
-			const context = canvas.getContext("webgl2");
-			const extension = context?.getExtension("WEBGL_lose_context");
-			if (extension === null || extension === undefined)
-				canvas.dispatchEvent(
-					new Event("webglcontextlost", { bubbles: false, cancelable: true }),
-				);
-			else extension.loseContext();
-		}
 	});
 	return null;
 }
@@ -731,7 +710,6 @@ function GroundedSettlement({
 	presentationTick,
 	reducedMotion,
 	host,
-	injectContextLoss,
 	onFailure,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
@@ -740,7 +718,6 @@ function GroundedSettlement({
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
-	readonly injectContextLoss: boolean;
 	readonly onFailure: () => void;
 }) {
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
@@ -765,11 +742,7 @@ function GroundedSettlement({
 			deviceTypes={[DEVICETYPE_WEBGL2]}
 			className="generated-playcanvas"
 		>
-			<SceneProbe
-				host={host}
-				injectContextLoss={injectContextLoss}
-				onFailure={onFailure}
-			/>
+			<SceneProbe host={host} onFailure={onFailure} />
 			<GeneratedCamera
 				frame={frame}
 				projection={projection}
@@ -1064,7 +1037,6 @@ export function GeneratedWorldCanvas({
 	presentationTick,
 	reducedMotion,
 	onFailure,
-	injectContextLoss = false,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -1072,7 +1044,6 @@ export function GeneratedWorldCanvas({
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly onFailure: () => void;
-	readonly injectContextLoss?: boolean;
 }) {
 	const cameraIntent = cameraIntentForGeneratedNavigation(model, navigation);
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
@@ -1181,7 +1152,6 @@ export function GeneratedWorldCanvas({
 					presentationTick={presentationTick}
 					reducedMotion={reducedMotion}
 					host={host}
-					injectContextLoss={injectContextLoss}
 					onFailure={onFailure}
 				/>
 			</RendererBoundary>

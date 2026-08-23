@@ -67,7 +67,7 @@ const FAULT_SPECS: Readonly<
 		code: "GENERATED_ASSET_REJECTED",
 		disposition: "degraded",
 		message:
-			"The generated proxy asset was rejected. Canonical world actions remain usable without it.",
+			"The proxy reference failed byte and manifest integrity checks. Canonical actions do not depend on that reference.",
 	}),
 	navigation: Object.freeze({
 		kind: "navigation",
@@ -157,6 +157,36 @@ export function clearGeneratedWorldFault(
 	}
 }
 
+export function injectGeneratedRendererContextLoss(): () => void {
+	let frame = 0;
+	let cancelled = false;
+	const attempt = () => {
+		if (cancelled) return;
+		const canvas = document.querySelector<HTMLCanvasElement>(
+			".generated-world-canvas canvas",
+		);
+		if (canvas === null) {
+			frame = requestAnimationFrame(attempt);
+			return;
+		}
+		frame = requestAnimationFrame(() => {
+			if (cancelled) return;
+			const extension = canvas
+				.getContext("webgl2")
+				?.getExtension("WEBGL_lose_context");
+			extension?.loseContext();
+			canvas.dispatchEvent(
+				new Event("webglcontextlost", { bubbles: false, cancelable: true }),
+			);
+		});
+	};
+	frame = requestAnimationFrame(attempt);
+	return () => {
+		cancelled = true;
+		cancelAnimationFrame(frame);
+	};
+}
+
 export function generatedWorldBuildOptionsForFault(
 	fault: GeneratedWorldFaultSpec | null,
 ): GeneratedWorldBuildOptions {
@@ -238,7 +268,6 @@ export function generatedWorldBuildOptionsForFault(
 			return Object.freeze({
 				persistenceBoundaryInjector:
 					generatedPersistenceBoundaryFailure("open"),
-				persistenceFailureFallback: true,
 			});
 		case "checkpoint":
 			return Object.freeze({

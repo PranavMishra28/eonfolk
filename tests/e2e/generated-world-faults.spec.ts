@@ -239,7 +239,7 @@ test.describe
 			expect(externalRequests).toEqual([]);
 		});
 
-		test("asset rejection keeps the semantic world usable", async ({
+		test("reference-integrity failure keeps the semantic world usable", async ({
 			page,
 		}) => {
 			const externalRequests = await openFaultedWorld(page, "asset");
@@ -292,6 +292,10 @@ test.describe
 				timeout: 20_000,
 			});
 			await expect(canvas).toHaveAttribute("data-focus-kind", "overview");
+			await expect(page.locator("main.v1-world")).toHaveAttribute(
+				"data-navigation-rejection",
+				"invalid-envelope",
+			);
 			await page.evaluate(() => {
 				window.dispatchEvent(
 					new CustomEvent("eonfolk:generated-navigation", {
@@ -309,6 +313,10 @@ test.describe
 					}),
 				);
 			});
+			await expect(page.locator("main.v1-world")).toHaveAttribute(
+				"data-navigation-rejection",
+				"foreign-reference",
+			);
 			await expect(canvas).toHaveAttribute("data-focus-kind", "overview");
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",

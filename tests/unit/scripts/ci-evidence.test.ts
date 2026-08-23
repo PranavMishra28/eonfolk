@@ -8,20 +8,37 @@ import { verifyJarIdentity } from "../../../scripts/check-formal.mjs";
 import { TLC_JAR_SHA256 } from "../../../scripts/formal-toolchain.mjs";
 import {
 	claimBoundaryForTier,
+	PRODUCTION_FAULT_SCAFFOLDING_MARKERS,
 	runVerificationSteps,
 	verificationStepsForTier,
 } from "../../../scripts/run-verification-tier.mjs";
 import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
-	it("rejects generated-world fault keys and codes from production output", () => {
-		const source = readFileSync(
-			resolve("scripts/run-verification-tier.mjs"),
-			"utf8",
-		);
-		expect(source).toContain("eonfolk:e2e-generated-world-fault-v1");
-		expect(source).toContain("GENERATED_MODEL_PROVIDER_UNAVAILABLE");
-		expect(source).toContain("GENERATED_CHECKPOINT_REJECTED");
+	it("rejects the closed fault-scaffolding marker set from production output", () => {
+		expect(PRODUCTION_FAULT_SCAFFOLDING_MARKERS).toEqual([
+			"injected browser crash after durable transition",
+			"eonfolk:e2e-crash-after-transition",
+			"eonfolk:e2e-generated-world-fault-v1",
+			"GENERATED_MODEL_PROVIDER_UNAVAILABLE",
+			"GENERATED_CHECKPOINT_REJECTED",
+			"GeneratedWorldFaultBoundaryError",
+			"Generated fault module is unavailable",
+			"data-fault-kind",
+			"data-fault-disposition",
+			"generated-world-fault-status",
+			"Retry without the failed local input",
+			"generated-world-faults",
+			"GENERATED_PERSISTENCE_UNAVAILABLE",
+			"GENERATED_NAVIGATION_REJECTED",
+			"GENERATED_RENDERER_UNAVAILABLE",
+			"GENERATED_ASSET_REJECTED",
+			"GENERATED_AUTHORITY_INVARIANT_FAILED",
+			"GENERATED_AUTHORITY_PENDING",
+			"model-provider",
+			"renderer-webgl",
+			"authoritative-invariant",
+		]);
 	});
 
 	it("keeps the canonical web benchmark on Release Genesis /world", () => {

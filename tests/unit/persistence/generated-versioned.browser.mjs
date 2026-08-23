@@ -36,7 +36,9 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 		assert.deepEqual(envelope?.result, {
 			boundaryFailures: {
 				open: true,
+				quota: true,
 				read: true,
+				transactionAbort: true,
 				upgrade: true,
 				write: true,
 			},
@@ -44,6 +46,8 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 			civilizationEvents: 5,
 			civilizationReplayHashMatches: true,
 			corruptionCode: "STALE_STATE",
+			quotaHeadUnchanged: true,
+			quotaStoreCountsUnchanged: true,
 			recoveredIdempotently: true,
 			restoredGenesisIdempotently: true,
 			replayedCount: 3,
@@ -51,7 +55,10 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 			retryIdempotent: true,
 			revisionAfterAbort: 2,
 			staleFenceCode: "STALE_FENCE",
-			writeBoundaryRevisionUnchanged: true,
+			transactionAbortHeadUnchanged: true,
+			transactionAbortStoreCountsUnchanged: true,
+			writeBoundaryHeadUnchanged: true,
+			writeBoundaryStoreCountsUnchanged: true,
 			stores: [
 				"authorityEvents",
 				"authorityOperations",

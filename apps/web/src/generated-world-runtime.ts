@@ -1,6 +1,6 @@
 import {
-	type CivilizationExperimentRun,
 	type CivilizationExperimentCognitionOptions,
+	type CivilizationExperimentRun,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import { PersistenceError } from "@eonfolk/persistence";
@@ -14,8 +14,8 @@ import {
 	type GeneratedEmbodimentProjection,
 	projectGeneratedWorldEmbodiment,
 } from "./generated-presentation";
-import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-versioned";
+import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
 	advanceGeneratedCivilization,
 	type GeneratedCivilizationCatchUpHorizon,
@@ -24,6 +24,7 @@ import {
 const generatedFaultHooks =
 	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
 	__EONFOLK_E2E_CRASH_HOOKS__;
+
 import {
 	V1_GENESIS_RELEASE_ID,
 	V1_GENESIS_SEED,
@@ -64,7 +65,6 @@ export interface GeneratedWorldBuildOptions {
 	readonly beforeAuthorityAdvance?: () => void | Promise<void>;
 	readonly cognition?: CivilizationExperimentCognitionOptions;
 	readonly persistenceBoundaryInjector?: BrowserPersistenceBoundaryInjector;
-	readonly persistenceFailureFallback?: boolean;
 	readonly checkpointTransform?: (
 		checkpoint: CivilizationExperimentRun,
 	) => CivilizationExperimentRun;
@@ -79,8 +79,7 @@ function projectCheckpoint(
 	const settlementIds = Object.values(run.world.settlements)
 		.map(({ value }) => value.settlementId)
 		.sort();
-	if (settlementIds.length === 0)
-		throw new Error("The civilization checkpoint contains no settlement");
+	if (settlementIds.length === 0) throw new Error("Settlement missing");
 	const projections = settlementIds
 		.map((settlementId) =>
 			projectGeneratedCivilizationSpatial({
@@ -108,7 +107,7 @@ function projectCheckpoint(
 	);
 	if (projectedPopulation !== run.metrics.residentPopulation)
 		throw new Error(
-			`The spatial projection accounts for ${projectedPopulation} of ${run.metrics.residentPopulation} residents`,
+			`Population mismatch: ${projectedPopulation}/${run.metrics.residentPopulation}`,
 		);
 	return Object.freeze(projections);
 }
@@ -192,8 +191,7 @@ export async function buildGeneratedWorldExperience(
 				authorityRunner,
 			});
 			const finalCheckpoint = advanced.checkpoints.at(-1);
-			if (finalCheckpoint === undefined)
-				throw new Error("Generated catch-up produced no checkpoint");
+			if (finalCheckpoint === undefined) throw new Error("Checkpoint missing");
 			run = finalCheckpoint;
 			previousRun = advanced.checkpoints[0] ?? finalCheckpoint;
 			persistence = Object.freeze({
@@ -207,11 +205,7 @@ export async function buildGeneratedWorldExperience(
 			if (generatedFaultHooks && options.mapAuthorityFailure !== undefined)
 				throw options.mapAuthorityFailure(error);
 			const quarantine = shouldQuarantine(error);
-			if (
-				!quarantine &&
-				(!generatedFaultHooks || !options.persistenceFailureFallback)
-			)
-				throw error;
+			if (!quarantine && !shouldDegradePersistence(error)) throw error;
 			await runWithoutPersistence(quarantine ? "quarantined" : "unavailable");
 		} finally {
 			port?.close();
@@ -237,8 +231,7 @@ export async function buildGeneratedWorldExperience(
 			const embodiment = embodimentBySettlement.get(
 				projection.local.settlement.settlementId,
 			);
-			if (embodiment === undefined)
-				throw new Error("Generated settlement lacks an embodiment projection");
+			if (embodiment === undefined) throw new Error("Embodiment missing");
 			return embodiment;
 		}),
 	);
@@ -264,6 +257,27 @@ function shouldQuarantine(error: unknown): boolean {
 		(error instanceof PersistenceError &&
 			(error.code === "STALE_STATE" || error.code === "RANGE_GAP")) ||
 		(error instanceof DOMException && error.name === "VersionError")
+	);
+}
+
+const INDEXED_DB_UNAVAILABLE_ERRORS = [
+	"AbortError",
+	"ConstraintError",
+	"InvalidStateError",
+	"NotReadableError",
+	"QuotaExceededError",
+	"SecurityError",
+	"TransactionInactiveError",
+	"UnknownError",
+] as const;
+
+function shouldDegradePersistence(error: unknown): boolean {
+	return (
+		(error instanceof DOMException &&
+			INDEXED_DB_UNAVAILABLE_ERRORS.includes(
+				error.name as (typeof INDEXED_DB_UNAVAILABLE_ERRORS)[number],
+			)) ||
+		(generatedFaultHooks && error instanceof Error)
 	);
 }
 

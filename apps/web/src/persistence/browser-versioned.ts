@@ -1,7 +1,4 @@
 import {
-	MemoryVersionedPersistence,
-	PersistenceError,
-	VERSIONED_PERSISTENCE_PORT_VERSION,
 	type AppendAuthorityBatchRequest,
 	type AppendAuthorityBatchResult,
 	type AuthorityAppendReceipt,
@@ -12,7 +9,10 @@ import {
 	type AuthoritySnapshotRecord,
 	type InitializeAuthorityRequest,
 	type InitializeAuthorityResult,
+	MemoryVersionedPersistence,
+	PersistenceError,
 	type SaveAuthoritySnapshotRequest,
+	VERSIONED_PERSISTENCE_PORT_VERSION,
 	type VersionedCrashInjector,
 	type VersionedPersistencePort,
 } from "@eonfolk/persistence";
@@ -75,10 +75,14 @@ export type BrowserPersistenceBoundaryPoint =
 	| "open"
 	| "upgrade"
 	| "read"
-	| "write";
+	| "write"
+	| "transaction-abort";
 
 export interface BrowserPersistenceBoundaryInjector {
-	hit(point: BrowserPersistenceBoundaryPoint): void;
+	hit(
+		point: BrowserPersistenceBoundaryPoint,
+		transaction?: IDBTransaction,
+	): void;
 }
 
 function fail(
@@ -202,8 +206,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		options: BrowserVersionedPersistenceOptions = {},
 	): Promise<BrowserVersionedPersistence> {
 		const factory = options.factory ?? globalThis.indexedDB;
-		if (factory === undefined)
-			fail("INVALID_INPUT", "IndexedDB is unavailable in this runtime");
+		if (factory === undefined) fail("INVALID_INPUT", "IndexedDB unavailable");
 		return new BrowserVersionedPersistence(
 			await openDatabase(
 				factory,
@@ -242,8 +245,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			) as Promise<KeyedRow<AuthorityOperation>[]>,
 		]);
 		await done;
-		if (stream === undefined)
-			fail("NOT_FOUND", "authority stream was not found");
+		if (stream === undefined) fail("NOT_FOUND", "stream missing");
 		const operations = rowsForStream(operationRows, key)
 			.map((row) => row.value)
 			.sort((left, right) => left.ordinal - right.ordinal);
@@ -251,7 +253,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			operations.length !== stream.operationCount ||
 			operations.some((operation, index) => operation.ordinal !== index)
 		)
-			fail("RANGE_GAP", "authority operation ledger is incomplete");
+			fail("RANGE_GAP", "operation gap");
 		return { stream: clone(stream), operations: clone(operations) };
 	}
 
@@ -269,8 +271,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			else await memory.saveSnapshot(operation.request);
 		}
 		const head = await memory.loadHead(bundle.stream.genesis);
-		if (!equal(head, bundle.stream.head))
-			fail("STALE_STATE", "IndexedDB head disagrees with its operation ledger");
+		if (!equal(head, bundle.stream.head)) fail("STALE_STATE", "head mismatch");
 		await this.#verifyMaterializedStores(bundle, memory);
 		return memory;
 	}
@@ -322,8 +323,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 					bundle.stream.genesis,
 					operation.request.appendId,
 				);
-				if (receipt === null)
-					fail("RANGE_GAP", "operation ledger is missing an append receipt");
+				if (receipt === null) fail("RANGE_GAP", "receipt missing");
 				return receipt;
 			}),
 		);
@@ -355,10 +355,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			!equal(actualReceipts, expectedReceipts) ||
 			!equal(actualSnapshots, expectedSnapshots)
 		)
-			fail(
-				"STALE_STATE",
-				"IndexedDB event, receipt, or snapshot store disagrees with the authority ledger",
-			);
+			fail("STALE_STATE", "materialized mismatch");
 	}
 
 	async #commitOperation(input: {
@@ -383,6 +380,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		);
 		const done = transactionDone(transaction);
 		try {
+			this.#boundaryInjector?.hit("transaction-abort", transaction);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
@@ -394,10 +392,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				current.head.headHash !== input.bundle.stream.head.headHash ||
 				current.operationCount !== input.bundle.stream.operationCount
 			)
-				fail(
-					"STALE_REVISION",
-					"authority compare-and-swap lost the durable head",
-				);
+				fail("STALE_REVISION", "head race");
 			input.write(transaction);
 			transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).put({
 				key: recordKey(input.bundle.stream.genesis, input.operation.ordinal),
@@ -447,14 +442,14 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		);
 		const done = transactionDone(transaction);
 		try {
+			this.#boundaryInjector?.hit("transaction-abort", transaction);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
 			const existing = (await requestValue(streams.get(key))) as
 				| StreamRow
 				| undefined;
-			if (existing !== undefined)
-				fail("STALE_REVISION", "authority genesis lost an initialization race");
+			if (existing !== undefined) fail("STALE_REVISION", "genesis race");
 			streams.put({
 				key,
 				genesis: clone(request),
@@ -577,10 +572,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			(row === undefined) !== (expected === null) ||
 			(row !== undefined && !equal(row.value, expected))
 		)
-			fail(
-				"STALE_STATE",
-				"append receipt store disagrees with authority ledger",
-			);
+			fail("STALE_STATE", "receipt mismatch");
 		return expected === null ? null : clone(expected);
 	}
 
@@ -606,8 +598,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 					event.sequence < request.toSequenceExclusive,
 			)
 			.sort((left, right) => left.sequence - right.sequence);
-		if (!equal(actual, expected))
-			fail("STALE_STATE", "event store disagrees with authority ledger");
+		if (!equal(actual, expected)) fail("STALE_STATE", "event mismatch");
 		return clone(actual);
 	}
 
@@ -670,7 +661,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		)) as KeyedRow<AuthoritySnapshotRecord> | undefined;
 		await done;
 		if (row === undefined || !equal(row.value, expected))
-			fail("STALE_STATE", "snapshot store disagrees with authority ledger");
+			fail("STALE_STATE", "snapshot mismatch");
 		return clone(row.value);
 	}
 

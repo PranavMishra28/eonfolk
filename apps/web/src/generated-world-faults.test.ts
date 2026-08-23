@@ -26,10 +26,22 @@ describe("generated-world fault boundary", () => {
 	it("injects persistence failures at each real browser boundary", () => {
 		const fault = parseGeneratedWorldFault("persistence");
 		const options = generatedWorldBuildOptionsForFault(fault);
-		expect(options.persistenceFailureFallback).toBe(true);
-		for (const point of ["open", "upgrade", "read", "write"] as const) {
+		expect(options.persistenceBoundaryInjector).toBeDefined();
+		for (const point of [
+			"open",
+			"upgrade",
+			"read",
+			"write",
+			"transaction-abort",
+		] as const) {
 			const injector = generatedPersistenceBoundaryFailure(point);
-			for (const candidate of ["open", "upgrade", "read", "write"] as const) {
+			for (const candidate of [
+				"open",
+				"upgrade",
+				"read",
+				"write",
+				"transaction-abort",
+			] as const) {
 				if (candidate === point)
 					expect(() => injector.hit(candidate)).toThrow(point);
 				else expect(() => injector.hit(candidate)).not.toThrow();

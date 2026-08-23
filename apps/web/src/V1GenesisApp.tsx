@@ -2,6 +2,7 @@ import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-pres
 import {
 	lazy,
 	Suspense,
+	useCallback,
 	useEffect,
 	useMemo,
 	useReducer,
@@ -33,11 +34,12 @@ let generatedWorldCanvasModule:
 	| Promise<typeof import("./generated-world-canvas")>
 	| undefined;
 
-const generatedWorldFaultModule =
+const generatedFaultHooks =
 	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
-	__EONFOLK_E2E_CRASH_HOOKS__
-		? import("./generated-world-faults")
-		: Promise.resolve(null);
+	__EONFOLK_E2E_CRASH_HOOKS__;
+const generatedWorldFaultModule = generatedFaultHooks
+	? import("./generated-world-faults")
+	: Promise.resolve(null);
 
 function loadGeneratedWorldCanvasModule() {
 	generatedWorldCanvasModule ??= import("./generated-world-canvas");
@@ -99,7 +101,7 @@ function useGeneratedExperience(
 		if (fault === undefined) return;
 		let active = true;
 		const loading =
-			fault === null
+			!generatedFaultHooks || fault === null
 				? loadGeneratedWorldExperience()
 				: generatedWorldFaultModule.then((module) => {
 						if (module === null)
@@ -136,11 +138,14 @@ function useGeneratedAsset(
 	);
 	useEffect(() => {
 		let active = true;
-		const verification = generatedWorldFaultModule.then((module) =>
-			verifyGeneratedFolkAsset(
-				module?.generatedWorldAssetFetcherForFault(fault) ?? globalThis.fetch,
-			),
-		);
+		const verification = generatedFaultHooks
+			? generatedWorldFaultModule.then((module) =>
+					verifyGeneratedFolkAsset(
+						module?.generatedWorldAssetFetcherForFault(fault) ??
+							globalThis.fetch,
+					),
+				)
+			: verifyGeneratedFolkAsset();
 		void verification.then(
 			(integrity) => {
 				if (active) setState(Object.freeze({ status: "verified", integrity }));
@@ -180,7 +185,9 @@ function WorldLoading() {
 
 function WorldError({ error }: { readonly error: Error }) {
 	const boundaryFault =
-		error.name === "GeneratedWorldFaultBoundaryError" && "fault" in error
+		generatedFaultHooks &&
+		error.name === "GeneratedWorldFaultBoundaryError" &&
+		"fault" in error
 			? (error.fault as GeneratedWorldFaultSpec)
 			: null;
 	const retry = () => {
@@ -193,8 +200,12 @@ function WorldError({ error }: { readonly error: Error }) {
 		<main
 			className="v1-genesis-shell"
 			aria-labelledby="v1-error-title"
-			data-fault-kind={boundaryFault?.kind}
-			data-fault-disposition={boundaryFault?.disposition}
+			{...(generatedFaultHooks
+				? {
+						"data-fault-kind": boundaryFault?.kind,
+						"data-fault-disposition": boundaryFault?.disposition,
+					}
+				: {})}
 		>
 			<p className="v1-kicker">WORLD UNAVAILABLE</p>
 			<h1 id="v1-error-title">No incomplete world is being shown as fact.</h1>
@@ -204,9 +215,11 @@ function WorldError({ error }: { readonly error: Error }) {
 			</p>
 			<details>
 				<summary>Technical detail</summary>
-				<code>{error.message}</code>
+				<code>
+					{generatedFaultHooks ? error.message : "LOCAL_RUNTIME_FAILURE"}
+				</code>
 			</details>
-			{boundaryFault === null ? null : (
+			{!generatedFaultHooks || boundaryFault === null ? null : (
 				<button className="v1-text-link" type="button" onClick={retry}>
 					Retry without the failed local input
 				</button>
@@ -325,6 +338,7 @@ function SemanticSettlement({
 	reducedMotion,
 	onTogglePresentation,
 	onStepPresentation,
+	onNavigationRejected,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -335,6 +349,9 @@ function SemanticSettlement({
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
+	readonly onNavigationRejected: (
+		reason: "invalid-envelope" | "foreign-reference",
+	) => void;
 }) {
 	return (
 		<section
@@ -359,6 +376,7 @@ function SemanticSettlement({
 				reducedMotion={reducedMotion}
 				onTogglePresentation={onTogglePresentation}
 				onStepPresentation={onStepPresentation}
+				onNavigationRejected={onNavigationRejected}
 			/>
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Grounded places</h3>
@@ -543,6 +561,7 @@ function GeneratedContextPanel({
 	reducedMotion,
 	onTogglePresentation,
 	onStepPresentation,
+	onNavigationRejected,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -553,6 +572,9 @@ function GeneratedContextPanel({
 	readonly reducedMotion: boolean;
 	readonly onTogglePresentation: () => void;
 	readonly onStepPresentation: () => void;
+	readonly onNavigationRejected: (
+		reason: "invalid-envelope" | "foreign-reference",
+	) => void;
 }) {
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
@@ -677,6 +699,7 @@ function GeneratedContextPanel({
 					reducedMotion={reducedMotion}
 					onTogglePresentation={onTogglePresentation}
 					onStepPresentation={onStepPresentation}
+					onNavigationRejected={onNavigationRejected}
 				/>
 				{projection.projects.map((project) => (
 					<section className="v1-project-card" key={project.projectId}>
@@ -721,6 +744,23 @@ function GeneratedWorld({
 	const [navigation, dispatch] = useReducer(
 		reduceGeneratedNavigation,
 		INITIAL_GENERATED_NAVIGATION,
+	);
+	const [navigationRejection, setNavigationRejection] = useState<string | null>(
+		null,
+	);
+	const reportNavigationRejection = useCallback(
+		(reason: "invalid-envelope" | "foreign-reference") => {
+			setNavigationRejection(reason);
+			browserDiagnostics.record({
+				category: "presentation",
+				name: "generated-navigation-rejected",
+				severity: "warning",
+				outcome: "rejected",
+				scope: { component: "generated-world-navigation" },
+				fields: { reason },
+			});
+		},
+		[],
 	);
 	const rendererIncidentReported = useRef(false);
 	const assetIncidentReported = useRef(false);
@@ -796,7 +836,7 @@ function GeneratedWorld({
 	}, [experience, projection]);
 
 	useEffect(() => {
-		if (fault?.kind !== "navigation") return;
+		if (!generatedFaultHooks || fault?.kind !== "navigation") return;
 		window.dispatchEvent(
 			new CustomEvent("eonfolk:generated-navigation", {
 				detail: Object.freeze({
@@ -827,11 +867,7 @@ function GeneratedWorld({
 		setView(rendererFailed ? "semantic" : "embodied");
 	};
 	const retryRenderer = () => {
-		if (
-			typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
-			__EONFOLK_E2E_CRASH_HOOKS__ &&
-			fault?.kind === "renderer-webgl"
-		) {
+		if (generatedFaultHooks && fault?.kind === "renderer-webgl") {
 			void generatedWorldFaultModule.then((module) => {
 				module?.clearGeneratedWorldFault();
 				window.location.reload();
@@ -882,8 +918,13 @@ function GeneratedWorld({
 			data-asset-integrity={asset.status}
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
-			data-fault-kind={fault?.kind}
-			data-fault-disposition={fault?.disposition}
+			data-navigation-rejection={navigationRejection ?? undefined}
+			{...(generatedFaultHooks
+				? {
+						"data-fault-kind": fault?.kind,
+						"data-fault-disposition": fault?.disposition,
+					}
+				: {})}
 		>
 			<header className="v1-world-header">
 				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
@@ -931,7 +972,10 @@ function GeneratedWorld({
 				</nav>
 			</header>
 
-			{fault === null || fault.kind === "latency" ? null : (
+			{!generatedFaultHooks ||
+			fault === null ||
+			fault.kind === "latency" ||
+			(fault.kind === "navigation" && navigationRejection === null) ? null : (
 				<p
 					className="renderer-note"
 					role="status"
@@ -945,6 +989,11 @@ function GeneratedWorld({
 					<button type="button" onClick={rebuildPersistence}>
 						Rebuild local checkpoint
 					</button>
+				</p>
+			) : null}
+			{experience.persistence.kind === "unavailable" ? (
+				<p className="renderer-note" role="status">
+					Local persistence unavailable; this deterministic view is read-only.
 				</p>
 			) : null}
 
@@ -1006,6 +1055,7 @@ function GeneratedWorld({
 						reducedMotion={reduceMotion}
 						onTogglePresentation={togglePresentation}
 						onStepPresentation={stepPresentation}
+						onNavigationRejected={reportNavigationRejection}
 					/>
 				</>
 			) : null}
@@ -1034,7 +1084,6 @@ function GeneratedWorld({
 								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
 								onFailure={reportRendererFailure}
-								injectContextLoss={fault?.kind === "renderer-webgl"}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
@@ -1050,6 +1099,7 @@ function GeneratedWorld({
 						reducedMotion={reduceMotion}
 						onTogglePresentation={togglePresentation}
 						onStepPresentation={stepPresentation}
+						onNavigationRejected={reportNavigationRejection}
 					/>
 				</section>
 			) : null}
@@ -1084,6 +1134,19 @@ function GeneratedWorld({
 
 export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
 	const fault = useGeneratedFault();
+	useEffect(() => {
+		if (!generatedFaultHooks || fault?.kind !== "renderer-webgl") return;
+		let active = true;
+		let cleanup: (() => void) | undefined;
+		void generatedWorldFaultModule.then((module) => {
+			if (active && module !== null)
+				cleanup = module.injectGeneratedRendererContextLoss();
+		});
+		return () => {
+			active = false;
+			cleanup?.();
+		};
+	}, [fault]);
 	useEffect(() => {
 		if (route === "world") void loadGeneratedWorldCanvasModule();
 	}, [route]);

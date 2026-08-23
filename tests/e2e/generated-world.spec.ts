@@ -591,6 +591,64 @@ test("production ignores generated fault storage and exposes no harness markers 
 	expect(externalRequests).toEqual([]);
 });
 
+test("production degrades an IndexedDB SecurityError without leaking detail @generated-world", async ({
+	page,
+}) => {
+	await page.addInitScript(() => {
+		Object.defineProperty(indexedDB, "open", {
+			configurable: true,
+			value: () => {
+				throw new DOMException(
+					"injected production open denial",
+					"SecurityError",
+				);
+			},
+		});
+	});
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	const world = page.locator("main.v1-world");
+	await expect(world).toHaveAttribute("data-persistence", "unavailable", {
+		timeout: 30_000,
+	});
+	await expect(page.getByText(/Local persistence unavailable/u)).toBeVisible();
+	await expect(page.getByText("injected production open denial")).toHaveCount(
+		0,
+	);
+});
+
+for (const boundary of [
+	{ api: "get", name: "NotReadableError" },
+	{ api: "put", name: "UnknownError" },
+	{ api: "put", name: "QuotaExceededError" },
+] as const) {
+	test(`production degrades an IndexedDB ${boundary.name} at a real ${boundary.api} request @generated-world`, async ({
+		page,
+	}) => {
+		await page.addInitScript(({ api, name }) => {
+			const original = IDBObjectStore.prototype[api];
+			Object.defineProperty(IDBObjectStore.prototype, api, {
+				configurable: true,
+				value: function (this: IDBObjectStore, ...args: unknown[]) {
+					if (this.name.startsWith("authority"))
+						throw new DOMException(`private ${name} detail`, name);
+					return Reflect.apply(original, this, args);
+				},
+			});
+		}, boundary);
+		await page.goto("/world", { waitUntil: "domcontentloaded" });
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-persistence", "unavailable", {
+			timeout: 30_000,
+		});
+		await expect(
+			page.getByText(/Local persistence unavailable/u),
+		).toBeVisible();
+		await expect(page.locator("body")).not.toContainText(
+			`private ${boundary.name} detail`,
+		);
+	});
+}
+
 for (const viewport of [
 	{ width: 1728, height: 1117 },
 	{ width: 1366, height: 768 },
