@@ -1070,7 +1070,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 										})
 									).proposal,
 							});
-							const latencyMs = performance.now() - started;
+							const latencyMs = Math.round(performance.now() - started);
 							const after = safetySample();
 							assertSafeMachine(after);
 							results.push({

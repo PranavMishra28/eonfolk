@@ -6,7 +6,7 @@ const MAX_FRAME_BYTES = 16_384;
 const MAX_OLLAMA_BODY_BYTES = 65_536;
 const MAX_OLLAMA_RESPONSE_BYTES = 65_536;
 const MAX_CHOICE_BYTES = 16_384;
-const OLLAMA_PATH = "/api/generate";
+const OLLAMA_PATH = "/api/chat";
 const CHOICE_KEYS = [
 	"actionId",
 	"commitmentIdsRead",
@@ -189,8 +189,7 @@ function prepareOllamaRequest(envelope) {
 			},
 		},
 	};
-	const prompt = [
-		choiceRequest.prompt,
+	const contextPrompt = [
 		"The authoritative closed response schema is:",
 		canonicalJson(schema),
 		"The complete visible decision context is:",
@@ -198,6 +197,10 @@ function prepareOllamaRequest(envelope) {
 	].join("\n");
 	const requestBody = canonicalJson({
 		format: schema,
+		messages: [
+			{ content: choiceRequest.prompt, role: "system" },
+			{ content: contextPrompt, role: "user" },
+		],
 		model: envelope.model.artifactId,
 		options: {
 			num_ctx: envelope.generation?.contextTokens,
@@ -205,9 +208,8 @@ function prepareOllamaRequest(envelope) {
 			seed: envelope.generation?.seed,
 			temperature: (envelope.generation?.temperatureBasisPoints ?? 0) / 10_000,
 		},
-		prompt,
 		stream: false,
-		think: false,
+		think: "low",
 	});
 	if (Buffer.byteLength(requestBody, "utf8") > MAX_OLLAMA_BODY_BYTES)
 		fail("Ollama request body is oversized");
@@ -281,16 +283,18 @@ function validateChoice(ollamaResponse, references) {
 		typeof ollamaResponse !== "object" ||
 		ollamaResponse === null ||
 		Array.isArray(ollamaResponse) ||
-		typeof ollamaResponse.response !== "string" ||
+		typeof ollamaResponse.message !== "object" ||
+		ollamaResponse.message === null ||
+		Array.isArray(ollamaResponse.message) ||
+		ollamaResponse.message.role !== "assistant" ||
+		typeof ollamaResponse.message.content !== "string" ||
 		ollamaResponse.done !== true ||
-		(typeof ollamaResponse.thinking === "string" &&
-			ollamaResponse.thinking.length > 0) ||
-		Buffer.byteLength(ollamaResponse.response, "utf8") > MAX_CHOICE_BYTES
+		Buffer.byteLength(ollamaResponse.message.content, "utf8") > MAX_CHOICE_BYTES
 	)
 		fail("Ollama response envelope is invalid");
 	let choice;
 	try {
-		choice = JSON.parse(ollamaResponse.response);
+		choice = JSON.parse(ollamaResponse.message.content);
 	} catch {
 		fail("Ollama choice is not JSON");
 	}

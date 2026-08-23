@@ -312,7 +312,11 @@ describe("bounded Ollama loopback adapter", () => {
 							load_duration: 12_000_000,
 							prompt_eval_count: 301,
 							prompt_eval_duration: 602_000_000,
-							response: canonicalChoice(),
+							message: {
+								role: "assistant",
+								content: canonicalChoice(),
+								thinking: "discarded private working text",
+							},
 							total_duration: 1_500_000_000,
 						}),
 					);
@@ -328,11 +332,11 @@ describe("bounded Ollama loopback adapter", () => {
 			expect(await validateIntentProposal(test.context, proposal)).toBe(
 				"accepted",
 			);
-			expect(capturedPath).toBe("/api/generate");
+			expect(capturedPath).toBe("/api/chat");
 			expect(capturedBody).toMatchObject({
 				model: "fixture-model",
 				stream: false,
-				think: false,
+				think: "low",
 			});
 			const format = capturedBody?.format as {
 				properties?: { actionId?: { enum?: string[] } };
@@ -342,7 +346,13 @@ describe("bounded Ollama loopback adapter", () => {
 				"action-follow-plan",
 				"action-verify-reserve",
 			]);
-			expect(capturedBody).not.toHaveProperty("messages");
+			expect(capturedBody?.messages).toEqual([
+				expect.objectContaining({ role: "system" }),
+				expect.objectContaining({ role: "user" }),
+			]);
+			expect(JSON.stringify(proposal)).not.toContain(
+				"discarded private working text",
+			);
 			expect(telemetry).toEqual([
 				expect.objectContaining({
 					doneReason: "stop",
@@ -360,7 +370,12 @@ describe("bounded Ollama loopback adapter", () => {
 			"malformed choice",
 			(_request: IncomingMessage, response: ServerResponse) => {
 				response.setHeader("content-type", "application/json");
-				response.end(JSON.stringify({ done: true, response: "not-json" }));
+				response.end(
+					JSON.stringify({
+						done: true,
+						message: { role: "assistant", content: "not-json" },
+					}),
+				);
 			},
 			"process-failed",
 		],
@@ -378,20 +393,6 @@ describe("bounded Ollama loopback adapter", () => {
 				response.setHeader("content-type", "application/json");
 				response.statusCode = 503;
 				response.end(JSON.stringify({ error: "unavailable" }));
-			},
-			"process-failed",
-		],
-		[
-			"unexpected reasoning output",
-			(_request: IncomingMessage, response: ServerResponse) => {
-				response.setHeader("content-type", "application/json");
-				response.end(
-					JSON.stringify({
-						done: true,
-						response: canonicalChoice(),
-						thinking: "private reasoning must not cross the adapter",
-					}),
-				);
 			},
 			"process-failed",
 		],
