@@ -55,6 +55,7 @@ async function openCanonicalWorld(page: Page, href = "/world") {
 }
 
 async function selectSponsorCandidate(page: Page): Promise<string> {
+	await page.locator(".v1-context-panel").hover();
 	const residents = page.locator("ul.v1-presence-roster button");
 	for (let index = 0; index < (await residents.count()); index += 1) {
 		const resident = residents.nth(index);

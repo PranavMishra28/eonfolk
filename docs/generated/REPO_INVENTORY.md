@@ -6,13 +6,13 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 496 files excluding this generated file; SHA-256 `8f260dcc367dd687dde76ff271f39df57d659e8eb7272f61d374b9eadcd9ad76`.
+**File-set identity:** 501 files excluding this generated file; SHA-256 `54a2455968918adca04302695859784b7492b46078ee3210a127b645e4782074`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 70 |
+| Application code | 71 |
 | Documentation | 62 |
 | Frozen execution evidence | 33 |
 | GitHub automation | 4 |
@@ -21,14 +21,14 @@
 | Repository tooling | 33 |
 | Research and reviews | 48 |
 | Root controls and configuration | 23 |
-| Tests and fixtures | 122 |
+| Tests and fixtures | 126 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
 | `apps/feedback-worker` | `@eonfolk/feedback-worker` | 8 |
-| `apps/web` | `@eonfolk/web` | 47 |
+| `apps/web` | `@eonfolk/web` | 48 |
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
@@ -43,13 +43,13 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 5 |
+| `tests/e2e` | 7 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
 | `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 68 |
+| `tests/unit` | 70 |
 
 ## Root controls and configuration
 
