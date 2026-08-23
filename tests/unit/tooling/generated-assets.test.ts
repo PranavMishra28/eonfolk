@@ -244,6 +244,47 @@ describe("generated asset pipeline", () => {
 		expect(() =>
 			validateGeneratedSourceGltf(encoded(nonFinitePosition)),
 		).toThrow(/outside its admitted finite range/u);
+
+		const interiorVertex = structuredClone(source);
+		const interiorGeometry = Buffer.from(
+			interiorVertex.buffers[0].uri.slice(prefix.length),
+			"base64",
+		);
+		interiorGeometry.writeFloatLE(0, 0);
+		interiorVertex.buffers[0].uri = `${prefix}${interiorGeometry.toString("base64")}`;
+		expect(() => validateGeneratedSourceGltf(encoded(interiorVertex))).toThrow(
+			/positions do not match the admitted cube corners/u,
+		);
+
+		for (const mutate of [
+			(geometry: Buffer) => {
+				for (let index = 0; index < 3; index += 1)
+					geometry.writeUInt16LE(
+						geometry.readUInt16LE(96 + index * 2),
+						102 + index * 2,
+					);
+			},
+			(geometry: Buffer) => {
+				const second = geometry.readUInt16LE(98);
+				geometry.writeUInt16LE(geometry.readUInt16LE(100), 98);
+				geometry.writeUInt16LE(second, 100);
+			},
+			(geometry: Buffer) => geometry.writeUInt16LE(1, 100),
+			(geometry: Buffer) => geometry.writeUInt16LE(7, 96),
+		]) {
+			const hostileTopology = structuredClone(source);
+			const hostileGeometry = Buffer.from(
+				hostileTopology.buffers[0].uri.slice(prefix.length),
+				"base64",
+			);
+			mutate(hostileGeometry);
+			hostileTopology.buffers[0].uri = `${prefix}${hostileGeometry.toString("base64")}`;
+			expect(() =>
+				validateGeneratedSourceGltf(encoded(hostileTopology)),
+			).toThrow(
+				/indices do not match the admitted cuboid topology and winding/u,
+			);
+		}
 	});
 
 	it("rejects unapproved top-level tables and malformed materials", async () => {
@@ -314,13 +355,34 @@ describe("generated asset pipeline", () => {
 				),
 			]);
 			expect(validateGeneratedAssetPaths(scratch)).toBe(directory);
-
-			await rm(join(directory, "eonfolk-folk-proxy.glb"));
 			const outsideGlb = join(outside, "outside.glb");
 			await writeFile(outsideGlb, assets.binaryBytes);
+
+			const extraFile = join(directory, "unreviewed.bin");
+			await writeFile(extraFile, "not admitted");
+			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
+				/unexpected generated asset entry/u,
+			);
+			await rm(extraFile);
+
+			const extraSymlink = join(directory, "outside-link.glb");
+			await symlink(outsideGlb, extraSymlink);
+			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
+				/must not be a symlink/u,
+			);
+			await rm(extraSymlink);
+
+			const extraDirectory = join(directory, "unreviewed-directory");
+			await mkdir(extraDirectory);
+			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
+				/unexpected generated asset entry|must be a regular file/u,
+			);
+			await rm(extraDirectory, { recursive: true });
+
+			await rm(join(directory, "eonfolk-folk-proxy.glb"));
 			await symlink(outsideGlb, join(directory, "eonfolk-folk-proxy.glb"));
 			expect(() => validateGeneratedAssetPaths(scratch)).toThrow(
-				/non-symlink/u,
+				/must not be a symlink/u,
 			);
 
 			await rm(join(scratch, "apps/web/public/assets"), { recursive: true });
@@ -400,6 +462,45 @@ describe("generated asset pipeline", () => {
 		);
 
 		expect(parseGeneratedGlb(binaryBytes).binary.byteLength).toBe(168);
+		const binaryStart = 28 + binaryBytes.readUInt32LE(12);
+		const interiorVertex = Buffer.from(binaryBytes);
+		interiorVertex.writeFloatLE(0, binaryStart);
+		expect(() => parseGeneratedGlb(interiorVertex)).toThrow(
+			/positions do not match the admitted cube corners/u,
+		);
+
+		const repeatedTriangle = Buffer.from(binaryBytes);
+		for (let index = 0; index < 3; index += 1)
+			repeatedTriangle.writeUInt16LE(
+				repeatedTriangle.readUInt16LE(binaryStart + 96 + index * 2),
+				binaryStart + 102 + index * 2,
+			);
+		expect(() => parseGeneratedGlb(repeatedTriangle)).toThrow(
+			/indices do not match the admitted cuboid topology and winding/u,
+		);
+
+		const reversedWinding = Buffer.from(binaryBytes);
+		const secondIndex = reversedWinding.readUInt16LE(binaryStart + 98);
+		reversedWinding.writeUInt16LE(
+			reversedWinding.readUInt16LE(binaryStart + 100),
+			binaryStart + 98,
+		);
+		reversedWinding.writeUInt16LE(secondIndex, binaryStart + 100);
+		expect(() => parseGeneratedGlb(reversedWinding)).toThrow(
+			/indices do not match the admitted cuboid topology and winding/u,
+		);
+
+		const degenerateTriangle = Buffer.from(binaryBytes);
+		degenerateTriangle.writeUInt16LE(1, binaryStart + 100);
+		expect(() => parseGeneratedGlb(degenerateTriangle)).toThrow(
+			/indices do not match the admitted cuboid topology and winding/u,
+		);
+
+		const arbitraryInRangeIndex = Buffer.from(binaryBytes);
+		arbitraryInRangeIndex.writeUInt16LE(7, binaryStart + 96);
+		expect(() => parseGeneratedGlb(arbitraryInRangeIndex)).toThrow(
+			/indices do not match the admitted cuboid topology and winding/u,
+		);
 		for (const length of [0, 1, 11, 12, 19, 20, 27, 28, 100, 1_024])
 			expect(() =>
 				parseGeneratedGlb(binaryBytes.subarray(0, length)),

@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import {
+	lstatSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	writeFileSync,
+} from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -99,6 +105,20 @@ const EXPECTED_MATERIALS = Object.freeze([
 ]);
 const COMPONENT_BYTES = Object.freeze({ 5123: 2, 5126: 4 });
 const ACCESSOR_COMPONENTS = Object.freeze({ SCALAR: 1, VEC3: 3 });
+const EXPECTED_POSITION_TUPLES = Object.freeze([
+	[-0.5, -0.5, -0.5],
+	[0.5, -0.5, -0.5],
+	[0.5, 0.5, -0.5],
+	[-0.5, 0.5, -0.5],
+	[-0.5, -0.5, 0.5],
+	[0.5, -0.5, 0.5],
+	[0.5, 0.5, 0.5],
+	[-0.5, 0.5, 0.5],
+]);
+const EXPECTED_TRIANGLE_INDICES = Object.freeze([
+	0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6,
+	7, 2, 7, 3, 3, 7, 4, 3, 4, 0,
+]);
 
 function fail(message) {
 	throw new Error(`generated assets: ${message}`);
@@ -512,7 +532,9 @@ function validateGeometryTables(document, label, binaryBytes) {
 		Number.NEGATIVE_INFINITY,
 		Number.NEGATIVE_INFINITY,
 	];
-	for (let vertex = 0; vertex < 8; vertex += 1)
+	const actualPositions = [];
+	for (let vertex = 0; vertex < 8; vertex += 1) {
+		const tuple = [];
 		for (let component = 0; component < 3; component += 1) {
 			const value = binary.readFloatLE(
 				positionsView.offset + vertex * 12 + component * 4,
@@ -525,21 +547,38 @@ function validateGeometryTables(document, label, binaryBytes) {
 			);
 			actualMinimum[component] = Math.min(actualMinimum[component], value);
 			actualMaximum[component] = Math.max(actualMaximum[component], value);
+			tuple.push(value);
 		}
+		actualPositions.push(tuple);
+	}
 	if (
 		JSON.stringify(actualMinimum) !== JSON.stringify(declaredMinimum) ||
 		JSON.stringify(actualMaximum) !== JSON.stringify(declaredMaximum)
 	)
 		fail(`${label} declared position bounds do not match binary geometry`);
+	if (
+		JSON.stringify(actualPositions) !== JSON.stringify(EXPECTED_POSITION_TUPLES)
+	)
+		fail(`${label} positions do not match the admitted cube corners`);
 	if (indices.count % 3 !== 0)
 		fail(`${label} triangle index count is malformed`);
+	const actualIndices = [];
 	for (
 		let offset = indicesView.offset;
 		offset < indicesView.offset + 72;
 		offset += 2
-	)
-		if (binary.readUInt16LE(offset) >= 8)
+	) {
+		const index = binary.readUInt16LE(offset);
+		if (index >= 8)
 			fail(`${label} index accessor references a missing position`);
+		actualIndices.push(index);
+	}
+	if (
+		JSON.stringify(actualIndices) !== JSON.stringify(EXPECTED_TRIANGLE_INDICES)
+	)
+		fail(
+			`${label} indices do not match the admitted cuboid topology and winding`,
+		);
 }
 
 export function validateGeneratedSourceGltf(bytes) {
@@ -870,11 +909,25 @@ export function validateGeneratedAssetPaths(root = ROOT) {
 	const directoryPath = realpathSync(directory);
 	if (!isInside(rootPath, directoryPath))
 		fail("generated asset directory escapes the repository root");
-	for (const filename of GENERATED_ASSET_FILENAMES) {
+	const entries = readdirSync(directory).sort();
+	for (const filename of entries) {
 		const path = resolve(directory, filename);
 		const stat = lstatSync(path);
-		if (!stat.isFile() || stat.isSymbolicLink())
-			fail(`${filename} must be a regular non-symlink file`);
+		if (stat.isSymbolicLink()) fail(`${filename} must not be a symlink`);
+		if (!GENERATED_ASSET_FILENAMES.includes(filename))
+			fail(`${filename} is an unexpected generated asset entry`);
+		if (!stat.isFile()) fail(`${filename} must be a regular file`);
+	}
+	const expectedEntries = [...GENERATED_ASSET_FILENAMES].sort();
+	if (
+		entries.length !== expectedEntries.length ||
+		entries.some((entry, index) => entry !== expectedEntries[index])
+	)
+		fail(
+			"generated asset directory does not contain exactly the admitted files",
+		);
+	for (const filename of expectedEntries) {
+		const path = resolve(directory, filename);
 		const realPath = realpathSync(path);
 		if (
 			dirname(realPath) !== directoryPath ||

@@ -725,13 +725,6 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	expect(
 		routeStates?.filter((state) => state.includes(":travelling:")).length,
 	).toBe(movingActorCount);
-	expect(generatedAssetRequests.sort()).toEqual([
-		"/assets/generated/ASSET_MANIFEST.json",
-		"/assets/generated/eonfolk-folk-proxy.glb",
-	]);
-	expect(generatedAssetRequests).not.toContain(
-		"/assets/generated/eonfolk-folk-proxy.gltf",
-	);
 	expect(externalRequests).toEqual([]);
 });
 
@@ -935,8 +928,21 @@ test("generated reload restores the durable head @generated-world @generated-tar
 		"data-persistence-restored",
 		"true",
 	);
+	await expect(page.locator("main.v1-world")).toHaveAttribute(
+		"data-asset-integrity",
+		"verified",
+	);
 	expect((await inspectGeneratedCheckpoint(page)).headHash).toBe(
 		firstCheckpoint.headHash,
+	);
+	expect(generatedAssetRequests.sort()).toEqual([
+		"/assets/generated/ASSET_MANIFEST.json",
+		"/assets/generated/ASSET_MANIFEST.json",
+		"/assets/generated/eonfolk-folk-proxy.glb",
+		"/assets/generated/eonfolk-folk-proxy.glb",
+	]);
+	expect(generatedAssetRequests).not.toContain(
+		"/assets/generated/eonfolk-folk-proxy.gltf",
 	);
 	expect(externalRequests).toEqual([]);
 });
