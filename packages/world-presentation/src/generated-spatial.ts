@@ -93,8 +93,8 @@ export interface GeneratedSpatialCivilizationInput {
 
 /** Exact metadata the adapter consumes from a validated v5 checkpoint. */
 export interface GeneratedSpatialCheckpointInput {
-	readonly schemaVersion: "eonfolk-civilization-experiment-v6";
-	readonly runnerVersion: "eonfolk-civilization-runner-v6";
+	readonly schemaVersion: "eonfolk-civilization-experiment-v7";
+	readonly runnerVersion: "eonfolk-civilization-runner-v7";
 	readonly worldIdentityHash: string;
 	readonly horizonDays: number;
 	readonly finalStateHash: string;
@@ -286,8 +286,8 @@ function validateIdentity(
 	if (input.civilization.schemaVersion !== "eonfolk-civilization-kernel-v4")
 		fail("unsupported civilization schema");
 	if (
-		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v6" ||
-		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v6"
+		input.checkpoint.schemaVersion !== "eonfolk-civilization-experiment-v7" ||
+		input.checkpoint.runnerVersion !== "eonfolk-civilization-runner-v7"
 	)
 		fail("unsupported checkpoint schema or runner");
 	if (input.checkpoint.worldIdentityHash !== input.world.identity.identityHash)
@@ -307,8 +307,8 @@ function validateIdentity(
 		fail("checkpoint and civilization simulation times differ");
 	integer(input.civilization.revision, "civilization revision");
 	integer(input.checkpoint.horizonDays, "checkpoint horizon");
-	if (input.checkpoint.horizonDays < 1 || input.checkpoint.horizonDays > 365)
-		fail("checkpoint horizon must be from 1 through 365 days");
+	if (input.checkpoint.horizonDays < 1 || input.checkpoint.horizonDays > 366)
+		fail("checkpoint horizon must be from 1 through 366 days");
 	if (
 		input.checkpoint.metrics.simulationTime !==
 		input.checkpoint.horizonDays * 86_400

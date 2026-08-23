@@ -2,9 +2,16 @@ import {
 	advanceGeneralizedScheduler,
 	assertCivilizationInvariants,
 	deriveCivilizationSchedulerPolicy,
+	projectCivilizationScheduledActivities,
 	type CivilizationState,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
+import {
+	applyCivilizationSponsorEvent,
+	applyCounselStandingPlanBoundary,
+	parseCivilizationSponsorEvent,
+	validateCommittedCivilizationDecisionRecord,
+} from "@eonfolk/civilization/sponsor";
 import type { GeneratedWorldState } from "@eonfolk/protocol";
 import { canonicalJson, cloneValue } from "./codec.js";
 import { PersistenceError } from "./errors.js";
@@ -31,11 +38,11 @@ import {
 } from "./versioned-types.js";
 
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
-	"eonfolk-release-genesis-civilization-state-v5" as const;
+	"eonfolk-release-genesis-civilization-state-v6" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v4" as const;
+	"eonfolk-release-genesis-civilization-transition-v5" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v6" as const;
+	"eonfolk-release-genesis-civilization-engine-v7" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -43,11 +50,11 @@ export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	transitionVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } as const);
 
-const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v6" as const;
-const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v6" as const;
+const SOURCE_EXPERIMENT_VERSION = "eonfolk-civilization-experiment-v7" as const;
+const SOURCE_RUNNER_VERSION = "eonfolk-civilization-runner-v7" as const;
 const SOURCE_EVENT_VERSION =
-	"eonfolk-civilization-experiment-event-v6" as const;
-const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v6" as const;
+	"eonfolk-civilization-experiment-event-v7" as const;
+const SOURCE_STEP_VERSION = "eonfolk-civilization-experiment-step-v7" as const;
 const SECONDS_PER_DAY = 86_400;
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const textEncoder = new TextEncoder();
@@ -273,7 +280,7 @@ async function validateSourceEvent(
 	hash(source.postStateHash, `source event ${index}.postStateHash`);
 	const eventHash = hash(source.eventHash, `source event ${index}.eventHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-EVENT:v7",
 		without(source, ["eventHash", "eventId"]),
 	);
 	if (eventHash !== expected) fail("STALE_STATE", "CIVP");
@@ -315,7 +322,7 @@ async function validateSourceStep(
 	);
 	const stepHash = hash(source.stepHash, `source step ${index}.stepHash`);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v7",
 		without(source, ["stepHash"]),
 	);
 	if (stepHash !== expected) fail("STALE_STATE", "CIVP");
@@ -399,11 +406,11 @@ async function validateCheckpoint(
 	const civilization = json(checkpoint.state, "checkpoint.state");
 	const activities = json(checkpoint.activities, "checkpoint.activities");
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 		world,
 	);
 	const sourceStateHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v7",
 		{ activities, civilization, worldStateHash: sourceWorldHash },
 	);
 	if (sourceStateHash !== checkpoint.finalStateHash)
@@ -644,11 +651,11 @@ async function validateCheckpointSourceState(
 ): Promise<void> {
 	if (state.phase !== "checkpoint" || state.civilization === null) return;
 	const sourceWorldHash = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 		state.world,
 	);
 	const expected = await sourceDomainHash(
-		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v6",
+		"EONFOLK:CIVILIZATION-EXPERIMENT-STATE:v7",
 		{
 			activities: state.scheduler.activities,
 			civilization: state.civilization,
@@ -662,7 +669,10 @@ export async function createCivilizationPersistencePlan(
 	input: CreateCivilizationPersistencePlanInput,
 ): Promise<CivilizationPersistencePlan> {
 	if (input.checkpoints.length < 1) fail("INVALID_INPUT", "CIVP");
-	const batchSize = input.batchSize ?? 16;
+	// Checkpoint transitions carry their source suffix and can approach the
+	// per-record safety bound. One transition per atomic append keeps the default
+	// fail-closed without widening the authoritative record limit.
+	const batchSize = input.batchSize ?? 1;
 	if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 32)
 		fail("INVALID_INPUT", "CIVP");
 	const genesisWorld = json(input.genesisWorld, "genesisWorld");
@@ -866,10 +876,10 @@ export async function createCivilizationPersistencePlan(
 	return { scope, genesis, batches, finalSnapshot, finalState };
 }
 
-export function reduceCivilizationAuthorityEvent(
+export async function reduceCivilizationAuthorityEvent(
 	currentValue: ReleaseGenesisCivilizationState,
 	event: AuthorityEventRecord,
-): ReleaseGenesisCivilizationState {
+): Promise<ReleaseGenesisCivilizationState> {
 	const current = validatePersistedState(currentValue);
 	const payload = record(event.payload, "civilization transition");
 	if (event.eventType === "CivilizationSponsorCommandRejected") {
@@ -889,9 +899,88 @@ export function reduceCivilizationAuthorityEvent(
 			payload.transitionKind !== "sponsor"
 		)
 			fail("UNSUPPORTED_VERSION", "CIVP");
-		const next = applyJsonPatch(current, payload.patch);
 		if (
-			next.phase !== "active" ||
+			!exactKeys(payload, [
+				"schemaVersion",
+				"transitionKind",
+				"protocolEvent",
+				"commandReceipt",
+				"decisionRecord",
+			]) ||
+			current.civilization === null
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const currentCivilization =
+			current.civilization as unknown as CivilizationState;
+		assertCivilizationInvariants(currentCivilization);
+		const protocolEvent = await parseCivilizationSponsorEvent(
+			payload.protocolEvent,
+			current.scheduler.simulationTime,
+		);
+		if (
+			protocolEvent === null ||
+			protocolEvent.runId !== event.runId ||
+			protocolEvent.regionId !== event.regionId ||
+			protocolEvent.eventId !== event.eventId ||
+			protocolEvent.sequence !== event.sequence ||
+			protocolEvent.simulationTime !== event.simulationTime
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const outerParents = protocolEvent.causalParents.map((parent) => ({
+			eventId: parent.eventId,
+			relation:
+				parent.relation === "direct"
+					? ("direct-cause" as const)
+					: parent.relation === "trigger"
+						? ("trigger" as const)
+						: ("contributing-condition" as const),
+		}));
+		const expectedMechanism =
+			protocolEvent.causalParents[0]?.mechanismId ??
+			`sponsor.${protocolEvent.eventPayload.kind}.v1`;
+		if (
+			canonicalJson(event.causalParents as unknown as JsonValue) !==
+				canonicalJson(outerParents as unknown as JsonValue) ||
+			canonicalJson(event.visibility) !==
+				canonicalJson(protocolEvent.visibility as unknown as JsonValue) ||
+			event.provenance.mechanismId !== expectedMechanism ||
+			event.provenance.cognitionDecisionId !==
+				(protocolEvent.provenance.kind === "cognition"
+					? protocolEvent.provenance.decisionId
+					: null) ||
+			event.provenance.brainKind !==
+				(protocolEvent.provenance.kind === "cognition" ? "standard" : null)
+		)
+			fail("INVALID_INPUT", "CIVP");
+		if (protocolEvent.eventPayload.kind === "CounselInterpreted") {
+			if (
+				!(await validateCommittedCivilizationDecisionRecord({
+					state: currentCivilization,
+					event: protocolEvent,
+					commandReceipt: payload.commandReceipt,
+					decisionRecord: payload.decisionRecord,
+				}))
+			)
+				fail("INVALID_INPUT", "CIVP");
+		} else if (payload.decisionRecord !== null) {
+			fail("INVALID_INPUT", "CIVP");
+		}
+		let postCivilization: CivilizationState;
+		try {
+			postCivilization = await applyCivilizationSponsorEvent({
+				state: currentCivilization,
+				event: protocolEvent,
+			});
+			assertCivilizationInvariants(postCivilization);
+		} catch {
+			fail("INVALID_INPUT", "CIVP");
+		}
+		const next: ReleaseGenesisCivilizationState = {
+			...current,
+			phase: "active",
+			civilization: cloneValue(postCivilization as unknown as JsonValue),
+		};
+		if (
 			next.worldIdentityHash !== current.worldIdentityHash ||
 			next.sourceInitialStateHash !== current.sourceInitialStateHash ||
 			next.finalExperimentStateHash !== current.finalExperimentStateHash ||
@@ -917,7 +1006,6 @@ export function reduceCivilizationAuthorityEvent(
 				"routineDecision",
 				"schedulerActions",
 				"schedulerRoutines",
-				"patch",
 			]) ||
 			current.phase !== "active" ||
 			current.civilization === null
@@ -930,29 +1018,71 @@ export function reduceCivilizationAuthorityEvent(
 				"citizenId",
 				"interventionId",
 				"interpretationEventId",
+				"interpretationAction",
+				"interpretationDisposition",
+				"causalRelation",
+				"routineKind",
+				"routineSubjectId",
+				"planRoutineKind",
+				"planRoutineSubjectId",
+				"consequenceKind",
+				"schedulerActionKinds",
 				"simulationTime",
 				"requiredNeedUnits",
 				"consumedNeedUnits",
 				"unmetNeedUnits",
 				"sourceStockIds",
 			]) ||
-			fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v1" ||
+			fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v3" ||
 			typeof fact.citizenId !== "string" ||
 			typeof fact.interventionId !== "string" ||
 			typeof fact.interpretationEventId !== "string" ||
+			!["verify-reserve", "accuse-publicly", "follow-plan"].includes(
+				String(fact.interpretationAction),
+			) ||
+			!["accepted", "delayed", "rejected", "reinterpreted"].includes(
+				String(fact.interpretationDisposition),
+			) ||
+			!["contributing-condition", "temporal-predecessor"].includes(
+				String(fact.causalRelation),
+			) ||
+			![
+				"produce",
+				"transport",
+				"construct",
+				"consume",
+				"social-maintenance",
+				"travel",
+				"away",
+			].includes(String(fact.routineKind)) ||
+			typeof fact.routineSubjectId !== "string" ||
+			fact.routineSubjectId.length === 0 ||
+			![
+				"produce",
+				"transport",
+				"construct",
+				"consume",
+				"social-maintenance",
+				"travel",
+				"away",
+			].includes(String(fact.planRoutineKind)) ||
+			typeof fact.planRoutineSubjectId !== "string" ||
+			fact.planRoutineSubjectId.length === 0 ||
+			!["routine-continued", "routine-reassigned"].includes(
+				String(fact.consequenceKind),
+			) ||
+			array(fact.schedulerActionKinds, "boundary scheduler action kinds").some(
+				(kind) => typeof kind !== "string" || kind.length === 0,
+			) ||
 			event.causalParents.length !== 1 ||
 			event.causalParents[0]?.eventId !== fact.interpretationEventId ||
-			event.causalParents[0]?.relation !== "contributing-condition" ||
+			event.causalParents[0]?.relation !== fact.causalRelation ||
 			event.provenance.mechanismId !==
 				"civilization.scheduler.counsel-boundary.v1"
 		)
 			fail("INVALID_INPUT", "CIVP");
-		const decision = record(
-			payload.routineDecision,
-			"boundary routine decision",
-		);
 		const routineDecision = cloneValue(
-			decision as JsonValue,
+			record(payload.routineDecision, "boundary routine decision") as JsonValue,
 		) as unknown as SchedulerRoutineDecision;
 		const currentCivilization =
 			current.civilization as unknown as CivilizationState;
@@ -964,19 +1094,72 @@ export function reduceCivilizationAuthorityEvent(
 		const planStep = plan?.steps.find(
 			({ stepId }) => stepId === plan.currentStepId,
 		);
+		const relationshipTarget = [
+			...(currentCivilization.minds[String(fact.citizenId)]?.snapshot
+				.relationships ?? []),
+		]
+			.sort((left, right) =>
+				left.relationshipId.localeCompare(right.relationshipId),
+			)
+			.find(
+				(relationship) =>
+					relationship.fromCitizenId === fact.citizenId &&
+					currentCivilization.citizens[relationship.toCitizenId]
+						?.residenceState === "resident" &&
+					currentCivilization.citizens[relationship.toCitizenId]
+						?.settlementId ===
+						currentCivilization.citizens[String(fact.citizenId)]?.settlementId,
+			)?.toCitizenId;
+		const expectedRoutineKind =
+			planStep?.kind === "Produce"
+				? "produce"
+				: planStep?.kind === "TransportResource"
+					? "transport"
+					: planStep?.kind === "WorkProject"
+						? "construct"
+						: planStep?.kind === "Consume"
+							? "consume"
+							: planStep?.kind === "JoinMigration"
+								? "travel"
+								: planStep?.kind === "Away"
+									? "away"
+									: "social-maintenance";
 		if (
 			counsel?.citizenId !== fact.citizenId ||
 			resolution?.sourceEventId !== fact.interpretationEventId ||
-			resolution.action !== "follow-plan" ||
-			resolution.disposition !== "delayed" ||
+			resolution.action !== fact.interpretationAction ||
+			resolution.disposition !== fact.interpretationDisposition ||
+			event.causalParents[0]?.relation !==
+				(resolution.action === "follow-plan"
+					? "temporal-predecessor"
+					: "contributing-condition") ||
 			event.provenance.cognitionDecisionId !== resolution.decisionId ||
 			event.provenance.brainKind !== "standard" ||
-			decision.schemaVersion !== "eonfolk-civilization-routine-decision-v1" ||
-			decision.citizenId !== fact.citizenId ||
-			decision.actionId !== `follow:${plan?.planId ?? ""}` ||
-			decision.activeStandingPlanId !== plan?.planId ||
-			decision.kind !== "consume" ||
-			decision.subjectId !== planStep?.targetIds[0]
+			plan?.status !== "active" ||
+			plan.expiryBoundary < currentCivilization.simulationTime ||
+			planStep?.status !== "active" ||
+			fact.planRoutineKind !== expectedRoutineKind ||
+			fact.planRoutineSubjectId !== (planStep.targetIds[0] ?? fact.citizenId) ||
+			fact.consequenceKind !==
+				(routineDecision.kind === expectedRoutineKind &&
+				routineDecision.subjectId === (planStep.targetIds[0] ?? fact.citizenId)
+					? "routine-continued"
+					: "routine-reassigned") ||
+			(resolution.action === "follow-plan"
+				? fact.consequenceKind !== "routine-continued"
+				: fact.consequenceKind !== "routine-reassigned") ||
+			routineDecision.citizenId !== fact.citizenId ||
+			routineDecision.activeStandingPlanId !== plan.planId ||
+			(resolution.action === "follow-plan"
+				? routineDecision.actionId !== `follow:${plan.planId}` ||
+					routineDecision.kind !== expectedRoutineKind ||
+					routineDecision.subjectId !==
+						(planStep.targetIds[0] ?? fact.citizenId)
+				: relationshipTarget === undefined ||
+					routineDecision.actionId !==
+						`counsel:${resolution.action}:${String(fact.interventionId)}` ||
+					routineDecision.kind !== "social-maintenance" ||
+					routineDecision.subjectId !== relationshipTarget)
 		)
 			fail("INVALID_INPUT", "CIVP");
 		const policy = deriveCivilizationSchedulerPolicy(
@@ -991,14 +1174,33 @@ export function reduceCivilizationAuthorityEvent(
 		} catch {
 			fail("INVALID_INPUT", "CIVP");
 		}
+		let derivedState = derived.state;
+		try {
+			derivedState = applyCounselStandingPlanBoundary({
+				state: derivedState,
+				citizenId: String(fact.citizenId),
+				action: resolution.action,
+			});
+			assertCivilizationInvariants(derivedState);
+		} catch {
+			fail("INVALID_INPUT", "CIVP");
+		}
 		if (
 			canonicalJson(derived.actions as unknown as JsonValue) !==
 				canonicalJson(payload.schedulerActions as JsonValue) ||
 			canonicalJson(derived.routines as unknown as JsonValue) !==
-				canonicalJson(payload.schedulerRoutines as JsonValue)
+				canonicalJson(payload.schedulerRoutines as JsonValue) ||
+			fact.routineKind !== routineDecision.kind ||
+			fact.routineSubjectId !== routineDecision.subjectId ||
+			canonicalJson(fact.schedulerActionKinds as JsonValue) !==
+				canonicalJson(
+					[
+						...new Set(derived.actions.map(({ kind }) => kind)),
+					].sort() as JsonValue,
+				)
 		)
 			fail("STALE_STATE", "CIVP");
-		const outcome = derived.state.needOutcomes
+		const outcome = derivedState.needOutcomes
 			.filter(
 				(candidate) =>
 					candidate.citizenId === fact.citizenId &&
@@ -1020,7 +1222,21 @@ export function reduceCivilizationAuthorityEvent(
 				canonicalJson([...outcome.sourceStockIds].sort() as JsonValue)
 		)
 			fail("STALE_STATE", "CIVP");
-		const next = applyJsonPatch(current, payload.patch);
+		const expectedActivities = projectCivilizationScheduledActivities({
+			state: derivedState,
+			world: current.world as unknown as GeneratedWorldState,
+			routines: derived.routines,
+		});
+		const next: ReleaseGenesisCivilizationState = {
+			...current,
+			civilization: cloneValue(derivedState as unknown as JsonValue),
+			scheduler: {
+				completedDay: current.scheduler.completedDay + 1,
+				simulationTime: derived.state.simulationTime,
+				modelInvocations: 0,
+				activities: cloneValue(expectedActivities as unknown as JsonValue),
+			},
+		};
 		if (
 			next.phase !== "active" ||
 			next.worldIdentityHash !== current.worldIdentityHash ||
@@ -1030,10 +1246,12 @@ export function reduceCivilizationAuthorityEvent(
 			canonicalJson(next.sourceHistory) !==
 				canonicalJson(current.sourceHistory) ||
 			canonicalJson(next.civilization as JsonValue) !==
-				canonicalJson(derived.state as unknown as JsonValue) ||
+				canonicalJson(derivedState as unknown as JsonValue) ||
 			next.scheduler.completedDay !== current.scheduler.completedDay + 1 ||
-			next.scheduler.simulationTime !== derived.state.simulationTime ||
-			event.simulationTime !== derived.state.simulationTime ||
+			next.scheduler.simulationTime !== derivedState.simulationTime ||
+			canonicalJson(next.scheduler.activities) !==
+				canonicalJson(expectedActivities as unknown as JsonValue) ||
+			event.simulationTime !== derivedState.simulationTime ||
 			next.scheduler.modelInvocations !== 0
 		)
 			fail("RANGE_GAP", "CIVP");
@@ -1173,7 +1391,27 @@ export async function replayCivilizationHistory(
 				fail("RANGE_GAP", "CIVP");
 			if (event.eventType === "CivilizationCheckpointCommitted")
 				await validateTransitionSourceRecords(state, event);
-			state = reduceCivilizationAuthorityEvent(state, event);
+			if (event.eventType === "CivilizationSponsorCommandCommitted") {
+				const stored = await port.getAppendReceipt(input, event.appendId);
+				const sponsorPayload = record(event.payload, "sponsor transition");
+				const embeddedReceipt = record(
+					sponsorPayload.commandReceipt,
+					"embedded sponsor receipt",
+				);
+				if (
+					stored === null ||
+					stored.resultingStateHash !== event.postStateHash ||
+					stored.resultingLastEventHash !== event.eventHash ||
+					canonicalJson(stored.decisionRecord as JsonValue) !==
+						canonicalJson(sponsorPayload.decisionRecord as JsonValue) ||
+					canonicalJson({
+						...record(stored.commandReceipt, "durable sponsor receipt"),
+						resultingWorldHeadHash: embeddedReceipt.resultingWorldHeadHash,
+					} as JsonValue) !== canonicalJson(embeddedReceipt as JsonValue)
+				)
+					fail("STALE_STATE", "CIVP");
+			}
+			state = await reduceCivilizationAuthorityEvent(state, event);
 			await validateCheckpointSourceState(state);
 			stateHash = await hashAuthoritativeState(state);
 			if (stateHash !== event.postStateHash) fail("STALE_STATE", "CIVP");

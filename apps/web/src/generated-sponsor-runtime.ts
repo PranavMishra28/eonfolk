@@ -51,6 +51,13 @@ export interface GeneratedSponsorshipResult {
 		| "reinterpreted"
 		| null;
 	readonly shareArtifact: string | null;
+	readonly simulationTime: number;
+	readonly chronicleBeats: readonly {
+		readonly text: string;
+		readonly relation: string;
+		readonly evidenceEventIds: readonly string[];
+		readonly citizenId: string;
+	}[];
 }
 
 /**
@@ -64,6 +71,7 @@ export async function sponsorGeneratedCitizen(input: {
 	readonly databaseName: string;
 	readonly indexedDbFactory?: IDBFactory;
 	readonly step: "establish" | "counsel" | "resolve";
+	readonly intent?: "verify-reserve" | "accuse-publicly";
 }): Promise<GeneratedSponsorshipResult> {
 	const port = await BrowserVersionedPersistence.open({
 		factory: input.indexedDbFactory,
@@ -74,7 +82,8 @@ export async function sponsorGeneratedCitizen(input: {
 		regionId: input.regionId,
 	};
 	const covenantId = `covenant:${input.citizenId}`;
-	const interventionId = `intervention:${input.citizenId}:standing-plan`;
+	const intent = input.intent ?? "verify-reserve";
+	const interventionId = `intervention:${input.citizenId}:${intent}`;
 	const decisionId = `decision:${scope.runId}:${input.regionId}:${interventionId}`;
 	const proposalId = `proposal:${scope.runId}:${input.regionId}:${interventionId}`;
 	const committedEvents: CivilizationSponsorEventEnvelope[] = [];
@@ -84,23 +93,18 @@ export async function sponsorGeneratedCitizen(input: {
 	const commit = async (
 		commandId: string,
 		principal: WorldCommand["principal"],
-		payload: SponsorPayload,
+		payloadInput:
+			| SponsorPayload
+			| {
+					readonly kind: "derive-resolution";
+					readonly citizenId: string;
+					readonly interventionId: string;
+					readonly decisionId: string;
+					readonly proposalId: string;
+			  },
 	): Promise<CivilizationState> => {
-		const fingerprint = await payloadFingerprint(payload);
 		const prior = await port.getAppendReceipt(scope, commandId);
-		if (prior !== null) {
-			const receipt = prior.commandReceipt as {
-				readonly payloadFingerprint?: unknown;
-				readonly outcome?: unknown;
-				readonly rejectionCode?: unknown;
-			} | null;
-			if (
-				receipt?.payloadFingerprint !== fingerprint ||
-				(receipt.outcome !== "accepted" && receipt.outcome !== "rejected")
-			)
-				throw new Error("SP");
-			if (receipt.outcome === "rejected") throw new Error("SP");
-		} else allIdempotent = false;
+		if (prior === null) allIdempotent = false;
 
 		let [head, snapshot] = await Promise.all([
 			port.loadHead(scope),
@@ -115,10 +119,107 @@ export async function sponsorGeneratedCitizen(input: {
 			snapshotId: snapshot.snapshotId,
 			toSequenceExclusive: head.lastSequence + 1,
 		});
-		if (replay.state.civilization === null) throw new Error("SP");
+		if (replay.state.civilization === null)
+			throw new Error("SP:NO_CIVILIZATION");
 		const civilization = replay.state
 			.civilization as unknown as CivilizationState;
-		if (prior !== null) return civilization;
+		if (prior !== null) {
+			const receipt = prior.commandReceipt as {
+				readonly commandId?: unknown;
+				readonly outcome?: unknown;
+				readonly payloadFingerprint?: unknown;
+			} | null;
+			const retryPayload: SponsorPayload | null =
+				payloadInput.kind === "derive-resolution"
+					? (() => {
+							const resolved =
+								civilization.counsels[payloadInput.interventionId]?.resolution;
+							return resolved?.decisionId === payloadInput.decisionId &&
+								resolved.proposalId === payloadInput.proposalId
+								? {
+										kind: "ResolveCounsel" as const,
+										citizenId: payloadInput.citizenId,
+										interventionId: payloadInput.interventionId,
+										decisionId: payloadInput.decisionId,
+										proposalId: payloadInput.proposalId,
+										action: resolved.action,
+									}
+								: null;
+						})()
+					: payloadInput;
+			if (
+				retryPayload === null ||
+				receipt?.commandId !== commandId ||
+				receipt.outcome !== "accepted" ||
+				receipt.payloadFingerprint !== (await payloadFingerprint(retryPayload))
+			)
+				throw new Error("SP:IDEMPOTENCY_COLLISION");
+			return civilization;
+		}
+
+		let resolution: ValidatedStandardBrainResolution | undefined;
+		let payload: SponsorPayload;
+		if (payloadInput.kind === "derive-resolution") {
+			const context = await buildCivilizationCounselDecisionContext({
+				state: civilization,
+				runId: scope.runId,
+				regionId: scope.regionId,
+				citizenId: payloadInput.citizenId,
+				interventionId: payloadInput.interventionId,
+				decisionId: payloadInput.decisionId,
+			});
+			if (context === null) throw new Error("SP:NO_DECISION_CONTEXT");
+			const chosen = await standardBrain(context, {
+				proposalId: payloadInput.proposalId,
+				prngState: await seedPrng(
+					bytesFromHex(context.contextHash, 32),
+					"civilization-sponsor",
+					payloadInput.citizenId,
+					payloadInput.decisionId,
+				),
+			});
+			const action =
+				chosen.proposal.action.kind === "VerifyReserve"
+					? "verify-reserve"
+					: chosen.proposal.action.kind === "AccusePublicly"
+						? "accuse-publicly"
+						: chosen.proposal.action.kind === "FollowStandingPlan"
+							? "follow-plan"
+							: null;
+			if (action === null) throw new Error("SP:UNSUPPORTED_BRAIN_ACTION");
+			payload = {
+				kind: "ResolveCounsel",
+				citizenId: payloadInput.citizenId,
+				interventionId: payloadInput.interventionId,
+				decisionId: payloadInput.decisionId,
+				proposalId: payloadInput.proposalId,
+				action,
+			};
+			resolution = {
+				decisionId: payloadInput.decisionId,
+				context,
+				proposal: chosen.proposal,
+				decisionRecord: await createCognitiveDecisionRecord({
+					decisionId: payloadInput.decisionId,
+					decisionBoundaryId: `boundary:${payloadInput.decisionId}`,
+					wholePreStateHash: await stateHash(civilization),
+					context,
+					proposal: chosen.proposal,
+					failureCode: null,
+					validator: {
+						stage: "authorization",
+						outcome: "accepted",
+						reason: "Application validated deterministic Brain proposal",
+					},
+					proposedCommandId: commandId,
+					receiptRef: null,
+					acceptedEventInterval: null,
+				}),
+			};
+		} else {
+			payload = payloadInput;
+		}
+		const fingerprint = await payloadFingerprint(payload);
 
 		const command: WorldCommand<SponsorPayload> = {
 			schemaVersion: PROTOCOL_SCHEMA_VERSION,
@@ -130,8 +231,7 @@ export async function sponsorGeneratedCitizen(input: {
 			regionId: scope.regionId,
 			payload,
 		};
-		let resolution: ValidatedStandardBrainResolution | undefined;
-		if (payload.kind === "ResolveCounsel") {
+		if (payload.kind === "ResolveCounsel" && resolution === undefined) {
 			const context = await buildCivilizationCounselDecisionContext({
 				state: civilization,
 				runId: scope.runId,
@@ -140,7 +240,7 @@ export async function sponsorGeneratedCitizen(input: {
 				interventionId: payload.interventionId ?? "",
 				decisionId: payload.decisionId,
 			});
-			if (context === null) throw new Error("SP");
+			if (context === null) throw new Error("SP:CONTEXT_REBUILD_FAILED");
 			const chosen = await standardBrain(context, {
 				proposalId: payload.proposalId,
 				prngState: await seedPrng(
@@ -159,7 +259,7 @@ export async function sponsorGeneratedCitizen(input: {
 							? "follow-plan"
 							: null;
 			if (expectedAction === null || expectedAction !== payload.action)
-				throw new Error("SP");
+				throw new Error("SP:DECISION_BINDING_FAILED");
 			resolution = {
 				decisionId: payload.decisionId,
 				context,
@@ -211,8 +311,10 @@ export async function sponsorGeneratedCitizen(input: {
 				commandReceipt: transition.receipt,
 				decisionRecord: transition.committedDecisionRecord,
 			});
-			await port.appendEventBatch(rejection.request);
-			throw new Error("SP");
+			await port.recordRejectedCommand(rejection.request);
+			throw new Error(
+				`SP:COMMAND_REJECTED:${String(transition.receipt.rejectionCode)}`,
+			);
 		}
 		const event = transition.events[0];
 		const append = await createCivilizationSponsorAuthorityAppend({
@@ -244,7 +346,7 @@ export async function sponsorGeneratedCitizen(input: {
 		);
 		if (input.step === "counsel" || input.step === "resolve") {
 			finalCivilization = await commit(
-				`counsel:${input.citizenId}:standing-plan`,
+				`counsel:${input.citizenId}:${intent}`,
 				{
 					kind: "patron",
 					principalId: "patron:local",
@@ -254,21 +356,20 @@ export async function sponsorGeneratedCitizen(input: {
 					kind: "IssueCounsel",
 					interventionId,
 					citizenId: input.citizenId,
-					intent: "verify-reserve",
+					intent,
 				},
 			);
 		}
 		if (input.step === "resolve") {
 			finalCivilization = await commit(
-				`resolve:${input.citizenId}:standing-plan:1`,
+				`resolve:${input.citizenId}:${intent}:1`,
 				{ kind: "citizen", principalId: input.citizenId },
 				{
-					kind: "ResolveCounsel",
+					kind: "derive-resolution",
 					citizenId: input.citizenId,
 					interventionId,
 					decisionId,
 					proposalId,
-					action: "follow-plan",
 				},
 			);
 			const boundaryAppendId = `boundary:${interventionId}:1`;
@@ -301,7 +402,7 @@ export async function sponsorGeneratedCitizen(input: {
 			}
 		}
 		const covenant = finalCivilization.sponsorships[covenantId];
-		if (covenant === undefined) throw new Error("SP");
+		if (covenant === undefined) throw new Error("SP:COVENANT_MISSING");
 		const finalHead = await port.loadHead(scope);
 		const finalSnapshot = await port.loadLatestSnapshot(scope);
 		const finalReplay = await replayCivilizationHistory(port, {
@@ -315,7 +416,7 @@ export async function sponsorGeneratedCitizen(input: {
 			(await stateHash(replayedCivilization)) !==
 			(await stateHash(finalCivilization))
 		)
-			throw new Error("SP");
+			throw new Error("SP:REPLAY_STATE_MISMATCH");
 		const durableSponsorEvents: CivilizationSponsorEventEnvelope[] = [];
 		const durableEventRevisions: Record<string, number> = {};
 		const durableBoundaries: Array<{
@@ -338,11 +439,11 @@ export async function sponsorGeneratedCitizen(input: {
 				if (
 					payload.fact === undefined ||
 					parent === undefined ||
-					parent.relation !== "contributing-condition"
+					parent.relation !== payload.fact.causalRelation
 				)
-					throw new Error("SP");
+					throw new Error("SP:BOUNDARY_CAUSAL_BINDING");
 				const stored = await port.getAppendReceipt(scope, outer.appendId);
-				if (stored === null) throw new Error("SP");
+				if (stored === null) throw new Error("SP:BOUNDARY_RECEIPT_MISSING");
 				durableBoundaries.push({
 					eventId: outer.eventId,
 					parentEventId: parent.eventId,
@@ -366,7 +467,8 @@ export async function sponsorGeneratedCitizen(input: {
 					readonly resultingRevision?: unknown;
 				} | null
 			)?.resultingRevision;
-			if (!Number.isSafeInteger(resultingRevision)) throw new Error("SP");
+			if (!Number.isSafeInteger(resultingRevision))
+				throw new Error("SP:SPONSOR_RECEIPT_REVISION");
 			durableSponsorEvents.push(protocolEvent);
 			durableEventRevisions[protocolEvent.eventId] =
 				resultingRevision as number;
@@ -421,6 +523,13 @@ export async function sponsorGeneratedCitizen(input: {
 			phase,
 			disposition: resolution?.disposition ?? null,
 			shareArtifact,
+			simulationTime: finalReplay.state.scheduler.simulationTime,
+			chronicleBeats: chronicle.beats.map((beat) => ({
+				text: beat.text,
+				relation: beat.relation,
+				evidenceEventIds: beat.evidenceEventIds,
+				citizenId: input.citizenId,
+			})),
 		};
 	} finally {
 		port.close();

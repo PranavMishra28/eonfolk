@@ -1,6 +1,9 @@
 import {
+	advanceStandingPlan,
 	buildDecisionContext,
 	civilizationCounselAffordances,
+	interruptStandingPlan,
+	retryStandingPlan,
 	validateIntentProposal,
 } from "@eonfolk/cognition";
 import {
@@ -29,12 +32,8 @@ import {
 } from "@eonfolk/protocol";
 
 import { assertCivilizationInvariants } from "./audit.js";
-import { deepFreeze } from "./state.js";
-import type {
-	CivilizationCounselState,
-	CivilizationMindState,
-	CivilizationState,
-} from "./types.js";
+import { deepFreeze, replaceCivilizationMind } from "./state.js";
+import type { CivilizationCounselState, CivilizationState } from "./types.js";
 
 export const CIVILIZATION_SPONSOR_MECHANISM_VERSION =
 	"eonfolk-civilization-sponsor-v2" as const;
@@ -56,6 +55,60 @@ export interface ValidatedStandardBrainResolution {
 	readonly context: DecisionContext;
 	readonly proposal: IntentProposal;
 	readonly decisionRecord: CognitiveDecisionRecord;
+}
+
+const CIVILIZATION_DAY_SECONDS = 86_400;
+
+/** Applies the typed Standing Plan lifecycle caused by a later counsel boundary. */
+export function applyCounselStandingPlanBoundary(input: {
+	readonly state: CivilizationState;
+	readonly citizenId: string;
+	readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
+}): CivilizationState {
+	assertCivilizationInvariants(input.state);
+	const mind = input.state.minds[input.citizenId];
+	const plan = mind?.snapshot.standingPlan;
+	const step = plan?.steps.find(({ stepId }) => stepId === plan.currentStepId);
+	if (
+		mind === undefined ||
+		plan === undefined ||
+		step === undefined ||
+		plan.status !== "active" ||
+		step.status !== "active"
+	)
+		throw new Error("ACTION_UNAVAILABLE");
+	const advancedPlan =
+		input.action === "follow-plan"
+			? advanceStandingPlan(plan, step.stepId)
+			: retryStandingPlan(interruptStandingPlan(plan));
+	// Completing the final step at the real daily scheduler boundary rolls the
+	// same routine intent into its next bounded day; it does not manufacture a
+	// new target or change the citizen's chosen goal.
+	const nextPlan =
+		advancedPlan.status === "completed"
+			? {
+					...advancedPlan,
+					version: advancedPlan.version + 1,
+					steps: advancedPlan.steps.map((candidate, index) => ({
+						...candidate,
+						status: index === 0 ? ("active" as const) : ("pending" as const),
+					})),
+					currentStepId: advancedPlan.steps[0]!.stepId,
+					startBoundary: input.state.simulationTime,
+					expiryBoundary: input.state.simulationTime + CIVILIZATION_DAY_SECONDS,
+					retriesRemaining: 1,
+					replansRemaining: 2,
+					status: "active" as const,
+				}
+			: advancedPlan;
+	const next = replaceCivilizationMind(input.state, {
+		...mind,
+		snapshot: { ...mind.snapshot, standingPlan: nextPlan },
+		committedAtRevision: input.state.revision,
+		committedAtSimulationTime: input.state.simulationTime,
+	});
+	assertCivilizationInvariants(next);
+	return next;
 }
 
 export interface CivilizationSponsorSnapshotBoundary {
@@ -579,86 +632,6 @@ const appendUnique = (
 	value: string,
 ): readonly string[] => (values.includes(value) ? values : [...values, value]);
 
-/** Derives the minimum typed Mind needed at a real counsel boundary. */
-function counselMind(
-	state: CivilizationState,
-	citizenId: string,
-): CivilizationMindState | null {
-	const citizen = state.citizens[citizenId];
-	const relationship = Object.values(state.relationships)
-		.sort((left, right) =>
-			left.relationshipId.localeCompare(right.relationshipId),
-		)
-		.find(
-			(item) =>
-				item.fromCitizenId === citizenId &&
-				state.citizens[item.toCitizenId]?.residenceState === "resident" &&
-				state.citizens[item.toCitizenId]?.settlementId ===
-					citizen?.settlementId,
-		);
-	if (
-		citizen === undefined ||
-		relationship === undefined ||
-		citizen.valueIds.length < 1 ||
-		citizen.valueIds.length > 3
-	)
-		return null;
-	const planId = `plan:${citizenId}:counsel-boundary`;
-	const stepId = `${planId}:standing-plan`;
-	return {
-		schemaVersion: "eonfolk-civilization-mind-v1",
-		citizenId,
-		snapshot: {
-			citizenId,
-			values: citizen.valueIds.map((valueId, index) => ({
-				valueId,
-				rank: (index + 1) as 1 | 2 | 3,
-				weight: Math.max(1_000, 3_000 - index * 500),
-			})),
-			relationships: [
-				{
-					relationshipId: relationship.relationshipId,
-					fromCitizenId: citizenId,
-					toCitizenId: relationship.toCitizenId,
-					familiarity: relationship.familiarityBasisPoints,
-					trust: relationship.trustBasisPoints,
-					strain: relationship.strainBasisPoints,
-					lastMaterialEventId: null,
-					visibility: { kind: "citizen-private", subjectCitizenId: citizenId },
-					createdRevision: 0,
-				},
-			],
-			records: [],
-			standingPlan: {
-				planId,
-				version: 1,
-				citizenId,
-				goalType: "meet-daily-needs",
-				targetIds: [relationship.toCitizenId],
-				steps: [
-					{
-						stepId,
-						kind: "Consume",
-						targetIds: ["water"],
-						status: "active",
-						children: [],
-					},
-				],
-				currentStepId: stepId,
-				commitmentId: null,
-				sourceId: CIVILIZATION_SPONSOR_MECHANISM_VERSION,
-				startBoundary: state.simulationTime,
-				expiryBoundary: state.simulationTime + 604_800,
-				retriesRemaining: 1,
-				replansRemaining: 1,
-				status: "active",
-			},
-		},
-		committedAtRevision: state.revision,
-		committedAtSimulationTime: state.simulationTime,
-	};
-}
-
 function applyPayload(
 	state: CivilizationState,
 	payload: CivilizationSponsorEventPayload,
@@ -672,8 +645,8 @@ function applyPayload(
 	if (citizen === undefined || citizen.residenceState !== "resident")
 		throw new Error("ACTION_UNAVAILABLE");
 	let sponsorships = state.sponsorships;
-	let minds = state.minds;
 	let counsels = state.counsels;
+	let minds = state.minds;
 	let mechanismId: string;
 	if (payload.kind === "SponsorshipEstablished") {
 		if (
@@ -708,14 +681,15 @@ function applyPayload(
 			covenant === undefined ||
 			event.causalParents.length !== 1 ||
 			event.causalParents[0]?.eventId !== covenant.sourceEventId ||
-			state.counsels[payload.interventionId] !== undefined
+			state.counsels[payload.interventionId] !== undefined ||
+			Object.values(state.counsels).some(
+				(item) =>
+					item.citizenId === payload.citizenId && item.resolution === null,
+			)
 		)
 			throw new Error("ACTION_UNAVAILABLE");
-		if (minds[payload.citizenId] === undefined) {
-			const derivedMind = counselMind(state, payload.citizenId);
-			if (derivedMind === null) throw new Error("ACTION_UNAVAILABLE");
-			minds = { ...minds, [payload.citizenId]: derivedMind };
-		}
+		const priorMind = state.minds[payload.citizenId];
+		if (priorMind === undefined) throw new Error("ACTION_UNAVAILABLE");
 		const counsel: CivilizationCounselState = {
 			schemaVersion: "eonfolk-civilization-counsel-v1",
 			interventionId: payload.interventionId,
@@ -727,6 +701,39 @@ function applyPayload(
 			resolution: null,
 		};
 		counsels = { ...counsels, [payload.interventionId]: counsel };
+		// The authoritative fact is only that counsel was communicated. Preserve
+		// its substantive claim as a typed allegation in the actor's Mind; it can
+		// unlock investigation or challenge affordances without becoming Reality.
+		const allegation = {
+			recordId: `record:${payload.interventionId}:patron-allegation`,
+			kind: "message-claim" as const,
+			subjectCitizenId: payload.citizenId,
+			proposition:
+				payload.intent === "verify-reserve"
+					? "The patron alleges that the settlement reserve warrants verification."
+					: "The patron alleges that a related citizen warrants a public challenge.",
+			confidence: 5_000,
+			sourceIds: [event.eventId],
+			visibility: {
+				kind: "citizen-private" as const,
+				subjectCitizenId: payload.citizenId,
+			},
+			createdRevision: state.revision + (finalInBatch ? 1 : 0),
+		};
+		minds = {
+			...minds,
+			[payload.citizenId]: {
+				...priorMind,
+				snapshot: {
+					...priorMind.snapshot,
+					records: [...priorMind.snapshot.records, allegation],
+				},
+				// Mind checkpoints are committed against the pre-transition Reality;
+				// the enclosing event advances the civilization revision atomically.
+				committedAtRevision: state.revision,
+				committedAtSimulationTime: state.simulationTime,
+			},
+		};
 		mechanismId = "sponsor.counsel.issued.v1";
 	} else {
 		const counsel =
@@ -821,6 +828,117 @@ function contextMatchesState(
 	});
 }
 
+async function validDecisionRecordBinding(input: {
+	readonly record: CognitiveDecisionRecord;
+	readonly context: DecisionContext;
+	readonly proposal: IntentProposal;
+	readonly wholePreStateHash: string;
+	readonly commandId: string;
+	readonly stage: "authorization" | "committed";
+	readonly receiptRef: string | null;
+	readonly acceptedEventInterval: CommandReceipt["eventInterval"];
+}): Promise<boolean> {
+	const { record, context, proposal } = input;
+	const { decisionRecordHash: digest, ...withoutHash } = record;
+	return (
+		exactKeys(record, [
+			"schemaVersion",
+			"recordVersion",
+			"decisionId",
+			"decisionBoundaryId",
+			"actorId",
+			"runId",
+			"regionId",
+			"revision",
+			"simulationTime",
+			"wholePreStateHash",
+			"decisionReason",
+			"activeStandingPlanId",
+			"activeStandingPlanVersion",
+			"suppliedRecordIds",
+			"readRecordIds",
+			"relationshipIds",
+			"valueIds",
+			"commitmentIds",
+			"contextHash",
+			"actionCatalogHash",
+			"actionCatalogVersion",
+			"budgets",
+			"cognitionConfigurationVersion",
+			"cognitionKind",
+			"provider",
+			"model",
+			"modelVersion",
+			"promptTemplateHash",
+			"proposalSchemaHash",
+			"artifactHash",
+			"proposalCanonicalBytes",
+			"proposalHash",
+			"explanation",
+			"failureCode",
+			"validator",
+			"proposedCommandId",
+			"receiptRef",
+			"acceptedEventInterval",
+			"rationaleTemplateId",
+			"subjectCitizenId",
+			"sensitivity",
+			"provenance",
+			"decisionRecordHash",
+		]) &&
+		exactKeys(record.validator, ["stage", "outcome", "reason"]) &&
+		exactKeys(record.provenance, ["kind", "version"]) &&
+		(await decisionRecordHash(withoutHash)) === digest &&
+		record.schemaVersion === "eonfolk-cognitive-decision-record-v1" &&
+		record.recordVersion === "1" &&
+		identifier(record.decisionBoundaryId) &&
+		record.actorId === context.actorId &&
+		record.runId === context.runId &&
+		record.regionId === context.regionId &&
+		record.revision === context.revision &&
+		record.simulationTime === context.simulationTime &&
+		record.wholePreStateHash === input.wholePreStateHash &&
+		record.decisionReason === context.decisionReason &&
+		record.activeStandingPlanId === context.activeStandingPlan.planId &&
+		record.activeStandingPlanVersion === context.activeStandingPlan.version &&
+		record.contextHash === context.contextHash &&
+		record.actionCatalogHash === context.catalogHash &&
+		record.actionCatalogVersion === context.actionCatalogVersion &&
+		jcs(record.budgets) === jcs(context.budgets) &&
+		record.cognitionConfigurationVersion === COGNITION_VERSION &&
+		record.proposalCanonicalBytes === jcs(proposal) &&
+		record.proposalHash === proposal.proposalHash &&
+		record.proposedCommandId === input.commandId &&
+		record.receiptRef === input.receiptRef &&
+		jcs(record.acceptedEventInterval) === jcs(input.acceptedEventInterval) &&
+		record.failureCode === null &&
+		record.validator.outcome === "accepted" &&
+		record.validator.stage === input.stage &&
+		identifier(record.validator.reason) &&
+		record.cognitionKind === "standard-brain" &&
+		record.provider === null &&
+		record.model === null &&
+		record.modelVersion === null &&
+		record.promptTemplateHash === null &&
+		record.proposalSchemaHash === null &&
+		record.artifactHash === null &&
+		record.explanation !== null &&
+		jcs(record.explanation) === jcs(proposal.explanation) &&
+		record.rationaleTemplateId === proposal.explanation.templateId &&
+		record.subjectCitizenId === context.actorId &&
+		record.sensitivity === "citizen-private-audit" &&
+		jcs(record.provenance) === jcs({ kind: "cognition-audit", version: "1" }) &&
+		jcs(record.suppliedRecordIds) ===
+			jcs(context.visibleRecords.map(({ recordId }) => recordId)) &&
+		jcs(record.readRecordIds) ===
+			jcs(proposal.explanation.visibleRecordIdsRead) &&
+		jcs(record.relationshipIds) ===
+			jcs(proposal.explanation.relationshipIdsRead) &&
+		jcs(record.valueIds) === jcs(proposal.explanation.valueIdsRead) &&
+		jcs(record.commitmentIds) === jcs(proposal.explanation.commitmentIdsRead)
+	);
+}
+
 async function validResolution(
 	state: CivilizationState,
 	command: WorldCommand<
@@ -865,104 +983,18 @@ async function validResolution(
 	if (rebuilt === null || jcs(rebuilt) !== jcs(context)) {
 		return false;
 	}
-	const { decisionRecordHash: digest, ...withoutHash } = record;
 	if (
-		!exactKeys(record, [
-			"schemaVersion",
-			"recordVersion",
-			"decisionId",
-			"decisionBoundaryId",
-			"actorId",
-			"runId",
-			"regionId",
-			"revision",
-			"simulationTime",
-			"wholePreStateHash",
-			"decisionReason",
-			"activeStandingPlanId",
-			"activeStandingPlanVersion",
-			"suppliedRecordIds",
-			"readRecordIds",
-			"relationshipIds",
-			"valueIds",
-			"commitmentIds",
-			"contextHash",
-			"actionCatalogHash",
-			"actionCatalogVersion",
-			"budgets",
-			"cognitionConfigurationVersion",
-			"cognitionKind",
-			"provider",
-			"model",
-			"modelVersion",
-			"promptTemplateHash",
-			"proposalSchemaHash",
-			"artifactHash",
-			"proposalCanonicalBytes",
-			"proposalHash",
-			"explanation",
-			"failureCode",
-			"validator",
-			"proposedCommandId",
-			"receiptRef",
-			"acceptedEventInterval",
-			"rationaleTemplateId",
-			"subjectCitizenId",
-			"sensitivity",
-			"provenance",
-			"decisionRecordHash",
-		]) ||
-		!exactKeys(record.validator, ["stage", "outcome", "reason"]) ||
-		!exactKeys(record.provenance, ["kind", "version"]) ||
-		(await decisionRecordHash(withoutHash)) !== digest ||
-		record.schemaVersion !== "eonfolk-cognitive-decision-record-v1" ||
-		record.recordVersion !== "1" ||
-		!identifier(record.decisionBoundaryId) ||
 		record.decisionId !== command.payload.decisionId ||
-		record.actorId !== context.actorId ||
-		record.runId !== command.runId ||
-		record.regionId !== command.regionId ||
-		record.revision !== state.revision ||
-		record.simulationTime !== state.simulationTime ||
-		record.wholePreStateHash !== wholePreStateHash ||
-		record.decisionReason !== context.decisionReason ||
-		record.activeStandingPlanId !== context.activeStandingPlan.planId ||
-		record.activeStandingPlanVersion !== context.activeStandingPlan.version ||
-		record.contextHash !== context.contextHash ||
-		record.actionCatalogHash !== context.catalogHash ||
-		record.actionCatalogVersion !== context.actionCatalogVersion ||
-		jcs(record.budgets) !== jcs(context.budgets) ||
-		record.cognitionConfigurationVersion !== COGNITION_VERSION ||
-		record.proposalCanonicalBytes !== jcs(proposal) ||
-		record.proposalHash !== proposal.proposalHash ||
-		record.proposedCommandId !== command.commandId ||
-		record.receiptRef !== null ||
-		record.acceptedEventInterval !== null ||
-		record.failureCode !== null ||
-		record.validator.outcome !== "accepted" ||
-		record.validator.stage !== "authorization" ||
-		!identifier(record.validator.reason) ||
-		record.cognitionKind !== "standard-brain" ||
-		record.provider !== null ||
-		record.model !== null ||
-		record.modelVersion !== null ||
-		record.promptTemplateHash !== null ||
-		record.proposalSchemaHash !== null ||
-		record.artifactHash !== null ||
-		record.explanation === null ||
-		jcs(record.explanation) !== jcs(proposal.explanation) ||
-		record.rationaleTemplateId !== proposal.explanation.templateId ||
-		record.subjectCitizenId !== context.actorId ||
-		record.sensitivity !== "citizen-private-audit" ||
-		jcs(record.provenance) !== jcs({ kind: "cognition-audit", version: "1" }) ||
-		jcs(record.suppliedRecordIds) !==
-			jcs(context.visibleRecords.map(({ recordId }) => recordId)) ||
-		jcs(record.readRecordIds) !==
-			jcs(proposal.explanation.visibleRecordIdsRead) ||
-		jcs(record.relationshipIds) !==
-			jcs(proposal.explanation.relationshipIdsRead) ||
-		jcs(record.valueIds) !== jcs(proposal.explanation.valueIdsRead) ||
-		jcs(record.commitmentIds) !== jcs(proposal.explanation.commitmentIdsRead)
+		!(await validDecisionRecordBinding({
+			record,
+			context,
+			proposal,
+			wholePreStateHash,
+			commandId: command.commandId,
+			stage: "authorization",
+			receiptRef: null,
+			acceptedEventInterval: null,
+		}))
 	)
 		return false;
 	const action = proposal.action;
@@ -1000,6 +1032,135 @@ async function validResolution(
 	);
 }
 
+/** Revalidates the exact finalized cognition bytes stored beside a sponsor event. */
+export async function validateCommittedCivilizationDecisionRecord(input: {
+	readonly state: CivilizationState;
+	readonly event: unknown;
+	readonly commandReceipt: unknown;
+	readonly decisionRecord: unknown;
+}): Promise<boolean> {
+	assertCivilizationInvariants(input.state);
+	const event = await parseCivilizationSponsorEvent(
+		input.event,
+		input.state.simulationTime,
+	);
+	if (
+		event?.eventPayload.kind !== "CounselInterpreted" ||
+		event.provenance.kind !== "cognition" ||
+		input.commandReceipt === null ||
+		typeof input.commandReceipt !== "object" ||
+		Array.isArray(input.commandReceipt) ||
+		input.decisionRecord === null ||
+		typeof input.decisionRecord !== "object" ||
+		Array.isArray(input.decisionRecord)
+	)
+		return false;
+	const receipt = input.commandReceipt as CommandReceipt;
+	const record = input.decisionRecord as CognitiveDecisionRecord;
+	const decisionId = event.provenance.decisionId;
+	const proposalId = event.provenance.proposalId;
+	const interventionId = event.eventPayload.interventionId;
+	if (
+		!identifier(decisionId) ||
+		!identifier(proposalId) ||
+		!identifier(interventionId)
+	)
+		return false;
+	const payload: Extract<SponsorCommandPayload, { kind: "ResolveCounsel" }> = {
+		kind: "ResolveCounsel",
+		citizenId: event.eventPayload.citizenId,
+		interventionId: event.eventPayload.interventionId,
+		decisionId,
+		proposalId,
+		action: event.eventPayload.action,
+	};
+	if (
+		!exactKeys(receipt, [
+			"schemaVersion",
+			"runId",
+			"regionId",
+			"commandId",
+			"payloadFingerprint",
+			"principal",
+			"expectedRevision",
+			"actualRevision",
+			"outcome",
+			"eventInterval",
+			"rejectionCode",
+			"resultingRevision",
+			"resultingWorldHeadHash",
+			"createdSimulationTime",
+			"fencingToken",
+		]) ||
+		receipt.schemaVersion !== "eonfolk-command-receipt-v1" ||
+		receipt.runId !== event.runId ||
+		receipt.regionId !== event.regionId ||
+		receipt.expectedRevision !== input.state.revision ||
+		receipt.actualRevision !== input.state.revision ||
+		receipt.outcome !== "accepted" ||
+		receipt.rejectionCode !== null ||
+		receipt.resultingRevision !== input.state.revision + 1 ||
+		receipt.createdSimulationTime !== input.state.simulationTime ||
+		receipt.principal.kind !== "citizen" ||
+		receipt.principal.principalId !== event.eventPayload.citizenId ||
+		jcs(receipt.eventInterval) !==
+			jcs({
+				fromSequenceInclusive: event.sequence,
+				toSequenceExclusive: event.sequence + 1,
+				eventIds: [event.eventId],
+			}) ||
+		(await payloadFingerprint(payload)) !== receipt.payloadFingerprint ||
+		record.decisionId !== event.provenance.decisionId
+	)
+		return false;
+	let proposal: IntentProposal;
+	try {
+		proposal = JSON.parse(
+			record.proposalCanonicalBytes ?? "",
+		) as IntentProposal;
+	} catch {
+		return false;
+	}
+	const context = await buildCivilizationCounselDecisionContext({
+		state: input.state,
+		runId: event.runId,
+		regionId: event.regionId,
+		citizenId: event.eventPayload.citizenId,
+		interventionId,
+		decisionId,
+	});
+	if (
+		context === null ||
+		proposal.proposalId !== event.provenance.proposalId ||
+		proposal.explanation.counselDisposition !==
+			event.eventPayload.disposition ||
+		(await validateIntentProposal(context, proposal)) !== "accepted"
+	)
+		return false;
+	const action = proposal.action;
+	const actionKind =
+		action.kind === "VerifyReserve"
+			? "verify-reserve"
+			: action.kind === "AccusePublicly"
+				? "accuse-publicly"
+				: action.kind === "FollowStandingPlan"
+					? "follow-plan"
+					: null;
+	return (
+		actionKind === event.eventPayload.action &&
+		(await validDecisionRecordBinding({
+			record,
+			context,
+			proposal,
+			wholePreStateHash: event.preStateHash,
+			commandId: receipt.commandId,
+			stage: "committed",
+			receiptRef: receipt.commandId,
+			acceptedEventInterval: receipt.eventInterval,
+		}))
+	);
+}
+
 /** Reality-owned visibility projection; Application may pass only this to Brain. */
 export async function buildCivilizationCounselDecisionContext(input: {
 	readonly state: CivilizationState;
@@ -1024,15 +1185,19 @@ export async function buildCivilizationCounselDecisionContext(input: {
 	)
 		return null;
 	const actor = input.state.citizens[mind.citizenId];
-	const targetId = mind.standingPlan.targetIds.find(
-		(candidate) =>
-			candidate !== mind.citizenId &&
-			input.state.citizens[candidate]?.residenceState === "resident" &&
-			input.state.citizens[candidate]?.settlementId === actor?.settlementId,
-	);
-	const relationship = mind.relationships.find(
-		(item) => item.toCitizenId === targetId,
-	);
+	const relationship = [...mind.relationships]
+		.sort((left, right) =>
+			left.relationshipId.localeCompare(right.relationshipId),
+		)
+		.find(
+			(item) =>
+				item.fromCitizenId === mind.citizenId &&
+				input.state.citizens[item.toCitizenId]?.residenceState === "resident" &&
+				input.state.citizens[item.toCitizenId]?.settlementId ===
+					actor?.settlementId &&
+				input.state.citizens[item.toCitizenId]?.siteId === actor?.siteId,
+		);
+	const targetId = relationship?.toCitizenId;
 	if (
 		actor === undefined ||
 		targetId === undefined ||
@@ -1056,14 +1221,28 @@ export async function buildCivilizationCounselDecisionContext(input: {
 				record.kind === "message-claim") &&
 			record.confidence !== null,
 	);
+	const independentEvidenceRecords = legalEvidenceRecords.filter(
+		({ kind }) => kind !== "message-claim",
+	);
 	const catalog = civilizationCounselAffordances({
 		targetCitizenId: targetId,
 		planId: mind.standingPlan.planId,
 		relationshipId: relationship.relationshipId,
-		evidenceRecordIds: legalEvidenceRecords
+		verificationRecordIds: (counsel.intent === "verify-reserve"
+			? legalEvidenceRecords
+			: independentEvidenceRecords
+		)
+			.map(({ recordId }) => recordId)
+			.sort(),
+		accusationRecordIds: independentEvidenceRecords
 			.map(({ recordId }) => recordId)
 			.sort(),
 		counselIntent: counsel.intent,
+		followDisposition: mind.values.some(({ valueId }) =>
+			["continuity", "prudence", "reliability"].includes(valueId),
+		)
+			? "delayed"
+			: "rejected",
 	});
 	return buildDecisionContext({
 		contextId: `context:${input.decisionId}`,
@@ -1135,13 +1314,15 @@ async function pending(
 			covenant.settlementId !== actor.settlementId
 		)
 			return "INVALID_PRINCIPAL";
-		if (state.counsels[command.payload.interventionId] !== undefined)
-			return "NO_OP";
 		if (
-			state.minds[actor.citizenId] === undefined &&
-			counselMind(state, actor.citizenId) === null
+			state.counsels[command.payload.interventionId] !== undefined ||
+			Object.values(state.counsels).some(
+				(item) =>
+					item.citizenId === actor.citizenId && item.resolution === null,
+			)
 		)
-			return "ACTION_UNAVAILABLE";
+			return "NO_OP";
+		if (state.minds[actor.citizenId] === undefined) return "ACTION_UNAVAILABLE";
 		return {
 			payload: {
 				kind: "CounselIssued",

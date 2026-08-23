@@ -2,12 +2,15 @@ import {
 	advanceGeneralizedScheduler,
 	assertCivilizationInvariants,
 	deriveCivilizationSchedulerPolicy,
+	projectCivilizationScheduledActivities,
 	type CivilizationState,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
 import {
 	applyCivilizationSponsorEvent,
+	applyCounselStandingPlanBoundary,
 	parseCivilizationSponsorEvent,
+	validateCommittedCivilizationDecisionRecord,
 } from "@eonfolk/civilization/sponsor";
 import {
 	batchId as protocolBatchId,
@@ -19,7 +22,6 @@ import { canonicalJson, cloneValue } from "./codec.js";
 import {
 	RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
 	RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
-	type CivilizationJsonPatchOperation,
 	type ReleaseGenesisCivilizationState,
 } from "./civilization.js";
 import { PersistenceError } from "./errors.js";
@@ -28,7 +30,9 @@ import { createAuthorityEvent, hashAuthoritativeState } from "./versioned.js";
 import {
 	type AppendAuthorityBatchRequest,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	type AuthorityHead,
+	type RecordRejectedAuthorityCommandRequest,
 } from "./versioned-types.js";
 
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
@@ -38,11 +42,32 @@ export interface CivilizationSponsorAuthorityAppend {
 	readonly request: AppendAuthorityBatchRequest;
 }
 
+export interface CivilizationSponsorRejectionAppend {
+	readonly state: ReleaseGenesisCivilizationState;
+	readonly request: RecordRejectedAuthorityCommandRequest;
+}
+
 export interface CivilizationCounselBoundaryFact {
-	readonly schemaVersion: "eonfolk-counsel-boundary-fact-v1";
+	readonly schemaVersion: "eonfolk-counsel-boundary-fact-v3";
 	readonly citizenId: string;
 	readonly interventionId: string;
 	readonly interpretationEventId: string;
+	readonly interpretationAction:
+		| "verify-reserve"
+		| "accuse-publicly"
+		| "follow-plan";
+	readonly interpretationDisposition:
+		| "accepted"
+		| "delayed"
+		| "rejected"
+		| "reinterpreted";
+	readonly causalRelation: "contributing-condition" | "temporal-predecessor";
+	readonly routineKind: SchedulerRoutineDecision["kind"];
+	readonly routineSubjectId: string;
+	readonly planRoutineKind: SchedulerRoutineDecision["kind"];
+	readonly planRoutineSubjectId: string;
+	readonly consequenceKind: "routine-continued" | "routine-reassigned";
+	readonly schedulerActionKinds: readonly string[];
 	readonly simulationTime: number;
 	readonly requiredNeedUnits: number;
 	readonly consumedNeedUnits: number;
@@ -173,18 +198,6 @@ function validateState(value: ReleaseGenesisCivilizationState) {
 	return value;
 }
 
-function acceptedPatch(
-	current: ReleaseGenesisCivilizationState,
-	postCivilization: JsonValue,
-): readonly CivilizationJsonPatchOperation[] {
-	const patch: CivilizationJsonPatchOperation[] = [
-		{ op: "set", path: ["civilization"], value: postCivilization },
-	];
-	if (current.phase !== "active")
-		patch.push({ op: "set", path: ["phase"], value: "active" });
-	return patch;
-}
-
 function decisionJson(value: unknown | null): JsonValue | null {
 	return value === null ? null : json(value, "sponsor decision record");
 }
@@ -194,7 +207,7 @@ export async function createCivilizationSponsorRejectionAppend(input: {
 	readonly head: AuthorityHead;
 	readonly commandReceipt: unknown;
 	readonly decisionRecord: unknown | null;
-}): Promise<CivilizationSponsorAuthorityAppend> {
+}): Promise<CivilizationSponsorRejectionAppend> {
 	const current = validateState(input.state);
 	if (input.decisionRecord !== null) fail("INVALID_INPUT", "CSP");
 	assertCivilizationInvariants(
@@ -214,48 +227,22 @@ export async function createCivilizationSponsorRejectionAppend(input: {
 	)
 		fail("INVALID_INPUT", "CSP");
 	const appendId = string(receipt.commandId, "sponsor commandId");
-	const batchId = `rejected:${appendId}`;
-	const event = await createAuthorityEvent({
-		...input.head,
-		appendId,
-		batchId,
-		eventId: batchId,
-		sequence: input.head.lastSequence + 1,
-		eventType: "CivilizationSponsorCommandRejected",
-		causalParents: [],
-		visibility: { kind: "authority-only" },
-		provenance: {
-			mechanismId: "sponsor.command.rejected.v1",
-			cognitionDecisionId: null,
-			brainKind: null,
-		},
-		preStateHash: input.head.stateHash,
-		postStateHash: input.head.stateHash,
-		previousEventHash: input.head.lastEventHash,
-		payload: {
-			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
-			transitionKind: "sponsor-rejected",
-			patch: [],
-		},
-	});
 	const durableReceipt = json(
-		{ ...receipt, resultingWorldHeadHash: event.eventHash },
+		{ ...receipt, resultingWorldHeadHash: input.head.lastEventHash },
 		"durable rejected sponsor receipt",
 	);
 	return {
 		state: current,
 		request: {
-			schemaVersion: AUTHORITY_APPEND_SCHEMA_VERSION,
+			schemaVersion: AUTHORITY_REJECTION_SCHEMA_VERSION,
 			runId: input.head.runId,
 			regionId: input.head.regionId,
 			appendId,
-			batchId,
 			expectedRevision: input.head.revision,
 			expectedLastSequence: input.head.lastSequence,
 			expectedStateHash: input.head.stateHash,
 			expectedLastEventHash: input.head.lastEventHash,
 			fencingToken: input.head.fencingToken,
-			events: [event],
 			commandReceipt: durableReceipt,
 			decisionRecord: decisionJson(input.decisionRecord),
 		},
@@ -372,29 +359,14 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 	)
 		fail("INVALID_INPUT", "CSP");
 	if (provenance.kind === "cognition") {
-		const decision = record(input.decisionRecord, "committed sponsor decision");
 		if (
-			decision.schemaVersion !== "eonfolk-cognitive-decision-record-v1" ||
-			decision.recordVersion !== "1" ||
-			decision.decisionId !== provenance.decisionId ||
-			decision.wholePreStateHash !== protocolEvent.preStateHash ||
-			decision.proposedCommandId !== receipt.commandId ||
-			decision.receiptRef !== receipt.commandId ||
-			canonicalJson(decision.acceptedEventInterval as JsonValue) !==
-				canonicalJson(receipt.eventInterval as JsonValue) ||
-			record(decision.validator, "committed sponsor decision validator")
-				.stage !== "committed" ||
-			record(decision.validator, "committed sponsor decision validator")
-				.outcome !== "accepted"
+			!(await validateCommittedCivilizationDecisionRecord({
+				state: civilization,
+				event: protocolEvent,
+				commandReceipt: receipt,
+				decisionRecord: input.decisionRecord,
+			}))
 		)
-			fail("INVALID_INPUT", "CSP");
-		const proposal = record(
-			JSON.parse(
-				string(decision.proposalCanonicalBytes, "committed proposal bytes"),
-			),
-			"committed sponsor proposal",
-		);
-		if (proposal.proposalId !== provenance.proposalId)
 			fail("INVALID_INPUT", "CSP");
 	} else if (input.decisionRecord !== null) {
 		fail("INVALID_INPUT", "CSP");
@@ -477,7 +449,8 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 			transitionKind: "sponsor",
 			protocolEvent: json(input.protocolEvent, "protocol sponsor event"),
-			patch: acceptedPatch(current, postCivilization),
+			commandReceipt: json(receipt, "protocol sponsor receipt"),
+			decisionRecord: decisionJson(input.decisionRecord),
 		},
 	});
 	const durableReceipt = json(
@@ -505,9 +478,10 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 }
 
 /**
- * Advances one real model-free scheduler boundary from a committed delayed
- * FollowStandingPlan interpretation. The persisted event contains the derived
- * actions for audit, but replay recomputes them from Reality and policy.
+ * Advances one real model-free scheduler boundary after interpretation. The
+ * scheduler consequence is derived independently. A non-plan interpretation
+ * can be a contributing condition for a routine reassignment; merely
+ * continuing the existing plan is recorded only as a temporal predecessor.
  */
 export async function createCivilizationCounselBoundaryAppend(input: {
 	readonly state: ReleaseGenesisCivilizationState;
@@ -536,36 +510,84 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 	const step = plan?.steps.find(({ stepId }) => stepId === plan.currentStepId);
 	if (
 		counsel?.citizenId !== input.citizenId ||
-		resolution?.action !== "follow-plan" ||
-		resolution.disposition !== "delayed" ||
+		resolution === null ||
+		resolution === undefined ||
 		plan === undefined ||
 		plan.status !== "active" ||
-		step?.status !== "active" ||
-		step.kind !== "Consume" ||
-		(step.targetIds[0] !== "food" && step.targetIds[0] !== "water")
+		plan.expiryBoundary < civilization.simulationTime ||
+		step?.status !== "active"
 	)
+		fail("INVALID_INPUT", "CSP");
+	const routineKind =
+		step.kind === "Produce"
+			? "produce"
+			: step.kind === "TransportResource"
+				? "transport"
+				: step.kind === "WorkProject"
+					? "construct"
+					: step.kind === "Consume"
+						? "consume"
+						: step.kind === "JoinMigration"
+							? "travel"
+							: step.kind === "Away"
+								? "away"
+								: "social-maintenance";
+	const relationshipTarget = [...mind!.snapshot.relationships]
+		.sort((left, right) =>
+			left.relationshipId.localeCompare(right.relationshipId),
+		)
+		.find(
+			(relationship) =>
+				relationship.fromCitizenId === input.citizenId &&
+				civilization.citizens[relationship.toCitizenId]?.residenceState ===
+					"resident" &&
+				civilization.citizens[relationship.toCitizenId]?.settlementId ===
+					civilization.citizens[input.citizenId]?.settlementId,
+		)?.toCitizenId;
+	if (resolution.action !== "follow-plan" && relationshipTarget === undefined)
 		fail("INVALID_INPUT", "CSP");
 	const routineDecision: SchedulerRoutineDecision = {
 		schemaVersion: "eonfolk-civilization-routine-decision-v1",
 		citizenId: input.citizenId,
-		actionId: `follow:${plan.planId}`,
+		actionId:
+			resolution.action === "follow-plan"
+				? `follow:${plan.planId}`
+				: `counsel:${resolution.action}:${input.interventionId}`,
 		activeStandingPlanId: plan.planId,
-		kind: "consume",
-		subjectId: step.targetIds[0],
+		kind:
+			resolution.action === "follow-plan" ? routineKind : "social-maintenance",
+		subjectId:
+			resolution.action === "follow-plan"
+				? (step.targetIds[0] ?? input.citizenId)
+				: relationshipTarget!,
 	};
+	const routineDecisions = [routineDecision];
 	const policy = deriveCivilizationSchedulerPolicy(
 		current.world as unknown as GeneratedWorldState,
 	);
 	let derived: ReturnType<typeof advanceGeneralizedScheduler>;
 	try {
-		derived = advanceGeneralizedScheduler(civilization, policy, [
-			routineDecision,
-		]);
+		derived = advanceGeneralizedScheduler(
+			civilization,
+			policy,
+			routineDecisions,
+		);
 		assertCivilizationInvariants(derived.state);
 	} catch {
 		fail("INVALID_INPUT", "CSP");
 	}
-	const outcome = derived.state.needOutcomes
+	let derivedState = derived.state;
+	try {
+		derivedState = applyCounselStandingPlanBoundary({
+			state: derivedState,
+			citizenId: input.citizenId,
+			action: resolution.action,
+		});
+		assertCivilizationInvariants(derivedState);
+	} catch {
+		fail("INVALID_INPUT", "CSP");
+	}
+	const outcome = derivedState.needOutcomes
 		.filter(
 			(candidate) =>
 				candidate.citizenId === input.citizenId &&
@@ -574,10 +596,28 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		.at(-1);
 	if (outcome === undefined) fail("INVALID_INPUT", "CSP");
 	const fact: CivilizationCounselBoundaryFact = {
-		schemaVersion: "eonfolk-counsel-boundary-fact-v1",
+		schemaVersion: "eonfolk-counsel-boundary-fact-v3",
 		citizenId: input.citizenId,
 		interventionId: input.interventionId,
 		interpretationEventId: resolution.sourceEventId,
+		interpretationAction: resolution.action,
+		interpretationDisposition: resolution.disposition,
+		causalRelation:
+			resolution.action === "follow-plan"
+				? "temporal-predecessor"
+				: "contributing-condition",
+		routineKind: routineDecision.kind,
+		routineSubjectId: routineDecision.subjectId,
+		planRoutineKind: routineKind,
+		planRoutineSubjectId: step.targetIds[0] ?? input.citizenId,
+		consequenceKind:
+			routineDecision.kind === routineKind &&
+			routineDecision.subjectId === (step.targetIds[0] ?? input.citizenId)
+				? "routine-continued"
+				: "routine-reassigned",
+		schedulerActionKinds: [
+			...new Set(derived.actions.map(({ kind }) => kind)),
+		].sort(),
 		simulationTime: derived.state.simulationTime,
 		requiredNeedUnits: outcome.foodRequiredUnits + outcome.waterRequiredUnits,
 		consumedNeedUnits: outcome.foodConsumedUnits + outcome.waterConsumedUnits,
@@ -589,12 +629,19 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 	};
 	const next: ReleaseGenesisCivilizationState = {
 		...current,
-		civilization: json(derived.state, "boundary civilization"),
+		civilization: json(derivedState, "boundary civilization"),
 		scheduler: {
 			completedDay: current.scheduler.completedDay + 1,
 			simulationTime: derived.state.simulationTime,
 			modelInvocations: 0,
-			activities: json(derived.routines, "boundary routines"),
+			activities: json(
+				projectCivilizationScheduledActivities({
+					state: derivedState,
+					world: current.world as unknown as GeneratedWorldState,
+					routines: derived.routines,
+				}),
+				"boundary activities",
+			),
 		},
 	};
 	const appendId = `boundary:${input.interventionId}:1`;
@@ -612,7 +659,10 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		simulationTime: derived.state.simulationTime,
 		eventType: "CivilizationCounselBoundaryCommitted",
 		causalParents: [
-			{ eventId: resolution.sourceEventId, relation: "contributing-condition" },
+			{
+				eventId: resolution.sourceEventId,
+				relation: fact.causalRelation,
+			},
 		],
 		visibility: {
 			kind: "patron-visible-through-covenant",
@@ -633,18 +683,6 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 			routineDecision: json(routineDecision, "boundary routine decision"),
 			schedulerActions: json(derived.actions, "boundary actions"),
 			schedulerRoutines: json(derived.routines, "boundary routines"),
-			patch: [
-				{
-					op: "set",
-					path: ["civilization"],
-					value: json(derived.state, "boundary civilization"),
-				},
-				{
-					op: "set",
-					path: ["scheduler"],
-					value: json(next.scheduler, "boundary scheduler"),
-				},
-			],
 		},
 	});
 	return {

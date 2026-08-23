@@ -202,14 +202,18 @@ export function civilizationCounselAffordances(input: {
 	readonly targetCitizenId: string;
 	readonly planId: string;
 	readonly relationshipId: string;
-	readonly evidenceRecordIds: readonly string[];
+	/** Readable claims or direct evidence are enough to authorize investigation. */
+	readonly verificationRecordIds: readonly string[];
+	/** Public accusation requires independently sourced non-claim evidence. */
+	readonly accusationRecordIds: readonly string[];
 	readonly counselIntent: "verify-reserve" | "accuse-publicly";
+	readonly followDisposition: "delayed" | "rejected";
 }): readonly ActionCatalogEntry[] {
-	const evidenceAction: ActionCatalogEntry | null =
-		input.evidenceRecordIds.length === 0
-			? null
-			: input.counselIntent === "verify-reserve"
-				? {
+	const verificationActions: readonly ActionCatalogEntry[] =
+		input.verificationRecordIds.length === 0
+			? []
+			: [
+					{
 						actionId: "action-verify-reserve",
 						action: {
 							kind: "VerifyReserve",
@@ -221,12 +225,17 @@ export function civilizationCounselAffordances(input: {
 							"may gather stronger evidence",
 						],
 						tags: ["caution", "evidence", "relationship", "counsel"],
-						evidenceRecordIds: input.evidenceRecordIds,
+						evidenceRecordIds: input.verificationRecordIds,
 						relationshipId: input.relationshipId,
 						risk: 200,
 						counselAffinity: "verify-reserve",
-					}
-				: {
+					},
+				];
+	const accusationActions: readonly ActionCatalogEntry[] =
+		input.accusationRecordIds.length === 0
+			? []
+			: [
+					{
 						actionId: "action-accuse-publicly",
 						action: {
 							kind: "AccusePublicly",
@@ -238,13 +247,15 @@ export function civilizationCounselAffordances(input: {
 							"risks relationship strain",
 						],
 						tags: ["candor", "evidence", "risk", "counsel"],
-						evidenceRecordIds: input.evidenceRecordIds,
+						evidenceRecordIds: input.accusationRecordIds,
 						relationshipId: input.relationshipId,
 						risk: 500,
 						counselAffinity: "accuse-publicly",
-					};
+					},
+				];
 	return [
-		...(evidenceAction === null ? [] : [evidenceAction]),
+		...verificationActions,
+		...accusationActions,
 		{
 			actionId: "action-follow-plan",
 			action: { kind: "FollowStandingPlan", planId: input.planId },
@@ -253,7 +264,11 @@ export function civilizationCounselAffordances(input: {
 				"preserves current commitments",
 				"defers counsel until another decision boundary",
 			],
-			tags: ["commitment", "relationship", "delay"],
+			tags: [
+				"commitment",
+				"relationship",
+				...(input.followDisposition === "delayed" ? (["delay"] as const) : []),
+			],
 			evidenceRecordIds: [],
 			relationshipId: input.relationshipId,
 			risk: 100,

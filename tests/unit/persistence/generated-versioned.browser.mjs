@@ -46,6 +46,8 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 			restoredGenesisIdempotently: true,
 			replayedCount: 3,
 			replayedSuffixEvents: 1,
+			rejectionHeadUnchanged: true,
+			rejectionRetryIdempotent: true,
 			retryIdempotent: true,
 			revisionAfterAbort: 2,
 			staleFenceCode: "STALE_FENCE",

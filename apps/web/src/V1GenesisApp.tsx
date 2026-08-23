@@ -24,6 +24,7 @@ import {
 import {
 	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
+	refreshGeneratedWorldExperience,
 } from "./generated-world-runtime";
 
 let generatedWorldCanvasModule:
@@ -57,6 +58,7 @@ function readableId(value: string): string {
 function useGeneratedExperience(): {
 	readonly experience: GeneratedWorldExperience | null;
 	readonly error: Error | null;
+	readonly refresh: (expectedStateHash?: string) => Promise<void>;
 } {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
@@ -81,7 +83,25 @@ function useGeneratedExperience(): {
 			active = false;
 		};
 	}, []);
-	return { experience, error };
+	return {
+		experience,
+		error,
+		refresh: async (expectedStateHash) => {
+			for (let attempt = 0; attempt < 2; attempt += 1) {
+				const next = await refreshGeneratedWorldExperience();
+				if (
+					expectedStateHash === undefined ||
+					next.stateHash === expectedStateHash
+				) {
+					setExperience(next);
+					return;
+				}
+			}
+			throw new Error(
+				"The projection did not reach the committed authority head",
+			);
+		},
+	};
 }
 
 function useGeneratedAsset(): GeneratedAssetState {
@@ -319,6 +339,7 @@ function GeneratedContextPanel({
 	onStepPresentation,
 	authorityRegionId,
 	authorityDatabaseName,
+	sponsorCitizenId,
 	persistenceAvailable,
 	onAuthorityCommitted,
 }: {
@@ -333,24 +354,45 @@ function GeneratedContextPanel({
 	readonly onStepPresentation: () => void;
 	readonly authorityRegionId: string;
 	readonly authorityDatabaseName: string;
+	readonly sponsorCitizenId: string;
 	readonly persistenceAvailable: boolean;
-	readonly onAuthorityCommitted: (stateHash: string) => void;
+	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
 	const [shareArtifact, setShareArtifact] = useState("");
+	const [chronicleBeats, setChronicleBeats] = useState<
+		readonly {
+			readonly text: string;
+			readonly relation: string;
+			readonly evidenceEventIds: readonly string[];
+			readonly citizenId: string;
+		}[]
+	>([]);
+	const [activeIntent, setActiveIntent] = useState<
+		"verify-reserve" | "accuse-publicly"
+	>("verify-reserve");
+	const [copyStatus, setCopyStatus] = useState("");
+	const [authorityRefreshing, setAuthorityRefreshing] = useState(false);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
 		selectedCitizenId === null
 			? undefined
 			: model.actors.find(({ citizenId }) => citizenId === selectedCitizenId);
+	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	useEffect(() => {
 		setSponsorStatus("idle");
 		setChronicleTrace("");
 		setShareArtifact("");
+		setChronicleBeats([]);
+		setCopyStatus("");
+		setAuthorityRefreshing(false);
 	}, [selectedCitizenId]);
-	const commitSponsor = (step: "establish" | "counsel" | "resolve") => {
+	const commitSponsor = (
+		step: "establish" | "counsel" | "resolve",
+		intent = activeIntent,
+	) => {
 		if (selectedActor === undefined) return;
 		setSponsorStatus(
 			step === "establish"
@@ -366,25 +408,30 @@ function GeneratedContextPanel({
 					regionId: authorityRegionId,
 					databaseName: authorityDatabaseName,
 					step,
+					intent,
 				}),
 			)
-			.then(
-				(result) => {
-					setChronicleTrace(result.chronicleTrace);
-					setShareArtifact(result.shareArtifact ?? "");
-					onAuthorityCommitted(result.authorityStateHash);
-					setSponsorStatus(result.phase);
-				},
-				(reason: unknown) => {
-					if (step !== "establish")
-						setChronicleTrace(
-							reason instanceof Error
-								? `${reason.message}; prior state preserved.`
-								: "Action unavailable; prior state preserved.",
-						);
-					setSponsorStatus(step === "establish" ? "failed" : "sponsored");
-				},
-			);
+			.then(async (result) => {
+				setChronicleTrace(result.chronicleTrace);
+				setShareArtifact(result.shareArtifact ?? "");
+				setChronicleBeats(result.chronicleBeats);
+				setSponsorStatus(result.phase);
+				if (!result.idempotent || step === "resolve") {
+					setAuthorityRefreshing(true);
+					await onAuthorityCommitted(result.authorityStateHash);
+					setAuthorityRefreshing(false);
+				}
+			})
+			.then(undefined, (reason: unknown) => {
+				setAuthorityRefreshing(false);
+				if (step !== "establish")
+					setChronicleTrace(
+						reason instanceof Error
+							? `${reason.message}; prior state preserved.`
+							: "Action unavailable; prior state preserved.",
+					);
+				setSponsorStatus(step === "establish" ? "failed" : "sponsored");
+			});
 	};
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
@@ -430,6 +477,10 @@ function GeneratedContextPanel({
 							{actorActivity(selectedActor, projection)}, or pause to examine
 							your counsel without any guarantee they will follow it.
 						</p>
+						<p className="v1-local-disclosure">
+							This world is stored only in this browser. There is no account,
+							cloud backup, or recovery copy.
+						</p>
 						<div className="v1-focus-actions">
 							<button
 								type="button"
@@ -448,6 +499,8 @@ function GeneratedContextPanel({
 								type="button"
 								disabled={
 									!persistenceAvailable ||
+									!canSponsor ||
+									authorityRefreshing ||
 									sponsorStatus === "saving" ||
 									sponsorStatus === "counseling" ||
 									sponsorStatus === "returning" ||
@@ -472,19 +525,43 @@ function GeneratedContextPanel({
 												: "Sponsor this person"}
 							</button>
 						</div>
+						{canSponsor ? null : (
+							<p>
+								This resident has no local counsel relationship at this
+								boundary.
+							</p>
+						)}
 						{sponsorStatus === "confirming" ? (
 							<section aria-label="Counsel stakes">
-								<h3>Verify before acting?</h3>
+								<h3>Choose a consequential counsel</h3>
 								<p>
-									This asks them to inspect what they can actually know. It may
-									delay their current plan, and they may reinterpret or refuse
-									it.
+									They may accept, reject, delay, or reinterpret either request.
+									Their existing values, visible evidence, and active plan
+									decide.
 								</p>
-								<button type="button" onClick={() => commitSponsor("counsel")}>
-									Confirm counsel
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => {
+										setActiveIntent("verify-reserve");
+										commitSponsor("counsel", "verify-reserve");
+									}}
+								>
+									Verify the evidence first — delays a conclusion
 								</button>
 								<button
 									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => {
+										setActiveIntent("accuse-publicly");
+										commitSponsor("counsel", "accuse-publicly");
+									}}
+								>
+									Confront them publicly — risks trust
+								</button>
+								<button
+									type="button"
+									disabled={authorityRefreshing}
 									onClick={() => {
 										setChronicleTrace(
 											"You withheld counsel. No canonical command was issued.",
@@ -502,7 +579,11 @@ function GeneratedContextPanel({
 									The counsel is recorded. The citizen has not interpreted it
 									yet.
 								</p>
-								<button type="button" onClick={() => commitSponsor("resolve")}>
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => commitSponsor("resolve", activeIntent)}
+								>
 									Return at the next decision boundary
 								</button>
 							</section>
@@ -516,6 +597,62 @@ function GeneratedContextPanel({
 							<section aria-label="Shareable factual replay">
 								<h3>Share this factual trace</h3>
 								<pre>{shareArtifact}</pre>
+								<details>
+									<summary>Inspect Chronicle evidence</summary>
+									<ol>
+										{chronicleBeats.map((beat) => (
+											<li
+												key={`${beat.relation}:${beat.evidenceEventIds.join(":")}`}
+											>
+												<p>{beat.text}</p>
+												<code>{beat.relation}</code>
+												<ul>
+													{beat.evidenceEventIds.map((eventId) => (
+														<li key={eventId}>{eventId}</li>
+													))}
+												</ul>
+												<button
+													type="button"
+													onClick={() =>
+														dispatch({
+															type: "select-citizen",
+															citizenId: beat.citizenId,
+														})
+													}
+												>
+													Show affected citizen
+												</button>
+											</li>
+										))}
+									</ol>
+								</details>
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => {
+										void navigator.clipboard.writeText(shareArtifact).then(
+											() => setCopyStatus("Factual trace copied."),
+											() => setCopyStatus("Copy unavailable on this device."),
+										);
+									}}
+								>
+									Copy factual trace
+								</button>
+								{copyStatus === "" ? null : <p role="status">{copyStatus}</p>}
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => {
+										setActiveIntent(
+											activeIntent === "verify-reserve"
+												? "accuse-publicly"
+												: "verify-reserve",
+										);
+										setSponsorStatus("confirming");
+									}}
+								>
+									Consider a different counsel
+								</button>
 							</section>
 						) : null}
 					</>
@@ -526,6 +663,7 @@ function GeneratedContextPanel({
 					<li key={actor.citizenId}>
 						<button
 							type="button"
+							data-citizen-id={actor.citizenId}
 							aria-pressed={selectedActor?.citizenId === actor.citizenId}
 							onClick={() =>
 								dispatch({
@@ -574,8 +712,10 @@ function GeneratedContextPanel({
 
 function GeneratedWorld({
 	experience,
+	onAuthorityRefresh,
 }: {
 	readonly experience: GeneratedWorldExperience;
+	readonly onAuthorityRefresh: (expectedStateHash?: string) => Promise<void>;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
@@ -598,9 +738,6 @@ function GeneratedWorld({
 	const diagnosticStateRecorded = useRef<string | null>(null);
 	const [selectedSettlementId, setSelectedSettlementId] = useState(
 		experience.projections[0]?.local.settlement.settlementId ?? "",
-	);
-	const [authorityStateHash, setAuthorityStateHash] = useState(
-		experience.stateHash,
 	);
 	const projection = useMemo(
 		() =>
@@ -710,8 +847,7 @@ function GeneratedWorld({
 			className={`v1-world ${reduceMotion ? "v1-reduced-motion" : ""}`}
 			data-world-id={experience.worldId}
 			data-world-identity-hash={experience.worldIdentityHash}
-			data-state-hash={authorityStateHash}
-			data-initial-state-hash={experience.stateHash}
+			data-state-hash={experience.stateHash}
 			data-simulation-time={experience.simulationTime}
 			data-projection-status={projection.availability.status}
 			data-persistence={experience.persistence.kind}
@@ -862,8 +998,9 @@ function GeneratedWorld({
 						onStepPresentation={stepPresentation}
 						authorityRegionId={experience.authorityRegionId}
 						authorityDatabaseName={experience.authorityDatabaseName}
+						sponsorCitizenId={experience.sponsorCitizenId}
 						persistenceAvailable={experience.persistence.kind === "indexeddb"}
-						onAuthorityCommitted={setAuthorityStateHash}
+						onAuthorityCommitted={onAuthorityRefresh}
 					/>
 				</section>
 			)}
@@ -885,8 +1022,10 @@ export function V1GenesisApp() {
 	useEffect(() => {
 		document.title = "EONFOLK — Canonical generated world";
 	}, []);
-	const { experience, error } = useGeneratedExperience();
+	const { experience, error, refresh } = useGeneratedExperience();
 	if (error !== null) return <WorldError error={error} />;
 	if (experience === null) return <WorldLoading />;
-	return <GeneratedWorld experience={experience} />;
+	return (
+		<GeneratedWorld experience={experience} onAuthorityRefresh={refresh} />
+	);
 }

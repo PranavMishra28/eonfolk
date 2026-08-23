@@ -473,6 +473,7 @@ function routineAssignments(
 	policy: GeneralizedSchedulerPolicy,
 	actions: readonly SchedulerAction[],
 	atSimulationTime: number,
+	decisions: readonly SchedulerRoutineDecision[],
 ): readonly SchedulerRoutineAssignment[] {
 	const action = (kind: SchedulerActionKind, subjectId?: string) =>
 		actions.find(
@@ -486,7 +487,30 @@ function routineAssignments(
 			let kind: SchedulerRoutineAssignment["kind"] = "social-maintenance";
 			let subjectId = citizen.citizenId;
 			let route: SchedulerRoutineAssignment["route"] = null;
-			if (citizen.residenceState === "departed") kind = "away";
+			const decision = decisions.find(
+				(candidate) => candidate.citizenId === citizen.citizenId,
+			);
+			if (decision !== undefined) {
+				kind = decision.kind;
+				subjectId = decision.subjectId;
+				if (decision.kind === "transport") {
+					const lane = policy.transportLanes.find(
+						(candidate) => candidate.laneId === decision.subjectId,
+					);
+					const from = state.stocks[lane?.fromStockId ?? ""];
+					const to = state.stocks[lane?.toStockId ?? ""];
+					route =
+						lane === undefined
+							? null
+							: {
+									routeId: lane.routeId,
+									fromSiteId:
+										state.storages[from?.storageId ?? ""]?.siteId ?? "",
+									toSiteId: state.storages[to?.storageId ?? ""]?.siteId ?? "",
+									traversalUnits: lane.traversalUnits,
+								};
+				}
+			} else if (citizen.residenceState === "departed") kind = "away";
 			else if (citizen.residenceState === "travelling") {
 				kind = "travel";
 				subjectId =
@@ -1227,7 +1251,13 @@ export function advanceGeneralizedScheduler(
 	return {
 		state: next,
 		actions,
-		routines: routineAssignments(next, policy, actions, atSimulationTime),
+		routines: routineAssignments(
+			next,
+			policy,
+			actions,
+			atSimulationTime,
+			routineDecisions,
+		),
 		modelInvocations: 0,
 	};
 }

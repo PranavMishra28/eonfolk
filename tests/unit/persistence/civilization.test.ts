@@ -64,9 +64,9 @@ describe("Release Genesis civilization persistence", () => {
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v6",
-			stateVersion: "eonfolk-release-genesis-civilization-state-v5",
-			transitionVersion: "eonfolk-release-genesis-civilization-transition-v4",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v7",
+			stateVersion: "eonfolk-release-genesis-civilization-state-v6",
+			transitionVersion: "eonfolk-release-genesis-civilization-transition-v5",
 		});
 	});
 
@@ -266,7 +266,7 @@ describe("Release Genesis civilization persistence", () => {
 			}),
 		).rejects.toMatchObject({ code: "STALE_STATE" });
 
-		expect(() =>
+		await expect(
 			reduceCivilizationAuthorityEvent(
 				plan.genesis.snapshot.state as never,
 				{
@@ -278,6 +278,6 @@ describe("Release Genesis civilization persistence", () => {
 					} as never,
 				} as AuthorityEventRecord,
 			),
-		).toThrowError(/version is unsupported/u);
+		).rejects.toThrowError(/version is unsupported/u);
 	});
 });

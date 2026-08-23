@@ -1,6 +1,7 @@
 import {
 	AUTHORITY_APPEND_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	EMPTY_EVENT_HASH,
 	type PersistenceError,
 	createAuthorityEvent,
@@ -323,6 +324,32 @@ async function run(): Promise<void> {
 		snapshot: dayTwoSnapshot,
 		fencingToken: secondHead.fencingToken,
 	});
+	const rejectionRequest = {
+		...SCOPE,
+		schemaVersion: AUTHORITY_REJECTION_SCHEMA_VERSION,
+		appendId: "rejected-browser-command",
+		expectedRevision: secondHead.revision,
+		expectedLastSequence: secondHead.lastSequence,
+		expectedStateHash: secondHead.stateHash,
+		expectedLastEventHash: secondHead.lastEventHash,
+		fencingToken: secondHead.fencingToken,
+		commandReceipt: { outcome: "rejected" },
+	} as const;
+	crash.point = "authority-rejection:before-commit";
+	try {
+		await port.recordRejectedCommand(rejectionRequest);
+	} catch {
+		/* expected abort */
+	}
+	const rejectionHeadAfterAbort = await port.loadHead(SCOPE);
+	crash.point = "authority-rejection:after-commit";
+	try {
+		await port.recordRejectedCommand(rejectionRequest);
+	} catch {
+		/* committed before crash */
+	}
+	const rejectionRetry = await port.recordRejectedCommand(rejectionRequest);
+	const rejectionHeadAfterRetry = await port.loadHead(SCOPE);
 
 	const thirdRequest = await append(secondHead, 3);
 	crash.point = "authority-append:before-commit";
@@ -408,6 +435,10 @@ async function run(): Promise<void> {
 			restoredGenesisIdempotently: restoredGenesis.idempotent,
 			replayedCount: replay.state.count,
 			replayedSuffixEvents: replay.events.length,
+			rejectionHeadUnchanged:
+				rejectionHeadAfterAbort.headHash === secondHead.headHash &&
+				rejectionHeadAfterRetry.headHash === secondHead.headHash,
+			rejectionRetryIdempotent: rejectionRetry.idempotent,
 			retryIdempotent: retry.idempotent,
 			revisionAfterAbort,
 			staleFenceCode,

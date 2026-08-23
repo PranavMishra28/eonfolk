@@ -52,12 +52,17 @@ const PATRON = {
 	beneficiaryCitizenId: ACTOR,
 };
 
-function person(citizenId: string, settlementId: string, siteId: string) {
+function person(
+	citizenId: string,
+	settlementId: string,
+	siteId: string,
+	valueIds: readonly string[] = ["care", "candor"],
+) {
 	return {
 		schemaVersion: CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 		citizenId,
 		name: `Person ${citizenId}`,
-		valueIds: ["care", "candor"],
+		valueIds,
 		settlementId,
 		siteId,
 		householdId: null,
@@ -105,13 +110,15 @@ function mind(
 	records: CitizenMindSnapshot["records"] | undefined = undefined,
 	trust = 6_000,
 	evidenceConfidence = 8_000,
+	valueIds: readonly string[] = ["care", "candor"],
 ): CitizenMindSnapshot {
 	return {
 		citizenId: ACTOR,
-		values: [
-			{ valueId: "care", rank: 1, weight: 700 },
-			{ valueId: "candor", rank: 2, weight: 500 },
-		],
+		values: valueIds.map((valueId, index) => ({
+			valueId,
+			rank: (index + 1) as 1 | 2 | 3,
+			weight: index === 0 ? 700 : 500,
+		})),
 		relationships: [
 			{
 				relationshipId: "relationship-a-b",
@@ -145,6 +152,8 @@ function fixture(
 	trust = 6_000,
 	withMind = true,
 	evidenceConfidence = 8_000,
+	actorValueIds: readonly string[] = ["care", "candor"],
+	withEvidence = true,
 ): CivilizationState {
 	let state = createCivilizationState({
 		citizenIds: [ACTOR, TARGET, NONLOCAL],
@@ -154,7 +163,10 @@ function fixture(
 		buildingKindsBySite: { [SITE_A]: [], [SITE_B]: [] },
 		capabilitiesByCitizen: { [ACTOR]: {}, [TARGET]: {}, [NONLOCAL]: {} },
 	});
-	state = registerCitizen(state, person(ACTOR, SETTLEMENT_A, SITE_A));
+	state = registerCitizen(
+		state,
+		person(ACTOR, SETTLEMENT_A, SITE_A, actorValueIds),
+	);
 	state = registerCitizen(state, person(TARGET, SETTLEMENT_A, SITE_A));
 	state = registerCitizen(state, person(NONLOCAL, SETTLEMENT_B, SITE_B));
 	state = registerRelationship(state, {
@@ -191,7 +203,12 @@ function fixture(
 	return registerCivilizationMind(state, {
 		schemaVersion: "eonfolk-civilization-mind-v1",
 		citizenId: ACTOR,
-		snapshot: mind(undefined, trust, evidenceConfidence),
+		snapshot: mind(
+			withEvidence ? undefined : [],
+			trust,
+			evidenceConfidence,
+			actorValueIds,
+		),
 		committedAtRevision: state.revision,
 		committedAtSimulationTime: state.simulationTime,
 	});
@@ -465,6 +482,42 @@ describe("canonical civilization sponsor reducer", () => {
 		});
 	});
 
+	it("allows only one unresolved counsel for a citizen", async () => {
+		const established = await establish(fixture());
+		const first = await issue(established, "verify-reserve");
+		const secondPayload = {
+			kind: "IssueCounsel" as const,
+			interventionId: "intervention-two",
+			citizenId: ACTOR,
+			intent: "accuse-publicly" as const,
+		};
+		const second = await prepareCivilizationSponsorTransition({
+			state: first.postState,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: first.resultingWorldHeadHash,
+			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				first.postState,
+				first.resultingWorldHeadHash,
+				2,
+			),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			command: await command(
+				"command-issue-two",
+				first.postState.revision,
+				PATRON,
+				secondPayload,
+			),
+			authoritativeHistory: [],
+		});
+		expect(second.accepted).toBe(false);
+		expect(second.receipt.rejectionCode).toBe("NO_OP");
+		expect(second.events).toEqual([]);
+		expect(second.postState).toBe(first.postState);
+	});
+
 	it("persists establish -> issue -> resolve and replays without cognition", async () => {
 		const initial = fixture();
 		const followed = await establish(initial);
@@ -563,54 +616,14 @@ describe("canonical civilization sponsor reducer", () => {
 		).rejects.toThrow(/ACTION_UNAVAILABLE/u);
 	});
 
-	it("derives an evidence-empty Mind at counsel and deterministically delays", async () => {
+	it("requires a pre-existing canonical Mind and never invents one at counsel", async () => {
 		const followed = await establish(fixture(6_000, false));
 		const counsel = await issue(followed);
-		const planId = counsel.postState.minds[ACTOR]!.snapshot.standingPlan.planId;
-		expect(counsel.postState.minds[ACTOR]!.snapshot.records).toEqual([]);
-		const interpreted = await resolve(
-			counsel,
-			{ kind: "FollowStandingPlan", planId },
-			"follow-plan",
-		);
-		expect(interpreted.accepted).toBe(true);
-		expect(interpreted.events[0]!.eventPayload).toMatchObject({
-			kind: "CounselInterpreted",
-			disposition: "delayed",
-			action: "follow-plan",
-		});
-		expect(interpreted.committedDecisionRecord?.explanation).toMatchObject({
-			counselDisposition: "delayed",
-		});
-		expect(
-			interpreted.committedDecisionRecord?.proposalCanonicalBytes,
-		).toContain("I will defer your counsel");
-		const chronicle = projectCivilizationChronicle({
-			events: [...followed.events, ...counsel.events, ...interpreted.events],
-			eventRevisions: Object.fromEntries(
-				[...followed.events, ...counsel.events, ...interpreted.events].map(
-					(event, index) => [event.eventId, index + 1],
-				),
-			),
-			viewer: { kind: "participant", principalId: PATRON.principalId },
-			purpose: "chronicle-private",
-			atRevision: interpreted.postState.revision,
-			visibilityContext: {
-				policyVersion: VISIBILITY_POLICY_VERSION,
-				covenants: [
-					{
-						patronPrincipalId: PATRON.principalId,
-						beneficiaryCitizenId: ACTOR,
-						grantRevision: 1,
-						revokeRevision: null,
-					},
-				],
-				localOwnerPrincipalId: PATRON.principalId,
-				nonproduction: false,
-			},
-			citizenNames: { [ACTOR]: "Ari" },
-		});
-		expect(chronicle.storyCard).toContain("deferred the counsel");
+		expect(counsel.accepted).toBe(false);
+		expect(counsel.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(counsel.events).toEqual([]);
+		expect(counsel.postState).toBe(followed.postState);
+		expect(counsel.postState.minds[ACTOR]).toBeUndefined();
 	});
 
 	it("offers no evidence action when canonical Mind has no evidence", () => {
@@ -846,42 +859,75 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(replayed.stateHash).toBe(interpreted.finalStateHash);
 	});
 
-	it("accepts three terminal interpretations, including a typed delay, but fabricates no consequence", async () => {
+	it("derives accept, reject, delay, and reinterpret outcomes from canonical Mind", async () => {
 		for (const [
 			trust,
 			confidence,
+			values,
 			intent,
 			action,
 			commandAction,
 			disposition,
+			withEvidence,
 		] of [
 			[
 				6_000,
 				8_000,
+				["care", "candor"],
 				"verify-reserve",
 				{ kind: "VerifyReserve", targetCitizenId: TARGET },
 				"verify-reserve",
 				"accepted",
+				true,
 			],
 			[
 				0,
 				8_000,
+				["curiosity", "fairness"],
 				"accuse-publicly",
 				{ kind: "AccusePublicly", targetCitizenId: TARGET },
 				"accuse-publicly",
 				"accepted",
+				true,
 			],
 			[
 				6_000,
 				0,
+				["continuity"],
 				"accuse-publicly",
 				{ kind: "FollowStandingPlan", planId: "plan-standing" },
 				"follow-plan",
 				"delayed",
+				false,
+			],
+			[
+				6_000,
+				0,
+				["care", "candor"],
+				"accuse-publicly",
+				{ kind: "FollowStandingPlan", planId: "plan-standing" },
+				"follow-plan",
+				"rejected",
+				false,
+			],
+			[
+				0,
+				8_000,
+				["curiosity", "fairness", "solidarity"],
+				"verify-reserve",
+				{ kind: "AccusePublicly", targetCitizenId: TARGET },
+				"accuse-publicly",
+				"reinterpreted",
+				true,
 			],
 		] as const) {
 			const interpreted = await resolve(
-				await issue(await establish(fixture(trust, true, confidence)), intent),
+				await issue(
+					await establish(
+						fixture(trust, true, confidence, values, withEvidence),
+					),
+					intent,
+				),
 				action,
 				commandAction,
 			);

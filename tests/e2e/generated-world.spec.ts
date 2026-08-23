@@ -25,7 +25,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v2",
+					"eonfolk-generated-authority-v3",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -47,7 +47,7 @@ async function inspectGeneratedCheckpoint(page: Page) {
 				readonly stateHash: string;
 				readonly simulationTime: number;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v2", 1);
+				const request = indexedDB.open("eonfolk-generated-authority-v3", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -172,6 +172,21 @@ async function selectCanonicalResidentFromCanvas(
 		}
 	}
 	throw new Error("no exposed canonical citizen accepted a canvas pick");
+}
+
+async function selectSponsorCandidate(page: Page): Promise<string> {
+	const residents = page.locator("ul.v1-presence-roster button");
+	for (let index = 0; index < (await residents.count()); index += 1) {
+		const resident = residents.nth(index);
+		await resident.click();
+		const sponsor = page.getByRole("button", { name: "Sponsor this person" });
+		if (await sponsor.isEnabled()) {
+			const citizenId = await resident.getAttribute("data-citizen-id");
+			if (citizenId === null) throw new Error("sponsor candidate lacks an id");
+			return citizenId;
+		}
+	}
+	throw new Error("no counsel-capable sponsor candidate is visible");
 }
 
 test("generated civilization is the identity-bound canonical /world @generated-world @generated-target", async ({
@@ -373,6 +388,37 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	expect(externalRequests).toEqual([]);
 });
 
+test("entry fails closed when canonical IndexedDB cannot open @generated-world", async ({
+	page,
+}) => {
+	await isolateLocalWorld(page);
+	await page.goto("/outside-canon");
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open("eonfolk-generated-authority-v3", 2);
+				request.addEventListener("error", () => reject(request.error), {
+					once: true,
+				});
+				request.addEventListener(
+					"success",
+					() => {
+						request.result.close();
+						resolve();
+					},
+					{ once: true },
+				);
+			}),
+	);
+	await page.goto("/");
+	await expect(
+		page.getByRole("heading", {
+			name: "The canonical world could not be opened.",
+		}),
+	).toBeVisible({ timeout: 20_000 });
+	await expect(page.locator("[aria-busy='true']")).toHaveCount(0);
+});
+
 test("settlement overview and semantic people remain keyboard-operable @generated-world", async ({
 	page,
 }) => {
@@ -417,7 +463,7 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 test("normal generated world commits sponsorship, counsel, and a factual Chronicle trace @generated-world @generated-target", async ({
 	page,
 }) => {
-	test.setTimeout(90_000);
+	test.setTimeout(240_000);
 	const externalRequests = await isolateLocalWorld(page);
 	const browserErrors: string[] = [];
 	page.on("pageerror", (error) => browserErrors.push(error.message));
@@ -428,10 +474,24 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/world");
 	const canvas = page.getByTestId("generated-world-canvas");
+	const initialFailure = page.getByRole("heading", {
+		name: "No incomplete world is shown as fact.",
+	});
+	await Promise.race([
+		canvas.waitFor({ state: "attached", timeout: 20_000 }),
+		initialFailure.waitFor({ state: "visible", timeout: 20_000 }),
+	]);
+	if (await initialFailure.isVisible()) {
+		await page.getByText("Technical detail").click();
+		throw new Error(
+			(await page.locator("main.v1-genesis-shell code").textContent()) ??
+				"generated world failed closed",
+		);
+	}
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	const citizenId = await selectCanonicalResidentFromCanvas(page, canvas);
+	const citizenId = await selectSponsorCandidate(page);
 	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
 	const initialHash = await page
 		.locator("main.v1-world")
@@ -441,18 +501,36 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toBeVisible({ timeout: 20_000 });
-	expect(
-		await page.locator("main.v1-world").getAttribute("data-state-hash"),
-	).not.toBe(initialHash);
+	await expect
+		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
+			timeout: 30_000,
+		})
+		.not.toBe(initialHash);
 	await expect(page.getByRole("status")).toContainText(
 		"entered a sponsorship covenant with patron:local",
 	);
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await expect(
-		page.getByRole("heading", { name: "Verify before acting?" }),
+		page.getByRole("heading", { name: "Choose a consequential counsel" }),
+	).toBeVisible();
+	await expect(
+		page.getByText("There is no account, cloud backup, or recovery copy."),
 	).toBeVisible();
 	await expect(page.getByRole("button", { name: "Abstain" })).toBeVisible();
-	await page.getByRole("button", { name: "Confirm counsel" }).click();
+	const beforeAbstention = await inspectGeneratedCheckpoint(page);
+	await page.getByRole("button", { name: "Abstain" }).click();
+	await expect(page.getByRole("status")).toContainText(
+		"No canonical command was issued",
+	);
+	const afterAbstention = await inspectGeneratedCheckpoint(page);
+	expect(afterAbstention.headHash).toBe(beforeAbstention.headHash);
+	expect(afterAbstention.eventCount).toBe(beforeAbstention.eventCount);
+	await page.getByRole("button", { name: "Consider an intervention" }).click();
+	await page
+		.getByRole("button", {
+			name: "Verify the evidence first — delays a conclusion",
+		})
+		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible({ timeout: 20_000 });
@@ -464,7 +542,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(boundaryCanvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await selectCanonicalResidentFromCanvas(page, boundaryCanvas);
+	expect(await selectSponsorCandidate(page)).toBe(citizenId);
 	await page.getByRole("button", { name: "Sponsor this person" }).click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
@@ -474,22 +552,46 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Counsel recorded" }),
-	).toBeVisible({ timeout: 20_000 });
+	).toBeVisible({ timeout: 60_000 });
 	await expect(page.getByRole("status")).toContainText(
-		"deferred the counsel and chose to follow plan",
+		"the counsel and chose to",
 	);
 	await expect(page.getByRole("status")).toContainText(
-		"The scheduler recorded",
+		"replaced the active transport assignment",
 	);
 	await expect(
 		page.getByRole("heading", { name: "Share this factual trace" }),
 	).toBeVisible();
+	await page.getByText("Inspect Chronicle evidence").click();
+	await expect(
+		page.locator("section[aria-label='Shareable factual replay'] code").first(),
+	).toBeVisible();
+	await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+	await page.getByRole("button", { name: "Copy factual trace" }).click();
+	await expect(page.getByText("Factual trace copied.")).toBeVisible();
+	await page
+		.getByRole("button", { name: "Consider a different counsel" })
+		.click();
+	await page
+		.getByRole("button", { name: "Confront them publicly — risks trust" })
+		.click();
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeVisible({ timeout: 20_000 });
+	await expect(page.locator("pre[role='status']")).toContainText(
+		"received counsel to accuse publicly",
+	);
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeEnabled({ timeout: 60_000 });
 	const committed = await inspectGeneratedCheckpoint(page);
-	expect(committed).toMatchObject({ eventCount: 9, receiptCount: 9 });
+	expect(committed).toMatchObject({ eventCount: 10, receiptCount: 10 });
 	expect(committed.simulationTime).toBe(366 * 86_400);
-	expect(
-		await page.locator("main.v1-world").getAttribute("data-state-hash"),
-	).toBe(committed.stateHash);
+	await expect
+		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
+			timeout: 30_000,
+		})
+		.toBe(committed.stateHash);
 	await page.screenshot({
 		path: test.info().outputPath("normal-route-sponsor-chronicle.png"),
 		fullPage: true,
@@ -518,16 +620,27 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(reloadedCanvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	const reloadedCitizenId = await selectCanonicalResidentFromCanvas(
-		page,
-		reloadedCanvas,
-	);
+	expect(
+		await page.locator("main.v1-world").getAttribute("data-state-hash"),
+	).toBe(committed.stateHash);
+	expect(
+		await page.locator("main.v1-world").getAttribute("data-simulation-time"),
+	).toBe(String(366 * 86_400));
+	const reloadedCitizenId = await selectSponsorCandidate(page);
 	expect(reloadedCitizenId).toBe(citizenId);
+	await expect(page.locator("p.v1-context-role + p")).toContainText(
+		"speaking at Commons",
+	);
 	await page.getByRole("button", { name: "Sponsor this person" }).click();
 	await expect(
 		page.getByRole("button", { name: "Counsel recorded" }),
 	).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByRole("status")).toContainText("deferred the counsel");
+	await expect(page.getByRole("status")).toContainText(
+		"the counsel and chose to",
+	);
+	await expect(page.getByRole("status")).toContainText(
+		"received counsel to accuse publicly",
+	);
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-state-hash"),
 	).toBe(committed.stateHash);

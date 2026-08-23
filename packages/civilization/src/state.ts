@@ -293,7 +293,9 @@ export function registerCivilizationMind(
 			(targetId) =>
 				targetId !== mind.citizenId &&
 				state.citizens[targetId] === undefined &&
-				!state.references.siteIds.includes(targetId),
+				!state.references.siteIds.includes(targetId) &&
+				(plan.sourceId !== "eonfolk-civilization-scheduler-brain-v1" ||
+					identifier(targetId, "scheduler plan target") !== targetId),
 		) ||
 		plan.startBoundary > plan.expiryBoundary
 	)
@@ -304,6 +306,29 @@ export function registerCivilizationMind(
 	return evolve(state, {
 		minds: { ...state.minds, [mind.citizenId]: clonePlain(mind) },
 	});
+}
+
+/** Persists a later scheduler-owned Mind checkpoint without changing its plan semantics. */
+export function replaceCivilizationMind(
+	state: CivilizationState,
+	mind: CivilizationMindState,
+): CivilizationState {
+	const prior = state.minds[mind.citizenId];
+	if (prior === undefined)
+		throw new CivilizationError(
+			"INVALID_REFERENCE",
+			`mind ${mind.citizenId} does not exist`,
+		);
+	if (mind.snapshot.standingPlan.version < prior.snapshot.standingPlan.version)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind standing plan version cannot move backwards",
+		);
+	const { [mind.citizenId]: _removed, ...remaining } = state.minds;
+	return registerCivilizationMind(
+		deepFreeze({ ...state, minds: remaining }),
+		mind,
+	);
 }
 
 export function appendBuildingKindReference(

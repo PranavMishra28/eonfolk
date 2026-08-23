@@ -14,9 +14,25 @@ export interface CivilizationChronicleBoundary {
 	readonly createdRevision: number;
 	readonly visibility: Visibility;
 	readonly fact: {
-		readonly schemaVersion: "eonfolk-counsel-boundary-fact-v1";
+		readonly schemaVersion: "eonfolk-counsel-boundary-fact-v3";
 		readonly citizenId: string;
 		readonly interventionId: string;
+		readonly interpretationAction:
+			| "verify-reserve"
+			| "accuse-publicly"
+			| "follow-plan";
+		readonly interpretationDisposition:
+			| "accepted"
+			| "delayed"
+			| "rejected"
+			| "reinterpreted";
+		readonly causalRelation: "contributing-condition" | "temporal-predecessor";
+		readonly routineKind: string;
+		readonly routineSubjectId: string;
+		readonly planRoutineKind: string;
+		readonly planRoutineSubjectId: string;
+		readonly consequenceKind: "routine-continued" | "routine-reassigned";
+		readonly schedulerActionKinds: readonly string[];
 		readonly simulationTime: number;
 		readonly requiredNeedUnits: number;
 		readonly consumedNeedUnits: number;
@@ -122,7 +138,7 @@ export function projectCivilizationChronicle(input: {
 	}
 	for (const boundary of input.boundaries ?? []) {
 		if (
-			boundary.fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v1" ||
+			boundary.fact.schemaVersion !== "eonfolk-counsel-boundary-fact-v3" ||
 			boundary.createdRevision < 0 ||
 			canRead(
 				input.viewer,
@@ -137,18 +153,27 @@ export function projectCivilizationChronicle(input: {
 		)
 			continue;
 		const fact = boundary.fact;
+		const interpreted = fact.interpretationAction.replaceAll("-", " ");
+		const routine = fact.routineKind.replaceAll("-", " ");
+		const plannedRoutine = fact.planRoutineKind.replaceAll("-", " ");
+		const consequence =
+			fact.consequenceKind === "routine-reassigned"
+				? `As a contributing condition, that interpretation replaced the active ${plannedRoutine} assignment at ${fact.planRoutineSubjectId} with ${routine} at ${fact.routineSubjectId}.`
+				: `The interpretation preceded the active ${routine} assignment continuing at ${fact.routineSubjectId}.`;
 		beats.push({
 			beat: beats.length + 1,
-			text: `${citizenName(fact.citizenId, input.citizenNames)} kept the daily-needs plan at the later boundary. The scheduler recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} need units consumed and ${fact.unmetNeedUnits} unmet.`,
+			text: `${citizenName(fact.citizenId, input.citizenNames)} reached the later decision boundary after choosing to ${interpreted}. ${consequence} The authoritative need ledger recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} units consumed and ${fact.unmetNeedUnits} unmet.`,
 			evidenceEventIds: [
 				boundary.eventId,
 				...(visibleEventIds.has(boundary.parentEventId)
 					? [boundary.parentEventId]
 					: []),
 			],
-			relation: visibleEventIds.has(boundary.parentEventId)
-				? "contributing"
-				: "fact",
+			relation:
+				visibleEventIds.has(boundary.parentEventId) &&
+				fact.causalRelation === "contributing-condition"
+					? "contributing"
+					: "fact",
 		});
 		unresolvedTension = `Will ${citizenName(fact.citizenId, input.citizenNames)} and the settlement cover the next daily boundary?`;
 	}

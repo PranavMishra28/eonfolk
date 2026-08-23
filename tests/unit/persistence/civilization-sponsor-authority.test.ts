@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	advanceGeneralizedScheduler,
+	deriveCivilizationSchedulerPolicy,
+	projectCivilizationScheduledActivities,
 	runCivilizationExperiment,
 	type CivilizationState,
 } from "../../../packages/civilization/src/index.js";
@@ -15,6 +18,7 @@ import {
 } from "../../../packages/cognition/src/index.js";
 import {
 	createAuthorityEvent,
+	hashAuthoritativeState,
 	MemoryVersionedPersistence,
 	persistCivilizationHistory,
 	reduceCivilizationAuthorityEvent,
@@ -29,6 +33,8 @@ import {
 import {
 	createReleaseGenesis,
 	bytesFromHex,
+	decisionRecordHash,
+	type GeneratedWorldState,
 	payloadFingerprint,
 	PROTOCOL_SCHEMA_VERSION,
 	seedPrng,
@@ -75,7 +81,22 @@ async function fixture(crash?: OneShotCrash) {
 	});
 	const civilization = replay.state
 		.civilization as unknown as CivilizationState;
-	const citizenId = Object.keys(civilization.citizens).sort()[0]!;
+	const citizenId = Object.values(civilization.minds)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+		.find((mind) => {
+			const citizen = civilization.citizens[mind.citizenId];
+			return mind.snapshot.relationships.some(
+				(relationship) =>
+					civilization.citizens[relationship.toCitizenId]?.residenceState ===
+						"resident" &&
+					civilization.citizens[relationship.toCitizenId]?.settlementId ===
+						citizen?.settlementId &&
+					civilization.citizens[relationship.toCitizenId]?.siteId ===
+						citizen?.siteId,
+			);
+		})?.citizenId;
+	if (citizenId === undefined)
+		throw new Error("fixture has no locally counsel-capable citizen");
 	const payload = {
 		kind: "EstablishSponsorship" as const,
 		covenantId: `covenant:${citizenId}`,
@@ -147,7 +168,21 @@ async function appendCounselCommand(
 	const state = replay.state.civilization as unknown as CivilizationState;
 	const decisionId = `decision:${input.interventionId}`;
 	const proposalId = `proposal:${input.interventionId}`;
-	const payload =
+	let payload:
+		| {
+				readonly kind: "IssueCounsel";
+				readonly interventionId: string;
+				readonly citizenId: string;
+				readonly intent: "verify-reserve";
+		  }
+		| {
+				readonly kind: "ResolveCounsel";
+				readonly citizenId: string;
+				readonly interventionId: string;
+				readonly decisionId: string;
+				readonly proposalId: string;
+				readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
+		  } =
 		input.kind === "issue"
 			? ({
 					kind: "IssueCounsel",
@@ -164,23 +199,6 @@ async function appendCounselCommand(
 					action: "follow-plan",
 				} as const);
 	const commandId = `${input.kind}:${input.interventionId}`;
-	const command = {
-		schemaVersion: PROTOCOL_SCHEMA_VERSION,
-		commandId,
-		payloadFingerprint: await payloadFingerprint(payload),
-		expectedRevision: state.revision,
-		principal:
-			input.kind === "issue"
-				? ({
-						kind: "patron",
-						principalId: "patron:local",
-						beneficiaryCitizenId: value.citizenId,
-					} as const)
-				: ({ kind: "citizen", principalId: value.citizenId } as const),
-		runId: value.runId,
-		regionId: value.regionId,
-		payload,
-	};
 	let resolution: ValidatedStandardBrainResolution | undefined;
 	if (input.kind === "resolve") {
 		const context = await buildCivilizationCounselDecisionContext({
@@ -201,6 +219,19 @@ async function appendCounselCommand(
 				decisionId,
 			),
 		});
+		payload = {
+			kind: "ResolveCounsel",
+			citizenId: value.citizenId,
+			interventionId: input.interventionId,
+			decisionId,
+			proposalId,
+			action:
+				chosen.proposal.action.kind === "VerifyReserve"
+					? "verify-reserve"
+					: chosen.proposal.action.kind === "AccusePublicly"
+						? "accuse-publicly"
+						: "follow-plan",
+		};
 		resolution = {
 			decisionId,
 			context,
@@ -223,6 +254,23 @@ async function appendCounselCommand(
 			}),
 		};
 	}
+	const command = {
+		schemaVersion: PROTOCOL_SCHEMA_VERSION,
+		commandId,
+		payloadFingerprint: await payloadFingerprint(payload),
+		expectedRevision: state.revision,
+		principal:
+			input.kind === "issue"
+				? ({
+						kind: "patron",
+						principalId: "patron:local",
+						beneficiaryCitizenId: value.citizenId,
+					} as const)
+				: ({ kind: "citizen", principalId: value.citizenId } as const),
+		runId: value.runId,
+		regionId: value.regionId,
+		payload,
+	};
 	const transition = await prepareCivilizationSponsorTransition({
 		state,
 		runId: value.runId,
@@ -308,7 +356,11 @@ describe("unified civilization sponsor authority", () => {
 			commandReceipt: rejectedReceipt,
 			decisionRecord: null,
 		});
-		const committed = await value.port.appendEventBatch(append.request);
+		const committed = await value.port.recordRejectedCommand(append.request);
+		expect(committed.head).toEqual(value.persisted.head);
+		expect(committed.receipt.fromSequenceInclusive).toBe(
+			committed.receipt.toSequenceExclusive,
+		);
 		expect(committed.receipt.commandReceipt).toMatchObject({
 			...rejectedReceipt,
 			resultingWorldHeadHash: committed.head.lastEventHash,
@@ -379,6 +431,56 @@ describe("unified civilization sponsor authority", () => {
 		).toBe(value.transition.priorState.citizens[value.citizenId]?.name);
 	});
 
+	it("rejects a hash-consistent forged sponsor patch through the generic authority port", async () => {
+		const value = await fixture();
+		const original = value.append.request.events[0]!;
+		const canonicalPost = value.append.state
+			.civilization as unknown as CivilizationState;
+		const forgedCivilization = {
+			...canonicalPost,
+			citizens: {
+				...canonicalPost.citizens,
+				[value.citizenId]: {
+					...canonicalPost.citizens[value.citizenId]!,
+					name: "Hash-consistent forged name",
+				},
+			},
+		};
+		const forgedState = {
+			...value.append.state,
+			civilization: forgedCivilization,
+		};
+		const { eventHash: _eventHash, ...eventWithoutHash } = original;
+		const forgedEvent = await createAuthorityEvent({
+			...eventWithoutHash,
+			postStateHash: await hashAuthoritativeState(forgedState as never),
+			payload: {
+				...(original.payload as Record<string, unknown>),
+				patch: [
+					{ op: "set", path: ["civilization"], value: forgedCivilization },
+					{ op: "set", path: ["phase"], value: "active" },
+				],
+			} as never,
+		});
+		const request = {
+			...value.append.request,
+			events: [forgedEvent],
+			commandReceipt: {
+				...(value.append.request.commandReceipt as Record<string, unknown>),
+				resultingWorldHeadHash: forgedEvent.eventHash,
+			},
+		};
+		const committed = await value.port.appendEventBatch(request as never);
+		await expect(
+			replayCivilizationHistory(value.port, {
+				runId: value.runId,
+				regionId: value.regionId,
+				snapshotId: value.persisted.snapshot.snapshotId,
+				toSequenceExclusive: committed.head.lastSequence + 1,
+			}),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+	});
+
 	it("rejects a sponsor envelope with an extra payload field before persistence", async () => {
 		const value = await fixture();
 		const event = value.transition.events[0]!;
@@ -409,7 +511,7 @@ describe("unified civilization sponsor authority", () => {
 		).rejects.toMatchObject({ code: "INVALID_INPUT" });
 	});
 
-	it("executes, binds, and replays a delayed plan at a later scheduler boundary", async () => {
+	it("executes, binds, and replays a counsel-caused routine reassignment at a later scheduler boundary", async () => {
 		const value = await fixture();
 		await value.port.appendEventBatch(value.append.request);
 		const interventionId = `intervention:${value.citizenId}:needs`;
@@ -431,6 +533,78 @@ describe("unified civilization sponsor authority", () => {
 			citizenId: value.citizenId,
 			interventionId,
 		});
+		const beforeBoundary = replay.state
+			.civilization as unknown as CivilizationState;
+		const activePlan =
+			beforeBoundary.minds[value.citizenId]?.snapshot.standingPlan;
+		expect(activePlan).toMatchObject({
+			citizenId: value.citizenId,
+			goalType: "routine:transport",
+			status: "active",
+			targetIds: ["lane-building-timber"],
+		});
+		expect(activePlan!.startBoundary).toBeLessThanOrEqual(
+			beforeBoundary.simulationTime,
+		);
+		expect(activePlan!.expiryBoundary).toBeGreaterThanOrEqual(
+			beforeBoundary.simulationTime,
+		);
+		const abstention = advanceGeneralizedScheduler(
+			beforeBoundary,
+			deriveCivilizationSchedulerPolicy(
+				replay.state.world as unknown as GeneratedWorldState,
+			),
+			[],
+		);
+		const selected = boundary.state
+			.civilization as unknown as CivilizationState;
+		const selectedActivities = boundary.state.scheduler
+			.activities as unknown as readonly {
+			readonly citizenId: string;
+			readonly routine: { readonly kind: string };
+		}[];
+		const abstentionActivities = projectCivilizationScheduledActivities({
+			state: abstention.state,
+			world: replay.state.world as unknown as GeneratedWorldState,
+			routines: abstention.routines,
+		});
+		expect(resolved.transition.events[0]!.eventPayload).toMatchObject({
+			action: "verify-reserve",
+			disposition: "accepted",
+		});
+		expect(boundary.fact).toMatchObject({
+			causalRelation: "contributing-condition",
+			consequenceKind: "routine-reassigned",
+			planRoutineKind: "transport",
+			planRoutineSubjectId: "lane-building-timber",
+			routineKind: "social-maintenance",
+		});
+		expect(
+			selectedActivities.find(
+				(activity) => activity.citizenId === value.citizenId,
+			)?.routine.kind,
+		).toBe("social-maintenance");
+		expect(
+			abstentionActivities.find(
+				(activity) => activity.citizenId === value.citizenId,
+			)?.routine.kind,
+		).toBe("transport");
+		expect(selected.stocks["stock-source-standing-timber"]?.quantity).toBe(512);
+		expect(
+			abstention.state.stocks["stock-source-standing-timber"]?.quantity,
+		).toBe(504);
+		expect(
+			Object.values(selected.processes).some(
+				(process) =>
+					process.processId === "scheduled:job-building-timber:172800",
+			),
+		).toBe(false);
+		expect(
+			Object.values(abstention.state.processes).some(
+				(process) =>
+					process.processId === "scheduled:job-building-timber:172800",
+			),
+		).toBe(true);
 		expect(boundary.fact).toMatchObject({
 			citizenId: value.citizenId,
 			interpretationEventId: resolved.transition.events[0]!.eventId,
@@ -447,9 +621,9 @@ describe("unified civilization sponsor authority", () => {
 				},
 			],
 		});
-		expect(() =>
+		await expect(
 			reduceCivilizationAuthorityEvent(replay.state, swapped),
-		).toThrow(/CIVP/u);
+		).rejects.toThrow(/CIVP/u);
 		const committed = await value.port.appendEventBatch(boundary.request);
 		expect(committed.head.simulationTime).toBe(2 * 86_400);
 		const reloaded = await replayCivilizationHistory(value.port, {
@@ -465,5 +639,47 @@ describe("unified civilization sponsor authority", () => {
 		expect(
 			(await value.port.appendEventBatch(boundary.request)).idempotent,
 		).toBe(true);
+	});
+
+	it("rejects a rehashed substituted cognition record during authority replay", async () => {
+		const value = await fixture();
+		await value.port.appendEventBatch(value.append.request);
+		const interventionId = `intervention:${value.citizenId}:tamper`;
+		await appendCounselCommand(value, { kind: "issue", interventionId });
+		const resolved = await appendCounselCommand(value, {
+			kind: "resolve",
+			interventionId,
+		});
+		const record = resolved.transition.committedDecisionRecord!;
+		const { decisionRecordHash: _recordHash, ...recordBody } = record;
+		const tamperedBody = {
+			...recordBody,
+			explanation: {
+				...record.explanation!,
+				templateId: "forged-explanation-template",
+			},
+		};
+		const tamperedRecord = {
+			...tamperedBody,
+			decisionRecordHash: await decisionRecordHash(tamperedBody),
+		};
+		const original = resolved.append.request.events[0]!;
+		const { eventHash: _eventHash, ...eventWithoutHash } = original;
+		const tamperedEvent = await createAuthorityEvent({
+			...eventWithoutHash,
+			payload: {
+				...(original.payload as Record<string, unknown>),
+				decisionRecord: tamperedRecord,
+			} as never,
+		});
+		const preState = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: original.sequence,
+		});
+		await expect(
+			reduceCivilizationAuthorityEvent(preState.state, tamperedEvent),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
 	});
 });

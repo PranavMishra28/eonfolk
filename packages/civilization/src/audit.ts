@@ -169,7 +169,10 @@ export function auditCivilizationState(
 				(targetId) =>
 					targetId !== citizenId &&
 					state.citizens[targetId] === undefined &&
-					!state.references.siteIds.includes(targetId),
+					!state.references.siteIds.includes(targetId) &&
+					(mind.snapshot.standingPlan.sourceId !==
+						"eonfolk-civilization-scheduler-brain-v1" ||
+						!/^[a-z0-9][a-z0-9._:-]*$/u.test(targetId)),
 			)
 		)
 			issues.push(`mind ${citizenId} has another citizen's standing plan`);

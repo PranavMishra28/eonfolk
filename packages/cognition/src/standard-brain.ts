@@ -29,6 +29,25 @@ interface ScoreOptions {
 	readonly ablate?: StandardBrainAblation;
 }
 
+function actionSupportsValue(
+	action: ActionCatalogEntry["action"],
+	valueId: string,
+): boolean {
+	if (action.kind === "VerifyReserve")
+		return [
+			"care",
+			"continuity",
+			"prudence",
+			"stewardship",
+			"reliability",
+		].includes(valueId);
+	if (action.kind === "AccusePublicly")
+		return ["curiosity", "fairness", "solidarity"].includes(valueId);
+	if (action.kind === "FollowStandingPlan")
+		return ["continuity", "craft", "reliability"].includes(valueId);
+	return false;
+}
+
 function term(
 	code: ScoreTerm["code"],
 	value: number,
@@ -83,8 +102,10 @@ function score(
 	const matchingValues =
 		options.ablate === "values"
 			? []
-			: context.values.filter((value) =>
-					entry.tags.includes(value.valueId as never),
+			: context.values.filter(
+					(value) =>
+						entry.tags.includes(value.valueId as never) ||
+						actionSupportsValue(entry.action, value.valueId),
 				);
 	if (matchingValues.length > 0)
 		terms.push(

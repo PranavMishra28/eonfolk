@@ -9,10 +9,37 @@ export function GenesisEntryApp() {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
 	);
+	const [error, setError] = useState<Error | null>(null);
 	useEffect(() => {
 		document.title = "EONFOLK — A civilization has begun";
-		void loadGeneratedWorldExperience().then(setExperience);
+		let active = true;
+		void loadGeneratedWorldExperience().then(
+			(value) => {
+				if (active) setExperience(value);
+			},
+			(reason: unknown) => {
+				if (!active) return;
+				setError(
+					reason instanceof Error
+						? reason
+						: new Error("Canonical world storage failed"),
+				);
+			},
+		);
+		return () => {
+			active = false;
+		};
 	}, []);
+	if (error !== null)
+		return (
+			<main className="v1-genesis-shell" role="alert">
+				<h1>The canonical world could not be opened.</h1>
+				<p>
+					No substitute or temporary world was created. Check browser storage
+					and reload to try again.
+				</p>
+			</main>
+		);
 	if (experience === null)
 		return (
 			<main className="v1-genesis-shell" aria-busy="true">
