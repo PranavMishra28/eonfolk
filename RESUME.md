@@ -9,7 +9,7 @@
 ## Current state
 
 - Branch: `feat/v1-civilization`
-- Last reconciled integration commit: `ae94cc5` (`feat(persistence): add versioned authority stream`)
+- Last reconciled integration commit: `c987027` (`fix(web): bind route diagnostics to product identity`)
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization kernel`
 - V1 status: INCOMPLETE; do not mark ready or merge
@@ -17,7 +17,7 @@
 ## Green starting evidence
 
 - Exact base was clean and matched `origin/main`.
-- Runtime, dependency cohort, architecture, docs, format, lint, typecheck, 224 unit tests, bounded properties, real IndexedDB, timing noninterference, fault journeys, production build, and bundle budgets passed at their recorded checkpoints.
+- Runtime, dependency cohort, architecture, docs, format, lint, typecheck, 291 unit tests, 21 project graphs, bounded properties, real IndexedDB, timing noninterference, fault journeys, production build, and bundle budgets passed at their recorded checkpoints.
 - Fifteen of sixteen production browser journeys passed.
 
 ## Repaired baseline failure
@@ -50,14 +50,20 @@
 - `docs/RESEARCH.md`, `references.bib`, and new `S-V1-RES-*` ledger rows now provide a compact primary-source map, durable BibTeX, access dates, confidence, consumers, and reopen rules on top of the existing claim ledger.
 - Civilization expansion no longer reads an absolute day threshold. Housing pressure, traversable geography, material stocks, completed physical prerequisites, and legal affordances start the expedition; a canonical least-cost land route advances by accounted legs before arrival; a viable founding materializes a migration-provenanced second settlement. Progression and geography-driven stagnation pass deterministic 30/90/365 runs and randomized deep properties. The second settlement is intentionally undeveloped, and generalized needs/population integration remains pending.
 - The generalized `VersionedPersistencePort` and in-memory conformance adapter now verify exact schemas, engine/state versions, heads, events, snapshots, receipts, fencing, bounded half-open ranges, atomic/idempotent append, crash boundaries, and inference-free reducer replay. It fails unknown versions closed. It is not yet wired to IndexedDB or the civilization scheduler, and implements no semantic upcaster.
+- A civilization-specific checkpoint codec now binds experiment identity, runner step, ordered event interval, canonical world/state hashes, exact heads, fencing, atomic/idempotent batches, bounded ranges, and inference-free replay across 30/90/365-day histories. It remains an in-memory/checkpoint-granularity proof: the browser `VersionedPersistencePort`, catch-up UI, and per-kernel-mutation event integration are still absent.
+- Canonical civilization state now includes a finite citizen population, directed relationships, households, institution roles, bounded arrival/departure, grounded food/water/housing/labor/travel/social pressures, and six deterministic memory classes. Retrieval filters actor visibility before scoring relevance, recency, salience, relationship, and goal fit. These primitives are not yet wired through the normal scheduler, browser authority, or persistence path; birth/death is not implemented.
+- `/world` now mounts the authoritative PlayCanvas/Web Worker/IndexedDB Riverhold projection with eight stable citizens, legible work/travel/gather/repair/exchange behaviors, temporal project change, selection/follow controls, semantic fallback, and reduced-motion support. Focused unit and seven browser journeys passed at desktop, laptop, and mobile sizes. This is embodied regression/product evidence, not generalized Release Genesis acceptance: `/genesis` renders generated Dawnmere while `/world` still embodies canonical Riverhold, so the two world authorities remain visibly and technically separate.
+- Flight Recorder/Sentinel identity now includes genesis, world, cognition treatment, renderer, persistence, experiment, run, build, runtime, and performance identities. Its closed invariant catalog spans integrity, privacy, cognition, navigation, render, network, and persistence. Coverage is still incomplete for all required injected failures and generalized product integration.
+- The exact-head persistence TLA+ model now covers current-writer snapshots, stale-writer no-ops, and idempotent retries; TLC 1.8.0 explored 1,886 reachable states and 52,379 transitions to depth 14 without invariant or temporal violations.
+- GitHub repository controls were re-probed: `main` protection requires strict `Verify`, `Formal model`, and `Secret scan` checks with force-push/deletion blocked; Actions are SHA-pinned/read-only by default; Dependabot and vulnerability alerts are enabled; Gitleaks compensates for unavailable native private-repository secret scanning. The latest pushed checkpoint (`5c7a497`) passed all three protected checks.
 
 ## Next executable tasks
 
-1. Integrate the civilization kernel with the versioned persistence seam and routine/project decision boundaries; implement the browser adapter and bounded reload/catch-up recovery.
-2. Replace the abstract `/world` diagram with a world-dominant embodied presentation driven by canonical citizens/actions, then add temporal Living World tests and measured V1-specific visual/performance evidence.
-3. Build the predeclared real-model corpus runner on the bounded host, compare the cached model and one resource-safe current candidate only if the machine remains healthy, and promote no treatment unless every correctness, isolation, performance, and product-copy gate passes.
-4. Implement grounded needs/population/memory integration, then connect Chronicle, Research, diagnostics, and failure injection to the generalized run.
-5. Add V1-specific CI evidence tiers and readiness guards, then run the first fresh V1 DEEP checkpoint.
+1. Unify the generated Release Genesis authority with the embodied PlayCanvas world so generated citizens, terrain, routes, projects, migrations, and second settlements drive one canonical browser product.
+2. Wire civilization state, planners, memory, and the versioned persistence port through the browser scheduler; implement IndexedDB recovery and bounded reload/1-day/7-day/long catch-up without historical model inference.
+3. Finish the secure loopback-only local-model transport and corpus runner, compare the cached model with the controlled current candidate, and promote no treatment unless correctness, isolation, performance, memory, and product-copy gates pass.
+4. Complete grounded population/institution/project execution, Chronicle-to-world navigation, Research mode, diagnostics, failure injection, and authored asset/animation breadth in the unified product.
+5. Add exact-V1 CI evidence tiers, run the complete target-Mac DEEP candidate, freeze it, conduct six independent reviews, repair all accepted P0/P1, and run fresh confirmation.
 
 ## Resume commands
 

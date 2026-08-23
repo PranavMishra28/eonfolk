@@ -58,10 +58,10 @@
 | Requirement | State |
 |---|---|
 | Canonical/subjective/derived/research data classification in code | IN PROGRESS |
-| Population, households, relationships, roles, and bounded demographic change | NOT STARTED |
+| Population, households, relationships, roles, and bounded demographic change | IN PROGRESS |
 | Typed resource stocks, storage, flows, units, and conservation | VERIFIED |
 | Production/consumption recipes, duration, labor, capabilities, transport, and scarcity | IN PROGRESS |
-| Grounded needs and pressures with imperfect observability | NOT STARTED |
+| Grounded needs and pressures with imperfect observability | IN PROGRESS |
 | Generic Project lifecycle, milestones, dependencies, accounting, failure, and abandonment | VERIFIED |
 | Physical construction/project progress | IN PROGRESS |
 | Generic Institution, membership, authority, resources, commitments, and norms | IN PROGRESS |
@@ -84,10 +84,10 @@
 | Versioned structured model-decision contract and provenance | VERIFIED |
 | Schema, semantic, authority, and world validation after model output | IN PROGRESS |
 | Timeout, bounded retry, invalid/unavailable rejection, and deterministic fallback | IN PROGRESS |
-| Episodic, semantic, social, goal, commitment, and reflection memory | NOT STARTED |
-| Retrieval by relevance, recency, salience, relationship, and goal | NOT STARTED |
-| Historical replay never reruns model inference | NOT STARTED |
-| Multiple world seeds and Brain treatments carry immutable experiment identity | NOT STARTED |
+| Episodic, semantic, social, goal, commitment, and reflection memory | IN PROGRESS |
+| Retrieval by relevance, recency, salience, relationship, and goal | IN PROGRESS |
+| Historical replay never reruns model inference | IN PROGRESS |
+| Multiple world seeds and Brain treatments carry immutable experiment identity | IN PROGRESS |
 | POMCP promoted with a defensible sampler or rejected by an evidence-backed ADR | VERIFIED |
 
 ## Persistence and reliability
@@ -96,13 +96,13 @@
 |---|---|
 | Atomic event append, snapshots, schema versions, migrations, and idempotency | IN PROGRESS |
 | Single-writer fencing and crash recovery | IN PROGRESS |
-| Replay identity across long histories | NOT STARTED |
+| Replay identity across long histories | IN PROGRESS |
 | Bounded causal catch-up for reload, 1 day, 7 days, and long absence | NOT STARTED |
 | Catch-up crash and no-model recovery | NOT STARTED |
 | IndexedDB versus SQLite-WASM/OPFS benchmark and decision | NOT STARTED |
 | Future exhibition authority/persistence adapter seam | VERIFIED |
-| Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | NOT STARTED |
-| Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | NOT STARTED |
+| Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | IN PROGRESS |
+| Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | IN PROGRESS |
 | Injected model, persistence, checkpoint, renderer, asset, navigation, invariant, and latency failures | NOT STARTED |
 | `pnpm dev`, `pnpm prod`, and `pnpm diagnose` share product semantics and self-check setup | IN PROGRESS |
 
@@ -111,20 +111,20 @@
 | Requirement | State |
 |---|---|
 | Premium coherent landing/entry route | NOT STARTED |
-| Immersive separate world-first game route | NOT STARTED |
+| Immersive separate world-first game route | IN PROGRESS |
 | Generalized terrain, routes, settlements, projects, and growth render | IN PROGRESS |
 | Semantic region, settlement, and citizen-follow zoom | IN PROGRESS |
-| Recognizable stylized humanoid characters and identity | NOT STARTED |
+| Recognizable stylized humanoid characters and identity | IN PROGRESS |
 | Grounded pathfinding, entrances, interaction slots, and no routine teleport | NOT STARTED |
-| Locomotion, carry, work, social, life, and reaction animation states | NOT STARTED |
-| Task props and visible construction/project change | NOT STARTED |
-| Contextual citizen/building/project selection UI | NOT STARTED |
+| Locomotion, carry, work, social, life, and reaction animation states | IN PROGRESS |
+| Task props and visible construction/project change | IN PROGRESS |
+| Contextual citizen/building/project selection UI | IN PROGRESS |
 | Deliberate Research/Evidence mode separate from play | NOT STARTED |
 | Chronicle-to-citizen/location/object replay navigation | NOT STARTED |
 | In-game menu feedback with consented bounded diagnostics | NOT STARTED |
-| Production UI hides raw developer internals | NOT STARTED |
+| Production UI hides raw developer internals | IN PROGRESS |
 | GLB/glTF asset pipeline with provenance, licenses, optimization, and cohesive art | NOT STARTED |
-| Temporal Living World acceptance suite | NOT STARTED |
+| Temporal Living World acceptance suite | IN PROGRESS |
 
 ## Verification and release
 

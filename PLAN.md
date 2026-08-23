@@ -11,7 +11,7 @@
 ## Binding constraints
 
 - One solo builder; preserve a compelling 40–60-hour proof shape even while constructing the larger internal V1 benchmark.
-- Target approximately $0 spend. No deployment, paid action, credentials, model download, or public publication without separate approval.
+- Target approximately $0 spend. No deployment, paid action, credentials, or public publication without separate approval. The V1 Goal and the operator's plugged-in-machine instruction authorize controlled local open-weight model downloads within the stated disk/memory safety envelope; weights remain outside Git.
 - Apple M4 Max with 48 GB unified memory is the measured development machine. No owned GPU infrastructure and no model training or fine-tuning.
 - V1 remains useful/free and complete without external inference. Payments, revenue operations, regulated data, proprietary datasets, partnerships, and enterprise sales are excluded.
 - Typed Reality is sole authority. Mind is actor-bounded. Brain is untrusted. Application validates. Chronicle and Observatory cannot mutate Reality.
@@ -23,10 +23,10 @@
 |---|---|---|
 | 1. Exact base, V1 ledger, repository archaeology | Complete | Base `8eb6afa`; archive tag; `GOAL.md`; `RESUME.md`; generated inventory |
 | 2. Release Genesis, generalized protocol, deterministic world generator | Complete for pure contracts | Versioned identities; three differentiated seeds; 160-seed deep properties; golden world hash |
-| 3. Civilization kernel and long-horizon emergence | Pure experiment gate complete; product integration pending | Pressure/affordance scheduling, canonical least-cost migration routes, physical traversal, second-settlement materialization, legitimate stagnation, and deterministic 30/90/365 evidence pass; population/needs and browser integration remain pending |
-| 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice, local lab, and macOS zero-egress process host integrated; real-model treatment promotion and memory pending |
-| 5. Persistence, replay, recovery, diagnostics | In progress | Generalized exact-version authority stream, atomic/idempotent append, fencing, snapshots, range continuity, corruption rejection, and inference-free replay pass in-memory conformance; browser adapter, civilization wiring, catch-up, and diagnostics remain pending |
-| 6. Generated-world product presentation | In progress | `/genesis` and `/world` expose immutable generated projections with semantic fallback; browser audit still shows an abstract map, so living citizens, temporal world, default-entry migration, and performance/visual evidence remain pending |
+| 3. Civilization kernel and long-horizon emergence | Pure experiment gate complete; product integration pending | Pressure/affordance scheduling, canonical least-cost migration routes, physical traversal, second-settlement materialization, legitimate stagnation, deterministic 30/90/365 evidence, and typed population/relationship/household/role/need/memory primitives pass; scheduler and browser integration remain pending |
+| 4. Cognition and experiment treatments | In progress | Standard Brain gateway, planners, Standing Plan lifecycle, closed model choice, local lab, bounded process host, grounded need planning, and visibility-safe memory retrieval integrated; secure real-model transport/benchmark/promotion remain pending |
+| 5. Persistence, replay, recovery, diagnostics | In progress | Generalized and civilization-specific exact-version authority streams, atomic/idempotent append, fencing, snapshots, long-history ranges, corruption rejection, and inference-free replay pass in-memory conformance; browser adapter, semantic catch-up, per-mutation integration, and full failure injection remain pending |
+| 6. Generated-world product presentation | In progress | `/genesis` renders generated Dawnmere; `/world` now embodies eight canonical Riverhold citizens in PlayCanvas with temporal action, selection, semantic fallback, and cross-viewport browser evidence. Unifying these separate authorities, rendering generated growth/second settlements, and full visual/performance evidence remain pending |
 | 7. CI, security, documentation and developer experience | In progress | Readiness guard, inventory freshness, 14-mutant gate, secret/formal checks, and supplementary portable-extended manifest integrated; V1 evidence lanes pending |
 | 8. Exact-candidate DEEP, frozen reviews, fixes, merge | Not started | No V1 frozen SHA or release verdict exists |
 
@@ -47,6 +47,10 @@
 | Local cognition host | `fa72abf`, `1d2edb8` | macOS-only verified-artifact subprocess, deny-network sandbox, canonical framing, bounded failure/kill behavior, deterministic fallback, and inference-free recorded-proposal restoration; no actual model promoted |
 | Rule-driven founding | `bab3fce`, `c89580b` | No absolute-day expansion trigger; pressure/affordance start, canonical route traversal, physical carried stocks, canonical second settlement, geography-driven stagnation, and 30/90/365 replay properties |
 | Versioned authority persistence seam | `ae94cc5` | Exact-version port and in-memory conformance adapter with atomic/idempotent append, fencing, snapshots/ranges, corruption rejection, and replay without cognition; no browser/database V1 adapter yet |
+| Repository controls and diagnostic identity | `b434c10`, `072f312`, `103a259`, `ab7f917`, `c987027` | Re-probed GitHub controls; correlated product authority identity; generalized safe summaries; exact-head snapshot formal model; route-specific diagnostics. Full V1 injected-failure evidence remains pending |
+| Embodied canonical world | `4d97834` | PlayCanvas `/world` with eight authoritative Riverhold citizens, visible temporal behavior, selection/follow, semantic fallback, and seven focused browser journeys. It is not yet generated Dawnmere or generalized civilization acceptance evidence |
+| Civilization checkpoint replay | `06b7a1f`, `b2a7ccc` | Exact-version civilization checkpoints, atomic/idempotent history, fencing, 30/90/365 replay, and v3 schema reconciliation; in-memory checkpoint proof only, without browser IndexedDB/catch-up or every kernel mutation |
+| Grounded social Mind | `6cce744` | Typed people/relationships/households/roles, imperfect grounded pressures, institutional authorization, six memory classes, visibility-first bounded retrieval, and need-aware deterministic planning; normal scheduler/product wiring remains pending |
 
 Every integration was required to have bounded ownership, an actual diff inspection, focused verification, a clean commit, and coordinator reconciliation. Detailed limitations and the next exact commands live in `RESUME.md`.
 
