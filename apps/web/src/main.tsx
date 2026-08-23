@@ -37,13 +37,13 @@ class RuntimeBoundary extends Component<
 					className="runtime-failure"
 					aria-labelledby="runtime-failure-title"
 				>
-					<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
+					<p className="eyebrow">WORLD UNAVAILABLE</p>
 					<h1 id="runtime-failure-title">
-						Riverhold stopped before showing a world.
+						EONFOLK stopped before showing a world.
 					</h1>
 					<p>
-						No world state or Chronicle is being presented as authoritative.
-						Founder Alpha requires a working Web Worker and browser storage.
+						No world state or Chronicle is being presented as authoritative. The
+						local world requires a working Web Worker and browser storage.
 					</p>
 					<details>
 						<summary>Technical detail</summary>

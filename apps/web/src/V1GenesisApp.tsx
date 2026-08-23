@@ -166,7 +166,7 @@ function GenesisEntry({
 	return (
 		<main className="v1-genesis-entry">
 			<header className="v1-entry-hero">
-				<a className="v1-brand" href="/" aria-label="Eonfolk Founder Alpha">
+				<a className="v1-brand" href="/" aria-label="Eonfolk home">
 					<EonfolkMark label="" />
 					<span>EONFOLK</span>
 				</a>
@@ -488,7 +488,7 @@ function GenesisWorld({
 					origin remains a separate read-only record until its simulation
 					adapter is implemented.
 				</p>
-				<a href="/">Open Founder Alpha</a>
+				<a href="/">Open the legacy regression build</a>
 			</footer>
 		</main>
 	);

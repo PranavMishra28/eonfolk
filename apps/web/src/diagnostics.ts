@@ -43,6 +43,32 @@ function viewportClass() {
 	return "wide" as const;
 }
 
+function routeIdentity() {
+	const path =
+		typeof window === "undefined"
+			? "/"
+			: window.location.pathname.replace(/\/+$/u, "") || "/";
+	if (path === "/genesis")
+		return Object.freeze({
+			genesisId: "release-genesis-browser-v1",
+			worldId: "eonfolk-genesis-world-v1",
+			experimentId: "release-genesis-readonly-v1",
+			runId: "run-release-genesis-readonly-v1",
+			cognitionTreatmentId: "cognition-standard-v1",
+			rendererVersion: "generated-origin-dom-v1",
+			persistenceVersion: "persistence-none-readonly-v1",
+		});
+	return Object.freeze({
+		genesisId: "riverhold-local-genesis-v1",
+		worldId: "world-riverhold-local-v1",
+		experimentId: "riverhold-standard-brain-v1",
+		runId: "run_riverhold_0001",
+		cognitionTreatmentId: "cognition-standard-v1",
+		rendererVersion: "playcanvas-riverhold-v1",
+		persistenceVersion: "indexeddb-riverhold-v1",
+	});
+}
+
 export class BrowserDiagnostics {
 	readonly #recorder: FlightRecorder;
 	#performance: NativePerformanceMonitor | null;
@@ -75,6 +101,7 @@ export class BrowserDiagnostics {
 			mode,
 			capabilities: this.#capabilities,
 			identity: {
+				...routeIdentity(),
 				diagnosticSessionId: diagnosticSessionId(),
 				buildSha:
 					typeof __EONFOLK_BUILD_SHA__ === "string"
@@ -85,8 +112,6 @@ export class BrowserDiagnostics {
 						? __EONFOLK_APP_VERSION__
 						: "unknown",
 				protocolVersion: PROTOCOL_SCHEMA_VERSION,
-				experimentId: "founder-alpha-standard-brain",
-				runId: "run_riverhold_0001",
 				runtimeClass: runtimeClass(),
 				viewportClass: viewportClass(),
 			},
