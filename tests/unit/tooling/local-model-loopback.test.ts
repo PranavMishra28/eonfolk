@@ -400,10 +400,11 @@ describe("bounded Ollama loopback adapter", () => {
 		const { port } = await startServer(handler);
 		const test = await ollamaHarness(port);
 
-		await expect(test.brain.propose(test.context)).rejects.toMatchObject({
-			code: "process-failed",
-			message: `local model adapter failed: ${adapterCode}`,
-		});
+		const received = await test.brain
+			.propose(test.context)
+			.catch((error) => error);
+		expect(received).toMatchObject({ code: "process-failed" });
+		expect(received.message).toBe(`local model adapter failed: ${adapterCode}`);
 	});
 
 	macIt("terminates a hung local API at the contract timeout", async () => {

@@ -133,7 +133,6 @@ function arraySchema(ids, maximum) {
 		type: "array",
 		items: ids.length === 0 ? { type: "string" } : { enum: ids },
 		maxItems: Math.min(maximum, ids.length),
-		uniqueItems: true,
 	};
 }
 
@@ -181,13 +180,12 @@ function prepareOllamaRequest(envelope) {
 		additionalProperties: false,
 		required: CHOICE_KEYS,
 		properties: {
-			schemaVersion: { const: "eonfolk-model-choice-v1" },
+			schemaVersion: { enum: ["eonfolk-model-choice-v1"] },
 			actionId: { enum: actionIds },
 			publicJustification: {
 				type: "string",
 				minLength: 8,
 				maxLength: 180,
-				pattern: "[.!?…]$",
 			},
 			visibleRecordIdsRead: arraySchema(visibleRecordIds, 32),
 			relationshipIdsRead: arraySchema(relationshipIds, 128),
@@ -260,12 +258,15 @@ async function invokeOllama(port, requestBody) {
 				});
 				response.once("error", reject);
 				response.once("end", () => {
+					if (response.statusCode !== 200) {
+						reject(new Error("Ollama returned a non-success status"));
+						return;
+					}
 					if (
-						response.statusCode !== 200 ||
 						typeof contentType !== "string" ||
 						!/^application\/json(?:\s*;|$)/iu.test(contentType)
 					) {
-						reject(new Error("Ollama returned a non-success status"));
+						reject(new AdapterFailure("response-envelope-invalid"));
 						return;
 					}
 					try {
@@ -277,7 +278,7 @@ async function invokeOllama(port, requestBody) {
 							),
 						);
 					} catch {
-						reject(new Error("Ollama response is not UTF-8 JSON"));
+						reject(new AdapterFailure("response-envelope-invalid"));
 					}
 				});
 			},
@@ -366,13 +367,12 @@ main().catch((error) => {
 		error instanceof AdapterFailure
 			? error.code
 			: error instanceof Error &&
-					error.message === "Ollama response is oversized"
-				? "response-oversized"
+					error.message === "Ollama returned a non-success status"
+				? "ollama-http-failure"
 				: error instanceof Error &&
-						(error.message === "Ollama returned a non-success status" ||
-							error.message === "Ollama response is not UTF-8 JSON")
-					? "ollama-http-failure"
-					: "internal";
+						error.message === "Ollama response is oversized"
+					? "response-oversized"
+					: "ollama-transport-failure";
 	process.stderr.write(
 		canonicalJson({ code, schemaVersion: ERROR_SCHEMA_VERSION }),
 	);
