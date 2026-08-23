@@ -57,15 +57,23 @@ jobs:
           set -euo pipefail
           if [[ -z "${BASE_SHA}" ]] || [[ "${BASE_SHA}" =~ ^0+$ ]] || ! git cat-file -e "${BASE_SHA}^{commit}"; then
             echo "ui=true" >> "${GITHUB_OUTPUT}"
+            echo "cognition=true" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
-          changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
-          if grep -Eq '^(apps/web/|packages/|tests/e2e/|\.github/workflows/ci\.yml$|package\.json$|pnpm-lock\.yaml$|vite\..*\.ts$|playwright\..*\.ts$)' <<<"${changed_files}"; then
-            echo "ui=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "ui=false" >> "${GITHUB_OUTPUT}"
-          fi
+          changed_files_path="${RUNNER_TEMP}/eonfolk-changed-files.txt"
+          git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" > "${changed_files_path}"
+          CHANGED_FILES_PATH="${changed_files_path}" node --input-type=module <<'EOF' >> "${GITHUB_OUTPUT}"
+          import { readFileSync } from "node:fs";
+          import { classifyConditionalPaths } from "./scripts/run-verification-tier.mjs";
+
+          const paths = readFileSync(process.env.CHANGED_FILES_PATH, "utf8")
+            .split("\n")
+            .filter(Boolean);
+          const classification = classifyConditionalPaths(paths);
+          process.stdout.write(`ui=${classification.ui}\n`);
+          process.stdout.write(`cognition=${classification.cognition}\n`);
+          EOF
 
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -88,6 +96,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Run provider-neutral cognition safety gate
+        if: steps.classify.outputs.cognition == 'true'
+        run: pnpm test:cognition:portable
+
       - name: Install pinned Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -109,212 +121,41 @@ jobs:
         run: pnpm verify:pr
 
       - name: Enforce the V1 readiness claim boundary
+        shell: bash
         env:
           V1_READINESS_MODE: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false && 'ready' || 'draft' }}
-        run: node scripts/check-v1-readiness.mjs --mode "${V1_READINESS_MODE}" --evidence tmp/eonfolk-verification-pr.json
-
-      - name: Capture Founder Alpha regression evidence (not V1 acceptance)
-        if: steps.classify.outputs.ui == 'true'
-        shell: bash
+          V1_BRANCH_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          evidence_dir="tmp/founder-alpha-regression-evidence"
-          mkdir -p "${evidence_dir}"
-          pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort >"${evidence_dir}/preview.log" 2>&1 &
-          preview_pid=$!
-          trap 'kill "${preview_pid}" 2>/dev/null || true' EXIT
-          for attempt in {1..40}; do
-            if curl --fail --silent http://127.0.0.1:4174/ >/dev/null; then
-              break
-            fi
-            if ! kill -0 "${preview_pid}" 2>/dev/null; then
-              echo "Production preview exited before becoming ready" >&2
-              exit 1
-            fi
-            if [[ "${attempt}" == "40" ]]; then
-              echo "Production preview did not become ready" >&2
-              exit 1
-            fi
-            sleep 0.25
-          done
-          node --input-type=module <<'EOF'
-          import { writeFileSync } from "node:fs";
-          import { chromium } from "@playwright/test";
+          if [[ "${V1_READINESS_MODE}" == "ready" ]]; then
+            node scripts/check-v1-readiness.mjs \
+              --mode ready \
+              --head "${V1_BRANCH_HEAD}" \
+              --deep-evidence docs/exec-plans/evidence/003/release/target-mac-deep.json \
+              --review-evidence docs/exec-plans/evidence/003/release/review-confirmation.json
+          else
+            node scripts/check-v1-readiness.mjs --mode draft --head "${V1_BRANCH_HEAD}"
+          fi
 
-          const browser = await chromium.launch({
-            args: [
-              "--disable-background-networking",
-              "--dns-prefetch-disable",
-              "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
-            ],
-          });
-          const evidence = [];
-          try {
-            for (const viewport of [
-              { name: "desktop-1728x1117", width: 1728, height: 1117 },
-              { name: "laptop-1366x768", width: 1366, height: 768 },
-              { name: "mobile-390x844", width: 390, height: 844 },
-            ]) {
-              const context = await browser.newContext({
-                colorScheme: "light",
-                deviceScaleFactor: 1,
-                reducedMotion: "reduce",
-                viewport,
-              });
-              const page = await context.newPage();
-              const externalAttempts = [];
-              const pageErrors = [];
-              page.on("console", (message) => {
-                if (message.type() === "error") pageErrors.push(message.text());
-              });
-              page.on("pageerror", (error) => pageErrors.push(error.message));
-              await page.route("**/*", async (route) => {
-                const url = new URL(route.request().url());
-                if (url.hostname === "127.0.0.1") await route.continue();
-                else {
-                  externalAttempts.push(route.request().url());
-                  await route.abort("blockedbyclient");
-                }
-              });
-              await page.goto("http://127.0.0.1:4174/", {
-                waitUntil: "networkidle",
-              });
-              const world = page.getByTestId("riverhold-canvas");
-              await world.waitFor({ state: "visible", timeout: 15_000 });
-              await page.waitForFunction(
-                () =>
-                  document.querySelector('[data-testid="riverhold-canvas"]')
-                    ?.getAttribute("data-ready") === "true",
-                undefined,
-                { timeout: 15_000 },
-              );
-              const probe = await world.evaluate((host) => {
-                const canvas = host.querySelector("canvas");
-                const citizenTargets = JSON.parse(
-                  host.dataset.citizenPickTargets ?? "[]",
-                );
-                return {
-                  activeTaskCount: Number(host.dataset.activeTaskCount),
-                  animationClasses: (host.dataset.animationClasses ?? "")
-                    .split(",")
-                    .filter(Boolean),
-                  canvasHeight: canvas?.clientHeight ?? 0,
-                  canvasWidth: canvas?.clientWidth ?? 0,
-                  citizenTargets: citizenTargets.length,
-                  deviceType: host.dataset.deviceType,
-                  engine: host.dataset.engine,
-                  hostHeight: host.clientHeight,
-                  hostWidth: host.clientWidth,
-                  pixelRatio:
-                    canvas === null
-                      ? 0
-                      : canvas.width / Math.max(1, host.clientWidth),
-                  ready: host.dataset.ready,
-                  semanticCitizens: document.querySelectorAll(
-                    ".semantic-citizens > li",
-                  ).length,
-                };
-              });
-              const failures = [];
-              if (probe.ready !== "true") failures.push("renderer not ready");
-              if (probe.engine !== "playcanvas") failures.push("not PlayCanvas");
-              if (probe.deviceType !== "webgl2") failures.push("not WebGL2");
-              if (
-                probe.canvasWidth !== probe.hostWidth ||
-                probe.canvasHeight !== probe.hostHeight ||
-                probe.hostWidth <= 0 ||
-                probe.hostHeight <= 0
-              ) {
-                failures.push("canvas does not match its visible host");
-              }
-              if (probe.pixelRatio <= 0 || probe.pixelRatio > 1.51) {
-                failures.push(`pixel ratio ${probe.pixelRatio} is outside (0, 1.51]`);
-              }
-              if (probe.semanticCitizens !== 8 || probe.citizenTargets !== 8) {
-                failures.push(
-                  `citizen parity failed: semantic=${probe.semanticCitizens}, projected=${probe.citizenTargets}`,
-                );
-              }
-              if (probe.activeTaskCount < 1) {
-                failures.push("authoritative world exposes no active canonical task");
-              }
-              let camera = null;
-              if (viewport.name === "desktop-1728x1117") {
-                const initialDistance = Number(
-                  await world.getAttribute("data-camera-distance-m"),
-                );
-                await world.focus();
-                await page.keyboard.press("f");
-                await page.waitForFunction(
-                  () =>
-                    Number(
-                      document.querySelector('[data-testid="riverhold-canvas"]')
-                        ?.getAttribute("data-camera-distance-m"),
-                    ) <= 18.1,
-                  undefined,
-                  { timeout: 10_000 },
-                );
-                const focusedDistance = Number(
-                  await world.getAttribute("data-camera-distance-m"),
-                );
-                if (!(focusedDistance < initialDistance)) {
-                  failures.push("keyboard camera follow did not move closer");
-                }
-                camera = { initialDistance, focusedDistance, operation: "f" };
-              }
-              await page.screenshot({
-                animations: "disabled",
-                caret: "hide",
-                fullPage: true,
-                path: `tmp/founder-alpha-regression-evidence/${viewport.name}.png`,
-                scale: "css",
-              });
-              if (externalAttempts.length > 0) {
-                failures.push(`external requests: ${externalAttempts.join(", ")}`);
-              }
-              if (pageErrors.length > 0) {
-                failures.push(`browser errors: ${pageErrors.join(" | ")}`);
-              }
-              if (failures.length > 0) {
-                throw new Error(`${viewport.name}: ${failures.join("; ")}`);
-              }
-              evidence.push({
-                camera,
-                externalAttempts: externalAttempts.length,
-                pageErrors: pageErrors.length,
-                probe,
-                screenshot: `${viewport.name}.png`,
-                trace: "off",
-                viewport,
-              });
-              await context.close();
-            }
-          } finally {
-            await browser.close();
-          }
-          writeFileSync(
-            "tmp/founder-alpha-regression-evidence/renderer-smoke.json",
-            `${JSON.stringify(
-              {
-                claimBoundary:
-                  "Founder Alpha/Riverhold regression only; INELIGIBLE FOR V1 READINESS.",
-                evidence,
-                readinessEligibility: "INELIGIBLE_FOR_V1_READINESS",
-                schemaVersion: "eonfolk-founder-alpha-regression-smoke-v1",
-                status: "PASS",
-              },
-              null,
-              2,
-            )}\n`,
-          );
-          EOF
+      - name: Capture Release Genesis and legacy regression browser evidence
+        if: steps.classify.outputs.ui == 'true'
+        run: node scripts/run-verification-tier.mjs v1-browser-evidence --output-dir tmp/v1-browser-evidence
 
-      - name: Retain Founder Alpha regression artifact (ineligible for V1)
+      - name: Retain Release Genesis browser evidence
         if: success() && steps.classify.outputs.ui == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: founder-alpha-regression-only-${{ github.run_id }}
-          path: tmp/founder-alpha-regression-evidence
+          name: v1-release-genesis-browser-${{ github.run_id }}
+          path: tmp/v1-browser-evidence/release-genesis
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain cheap legacy regression evidence (ineligible for V1)
+        if: success() && steps.classify.outputs.ui == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: legacy-regression-only-${{ github.run_id }}
+          path: tmp/v1-browser-evidence/legacy-regression
           if-no-files-found: error
           retention-days: 30
 
@@ -327,21 +168,21 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Retain failing Founder Alpha regression evidence
+      - name: Retain failing V1 browser evidence and traces
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: founder-alpha-regression-failure-${{ github.run_id }}
+          name: v1-browser-failure-${{ github.run_id }}
           path: |
             tmp/riverhold-playwright
-            tmp/founder-alpha-regression-evidence
+            tmp/v1-browser-evidence
             tmp/eonfolk-verification-pr.json
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14
 
   extended:
-    name: Extended verification
+    name: V1 extended verification
     if: github.event_name == 'workflow_dispatch' && inputs.tier == 'extended'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -373,6 +214,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Run provider-neutral cognition safety gate
+        run: pnpm test:cognition:portable
+
       - name: Install pinned Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -393,6 +237,9 @@ jobs:
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:portable-extended
 
+      - name: Capture extended Release Genesis and legacy browser evidence
+        run: node scripts/run-verification-tier.mjs v1-browser-evidence --output-dir tmp/v1-browser-evidence
+
       - name: Retain accepted supplementary portable extended evidence
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -402,14 +249,24 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Retain failing extended and Founder Alpha regression evidence
+      - name: Retain accepted extended Release Genesis browser evidence
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: v1-extended-release-genesis-browser-${{ github.run_id }}
+          path: tmp/v1-browser-evidence/release-genesis
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain failing extended V1 evidence and traces
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: founder-alpha-regression-extended-failure-${{ github.run_id }}
+          name: v1-extended-failure-${{ github.run_id }}
           path: |
             tmp/eonfolk-verification-portable-extended.json
             tmp/riverhold-playwright
+            tmp/v1-browser-evidence
             apps/web/evidence
           if-no-files-found: ignore
           retention-days: 14
