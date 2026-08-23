@@ -2,12 +2,10 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const projects = [
-	"tsconfig.gate0.json",
 	"packages/protocol/tsconfig.json",
 	"packages/sim/tsconfig.json",
 	"packages/cognition/tsconfig.json",
 	"packages/persistence/tsconfig.json",
-	"packages/observatory/tsconfig.json",
 	"packages/diagnostics/tsconfig.json",
 	"packages/world-presentation/tsconfig.json",
 	"packages/worldgen/tsconfig.json",
@@ -15,7 +13,6 @@ const projects = [
 	"tests/unit/systems/tsconfig.json",
 	"tests/unit/civilization/tsconfig.json",
 	"tests/unit/persistence/tsconfig.json",
-	"tests/unit/observatory/tsconfig.json",
 	"tests/unit/diagnostics/tsconfig.json",
 	"tests/unit/world-presentation/tsconfig.json",
 	"tests/unit/worldgen/tsconfig.json",

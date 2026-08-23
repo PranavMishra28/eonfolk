@@ -60,16 +60,7 @@
 		"verify": "pnpm verify:pr",
 		"cohort:check": "node scripts/validate-dependency-cohort.mjs",
 		"cohort:freeze": "node scripts/freeze-dependency-cohort.mjs",
-		"browser-cohort:check": "node scripts/validate-browser-cohort.mjs && ruby scripts/validate-browser-cohort.rb",
-		"gate0:artifact": "node --experimental-strip-types scripts/generate-gate0-artifact.mjs && node --experimental-strip-types docs/exec-plans/evidence/001/studies/gate-0/validate.mjs && ruby docs/exec-plans/evidence/001/studies/gate-0/validate.rb",
-		"gate0:build": "vite build --config vite.gate0.config.ts",
-		"gate0:check": "tsc -p tsconfig.gate0.json --noEmit",
-		"gate0:dev": "vite --config vite.gate0.config.ts",
-		"gate0:preview": "vite preview --config vite.gate0.config.ts",
-		"gate0:e2e": "playwright test --config playwright.gate0.config.ts && node scripts/validate-gate0-network.mjs",
-		"gate0:e2e:update": "UPDATE_GATE0_SCREENSHOTS=1 playwright test --config playwright.gate0.config.ts && node scripts/validate-gate0-network.mjs",
-		"gate0:test": "vitest run --config vitest.gate0.config.ts && node --test tests/prototypes/gate-0/visual/visual.test.mjs",
-		"gate0:verify": "pnpm cohort:check && pnpm browser-cohort:check && node scripts/validate-work-segments.mjs && pnpm gate0:check && pnpm gate0:test && pnpm gate0:build && pnpm gate0:e2e && pnpm gate0:artifact && ruby tests/prototypes/gate-0/study/validate_vectors.rb"
+		"browser-cohort:check": "node scripts/validate-browser-cohort.mjs && ruby scripts/validate-browser-cohort.rb"
 	},
 	"dependencies": {
 		"@playcanvas/react": "0.11.5",
@@ -87,7 +78,6 @@
 		"@vitest/coverage-v8": "4.1.11",
 		"fast-check": "4.9.0",
 		"markdownlint-cli2": "0.23.2",
-		"pixi.js": "8.19.0",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",
 		"vitest": "4.1.11"

@@ -10,17 +10,17 @@
 
 ## Recorded cohort
 
-Release Genesis uses four direct production dependencies: exact React 19.2.8, React DOM 19.2.8, `@playcanvas/react@0.11.5`, and `playcanvas@2.21.4`. The complete 235-package external lock graph is recorded here [S-TOOL-20] [S-WP-013]. Pixi remains a development-only dependency solely for immutable Gate 0 evidence; the production web app imports PlayCanvas, not Pixi. Six previously approved but unreachable UI dependencies and the empty importer for the removed feedback-relay workspace were deleted after repository-wide reachability inspection. This avoids dead production/security surface and prevents a live resolver from silently changing transitive versions, integrity, licenses, or lifecycle scripts.
+Release Genesis uses four direct production dependencies: exact React 19.2.8, React DOM 19.2.8, `@playcanvas/react@0.11.5`, and `playcanvas@2.21.4`. The complete 224-package external lock graph is recorded here [S-TOOL-20] [S-WP-013]. The obsolete Gate 0/Pixi harness, unused Observatory package, feedback-relay workspace, and six previously approved but unreachable UI dependencies were removed after repository-wide reachability inspection. Immutable tags and historical evidence preserve what ran without keeping those old execution surfaces active. This avoids dead production/security surface and prevents a live resolver from silently changing transitive versions, integrity, licenses, or lifecycle scripts.
 
 The evidence files are documentation with inert `.txt`/`.json` paths, not an installed application manifest:
 
 | Evidence | Raw bytes | SHA-256 | Meaning |
 |---|---:|---|---|
-| [package.json.txt](dependency-cohort/package.json.txt) | 635 | `77538d5cb83d125665996b33900775da7b079ea01d7bb97b26af3c0198ee06d1` | Exact direct dependencies and package-manager pin after renderer adoption and dead-dependency removal |
-| [pnpm-lock.yaml.txt](dependency-cohort/pnpm-lock.yaml.txt) | 74,059 | `e5fe6b21d434a0e6809e78bc460e8ee7725c00f07341fb18f8ccaabc828cbbeb` | Exact pnpm 11.15.1 external resolution/integrity graph after the unused workspace importer was removed |
-| [licenses.jcs.json](dependency-cohort/licenses.jcs.json) | 46,715 | `2c2a46243a67e1c705be988b11e62ef00426da01a39c94cef4bffac8a8f67a8f` | Canonical name/version/integrity/license/lifecycle record for all 235 packages |
+| [package.json.txt](dependency-cohort/package.json.txt) | 610 | `deb01674b0f332a15df1b813781db92fcc4aa4406f89325661bcaacc0acb6036` | Exact direct dependencies and package-manager pin after obsolete harness removal |
+| [pnpm-lock.yaml.txt](dependency-cohort/pnpm-lock.yaml.txt) | 71,467 | `a59ebfe170d691e10e166d7a3ea60a08be26fc30be75812de81171871941c4db` | Exact pnpm 11.15.1 external resolution/integrity graph for the ten current workspaces |
+| [licenses.jcs.json](dependency-cohort/licenses.jcs.json) | 44,616 | `1bedbaa5a7af5bf542f551c1925c76b2cb8f698b5ceba255ea0f526608a53ba1` | Canonical name/version/integrity/license/lifecycle record for all 224 packages |
 
-The license inventory is 173 MIT, 26 Apache-2.0, 12 MPL-2.0, nine MIT OR Apache-2.0, seven BSD-3-Clause, six ISC, and one each of Python-2.0 and BSD-2-Clause. The only lifecycle metadata is `install: node-gyp rebuild` on optional `fsevents@2.3.2` and `fsevents@2.3.3`; installation suppresses all lifecycle scripts. PlayCanvas and its React wrapper are MIT. MPL-2.0 packages remain unmodified dependencies and require notice/source-offer review before public distribution.
+The license inventory is 164 MIT, 26 Apache-2.0, 12 MPL-2.0, nine MIT OR Apache-2.0, six BSD-3-Clause, five ISC, and one each of Python-2.0 and BSD-2-Clause. The only lifecycle metadata is `install: node-gyp rebuild` on optional `fsevents@2.3.2` and `fsevents@2.3.3`; installation suppresses all lifecycle scripts. PlayCanvas and its React wrapper are MIT. MPL-2.0 packages remain unmodified dependencies and require notice/source-offer review before public distribution.
 
 ## Validation behavior
 

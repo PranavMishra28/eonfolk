@@ -6,7 +6,7 @@
 
 **Authority boundary:** This record changes execution permission and branch integration policy. It does not turn absent human evidence into a pass or change canonical game semantics.
 
-**Related documents:** [development status](../../../../PLAN.md), [001 ExecPlan](../../completed/001-foundation.md), [quality bar](../../../quality/QUALITY_BAR.md), [archive tags](../../../../OVERNIGHT_HANDOFF.md).
+**Related documents:** [development status](../../../../PLAN.md), [001 ExecPlan](../../completed/001-foundation.md), [quality bar](../../../quality/QUALITY_BAR.md), and the immutable `archive/implementation-pre-overnight-2026-08-21` tag.
 
 ## Source identity
 

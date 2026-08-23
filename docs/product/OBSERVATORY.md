@@ -36,11 +36,11 @@ Canonical replay means applying the recorded accepted batch-header/event interva
 
 Future experiments use repeated independent manifests/runs, declare interventions and parent snapshot, and report outcome distributions and uncertainty. A counterfactual is factual only about the simulated fork itself; it is never retroactive canon or an unsimulated alternate history.
 
-## Founder Alpha standards-shaped projection
+## V1 executable boundary
 
-Founder Alpha can emit a bounded embedded JSON-LD 1.1, locally PROV-shaped subset. It is not a full PROV-O mapping or SHACL-conformance claim. Observatory accepts only an opaque artifact minted by the Chronicle visibility projector; that artifact binds viewer, purpose, revision, policy version, canonical source digest, and the exact authorized event hashes. Every projected evidence ID must resolve to that set. A closed offline validator checks the implemented IDs, node kinds, cardinalities, references, and predicates. Remote contexts, remote fetching, RDF storage, SPARQL, inference, RDF 1.2-only semantics, SHACL 1.2 draft features, and external interoperability claims are excluded.
+V1 has no Observatory package, route, RDF/JSON-LD projection, external validator, dataset export, or experiment dashboard. The earlier Founder Alpha projection prototype was unreachable from the product and is preserved only in immutable Git history and historical reviews. Current Research mode verifies the local IndexedDB world head, events, snapshots, covenant decisions, and Chronicle causal labels directly through the same typed authority contracts used by the game.
 
-The visibility projector mints the input only after authorization from existing evidence; caller-supplied labels cannot mint authorized evidence. Observatory's removal or reordering cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native JSON remains the executable evidence format; JSON-LD is a local research-shaped view, never a Truth Ledger.
+Any future research projection must begin from the current authorized evidence boundary. Caller-supplied labels cannot mint authority, and removing or reordering a research view cannot change canonical state, event/world-head hashes, replay, cognition, or experiment outcomes. Native typed records remain the executable evidence format.
 
 ## Rejected alternatives
 
@@ -56,7 +56,7 @@ Reopen the Observatory direction if preserving bounded provenance materially bre
 
 ## Resulting implementation behavior
 
-The first implementation stores one immutable local-run manifest and bounded raw cognitive decision records at the already-required consequential boundaries, plus a shared projector that can produce only authorized structured provenance for Chronicle/evidence. No Observatory navigation or analysis UI exists. Future forks and experiments reuse canonical snapshots/events rather than creating disconnected scenario authority.
+V1 stores one immutable local-run manifest and bounded cognitive decision records at consequential boundaries. The deliberate Research surface projects only verified local facts from the typed browser authority. No Observatory navigation, analysis package, standards-shaped export, or experiment UI exists. Future forks and experiments must reuse canonical snapshots/events rather than create disconnected scenario authority.
 
 ## Constraint fit
 

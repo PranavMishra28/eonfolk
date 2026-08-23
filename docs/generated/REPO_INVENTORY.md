@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 485 files excluding this generated file; SHA-256 `e80f4988652d6980c8a0441be5014659d6ead7a61256b3a6104ea32c1a5f54ab`.
+**File-set identity:** 445 files excluding this generated file; SHA-256 `b68f43ac73fe3501fe9de4993fbaf99c66f6ce19195899b1c92dcc3494e33e6f`.
 
 ## Tracked topology
 
@@ -17,11 +17,11 @@
 | Frozen execution evidence | 33 |
 | GitHub automation | 4 |
 | Other tracked assets | 3 |
-| Packages | 98 |
-| Repository tooling | 33 |
+| Packages | 95 |
+| Repository tooling | 29 |
 | Research and reviews | 48 |
-| Root controls and configuration | 23 |
-| Tests and fixtures | 121 |
+| Root controls and configuration | 18 |
+| Tests and fixtures | 93 |
 
 ## Workspaces
 
@@ -31,7 +31,6 @@
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
-| `packages/observatory` | `@eonfolk/observatory` | 1 |
 | `packages/persistence` | `@eonfolk/persistence` | 12 |
 | `packages/protocol` | `@eonfolk/protocol` | 9 |
 | `packages/sim` | `@eonfolk/sim` | 10 |
@@ -46,9 +45,8 @@
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
-| `tests/prototypes` | 26 |
 | `tests/timing` | 1 |
-| `tests/unit` | 65 |
+| `tests/unit` | 63 |
 
 ## Root controls and configuration
 
@@ -61,20 +59,15 @@
 - `AGENTS.md`
 - `FOUNDER_ALPHA_HANDOFF.md`
 - `GOAL.md`
-- `OVERNIGHT_HANDOFF.md`
 - `PLAN.md`
 - `README.md`
 - `RESUME.md`
 - `biome.json`
 - `package.json`
-- `playwright.gate0.config.ts`
 - `pnpm-lock.yaml`
 - `pnpm-workspace.yaml`
 - `references.bib`
 - `tsconfig.base.json`
-- `tsconfig.gate0.json`
-- `vite.gate0.config.ts`
-- `vitest.gate0.config.ts`
 
 ## Founder Alpha regression boundary
 

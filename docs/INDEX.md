@@ -169,8 +169,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Production dependency audit evidence and limitations | [security audit](exec-plans/evidence/001/implementation/security-audit.json) |
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
-| Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
-| Founder Alpha setup, verification, diagnosis, limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
+| Historical Founder Alpha setup, evidence limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |
