@@ -83,7 +83,10 @@ jobs:
       github.event_name != 'workflow_dispatch' ||
       (inputs.evidence_purpose == 'ordinary' && inputs.tier != 'extended')
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The protected PR lattice includes the serial, single-netlog 66-journey
+    # production browser suite. The previous 20-minute limit cancelled healthy
+    # runs partway through that suite and could never produce a truthful result.
+    timeout-minutes: 75
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
