@@ -41,6 +41,7 @@
 - Renderer-neutral generated-world projections now expose immutable region, settlement-local, and entity-follow semantic views while preserving canonical input bytes and hashes. Four focused tests and the full FAST lane passed; no browser renderer integration, visual proof, or performance evidence exists yet.
 - CI now regenerates/checks the repository topology, labels all Riverhold browser artifacts as Founder Alpha regression evidence that is ineligible for V1 readiness, and fails closed when a non-draft PR has any incomplete required row or lacks an exact-HEAD clean verification manifest. Draft mode remains green only with an explicit `V1 INCOMPLETE` claim boundary.
 - Targeted mutation coverage expanded from eight to fourteen killed mutants, adding generated settlement safety, actor-visible fact filtering, planner prerequisites and expansion budgets, and Standing Plan active/retry invariants. Civilization-kernel and later integration mutations are still required before the V1 mutation row can be verified.
+- The active authority path is now V1-only: `GOAL.md` → `RESUME.md` → `docs/INDEX.md` → ExecPlan 003. Founder Alpha ExecPlan 002 moved to completed history, its old path is a compatibility redirect, and README/PLAN no longer present it as current work.
 
 ## Next executable tasks
 

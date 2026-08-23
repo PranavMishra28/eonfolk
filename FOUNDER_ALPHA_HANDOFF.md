@@ -2,9 +2,9 @@
 
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
-**Status:** WORLD PRESENCE EXACT-YES, FINAL IMPLEMENTATION-HEAD GITHUB CI, AND EXACT CLEAN TARGET-MAC DEEP PASSED — final docs-head CI, merge, hardening, and cleanup pending
+**Status:** HISTORICAL FOUNDER ALPHA HANDOFF — integrated and retained for regression; V1 supersedes current operations
 
-**Authority boundary:** this file is an operational summary. [docs/INDEX.md](docs/INDEX.md) maps product and technical authority; [002-founder-alpha.md](docs/exec-plans/active/002-founder-alpha.md) owns execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) owns release boundaries.
+**Authority boundary:** this file is a historical operational summary. [docs/INDEX.md](docs/INDEX.md) maps current authority; [completed 002](docs/exec-plans/completed/002-founder-alpha.md) preserves Founder Alpha execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) preserves its release boundary.
 
 ## What works
 

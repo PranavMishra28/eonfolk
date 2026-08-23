@@ -2,42 +2,40 @@
 
 ![EONFOLK mark](apps/web/public/eonfolk-mark.svg)
 
-EONFOLK is a local-first civilization game about following one autonomous life inside a persistent settlement. You investigate what a citizen can know, offer rare counsel they may reinterpret or reject, watch consequences unfold in the world, and return to a factual Chronicle.
+EONFOLK is a local-first civilization game in development. Its V1 thesis is to follow one autonomous life inside a generated, persistent society: understand what that person can know, make rare consequential interventions they may reinterpret or reject, and return to a factual Chronicle of what followed.
 
-Founder Alpha is free, account-free, and complete without an external model or network service. It is a bounded product proof, not a public deployment or a claim that human fun, attachment, and retention gates have passed.
+The current `main` branch contains the completed Founder Alpha/Riverhold proof. V1 work is consolidated in the private draft mega PR from `feat/v1-civilization`. That PR is intentionally labeled **V1 INCOMPLETE** until every required software row in [GOAL.md](GOAL.md) is verified by exact-candidate evidence.
 
-## Quick start
+## Current executable state
 
-Runtime requirements: macOS on Apple Silicon, Node 22.23.1, and pnpm 11.15.1. Full PR/DEEP verification additionally requires Java 21. From a fresh clone:
+Founder Alpha is the playable regression surface today:
+
+- one authored 250 × 210 metre PlayCanvas/WebGL2 settlement;
+- eight embodied citizens with deterministic, model-free behavior;
+- typed Reality and Mind boundaries, event sourcing, IndexedDB snapshots, catch-up, and replay;
+- travel, gathering, exchange, repair, social interaction, counsel, Chronicle, and Story Card paths; and
+- keyboard access, reduced motion, mobile reflow, renderer degradation, diagnostics, and zero-egress checks.
+
+The V1 branch additionally contains generalized Release Genesis/protocol contracts, deterministic generated geography, immutable overview/local presentation projections, a pure civilization resource/project kernel, bounded planners, a closed model-choice adapter, and V1-specific CI readiness controls. These pieces are not yet an integrated playable civilization. Migration scheduling, founding materialization, long-horizon experiments, generated-world persistence, the V1 browser experience, and final evidence remain incomplete.
+
+## Run locally
+
+Requirements are macOS on Apple Silicon, Node 22.23.1, and pnpm 11.15.1. Java 21 is also required for the full formal-verification tiers.
 
 ```sh
 corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm dev
 ```
 
-Open the loopback URL printed by Vite. `dev` enables local diagnostics and hot reload without sending world, cognition, or feedback data off the device.
-
-To build the production bundle and serve it locally:
+Open the loopback URL printed by Vite. Development diagnostics remain local. To build and serve the production bundle on loopback only:
 
 ```sh
 corepack pnpm prod
 ```
 
-The production preview listens only on `127.0.0.1:4174`. It does not deploy or publish the game.
+No command deploys, publishes, buys a service, downloads a model, or requires an account.
 
-## What is implemented
-
-- One 250 × 210 metre PlayCanvas/WebGL2 settlement with eight embodied citizens.
-- Deterministic Reality, Standard Brain autonomy, typed Mind state, event sourcing, IndexedDB snapshots, catch-up, and replay.
-- Visible travel, gathering, exchange, repair, social interaction, direct world selection, semantic zoom, and an equivalent list view.
-- One consequential Mara counsel path with acceptance, rejection, delay, Chronicle evidence, and Story Card attribution.
-- Keyboard operation, reduced motion, mobile reflow, renderer degradation, diagnostics, local feedback, and zero-egress browser checks.
-
-Generated continents, a second settlement, hosted public worlds, required LLM inference, payments, accounts, and deployment are not Founder Alpha features.
-
-## Verification
-
-Use the smallest useful tier while working:
+## Verify changes
 
 ```sh
 corepack pnpm verify:fast
@@ -46,25 +44,17 @@ TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:pr
 TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:deep
 ```
 
-`verify:pr` is the merge baseline. It covers formatting, lint, strict types, unit/property tests, IndexedDB, deterministic simulation and replay, fault recovery, production build and payload budgets, browser journeys, dependency audit, zero network egress, and the bounded formal model. Read the pinned TLC URL and SHA-256 with `node scripts/formal-toolchain.mjs --url` and `--sha256`; never substitute an unverified jar.
+`verify:fast` is the normal edit loop. `verify:pr` is the portable protected baseline. `verify:deep` is the target-Apple-Silicon release lattice. `pnpm test:mutation`, `pnpm test:property:deep`, and the manual portable-extended CI lane provide additional bounded depth.
 
-`verify:deep` is the target-Apple-Silicon release lattice. It additionally verifies the exact Playwright browser cohort, mutation/fuzz depth, persistence, diagnostics, and repeated three-viewport performance. Run `corepack pnpm browser-cohort:check` before committing to the longer tier; a different OS/browser cohort is not equivalent release evidence.
+GitHub Actions also run a full-history secret scan and the pinned formal model. Legacy Riverhold screenshots are explicitly labeled Founder Alpha regression evidence and are ineligible for V1 readiness. Moving the draft mega PR to ready fails closed unless all required `GOAL.md` rows are `VERIFIED` and one clean verification manifest matches the exact checked-out HEAD.
 
-The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **extended** Linux workflow-dispatch tier adds the portable mutation gate and expanded deterministic properties without pretending to be the target-Mac DEEP/performance run. It is not scheduled, so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
+## Read order
 
-## Architecture and developer guide
+1. [V1 execution ledger](GOAL.md)
+2. [Operational restart](RESUME.md)
+3. [Authority index](docs/INDEX.md)
+4. [V1 civilization ExecPlan](docs/exec-plans/active/003-v1-civilization.md)
+5. [Architecture](docs/engineering/ARCHITECTURE.md)
+6. [Testing and CI](docs/quality/TESTING.md)
 
-Typed Reality is the only game-state authority. Mind holds visible facts, sourced beliefs, plans, and bounded budgets. Brain may propose only known typed actions; Application validates them atomically before Reality changes. Chronicle projects factual causal records without inventing causality. Diagnostics, feedback, experiments, and the Observatory cannot mutate Reality.
-
-Start with:
-
-1. [Authority index](docs/INDEX.md)
-2. [Product](docs/product/PRODUCT.md)
-3. [Human loop](docs/product/HUMAN_LOOP.md)
-4. [Architecture](docs/engineering/ARCHITECTURE.md)
-5. [Simulation](docs/engineering/SIMULATION.md)
-6. [Founder Alpha ExecPlan](docs/exec-plans/active/002-founder-alpha.md)
-7. [Testing and CI](docs/quality/TESTING.md)
-8. [Local release boundary](docs/engineering/FOUNDER_ALPHA_RELEASE.md)
-
-Repository process and non-negotiable constraints are in [AGENTS.md](AGENTS.md). `docs/INDEX.md` is the sole authority map; new root-level architecture, goal, roadmap, or ADR files should not duplicate its canonical owners.
+[AGENTS.md](AGENTS.md) controls repository-agent behavior. [docs/INDEX.md](docs/INDEX.md) is the sole document-authority map. The [completed Founder Alpha plan](docs/exec-plans/completed/002-founder-alpha.md) remains historical and regression evidence; it is not the current execution contract.

@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md), [completed first slice](exec-plans/completed/001-foundation.md).
+**Related documents:** [planning status](../PLAN.md), [V1 ExecPlan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
@@ -17,7 +17,7 @@ Each concern has one authority. Research records evidence; reviews record object
 3. **This index.**
 4. [Product](product/PRODUCT.md).
 5. [Architecture](engineering/ARCHITECTURE.md).
-6. [Founder Alpha evidence plan](exec-plans/active/002-founder-alpha.md), retained until V1 documentation consolidation replaces its active status.
+6. [V1 civilization ExecPlan](exec-plans/active/003-v1-civilization.md).
 
 ## Coordinator-owned shared authorities
 
@@ -150,7 +150,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Retained artifact |
 |---|---|
 | ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
-| Sole living Founder Alpha plan | [002-founder-alpha.md](exec-plans/active/002-founder-alpha.md) |
+| Sole living V1 implementation plan | [003-v1-civilization.md](exec-plans/active/003-v1-civilization.md) |
+| Completed Founder Alpha implementation and evidence log | [002-founder-alpha.md](exec-plans/completed/002-founder-alpha.md) |
 | Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/completed/001-foundation.md) |
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |

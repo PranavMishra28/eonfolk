@@ -6,14 +6,14 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 401 files excluding this generated file; SHA-256 `1eb8315ebe460c3c506c0b81b01947be64ef1b4c28cd9973442cf83d2a46d2ec`.
+**File-set identity:** 403 files excluding this generated file; SHA-256 `1afe4f213bd0588f32ec2fa1303dbe2beb30b2831e8d764a19b432e3ca77fb10`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
 | Application code | 41 |
-| Documentation | 59 |
+| Documentation | 61 |
 | Frozen execution evidence | 32 |
 | GitHub automation | 3 |
 | Other tracked assets | 3 |
@@ -77,7 +77,7 @@
 
 ## Founder Alpha regression boundary
 
-The tree contains 5 path names containing `Riverhold` or `Founder Alpha`. They are compatibility, historical, or Founder Alpha regression material. Their browser screenshots, traces, renderer probes, and verification artifacts are **INELIGIBLE FOR V1 READINESS** and cannot satisfy a V1 row in [GOAL.md](../../GOAL.md).
+The tree contains 6 path names containing `Riverhold` or `Founder Alpha`. They are compatibility, historical, or Founder Alpha regression material. Their browser screenshots, traces, renderer probes, and verification artifacts are **INELIGIBLE FOR V1 READINESS** and cannot satisfy a V1 row in [GOAL.md](../../GOAL.md).
 
 CI labels the retained visual artifact `founder-alpha-regression-only-*` and writes it under `tmp/founder-alpha-regression-evidence`. The selectors may remain Riverhold-specific until the V1 presentation exists; passing them proves only that the legacy regression surface was not broken.
 

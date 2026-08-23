@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns diagnostic event, mode, redaction, incident, observer, replay-capture, and overhead behavior. It owns no canonical world fact or product truth.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [security](SECURITY.md), [performance](../quality/PERFORMANCE.md), [testing](../quality/TESTING.md), [research](../research/FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md), and [Founder Alpha plan](../exec-plans/active/002-founder-alpha.md).
+**Related documents:** [architecture](ARCHITECTURE.md), [security](SECURITY.md), [performance](../quality/PERFORMANCE.md), [testing](../quality/TESTING.md), [research](../research/FOUNDER_ALPHA_DIAGNOSTICS_RESEARCH.md), and [completed Founder Alpha plan](../exec-plans/completed/002-founder-alpha.md).
 
 ## Owned decision
 

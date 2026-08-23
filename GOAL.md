@@ -30,9 +30,9 @@
 |---|---|
 | Repository archaeology reconciled | VERIFIED |
 | Generated repository inventory | VERIFIED |
-| Stale Founder Alpha active terminology retired or archived | NOT STARTED |
-| README rebuilt as the current front door | NOT STARTED |
-| Active documentation hierarchy simplified and non-contradictory | NOT STARTED |
+| Stale Founder Alpha active terminology retired or archived | VERIFIED |
+| README rebuilt as the current front door | VERIFIED |
+| Active documentation hierarchy simplified and non-contradictory | VERIFIED |
 | Research bibliography and durable provenance captured | IN PROGRESS |
 | Dead code, dependencies, config, fixtures, and docs removed | NOT STARTED |
 | Release Genesis is the product entry identity | IN PROGRESS |

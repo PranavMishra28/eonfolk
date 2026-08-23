@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file owns feedback schema, consent, local queue, relay, dedup, quota, retention, and delivery semantics. Feedback never owns game Reality, Chronicle truth, moderation truth, or a public availability claim.
 
-**Related documents:** [security](SECURITY.md), [diagnostics](DIAGNOSTICS.md), [platform research](../research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md), [testing](../quality/TESTING.md), and [Founder Alpha plan](../exec-plans/active/002-founder-alpha.md).
+**Related documents:** [security](SECURITY.md), [diagnostics](DIAGNOSTICS.md), [platform research](../research/FOUNDER_ALPHA_PLATFORM_RESEARCH.md), [testing](../quality/TESTING.md), and [completed Founder Alpha plan](../exec-plans/completed/002-founder-alpha.md).
 
 ## Owned decision
 

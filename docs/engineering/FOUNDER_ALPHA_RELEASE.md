@@ -2,11 +2,11 @@
 
 **Purpose:** define the reproducible local production preview, CI evidence retention, and the credential-gated path from the inert feedback relay core to a future private alpha deployment.
 
-**Status:** WORLD PRESENCE EXACT-YES AND FOUNDER ALPHA MEGA PR #7 INTEGRATED; BOUNDED IDENTITY/CI CONTINUATION ACTIVE; DEPLOYMENT NOT RUN
+**Status:** HISTORICAL LOCAL RELEASE BOUNDARY — Founder Alpha integrated; deployment not run
 
 **Authority boundary:** this file owns Founder Alpha release procedure and release-status claims. It does not authorize deployment, spend, credentials, a public availability claim, or changes to Reality. [Feedback](FEEDBACK.md) owns relay behavior; [Testing](../quality/TESTING.md) owns verification policy; [Security](SECURITY.md) owns trust boundaries.
 
-**Related documents:** [architecture](ARCHITECTURE.md), [feedback](FEEDBACK.md), [security](SECURITY.md), [testing](../quality/TESTING.md), [active Founder Alpha plan](../exec-plans/active/002-founder-alpha.md)
+**Related documents:** [architecture](ARCHITECTURE.md), [feedback](FEEDBACK.md), [security](SECURITY.md), [testing](../quality/TESTING.md), [completed Founder Alpha plan](../exec-plans/completed/002-founder-alpha.md)
 
 ## Owned decision
 
