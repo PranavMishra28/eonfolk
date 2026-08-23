@@ -1,4 +1,20 @@
 export { DEFAULT_PERSISTENCE_BOUNDS } from "./bounds.js";
+export {
+	CIVILIZATION_PERSISTENCE_MIGRATION_POLICY,
+	type CivilizationExperimentCheckpoint,
+	type CivilizationPersistencePlan,
+	type CreateCivilizationPersistencePlanInput,
+	createCivilizationPersistencePlan,
+	type PersistCivilizationHistoryResult,
+	persistCivilizationHistory,
+	RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
+	RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
+	RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
+	type ReleaseGenesisCivilizationState,
+	type ReleaseGenesisCivilizationTransition,
+	reduceCivilizationAuthorityEvent,
+	replayCivilizationHistory,
+} from "./civilization.js";
 export { PersistenceError, type PersistenceErrorCode } from "./errors.js";
 export {
 	IndexedDbPersistence,
@@ -6,47 +22,6 @@ export {
 	PERSISTENCE_STORE_NAMES,
 } from "./indexeddb.js";
 export { MemoryPersistence, type MemoryPersistenceOptions } from "./memory.js";
-export { validateReceipt } from "./validation.js";
-export {
-	createAuthorityEvent,
-	createAuthorityHead,
-	createAuthoritySnapshot,
-	hashAuthoritativeState,
-	MemoryVersionedPersistence,
-	replayAuthoritativeEvents,
-	validateAuthorityEventRecord,
-	type MemoryVersionedPersistenceOptions,
-} from "./versioned.js";
-export {
-	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
-	AUTHORITY_APPEND_SCHEMA_VERSION,
-	AUTHORITY_EVENT_SCHEMA_VERSION,
-	AUTHORITY_GENESIS_SCHEMA_VERSION,
-	AUTHORITY_HEAD_SCHEMA_VERSION,
-	AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
-	EMPTY_EVENT_HASH,
-	PERSISTENCE_MIGRATION_POLICY,
-	VERSIONED_PERSISTENCE_PORT_VERSION,
-	type AppendAuthorityBatchRequest,
-	type AppendAuthorityBatchResult,
-	type AuthorityAppendReceipt,
-	type AuthorityCausalParent,
-	type AuthorityCausalRelation,
-	type AuthorityEventProvenance,
-	type AuthorityEventRangeRequest,
-	type AuthorityEventRecord,
-	type AuthorityHead,
-	type AuthorityReplayRequest,
-	type AuthorityReplayResult,
-	type AuthorityScope,
-	type AuthoritySnapshotRecord,
-	type InitializeAuthorityRequest,
-	type InitializeAuthorityResult,
-	type SaveAuthoritySnapshotRequest,
-	type VersionedCrashInjector,
-	type VersionedCrashPoint,
-	type VersionedPersistencePort,
-} from "./versioned-types.js";
 export type {
 	AppendRejectedDecisionRequest,
 	BatchRangeRequest,
@@ -76,3 +51,44 @@ export type {
 	WorldEventRecord,
 	WorldHead,
 } from "./types.js";
+export { validateReceipt } from "./validation.js";
+export {
+	createAuthorityEvent,
+	createAuthorityHead,
+	createAuthoritySnapshot,
+	hashAuthoritativeState,
+	MemoryVersionedPersistence,
+	type MemoryVersionedPersistenceOptions,
+	replayAuthoritativeEvents,
+	validateAuthorityEventRecord,
+} from "./versioned.js";
+export {
+	type AppendAuthorityBatchRequest,
+	type AppendAuthorityBatchResult,
+	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
+	AUTHORITY_APPEND_SCHEMA_VERSION,
+	AUTHORITY_EVENT_SCHEMA_VERSION,
+	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	AUTHORITY_HEAD_SCHEMA_VERSION,
+	AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
+	type AuthorityAppendReceipt,
+	type AuthorityCausalParent,
+	type AuthorityCausalRelation,
+	type AuthorityEventProvenance,
+	type AuthorityEventRangeRequest,
+	type AuthorityEventRecord,
+	type AuthorityHead,
+	type AuthorityReplayRequest,
+	type AuthorityReplayResult,
+	type AuthorityScope,
+	type AuthoritySnapshotRecord,
+	EMPTY_EVENT_HASH,
+	type InitializeAuthorityRequest,
+	type InitializeAuthorityResult,
+	PERSISTENCE_MIGRATION_POLICY,
+	type SaveAuthoritySnapshotRequest,
+	VERSIONED_PERSISTENCE_PORT_VERSION,
+	type VersionedCrashInjector,
+	type VersionedCrashPoint,
+	type VersionedPersistencePort,
+} from "./versioned-types.js";

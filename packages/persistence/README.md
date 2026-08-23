@@ -16,6 +16,14 @@
 
 `getDecisionRecord` is an internal audit primitive. An application must expose only an authorized projection; raw decision records are not UI or cognition capabilities.
 
+## Versioned civilization checkpoints
+
+`VersionedPersistencePort` adds exact-version authority heads, events, receipts, snapshots, fences, and reducer replay. The Release Genesis civilization codec verifies the current runner's world, state, daily-step, and event hash chains before converting ordered checkpoints into bounded authority batches. Replay reads bounded ranges, validates the source chains again, applies deterministic JSON-safe patches, and recomputes both the persistence state hash and the civilization runner's world-plus-state hash. No cognition or model call is part of recovery.
+
+The current civilization experiment does not expose a reducer for every intermediate kernel mutation. The codec therefore persists full-checkpoint deltas rather than claiming event-level kernel reconstruction: a checkpoint event carries an exact, versioned patch from the previous accepted checkpoint plus every intervening typed step/event record. It neither trusts the final snapshot nor reruns cognition, but its authority granularity is the supplied experiment checkpoint. Unknown engine, state, transition, experiment, runner, step, or event versions fail closed; there is no implicit upcaster.
+
+The civilization codec is currently exercised through the in-memory conformance adapter. It is not browser IndexedDB wiring, a catch-up UI, or a server implementation.
+
 ## Explicit non-goals
 
 There is no export, import, replacement, fork, schema upcaster, server adapter, lease timer, automatic tab takeover, SQL layer, or backup guarantee. Browser storage can still be evicted or lost. A future protocol integration may alias these structural types or map richer records into them without moving simulation authority into this package.
