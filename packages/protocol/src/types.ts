@@ -575,7 +575,27 @@ export type CognitionAction =
 	  }
 	| { readonly kind: "Consume"; readonly resource: "food" | "water" }
 	| { readonly kind: "Exchange"; readonly counterpartyId: CitizenId }
-	| { readonly kind: "RepairMill"; readonly millId: string };
+	| { readonly kind: "RepairMill"; readonly millId: string }
+	| {
+			readonly kind: "TransportResource";
+			readonly resourceTypeId: string;
+			readonly quantity: number;
+			readonly fromStorageId: string;
+			readonly toStorageId: string;
+	  }
+	| {
+			readonly kind: "WorkProject";
+			readonly projectId: string;
+			readonly milestoneId: string;
+			readonly siteId: string;
+	  }
+	| {
+			readonly kind: "ProposeProject";
+			readonly projectKind: string;
+			readonly settlementId: string;
+			readonly siteId: string;
+	  }
+	| { readonly kind: "JoinMigration"; readonly migrationId: string };
 
 export interface ActionCatalogEntry {
 	readonly actionId: string;
