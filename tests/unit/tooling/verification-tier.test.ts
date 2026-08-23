@@ -81,13 +81,15 @@ describe("V1 CI hardening", () => {
 		expect(runner).toContain('routes: { entry: "/", world: "/world" }');
 		expect(workflow.match(/EONFOLK_ALLOW_LINUX_CI: "1"/gu)).toHaveLength(4);
 		expect(runner).toContain(
-			"productionJourneysExecuted: linuxSemanticCi ? 26 : 28",
+			"const productionBrowserCoverage = describeProductionBrowserCoverage();",
 		);
+		expect(runner).toContain("productionJourneysExecuted: actual.total");
+		expect(runner).toContain("legacyIllustratedJourneysExcluded");
 		expect(runner).toContain(
-			"legacyIllustratedJourneysExcluded: linuxSemanticCi ? 2 : 0",
+			'actual.journeysByFile["generated-world.spec.ts"] ?? 0',
 		);
-		expect(runner).toContain("generatedWorldJourneysExecuted: 10");
-		expect(runner).toContain("generatedTargetExecuted: true");
+		expect(runner).toContain("faultJourneysExecuted: fault.total");
+		expect(runner).not.toMatch(/productionJourneysExecuted:\s*\d/u);
 	});
 
 	it("requires frozen target-Mac and review evidence only when the PR becomes ready", () => {
