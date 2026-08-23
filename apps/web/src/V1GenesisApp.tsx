@@ -21,24 +21,22 @@ import {
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
+import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import {
-	type GeneratedWorldExperience,
 	buildGeneratedWorldExperience,
+	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
 } from "./generated-world-runtime";
-import {
-	applyGeneratedWorldAuthorityFault,
-	clearGeneratedWorldFault,
-	type GeneratedWorldFaultSpec,
-	GeneratedWorldFaultBoundaryError,
-	generatedWorldBuildOptionsForFault,
-	generatedWorldPresentationFault,
-	readGeneratedWorldFault,
-} from "./generated-world-faults";
 
 let generatedWorldCanvasModule:
 	| Promise<typeof import("./generated-world-canvas")>
 	| undefined;
+
+const generatedWorldFaultModule =
+	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
+	__EONFOLK_E2E_CRASH_HOOKS__
+		? import("./generated-world-faults")
+		: Promise.resolve(null);
 
 function loadGeneratedWorldCanvasModule() {
 	generatedWorldCanvasModule ??= import("./generated-world-canvas");
@@ -70,7 +68,25 @@ function readableId(value: string): string {
 	return value.replace(/[-_:]+/gu, " ");
 }
 
-function useGeneratedExperience(fault: GeneratedWorldFaultSpec | null): {
+function useGeneratedFault(): GeneratedWorldFaultSpec | null | undefined {
+	const [fault, setFault] = useState<
+		GeneratedWorldFaultSpec | null | undefined
+	>(undefined);
+	useEffect(() => {
+		let active = true;
+		void generatedWorldFaultModule.then((module) => {
+			if (active) setFault(module?.readGeneratedWorldFault() ?? null);
+		});
+		return () => {
+			active = false;
+		};
+	}, []);
+	return fault;
+}
+
+function useGeneratedExperience(
+	fault: GeneratedWorldFaultSpec | null | undefined,
+): {
 	readonly experience: GeneratedWorldExperience | null;
 	readonly error: Error | null;
 } {
@@ -79,16 +95,21 @@ function useGeneratedExperience(fault: GeneratedWorldFaultSpec | null): {
 	);
 	const [error, setError] = useState<Error | null>(null);
 	useEffect(() => {
+		if (fault === undefined) return;
 		let active = true;
 		const loading =
 			fault === null
 				? loadGeneratedWorldExperience()
-				: applyGeneratedWorldAuthorityFault(
-						buildGeneratedWorldExperience(
-							generatedWorldBuildOptionsForFault(fault),
-						),
-						fault,
-					);
+				: generatedWorldFaultModule.then((module) => {
+						if (module === null)
+							throw new Error("Generated fault module is unavailable");
+						return module.applyGeneratedWorldAuthorityFault(
+							buildGeneratedWorldExperience(
+								module.generatedWorldBuildOptionsForFault(fault),
+							),
+							fault,
+						);
+					});
 		void loading.then(
 			(value) => {
 				if (active) setExperience(value);
@@ -117,9 +138,10 @@ function useGeneratedAsset(
 	);
 	useEffect(() => {
 		let active = true;
-		const verification = generatedWorldPresentationFault(fault, "asset")
-			? Promise.reject(new Error("Injected generated asset rejection"))
-			: verifyGeneratedFolkAsset();
+		const verification =
+			fault?.kind === "asset"
+				? Promise.reject(new Error("Injected generated asset rejection"))
+				: verifyGeneratedFolkAsset();
 		void verification.then(
 			(integrity) => {
 				if (active) setState(Object.freeze({ status: "verified", integrity }));
@@ -159,10 +181,14 @@ function WorldLoading() {
 
 function WorldError({ error }: { readonly error: Error }) {
 	const boundaryFault =
-		error instanceof GeneratedWorldFaultBoundaryError ? error.fault : null;
+		error.name === "GeneratedWorldFaultBoundaryError" && "fault" in error
+			? (error.fault as GeneratedWorldFaultSpec)
+			: null;
 	const retry = () => {
-		clearGeneratedWorldFault();
-		window.location.reload();
+		void generatedWorldFaultModule.then((module) => {
+			module?.clearGeneratedWorldFault();
+			window.location.reload();
+		});
 	};
 	return (
 		<main
@@ -681,8 +707,8 @@ function GeneratedWorld({
 	readonly fault: GeneratedWorldFaultSpec | null;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
-	const [rendererFailed, setRendererFailed] = useState(() =>
-		generatedWorldPresentationFault(fault, "renderer-webgl"),
+	const [rendererFailed, setRendererFailed] = useState(
+		() => fault?.kind === "renderer-webgl",
 	);
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(() =>
@@ -773,7 +799,7 @@ function GeneratedWorld({
 	}, [experience, projection]);
 
 	useEffect(() => {
-		if (!generatedWorldPresentationFault(fault, "navigation")) return;
+		if (fault?.kind !== "navigation") return;
 		window.dispatchEvent(
 			new CustomEvent("eonfolk:generated-navigation", {
 				detail: Object.freeze({
@@ -786,10 +812,7 @@ function GeneratedWorld({
 	}, [fault]);
 
 	useEffect(() => {
-		if (
-			!generatedWorldPresentationFault(fault, "renderer-webgl") ||
-			rendererIncidentReported.current
-		)
+		if (fault?.kind !== "renderer-webgl" || rendererIncidentReported.current)
 			return;
 		rendererIncidentReported.current = true;
 		void browserDiagnostics.captureRuntimeFailure({
@@ -1048,7 +1071,7 @@ function GeneratedWorld({
 }
 
 export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
-	const [fault] = useState(readGeneratedWorldFault);
+	const fault = useGeneratedFault();
 	useEffect(() => {
 		if (route === "world") void loadGeneratedWorldCanvasModule();
 	}, [route]);
@@ -1060,7 +1083,7 @@ export function V1GenesisApp({ route }: { readonly route: GenesisRoute }) {
 	}, [route]);
 	const { experience, error } = useGeneratedExperience(fault);
 	if (error !== null) return <WorldError error={error} />;
-	if (experience === null) return <WorldLoading />;
+	if (fault === undefined || experience === null) return <WorldLoading />;
 	return route === "entry" ? (
 		<GenesisEntry experience={experience} />
 	) : (
