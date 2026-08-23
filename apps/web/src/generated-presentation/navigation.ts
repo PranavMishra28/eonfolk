@@ -130,7 +130,7 @@ export function generatedNavigationReferencesExist(
 	return true;
 }
 
-const MIN_CAMERA_DISTANCE_MM = 7_500;
+const MIN_CAMERA_DISTANCE_MM = 8_000;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
