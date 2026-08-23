@@ -19,6 +19,7 @@ function material(hex: string): StandardMaterial {
 	);
 	result.metalness = 0;
 	result.gloss = 0.18;
+	result.opacity = 1;
 	result.update();
 	return result;
 }
@@ -35,6 +36,9 @@ const identityMaterials = Object.freeze([
 const materials = Object.freeze({
 	skin: material("#c8946a"),
 	dark: material("#282c28"),
+	hairDark: material("#30271f"),
+	hairWarm: material("#78432f"),
+	linen: material("#d7c6a0"),
 	selection: material("#f2dc91"),
 	focal: material("#dc7849"),
 	water: material("#5795aa"),
@@ -118,6 +122,12 @@ export function GeneratedFolkProxy({
 		identityMaterials[actor.identityVariant % identityMaterials.length] ??
 		identityMaterials[0];
 	if (cloth === undefined) throw new Error("generated folk palette is empty");
+	const isMara = actor.name === "Mara Vale";
+	const silhouette = actor.identityVariant % 3;
+	const shoulderWidth =
+		silhouette === 0 ? 0.78 : silhouette === 1 ? 0.68 : 0.72;
+	const torsoHeight = silhouette === 2 ? 1.16 : 1.08;
+	const hair = isMara ? materials.hairWarm : materials.hairDark;
 	const pose = poseAtGeneratedPresentationTick(
 		actor.pose,
 		presentationTick,
@@ -129,6 +139,7 @@ export function GeneratedFolkProxy({
 			name={`${GENERATED_FOLK_ASSET.assetId}:${actor.citizenId}`}
 			position={position}
 			rotation={[0, actor.facingDegrees, 0]}
+			data-citizen-name={actor.name}
 		>
 			{selected || actor.focal ? (
 				<Primitive
@@ -141,8 +152,13 @@ export function GeneratedFolkProxy({
 			<Entity rotation={[pose.torsoPitchDegrees, 0, 0]}>
 				<Primitive
 					position={[0, 1.05, 0]}
-					scale={[0.74, 1.08, 0.42]}
+					scale={[shoulderWidth, torsoHeight, 0.42]}
 					color={cloth}
+				/>
+				<Primitive
+					position={[0, 0.88, -0.22]}
+					scale={[shoulderWidth + 0.05, 0.16, 0.08]}
+					color={isMara ? materials.focal : materials.linen}
 				/>
 				<Primitive
 					type="sphere"
@@ -150,6 +166,36 @@ export function GeneratedFolkProxy({
 					scale={[0.42, 0.46, 0.42]}
 					color={materials.skin}
 				/>
+				{silhouette === 0 ? (
+					<Primitive
+						type="sphere"
+						position={[0, 2.08, -0.04]}
+						scale={[0.44, 0.18, 0.44]}
+						color={hair}
+					/>
+				) : silhouette === 1 ? (
+					<Primitive
+						type="cone"
+						position={[0, 2.22, -0.02]}
+						scale={[0.48, 0.55, 0.48]}
+						color={hair}
+					/>
+				) : (
+					<>
+						<Primitive
+							type="sphere"
+							position={[0, 2.08, -0.04]}
+							scale={[0.42, 0.16, 0.42]}
+							color={hair}
+						/>
+						<Primitive
+							type="sphere"
+							position={[0.32, 1.95, -0.18]}
+							scale={[0.18, 0.34, 0.18]}
+							color={hair}
+						/>
+					</>
+				)}
 				<Entity
 					position={[-0.5, 1.34, 0]}
 					rotation={[pose.leftArmPitchDegrees, 0, 0]}

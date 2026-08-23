@@ -39,18 +39,26 @@ function material(hex: string): StandardMaterial {
 	);
 	result.metalness = 0;
 	result.gloss = 0.22;
+	result.opacity = 1;
 	result.update();
 	return result;
 }
 
 const palette = Object.freeze({
 	ground: material("#718158"),
+	groundLight: material("#8d9964"),
+	soil: material("#7c6848"),
 	path: material("#a8895d"),
 	water: material("#5d9aaa"),
 	wood: material("#755137"),
+	bark: material("#5c402d"),
+	leaf: material("#426249"),
+	leafLight: material("#607a4f"),
 	stone: material("#8c8c80"),
 	civic: material("#d7bd86"),
 	field: material("#b7a75f"),
+	linen: material("#d9c89d"),
+	clay: material("#a96045"),
 	ink: material("#242921"),
 	changed: material("#d99a45"),
 	social: material("#e7cc77"),
@@ -230,7 +238,7 @@ function GeneratedCamera({
 	const requestedDistance = intent.distanceMm / 1_000;
 	const distance =
 		navigation.focus.kind === "overview"
-			? Math.max(requestedDistance, Math.max(frame.width, frame.depth) * 0.9)
+			? Math.max(requestedDistance, Math.max(frame.width, frame.depth) * 0.7)
 			: requestedDistance;
 	const yaw = (intent.yawDegrees * Math.PI) / 180;
 	const pitch = (intent.pitchDegrees * Math.PI) / 180;
@@ -280,6 +288,163 @@ function Route({
 	);
 }
 
+function Tree({
+	position,
+	ordinal,
+}: {
+	readonly position: [number, number, number];
+	readonly ordinal: number;
+}) {
+	const height = 3.4 + (ordinal % 3) * 0.45;
+	return (
+		<Entity position={position} rotation={[0, (ordinal * 47) % 360, 0]}>
+			<Primitive
+				type="cylinder"
+				position={[0, height * 0.34, 0]}
+				scale={[0.34, height * 0.68, 0.34]}
+				color={palette.bark}
+			/>
+			<Primitive
+				type="cone"
+				position={[0, height * 0.86, 0]}
+				scale={[1.35 + (ordinal % 2) * 0.18, height * 0.62, 1.35]}
+				color={ordinal % 2 === 0 ? palette.leaf : palette.leafLight}
+			/>
+		</Entity>
+	);
+}
+
+function SiteLife({
+	kind,
+	position,
+	width,
+	depth,
+}: {
+	readonly kind: GeneratedCivilizationSpatialProjection["local"]["sites"][number]["kind"];
+	readonly position: [number, number, number];
+	readonly width: number;
+	readonly depth: number;
+}) {
+	const x = Math.max(1.4, width * 0.34);
+	const z = Math.max(1.4, depth * 0.34);
+	if (kind === "resource")
+		return (
+			<Entity position={position}>
+				{[
+					[-x, -z],
+					[x, -z * 0.75],
+					[-x * 0.8, z],
+					[x * 0.9, z * 0.86],
+					[0, z],
+				].map(([treeX, treeZ], ordinal) => (
+					<Tree
+						key={`${treeX}:${treeZ}`}
+						position={[treeX ?? 0, 0, treeZ ?? 0]}
+						ordinal={ordinal}
+					/>
+				))}
+				<Primitive
+					position={[0.9, 0.28, 0.15]}
+					scale={[1.9, 0.32, 0.4]}
+					rotation={[0, 18, 0]}
+					color={palette.wood}
+				/>
+			</Entity>
+		);
+	if (kind === "production")
+		return (
+			<Entity position={position}>
+				<Primitive
+					position={[-x, 0.55, z]}
+					scale={[2.6, 0.25, 1.1]}
+					color={palette.wood}
+				/>
+				<Primitive
+					position={[-x - 0.9, 0.25, z]}
+					scale={[0.18, 0.55, 0.18]}
+					color={palette.bark}
+				/>
+				<Primitive
+					position={[-x + 0.9, 0.25, z]}
+					scale={[0.18, 0.55, 0.18]}
+					color={palette.bark}
+				/>
+				<Primitive
+					position={[x, 0.28, -z]}
+					scale={[1.45, 0.56, 0.75]}
+					color={palette.clay}
+				/>
+			</Entity>
+		);
+	if (kind === "storage")
+		return (
+			<Entity position={position}>
+				{[
+					[-x, z, 0.75],
+					[-x + 1.25, z, 0.58],
+					[-x + 0.55, z - 0.85, 0.52],
+				].map(([crateX, crateZ, height], ordinal) => (
+					<Primitive
+						key={`${crateX}:${crateZ}`}
+						position={[crateX ?? 0, (height ?? 0.5) / 2, crateZ ?? 0]}
+						scale={[0.9, height ?? 0.5, 0.9]}
+						rotation={[0, ordinal * 12, 0]}
+						color={palette.wood}
+					/>
+				))}
+			</Entity>
+		);
+	if (kind === "civic")
+		return (
+			<Entity position={position}>
+				<Primitive
+					type="cylinder"
+					position={[-x, 0.35, z]}
+					scale={[1.15, 0.7, 1.15]}
+					color={palette.stone}
+				/>
+				<Primitive
+					type="cylinder"
+					position={[-x, 0.76, z]}
+					scale={[0.72, 0.18, 0.72]}
+					color={palette.water}
+					castShadows={false}
+				/>
+				<Primitive
+					position={[x, 1.4, -z]}
+					scale={[2.6, 0.14, 1.5]}
+					rotation={[0, 8, 0]}
+					color={palette.linen}
+				/>
+				<Primitive
+					position={[x - 1, 0.7, -z]}
+					scale={[0.14, 1.4, 0.14]}
+					color={palette.bark}
+				/>
+				<Primitive
+					position={[x + 1, 0.7, -z]}
+					scale={[0.14, 1.4, 0.14]}
+					color={palette.bark}
+				/>
+			</Entity>
+		);
+	if (kind === "residential")
+		return (
+			<Entity position={position}>
+				{[-1, 0, 1].map((ordinal) => (
+					<Primitive
+						key={ordinal}
+						position={[ordinal * 1.45, 0.12, z]}
+						scale={[1.1, 0.22, 2.25]}
+						color={ordinal === 0 ? palette.soil : palette.field}
+						castShadows={false}
+					/>
+				))}
+			</Entity>
+		);
+	return null;
+}
+
 function GroundedSettlement({
 	projection,
 	model,
@@ -313,10 +478,19 @@ function GroundedSettlement({
 					castShadows
 				/>
 			</Entity>
+			<Entity rotation={[-35, 145, 0]}>
+				<Light type="directional" color="#8daaa0" intensity={0.28} />
+			</Entity>
 			<Primitive
 				position={[0, -0.2, 0]}
 				scale={[frame.width + 12, 0.4, frame.depth + 12]}
 				color={palette.ground}
+			/>
+			<Primitive
+				position={[0, 0.01, 0]}
+				scale={[frame.width + 5, 0.035, frame.depth + 5]}
+				color={palette.groundLight}
+				castShadows={false}
 			/>
 			{projection.scene.edges
 				.filter((edge) => edge.edgeId.endsWith(":forward"))
@@ -366,13 +540,20 @@ function GroundedSettlement({
 							? palette.civic
 							: palette.field;
 				return (
-					<Primitive
-						key={site.siteId}
-						position={[position[0], 0.02, position[2]]}
-						scale={[Math.max(2, width), 0.08, Math.max(2, depth)]}
-						color={color}
-						castShadows={false}
-					/>
+					<Entity key={site.siteId}>
+						<Primitive
+							position={[position[0], 0.04, position[2]]}
+							scale={[Math.max(2, width), 0.08, Math.max(2, depth)]}
+							color={color}
+							castShadows={false}
+						/>
+						<SiteLife
+							kind={site.kind}
+							position={[position[0], 0.08, position[2]]}
+							width={width}
+							depth={depth}
+						/>
+					</Entity>
 				);
 			})}
 			{projection.local.buildings.map((building) => {
@@ -392,10 +573,32 @@ function GroundedSettlement({
 							color={palette.civic}
 						/>
 						<Primitive
+							position={[0, 1.45, 2.03]}
+							scale={[1.05, 1.55, 0.12]}
+							color={palette.wood}
+						/>
+						<Primitive
+							position={[-1.5, 1.85, 2.06]}
+							scale={[0.72, 0.72, 0.08]}
+							color={palette.water}
+							castShadows={false}
+						/>
+						<Primitive
+							position={[1.5, 1.85, 2.06]}
+							scale={[0.72, 0.72, 0.08]}
+							color={palette.water}
+							castShadows={false}
+						/>
+						<Primitive
 							position={[0, 3.25, 0]}
 							scale={[5.4, 0.6, 4.6]}
-							color={palette.ink}
+							color={palette.clay}
 							rotation={[0, 0, 8]}
+						/>
+						<Primitive
+							position={[1.6, 4.15, -0.6]}
+							scale={[0.58, 1.8, 0.58]}
+							color={palette.ink}
 						/>
 					</Entity>
 				);

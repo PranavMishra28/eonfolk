@@ -3333,8 +3333,8 @@ em {
 
 /* The generated civilization uses the same world-first shell as Release Genesis. */
 .v1-living-stage {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+	position: relative;
+	display: block;
 	min-height: 0;
 	height: calc(100svh - 6.2rem);
 	background: #111711;
@@ -3344,6 +3344,7 @@ em {
 	position: relative;
 	min-width: 0;
 	min-height: 34rem;
+	height: 100%;
 	overflow: hidden;
 	background: #889b7d;
 }
@@ -3410,14 +3411,19 @@ em {
 }
 
 .v1-context-panel {
-	position: relative;
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	bottom: 1rem;
 	z-index: 4;
+	width: min(19rem, 24vw);
 	min-width: 0;
 	overflow: auto;
 	padding: 1rem;
 	color: #25281f;
-	background: #e8dcc0;
-	box-shadow: -18px 0 50px rgba(0, 0, 0, 0.2);
+	background: rgba(232, 220, 192, 0.9);
+	box-shadow: 0 1.2rem 3.5rem rgba(0, 0, 0, 0.28);
+	backdrop-filter: blur(10px);
 }
 
 .v1-context-panel > section,
@@ -3581,8 +3587,8 @@ em {
 }
 
 @media (max-width: 980px) {
-	.v1-living-stage {
-		grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+	.v1-context-panel {
+		width: min(18rem, 32vw);
 	}
 
 	.v1-people-list {
@@ -3602,6 +3608,9 @@ em {
 	}
 
 	.v1-context-panel {
+		position: relative;
+		inset: auto;
+		width: auto;
 		overflow: visible;
 		padding: 0.75rem;
 		box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
