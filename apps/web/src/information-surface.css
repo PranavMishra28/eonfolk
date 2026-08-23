@@ -1,0 +1,295 @@
+.v1-information[data-information-route="research"] {
+	--record-ink: #101711;
+	--record-paper: #eee3c7;
+	--record-paper-muted: #d3c8aa;
+	--record-rule: rgba(32, 49, 35, 0.24);
+	--record-rust: #9c4f32;
+	--record-moss: #254b36;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: clamp(2.25rem, 5vw, 4.75rem);
+	height: auto;
+	min-height: 100vh;
+	color: var(--record-ink);
+	background:
+		linear-gradient(rgba(44, 65, 48, 0.05) 1px, transparent 1px) 0 0 / 100%
+		2.1rem,
+		radial-gradient(
+			circle at 82% 7%,
+			rgba(130, 87, 50, 0.15),
+			transparent 24rem
+		),
+		linear-gradient(112deg, #f4ead1, var(--record-paper) 54%, #e2d5b5);
+}
+
+.v1-information[data-information-route="developer"] {
+	grid-template-columns: minmax(0, 1fr);
+	height: auto;
+	min-height: 100vh;
+}
+
+.v1-information[data-information-route="research"] > nav {
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--record-rule);
+}
+
+.v1-information[data-information-route="research"] > nav a,
+.v1-information[data-information-route="research"] > footer a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+}
+
+.v1-information[data-information-route="research"] > nav a:not(.v1-brand) {
+	color: #3e4a40;
+}
+
+.v1-information[data-information-route="research"]
+	> nav
+	a[aria-current="page"] {
+	color: #7d321f;
+	font-weight: 700;
+}
+
+.v1-information[data-information-route="research"] .v1-record-intro {
+	display: grid;
+	grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.55fr);
+	gap: clamp(1.5rem, 5vw, 5.5rem);
+	align-items: end;
+	max-width: none;
+}
+
+.v1-information[data-information-route="research"] .v1-record-title {
+	max-width: 12ch;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: clamp(3.2rem, 7.6vw, 7.4rem);
+	font-weight: 500;
+	letter-spacing: -0.045em;
+	line-height: 0.88;
+}
+
+.v1-information[data-information-route="research"] .v1-record-deck {
+	align-self: end;
+	padding: 1rem 0 0.25rem 1.25rem;
+	border-left: 3px solid var(--record-rust);
+	color: #344138;
+	font-size: clamp(1rem, 1.5vw, 1.2rem);
+	line-height: 1.6;
+}
+
+.v1-record-mode {
+	display: inline-flex;
+	gap: 0.55rem;
+	align-items: center;
+	width: fit-content;
+	margin: 0 0 1.15rem;
+	color: #6b281a;
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+}
+
+.v1-record-mode::before {
+	display: block;
+	width: 0.55rem;
+	height: 0.55rem;
+	border: 2px solid currentcolor;
+	border-radius: 50%;
+	content: "";
+}
+
+.v1-record-guide {
+	display: grid;
+	grid-template-columns: minmax(12rem, 0.42fr) minmax(0, 1.58fr);
+	gap: clamp(1.5rem, 4vw, 4rem);
+	padding: clamp(1.25rem, 3vw, 2.5rem) 0;
+	border-block: 1px solid var(--record-rule);
+}
+
+.v1-record-guide > header h2,
+.v1-relation-section h2,
+.v1-record-limits h2 {
+	margin: 0;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: clamp(1.8rem, 3vw, 3.1rem);
+	font-weight: 500;
+	line-height: 1;
+}
+
+.v1-record-guide > header p,
+.v1-relation-section > header p {
+	max-width: 32rem;
+	color: #4c574e;
+	line-height: 1.6;
+}
+
+.v1-provenance-list {
+	display: grid;
+	margin: 0;
+}
+
+.v1-provenance-list > div {
+	display: grid;
+	grid-template-columns: minmax(8.5rem, 0.32fr) minmax(0, 0.68fr);
+	gap: 1.25rem;
+	padding: 1.15rem 0;
+	border-top: 1px solid var(--record-rule);
+}
+
+.v1-provenance-list > div:first-child {
+	border-top: 0;
+}
+
+.v1-provenance-list dt,
+.v1-relation-list dt {
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.v1-provenance-list dd,
+.v1-relation-list dd {
+	margin: 0;
+	color: #334038;
+	line-height: 1.55;
+}
+
+.v1-provenance-list strong {
+	display: block;
+	margin-bottom: 0.3rem;
+	color: var(--record-ink);
+}
+
+.v1-relation-section {
+	display: grid;
+	gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.v1-relation-section > header {
+	display: flex;
+	gap: 2rem;
+	align-items: end;
+	justify-content: space-between;
+}
+
+.v1-relation-list {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	margin: 0;
+	border: 1px solid var(--record-rule);
+}
+
+.v1-relation-list > div {
+	min-height: 13rem;
+	padding: clamp(1rem, 2vw, 1.5rem);
+	border-left: 1px solid var(--record-rule);
+}
+
+.v1-relation-list > div:first-child {
+	border-left: 0;
+}
+
+.v1-relation-list dt {
+	min-height: 2.2rem;
+	color: var(--record-rust);
+}
+
+.v1-relation-list dd {
+	margin-top: 1.2rem;
+}
+
+.v1-record-limits {
+	display: grid;
+	grid-template-columns: minmax(12rem, 0.42fr) minmax(0, 1.58fr);
+	gap: clamp(1.5rem, 4vw, 4rem);
+	padding: clamp(1.5rem, 3vw, 2.75rem);
+	color: #f2ead3;
+	background: var(--record-moss);
+	box-shadow: 0 1.5rem 3.5rem rgba(25, 36, 27, 0.16);
+}
+
+.v1-record-limits ul {
+	display: grid;
+	gap: 0.7rem;
+	margin: 0;
+	padding-left: 1.1rem;
+	color: #d9dece;
+	line-height: 1.55;
+}
+
+.v1-information[data-information-route="research"] > footer {
+	border-top: 1px solid var(--record-rule);
+	padding-top: 1.5rem;
+}
+
+.v1-information[data-information-route="research"]
+	> footer
+	a:not(.v1-primary-link) {
+	color: #344138;
+	text-decoration-color: rgba(52, 65, 56, 0.55);
+	text-underline-offset: 0.25rem;
+}
+
+.v1-information[data-information-route="research"] .v1-primary-link {
+	color: #fff7df;
+	background: #7d321f;
+}
+
+@media (max-width: 920px) {
+	.v1-information[data-information-route="research"] .v1-record-intro,
+	.v1-record-guide,
+	.v1-record-limits {
+		grid-template-columns: 1fr;
+	}
+
+	.v1-relation-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.v1-relation-list > div {
+		min-height: 10rem;
+		border-top: 1px solid var(--record-rule);
+	}
+}
+
+@media (max-width: 560px) {
+	.v1-information[data-information-route="research"] {
+		padding-inline: 1rem;
+	}
+
+	.v1-information[data-information-route="research"] .v1-record-title {
+		font-size: clamp(3rem, 16vw, 4.6rem);
+	}
+
+	.v1-provenance-list > div,
+	.v1-relation-section > header {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+
+	.v1-relation-list {
+		grid-template-columns: 1fr;
+	}
+
+	.v1-relation-list > div {
+		min-height: auto;
+		border-left: 0;
+	}
+
+	.v1-relation-list dt {
+		min-height: auto;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.v1-information[data-information-route="research"] *,
+	.v1-information[data-information-route="research"] *::before,
+	.v1-information[data-information-route="research"] *::after {
+		scroll-behavior: auto;
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}
