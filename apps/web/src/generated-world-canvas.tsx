@@ -760,7 +760,7 @@ function VernacularBuilding({
 					key={side}
 					position={[side * width * 0.23, ridgeHeight - 0.18, 0]}
 					scale={[width * 0.58, 0.46, depth + 0.9]}
-					rotation={[0, 0, side * 27]}
+					rotation={[0, 0, -side * 27]}
 					color={palette.clay}
 				/>
 			))}
