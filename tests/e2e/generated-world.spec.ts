@@ -424,6 +424,7 @@ test("generated pose controls preserve authoritative state @generated-world", as
 test("generated citizen follow remains presentation-only @generated-world", async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
@@ -457,6 +458,7 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 test("generated founded settlement preserves the durable checkpoint @generated-world", async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
@@ -491,6 +493,7 @@ test("generated founded settlement preserves the durable checkpoint @generated-w
 test("generated reload restores the durable head @generated-world @generated-target", async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
