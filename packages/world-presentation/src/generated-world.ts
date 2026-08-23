@@ -145,7 +145,7 @@ interface RouteState {
 }
 
 /** Dependency-free structural read view of protocol GeneratedWorldState. */
-interface GeneratedWorldStateInput {
+export interface GeneratedWorldStateInput {
 	readonly identity: Readonly<{
 		readonly worldId: string;
 		readonly releaseGenesisHash: string;

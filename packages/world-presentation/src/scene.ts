@@ -172,28 +172,32 @@ const nodes = [
 	}),
 ] as const;
 
-export const riverholdPhysicalScale: PhysicalScaleManifest = Object.freeze({
-	citizen: Object.freeze({ heightMm: 1_750, shoulderWidthMm: 500 }),
-	door: Object.freeze({ heightMm: 2_050, widthMm: 900 }),
-	house: Object.freeze({
-		widthMm: 7_200,
-		depthMm: 6_000,
-		ridgeHeightMm: 5_400,
-	}),
-	road: Object.freeze({ primaryWidthMm: 4_200, footpathWidthMm: 1_800 }),
-	tree: Object.freeze({ matureHeightMm: 11_000, canopyDiameterMm: 6_500 }),
-	market: Object.freeze({ clearDiameterMm: 28_000, stallWidthMm: 3_000 }),
-	mill: Object.freeze({
-		widthMm: 9_000,
-		depthMm: 8_000,
-		ridgeHeightMm: 7_000,
-		wheelDiameterMm: 4_800,
-	}),
-	interaction: Object.freeze({
-		faceToFaceSpacingMm: 1_500,
-		waitingSpacingMm: 1_200,
-	}),
-});
+export const humanSettlementPhysicalScale: PhysicalScaleManifest =
+	Object.freeze({
+		citizen: Object.freeze({ heightMm: 1_750, shoulderWidthMm: 500 }),
+		door: Object.freeze({ heightMm: 2_050, widthMm: 900 }),
+		house: Object.freeze({
+			widthMm: 7_200,
+			depthMm: 6_000,
+			ridgeHeightMm: 5_400,
+		}),
+		road: Object.freeze({ primaryWidthMm: 4_200, footpathWidthMm: 1_800 }),
+		tree: Object.freeze({ matureHeightMm: 11_000, canopyDiameterMm: 6_500 }),
+		market: Object.freeze({ clearDiameterMm: 28_000, stallWidthMm: 3_000 }),
+		mill: Object.freeze({
+			widthMm: 9_000,
+			depthMm: 8_000,
+			ridgeHeightMm: 7_000,
+			wheelDiameterMm: 4_800,
+		}),
+		interaction: Object.freeze({
+			faceToFaceSpacingMm: 1_500,
+			waitingSpacingMm: 1_200,
+		}),
+	});
+
+/** Backward-compatible fixture name for the shared authored human scale. */
+export const riverholdPhysicalScale = humanSettlementPhysicalScale;
 
 const byId = Object.freeze(
 	Object.fromEntries(nodes.map((entry) => [entry.nodeId, entry])),
