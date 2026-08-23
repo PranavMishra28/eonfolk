@@ -306,10 +306,7 @@ function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 
 async function focusCanonicalResident(page) {
 	const started = performance.now();
-	const resident = page
-		.getByRole("group", { name: "Canonical residents" })
-		.getByRole("button")
-		.first();
+	const resident = page.locator("fieldset.generated-residents button").first();
 	await resident.click({ timeout: 5_000 });
 	await page
 		.getByTestId("generated-world-canvas")
