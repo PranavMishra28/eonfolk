@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-const target = new URL(process.argv[2] ?? "http://127.0.0.1:5173");
+const target = new URL(process.argv[2] ?? "http://127.0.0.1:5173/world");
 if (!new Set(["127.0.0.1", "localhost", "[::1]"]).has(target.hostname)) {
 	throw new Error("pnpm diagnose is restricted to a loopback observer");
 }
@@ -14,7 +14,18 @@ try {
 		else await route.abort("blockedbyclient");
 	});
 	await page.goto(target.href, { waitUntil: "domcontentloaded" });
-	await page.getByTestId("riverhold-canvas").waitFor({ state: "visible" });
+	await page
+		.getByTestId("generated-world-canvas")
+		.waitFor({ state: "visible" });
+	await page
+		.getByTestId("generated-world-canvas")
+		.waitFor({ state: "attached" });
+	await page.waitForFunction(() => {
+		const canvas = document.querySelector(
+			'[data-testid="generated-world-canvas"]',
+		);
+		return canvas instanceof HTMLElement && canvas.dataset.ready === "true";
+	});
 	const projection = await page.evaluate(() => {
 		if (typeof window.__EONFOLK_OBSERVER__ !== "function") {
 			throw new Error(

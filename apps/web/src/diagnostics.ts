@@ -43,12 +43,13 @@ function viewportClass() {
 	return "wide" as const;
 }
 
-function routeIdentity() {
+export function routeIdentity(pathname?: string) {
 	const path =
-		typeof window === "undefined"
-			? "/"
-			: window.location.pathname.replace(/\/+$/u, "") || "/";
-	if (path === "/genesis" || path === "/world")
+		(
+			pathname ??
+			(typeof window === "undefined" ? "/" : window.location.pathname)
+		).replace(/\/+$/u, "") || "/";
+	if (path !== "/legacy")
 		return Object.freeze({
 			genesisId: "release-genesis-browser-v1",
 			worldId: "eonfolk-genesis-world-v1",
@@ -58,8 +59,12 @@ function routeIdentity() {
 			rendererVersion:
 				path === "/world"
 					? "playcanvas-generated-civilization-v1"
-					: "generated-civilization-entry-v1",
-			persistenceVersion: "v1-browser-checkpoint-v1",
+					: path === "/research"
+						? "generated-research-surface-v1"
+						: path === "/developer"
+							? "generated-developer-surface-v1"
+							: "generated-civilization-entry-v1",
+			persistenceVersion: "versioned-browser-authority-v1",
 		});
 	return Object.freeze({
 		genesisId: "riverhold-local-genesis-v1",

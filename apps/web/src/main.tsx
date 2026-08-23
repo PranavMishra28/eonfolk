@@ -7,6 +7,8 @@ import {
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
+import "./diagnostics";
+
 const root = document.getElementById("root");
 if (!root) throw new Error("EONFOLK root is missing");
 
