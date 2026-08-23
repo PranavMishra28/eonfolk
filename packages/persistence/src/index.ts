@@ -7,6 +7,46 @@ export {
 } from "./indexeddb.js";
 export { MemoryPersistence, type MemoryPersistenceOptions } from "./memory.js";
 export { validateReceipt } from "./validation.js";
+export {
+	createAuthorityEvent,
+	createAuthorityHead,
+	createAuthoritySnapshot,
+	hashAuthoritativeState,
+	MemoryVersionedPersistence,
+	replayAuthoritativeEvents,
+	validateAuthorityEventRecord,
+	type MemoryVersionedPersistenceOptions,
+} from "./versioned.js";
+export {
+	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
+	AUTHORITY_APPEND_SCHEMA_VERSION,
+	AUTHORITY_EVENT_SCHEMA_VERSION,
+	AUTHORITY_GENESIS_SCHEMA_VERSION,
+	AUTHORITY_HEAD_SCHEMA_VERSION,
+	AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
+	EMPTY_EVENT_HASH,
+	PERSISTENCE_MIGRATION_POLICY,
+	VERSIONED_PERSISTENCE_PORT_VERSION,
+	type AppendAuthorityBatchRequest,
+	type AppendAuthorityBatchResult,
+	type AuthorityAppendReceipt,
+	type AuthorityCausalParent,
+	type AuthorityCausalRelation,
+	type AuthorityEventProvenance,
+	type AuthorityEventRangeRequest,
+	type AuthorityEventRecord,
+	type AuthorityHead,
+	type AuthorityReplayRequest,
+	type AuthorityReplayResult,
+	type AuthorityScope,
+	type AuthoritySnapshotRecord,
+	type InitializeAuthorityRequest,
+	type InitializeAuthorityResult,
+	type SaveAuthoritySnapshotRequest,
+	type VersionedCrashInjector,
+	type VersionedCrashPoint,
+	type VersionedPersistencePort,
+} from "./versioned-types.js";
 export type {
 	AppendRejectedDecisionRequest,
 	BatchRangeRequest,
