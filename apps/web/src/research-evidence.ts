@@ -226,6 +226,26 @@ async function validSnapshot(
 		: null;
 }
 
+function snapshotIsBoundToAcceptedChain(
+	snapshot: AuthoritySnapshotRecord,
+	events: readonly AuthorityEventRecord[],
+	head: AuthorityHead,
+): boolean {
+	if (snapshot.baseSequence === 0) {
+		const acceptedGenesisStateHash = events[0]?.preStateHash ?? head.stateHash;
+		return (
+			snapshot.lastEventHash === EMPTY_EVENT_HASH &&
+			snapshot.stateHash === acceptedGenesisStateHash
+		);
+	}
+	const baseEvent = events[snapshot.baseSequence - 1];
+	return (
+		baseEvent?.sequence === snapshot.baseSequence &&
+		snapshot.lastEventHash === baseEvent.eventHash &&
+		snapshot.stateHash === baseEvent.postStateHash
+	);
+}
+
 function sponsorPayload(event: AuthorityEventRecord): UnknownRecord | null {
 	if (event.eventType !== "CivilizationSponsorCommandCommitted") return null;
 	const payload = record(event.payload);
@@ -389,7 +409,11 @@ export async function projectResearchEvidence(
 			const candidate = keyedValue(value, streamKey);
 			if (candidate === null) continue;
 			const snapshot = await validSnapshot(candidate, head);
-			if (snapshot === null) throw new Error("snapshot integrity failed");
+			if (
+				snapshot === null ||
+				!snapshotIsBoundToAcceptedChain(snapshot, events, head)
+			)
+				throw new Error("snapshot integrity or chain binding failed");
 			snapshots.push(snapshot);
 		}
 		const latestSnapshot = snapshots.sort(

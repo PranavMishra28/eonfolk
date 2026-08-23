@@ -254,6 +254,41 @@ describe("Release Genesis research evidence projection", () => {
 		});
 	});
 
+	it("rejects a self-hashed snapshot detached from its accepted base event", async () => {
+		const rows = await acceptedRows();
+		const originalRow = rows.snapshots[0];
+		if (originalRow === undefined) throw new Error("fixture snapshot missing");
+		const original = originalRow.value;
+		const forged = await createAuthoritySnapshot({
+			runId: original.runId,
+			regionId: original.regionId,
+			engineVersion: original.engineVersion,
+			stateSchemaVersion: original.stateSchemaVersion,
+			snapshotId: original.snapshotId,
+			revision: original.revision,
+			baseSequence: original.baseSequence,
+			simulationTime: original.simulationTime,
+			lastEventHash: original.lastEventHash,
+			state: {
+				civilization: {
+					citizens: {
+						"citizen-01": { name: "Forged Mara" },
+						"citizen-02": { name: "Forged Toma" },
+					},
+				},
+			},
+		});
+		expect(forged.stateHash).not.toBe(original.stateHash);
+		const result = await projectResearchEvidence({
+			...rows,
+			snapshots: [{ ...originalRow, value: forged }],
+		});
+		expect(result).toEqual({
+			status: "unavailable",
+			reason: "unverified-authority",
+		});
+	});
+
 	it("reports an honest empty state before a consequence is accepted", async () => {
 		const result = await projectResearchEvidence(
 			await acceptedRows({ withoutBoundary: true }),
