@@ -128,6 +128,14 @@ async function contractFor(
 			kind: "other-local",
 			sourceCommit: "b".repeat(40),
 		},
+		serviceRuntime:
+			ollamaPort === undefined
+				? null
+				: {
+						kind: "ollama" as const,
+						sourceCommit: "b".repeat(40),
+						executable: runtime,
+					},
 		tokenizer: { ...adapter, artifactId: "fixture-tokenizer" },
 		transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
 		trustRemoteCode: false,
@@ -163,6 +171,7 @@ async function ollamaHarness(port: number, timeoutMs = 1_000) {
 	);
 	const transport = await createMacOsLoopbackOllamaTransport({
 		adapterPath,
+		ollamaExecutablePath: process.execPath,
 		artifactPaths: {
 			chatTemplate: adapterPath,
 			model: adapterPath,
@@ -202,6 +211,7 @@ describe("bounded Ollama loopback adapter", () => {
 		await expect(
 			createMacOsLoopbackOllamaTransport({
 				adapterPath: tamperedPath,
+				ollamaExecutablePath: process.execPath,
 				artifactPaths: {
 					chatTemplate: adapterPath,
 					model: adapterPath,
@@ -228,6 +238,7 @@ describe("bounded Ollama loopback adapter", () => {
 		await expect(
 			createMacOsLoopbackOllamaTransport({
 				adapterPath,
+				ollamaExecutablePath: process.execPath,
 				artifactPaths: {
 					chatTemplate: adapterPath,
 					model: adapterPath,
@@ -239,6 +250,33 @@ describe("bounded Ollama loopback adapter", () => {
 				contract,
 				environment: {},
 				ollamaPort: 11_435,
+			}),
+		).rejects.toMatchObject({ code: "artifact-mismatch" });
+	});
+
+	it("rejects service runtime bytes not bound into contract provenance", async () => {
+		const adapterPath = resolve("scripts/ollama-bounded-adapter.mjs");
+		const contract = await contractFor(
+			process.execPath,
+			adapterPath,
+			1_000,
+			11_434,
+		);
+		await expect(
+			createMacOsLoopbackOllamaTransport({
+				adapterPath,
+				ollamaExecutablePath: adapterPath,
+				artifactPaths: {
+					chatTemplate: adapterPath,
+					model: adapterPath,
+					modelConfiguration: adapterPath,
+					runtimeExecutable: process.execPath,
+					tokenizer: adapterPath,
+				},
+				cohort: "warm",
+				contract,
+				environment: {},
+				ollamaPort: 11_434,
 			}),
 		).rejects.toMatchObject({ code: "artifact-mismatch" });
 	});
@@ -406,6 +444,7 @@ describe("bounded Ollama loopback adapter", () => {
 				environment: {},
 				localEndpoint: { kind: "ollama-loopback", port },
 				runtimeArguments: [],
+				serviceRuntimeExecutable: runtimePath,
 			});
 			const brain = await createContractBoundModelBrain(contract, transport);
 			const { context } = await decisionFixture();

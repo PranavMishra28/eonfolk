@@ -107,6 +107,7 @@ async function contractBoundBrain(output: () => string) {
 			kind: "other-local",
 			sourceCommit: "b".repeat(40),
 		},
+		serviceRuntime: null,
 		tokenizer: artifact,
 		transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
 		trustRemoteCode: false,

@@ -6,9 +6,9 @@ const SAFE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 const ISO_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export const LOCAL_PROCESS_BRAIN_CONTRACT_VERSION =
-	"eonfolk-local-process-brain-contract-v2" as const;
+	"eonfolk-local-process-brain-contract-v3" as const;
 export const EXPERIMENT_MANIFEST_VERSION =
-	"eonfolk-experiment-manifest-v3" as const;
+	"eonfolk-experiment-manifest-v4" as const;
 export const EXPERIMENT_RESULT_VERSION =
 	"eonfolk-experiment-result-v2" as const;
 
@@ -31,6 +31,11 @@ export interface LocalProcessBrainContract {
 		readonly sourceCommit: string;
 		readonly executable: LocalArtifactIdentity;
 	};
+	readonly serviceRuntime: {
+		readonly kind: "ollama";
+		readonly sourceCommit: string;
+		readonly executable: LocalArtifactIdentity;
+	} | null;
 	readonly model: LocalArtifactIdentity;
 	readonly tokenizer: LocalArtifactIdentity;
 	readonly modelConfiguration: LocalArtifactIdentity;
@@ -135,7 +140,7 @@ export interface ExperimentManifestV2 {
 	};
 	readonly brain: ExperimentBrainConfiguration;
 	readonly environment: {
-		readonly host: "MacBook M4 Pro";
+		readonly host: "MacBook M4 Pro" | "MacBook M4 Max";
 		readonly osVersion: string;
 		readonly runtimeVersion: string;
 		readonly totalMemoryBytes: number;
@@ -342,6 +347,23 @@ export async function createLocalProcessBrainContract(
 	assertSha256(input.adapterHash, "adapterHash");
 	assertGitCommit(input.runtime.sourceCommit, "runtime.sourceCommit");
 	assertArtifact(input.runtime.executable, "runtime.executable");
+	if (
+		(input.networkPolicy === "loopback-single-port-required") !==
+		(input.serviceRuntime !== null)
+	)
+		throw new Error("service runtime must match the network policy");
+	if (input.serviceRuntime !== null) {
+		if (input.serviceRuntime.kind !== "ollama")
+			throw new TypeError("service runtime kind is unsupported");
+		assertGitCommit(
+			input.serviceRuntime.sourceCommit,
+			"serviceRuntime.sourceCommit",
+		);
+		assertArtifact(
+			input.serviceRuntime.executable,
+			"serviceRuntime.executable",
+		);
+	}
 	assertArtifact(input.model, "model");
 	assertArtifact(input.tokenizer, "tokenizer");
 	assertArtifact(input.modelConfiguration, "modelConfiguration");
@@ -406,6 +428,7 @@ export async function createLocalProcessBrainContract(
 		adapterVersion: input.adapterVersion,
 		adapterHash: input.adapterHash,
 		runtime: input.runtime,
+		serviceRuntime: input.serviceRuntime,
 		model: input.model,
 		tokenizer: input.tokenizer,
 		modelConfiguration: input.modelConfiguration,
@@ -424,7 +447,7 @@ export async function createLocalProcessBrainContract(
 	const contract = {
 		...withoutHash,
 		contractHash: await domainHash(
-			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v2",
+			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v3",
 			withoutHash,
 		),
 	} as LocalProcessBrainContract;
@@ -551,7 +574,10 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 		128 * 1024 * 1024 * 1024,
 	);
 	assertSafeText(input.environment.powerMode, "environment.powerMode", 128);
-	if (input.environment.host !== "MacBook M4 Pro")
+	if (
+		input.environment.host !== "MacBook M4 Pro" &&
+		input.environment.host !== "MacBook M4 Max"
+	)
 		throw new Error("experiment host is outside the Founder Alpha target");
 	if (
 		input.environment.cohort !== "cold" &&
@@ -629,7 +655,7 @@ export async function createExperimentManifestV2(
 	const manifest = {
 		...withoutHash,
 		manifestHash: await domainHash(
-			"EONFOLK:EXPERIMENT-MANIFEST:v3",
+			"EONFOLK:EXPERIMENT-MANIFEST:v4",
 			withoutHash,
 		),
 	} as ExperimentManifestV2;

@@ -53,6 +53,7 @@ export interface LocalProcessArtifactPaths {
 export interface MacOsLocalProcessTransportConfiguration {
 	readonly contract: LocalProcessBrainContract;
 	readonly artifactPaths: LocalProcessArtifactPaths;
+	readonly serviceRuntimeExecutable?: string;
 	/** Arguments are fixed host configuration, never model output. */
 	readonly runtimeArguments: readonly string[];
 	readonly environment: Readonly<Record<string, string>>;
@@ -70,9 +71,10 @@ export interface MacOsLocalProcessTransportConfiguration {
 export interface MacOsLoopbackOllamaTransportConfiguration
 	extends Omit<
 		MacOsLocalProcessTransportConfiguration,
-		"localEndpoint" | "runtimeArguments"
+		"localEndpoint" | "runtimeArguments" | "serviceRuntimeExecutable"
 	> {
 	readonly adapterPath: string;
+	readonly ollamaExecutablePath: string;
 	readonly ollamaPort: number;
 }
 
@@ -425,6 +427,23 @@ export async function createMacOsLocalProcessTransport(
 			"transport endpoint differs from contract provenance",
 		);
 	const sandboxProfile = sandboxProfileFor(configuration.localEndpoint);
+	if (
+		(configuration.contract.serviceRuntime !== null) !==
+		(configuration.serviceRuntimeExecutable !== undefined)
+	)
+		throw failure(
+			"artifact-mismatch",
+			"service runtime path does not match the contract",
+		);
+	if (
+		configuration.contract.serviceRuntime !== null &&
+		configuration.serviceRuntimeExecutable !== undefined
+	)
+		await verifyArtifact(
+			configuration.serviceRuntimeExecutable,
+			configuration.contract.serviceRuntime.executable,
+			"service runtime",
+		);
 
 	const checks = [
 		[
@@ -546,11 +565,13 @@ export async function createMacOsLoopbackOllamaTransport(
 	);
 	const {
 		adapterPath: _adapterPath,
+		ollamaExecutablePath,
 		ollamaPort: _ollamaPort,
 		...base
 	} = configuration;
 	return createMacOsLocalProcessTransport({
 		...base,
+		serviceRuntimeExecutable: ollamaExecutablePath,
 		localEndpoint: {
 			kind: "ollama-loopback",
 			port: configuration.ollamaPort,

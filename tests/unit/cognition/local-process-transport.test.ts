@@ -124,6 +124,7 @@ async function harness(input: {
 			kind: "other-local",
 			sourceCommit: "b".repeat(40),
 		},
+		serviceRuntime: null,
 		tokenizer: artifact,
 		transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
 		trustRemoteCode: false,
