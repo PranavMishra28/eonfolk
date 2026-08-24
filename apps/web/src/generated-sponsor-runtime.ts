@@ -67,6 +67,39 @@ export interface GeneratedSponsorshipResult {
 	}[];
 }
 
+export function generatedSponsorChronicleRange(input: {
+	readonly snapshotBaseSequence: number;
+	readonly durableLastSequence: number;
+}): Readonly<{
+	readonly fromSequenceInclusive: number;
+	readonly toSequenceExclusive: number;
+}> {
+	if (
+		!Number.isSafeInteger(input.snapshotBaseSequence) ||
+		!Number.isSafeInteger(input.durableLastSequence) ||
+		input.snapshotBaseSequence < 0 ||
+		input.durableLastSequence < input.snapshotBaseSequence ||
+		input.durableLastSequence === Number.MAX_SAFE_INTEGER
+	)
+		throw new Error("SP:INVALID_CHRONICLE_RANGE");
+	return Object.freeze({
+		fromSequenceInclusive: input.snapshotBaseSequence + 1,
+		toSequenceExclusive: input.durableLastSequence + 1,
+	});
+}
+
+export function generatedSponsorChronicleBaseSnapshotId(
+	latestSnapshotId: string,
+): string {
+	const match = /^(civilization-day-[1-9]\d*)(?:-authority-\d+)?$/u.exec(
+		latestSnapshotId,
+	);
+	const baseSnapshotId = match?.[1];
+	if (baseSnapshotId === undefined)
+		throw new Error("SP:INVALID_CHRONICLE_SNAPSHOT");
+	return baseSnapshotId;
+}
+
 /**
  * Lazy canonical action path. Each step reloads the sole durable authority
  * stream. Application invokes Standard Brain; Reality reconstructs and validates
@@ -479,10 +512,20 @@ export async function sponsorGeneratedCitizen(input: {
 			readonly visibility: CivilizationSponsorEventEnvelope["visibility"];
 			readonly fact: CivilizationCounselBoundaryFact;
 		}> = [];
+		const chronicleBaseSnapshotId = generatedSponsorChronicleBaseSnapshotId(
+			finalSnapshot.snapshotId,
+		);
+		const chronicleBaseSnapshot =
+			chronicleBaseSnapshotId === finalSnapshot.snapshotId
+				? finalSnapshot
+				: await port.loadSnapshot(scope, chronicleBaseSnapshotId);
+		const chronicleRange = generatedSponsorChronicleRange({
+			snapshotBaseSequence: chronicleBaseSnapshot.baseSequence,
+			durableLastSequence: finalHead.lastSequence,
+		});
 		for (const outer of await port.getEventRange({
 			...scope,
-			fromSequenceInclusive: 1,
-			toSequenceExclusive: finalHead.lastSequence + 1,
+			...chronicleRange,
 		})) {
 			if (outer.eventType === "CivilizationCounselBoundaryCommitted") {
 				const payload = outer.payload as {

@@ -1,4 +1,8 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import {
+	generatedSponsorChronicleBaseSnapshotId,
+	generatedSponsorChronicleRange,
+} from "../../../apps/web/src/generated-sponsor-runtime.js";
 import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	advanceGeneratedCivilization,
@@ -47,6 +51,69 @@ beforeAll(async () => {
 		releaseGenesis: genesis,
 		worldId: "generated-persistence-world",
 		treatmentId: "standard-brain",
+	});
+});
+
+describe("generated sponsor Chronicle event range", () => {
+	it("anchors an authority-extension snapshot to its retained immutable base", () => {
+		expect(
+			generatedSponsorChronicleBaseSnapshotId(
+				"civilization-day-365-authority-5604",
+			),
+		).toBe("civilization-day-365");
+		expect(
+			generatedSponsorChronicleBaseSnapshotId("civilization-day-365"),
+		).toBe("civilization-day-365");
+		expect(() =>
+			generatedSponsorChronicleBaseSnapshotId("foreign-snapshot"),
+		).toThrow("SP:INVALID_CHRONICLE_SNAPSHOT");
+	});
+
+	it("enumerates every post-snapshot sponsor and boundary event without the immutable base", () => {
+		const events = [
+			{ sequence: 1, kind: "base" },
+			{ sequence: 5_599, kind: "base" },
+			{ sequence: 5_600, kind: "base" },
+			{ sequence: 5_601, kind: "sponsor" },
+			{ sequence: 5_602, kind: "counsel" },
+			{ sequence: 5_603, kind: "resolution" },
+			{ sequence: 5_604, kind: "boundary" },
+		] as const;
+		const range = generatedSponsorChronicleRange({
+			snapshotBaseSequence: 5_600,
+			durableLastSequence: 5_604,
+		});
+		const enumerated = events.filter(
+			(event) =>
+				event.sequence >= range.fromSequenceInclusive &&
+				event.sequence < range.toSequenceExclusive,
+		);
+
+		expect(range).toEqual({
+			fromSequenceInclusive: 5_601,
+			toSequenceExclusive: 5_605,
+		});
+		expect(enumerated.map(({ kind }) => kind)).toEqual([
+			"sponsor",
+			"counsel",
+			"resolution",
+			"boundary",
+		]);
+		expect(enumerated.some(({ kind }) => kind === "base")).toBe(false);
+	});
+
+	it.each([
+		{ snapshotBaseSequence: -1, durableLastSequence: 9 },
+		{ snapshotBaseSequence: 5.5, durableLastSequence: 9 },
+		{ snapshotBaseSequence: 6, durableLastSequence: 5 },
+		{
+			snapshotBaseSequence: 5,
+			durableLastSequence: Number.MAX_SAFE_INTEGER,
+		},
+	])("rejects an invalid authority boundary: %o", (input) => {
+		expect(() => generatedSponsorChronicleRange(input)).toThrow(
+			"SP:INVALID_CHRONICLE_RANGE",
+		);
 	});
 });
 
