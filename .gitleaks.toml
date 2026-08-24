@@ -12,3 +12,9 @@ description = "Historical bibliography-key index misclassified as a generic API 
 condition = "AND"
 paths = ['''^docs/RESEARCH\.md$''']
 fingerprints = ['''bb90954d4dfbedd30d11aeee257a09d7e3edbb20:docs/RESEARCH.md:generic-api-key:22''']
+
+[[allowlists]]
+description = "Public bibliography-key template misclassified as a generic API key"
+condition = "AND"
+paths = ['''^config/public/RESEARCH\.md$''']
+rules = ['''generic-api-key''']
