@@ -62,7 +62,17 @@ const worldRouteKey =
 				(key) => manifest[key]?.name === "world-authority",
 			)
 		: "src/V1GenesisApp.tsx";
-if (entryKey === undefined || worldRouteKey === undefined) {
+const worldRendererKey =
+	manifest["src/generated-world-canvas.tsx"] === undefined
+		? Object.keys(manifest).find(
+				(key) => manifest[key]?.name === "generated-world-canvas",
+			)
+		: "src/generated-world-canvas.tsx";
+if (
+	entryKey === undefined ||
+	worldRouteKey === undefined ||
+	worldRendererKey === undefined
+) {
 	process.stderr.write(
 		"Vite manifest does not declare the app and world entries\n",
 	);
@@ -103,7 +113,11 @@ collectStatic(entryKey, criticalKeys);
 const criticalFiles = filesFor(criticalKeys);
 criticalFiles.add("index.html");
 const worldRouteKeys = new Set();
-collectRoute(worldRouteKey, worldRouteKeys);
+// The target is the route's delivered code plus its intentionally lazy world
+// renderer. Optional drawers (for example feedback) are interaction-loaded and
+// are measured in allBuildJavaScriptGzip, not misclassified as initial-route JS.
+collectStatic(worldRouteKey, worldRouteKeys);
+collectRoute(worldRendererKey, worldRouteKeys);
 const initialWorldFiles = new Set([
 	...criticalFiles,
 	...filesFor(worldRouteKeys),
