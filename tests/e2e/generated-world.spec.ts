@@ -1988,6 +1988,12 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		page.getByRole("heading", { name: "Choose a consequential counsel" }),
 	).toBeVisible();
 	await expect(
+		page.getByRole("button", { name: "Consider an intervention" }),
+	).toBeDisabled();
+	await expect(
+		page.getByRole("button", { name: "Sponsor this person" }),
+	).toHaveCount(0);
+	await expect(
 		page.getByText("There is no account, cloud backup, or recovery copy."),
 	).toBeVisible();
 	await expect(page.getByRole("button", { name: "Abstain" })).toBeVisible();

@@ -791,7 +791,8 @@ function GeneratedContextPanel({
 									: sponsorStatus === "counseling"
 										? "Considering…"
 										: sponsorStatus === "sponsored" ||
-												sponsorStatus === "abstained"
+												sponsorStatus === "abstained" ||
+												sponsorStatus === "confirming"
 											? "Consider an intervention"
 											: sponsorStatus === "resolved"
 												? "Review Chronicle"
