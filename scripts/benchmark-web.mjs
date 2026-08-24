@@ -99,7 +99,10 @@ const profiles = [
 		height: 1117,
 		deviceScaleFactor: 2,
 		maximumDisplayMs: 3_000,
+		maximumInteractionLatencyMs: 250,
 		maximumP95FrameMs: 16.7,
+		maximumPersistenceReloadMs: 3_000,
+		maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
 		cpuSlowdown: 1,
 		network: "unthrottled-local",
 	},
@@ -109,7 +112,10 @@ const profiles = [
 		height: 768,
 		deviceScaleFactor: 1,
 		maximumDisplayMs: 3_000,
+		maximumInteractionLatencyMs: 250,
 		maximumP95FrameMs: 16.7,
+		maximumPersistenceReloadMs: 3_000,
+		maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
 		cpuSlowdown: 1,
 		network: "unthrottled-local",
 	},
@@ -119,7 +125,10 @@ const profiles = [
 		height: 844,
 		deviceScaleFactor: 3,
 		maximumDisplayMs: 5_000,
+		maximumInteractionLatencyMs: 500,
 		maximumP95FrameMs: 33.3,
+		maximumPersistenceReloadMs: 5_000,
+		maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
 		cpuSlowdown: 4,
 		network: "1.6Mbps-down-750Kbps-up-150ms-rtt",
 	},
@@ -848,14 +857,19 @@ const failed =
 			run.markEvidence.meaningfulWorld.routeSegmentCount < 1 ||
 			run.markEvidence.meaningfulWorld.visibleInteractionCount < 1 ||
 			run.markEvidence.meaningfulWorld.worldId !== "eonfolk-genesis-world-v1" ||
+			run.residentFocusLatencyMs > profile.maximumInteractionLatencyMs ||
+			run.overviewLatencyMs > profile.maximumInteractionLatencyMs ||
+			run.persistenceReload.latencyMs > profile.maximumPersistenceReloadMs ||
 			run.persistenceReload.persistenceRestored !== "true" ||
 			run.persistenceReload.route !== "/world" ||
 			run.persistenceReload.stateHashStable !== true ||
+			typeof run.diagnostics.usedJsHeapBytes !== "number" ||
+			run.diagnostics.usedJsHeapBytes > profile.maximumUsedJsHeapBytes ||
 			run.states.some((state) => state.p95Ms > profile.maximumP95FrameMs)
 		);
 	});
 const report = {
-	schemaVersion: "eonfolk-release-genesis-web-performance-v2",
+	schemaVersion: "eonfolk-release-genesis-web-performance-v3",
 	measuredAt: new Date().toISOString(),
 	canonical,
 	runtime: {
@@ -919,6 +933,14 @@ const report = {
 		stateMeasurementMs: stateDurationMs,
 		states: ["world-arrival", "citizen-focus", "settlement-overview"],
 	},
+	budgets: profiles.map((profile) => ({
+		profile: profile.name,
+		maximumDisplayMs: profile.maximumDisplayMs,
+		maximumInteractionLatencyMs: profile.maximumInteractionLatencyMs,
+		maximumP95FrameMs: profile.maximumP95FrameMs,
+		maximumPersistenceReloadMs: profile.maximumPersistenceReloadMs,
+		maximumUsedJsHeapBytes: profile.maximumUsedJsHeapBytes,
+	})),
 	runs,
 	aggregates,
 	networkOracle: {

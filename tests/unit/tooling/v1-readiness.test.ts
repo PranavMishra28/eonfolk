@@ -103,7 +103,7 @@ function rawBenchmark(id: string, head: string) {
 	switch (id) {
 		case "persistence-bounded":
 			return selfHashed({
-				schemaVersion: "eonfolk-persistence-benchmark-v2",
+				schemaVersion: "eonfolk-persistence-benchmark-v3",
 				status: "PASS",
 				acceptance: { pass: true },
 				source: { start: { commit: head } },
@@ -133,16 +133,47 @@ function rawBenchmark(id: string, head: string) {
 			});
 		case "release-genesis-web-performance": {
 			const profiles = ["desktop", "laptop", "mobile-emulation"];
+			const budgets = [
+				{
+					profile: "desktop",
+					maximumDisplayMs: 3_000,
+					maximumInteractionLatencyMs: 250,
+					maximumP95FrameMs: 16.7,
+					maximumPersistenceReloadMs: 3_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+				{
+					profile: "laptop",
+					maximumDisplayMs: 3_000,
+					maximumInteractionLatencyMs: 250,
+					maximumP95FrameMs: 16.7,
+					maximumPersistenceReloadMs: 3_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+				{
+					profile: "mobile-emulation",
+					maximumDisplayMs: 5_000,
+					maximumInteractionLatencyMs: 500,
+					maximumP95FrameMs: 33.3,
+					maximumPersistenceReloadMs: 5_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+			];
 			return {
-				schemaVersion: "eonfolk-release-genesis-web-performance-v2",
+				schemaVersion: "eonfolk-release-genesis-web-performance-v3",
 				canonical: true,
 				runtime: { power: { profileAccepted: true } },
 				source: { commit: head, stable: true, builtOutput: { stable: true } },
 				fixture: { run: "release-genesis-generated-world", route: "/world" },
+				budgets,
 				runs: profiles.flatMap((profile) =>
 					Array.from({ length: 5 }, () => ({
 						profile,
 						marks: { meaningfulWorldMs: 1 },
+						residentFocusLatencyMs: 1,
+						overviewLatencyMs: 1,
+						persistenceReload: { latencyMs: 1 },
+						diagnostics: { usedJsHeapBytes: 1 },
 					})),
 				),
 				aggregates: profiles.map((profile) => ({

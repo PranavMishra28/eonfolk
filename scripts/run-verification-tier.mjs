@@ -114,7 +114,7 @@ export const DEEP_BENCHMARK_CONTRACT = Object.freeze([
 	Object.freeze({
 		id: "persistence-bounded",
 		path: "tmp/eonfolk-persistence-benchmark.json",
-		schemaVersion: "eonfolk-persistence-benchmark-v2",
+		schemaVersion: "eonfolk-persistence-benchmark-v3",
 	}),
 	Object.freeze({
 		id: "diagnostics-source",
@@ -129,7 +129,7 @@ export const DEEP_BENCHMARK_CONTRACT = Object.freeze([
 	Object.freeze({
 		id: "release-genesis-web-performance",
 		path: "tmp/eonfolk-canonical-performance.json",
-		schemaVersion: "eonfolk-release-genesis-web-performance-v2",
+		schemaVersion: "eonfolk-release-genesis-web-performance-v3",
 	}),
 	Object.freeze({
 		id: "local-model-treatment",
@@ -543,7 +543,36 @@ function benchmarkMeasurements(contract, report) {
 				maximumFrameP95Ms: maximumFrameP95(mode),
 				mode: mode.mode,
 			}));
-		case "release-genesis-web-performance":
+		case "release-genesis-web-performance": {
+			const expectedBudgets = {
+				desktop: {
+					maximumDisplayMs: 3_000,
+					maximumInteractionLatencyMs: 250,
+					maximumP95FrameMs: 16.7,
+					maximumPersistenceReloadMs: 3_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+				laptop: {
+					maximumDisplayMs: 3_000,
+					maximumInteractionLatencyMs: 250,
+					maximumP95FrameMs: 16.7,
+					maximumPersistenceReloadMs: 3_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+				"mobile-emulation": {
+					maximumDisplayMs: 5_000,
+					maximumInteractionLatencyMs: 500,
+					maximumP95FrameMs: 33.3,
+					maximumPersistenceReloadMs: 5_000,
+					maximumUsedJsHeapBytes: 128 * 1_024 * 1_024,
+				},
+			};
+			const declaredBudgets = Object.fromEntries(
+				(report.budgets ?? []).map(({ profile, ...budget }) => [
+					profile,
+					budget,
+				]),
+			);
 			if (
 				report.canonical !== true ||
 				report.runtime?.power?.profileAccepted !== true ||
@@ -552,6 +581,19 @@ function benchmarkMeasurements(contract, report) {
 				report.fixture?.run !== "release-genesis-generated-world" ||
 				report.fixture?.route !== "/world" ||
 				report.runs?.length !== 15 ||
+				JSON.stringify(declaredBudgets) !== JSON.stringify(expectedBudgets) ||
+				!report.runs.every((run) => {
+					const budget = expectedBudgets[run.profile];
+					return (
+						budget !== undefined &&
+						run.residentFocusLatencyMs <= budget.maximumInteractionLatencyMs &&
+						run.overviewLatencyMs <= budget.maximumInteractionLatencyMs &&
+						run.persistenceReload?.latencyMs <=
+							budget.maximumPersistenceReloadMs &&
+						typeof run.diagnostics?.usedJsHeapBytes === "number" &&
+						run.diagnostics.usedJsHeapBytes <= budget.maximumUsedJsHeapBytes
+					);
+				}) ||
 				report.networkOracle?.externalRouteAttempts?.length !== 0 ||
 				report.networkOracle?.externalNetlogAttempts?.length !== 0
 			)
@@ -565,6 +607,7 @@ function benchmarkMeasurements(contract, report) {
 				pooledFrameP95Ms: profile.pooled?.p95Ms,
 				profile: profile.profile,
 			}));
+		}
 		case "local-model-treatment": {
 			const requiredGates = [
 				"completeCorpus",
