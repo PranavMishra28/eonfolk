@@ -139,13 +139,13 @@ export function projectCivilizationChronicle(input: {
 		if (payload.kind === "SponsorshipEstablished") {
 			text = `${citizenName(payload.citizenId, input.citizenNames)} entered a sponsorship covenant with ${input.viewer.kind === "participant" && input.viewer.principalId === payload.patronPrincipalId ? "you" : "their patron"}.`;
 		} else if (payload.kind === "PatronAbstained") {
-			text = `The patron withheld counsel for ${citizenName(payload.citizenId, input.citizenNames)} at this boundary.`;
-			unresolvedTension = `What will ${citizenName(payload.citizenId, input.citizenNames)} do without intervention?`;
+			text = `You offered no counsel to ${citizenName(payload.citizenId, input.citizenNames)}. The boundary closed without sponsor input; her active Standing Plan remained in force.`;
+			unresolvedTension = `What will ${citizenName(payload.citizenId, input.citizenNames)} do independently?`;
 		} else if (payload.kind === "CounselIssued") {
-			text = `${citizenName(payload.citizenId, input.citizenNames)} received counsel to ${payload.intent.replace("-", " ")}.`;
+			text = `You advised ${citizenName(payload.citizenId, input.citizenNames)} to ${payload.intent.replace("-", " ")}. Advice was an input, not her action.`;
 			unresolvedTension = `How will ${citizenName(payload.citizenId, input.citizenNames)} interpret that counsel?`;
 		} else if (payload.kind === "CounselInterpreted") {
-			text = `${citizenName(payload.citizenId, input.citizenNames)} ${payload.disposition === "delayed" ? "deferred" : payload.disposition} the counsel and chose to ${payload.action.replaceAll("-", " ")}.`;
+			text = `${citizenName(payload.citizenId, input.citizenNames)} ${payload.disposition === "delayed" ? "delayed acting on" : payload.disposition} the advice and independently chose to ${payload.action.replaceAll("-", " ")}.`;
 			unresolvedTension =
 				payload.disposition === "delayed"
 					? `${citizenName(payload.citizenId, input.citizenNames)} has not resolved the counsel yet.`
@@ -185,13 +185,13 @@ export function projectCivilizationChronicle(input: {
 		const interpreted = fact.interpretationAction.replaceAll("-", " ");
 		const consequence =
 			fact.effect.kind === "reserve-inspection"
-				? `The later inspection recorded ${fact.effect.stockObservations.map(stockObservationText).join("; ")}.`
+				? `At the next daily boundary, the inspection recorded ${fact.effect.stockObservations.map(stockObservationText).join("; ")}.`
 				: fact.effect.kind === "public-allegation"
-					? `A public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust by ${String(-fact.effect.trustDeltaBasisPoints)} and increased strain by ${String(fact.effect.strainDeltaBasisPoints)} basis points.`
-					: "The interpretation temporally preceded the existing standing plan continuing.";
+					? `At the next daily boundary, a public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust by ${String(-fact.effect.trustDeltaBasisPoints)} and increased strain by ${String(fact.effect.strainDeltaBasisPoints)} basis points. The allegation was not proof.`
+					: "At the next daily boundary, the existing Standing Plan continued; the earlier advice was only a temporal predecessor.";
 		beats.push({
 			beat: beats.length + 1,
-			text: `${citizenName(fact.citizenId, input.citizenNames)} reached the later decision boundary after choosing to ${interpreted}. ${consequence} The authoritative need ledger recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} units consumed and ${fact.unmetNeedUnits} unmet.`,
+			text: `${citizenName(fact.citizenId, input.citizenNames)} chose to ${interpreted}. ${consequence} Daily needs: ${String(fact.consumedNeedUnits)} of ${String(fact.requiredNeedUnits)} units met; ${String(fact.unmetNeedUnits)} unmet.`,
 			evidenceEventIds: [
 				boundary.eventId,
 				...boundary.parentEventIds.filter((eventId) =>
@@ -212,6 +212,15 @@ export function projectCivilizationChronicle(input: {
 		beats: selected,
 		unresolvedTension,
 		storyCard: [
+			...(visible.some(
+				({ eventPayload }) => eventPayload.kind === "PatronAbstained",
+			)
+				? ["NO ADVICE / MARA CHOSE INDEPENDENTLY"]
+				: visible.some(
+							({ eventPayload }) => eventPayload.kind === "CounselIssued",
+						)
+					? ["YOU ADVISED / MARA DECIDED"]
+					: []),
 			...selected.map(({ text }) => text),
 			...(unresolvedTension === null
 				? []

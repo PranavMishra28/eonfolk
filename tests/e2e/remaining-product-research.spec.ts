@@ -201,6 +201,139 @@ for (const viewport of [
 	});
 }
 
+test("abstention closes the first boundary and stale counsel cannot stack", async ({
+	page,
+}) => {
+	test.setTimeout(linuxSemanticCi ? 420_000 : 180_000);
+	await keepLocal(page);
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await resetReleaseGenesisAuthority(page);
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await selectMara(page);
+	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await expect(
+		page.getByRole("button", { name: "Consider an intervention" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await page.getByRole("button", { name: "Consider an intervention" }).click();
+	await expect(
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+	).toBeVisible();
+	await page
+		.getByRole("button", {
+			name: "Abstain — close this boundary without counsel",
+		})
+		.click();
+	await expect(
+		page.getByText(/first boundary is durably closed/iu),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	const abstainedStateHash = await authorityStateHash(page);
+
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await selectMara(page);
+	await expect(
+		page.getByRole("button", { name: "Review abstention Chronicle" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await expect(
+		page.getByRole("button", { name: "Consider an intervention" }),
+	).toHaveCount(0);
+	await expect(
+		page.getByRole("button", { name: /Verify the evidence first/iu }),
+	).toHaveCount(0);
+	await page
+		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.click();
+	await page.getByRole("button", { name: "Return to Riverhold" }).click();
+	await page
+		.getByRole("button", { name: "Continue to Mara's independent outcome" })
+		.click();
+	await expect(
+		page.getByRole("heading", { name: "What happened" }),
+	).toBeVisible();
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("boundary closed without sponsor input");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).not.toContainText(/you advised|your counsel/iu);
+	await expect(
+		page.getByText(/Observe Mara's independent plan/iu),
+	).toBeVisible();
+	expect(await authorityStateHash(page)).toBe(abstainedStateHash);
+});
+
+test("a first-boundary action fails closed when its displayed context is stale", async ({
+	page,
+}) => {
+	test.setTimeout(linuxSemanticCi ? 420_000 : 180_000);
+	await keepLocal(page);
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await resetReleaseGenesisAuthority(page);
+	await page.goto("/world", { waitUntil: "domcontentloaded" });
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await selectMara(page);
+	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await expect(
+		page.getByRole("button", { name: "Consider an intervention" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await page.getByRole("button", { name: "Consider an intervention" }).click();
+	await expect(
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+	).toBeVisible();
+
+	const other = await page.context().newPage();
+	await keepLocal(other);
+	await other.emulateMedia({ reducedMotion: "reduce" });
+	await other.goto("/world", { waitUntil: "domcontentloaded" });
+	await expect(other.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await selectMara(other);
+	await other.getByRole("button", { name: "Consider an intervention" }).click();
+	await expect(
+		other.getByRole("button", { name: "Consider an intervention" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await other.getByRole("button", { name: "Consider an intervention" }).click();
+	await other
+		.getByRole("button", {
+			name: "Abstain — close this boundary without counsel",
+		})
+		.click();
+	await expect(
+		other.getByText(/first boundary is durably closed/iu),
+	).toBeVisible({
+		timeout: sponsorTransitionTimeout,
+	});
+	const beforeStaleAttempt = await authorityFingerprint(other);
+
+	await page
+		.getByRole("button", {
+			name: "Verify the evidence first — delays a conclusion",
+		})
+		.click();
+	await expect(page.getByRole("status")).toContainText(
+		"CURRENT_CONTEXT_MISMATCH",
+		{ timeout: sponsorTransitionTimeout },
+	);
+	expect(await authorityFingerprint(page)).toBe(beforeStaleAttempt);
+	await other.close();
+});
+
 test("remaining product research reads one accepted Chronicle beat without authority mutation", async ({
 	page,
 }) => {
@@ -226,53 +359,14 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
-	await page.getByRole("button", { name: "Abstain" }).click();
-	await expect(
-		page.getByText(/Canonical Chronicle: the patron withheld counsel/u),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
-	await page
-		.getByRole("button", {
-			name: "Verify the evidence first — delays a conclusion",
-		})
-		.click();
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.reload({ waitUntil: "domcontentloaded" });
-	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-		{ timeout: 30_000 },
-	);
-	await selectMara(page);
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	const beforeVerifiedBoundaryHash =
-		await world.getAttribute("data-state-hash");
-	await page
-		.getByRole("button", { name: "Return at the next decision boundary" })
-		.click();
-	await expect
-		.poll(() => world.getAttribute("data-state-hash"), {
-			timeout: sponsorTransitionTimeout,
-		})
-		.not.toBe(beforeVerifiedBoundaryHash);
-	await expect(
-		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page
-		.getByRole("button", { name: "Consider a different counsel" })
-		.click();
 	await page
 		.getByRole("button", {
 			name: "Confront them publicly — risks trust",
 		})
 		.click();
 	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+		page.getByRole("button", { name: "Leave Riverhold at this checkpoint" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-ready",
@@ -281,12 +375,18 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	);
 	await selectMara(page);
 	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
+		page.getByRole("button", { name: "Leave Riverhold at this checkpoint" }),
 	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	await page
+		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.click();
+	await page.getByRole("button", { name: "Return to Riverhold" }).click();
 	const beforeAccusationBoundaryHash =
 		await world.getAttribute("data-state-hash");
 	await page
-		.getByRole("button", { name: "Return at the next decision boundary" })
+		.getByRole("button", {
+			name: "Advance one day to Mara's decision boundary",
+		})
 		.click();
 	await expect
 		.poll(() => world.getAttribute("data-state-hash"), {
@@ -296,7 +396,12 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(page.getByRole("status")).toContainText("public allegation");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("rejected the advice");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("Standing Plan continued");
 	const acceptedStateHash = await authorityStateHash(page);
 	expect(acceptedStateHash).toMatch(/^[0-9a-f]{64}$/u);
 	const before = await authorityFingerprint(page);
@@ -310,18 +415,15 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		}),
 	).toBeVisible();
 	await expect(evidence.getByText("Accepted world record")).toBeVisible();
-	await expect(evidence.getByText("contributing condition")).toBeVisible();
+	await expect(evidence.getByText("temporal predecessor")).toBeVisible();
 	await expect(
 		evidence.getByText("civilization.scheduler.counsel-boundary.v1"),
 	).toBeVisible();
 	await expect(
-		evidence.getByRole("heading", { name: /Mara Vale spoke about/iu }),
-	).toBeVisible();
-	await expect(
-		evidence.getByText(/does not prove the allegation’s claim/iu),
+		evidence.getByText("This accepted beat contains no allegation."),
 	).toBeVisible();
 	await evidence.getByText("Accepted event IDs and provenance").click();
-	await expect(evidence.locator("code")).toHaveCount(3);
+	await expect(evidence.locator("code")).toHaveCount(2);
 	for (const eventId of await evidence.locator("code").allTextContents())
 		expect(eventId).toMatch(/^event:/u);
 	await expect(page.locator("canvas")).toHaveCount(0);
@@ -343,7 +445,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(evidence).toBeVisible();
 	await expect(
-		evidence.getByText(/does not prove the allegation’s claim/iu),
+		evidence.getByText("This accepted beat contains no allegation."),
 	).toBeVisible();
 	expect(await authorityFingerprint(page)).toBe(before);
 	await expect

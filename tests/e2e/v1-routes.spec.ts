@@ -53,14 +53,13 @@ for (const route of ["research", "developer"] as const) {
 	});
 }
 
-test("Founder Alpha remains available only at the explicit legacy route", async ({
-	page,
-}) => {
+test("the removed legacy production route is unavailable", async ({ page }) => {
 	await page.goto("/legacy");
 	await expect(
-		page.getByRole("heading", { name: /follow one life/iu }),
-	).toBeVisible({
-		timeout: 20_000,
-	});
+		page.getByRole("heading", {
+			name: "This route is outside the canonical world.",
+		}),
+	).toBeVisible();
 	await expect(page).toHaveURL(/\/legacy$/u);
+	await expect(page.locator("main.riverhold-app")).toHaveCount(0);
 });

@@ -23,6 +23,7 @@ import {
 	payloadFingerprint,
 	seedPrng,
 	stateHash,
+	type GeneratedWorldState,
 	type WorldCommand,
 	type WorldCommandPayload,
 } from "@eonfolk/protocol";
@@ -48,6 +49,7 @@ interface GeneratedSponsorInput {
 	readonly indexedDbFactory?: IDBFactory;
 	readonly step: "establish" | "abstain" | "counsel" | "resolve";
 	readonly intent?: "verify-reserve" | "accuse-publicly";
+	readonly expectedAuthorityStateHash?: string;
 }
 
 function sponsorFail(code: string): never {
@@ -61,11 +63,215 @@ export interface GeneratedSponsorshipResult {
 	readonly phase: "sponsored" | "abstained" | "counseled" | "resolved";
 	readonly activeIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly shareArtifact: string | null;
+	readonly counselContext: GeneratedCounselContext;
+	readonly nextAction: GeneratedBranchNextAction | null;
 	readonly chronicleBeats: readonly {
 		readonly text: string;
 		readonly relation: string;
 		readonly evidenceEventIds: readonly string[];
+		readonly context: GeneratedChronicleEventContext | null;
 	}[];
+}
+
+export interface GeneratedCounselContext {
+	readonly authorityStateHash: string;
+	readonly citizenName: string;
+	readonly fact: string;
+	readonly belief: string;
+	readonly allegation: string;
+	readonly values: readonly string[];
+	readonly relationship: string;
+	readonly standingPlan: string;
+	readonly uncertainty: string;
+	readonly verifyStake: string;
+	readonly accuseStake: string;
+	readonly abstainStake: string;
+}
+
+export interface GeneratedBranchNextAction {
+	readonly id: "investigate-uncertainty" | "repair-relationship" | "observe";
+	readonly label: string;
+	readonly description: string;
+	readonly focus:
+		| { readonly kind: "citizen"; readonly citizenId: string }
+		| { readonly kind: "location"; readonly locationId: string }
+		| { readonly kind: "object"; readonly objectId: string };
+}
+
+export interface GeneratedChronicleEventContext {
+	readonly eventId: string;
+	readonly title: string;
+	readonly citizenId: string;
+	readonly citizenName: string;
+	readonly locationId: string | null;
+	readonly locationName: string | null;
+	readonly objectId: string | null;
+	readonly objectName: string | null;
+}
+
+type DurableEvent = Awaited<
+	ReturnType<BrowserVersionedPersistence["getEventRange"]>
+>[number];
+
+function readable(value: string): string {
+	return value.replaceAll(/[-_:]+/gu, " ");
+}
+
+function namedSite(world: GeneratedWorldState, siteId: string | null) {
+	return siteId === null
+		? null
+		: (world.sites[siteId]?.value.name ?? readable(siteId));
+}
+
+function durableEventForEvidence(
+	events: readonly DurableEvent[],
+	eventId: string,
+): DurableEvent | undefined {
+	return events.find((candidate) => {
+		if (candidate.eventId === eventId) return true;
+		if (candidate.eventType !== "CivilizationSponsorCommandCommitted")
+			return false;
+		const protocolEvent = (
+			candidate.payload as {
+				readonly protocolEvent?: { readonly eventId?: unknown };
+			}
+		).protocolEvent;
+		return protocolEvent?.eventId === eventId;
+	});
+}
+
+function chronicleEventContext(input: {
+	readonly eventId: string;
+	readonly event: DurableEvent;
+	readonly civilization: CivilizationState;
+	readonly world: GeneratedWorldState;
+}): GeneratedChronicleEventContext | null {
+	const payload = input.event.payload as {
+		readonly protocolEvent?: CivilizationSponsorEventEnvelope;
+		readonly fact?: CivilizationCounselBoundaryFact;
+	};
+	const sponsorPayload = payload.protocolEvent?.eventPayload;
+	const fact = payload.fact;
+	const citizenId = sponsorPayload?.citizenId ?? fact?.citizenId;
+	if (citizenId === undefined) return null;
+	const citizen = input.civilization.citizens[citizenId];
+	if (citizen === undefined) return null;
+	let title: string;
+	if (sponsorPayload?.kind === "SponsorshipEstablished")
+		title = `${citizen.name} accepted a bounded witness covenant`;
+	else if (sponsorPayload?.kind === "PatronAbstained")
+		title = `No counsel was offered to ${citizen.name}`;
+	else if (sponsorPayload?.kind === "CounselIssued")
+		title = `Counsel was offered to ${citizen.name}`;
+	else if (sponsorPayload?.kind === "CounselInterpreted")
+		title = `${citizen.name} chose how to respond`;
+	else title = `${citizen.name} reached the next daily boundary`;
+
+	let locationId: string | null = citizen.siteId;
+	let objectId: string | null = null;
+	let objectName: string | null = null;
+	if (fact?.effect.kind === "reserve-inspection") {
+		const stock =
+			input.civilization.stocks[
+				fact.effect.stockObservations[0]?.stockId ?? ""
+			];
+		const storage =
+			stock === undefined
+				? undefined
+				: input.civilization.storages[stock.storageId];
+		locationId = storage?.siteId ?? locationId;
+		const building = Object.values(input.world.buildings)
+			.map(({ value }) => value)
+			.find(({ siteId }) => siteId === locationId);
+		const project = Object.values(input.civilization.projects).find(
+			(candidate) => candidate.siteId === locationId,
+		);
+		objectId = building?.buildingId ?? project?.projectId ?? null;
+		objectName =
+			building?.buildingKind ??
+			project?.name ??
+			readable(stock?.stockId ?? "reserve");
+	} else if (fact?.effect.kind === "public-allegation") {
+		const target = input.civilization.citizens[fact.effect.targetCitizenId];
+		objectName = `${citizen.name} and ${target?.name ?? readable(fact.effect.targetCitizenId)} relationship`;
+	}
+	return Object.freeze({
+		eventId: input.eventId,
+		title,
+		citizenId,
+		citizenName: citizen.name,
+		locationId,
+		locationName: namedSite(input.world, locationId),
+		objectId,
+		objectName,
+	});
+}
+
+function counselContext(
+	civilization: CivilizationState,
+	citizenId: string,
+	authorityStateHash: string,
+): GeneratedCounselContext {
+	const citizen = civilization.citizens[citizenId];
+	const mind = civilization.minds[citizenId]?.snapshot;
+	if (citizen === undefined || mind === undefined)
+		sponsorFail("NO_COUNSEL_CONTEXT");
+	const toma = Object.values(civilization.citizens).find(
+		(candidate) => candidate.name === "Toma Reed",
+	);
+	const maraToma = Object.values(civilization.relationships).find(
+		(relationship) =>
+			toma !== undefined &&
+			((relationship.fromCitizenId === citizenId &&
+				relationship.toCitizenId === toma.citizenId) ||
+				(relationship.toCitizenId === citizenId &&
+					relationship.fromCitizenId === toma.citizenId)),
+	);
+	const evidence = mind.records.filter(
+		(record) => record.kind !== "message-claim",
+	);
+	const allegation = mind.records.find(
+		(record) => record.kind === "message-claim",
+	);
+	const planStep = mind.standingPlan.steps.find(
+		(step) => step.stepId === mind.standingPlan.currentStepId,
+	);
+	const settlementStocks = Object.values(civilization.stocks).filter(
+		(stock) =>
+			stock.owner.kind === "settlement" &&
+			stock.owner.settlementId === citizen.settlementId,
+	);
+	const recordedUnits = settlementStocks.reduce(
+		(total, stock) => total + stock.quantity,
+		0,
+	);
+	return Object.freeze({
+		authorityStateHash,
+		citizenName: citizen.name,
+		fact: `Reality records ${String(recordedUnits)} resource units across ${String(settlementStocks.length)} settlement-owned stocks; it does not record theft.`,
+		belief:
+			evidence[0]?.proposition ??
+			`${citizen.name} has no recorded reserve-mismatch observation or belief in the current authoritative Mind.`,
+		allegation:
+			allegation?.proposition ??
+			`No allegation against ${toma?.name ?? "Toma"} is recorded at this boundary.`,
+		values: mind.values.map(({ valueId }) => readable(valueId)),
+		relationship:
+			maraToma === undefined
+				? `Current Reality records no direct ${citizen.name}–${toma?.name ?? "Toma"} relationship.`
+				: `${citizen.name} and ${toma?.name ?? "Toma"}: trust ${String(maraToma.trustBasisPoints)} / 10,000; strain ${String(maraToma.strainBasisPoints)} / 10,000.`,
+		standingPlan: `${readable(mind.standingPlan.goalType)} — ${readable(planStep?.kind ?? mind.standingPlan.currentStepId)} (${mind.standingPlan.status}).`,
+		uncertainty:
+			evidence.length === 0
+				? "The current record does not establish a ledger mismatch, a sealed-reserve motive, or wrongdoing."
+				: "The recorded evidence does not establish another citizen's motive or wrongdoing.",
+		verifyStake:
+			"A private inspection can add sourced reserve evidence, but it delays a public conclusion.",
+		accuseStake:
+			"A public allegation can prompt scrutiny, but it can strain the relationship and remains an allegation until verified.",
+		abstainStake:
+			"No counsel enters Mara's decision. Her active Standing Plan continues without sponsor causal credit.",
+	});
 }
 
 export function generatedSponsorChronicleRange(input: {
@@ -98,6 +304,25 @@ export function generatedSponsorChronicleBaseSnapshotId(
 	const baseSnapshotId = match?.[1];
 	if (baseSnapshotId === undefined) sponsorFail("INVALID_CHRONICLE_SNAPSHOT");
 	return baseSnapshotId;
+}
+
+export function assertGeneratedSponsorBoundaryAdmission(input: {
+	readonly step: GeneratedSponsorInput["step"];
+	readonly expectedAuthorityStateHash?: string;
+	readonly actualAuthorityStateHash: string;
+	readonly hasPriorAbstention: boolean;
+}): void {
+	if (
+		input.step !== "establish" &&
+		input.step !== "resolve" &&
+		input.expectedAuthorityStateHash !== input.actualAuthorityStateHash
+	)
+		sponsorFail("CURRENT_CONTEXT_MISMATCH");
+	if (
+		input.hasPriorAbstention &&
+		(input.step === "counsel" || input.step === "resolve")
+	)
+		sponsorFail("BOUNDARY_CLOSED_AFTER_ABSTENTION");
 }
 
 /**
@@ -141,6 +366,17 @@ async function sponsorGeneratedCitizenInValidatedSession(
 	if (initialReplay.state.civilization === null) sponsorFail("NO_CIVILIZATION");
 	const initialCivilization = initialReplay.state
 		.civilization as unknown as CivilizationState;
+	const priorAbstention = Object.values(
+		initialCivilization.patronAbstentions,
+	).find((abstention) => abstention.citizenId === input.citizenId);
+	assertGeneratedSponsorBoundaryAdmission({
+		step: input.step,
+		...(input.expectedAuthorityStateHash === undefined
+			? {}
+			: { expectedAuthorityStateHash: input.expectedAuthorityStateHash }),
+		actualAuthorityStateHash: initialReplay.stateHash,
+		hasPriorAbstention: priorAbstention !== undefined,
+	});
 	const unresolved = Object.values(initialCivilization.counsels)
 		.filter(
 			(counsel) =>
@@ -440,6 +676,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 		)
 			sponsorFail("REPLAY_STATE_MISMATCH");
 		const durableSponsorEvents: CivilizationSponsorEventEnvelope[] = [];
+		const durableOuterEvents: DurableEvent[] = [];
 		const durableEventRevisions: Record<string, number> = {};
 		const durableBoundaries: Array<{
 			readonly eventId: string;
@@ -463,6 +700,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			...scope,
 			...chronicleRange,
 		})) {
+			durableOuterEvents.push(outer);
 			if (outer.eventType === "CivilizationCounselBoundaryCommitted") {
 				const payload = outer.payload as {
 					readonly fact?: CivilizationCounselBoundaryFact;
@@ -546,13 +784,129 @@ async function sponsorGeneratedCitizenInValidatedSession(
 						right.sourceEventId.localeCompare(left.sourceEventId),
 				)[0];
 		const resolution = selectedCounsel?.resolution;
+		const hasDurableAbstention = Object.values(
+			finalCivilization.patronAbstentions,
+		).some((abstention) => abstention.citizenId === input.citizenId);
 		const phase = activeUnresolved
 			? ("counseled" as const)
 			: resolution != null
 				? ("resolved" as const)
-				: input.step === "abstain"
+				: hasDurableAbstention
 					? ("abstained" as const)
 					: ("sponsored" as const);
+		const context = counselContext(
+			finalCivilization,
+			input.citizenId,
+			finalReplay.stateHash,
+		);
+		const eventAuthorityStates = new Map<
+			string,
+			Readonly<{
+				event: DurableEvent;
+				civilization: CivilizationState;
+				world: GeneratedWorldState;
+			}>
+		>();
+		await Promise.all(
+			durableOuterEvents.map(async (event) => {
+				const replay = await replayCivilizationHistory(port, {
+					...scope,
+					snapshotId: chronicleBaseSnapshot.snapshotId,
+					toSequenceExclusive: event.sequence + 1,
+				});
+				if (replay.state.civilization === null)
+					sponsorFail("EVENT_CONTEXT_CIVILIZATION");
+				const authority = Object.freeze({
+					event,
+					civilization: replay.state
+						.civilization as unknown as CivilizationState,
+					world: replay.state.world as unknown as GeneratedWorldState,
+				});
+				eventAuthorityStates.set(event.eventId, authority);
+				if (event.eventType === "CivilizationSponsorCommandCommitted") {
+					const protocolEvent = (
+						event.payload as {
+							readonly protocolEvent?: CivilizationSponsorEventEnvelope;
+						}
+					).protocolEvent;
+					if (protocolEvent !== undefined)
+						eventAuthorityStates.set(protocolEvent.eventId, authority);
+				}
+			}),
+		);
+		const chronicleBeats = chronicle.beats.map((beat) => ({
+			...beat,
+			context:
+				beat.evidenceEventIds
+					.map((eventId) => {
+						const authority = eventAuthorityStates.get(eventId);
+						return authority === undefined
+							? null
+							: chronicleEventContext({ eventId, ...authority });
+					})
+					.find((candidate) => candidate !== null) ?? null,
+		}));
+		const latestBoundary = [...durableBoundaries].sort(
+			(left, right) => right.createdRevision - left.createdRevision,
+		)[0]?.fact;
+		const focalCitizen = finalCivilization.citizens[input.citizenId]!;
+		const targetCitizenId =
+			latestBoundary?.effect.kind === "public-allegation"
+				? latestBoundary.effect.targetCitizenId
+				: null;
+		const eventContext = [...chronicleBeats]
+			.reverse()
+			.find(({ context: beatContext }) => beatContext !== null)?.context;
+		const nextAction: GeneratedBranchNextAction | null =
+			phase === "abstained"
+				? {
+						id: "observe",
+						label: "Observe Mara's independent plan",
+						description:
+							"Return to Mara without adding counsel to the closed boundary.",
+						focus: { kind: "citizen", citizenId: input.citizenId },
+					}
+				: phase !== "resolved"
+					? null
+					: latestBoundary?.effect.kind === "public-allegation" &&
+							targetCitizenId !== null
+						? {
+								id: "repair-relationship",
+								label: `Return to ${finalCivilization.citizens[targetCitizenId]?.name ?? readable(targetCitizenId)} after the allegation`,
+								description:
+									"The public allegation strained this recorded relationship; the opposite first-boundary counsel is no longer available.",
+								focus: { kind: "citizen", citizenId: targetCitizenId },
+							}
+						: latestBoundary?.effect.kind === "reserve-inspection" &&
+								eventContext?.objectId !== null &&
+								eventContext?.objectId !== undefined
+							? {
+									id: "investigate-uncertainty",
+									label: "Inspect the verified reserve context",
+									description:
+										"The reserve count is recorded; motive and wrongdoing remain unproven.",
+									focus: {
+										kind: "object",
+										objectId: eventContext.objectId,
+									},
+								}
+							: {
+									id: "observe",
+									label: "Observe the consequence in Mara's context",
+									description:
+										"No second first-boundary counsel is legal after this history.",
+									focus:
+										eventContext?.locationId === null ||
+										eventContext?.locationId === undefined
+											? {
+													kind: "citizen",
+													citizenId: focalCitizen.citizenId,
+												}
+											: {
+													kind: "location",
+													locationId: eventContext.locationId,
+												},
+								};
 		return {
 			idempotent: allIdempotent,
 			chronicleTrace:
@@ -563,8 +917,68 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			authorityStateHash: finalReplay.stateHash,
 			phase,
 			activeIntent: activeUnresolved?.intent ?? selectedCounsel?.intent ?? null,
-			shareArtifact: phase === "resolved" ? chronicle.storyCard : null,
-			chronicleBeats: chronicle.beats,
+			shareArtifact:
+				phase === "resolved" || phase === "abstained"
+					? chronicle.storyCard
+					: null,
+			counselContext: context,
+			nextAction,
+			chronicleBeats,
 		};
+	}
+}
+
+/** Resolves an event-only URL against accepted local authority without writes. */
+export async function loadGeneratedChronicleEventFocus(input: {
+	readonly eventId: string;
+	readonly regionId: string;
+	readonly databaseName: string;
+	readonly indexedDbFactory?: IDBFactory;
+}): Promise<GeneratedChronicleEventContext | null> {
+	const port = await BrowserVersionedPersistence.open({
+		factory: input.indexedDbFactory,
+		databaseName: input.databaseName,
+	});
+	const scope = {
+		runId: GENERATED_CIVILIZATION_RUN_ID,
+		regionId: input.regionId,
+	};
+	try {
+		return await port.session(scope, async () => {
+			const [head, snapshot] = await Promise.all([
+				port.loadHead(scope),
+				port.loadLatestSnapshot(scope),
+			]);
+			const baseId = generatedSponsorChronicleBaseSnapshotId(
+				snapshot.snapshotId,
+			);
+			const base =
+				baseId === snapshot.snapshotId
+					? snapshot
+					: await port.loadSnapshot(scope, baseId);
+			const events = await port.getEventRange({
+				...scope,
+				...generatedSponsorChronicleRange({
+					snapshotBaseSequence: base.baseSequence,
+					durableLastSequence: head.lastSequence,
+				}),
+			});
+			const event = durableEventForEvidence(events, input.eventId);
+			if (event === undefined) return null;
+			const replay = await replayCivilizationHistory(port, {
+				...scope,
+				snapshotId: base.snapshotId,
+				toSequenceExclusive: event.sequence + 1,
+			});
+			if (replay.state.civilization === null) return null;
+			return chronicleEventContext({
+				eventId: input.eventId,
+				event,
+				civilization: replay.state.civilization as unknown as CivilizationState,
+				world: replay.state.world as unknown as GeneratedWorldState,
+			});
+		});
+	} finally {
+		port.close();
 	}
 }

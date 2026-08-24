@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
+	assertGeneratedSponsorBoundaryAdmission,
 	generatedSponsorChronicleBaseSnapshotId,
 	generatedSponsorChronicleRange,
 } from "../../../apps/web/src/generated-sponsor-runtime.js";
@@ -61,6 +62,33 @@ beforeAll(async () => {
 });
 
 describe("generated sponsor Chronicle event range", () => {
+	it("admits first-boundary actions only against current context and never after abstention", () => {
+		expect(() =>
+			assertGeneratedSponsorBoundaryAdmission({
+				step: "counsel",
+				expectedAuthorityStateHash: "head-a",
+				actualAuthorityStateHash: "head-b",
+				hasPriorAbstention: false,
+			}),
+		).toThrow("SP:CURRENT_CONTEXT_MISMATCH");
+		expect(() =>
+			assertGeneratedSponsorBoundaryAdmission({
+				step: "counsel",
+				expectedAuthorityStateHash: "head-b",
+				actualAuthorityStateHash: "head-b",
+				hasPriorAbstention: true,
+			}),
+		).toThrow("SP:BOUNDARY_CLOSED_AFTER_ABSTENTION");
+		expect(() =>
+			assertGeneratedSponsorBoundaryAdmission({
+				step: "abstain",
+				expectedAuthorityStateHash: "head-b",
+				actualAuthorityStateHash: "head-b",
+				hasPriorAbstention: false,
+			}),
+		).not.toThrow();
+	});
+
 	it("anchors an authority-extension snapshot to its retained immutable base", () => {
 		expect(
 			generatedSponsorChronicleBaseSnapshotId(

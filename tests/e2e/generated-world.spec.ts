@@ -2020,9 +2020,6 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 			timeout: 30_000,
 		})
 		.not.toBe(initialHash);
-	await expect(page.getByRole("status")).toContainText(
-		"entered a sponsorship covenant with you",
-	);
 	await expect
 		.poll(() =>
 			page
@@ -2032,8 +2029,18 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.toBe(true);
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await expect(
-		page.getByRole("heading", { name: "Choose a consequential counsel" }),
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible();
+	for (const term of [
+		"Reality fact",
+		"Mara's belief",
+		"Allegation status",
+		"Values",
+		"Mara and Toma",
+		"Active Standing Plan",
+		"Still uncertain",
+	])
+		await expect(page.locator("dt").filter({ hasText: term })).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toBeDisabled();
@@ -2043,32 +2050,16 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(
 		page.getByText("There is no account, cloud backup, or recovery copy."),
 	).toBeVisible();
-	await expect(page.getByRole("button", { name: "Abstain" })).toBeVisible();
-	const beforeAbstention = await inspectGeneratedCheckpoint(page);
-	await page.getByRole("button", { name: "Abstain" }).click();
-	await expect
-		.poll(async () => (await inspectGeneratedCheckpoint(page)).eventCount, {
-			timeout: sponsorTransitionTimeout,
-		})
-		.toBe(beforeAbstention.eventCount + 1);
-	const afterAbstention = await inspectGeneratedCheckpoint(page);
-	await expect(
-		page.getByText(/Canonical Chronicle: the patron withheld counsel/u),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	expect(afterAbstention.headHash).not.toBe(beforeAbstention.headHash);
-	expect(afterAbstention.eventCount).toBe(beforeAbstention.eventCount + 1);
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page
 		.getByRole("button", {
 			name: "Verify the evidence first — delays a conclusion",
 		})
 		.click();
 	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
+		page.getByRole("button", {
+			name: "Leave Riverhold at this checkpoint",
+		}),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(page.getByRole("status")).toContainText(
-		"received counsel to verify reserve",
-	);
 	await page.reload();
 	const boundaryCanvas = page.getByTestId("generated-world-canvas");
 	await expect(boundaryCanvas).toHaveAttribute("data-ready", "true", {
@@ -2076,108 +2067,64 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	});
 	await selectCanonicalMara(page);
 	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
+		page.getByRole("button", {
+			name: "Leave Riverhold at this checkpoint",
+		}),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	const beforeVerifiedBoundaryHash = await page
+	await page
+		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.click();
+	await page.getByRole("button", { name: "Return to Riverhold" }).click();
+	const beforeBoundaryHash = await page
 		.locator("main.v1-world")
 		.getAttribute("data-state-hash");
 	await page
-		.getByRole("button", { name: "Return at the next decision boundary" })
+		.getByRole("button", {
+			name: "Advance one day to Mara's decision boundary",
+		})
 		.click();
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: sponsorTransitionTimeout,
 		})
-		.not.toBe(beforeVerifiedBoundaryHash);
+		.not.toBe(beforeBoundaryHash);
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(page.getByRole("status")).toContainText(
-		"the counsel and chose to",
-	);
-	await expect(page.getByRole("status")).toContainText(
-		"later inspection recorded",
-	);
-	await expect(page.getByRole("status")).toContainText(
-		"food in the settlement reserve: 44 units",
-	);
-	await expect(page.getByRole("status")).not.toContainText("stock-origin-");
-	await expect(page.getByRole("status")).not.toContainText("stock-source-");
-	await expect(page.getByRole("status")).not.toContainText("stock-work-");
 	await expect(
-		page.getByRole("heading", { name: "Share this factual trace" }),
+		page.getByRole("heading", { name: "What happened" }),
 	).toBeVisible();
-	await page.getByText("Inspect Chronicle evidence").click();
+	await expect(page.getByRole("status")).toHaveCount(0);
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("inspection recorded");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("Mara Vale");
+	await page.getByText("Exact event evidence").click();
 	await expect(
 		page.locator("section[aria-label='Shareable factual replay'] code").first(),
 	).toBeVisible();
 	await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 	await page.getByRole("button", { name: "Copy factual trace" }).click();
 	await expect(page.getByText("Factual trace copied.")).toBeVisible();
-	await page
-		.getByRole("button", { name: "Consider a different counsel" })
-		.click();
-	await page
-		.getByRole("button", { name: "Confront them publicly — risks trust" })
-		.click();
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(page.locator("pre[role='status']")).toContainText(
-		"received counsel to accuse publicly",
-	);
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	await page.reload();
-	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-		{ timeout: 20_000 },
-	);
-	await selectCanonicalMara(page);
-	await expect(
-		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	const beforeAccusationBoundaryHash = await page
-		.locator("main.v1-world")
-		.getAttribute("data-state-hash");
-	await page
-		.getByRole("button", { name: "Return at the next decision boundary" })
-		.click();
-	const alternateResident = page.locator(
-		'ul.v1-presence-roster button[data-citizen-id="citizen-02"]',
-	);
-	await alternateResident.click();
-	await expect(alternateResident).toHaveAttribute("aria-pressed", "true");
-	await expect
-		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
-			timeout: sponsorTransitionTimeout,
-		})
-		.not.toBe(beforeAccusationBoundaryHash);
-	await expect(
-		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await expect(
-		page.getByRole("heading", { name: "Share this factual trace" }),
-	).toBeVisible();
-	await page.getByText("Inspect Chronicle evidence").click();
 	const chronicleCitizenHref = await page
-		.getByRole("link", { name: "Citizen" })
+		.getByRole("link", { name: "Mara Vale" })
 		.first()
 		.getAttribute("href");
 	expect(parseWorldFocusHref(chronicleCitizenHref ?? "")).toEqual({
 		kind: "citizen",
 		citizenId: "citizen-01",
 	});
-	await expect(page.getByRole("status")).toContainText("public allegation");
-	await expect(page.getByRole("status")).toContainText("recorded trust");
+	await expect(
+		page.getByText(/reserve count is recorded/iu),
+	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: /Confront them publicly/iu }),
+	).toHaveCount(0);
 	const committed = await inspectGeneratedCheckpoint(page);
-	expect(committed).toMatchObject({ eventCount: 13, receiptCount: 13 });
-	expect(committed.simulationTime).toBe(367 * 86_400);
+	expect(committed).toMatchObject({ eventCount: 9, receiptCount: 9 });
+	expect(committed.simulationTime).toBe(366 * 86_400);
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: 30_000,
@@ -2216,19 +2163,18 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	).toBe(committed.stateHash);
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-simulation-time"),
-	).toBe(String(367 * 86_400));
+	).toBe(String(366 * 86_400));
 	await selectCanonicalMara(page);
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
-		"speaking at Workshop",
+		"inspecting the work at Workshop",
 	);
 	await page.getByRole("button", { name: "Review Chronicle" }).click();
 	await expect(
-		page.getByRole("button", { name: "Review Chronicle" }),
+		page.getByRole("heading", { name: "What happened" }),
 	).toBeVisible({ timeout: 20_000 });
-	await expect(page.getByRole("status")).toContainText(
-		"the counsel and chose to",
-	);
-	await expect(page.getByRole("status")).toContainText("A public allegation");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("inspection recorded");
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-state-hash"),
 	).toBe(committed.stateHash);

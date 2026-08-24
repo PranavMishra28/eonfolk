@@ -593,7 +593,13 @@ describe("canonical civilization sponsor reducer", () => {
 			},
 			citizenNames: { [ACTOR]: "Iri" },
 		});
-		expect(chronicle.storyCard).toContain("withheld counsel for Iri");
+		expect(chronicle.storyCard).toContain(
+			"NO ADVICE / MARA CHOSE INDEPENDENTLY",
+		);
+		expect(chronicle.storyCard).toContain(
+			"boundary closed without sponsor input",
+		);
+		expect(chronicle.storyCard).not.toMatch(/you advised|your counsel/iu);
 	});
 
 	it("persists establish -> issue -> resolve and replays without cognition", async () => {

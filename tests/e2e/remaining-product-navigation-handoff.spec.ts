@@ -196,12 +196,18 @@ for (const viewport of [
 			.click();
 		await expect(
 			page.getByRole("button", {
-				name: "Return at the next decision boundary",
+				name: "Leave Riverhold at this checkpoint",
 			}),
 		).toBeEnabled({ timeout: sponsorTransitionTimeout });
+		await page
+			.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+			.click();
+		await page.getByRole("button", { name: "Return to Riverhold" }).click();
 		const beforeBoundaryHash = await world.getAttribute("data-state-hash");
 		await page
-			.getByRole("button", { name: "Return at the next decision boundary" })
+			.getByRole("button", {
+				name: "Advance one day to Mara's decision boundary",
+			})
 			.click();
 		await expect
 			.poll(() => world.getAttribute("data-state-hash"), {
@@ -209,20 +215,20 @@ for (const viewport of [
 			})
 			.not.toBe(beforeBoundaryHash);
 		await expect(
-			page.getByRole("heading", { name: "Share this factual trace" }),
+			page.getByRole("heading", { name: "What happened" }),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await expect(
 			page.getByRole("button", { name: "Review Chronicle" }),
 		).toBeEnabled({ timeout: sponsorTransitionTimeout });
-		await page.getByText("Inspect Chronicle evidence").click();
+		await page.getByText("Exact event evidence").click();
 
 		const stateHash = await world.getAttribute("data-state-hash");
 		const navigationCount = await page.evaluate(
 			() => performance.getEntriesByType("navigation").length,
 		);
-		const citizenLink = page.getByRole("link", { name: "Citizen" }).first();
+		const citizenLink = page.getByRole("link", { name: "Mara Vale" }).first();
 		const objectHref = await page
-			.getByRole("link", { name: "Object" })
+			.locator('a[href*="focus-kind=object"]')
 			.first()
 			.getAttribute("href");
 		expect(parseWorldFocusHref(objectHref ?? "")?.kind).toBe("object");
@@ -260,9 +266,9 @@ for (const viewport of [
 			"data-focused-event-id",
 			eventFocus.eventId,
 		);
-		await expect(page.locator("p.renderer-note[role='status']")).toContainText(
-			eventFocus.eventId,
-		);
+		await expect(
+			page.getByRole("region", { name: "Chronicle event focus" }),
+		).toContainText("Mara Vale");
 		await expect(
 			page.locator(
 				`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,
@@ -274,9 +280,40 @@ for (const viewport of [
 				() => performance.getEntriesByType("navigation").length,
 			),
 		).toBe(navigationCount);
+		await page.reload({ waitUntil: "domcontentloaded" });
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 30_000 },
+		);
+		await expect(world).toHaveAttribute(
+			"data-focused-event-id",
+			eventFocus.eventId,
+		);
+		await expect(
+			page.getByRole("region", { name: "Chronicle event focus" }),
+		).toContainText("Mara Vale");
+		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "");
+		await page.getByText("Exact event evidence").first().click();
+		await expect(
+			page
+				.getByRole("region", { name: "Chronicle event focus" })
+				.locator("code"),
+		).toHaveText(eventFocus.eventId);
 
-		const locationLink = page
-			.getByRole("link", { name: "Current site" })
+		await page.goBack({ waitUntil: "domcontentloaded" });
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 30_000 },
+		);
+		await page.getByRole("button", { name: "Review Chronicle" }).click();
+		const replay = page.getByRole("region", {
+			name: "Shareable factual replay",
+		});
+		await replay.getByText("Exact event evidence").click();
+		const locationLink = replay
+			.locator('a[href*="focus-kind=location"]')
 			.first();
 		const locationFocus = parseWorldFocusHref(
 			(await locationLink.getAttribute("href")) ?? "",

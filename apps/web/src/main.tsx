@@ -20,11 +20,6 @@ const GenesisEntryApp = lazy(async () => {
 	return { default: module.GenesisEntryApp };
 });
 
-const RiverholdApp = lazy(async () => {
-	const module = await import("./RiverholdApp");
-	return { default: module.RiverholdApp };
-});
-
 const InformationSurface = lazy(async () => {
 	const module = await import("./InformationSurface");
 	return { default: module.InformationSurface };
@@ -89,17 +84,7 @@ if (genesisRoute === "world") {
 
 reactRoot.render(
 	<RuntimeBoundary>
-		{normalizedPath === "/legacy" ? (
-			<Suspense
-				fallback={
-					<main className="loading-state" aria-busy="true">
-						<p>Opening the local world…</p>
-					</main>
-				}
-			>
-				<RiverholdApp />
-			</Suspense>
-		) : genesisRoute !== null ? (
+		{genesisRoute !== null ? (
 			<Suspense
 				fallback={
 					genesisRoute === "world" ? (

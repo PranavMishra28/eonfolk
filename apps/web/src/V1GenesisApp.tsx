@@ -10,7 +10,6 @@ import {
 	useState,
 } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
-import { FeedbackPanel } from "./components/FeedbackPanel";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
@@ -29,6 +28,11 @@ import {
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import type { GeneratedWorldExperience } from "./generated-world-runtime";
+import type {
+	GeneratedBranchNextAction,
+	GeneratedChronicleEventContext,
+	GeneratedCounselContext,
+} from "./generated-sponsor-runtime";
 import {
 	buildWorldFocusHref,
 	parseWorldFocusHref,
@@ -55,6 +59,11 @@ function loadGeneratedWorldCanvasModule() {
 const GeneratedWorldCanvas = lazy(async () => {
 	const module = await loadGeneratedWorldCanvasModule();
 	return { default: module.GeneratedWorldCanvas };
+});
+
+const FeedbackPanel = lazy(async () => {
+	const module = await import("./components/FeedbackPanel");
+	return { default: module.FeedbackPanel };
 });
 
 type WorldView = "embodied" | "semantic" | "overview";
@@ -517,8 +526,19 @@ function GeneratedContextPanel({
 			readonly text: string;
 			readonly relation: string;
 			readonly evidenceEventIds: readonly string[];
+			readonly context: GeneratedChronicleEventContext | null;
 		}[]
 	>([]);
+	const [counselContext, setCounselContext] =
+		useState<GeneratedCounselContext | null>(null);
+	const [nextAction, setNextAction] =
+		useState<GeneratedBranchNextAction | null>(null);
+	const [expectedAuthorityStateHash, setExpectedAuthorityStateHash] = useState<
+		string | null
+	>(null);
+	const [journeyStage, setJourneyStage] = useState<
+		"present" | "left" | "returned" | "advanced"
+	>("present");
 	const [activeIntent, setActiveIntent] = useState<
 		"verify-reserve" | "accuse-publicly"
 	>("verify-reserve");
@@ -567,14 +587,6 @@ function GeneratedContextPanel({
 						name: selectedProject.name,
 						status: `State ${selectedProject.state} · ${Math.round(selectedProject.progressBasisPoints / 100)}% complete.`,
 					};
-	const contextualObjectId =
-		selectedActor === undefined
-			? undefined
-			: (model.projects.find(({ siteId }) => siteId === selectedActor.placeId)
-					?.projectId ??
-				projection.local.buildings.find(
-					({ siteId }) => siteId === selectedActor.placeId,
-				)?.buildingId);
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
 		const href = buildWorldFocusHref(focus);
@@ -585,6 +597,10 @@ function GeneratedContextPanel({
 		setChronicleTrace("");
 		setShareArtifact("");
 		setChronicleBeats([]);
+		setCounselContext(null);
+		setNextAction(null);
+		setExpectedAuthorityStateHash(null);
+		setJourneyStage("present");
 		setCopyStatus("");
 		setAuthorityRefreshing(false);
 	}, [selectedCitizenId]);
@@ -613,14 +629,27 @@ function GeneratedContextPanel({
 					databaseName: authorityDatabaseName,
 					step,
 					intent,
+					...(expectedAuthorityStateHash === null
+						? {}
+						: { expectedAuthorityStateHash }),
 				}),
 			)
 			.then(async (result) => {
 				setChronicleTrace(result.chronicleTrace);
 				setShareArtifact(result.shareArtifact ?? "");
 				setChronicleBeats(result.chronicleBeats);
+				setCounselContext(result.counselContext);
+				setNextAction(result.nextAction);
+				setExpectedAuthorityStateHash(result.authorityStateHash);
 				setSponsorStatus(result.phase);
 				setActiveIntent(result.activeIntent ?? intent);
+				if (result.phase === "resolved") setJourneyStage("advanced");
+				if (
+					step === "establish" &&
+					result.phase === "abstained" &&
+					journeyStage === "returned"
+				)
+					setJourneyStage("advanced");
 				if (!result.idempotent || step === "resolve") {
 					setAuthorityRefreshing(true);
 					await onAuthorityCommitted(result.authorityStateHash);
@@ -629,12 +658,15 @@ function GeneratedContextPanel({
 			})
 			.then(undefined, (reason: unknown) => {
 				setAuthorityRefreshing(false);
-				if (step !== "establish")
+				if (step !== "establish") {
+					setChronicleBeats([]);
+					setShareArtifact("");
 					setChronicleTrace(
 						reason instanceof Error
 							? `${reason.message}; prior state preserved.`
 							: "Action unavailable; prior state preserved.",
 					);
+				}
 				setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
 			});
 	};
@@ -775,14 +807,17 @@ function GeneratedContextPanel({
 									sponsorStatus === "counseling" ||
 									sponsorStatus === "returning" ||
 									sponsorStatus === "confirming" ||
-									sponsorStatus === "counseled"
+									sponsorStatus === "counseled" ||
+									journeyStage === "left" ||
+									journeyStage === "returned"
 								}
 								onClick={() =>
-									sponsorStatus === "resolved"
+									sponsorStatus === "resolved" || sponsorStatus === "abstained"
 										? commitSponsor("establish")
-										: sponsorStatus === "sponsored" ||
-												sponsorStatus === "abstained"
-											? setSponsorStatus("confirming")
+										: sponsorStatus === "sponsored"
+											? counselContext === null
+												? commitSponsor("establish")
+												: setSponsorStatus("confirming")
 											: commitSponsor("establish")
 								}
 							>
@@ -791,20 +826,15 @@ function GeneratedContextPanel({
 									: sponsorStatus === "counseling"
 										? "Considering…"
 										: sponsorStatus === "sponsored" ||
-												sponsorStatus === "abstained" ||
 												sponsorStatus === "confirming"
 											? "Consider an intervention"
-											: sponsorStatus === "resolved"
-												? "Review Chronicle"
-												: "Sponsor this person"}
+											: sponsorStatus === "abstained"
+												? "Review abstention Chronicle"
+												: sponsorStatus === "resolved"
+													? "Review Chronicle"
+													: "Sponsor this person"}
 							</button>
 						</div>
-						{sponsorStatus === "abstained" ? (
-							<p>
-								Canonical Chronicle: the patron withheld counsel at this
-								boundary; the citizen continued without intervention.
-							</p>
-						) : null}
 						{canSponsor ? null : (
 							<p>
 								This resident has no local counsel relationship at this
@@ -813,12 +843,29 @@ function GeneratedContextPanel({
 						)}
 						{sponsorStatus === "confirming" ? (
 							<section aria-label="Counsel stakes">
-								<h3>Choose a consequential counsel</h3>
+								<h3>Choose at Mara's first boundary</h3>
 								<p>
-									They may accept, reject, delay, or reinterpret either request.
-									Their existing values, visible evidence, and active plan
-									decide.
+									Mara may accept, reject, delay, or reinterpret advice. This
+									boundary closes after one choice.
 								</p>
+								{counselContext === null ? null : (
+									<dl>
+										<dt>Reality fact</dt>
+										<dd>{counselContext.fact}</dd>
+										<dt>Mara's belief</dt>
+										<dd>{counselContext.belief}</dd>
+										<dt>Allegation status</dt>
+										<dd>{counselContext.allegation}</dd>
+										<dt>Values</dt>
+										<dd>{counselContext.values.join(", ")}</dd>
+										<dt>Mara and Toma</dt>
+										<dd>{counselContext.relationship}</dd>
+										<dt>Active Standing Plan</dt>
+										<dd>{counselContext.standingPlan}</dd>
+										<dt>Still uncertain</dt>
+										<dd>{counselContext.uncertainty}</dd>
+									</dl>
+								)}
 								<button
 									type="button"
 									disabled={authorityRefreshing}
@@ -829,6 +876,9 @@ function GeneratedContextPanel({
 								>
 									Verify the evidence first — delays a conclusion
 								</button>
+								{counselContext === null ? null : (
+									<p>{counselContext.verifyStake}</p>
+								)}
 								<button
 									type="button"
 									disabled={authorityRefreshing}
@@ -839,6 +889,9 @@ function GeneratedContextPanel({
 								>
 									Confront them publicly — risks trust
 								</button>
+								{counselContext === null ? null : (
+									<p>{counselContext.accuseStake}</p>
+								)}
 								<button
 									type="button"
 									disabled={authorityRefreshing}
@@ -846,36 +899,99 @@ function GeneratedContextPanel({
 										commitSponsor("abstain");
 									}}
 								>
-									Abstain
+									Abstain — close this boundary without counsel
 								</button>
+								{counselContext === null ? null : (
+									<p>{counselContext.abstainStake}</p>
+								)}
 							</section>
 						) : null}
-						{sponsorStatus === "counseled" ? (
-							<section aria-label="Decision boundary">
-								<p>
-									The counsel is recorded. The citizen has not interpreted it
-									yet.
-								</p>
-								<button
-									type="button"
-									disabled={authorityRefreshing}
-									onClick={() => commitSponsor("resolve", activeIntent)}
-								>
-									Return at the next decision boundary
-								</button>
+						{sponsorStatus === "counseled" ||
+						(sponsorStatus === "abstained" && journeyStage !== "advanced") ? (
+							<section aria-label="Leave and return">
+								{journeyStage === "present" ? (
+									<>
+										<p>
+											{sponsorStatus === "counseled"
+												? "The advice is durable. Mara has not interpreted it yet."
+												: "No advice was given. This first boundary is durably closed and cannot accept counsel later."}
+										</p>
+										<button
+											type="button"
+											onClick={() => setJourneyStage("left")}
+										>
+											Leave Riverhold at this checkpoint
+										</button>
+									</>
+								) : journeyStage === "left" ? (
+									<>
+										<p>
+											Riverhold remains on this device. Nothing advances until
+											you choose to return.
+										</p>
+										<button
+											type="button"
+											onClick={() => setJourneyStage("returned")}
+										>
+											Return to Riverhold
+										</button>
+									</>
+								) : (
+									<>
+										<p>
+											Advance is explicit and bounded to this recorded branch.
+										</p>
+										<button
+											type="button"
+											disabled={authorityRefreshing}
+											onClick={() => {
+												if (sponsorStatus === "counseled")
+													commitSponsor("resolve", activeIntent);
+												else {
+													setJourneyStage("advanced");
+													if (shareArtifact === "") commitSponsor("establish");
+												}
+											}}
+										>
+											{sponsorStatus === "counseled"
+												? "Advance one day to Mara's decision boundary"
+												: "Continue to Mara's independent outcome"}
+										</button>
+									</>
+								)}
 							</section>
 						) : null}
 						{sponsorStatus === "failed" ? (
 							<p role="alert">Sponsorship was not committed.</p>
-						) : chronicleTrace !== "" ? (
-							<pre role="status">{chronicleTrace}</pre>
+						) : chronicleTrace !== "" && chronicleBeats.length === 0 ? (
+							<p role="status">{chronicleTrace}</p>
 						) : null}
-						{shareArtifact !== "" ? (
+						{shareArtifact !== "" &&
+						(sponsorStatus === "resolved" || journeyStage === "advanced") ? (
 							<section aria-label="Shareable factual replay">
-								<h3>Share this factual trace</h3>
-								<pre>{shareArtifact}</pre>
+								<h3>What happened</h3>
+								<ol aria-label="Chronicle beats">
+									{chronicleBeats.map((beat) => (
+										<li
+											key={`${beat.relation}:${beat.evidenceEventIds[0] ?? beat.text}`}
+										>
+											<p>{beat.text}</p>
+											{beat.context === null ? null : (
+												<p>
+													{beat.context.citizenName}
+													{beat.context.locationName === null
+														? ""
+														: ` · ${beat.context.locationName}`}
+													{beat.context.objectName === null
+														? ""
+														: ` · ${beat.context.objectName}`}
+												</p>
+											)}
+										</li>
+									))}
+								</ol>
 								<details>
-									<summary>Inspect Chronicle evidence</summary>
+									<summary>Exact event evidence</summary>
 									<ol>
 										{chronicleBeats.map((beat) => (
 											<li
@@ -886,35 +1002,49 @@ function GeneratedContextPanel({
 												<ul>
 													{beat.evidenceEventIds.map((eventId) => (
 														<li key={eventId}>
-															{worldLink({ kind: "event", eventId }, eventId)}
+															<code>{eventId}</code>{" "}
+															{worldLink(
+																{ kind: "event", eventId },
+																"Open event in world",
+															)}
 														</li>
 													))}
 												</ul>
 												{worldLink(
 													{
 														kind: "citizen",
-														citizenId: sponsorCitizenId,
+														citizenId:
+															beat.context?.citizenId ?? sponsorCitizenId,
 													},
-													"Citizen",
+													beat.context?.citizenName ?? "Citizen",
 												)}
-												{selectedActor === undefined
+												{beat.context?.locationId === null ||
+												beat.context?.locationId === undefined
 													? null
 													: worldLink(
 															{
 																kind: "location",
-																locationId: selectedActor.placeId,
+																locationId: beat.context.locationId,
 															},
-															"Current site",
+															beat.context.locationName ?? "Event location",
 														)}
-												{contextualObjectId === undefined
+												{beat.context?.objectId === null ||
+												beat.context?.objectId === undefined
 													? null
 													: worldLink(
-															{ kind: "object", objectId: contextualObjectId },
-															"Object",
+															{
+																kind: "object",
+																objectId: beat.context.objectId,
+															},
+															beat.context.objectName ?? "Event object",
 														)}
 											</li>
 										))}
 									</ol>
+								</details>
+								<details>
+									<summary>Copyable story card</summary>
+									<pre>{shareArtifact}</pre>
 								</details>
 								<button
 									type="button"
@@ -929,20 +1059,12 @@ function GeneratedContextPanel({
 									Copy factual trace
 								</button>
 								{copyStatus === "" ? null : <p role="status">{copyStatus}</p>}
-								<button
-									type="button"
-									disabled={authorityRefreshing}
-									onClick={() => {
-										setActiveIntent(
-											activeIntent === "verify-reserve"
-												? "accuse-publicly"
-												: "verify-reserve",
-										);
-										setSponsorStatus("confirming");
-									}}
-								>
-									Consider a different counsel
-								</button>
+								{nextAction === null
+									? null
+									: worldLink(
+											nextAction.focus,
+											`${nextAction.label} — ${nextAction.description}`,
+										)}
 							</section>
 						) : null}
 					</>
@@ -1019,6 +1141,9 @@ function GeneratedWorld({
 		null,
 	);
 	const [focusedEventId, setFocusedEventId] = useState<string | null>(null);
+	const [focusedEventContext, setFocusedEventContext] =
+		useState<GeneratedChronicleEventContext | null>(null);
+	const eventFocusRequest = useRef<string | null>(null);
 	const navigationOutcomeReported = useRef(false);
 	const [focusedLocationId, setFocusedLocationId] = useState<string | null>(
 		null,
@@ -1072,16 +1197,55 @@ function GeneratedWorld({
 		(focus: WorldFocus, updateHistory = true) => {
 			const href = buildWorldFocusHref(focus)!;
 			if (focus.kind === "event") {
-				if (!updateHistory) {
-					reportNavigationRejection("foreign-reference");
-					return;
-				}
+				eventFocusRequest.current = focus.eventId;
 				setFocusedEventId(focus.eventId);
+				setFocusedEventContext(null);
 				setNavigationRejection(null);
-				window.history.pushState(null, "", href);
+				if (updateHistory) window.history.pushState(null, "", href);
+				void import("./generated-sponsor-runtime")
+					.then(({ loadGeneratedChronicleEventFocus }) =>
+						loadGeneratedChronicleEventFocus({
+							eventId: focus.eventId,
+							regionId: experience.authorityRegionId,
+							databaseName: experience.authorityDatabaseName,
+						}),
+					)
+					.then((context) => {
+						if (eventFocusRequest.current !== focus.eventId) return;
+						if (context === null) {
+							setFocusedEventId(null);
+							reportNavigationRejection("foreign-reference");
+							return;
+						}
+						const settlement = experience.embodiments.find((candidate) =>
+							candidate.actors.some(
+								({ citizenId }) => citizenId === context.citizenId,
+							),
+						);
+						if (settlement === undefined) {
+							setFocusedEventId(null);
+							reportNavigationRejection("foreign-reference");
+							return;
+						}
+						setSelectedSettlementId(settlement.settlementId);
+						setFocusedLocationId(context.locationId);
+						dispatch({
+							type: "select-citizen",
+							citizenId: context.citizenId,
+						});
+						setFocusedEventContext(context);
+						setNavigationRejection(null);
+					})
+					.catch(() => {
+						if (eventFocusRequest.current !== focus.eventId) return;
+						setFocusedEventId(null);
+						reportNavigationRejection("foreign-reference");
+					});
 				return;
 			}
+			eventFocusRequest.current = null;
 			setFocusedEventId(null);
+			setFocusedEventContext(null);
 			const targetId = worldFocusId(focus);
 			const matches = experience.projections.flatMap((candidate) => {
 				const settlement = experience.embodiments.find(
@@ -1369,10 +1533,27 @@ function GeneratedWorld({
 					</button>
 				</nav>
 			</header>
-			{focusedEventId === null ? null : (
+			{focusedEventId === null ? null : focusedEventContext === null ? (
 				<p className="renderer-note" role="status">
-					Event: <code>{focusedEventId}</code>
+					Restoring this Chronicle event from the local world record…
 				</p>
+			) : (
+				<section className="renderer-note" aria-label="Chronicle event focus">
+					<h2>{focusedEventContext.title}</h2>
+					<p>
+						{focusedEventContext.citizenName}
+						{focusedEventContext.locationName === null
+							? ""
+							: ` · ${focusedEventContext.locationName}`}
+						{focusedEventContext.objectName === null
+							? ""
+							: ` · ${focusedEventContext.objectName}`}
+					</p>
+					<details>
+						<summary>Exact event evidence</summary>
+						<code>{focusedEventContext.eventId}</code>
+					</details>
+				</section>
 			)}
 
 			{!generatedFaultHooks ||
@@ -1530,7 +1711,11 @@ function GeneratedWorld({
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
 				<summary>Release Genesis feedback</summary>
-				{feedbackOpen ? <FeedbackPanel /> : null}
+				{feedbackOpen ? (
+					<Suspense fallback={<p>Opening the local feedback form…</p>}>
+						<FeedbackPanel />
+					</Suspense>
+				) : null}
 			</details>
 			<footer className="v1-world-footer">
 				<p>Watch first. Select a person or place to learn more.</p>
