@@ -16,6 +16,7 @@ import {
 	type VisibilityContext,
 	type WorldEventEnvelope,
 } from "../../protocol/src/index.js";
+import type { DecisionGatewayResult } from "./decision-gateway.js";
 
 function deepFreeze<T>(value: T): T {
 	if (typeof value !== "object" || value === null || Object.isFrozen(value))
@@ -32,6 +33,7 @@ export async function createCognitiveDecisionRecord(input: {
 	readonly context: DecisionContext;
 	readonly proposal: IntentProposal | null;
 	readonly failureCode: "missing" | "timeout" | "malformed" | null;
+	readonly gatewayResult?: DecisionGatewayResult;
 	readonly validator: CognitiveDecisionRecord["validator"];
 	readonly proposedCommandId: string | null;
 	readonly receiptRef: string | null;
@@ -42,19 +44,89 @@ export async function createCognitiveDecisionRecord(input: {
 			"a decision record requires exactly one proposal or failure",
 		);
 	}
+	if (
+		input.gatewayResult !== undefined &&
+		(input.proposal === null ||
+			jcs(input.gatewayResult.proposal) !== jcs(input.proposal))
+	)
+		throw new Error(
+			"decision record gateway result does not bind its proposal",
+		);
+	if (input.gatewayResult !== undefined) {
+		const gateway = input.gatewayResult;
+		const primarySelected = gateway.selectedSource === "primary";
+		const attemptAccepted = gateway.primaryAttempt.disposition === "accepted";
+		const expectedAttempts =
+			gateway.primaryAttempt.disposition === "not-attempted" ||
+			gateway.primaryAttempt.disposition === "provider-unavailable"
+				? 0
+				: 1;
+		const expectedFailure =
+			attemptAccepted || gateway.primaryAttempt.disposition === "not-attempted"
+				? null
+				: gateway.primaryAttempt.disposition;
+		const attemptedProposal = gateway.primaryAttempt.proposal;
+		if (
+			primarySelected !== attemptAccepted ||
+			primarySelected !== (gateway.acceptedFallback === null) ||
+			gateway.primaryAttempts !== expectedAttempts ||
+			gateway.primaryFailure !== expectedFailure ||
+			(gateway.acceptedFallback !== null &&
+				jcs(gateway.acceptedFallback) !== jcs(gateway.proposal)) ||
+			(attemptedProposal !== null) !== primarySelected ||
+			(attemptedProposal !== null &&
+				(jcs(attemptedProposal) !== jcs(gateway.proposal) ||
+					jcs(gateway.primaryAttempt.provenance) !==
+						jcs(attemptedProposal.provenance) ||
+					gateway.primaryAttempt.outputHash !==
+						(attemptedProposal.provenance.cognitionKind === "model"
+							? attemptedProposal.provenance.artifactHash
+							: null)))
+		)
+			throw new Error("decision record gateway evidence is inconsistent");
+	}
 	if (input.proposal !== null) {
 		const { proposalHash, ...withoutProposalHash } = input.proposal;
 		if ((await hashProposal(withoutProposalHash)) !== proposalHash)
 			throw new Error("proposal hash mismatch");
+		if (
+			input.proposal.provenance.cognitionKind === "model" &&
+			input.gatewayResult === undefined
+		)
+			throw new Error(
+				"model decision record requires its gateway attempt evidence",
+			);
 	}
 	const explanation = input.proposal?.explanation ?? null;
 	const modelProvenance =
 		input.proposal?.provenance.cognitionKind === "model"
 			? input.proposal.provenance
 			: null;
+	const selectedSource =
+		input.gatewayResult?.selectedSource ?? "deterministic-fallback";
+	const gatewayAttempt = input.gatewayResult?.primaryAttempt;
+	const primaryAttempt = {
+		disposition: gatewayAttempt?.disposition ?? "not-attempted",
+		provenance: gatewayAttempt?.provenance ?? null,
+		proposalCanonicalBytes:
+			gatewayAttempt?.proposal === null ||
+			gatewayAttempt?.proposal === undefined
+				? null
+				: jcs(gatewayAttempt.proposal),
+		proposalHash: gatewayAttempt?.proposal?.proposalHash ?? null,
+		outputHash: gatewayAttempt?.outputHash ?? null,
+	};
+	const acceptedFallback =
+		selectedSource === "deterministic-fallback" && input.proposal !== null
+			? {
+					proposalCanonicalBytes: jcs(input.proposal),
+					proposalHash: input.proposal.proposalHash,
+					explanation: input.proposal.explanation,
+				}
+			: null;
 	const withoutHash = {
-		schemaVersion: "eonfolk-cognitive-decision-record-v1" as const,
-		recordVersion: "1" as const,
+		schemaVersion: "eonfolk-cognitive-decision-record-v2" as const,
+		recordVersion: "2" as const,
 		decisionId: input.decisionId,
 		decisionBoundaryId: input.decisionBoundaryId,
 		actorId: input.context.actorId,
@@ -89,6 +161,9 @@ export async function createCognitiveDecisionRecord(input: {
 			input.proposal === null ? null : jcs(input.proposal),
 		proposalHash: input.proposal?.proposalHash ?? null,
 		explanation,
+		selectedSource,
+		primaryAttempt,
+		acceptedFallback,
 		failureCode: input.failureCode,
 		validator: input.validator,
 		proposedCommandId: input.proposedCommandId,
@@ -98,7 +173,7 @@ export async function createCognitiveDecisionRecord(input: {
 			input.proposal?.explanation.templateId ?? "standard-brain-failure-v1",
 		subjectCitizenId: input.context.actorId,
 		sensitivity: "citizen-private-audit" as const,
-		provenance: { kind: "cognition-audit" as const, version: "1" as const },
+		provenance: { kind: "cognition-audit" as const, version: "2" as const },
 	};
 	return {
 		...withoutHash,

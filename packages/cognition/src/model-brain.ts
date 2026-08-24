@@ -1,13 +1,17 @@
 import {
-	COGNITION_VERSION,
 	type ActionCatalogEntry,
+	COGNITION_VERSION,
+	type CognitiveAttemptProvenance,
 	type DecisionContext,
 	domainHash,
 	type IntentProposal,
 	proposalHash,
 	sha256Hex,
 } from "../../protocol/src/index.js";
-import type { IntentProposalBrainPort } from "./brain-port.js";
+import type {
+	BrainAttemptFailure,
+	IntentProposalBrainPort,
+} from "./brain-port.js";
 import type { LocalProcessBrainContract } from "./experiment.js";
 
 export const MODEL_CHOICE_SCHEMA_VERSION = "eonfolk-model-choice-v2" as const;
@@ -79,6 +83,37 @@ export interface ModelBrainConfiguration {
 interface ModelChoice {
 	readonly schemaVersion: typeof MODEL_CHOICE_SCHEMA_VERSION;
 	readonly actionId: string;
+}
+
+type ModelAttemptProvenance = Extract<
+	CognitiveAttemptProvenance,
+	{ readonly cognitionKind: "model" }
+>;
+
+class ModelBrainAttemptError extends Error implements BrainAttemptFailure {
+	readonly code: string;
+	readonly attemptedProvenance: CognitiveAttemptProvenance;
+	readonly outputHash: string | null;
+
+	constructor(input: {
+		readonly code: string;
+		readonly message: string;
+		readonly attemptedProvenance: CognitiveAttemptProvenance;
+		readonly outputHash: string | null;
+	}) {
+		super(input.message);
+		this.name = "ModelBrainAttemptError";
+		this.code = input.code;
+		this.attemptedProvenance = input.attemptedProvenance;
+		this.outputHash = input.outputHash;
+	}
+}
+
+function providerFailureCode(error: unknown): string {
+	if (typeof error !== "object" || error === null || !("code" in error))
+		return "threw";
+	const code = (error as { readonly code?: unknown }).code;
+	return typeof code === "string" ? code : "threw";
 }
 
 function assertBoundedLabel(value: string, label: string): void {
@@ -243,24 +278,78 @@ export function createModelBrain(
 	assertBoundedLabel(configuration.modelVersion, "modelVersion");
 	assertByteBudget(configuration.maxRequestBytes, "maxRequestBytes");
 	assertByteBudget(configuration.maxResponseBytes, "maxResponseBytes");
+	const describeAttempt = async (): Promise<ModelAttemptProvenance> => {
+		const contractDigests = await modelChoiceContractDigests();
+		return {
+			cognitionKind: "model",
+			cognitionVersion: COGNITION_VERSION,
+			provider: configuration.provider,
+			model: configuration.model,
+			modelVersion: configuration.modelVersion,
+			promptTemplateHash: contractDigests.promptTemplateHash,
+			proposalSchemaHash: contractDigests.proposalSchemaHash,
+			artifactHash: null,
+		};
+	};
 	return {
+		describeAttempt,
 		async propose(context, signal): Promise<IntentProposal> {
 			const request = requestFor(context);
 			const requestBytes = new TextEncoder().encode(JSON.stringify(request));
 			if (requestBytes.byteLength > configuration.maxRequestBytes)
 				throw new RangeError("model request exceeds its byte budget");
-			const raw = await transport.invoke(request, signal);
+			const failedProvenance = await describeAttempt();
+			let raw: string;
+			try {
+				raw = await transport.invoke(request, signal);
+			} catch (error) {
+				throw new ModelBrainAttemptError({
+					code: providerFailureCode(error),
+					message:
+						error instanceof Error
+							? error.message
+							: "model provider invocation failed",
+					attemptedProvenance: failedProvenance,
+					outputHash: null,
+				});
+			}
 			const artifactBytes = new TextEncoder().encode(raw);
+			const artifactHash = await sha256Hex(artifactBytes);
+			const attemptProvenance: IntentProposal["provenance"] = {
+				...failedProvenance,
+				artifactHash,
+			};
 			if (artifactBytes.byteLength > configuration.maxResponseBytes)
-				throw new RangeError("model artifact exceeds its byte budget");
-			const choice = parseChoice(raw);
+				throw new ModelBrainAttemptError({
+					code: "malformed",
+					message: "model artifact exceeds its byte budget",
+					attemptedProvenance: attemptProvenance,
+					outputHash: artifactHash,
+				});
+			let choice: ModelChoice;
+			try {
+				choice = parseChoice(raw);
+			} catch (error) {
+				throw new ModelBrainAttemptError({
+					code: "malformed",
+					message:
+						error instanceof Error
+							? error.message
+							: "model artifact violates the closed choice schema",
+					attemptedProvenance: attemptProvenance,
+					outputHash: artifactHash,
+				});
+			}
 			const catalogEntry = context.actionCatalog.find(
 				(entry) => entry.actionId === choice.actionId,
 			);
 			if (catalogEntry === undefined)
-				throw new TypeError("model selected an unavailable action");
-			const artifactHash = await sha256Hex(artifactBytes);
-			const contractDigests = await modelChoiceContractDigests();
+				throw new ModelBrainAttemptError({
+					code: "invalid",
+					message: "model selected an unavailable action",
+					attemptedProvenance: attemptProvenance,
+					outputHash: artifactHash,
+				});
 			const withoutHash = {
 				schemaVersion: "eonfolk-intent-proposal-v1" as const,
 				proposalId: `proposal-model-${artifactHash.slice(0, 24)}`,
@@ -271,16 +360,7 @@ export function createModelBrain(
 				action: catalogEntry.action,
 				planProposal: null,
 				memoryProposal: null,
-				provenance: {
-					cognitionKind: "model" as const,
-					cognitionVersion: COGNITION_VERSION,
-					provider: configuration.provider,
-					model: configuration.model,
-					modelVersion: configuration.modelVersion,
-					promptTemplateHash: contractDigests.promptTemplateHash,
-					proposalSchemaHash: contractDigests.proposalSchemaHash,
-					artifactHash,
-				},
+				provenance: attemptProvenance,
 				publicJustification: publicJustificationFor(catalogEntry),
 				explanation: {
 					selectedActionId: choice.actionId,

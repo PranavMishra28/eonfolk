@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	MEMORY_SCHEMA_VERSION,
-	createMemoryStore,
-	decideCivilizationSchedulerRoutine,
-	replayCivilizationSchedulerDecisions,
-	remember,
-	runDecisionGateway,
-	standardBrain,
-	validateIntentProposal,
 	type BrainPort,
 	type CivilizationRoutineOption,
 	type CivilizationSchedulerMindState,
+	createMemoryStore,
+	createModelBrain,
 	type DecisionGatewayResult,
+	decideCivilizationSchedulerRoutine,
+	MEMORY_SCHEMA_VERSION,
+	remember,
+	replayCivilizationSchedulerDecisions,
+	runDecisionGateway,
+	standardBrain,
+	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
 import type { DecisionContext } from "../../../packages/protocol/src/index.js";
 import {
@@ -225,7 +226,11 @@ describe("civilization scheduler Standard Brain", () => {
 			primaryAttempts: 1,
 			proposal: { provenance: { cognitionKind: "standard-brain" } },
 		});
-		expect(result.evidence.modelInvocations).toBe(0);
+		expect(result.evidence).toMatchObject({
+			modelInvocations: 1,
+			selectedSource: "deterministic-fallback",
+			primaryDisposition: "timeout",
+		});
 		expect(
 			boundary.context.visibleRecords.every(
 				({ subjectCitizenId }) => subjectCitizenId === boundary.context.actorId,
@@ -243,8 +248,8 @@ describe("civilization scheduler Standard Brain", () => {
 		expect(result.state).toEqual(acceptedState);
 	});
 
-	it("rejects an accepted primary before inference-free authority evidence exists", async () => {
-		const input = await mindState({ withMemory: false });
+	it("rejects a non-model primary at the optional model boundary", async () => {
+		const input = await mindState({ withMemory: true });
 		const primary: BrainPort = {
 			propose: async (context) =>
 				(
@@ -254,6 +259,45 @@ describe("civilization scheduler Standard Brain", () => {
 					})
 				).proposal,
 		};
-		await expect(decide(input, null, primary)).rejects.toThrow("rejected");
+		await expect(decide(input, null, primary)).rejects.toThrow(
+			"provenance-bearing Model Brain",
+		);
+	});
+
+	it("executes an accepted Model Brain choice through the typed scheduler boundary", async () => {
+		const input = await mindState({ withMemory: true });
+		const primary = createModelBrain(
+			{
+				provider: "fixture-local-model",
+				model: "fixture-model",
+				modelVersion: "fixture-v1",
+				maxRequestBytes: 32_768,
+				maxResponseBytes: 2_048,
+			},
+			{
+				invoke: async () =>
+					JSON.stringify({
+						schemaVersion: "eonfolk-model-choice-v2",
+						actionId: "drink-water",
+					}),
+			},
+		);
+
+		const result = await decide(input, null, primary);
+
+		expect(result.evidence).toMatchObject({
+			selectedActionId: "drink-water",
+			selectedSource: "primary",
+			primaryDisposition: "accepted",
+			modelInvocations: 1,
+			routine: { kind: "consume", subjectId: "water" },
+			planTransition: "choice-replanned",
+		});
+		expect(result.state.actorMind.standingPlan.goalType).toBe(
+			"routine:consume",
+		);
+		expect(replayCivilizationSchedulerDecisions([result.evidence])).toEqual([
+			{ kind: "consume", subjectId: "water" },
+		]);
 	});
 });

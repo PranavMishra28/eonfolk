@@ -1337,7 +1337,7 @@ export class AuthoritativeRiverholdRuntime {
 			);
 		const record = asObject<CognitiveDecisionRecord>(stored.data);
 		if (
-			record.schemaVersion !== "eonfolk-cognitive-decision-record-v1" ||
+			record.schemaVersion !== "eonfolk-cognitive-decision-record-v2" ||
 			record.decisionId !== stored.decisionId ||
 			record.decisionId !== resolvedEvent.provenance.decisionId ||
 			record.runId !== stored.runId ||

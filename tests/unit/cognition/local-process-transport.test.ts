@@ -7,8 +7,8 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -179,8 +179,12 @@ describe("macOS zero-egress local process transport", () => {
 	);
 
 	macIt.each([
-		["malformed", { mode: "success" as const, output: "not-json" }, "threw"],
-		["process failure", { mode: "fail" as const }, "threw"],
+		[
+			"malformed",
+			{ mode: "success" as const, output: "not-json" },
+			"malformed",
+		],
+		["process failure", { mode: "fail" as const }, "provider-unavailable"],
 		["timeout", { mode: "hang" as const, timeoutMs: 10 }, "timeout"],
 	])("falls back after %s", async (_label, input, primaryFailure) => {
 		const test = await harness(input);
@@ -231,7 +235,7 @@ describe("macOS zero-egress local process transport", () => {
 				validate: validateIntentProposal,
 			});
 
-			expect(result.primaryFailure).toBe("threw");
+			expect(result.primaryFailure).toBe("malformed");
 			expect(result.selectedSource).toBe("deterministic-fallback");
 		},
 	);

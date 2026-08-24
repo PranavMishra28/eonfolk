@@ -20,6 +20,7 @@ import {
 	civilizationCounselCatalog,
 	createCognitiveDecisionRecord,
 	standardBrain,
+	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
 import {
 	batchHash,
@@ -29,6 +30,7 @@ import {
 	eventHash,
 	PROTOCOL_SCHEMA_VERSION,
 	payloadFingerprint,
+	proposalHash,
 	seedPrng,
 	stateHash,
 	VISIBILITY_POLICY_VERSION,
@@ -1264,6 +1266,94 @@ describe("canonical civilization sponsor reducer", () => {
 		expect(unavailable.accepted).toBe(false);
 		expect(unavailable.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
 		expect(unavailable.events).toEqual([]);
+	});
+
+	it("rejects a rehashed legal but unselected Standard Brain action", async () => {
+		const issued = await issue(await establish(fixture()));
+		const commandId = "command-forged-legal-alternative";
+		const legitimate = await resolution(
+			issued.postState,
+			"verify-reserve",
+			{ kind: "VerifyReserve", targetCitizenId: TARGET },
+			commandId,
+		);
+		const alternative = legitimate.context.actionCatalog.find(
+			({ action }) => action.kind === "FollowStandingPlan",
+		);
+		if (alternative === undefined) throw new Error("missing legal alternative");
+		const { proposalHash: _legitimateHash, ...legitimateWithoutHash } =
+			legitimate.proposal;
+		const forgedWithoutHash = {
+			...legitimateWithoutHash,
+			actionId: alternative.actionId,
+			action: alternative.action,
+			explanation: {
+				...legitimate.proposal.explanation,
+				selectedActionId: alternative.actionId,
+			},
+		};
+		const forgedProposal = {
+			...forgedWithoutHash,
+			proposalHash: await proposalHash(forgedWithoutHash),
+		};
+		// The generic closed-schema gate accepts this rehashed legal alternative;
+		// sponsor authority must additionally reproduce the Standard Brain choice.
+		expect(
+			await validateIntentProposal(legitimate.context, forgedProposal),
+		).toBe("accepted");
+		const forgedResolution = {
+			...legitimate,
+			proposal: forgedProposal,
+			decisionRecord: await createCognitiveDecisionRecord({
+				decisionId: legitimate.decisionId,
+				decisionBoundaryId: `boundary-${commandId}`,
+				wholePreStateHash: await stateHash(issued.postState),
+				context: legitimate.context,
+				proposal: forgedProposal,
+				failureCode: null,
+				validator: {
+					stage: "authorization",
+					outcome: "accepted",
+					reason: "forged",
+				},
+				proposedCommandId: commandId,
+				receiptRef: null,
+				acceptedEventInterval: null,
+			}),
+		};
+		const rejected = await prepareCivilizationSponsorTransition({
+			state: issued.postState,
+			runId: RUN,
+			regionId: REGION,
+			priorWorldHeadHash: issued.resultingWorldHeadHash,
+			nextSequence: 2,
+			snapshotBoundary: await boundary(
+				issued.postState,
+				issued.resultingWorldHeadHash,
+				2,
+			),
+			authoritativeHeaders: [],
+			fencingToken: 1,
+			command: await command(
+				commandId,
+				issued.postState.revision,
+				{ kind: "citizen", principalId: ACTOR },
+				{
+					kind: "ResolveCounsel",
+					citizenId: ACTOR,
+					interventionId: "intervention-one",
+					decisionId: legitimate.decisionId,
+					proposalId: forgedProposal.proposalId,
+					action: "follow-plan",
+				},
+			),
+			authoritativeHistory: [],
+			resolution: forgedResolution,
+		});
+
+		expect(rejected.accepted).toBe(false);
+		expect(rejected.receipt.rejectionCode).toBe("ACTION_UNAVAILABLE");
+		expect(rejected.events).toEqual([]);
 	});
 
 	it("returns the original receipt on a delayed exact retry", async () => {

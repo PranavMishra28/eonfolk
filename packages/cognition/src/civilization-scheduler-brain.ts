@@ -1,15 +1,16 @@
-import type {
-	ActionCatalogEntry,
-	CitizenMindSnapshot,
-	DecisionContext,
-	IntentProposal,
-	PrngState,
-	StandingPlan,
-	VisibilityContext,
+import {
+	type ActionCatalogEntry,
+	type CitizenMindSnapshot,
+	type DecisionContext,
+	type IntentProposal,
+	jcs,
+	type PrimaryAttemptDisposition,
+	type PrngState,
+	type StandingPlan,
+	type VisibilityContext,
 } from "../../protocol/src/index.js";
-
-import { buildMemoryAwareDecisionContext, type MemoryStore } from "./memory.js";
 import type { DecisionGatewayResult } from "./decision-gateway.js";
+import { buildMemoryAwareDecisionContext, type MemoryStore } from "./memory.js";
 import { standardBrain, validateIntentProposal } from "./standard-brain.js";
 import {
 	advanceStandingPlan,
@@ -20,6 +21,8 @@ import {
 
 export const CIVILIZATION_SCHEDULER_BRAIN_VERSION =
 	"eonfolk-civilization-scheduler-brain-v1" as const;
+export const CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION =
+	"eonfolk-civilization-scheduler-decision-evidence-v2" as const;
 
 export type CivilizationRoutineKind =
 	| "produce"
@@ -59,7 +62,7 @@ export type StandingPlanTransition =
 	| "choice-replanned";
 
 export interface CivilizationSchedulerDecisionEvidence {
-	readonly schemaVersion: typeof CIVILIZATION_SCHEDULER_BRAIN_VERSION;
+	readonly schemaVersion: typeof CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION;
 	readonly decisionOrdinal: number;
 	readonly actorId: string;
 	readonly contextHash: string;
@@ -72,7 +75,9 @@ export interface CivilizationSchedulerDecisionEvidence {
 	readonly planVersionBefore: number;
 	readonly planVersionAfter: number;
 	readonly planTransition: StandingPlanTransition;
-	readonly modelInvocations: 0;
+	readonly selectedSource: "primary" | "deterministic-fallback";
+	readonly primaryDisposition: PrimaryAttemptDisposition;
+	readonly modelInvocations: 0 | 1;
 }
 
 export interface CivilizationSchedulerDecisionResult {
@@ -194,10 +199,28 @@ function assertOptions(
 	}
 }
 
+function assertGatewayEvidence(gateway: DecisionGatewayResult): void {
+	const primarySelected = gateway.selectedSource === "primary";
+	if (
+		(gateway.primaryAttempts !== 0 && gateway.primaryAttempts !== 1) ||
+		primarySelected !== (gateway.primaryAttempt.disposition === "accepted") ||
+		primarySelected !== (gateway.acceptedFallback === null) ||
+		(primarySelected &&
+			(gateway.primaryAttempt.proposal === null ||
+				jcs(gateway.primaryAttempt.proposal) !== jcs(gateway.proposal))) ||
+		(!primarySelected &&
+			(gateway.acceptedFallback === null ||
+				jcs(gateway.acceptedFallback) !== jcs(gateway.proposal)))
+	)
+		throw new Error("scheduler decision gateway evidence is inconsistent");
+}
+
 /**
  * One normal scheduler decision boundary. Memory is visibility-filtered before
- * scoring, Standard Brain emits one known typed action, validation runs, and
- * only then may the Application update typed Mind state. Reality is untouched.
+ * scoring, an optional Model Brain or Standard fallback emits one known typed
+ * action, validation runs, and only then may the Application update typed Mind
+ * state. Reality is untouched; sponsor counsel remains a separate Standard-only
+ * authority contract.
  */
 export async function decideCivilizationSchedulerRoutine(input: {
 	readonly state: CivilizationSchedulerMindState;
@@ -277,7 +300,14 @@ export async function decideCivilizationSchedulerRoutine(input: {
 					context: built.context,
 					deterministicFallback,
 				});
-	if (gateway?.selectedSource === "primary") throw new Error("rejected");
+	if (gateway !== null) assertGatewayEvidence(gateway);
+	if (
+		gateway?.selectedSource === "primary" &&
+		gateway.proposal.provenance.cognitionKind !== "model"
+	)
+		throw new Error(
+			"scheduler primary must be a provenance-bearing Model Brain",
+		);
 	const proposal = gateway?.proposal ?? (await deterministicFallback());
 	const selected = input.options.find(
 		({ entry }) => entry.actionId === proposal.actionId,
@@ -309,7 +339,7 @@ export async function decideCivilizationSchedulerRoutine(input: {
 	return {
 		state: nextState,
 		evidence: {
-			schemaVersion: CIVILIZATION_SCHEDULER_BRAIN_VERSION,
+			schemaVersion: CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION,
 			decisionOrdinal: input.state.decisionOrdinal,
 			actorId: actorMind.citizenId,
 			contextHash: built.context.contextHash,
@@ -324,7 +354,10 @@ export async function decideCivilizationSchedulerRoutine(input: {
 			planVersionBefore: initialPlan.version,
 			planVersionAfter: plan.version,
 			planTransition: transition,
-			modelInvocations: 0,
+			selectedSource: gateway?.selectedSource ?? "deterministic-fallback",
+			primaryDisposition:
+				gateway?.primaryAttempt.disposition ?? "not-attempted",
+			modelInvocations: (gateway?.primaryAttempts ?? 0) as 0 | 1,
 		},
 	};
 }
@@ -341,8 +374,15 @@ export function replayCivilizationSchedulerDecisions(
 		)
 		.map((record) => {
 			if (
-				record.schemaVersion !== CIVILIZATION_SCHEDULER_BRAIN_VERSION ||
-				record.modelInvocations !== 0 ||
+				record.schemaVersion !==
+					CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION ||
+				(record.modelInvocations !== 0 && record.modelInvocations !== 1) ||
+				(record.selectedSource === "primary") !==
+					(record.primaryDisposition === "accepted") ||
+				(record.selectedSource === "primary" &&
+					record.modelInvocations !== 1) ||
+				(record.selectedSource === "deterministic-fallback" &&
+					record.primaryDisposition === "accepted") ||
 				!Number.isSafeInteger(record.decisionOrdinal) ||
 				record.decisionOrdinal < 0 ||
 				record.selectedActionId.length === 0 ||

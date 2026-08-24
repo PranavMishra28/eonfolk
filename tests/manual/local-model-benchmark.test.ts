@@ -1,7 +1,7 @@
 import {
-	spawn,
 	type ChildProcessWithoutNullStreams,
 	execFileSync,
+	spawn,
 } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -13,13 +13,16 @@ import { describe, expect, it } from "vitest";
 
 import {
 	createMacOsLoopbackOllamaTransport,
-	LocalProcessTransportError,
 	type LocalProcessInvocationTelemetry,
+	LocalProcessTransportError,
 } from "../../apps/web/src/cognition/local-process-transport.node.js";
 import {
 	buildDecisionContext,
 	createContractBoundModelBrain,
+	createExperimentManifestV2,
+	createExperimentResultV2,
 	createLocalProcessBrainContract,
+	InMemoryExperimentJournal,
 	modelChoiceContractDigests,
 	runDecisionGateway,
 	standardBrain,
@@ -28,10 +31,16 @@ import {
 import {
 	type ActionCatalogEntry,
 	type CitizenMindSnapshot,
-	domainHash,
-	jcs,
-	seedPrng,
+	COGNITION_VERSION,
+	DETERMINISM_VERSION,
 	type DecisionContext,
+	domainHash,
+	ENGINE_VERSION,
+	jcs,
+	PROTOCOL_SCHEMA_VERSION,
+	REPLAY_VERSION,
+	seedPrng,
+	VISIBILITY_POLICY_VERSION,
 } from "../../packages/protocol/src/index.js";
 import { riverholdDecisionFixture } from "../fixtures/riverhold/index.js";
 
@@ -76,6 +85,10 @@ interface SafetySample {
 
 interface ExecutionEvidence {
 	readonly ordinal: number;
+	readonly executionOrdinal: number;
+	readonly manifestHash: string;
+	readonly contractHash: string;
+	readonly experimentResultHash: string;
 	readonly scenario: ScenarioKind;
 	readonly visibleContextIndex: number;
 	readonly hiddenVariant: "a" | "b";
@@ -88,6 +101,9 @@ interface ExecutionEvidence {
 	readonly preferredActionId: string;
 	readonly preferredAgreement: boolean;
 	readonly publicJustification: string;
+	readonly proposalHash: string | null;
+	readonly outputHash: string | null;
+	readonly terminalVectorHash: string | null;
 	readonly latencyMs: number;
 	readonly telemetry: LocalProcessInvocationTelemetry | null;
 	readonly safety: SafetySample;
@@ -101,12 +117,22 @@ function requiredEnvironment(name: string): string {
 }
 
 function boundedPrimaryFailureDetail(error: unknown): string {
-	if (!(error instanceof LocalProcessTransportError)) return "unclassified";
 	const adapterFailure =
-		/^local model adapter failed: ([a-z][a-z-]{0,63})$/u.exec(
-			error.message,
-		)?.[1];
-	return adapterFailure ?? error.code;
+		error instanceof Error
+			? /^local model adapter failed: ([a-z][a-z-]{0,63})$/u.exec(
+					error.message,
+				)?.[1]
+			: null;
+	if (adapterFailure !== null && adapterFailure !== undefined)
+		return adapterFailure;
+	return error instanceof LocalProcessTransportError
+		? error.code
+		: typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				typeof error.code === "string"
+			? error.code
+			: "unclassified";
 }
 
 function sha256(bytes: Uint8Array | string): string {
@@ -698,7 +724,7 @@ function summary(
 	const primary = results.filter(
 		(result) => result.selectedSource === "primary",
 	);
-	const warm = results.slice(1);
+	const warm = results;
 	const outputRates = primary.flatMap((result) => {
 		const count = result.telemetry?.evalCount;
 		const duration = result.telemetry?.evalDurationNs;
@@ -950,7 +976,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 			const adapter = await artifact({
 				path: adapterPath,
 				artifactId: "bounded-ollama-adapter",
-				version: "eonfolk-bounded-ollama-v1",
+				version: "eonfolk-bounded-ollama-v2",
 				licenseId: "repository-private",
 				licenseTextSha256: sha256("EONFOLK repository-private adapter"),
 			});
@@ -989,6 +1015,17 @@ describe("manual bounded local Model Brain benchmark", () => {
 					if (serverLogBytes <= 1_048_576) serverLog.push(chunk);
 				});
 			const results: ExecutionEvidence[] = [];
+			const manifests = [];
+			const experimentResults = [];
+			const journal = new InMemoryExperimentJournal();
+			const corpusHash = await domainHash(
+				"EONFOLK:LOCAL-MODEL-BENCHMARK-CORPUS:v2",
+				contexts.map((pair) => ({
+					contextHash: pair.a.contextHash,
+					preferredActionId: pair.scenario.preferredActionId,
+					scenario: pair.scenario.kind,
+				})),
+			);
 			try {
 				try {
 					await waitForServer(port);
@@ -1039,9 +1076,56 @@ describe("manual bounded local Model Brain benchmark", () => {
 							retries: 0,
 						},
 					});
+					const manifest = await createExperimentManifestV2({
+						manifestId: `local-model-${modelSeed}`,
+						experimentId: "eonfolk-local-model-treatment-v1",
+						runId: `local-model-seed-${modelSeed}`,
+						createdAt: new Date().toISOString(),
+						source: { commit: sourceCommit, tree: sourceTree, dirty: false },
+						versions: {
+							engine: ENGINE_VERSION,
+							protocol: PROTOCOL_SCHEMA_VERSION,
+							determinism: DETERMINISM_VERSION,
+							replay: REPLAY_VERSION,
+							visibility: VISIBILITY_POLICY_VERSION,
+							catalog: "civilization-actions-v1",
+							cognition: COGNITION_VERSION,
+						},
+						corpus: {
+							corpusId: "local-model-visible-contexts-v2",
+							corpusHash,
+							contextHashes: contexts.map((pair) => pair.a.contextHash),
+							seeds: [modelSeed],
+							repetitions: 2,
+						},
+						brain: {
+							kind: "local-process-model",
+							contractHash: contract.contractHash,
+						},
+						environment: {
+							host: "MacBook M4 Max",
+							osVersion: execFileSync("/usr/bin/sw_vers", ["-productVersion"], {
+								encoding: "utf8",
+							}).trim(),
+							runtimeVersion: process.version,
+							totalMemoryBytes: totalmem(),
+							powerMode: "normal-ac-power",
+							cohort: "warm",
+						},
+						controls: {
+							retries: 0,
+							maxRequestBytes: contract.limits.maxRequestBytes,
+							maxOutputBytes: contract.limits.maxStdoutBytes,
+							timeoutMs: contract.limits.warmTimeoutMs,
+							networkPolicy: contract.networkPolicy,
+							trustRemoteCode: false,
+						},
+					});
+					await journal.commitManifest(manifest);
+					manifests.push(manifest);
 					let currentTelemetry: LocalProcessInvocationTelemetry | null = null;
 					let currentPrimaryFailureDetail: string | null = null;
-					const transport = await createMacOsLoopbackOllamaTransport({
+					const transportConfiguration = {
 						adapterPath,
 						ollamaExecutablePath: service.path,
 						artifactPaths: {
@@ -1051,13 +1135,25 @@ describe("manual bounded local Model Brain benchmark", () => {
 							modelConfiguration: configuration.path,
 							chatTemplate: template.path,
 						},
-						cohort: results.length === 0 ? "cold" : "warm",
 						contract,
 						environment: {},
-						onTelemetry: (telemetry) => {
+						onTelemetry: (telemetry: LocalProcessInvocationTelemetry) => {
 							currentTelemetry = telemetry;
 						},
 						ollamaPort: port,
+					} as const;
+					const coldTransport = await createMacOsLoopbackOllamaTransport({
+						...transportConfiguration,
+						cohort: "cold",
+					});
+					const coldBrain = await createContractBoundModelBrain(
+						contract,
+						coldTransport,
+					);
+					await coldBrain.propose(contexts[0]!.a);
+					const transport = await createMacOsLoopbackOllamaTransport({
+						...transportConfiguration,
+						cohort: "warm",
 					});
 					const brain = await createContractBoundModelBrain(
 						contract,
@@ -1074,75 +1170,144 @@ describe("manual bounded local Model Brain benchmark", () => {
 							}
 						},
 					};
-					for (let index = 0; index < contexts.length; index += 1) {
-						const pair = contexts[index]!;
-						for (const [hiddenVariant, context] of [
-							["a", pair.a],
-							["b", pair.b],
-						] as const) {
-							const before = safetySample();
-							assertSafeMachine(before);
-							currentTelemetry = null;
-							currentPrimaryFailureDetail = null;
-							const prngState = await seedPrng(
-								new Uint8Array(32).fill(modelSeed & 0xff),
-								"model-benchmark-fallback",
-								context.actorId,
-								context.contextHash,
-							);
-							const started = performance.now();
-							const decision = await runDecisionGateway({
-								context,
-								primary: observedBrain,
-								primaryTimeoutMilliseconds:
-									results.length === 0 ? 15_000 : 4_000,
-								validate: validateIntentProposal,
-								deterministicFallback: async () =>
-									(
-										await standardBrain(context, {
-											proposalId: `benchmark-fallback-${results.length + 1}`,
-											prngState,
-										})
-									).proposal,
-							});
-							const latencyMs = Math.round(performance.now() - started);
-							const after = safetySample();
-							assertSafeMachine(after);
-							results.push({
-								ordinal: results.length + 1,
-								scenario: pair.scenario.kind,
-								visibleContextIndex: index,
-								hiddenVariant,
-								modelSeed,
+					for (const execution of manifest.corpus.executions) {
+						const index = contexts.findIndex(
+							(pair) => pair.a.contextHash === execution.contextHash,
+						);
+						const pair = contexts[index];
+						if (pair === undefined)
+							throw new Error("manifest execution context is unavailable");
+						const hiddenVariant = execution.repetition === 1 ? "a" : "b";
+						const context = hiddenVariant === "a" ? pair.a : pair.b;
+						const before = safetySample();
+						assertSafeMachine(before);
+						currentTelemetry = null;
+						currentPrimaryFailureDetail = null;
+						const prngState = await seedPrng(
+							new Uint8Array(32).fill(modelSeed & 0xff),
+							"model-benchmark-fallback",
+							context.actorId,
+							context.contextHash,
+						);
+						const started = performance.now();
+						const decision = await runDecisionGateway({
+							context,
+							primary: observedBrain,
+							primaryTimeoutMilliseconds: 4_000,
+							validate: validateIntentProposal,
+							deterministicFallback: async () =>
+								(
+									await standardBrain(context, {
+										proposalId: `benchmark-fallback-${results.length + 1}`,
+										prngState,
+									})
+								).proposal,
+						});
+						const latencyMs = Math.round(performance.now() - started);
+						const after = safetySample();
+						assertSafeMachine(after);
+						const terminalVectorHash = await domainHash(
+							"EONFOLK:LOCAL-MODEL-BENCHMARK-TERMINAL:v1",
+							{
+								actionId: decision.proposal.actionId,
 								contextHash: context.contextHash,
 								selectedSource: decision.selectedSource,
-								primaryFailure: decision.primaryFailure,
-								primaryFailureDetail: currentPrimaryFailureDetail,
-								actionId: decision.proposal.actionId,
-								preferredActionId: pair.scenario.preferredActionId,
-								preferredAgreement:
-									decision.proposal.actionId ===
-									pair.scenario.preferredActionId,
-								publicJustification: decision.proposal.publicJustification,
-								latencyMs,
-								telemetry: currentTelemetry,
-								safety: after,
-							});
-							await mkdir(resolve(OUTPUT_PATH, ".."), { recursive: true });
-							await writeFile(
-								OUTPUT_PATH,
-								`${JSON.stringify({ schemaVersion: "eonfolk-local-model-benchmark-progress-v2", sourceCommit, sourceTree, model: model.identity, results }, null, 2)}\n`,
-							);
-						}
+							},
+						);
+						const completed = decision.selectedSource === "primary";
+						const experimentResult = await createExperimentResultV2({
+							resultId: `result-${modelSeed}-${execution.ordinal}`,
+							manifestHash: manifest.manifestHash,
+							sequence: execution.ordinal,
+							recordedAt: new Date().toISOString(),
+							execution,
+							outcome: completed
+								? {
+										status: "completed",
+										proposalHash: decision.proposal.proposalHash,
+										outputHash: decision.primaryAttempt.outputHash,
+										terminalVectorHash,
+										failureCode: null,
+										latencyMicros: latencyMs * 1_000,
+										peakMemoryBytes: after.runnerRssBytes,
+										invariantResults: [
+											{ invariantId: "proposal-authorized", passed: true },
+											{ invariantId: "terminal-vector-bound", passed: true },
+										],
+									}
+								: {
+										status: "failed",
+										proposalHash: null,
+										outputHash: null,
+										terminalVectorHash: null,
+										failureCode:
+											decision.primaryFailure === "timeout"
+												? "timeout"
+												: decision.primaryFailure === "malformed" ||
+														decision.primaryFailure === "invalid"
+													? "malformed"
+													: "throwing",
+										latencyMicros: latencyMs * 1_000,
+										peakMemoryBytes: after.runnerRssBytes,
+										invariantResults: [],
+									},
+							evidence: {
+								zeroEgressProven: false,
+								zeroEgressArtifactHash: null,
+								dependencyInventoryHash: service.identity.sha256,
+								licenseInventoryHash: modelLicenseSha256,
+								limitations: [
+									"Loopback-only kernel policy; separate denial evidence owns zero-egress proof.",
+								],
+							},
+						});
+						await journal.appendResult(experimentResult);
+						experimentResults.push(experimentResult);
+						results.push({
+							ordinal: results.length + 1,
+							executionOrdinal: execution.ordinal,
+							manifestHash: manifest.manifestHash,
+							contractHash: contract.contractHash,
+							experimentResultHash: experimentResult.resultHash,
+							scenario: pair.scenario.kind,
+							visibleContextIndex: index,
+							hiddenVariant,
+							modelSeed,
+							contextHash: context.contextHash,
+							selectedSource: decision.selectedSource,
+							primaryFailure: decision.primaryFailure,
+							primaryFailureDetail: currentPrimaryFailureDetail,
+							actionId: decision.proposal.actionId,
+							preferredActionId: pair.scenario.preferredActionId,
+							preferredAgreement:
+								decision.proposal.actionId === pair.scenario.preferredActionId,
+							publicJustification: decision.proposal.publicJustification,
+							proposalHash: completed ? decision.proposal.proposalHash : null,
+							outputHash: completed ? decision.primaryAttempt.outputHash : null,
+							terminalVectorHash: completed ? terminalVectorHash : null,
+							latencyMs,
+							telemetry: currentTelemetry,
+							safety: after,
+						});
+						await mkdir(resolve(OUTPUT_PATH, ".."), { recursive: true });
+						await writeFile(
+							OUTPUT_PATH,
+							`${JSON.stringify({ schemaVersion: "eonfolk-local-model-benchmark-progress-v3", sourceCommit, sourceTree, model: model.identity, manifests, experimentResults, results }, null, 2)}\n`,
+						);
 					}
 				}
 			} finally {
 				await stopServer(server, port, modelTag);
 			}
+			const journalSummaries = manifests.map((manifest) =>
+				journal.runSummary(manifest.manifestHash),
+			);
+			if (journalSummaries.some((run) => !run.complete))
+				throw new Error("manifest-bound benchmark journal is incomplete");
 			const end = safetySample();
 			const benchmarkSummary = summary(results, start, end);
 			const reportWithoutHash = {
-				schemaVersion: "eonfolk-local-model-benchmark-v2",
+				schemaVersion: "eonfolk-local-model-benchmark-v3",
 				recordedAt: new Date().toISOString(),
 				source: { commit: sourceCommit, tree: sourceTree, dirty: false },
 				machine: {
@@ -1172,7 +1337,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 					noTools: true,
 				},
 				contextsHash: await domainHash(
-					"EONFOLK:LOCAL-MODEL-BENCHMARK-CONTEXTS:v1",
+					"EONFOLK:LOCAL-MODEL-BENCHMARK-CONTEXTS:v2",
 					contexts.map((pair) => ({
 						scenario: pair.scenario.kind,
 						contextHash: pair.a.contextHash,
@@ -1180,10 +1345,14 @@ describe("manual bounded local Model Brain benchmark", () => {
 					})),
 				),
 				summary: benchmarkSummary,
+				manifests,
+				experimentResults,
+				journalSummaries,
 				results,
 				serverLogSha256: sha256(Buffer.concat(serverLog)),
 				limitations: [
 					"Noncanonical experiment; model proposals never mutate Reality.",
+					"One unrecorded cold warmup per contract precedes the manifest-bound warm cohort.",
 					"Preferred-action agreement is a declared automated oracle, not human story quality.",
 					"Renderer-concurrent performance is a separate acceptance gate.",
 				],
@@ -1191,7 +1360,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 			const report = {
 				...reportWithoutHash,
 				reportHash: await domainHash(
-					"EONFOLK:LOCAL-MODEL-BENCHMARK:v1",
+					"EONFOLK:LOCAL-MODEL-BENCHMARK:v3",
 					reportWithoutHash,
 				),
 			};

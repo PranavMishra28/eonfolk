@@ -56,7 +56,7 @@ export const PROTOCOL_SCHEMA_VERSION = "2" as const;
 export const ENGINE_VERSION = "1" as const;
 export const DETERMINISM_VERSION = "eonfolk-determinism-v2" as const;
 export const REPLAY_VERSION = "eonfolk-replay-v1" as const;
-export const COGNITION_VERSION = "eonfolk-cognition-v1" as const;
+export const COGNITION_VERSION = "eonfolk-cognition-v2" as const;
 export const VISIBILITY_POLICY_VERSION = "riverhold-visibility-v1" as const;
 
 export type Principal =
@@ -750,9 +750,49 @@ export interface IntentProposal {
 	readonly proposalHash: string;
 }
 
+export type PrimaryAttemptDisposition =
+	| "not-attempted"
+	| "accepted"
+	| "timeout"
+	| "malformed"
+	| "invalid"
+	| "threw"
+	| "cancelled"
+	| "provider-unavailable";
+
+export type CognitiveAttemptProvenance =
+	| Extract<
+			IntentProposal["provenance"],
+			{ readonly cognitionKind: "standard-brain" }
+	  >
+	| (Omit<
+			Extract<
+				IntentProposal["provenance"],
+				{ readonly cognitionKind: "model" }
+			>,
+			"artifactHash"
+	  > & { readonly artifactHash: string | null });
+
+export interface CognitivePrimaryAttemptRecord {
+	readonly disposition: PrimaryAttemptDisposition;
+	/** Untrusted claimed provenance, retained as audit evidence, never authority. */
+	readonly provenance: CognitiveAttemptProvenance | null;
+	/** Present only when the attempted value was a closed, hash-valid proposal. */
+	readonly proposalCanonicalBytes: string | null;
+	readonly proposalHash: string | null;
+	/** Hash of bounded provider output; raw model text is never retained. */
+	readonly outputHash: string | null;
+}
+
+export interface CognitiveAcceptedFallbackRecord {
+	readonly proposalCanonicalBytes: string;
+	readonly proposalHash: string;
+	readonly explanation: DecisionExplanation;
+}
+
 export interface CognitiveDecisionRecord {
-	readonly schemaVersion: "eonfolk-cognitive-decision-record-v1";
-	readonly recordVersion: "1";
+	readonly schemaVersion: "eonfolk-cognitive-decision-record-v2";
+	readonly recordVersion: "2";
 	readonly decisionId: DecisionId;
 	readonly decisionBoundaryId: string;
 	readonly actorId: CitizenId;
@@ -784,6 +824,9 @@ export interface CognitiveDecisionRecord {
 	readonly proposalCanonicalBytes: string | null;
 	readonly proposalHash: string | null;
 	readonly explanation: DecisionExplanation | null;
+	readonly selectedSource: "primary" | "deterministic-fallback";
+	readonly primaryAttempt: CognitivePrimaryAttemptRecord;
+	readonly acceptedFallback: CognitiveAcceptedFallbackRecord | null;
 	readonly failureCode: "missing" | "timeout" | "malformed" | null;
 	readonly validator: {
 		readonly stage: "schema" | "authorization" | "domain" | "committed";
@@ -798,7 +841,7 @@ export interface CognitiveDecisionRecord {
 	readonly sensitivity: "citizen-private-audit";
 	readonly provenance: {
 		readonly kind: "cognition-audit";
-		readonly version: "1";
+		readonly version: "2";
 	};
 	readonly decisionRecordHash: string;
 }

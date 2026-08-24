@@ -1,15 +1,16 @@
 import {
 	advanceStandingPlan,
+	authorizeStandardBrainProposal,
 	buildDecisionContext,
 	civilizationCounselAffordances,
 	interruptStandingPlan,
 	replanStandingPlan,
 	retryStandingPlan,
-	validateIntentProposal,
 } from "@eonfolk/cognition";
 import {
 	batchHash,
 	batchId,
+	bytesFromHex,
 	type CausalParent,
 	COGNITION_VERSION,
 	type CognitiveDecisionRecord,
@@ -23,6 +24,7 @@ import {
 	jcs,
 	PROTOCOL_SCHEMA_VERSION,
 	payloadFingerprint,
+	seedPrng,
 	stateHash,
 	VISIBILITY_POLICY_VERSION,
 	type WorldBatchHeader,
@@ -72,6 +74,19 @@ export interface ValidatedStandardBrainResolution {
 	readonly context: DecisionContext;
 	readonly proposal: IntentProposal;
 	readonly decisionRecord: CognitiveDecisionRecord;
+}
+
+/** Sponsor counsel is intentionally Standard-only in V1. */
+async function sponsorStandardBrainPrng(
+	context: DecisionContext,
+	decisionId: string,
+) {
+	return seedPrng(
+		bytesFromHex(context.contextHash, 32),
+		"civilization-sponsor",
+		context.actorId,
+		decisionId,
+	);
 }
 
 const CIVILIZATION_DAY_SECONDS = 86_400;
@@ -1152,6 +1167,9 @@ async function validDecisionRecordBinding(input: {
 			"proposalCanonicalBytes",
 			"proposalHash",
 			"explanation",
+			"selectedSource",
+			"primaryAttempt",
+			"acceptedFallback",
 			"failureCode",
 			"validator",
 			"proposedCommandId",
@@ -1166,8 +1184,8 @@ async function validDecisionRecordBinding(input: {
 		exactKeys(record.validator, ["stage", "outcome", "reason"]) &&
 		exactKeys(record.provenance, ["kind", "version"]) &&
 		(await decisionRecordHash(withoutHash)) === digest &&
-		record.schemaVersion === "eonfolk-cognitive-decision-record-v1" &&
-		record.recordVersion === "1" &&
+		record.schemaVersion === "eonfolk-cognitive-decision-record-v2" &&
+		record.recordVersion === "2" &&
 		identifier(record.decisionBoundaryId) &&
 		record.actorId === context.actorId &&
 		record.runId === context.runId &&
@@ -1185,6 +1203,28 @@ async function validDecisionRecordBinding(input: {
 		record.cognitionConfigurationVersion === COGNITION_VERSION &&
 		record.proposalCanonicalBytes === jcs(proposal) &&
 		record.proposalHash === proposal.proposalHash &&
+		record.selectedSource === "deterministic-fallback" &&
+		exactKeys(record.primaryAttempt, [
+			"disposition",
+			"provenance",
+			"proposalCanonicalBytes",
+			"proposalHash",
+			"outputHash",
+		]) &&
+		record.primaryAttempt.disposition === "not-attempted" &&
+		record.primaryAttempt.provenance === null &&
+		record.primaryAttempt.proposalCanonicalBytes === null &&
+		record.primaryAttempt.proposalHash === null &&
+		record.primaryAttempt.outputHash === null &&
+		record.acceptedFallback !== null &&
+		exactKeys(record.acceptedFallback, [
+			"proposalCanonicalBytes",
+			"proposalHash",
+			"explanation",
+		]) &&
+		record.acceptedFallback.proposalCanonicalBytes === jcs(proposal) &&
+		record.acceptedFallback.proposalHash === proposal.proposalHash &&
+		jcs(record.acceptedFallback.explanation) === jcs(proposal.explanation) &&
 		record.proposedCommandId === input.commandId &&
 		record.receiptRef === input.receiptRef &&
 		jcs(record.acceptedEventInterval) === jcs(input.acceptedEventInterval) &&
@@ -1204,7 +1244,7 @@ async function validDecisionRecordBinding(input: {
 		record.rationaleTemplateId === proposal.explanation.templateId &&
 		record.subjectCitizenId === context.actorId &&
 		record.sensitivity === "citizen-private-audit" &&
-		jcs(record.provenance) === jcs({ kind: "cognition-audit", version: "1" }) &&
+		jcs(record.provenance) === jcs({ kind: "cognition-audit", version: "2" }) &&
 		jcs(record.suppliedRecordIds) ===
 			jcs(context.visibleRecords.map(({ recordId }) => recordId)) &&
 		jcs(record.readRecordIds) ===
@@ -1245,7 +1285,11 @@ async function validResolution(
 		proposal.provenance.cognitionKind !== "standard-brain" ||
 		proposal.proposalId !== command.payload.proposalId ||
 		proposal.actorId !== context.actorId ||
-		(await validateIntentProposal(context, proposal)) !== "accepted"
+		(await authorizeStandardBrainProposal(
+			context,
+			proposal,
+			await sponsorStandardBrainPrng(context, resolution.decisionId),
+		)) !== "accepted"
 	) {
 		return false;
 	}
@@ -1411,7 +1455,11 @@ export async function validateCommittedCivilizationDecisionRecord(input: {
 		proposal.proposalId !== event.provenance.proposalId ||
 		proposal.explanation.counselDisposition !==
 			event.eventPayload.disposition ||
-		(await validateIntentProposal(context, proposal)) !== "accepted"
+		(await authorizeStandardBrainProposal(
+			context,
+			proposal,
+			await sponsorStandardBrainPrng(context, decisionId),
+		)) !== "accepted"
 	)
 		return false;
 	const action = proposal.action;

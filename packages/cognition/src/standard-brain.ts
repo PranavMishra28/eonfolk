@@ -464,6 +464,39 @@ export async function validateIntentProposal(
 	return "accepted";
 }
 
+/**
+ * Standard-only authority check. Structural validation is insufficient because
+ * an attacker can rehash a different legal catalog action. Re-running the
+ * deterministic scorer with the authority-owned PRNG state binds the selected
+ * action and the complete explanation: score terms, decisive reasons,
+ * discarded candidates, tie-break, counsel disposition, and public copy.
+ */
+export async function authorizeStandardBrainProposal(
+	context: DecisionContext,
+	proposal: unknown,
+	prngState: PrngState,
+): Promise<"accepted" | "ACTION_UNAVAILABLE"> {
+	if (
+		(await validateIntentProposal(context, proposal)) !== "accepted" ||
+		!isPlainRecord(proposal) ||
+		!isPlainRecord(proposal.provenance) ||
+		proposal.provenance.cognitionKind !== "standard-brain" ||
+		typeof proposal.proposalId !== "string"
+	)
+		return "ACTION_UNAVAILABLE";
+	try {
+		const expected = await standardBrain(context, {
+			proposalId: proposal.proposalId,
+			prngState,
+		});
+		return jcs(expected.proposal) === jcs(proposal)
+			? "accepted"
+			: "ACTION_UNAVAILABLE";
+	} catch {
+		return "ACTION_UNAVAILABLE";
+	}
+}
+
 function isSha256(value: unknown): value is string {
 	return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
 }

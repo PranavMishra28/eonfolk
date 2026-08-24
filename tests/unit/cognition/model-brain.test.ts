@@ -100,7 +100,15 @@ describe("closed model brain adapter", () => {
 			primaryTimeoutMilliseconds: 100,
 		});
 		expect(result.selectedSource).toBe("deterministic-fallback");
-		expect(result.primaryFailure).toBe("threw");
+		expect(result.primaryFailure).toBe("malformed");
+		expect(result.primaryAttempt).toMatchObject({
+			disposition: "malformed",
+			provenance: {
+				cognitionKind: "model",
+				model: "fixture-model",
+			},
+		});
+		expect(result.primaryAttempt.outputHash).toMatch(/^[0-9a-f]{64}$/u);
 	});
 
 	it("forwards cancellation to the host-owned transport", async () => {
@@ -127,7 +135,7 @@ describe("closed model brain adapter", () => {
 	});
 
 	it("restores historical model decisions without invoking inference again", async () => {
-		const { context } = await setup();
+		const { context, fallback } = await setup();
 		let invocations = 0;
 		const brain = createModelBrain(
 			{
@@ -145,12 +153,20 @@ describe("closed model brain adapter", () => {
 			},
 		);
 		const proposal = await brain.propose(context);
+		const gatewayResult = await runDecisionGateway({
+			context,
+			primary: { propose: async () => proposal },
+			deterministicFallback: fallback,
+			validate: validateIntentProposal,
+			primaryTimeoutMilliseconds: 100,
+		});
 		const record = await createCognitiveDecisionRecord({
 			acceptedEventInterval: null,
 			context,
 			decisionBoundaryId: "boundary-model-replay",
 			decisionId: "decision-model-replay",
 			failureCode: null,
+			gatewayResult,
 			proposal,
 			proposedCommandId: "command-model-replay",
 			receiptRef: "command-model-replay",

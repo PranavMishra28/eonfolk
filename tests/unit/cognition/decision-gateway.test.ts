@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	createCognitiveDecisionRecord,
+	createModelBrain,
 	runDecisionGateway,
 	standardBrain,
 	validateIntentProposal,
@@ -164,6 +165,13 @@ describe("post-cognition decision gateway", () => {
 		expect(await validateIntentProposal(test.context, proposal)).toBe(
 			"accepted",
 		);
+		const gatewayResult = await runDecisionGateway({
+			context: test.context,
+			primary: { propose: async () => proposal },
+			deterministicFallback: test.fallback,
+			validate: validateIntentProposal,
+			primaryTimeoutMilliseconds: 100,
+		});
 		const record = await createCognitiveDecisionRecord({
 			decisionId: "decision-model",
 			decisionBoundaryId: "boundary-model",
@@ -171,6 +179,7 @@ describe("post-cognition decision gateway", () => {
 			context: test.context,
 			proposal,
 			failureCode: null,
+			gatewayResult,
 			validator: {
 				stage: "committed",
 				outcome: "accepted",
@@ -183,6 +192,13 @@ describe("post-cognition decision gateway", () => {
 		expect(record.cognitionKind).toBe("model");
 		expect(record.provider).toBe("ollama-local");
 		expect(record.artifactHash).toBe("33".repeat(32));
+		expect(record.selectedSource).toBe("primary");
+		expect(record.primaryAttempt).toMatchObject({
+			disposition: "accepted",
+			proposalHash: proposal.proposalHash,
+			outputHash: "33".repeat(32),
+		});
+		expect(record.acceptedFallback).toBeNull();
 
 		const brokenCopy = {
 			...proposal,
@@ -196,5 +212,124 @@ describe("post-cognition decision gateway", () => {
 				proposalHash: await proposalHash(brokenWithoutHash),
 			}),
 		).toBe("ACTION_UNAVAILABLE");
+	});
+
+	it("records each primary failure separately from the accepted fallback", async () => {
+		const test = await fixture();
+		const malformed = createModelBrain(
+			{
+				provider: "fixture-provider",
+				model: "fixture-model",
+				modelVersion: "fixture-v1",
+				maxRequestBytes: 32_768,
+				maxResponseBytes: 2_048,
+			},
+			{ invoke: async () => "not-json" },
+		);
+		const pendingModel = createModelBrain(
+			{
+				provider: "fixture-provider",
+				model: "fixture-model",
+				modelVersion: "fixture-v1",
+				maxRequestBytes: 32_768,
+				maxResponseBytes: 2_048,
+			},
+			{ invoke: async () => new Promise(() => undefined) },
+		);
+		const cancelled = new AbortController();
+		cancelled.abort("player-cancelled");
+		const cases = [
+			{
+				disposition: "timeout" as const,
+				input: {
+					primary: pendingModel,
+					primaryTimeoutMilliseconds: 5,
+				},
+			},
+			{
+				disposition: "malformed" as const,
+				input: { primary: malformed, primaryTimeoutMilliseconds: 100 },
+			},
+			{
+				disposition: "invalid" as const,
+				input: {
+					primary: { propose: async () => ({ actionId: "invented" }) },
+					primaryTimeoutMilliseconds: 100,
+				},
+			},
+			{
+				disposition: "threw" as const,
+				input: {
+					primary: {
+						propose: async () => {
+							throw new Error("provider threw");
+						},
+					},
+					primaryTimeoutMilliseconds: 100,
+				},
+			},
+			{
+				disposition: "cancelled" as const,
+				input: {
+					primary: pendingModel,
+					primaryTimeoutMilliseconds: 100,
+					signal: cancelled.signal,
+				},
+			},
+			{
+				disposition: "provider-unavailable" as const,
+				input: {
+					primary: null,
+					primaryUnavailable: true,
+					primaryUnavailableProvenance: await malformed.describeAttempt!(),
+					primaryTimeoutMilliseconds: 100,
+				},
+			},
+		];
+
+		for (const [index, item] of cases.entries()) {
+			const result = await runDecisionGateway({
+				context: test.context,
+				deterministicFallback: test.fallback,
+				validate: validateIntentProposal,
+				...item.input,
+			});
+			const record = await createCognitiveDecisionRecord({
+				decisionId: `decision-failure-${index}`,
+				decisionBoundaryId: `boundary-failure-${index}`,
+				wholePreStateHash: "55".repeat(32),
+				context: test.context,
+				proposal: result.proposal,
+				failureCode: null,
+				gatewayResult: result,
+				validator: {
+					stage: "authorization",
+					outcome: "accepted",
+					reason: "fallback-accepted",
+				},
+				proposedCommandId: `command-failure-${index}`,
+				receiptRef: null,
+				acceptedEventInterval: null,
+			});
+
+			expect(record.primaryAttempt.disposition).toBe(item.disposition);
+			expect(record.selectedSource).toBe("deterministic-fallback");
+			expect(record.acceptedFallback).toMatchObject({
+				proposalHash: result.proposal.proposalHash,
+			});
+			expect(record.proposalHash).toBe(result.proposal.proposalHash);
+			if (
+				["timeout", "malformed", "cancelled", "provider-unavailable"].includes(
+					item.disposition,
+				)
+			)
+				expect(record.primaryAttempt.provenance).toMatchObject({
+					cognitionKind: "model",
+					provider: "fixture-provider",
+					model: "fixture-model",
+				});
+			expect(JSON.stringify(record)).not.toContain("provider threw");
+			expect(JSON.stringify(record)).not.toContain("not-json");
+		}
 	});
 });

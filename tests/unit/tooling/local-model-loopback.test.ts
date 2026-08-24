@@ -142,8 +142,26 @@ async function decisionFixture() {
 
 async function startServer(
 	handler: (request: IncomingMessage, response: ServerResponse) => void,
+	attestedModelSha256?: string,
 ) {
-	const server = createServer(handler);
+	const defaultModelSha256 = createHash("sha256")
+		.update(await readFile(resolve("scripts/ollama-bounded-adapter.mjs")))
+		.digest("hex");
+	const server = createServer((request, response) => {
+		if (request.url !== "/api/show") {
+			handler(request, response);
+			return;
+		}
+		request.resume();
+		request.once("end", () => {
+			response.writeHead(200, { "content-type": "application/json" });
+			response.end(
+				JSON.stringify({
+					modelfile: `# exact local fixture\nFROM /fixture/blobs/sha256-${attestedModelSha256 ?? defaultModelSha256}`,
+				}),
+			);
+		});
+	});
 	openServers.push(server);
 	await new Promise<void>((resolveListen, reject) => {
 		server.once("error", reject);
@@ -357,6 +375,27 @@ describe("bounded Ollama loopback adapter", () => {
 					totalDurationNs: 1_500_000_000,
 				}),
 			]);
+		},
+	);
+
+	macIt(
+		"fails closed before inference when the requested tag is not attested to the contracted model hash",
+		async () => {
+			let chatRequests = 0;
+			const { port } = await startServer((_request, response) => {
+				chatRequests += 1;
+				response.end("unexpected");
+			}, "f".repeat(64));
+			const test = await ollamaHarness(port);
+
+			const received = await test.brain
+				.propose(test.context)
+				.catch((error) => error);
+			expect(received).toMatchObject({ code: "process-failed" });
+			expect(received.message).toBe(
+				"local model adapter failed: model-attestation-failed",
+			);
+			expect(chatRequests).toBe(0);
 		},
 	);
 

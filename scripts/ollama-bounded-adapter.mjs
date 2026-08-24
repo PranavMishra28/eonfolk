@@ -7,6 +7,7 @@ const MAX_OLLAMA_BODY_BYTES = 65_536;
 const MAX_OLLAMA_RESPONSE_BYTES = 65_536;
 const MAX_CHOICE_BYTES = 16_384;
 const OLLAMA_PATH = "/api/chat";
+const OLLAMA_SHOW_PATH = "/api/show";
 const CHOICE_KEYS = ["actionId", "schemaVersion"].sort();
 const TELEMETRY_SCHEMA_VERSION = "eonfolk-local-model-telemetry-v1";
 const ERROR_SCHEMA_VERSION = "eonfolk-local-model-error-v1";
@@ -101,6 +102,7 @@ async function readInvocation() {
 		envelope.schemaVersion !== "eonfolk-local-process-invocation-v1" ||
 		!safeString(envelope.contractHash, 128) ||
 		!safeString(envelope.model?.artifactId, 128) ||
+		!/^[0-9a-f]{64}$/u.test(envelope.model?.sha256) ||
 		typeof envelope.choiceRequest !== "object" ||
 		envelope.choiceRequest === null ||
 		Array.isArray(envelope.choiceRequest) ||
@@ -166,11 +168,14 @@ function prepareOllamaRequest(envelope) {
 		fail("request-oversized");
 	return {
 		actionIds: new Set(actionIds),
+		attestationBody: canonicalJson({ model: envelope.model.artifactId }),
+		expectedModelSha256: envelope.model.sha256,
+		requestedModelTag: envelope.model.artifactId,
 		requestBody,
 	};
 }
 
-async function invokeOllama(port, requestBody) {
+async function invokeOllama(port, path, requestBody) {
 	return new Promise((resolve, reject) => {
 		const request = httpRequest(
 			{
@@ -181,7 +186,7 @@ async function invokeOllama(port, requestBody) {
 				},
 				host: "127.0.0.1",
 				method: "POST",
-				path: OLLAMA_PATH,
+				path,
 				port,
 			},
 			(response) => {
@@ -226,6 +231,28 @@ async function invokeOllama(port, requestBody) {
 		request.once("error", reject);
 		request.end(requestBody);
 	});
+}
+
+function validateModelAttestation(response, references) {
+	if (
+		typeof response !== "object" ||
+		response === null ||
+		Array.isArray(response) ||
+		typeof response.modelfile !== "string" ||
+		!safeString(references.requestedModelTag, 128) ||
+		!/^[0-9a-f]{64}$/u.test(references.expectedModelSha256)
+	)
+		fail("model-attestation-failed");
+	const fromLines = response.modelfile
+		.split(/\r?\n/u)
+		.map((line) => line.trim())
+		.filter((line) => /^FROM\s+/u.test(line));
+	if (fromLines.length !== 1) fail("model-attestation-failed");
+	const match = /^FROM\s+(?:.*[/\\])?sha256[-:]([0-9a-f]{64})$/u.exec(
+		fromLines[0],
+	);
+	if (match?.[1] !== references.expectedModelSha256)
+		fail("model-attestation-failed");
 }
 
 function validateChoice(ollamaResponse, references) {
@@ -278,7 +305,17 @@ async function main() {
 	const port = parsePort(process.argv.slice(2));
 	const envelope = await readInvocation();
 	const prepared = prepareOllamaRequest(envelope);
-	const ollamaResponse = await invokeOllama(port, prepared.requestBody);
+	const attestation = await invokeOllama(
+		port,
+		OLLAMA_SHOW_PATH,
+		prepared.attestationBody,
+	);
+	validateModelAttestation(attestation, prepared);
+	const ollamaResponse = await invokeOllama(
+		port,
+		OLLAMA_PATH,
+		prepared.requestBody,
+	);
 	const validated = validateChoice(ollamaResponse, prepared);
 	process.stderr.write(validated.telemetry);
 	process.stdout.write(validated.choice);
