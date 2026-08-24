@@ -64,8 +64,8 @@ importers:
         specifier: 4.9.0
         version: 4.9.0
       pixi.js:
-        specifier: 8.19.0
-        version: 8.19.0
+        specifier: 8.20.0
+        version: 8.20.0
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -1057,8 +1057,8 @@ packages:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
 
-  pixi.js@8.19.0:
-    resolution: {integrity: sha512-pq1O6emA/GFjjeF+8d3Pb5t7knD8FsnfWGqQcRjYjsqFZ7QdzG1XgjLDUu0DFJRbafjV5+g8iNLFBx0b9649lg==}
+  pixi.js@8.20.0:
+    resolution: {integrity: sha512-WL7+yhxgNnI87AbucMR2X7yXmi/XhhYA25w2wV1QaNv6WMByM02kSX2ryreSq38OavHytFD0zY0bX6Nqgj/WAA==}
 
   playcanvas@2.21.4:
     resolution: {integrity: sha512-L4UGy3z/YT8AaNBEY4ITsZup548UFMabF7loh0YQ0DRwQLdjIW8grmZPoQ1+B83+N6sejRS0/XlXV2Vfb11+fw==}
@@ -1891,7 +1891,7 @@ snapshots:
 
   picomatch@4.0.5: {}
 
-  pixi.js@8.19.0:
+  pixi.js@8.20.0:
     dependencies:
       '@pixi/colord': 2.9.6
       '@types/earcut': 3.0.0
