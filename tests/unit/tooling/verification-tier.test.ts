@@ -51,6 +51,16 @@ describe("V1 CI hardening", () => {
 		);
 	});
 
+	it("reveals contextual resident controls before performance selection", () => {
+		const benchmark = readFileSync(
+			resolve("scripts/benchmark-web.mjs"),
+			"utf8",
+		);
+		expect(benchmark).toContain(
+			'page.locator(".v1-context-panel").hover({ timeout: 5_000 })',
+		);
+	});
+
 	it("runs cognition once and retains Release Genesis evidence without promoting legacy", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		expect(workflow).not.toContain("run: pnpm test:cognition:portable");

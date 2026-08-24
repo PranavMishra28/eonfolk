@@ -306,6 +306,7 @@ function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 
 async function focusCanonicalResident(page) {
 	const started = performance.now();
+	await page.locator(".v1-context-panel").hover({ timeout: 5_000 });
 	const resident = page.locator("ul.v1-presence-roster button").first();
 	await resident.click({ timeout: 5_000 });
 	await page
