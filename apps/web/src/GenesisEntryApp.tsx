@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { EonfolkMark } from "./components/EonfolkMark";
+import "./diagnostics";
 import {
 	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
-} from "./generated-world-runtime";
+} from "./generated-world-client";
 
 export function GenesisEntryApp() {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(

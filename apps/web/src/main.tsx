@@ -7,8 +7,6 @@ import {
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-import "./diagnostics";
-
 const root = document.getElementById("root");
 if (!root) throw new Error("EONFOLK root is missing");
 
@@ -82,6 +80,13 @@ const genesisRoute =
 			? "world"
 			: null;
 
+if (genesisRoute === "world") {
+	void import("./generated-world-client");
+	requestAnimationFrame(() =>
+		setTimeout(() => void import("./generated-world-canvas"), 425),
+	);
+}
+
 reactRoot.render(
 	<RuntimeBoundary>
 		{normalizedPath === "/legacy" ? (
@@ -97,9 +102,16 @@ reactRoot.render(
 		) : genesisRoute !== null ? (
 			<Suspense
 				fallback={
-					<main className="v1-genesis-shell" aria-busy="true">
-						<p>Preparing Release Genesis…</p>
-					</main>
+					genesisRoute === "world" ? (
+						<main className="v1-genesis-loading" aria-busy="true">
+							<h1>Advancing one world through its first year.</h1>
+							<p>Verifying its local authority before presenting facts.</p>
+						</main>
+					) : (
+						<main className="v1-genesis-shell" aria-busy="true">
+							<p>Preparing Release Genesis…</p>
+						</main>
+					)
 				}
 			>
 				{genesisRoute === "entry" ? <GenesisEntryApp /> : <V1GenesisApp />}

@@ -78,7 +78,7 @@ export default defineConfig({
 	},
 	build: {
 		target: "es2022",
-		modulePreload: false,
+		modulePreload: { polyfill: false },
 		cssCodeSplit: true,
 		manifest: true,
 		reportCompressedSize: true,
@@ -95,7 +95,7 @@ export default defineConfig({
 					groups: [
 						{
 							name: "world-authority",
-							test: /(?:packages\/(?:civilization|cognition|persistence|protocol|sim|worldgen|world-presentation)|V1GenesisApp|generated-(?:civilization|presentation|sponsor-runtime))/u,
+							test: /(?:packages\/(?:civilization|cognition|persistence|sim|worldgen|world-presentation)|generated-(?:civilization|presentation|sponsor-runtime))/u,
 						},
 					],
 				},

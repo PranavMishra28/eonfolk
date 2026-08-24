@@ -22,14 +22,13 @@ import {
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
-import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import {
-	buildGeneratedWorldExperience,
 	GENERATED_WORLD_STORAGE_KEY,
-	type GeneratedWorldExperience,
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
-} from "./generated-world-runtime";
+} from "./generated-world-client";
+import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
+import type { GeneratedWorldExperience } from "./generated-world-runtime";
 import {
 	buildWorldFocusHref,
 	parseWorldFocusHref,
@@ -100,7 +99,7 @@ function useGeneratedExperience(
 				: generatedWorldFaultModule.then((module) => {
 						if (module === null)
 							throw new Error("Generated fault module is unavailable");
-						return buildGeneratedWorldExperience(
+						return loadGeneratedWorldExperience(
 							module.generatedWorldBuildOptionsForFault(fault),
 						);
 					});

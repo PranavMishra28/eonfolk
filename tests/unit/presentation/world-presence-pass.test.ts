@@ -72,6 +72,9 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("generatedWorldCanvasModule ??=");
 		expect(main).toContain('normalizedPath === "/world"');
 		expect(main).toContain('genesisRoute === "entry"');
+		expect(main).toContain('import("./generated-world-client")');
+		expect(main).toContain('import("./generated-world-canvas")');
+		expect(main).toContain('className="v1-genesis-loading"');
 		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
 		expect(vite).toContain("webglOnlyPlayCanvasReact()");
 		expect(vite).toContain("WebglGraphicsDevice");
