@@ -1,2 +1,8 @@
 [extend]
 useDefault = true
+
+[[allowlists]]
+description = "Bibliography-key index misclassified as a generic API key"
+condition = "AND"
+paths = ['''^docs/RESEARCH\.md$''']
+rules = ['''generic-api-key''']
