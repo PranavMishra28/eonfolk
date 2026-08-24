@@ -1132,6 +1132,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 }) => {
 	test.setTimeout(90_000);
 	const externalRequests = await isolateLocalWorld(page);
+	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/world");
@@ -1145,7 +1146,9 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
 	await expect(canvas).toHaveAttribute("data-door-height-mm", "2050");
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
-	await page.getByRole("button", { name: "Reduce motion" }).click();
+	await expect(
+		page.getByRole("button", { name: "Motion reduced" }),
+	).toBeVisible();
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
 	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	const tools = page.locator("details.v1-world-tools");

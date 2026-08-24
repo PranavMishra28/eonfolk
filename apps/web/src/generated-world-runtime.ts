@@ -101,6 +101,7 @@ interface PreparedGeneratedWorldBase {
 }
 
 let pendingDefaultPreparedBase: Promise<PreparedGeneratedWorldBase> | undefined;
+let defaultAuthorityEstablished = false;
 
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
@@ -165,8 +166,9 @@ function projectAuthorityView(input: {
  * kernel tests. Presentation is not permitted to invent missing inhabitants or
  * actions.
  */
-export async function buildGeneratedWorldExperience(
-	options: GeneratedWorldBuildOptions = {},
+async function buildGeneratedWorldExperienceInternal(
+	options: GeneratedWorldBuildOptions,
+	preferEstablishedAuthority: boolean,
 ): Promise<GeneratedWorldExperience> {
 	if (generatedFaultHooks) await options.beforeAuthorityAdvance?.();
 	const authorityRunner: typeof runCivilizationExperiment = async (input) => {
@@ -213,8 +215,10 @@ export async function buildGeneratedWorldExperience(
 		});
 		return Object.freeze({ generatedWorld, prepared });
 	};
+	const usesDefaultAuthority =
+		!generatedFaultHooks && Object.keys(options).length === 0;
 	let preparedBase: Promise<PreparedGeneratedWorldBase>;
-	if (!generatedFaultHooks && Object.keys(options).length === 0) {
+	if (usesDefaultAuthority) {
 		pendingDefaultPreparedBase ??= prepareBase();
 		preparedBase = pendingDefaultPreparedBase;
 	} else preparedBase = prepareBase();
@@ -244,7 +248,7 @@ export async function buildGeneratedWorldExperience(
 	} else {
 		let port: BrowserVersionedPersistence | null = null;
 		try {
-			port = await BrowserVersionedPersistence.open({
+			const openedPort = await BrowserVersionedPersistence.open({
 				factory: indexedDbFactory,
 				databaseName,
 				...(generatedFaultHooks &&
@@ -252,41 +256,85 @@ export async function buildGeneratedWorldExperience(
 					? { boundaryInjector: options.persistenceBoundaryInjector }
 					: {}),
 			});
-			const advanced = await persistPreparedGeneratedCivilization({
-				port,
-				prepared,
-			});
-			const finalCheckpoint = advanced.checkpoints.at(-1);
-			if (finalCheckpoint === undefined) throw new Error("Checkpoint missing");
-			run = finalCheckpoint;
-			previousRun = advanced.checkpoints[0] ?? finalCheckpoint;
-			const latest = await port.loadLatestSnapshot({
+			port = openedPort;
+			const scope = {
 				runId: GENERATED_CIVILIZATION_RUN_ID,
 				regionId: generatedWorld.identity.worldId,
-			});
-			const replay = await replayCivilizationHistory(port, {
-				runId: GENERATED_CIVILIZATION_RUN_ID,
-				regionId: generatedWorld.identity.worldId,
-				snapshotId: latest.snapshotId,
-				toSequenceExclusive: advanced.head.lastSequence + 1,
-			});
-			authorityState = replay.state;
-			authorityStateHash = replay.stateHash;
-			authorityEvents = await port.getEventRange({
-				runId: GENERATED_CIVILIZATION_RUN_ID,
-				regionId: generatedWorld.identity.worldId,
-				fromSequenceInclusive: 1,
-				toSequenceExclusive: advanced.head.lastSequence + 1,
-			});
-			persistence = Object.freeze({
-				kind: "indexeddb",
-				claim: "durable-authority",
-				failureCode: null,
-				restored:
-					advanced.receipts.length > 0 &&
-					advanced.idempotentAppends === advanced.receipts.length,
-				catchUpReceipts: advanced.receipts.length,
-			});
+			};
+			const readDurableAuthority = async (input: {
+				readonly head: Awaited<ReturnType<typeof openedPort.loadHead>>;
+				readonly restored: boolean;
+				readonly catchUpReceipts: number;
+			}) => {
+				const latest = await openedPort.loadLatestSnapshot(scope);
+				const replay = await replayCivilizationHistory(openedPort, {
+					...scope,
+					snapshotId: latest.snapshotId,
+					toSequenceExclusive: input.head.lastSequence + 1,
+				});
+				const events = await openedPort.getEventRange({
+					...scope,
+					fromSequenceInclusive: 1,
+					toSequenceExclusive: input.head.lastSequence + 1,
+				});
+				return Object.freeze({
+					state: replay.state,
+					stateHash: replay.stateHash,
+					events,
+					persistence: Object.freeze({
+						kind: "indexeddb" as const,
+						claim: "durable-authority" as const,
+						failureCode: null,
+						restored: input.restored,
+						catchUpReceipts: input.catchUpReceipts,
+					}),
+				});
+			};
+			let durableAuthority:
+				| Awaited<ReturnType<typeof readDurableAuthority>>
+				| undefined;
+			let usedEstablishedAuthority =
+				usesDefaultAuthority &&
+				preferEstablishedAuthority &&
+				defaultAuthorityEstablished;
+			if (usedEstablishedAuthority) {
+				try {
+					durableAuthority = await readDurableAuthority({
+						head: await openedPort.loadHead(scope),
+						restored: true,
+						catchUpReceipts: 0,
+					});
+				} catch (error) {
+					if (
+						!(error instanceof PersistenceError) ||
+						error.code !== "NOT_FOUND"
+					)
+						throw error;
+					usedEstablishedAuthority = false;
+				}
+			}
+			if (!usedEstablishedAuthority) {
+				const advanced = await persistPreparedGeneratedCivilization({
+					port: openedPort,
+					prepared,
+				});
+				durableAuthority = await readDurableAuthority({
+					head: advanced.head,
+					restored:
+						advanced.receipts.length > 0 &&
+						advanced.idempotentAppends === advanced.receipts.length,
+					catchUpReceipts: advanced.receipts.length,
+				});
+				if (usesDefaultAuthority) defaultAuthorityEstablished = true;
+			}
+			if (durableAuthority === undefined)
+				throw new Error("Durable authority missing");
+			run = admittedRun;
+			previousRun = admittedPreviousRun;
+			authorityState = durableAuthority.state;
+			authorityStateHash = durableAuthority.stateHash;
+			authorityEvents = durableAuthority.events;
+			persistence = durableAuthority.persistence;
 		} catch (error) {
 			const failure = classifyDurableFailure(error);
 			if (failure === null) throw error;
@@ -423,6 +471,12 @@ export async function buildGeneratedWorldExperience(
 	});
 }
 
+export function buildGeneratedWorldExperience(
+	options: GeneratedWorldBuildOptions = {},
+): Promise<GeneratedWorldExperience> {
+	return buildGeneratedWorldExperienceInternal(options, false);
+}
+
 const INDEXED_DB_UNAVAILABLE_ERRORS = [
 	"AbortError",
 	"ConstraintError",
@@ -470,6 +524,6 @@ export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience
 
 /** Reloads the sole durable authority projection after an accepted command. */
 export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
-	pendingExperience = buildGeneratedWorldExperience();
+	pendingExperience = buildGeneratedWorldExperienceInternal({}, true);
 	return pendingExperience;
 }

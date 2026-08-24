@@ -1,9 +1,9 @@
 import type { CivilizationState } from "@eonfolk/civilization";
 import {
 	buildCivilizationCounselDecisionContext,
+	type CivilizationSponsorEventEnvelope,
 	createCivilizationSponsorSnapshotBoundary,
 	prepareCivilizationSponsorTransition,
-	type CivilizationSponsorEventEnvelope,
 	type ValidatedStandardBrainResolution,
 } from "@eonfolk/civilization/sponsor";
 import {
@@ -12,15 +12,15 @@ import {
 } from "@eonfolk/cognition";
 import { replayCivilizationHistory } from "@eonfolk/persistence";
 import {
+	type CivilizationCounselBoundaryFact,
 	createCivilizationCounselBoundaryAppend,
 	createCivilizationSponsorAuthorityAppend,
 	createCivilizationSponsorRejectionAppend,
-	type CivilizationCounselBoundaryFact,
 } from "@eonfolk/persistence/civilization-sponsor";
 import {
 	bytesFromHex,
-	payloadFingerprint,
 	PROTOCOL_SCHEMA_VERSION,
+	payloadFingerprint,
 	seedPrng,
 	stateHash,
 	type WorldCommand,
@@ -81,7 +81,9 @@ export async function sponsorGeneratedCitizen(input: {
 	readonly intent?: "verify-reserve" | "accuse-publicly";
 }): Promise<GeneratedSponsorshipResult> {
 	const port = await BrowserVersionedPersistence.open({
-		factory: input.indexedDbFactory,
+		...(input.indexedDbFactory === undefined
+			? {}
+			: { factory: input.indexedDbFactory }),
 		databaseName: input.databaseName,
 	});
 	const scope = {

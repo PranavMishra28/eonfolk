@@ -1,3 +1,11 @@
+/// <reference path="../../../apps/web/src/build-globals.d.ts" />
+
+import { sponsorGeneratedCitizen } from "../../../apps/web/src/generated-sponsor-runtime.js";
+import {
+	GENERATED_WORLD_STORAGE_KEY,
+	loadGeneratedWorldExperience,
+	refreshGeneratedWorldExperience,
+} from "../../../apps/web/src/generated-world-runtime.js";
 import {
 	type BrowserPersistenceBoundaryPoint,
 	BrowserVersionedPersistence,
@@ -206,6 +214,54 @@ async function corruptSecondEvent(): Promise<void> {
 		transaction.addEventListener(
 			"abort",
 			() => reject(new Error("event corruption fixture aborted")),
+			{ once: true },
+		);
+		transaction.addEventListener("error", () => reject(transaction.error), {
+			once: true,
+		});
+	});
+	database.close();
+}
+
+async function corruptGeneratedAuthorityHead(): Promise<void> {
+	const request = indexedDB.open(GENERATED_WORLD_STORAGE_KEY);
+	const database = await new Promise<IDBDatabase>((resolve, reject) => {
+		request.addEventListener("success", () => resolve(request.result), {
+			once: true,
+		});
+		request.addEventListener("error", () => reject(request.error), {
+			once: true,
+		});
+	});
+	await new Promise<void>((resolve, reject) => {
+		const transaction = database.transaction(
+			GENERATED_AUTHORITY_STORES.streams,
+			"readwrite",
+		);
+		const store = transaction.objectStore(GENERATED_AUTHORITY_STORES.streams);
+		const rows = store.getAll();
+		rows.addEventListener("success", () => {
+			const row = (
+				rows.result as Array<{
+					readonly key: string;
+					readonly genesis: unknown;
+					readonly head: Readonly<Record<string, unknown>>;
+					readonly operationCount: number;
+				}>
+			).at(0);
+			if (row === undefined) {
+				transaction.abort();
+				return;
+			}
+			store.put({
+				...row,
+				head: { ...row.head, stateHash: "0".repeat(64) },
+			});
+		});
+		transaction.addEventListener("complete", () => resolve(), { once: true });
+		transaction.addEventListener(
+			"abort",
+			() => reject(new Error("generated authority corruption fixture aborted")),
 			{ once: true },
 		);
 		transaction.addEventListener("error", () => reject(transaction.error), {
@@ -552,6 +608,50 @@ async function run(): Promise<void> {
 	});
 	restoredCivilizationPort.close();
 	await deleteDatabase(CIVILIZATION_DATABASE);
+
+	await deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
+	const originalAppend = BrowserVersionedPersistence.prototype.appendEventBatch;
+	let generatedAppendCalls = 0;
+	BrowserVersionedPersistence.prototype.appendEventBatch = async function (
+		request,
+	) {
+		generatedAppendCalls += 1;
+		return await originalAppend.call(this, request);
+	};
+	let generatedFirstLoadAppendCalls = 0;
+	let generatedRefreshAppendCalls = 0;
+	let generatedFirstLoadPersisted = false;
+	let generatedRefreshObservedSponsor = false;
+	let generatedInvalidRefreshFailedClosed = false;
+	try {
+		const initial = await loadGeneratedWorldExperience();
+		generatedFirstLoadAppendCalls = generatedAppendCalls;
+		generatedFirstLoadPersisted =
+			initial.persistence.kind === "indexeddb" &&
+			initial.persistence.catchUpReceipts === 5;
+		const sponsored = await sponsorGeneratedCitizen({
+			citizenId: initial.sponsorCitizenId,
+			regionId: initial.authorityRegionId,
+			databaseName: initial.authorityDatabaseName,
+			step: "establish",
+		});
+		const appendCallsBeforeRefresh = generatedAppendCalls;
+		const refreshed = await refreshGeneratedWorldExperience();
+		generatedRefreshAppendCalls =
+			generatedAppendCalls - appendCallsBeforeRefresh;
+		generatedRefreshObservedSponsor =
+			refreshed.sponsorPhase === "sponsored" &&
+			refreshed.stateHash === sponsored.authorityStateHash;
+		await corruptGeneratedAuthorityHead();
+		const quarantined = await refreshGeneratedWorldExperience();
+		generatedInvalidRefreshFailedClosed =
+			quarantined.persistence.kind === "quarantined" &&
+			quarantined.persistence.failureCode === "STALE_STATE" &&
+			quarantined.stateHash !== "0".repeat(64);
+	} finally {
+		BrowserVersionedPersistence.prototype.appendEventBatch = originalAppend;
+		await deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
+	}
 	window.__generatedPersistenceResult = {
 		result: {
 			boundaryFailures: {
@@ -584,6 +684,11 @@ async function run(): Promise<void> {
 			civilizationReplayHashMatches:
 				civilizationReplay.stateHash === civilization.head.stateHash,
 			corruptionCode,
+			generatedFirstLoadAppendCalls,
+			generatedFirstLoadPersisted,
+			generatedInvalidRefreshFailedClosed,
+			generatedRefreshAppendCalls,
+			generatedRefreshObservedSponsor,
 			dualTabFenceCode,
 			...failures,
 			recoveredIdempotently: recovered.idempotent,
