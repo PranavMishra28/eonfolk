@@ -658,7 +658,7 @@ async function verifyMacLifecycle(
 		throw new Error("Mac lifecycle job listing is incomplete or paginated");
 	for (const name of [
 		"Mac immutable control preflight",
-		"Target-Mac exact 31-step DEEP intermediate",
+		"Target-Mac exact 32-step DEEP intermediate",
 		"Clean hosted Mac evidence finalizer",
 	])
 		if (
@@ -667,7 +667,7 @@ async function verifyMacLifecycle(
 		)
 			throw new Error(`Mac lifecycle job ${name} is absent or unsuccessful`);
 	const macJob = entries.find(
-		({ name }) => name === "Target-Mac exact 31-step DEEP intermediate",
+		({ name }) => name === "Target-Mac exact 32-step DEEP intermediate",
 	);
 	if (
 		macJob?.runner_id !== lifecycle.runnerId ||
@@ -1131,7 +1131,7 @@ async function finalizeMacIntermediate() {
 	);
 	const macJobs = (Array.isArray(jobs?.jobs) ? jobs.jobs : []).filter(
 		({ name, conclusion }) =>
-			name === "Target-Mac exact 31-step DEEP intermediate" &&
+			name === "Target-Mac exact 32-step DEEP intermediate" &&
 			conclusion === "success",
 	);
 	if (

@@ -433,7 +433,7 @@ jobs:
             --expected-owner "${GITHUB_REPOSITORY_OWNER}" \
             --expected-operator "${GITHUB_REPOSITORY_OWNER}"
   mac-deep-intermediate:
-    name: Target-Mac exact 31-step DEEP intermediate
+    name: Target-Mac exact 32-step DEEP intermediate
     needs: mac-runner-preflight
     runs-on:
       - self-hosted
@@ -540,7 +540,7 @@ jobs:
             --output "${RUNNER_TEMP}/tla2tools.jar"
           echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | shasum -a 256 --check
 
-      - name: Run immutable-control exact 31-step DEEP
+      - name: Run immutable-control exact 32-step DEEP
         working-directory: candidate
         env:
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar

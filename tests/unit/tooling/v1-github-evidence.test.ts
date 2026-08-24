@@ -336,7 +336,7 @@ function fixture(mutation: Mutation = {}) {
 									conclusion: "success",
 								},
 								{
-									name: "Target-Mac exact 31-step DEEP intermediate",
+									name: "Target-Mac exact 32-step DEEP intermediate",
 									conclusion: "success",
 									runner_id: 501,
 									runner_name: runnerName,
