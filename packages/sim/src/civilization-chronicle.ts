@@ -1,13 +1,13 @@
+import type { CivilizationCounselOutcomeEffect } from "../../civilization/src/types.js";
 import {
 	canRead,
 	type ReadPurpose,
 	VISIBILITY_POLICY_VERSION,
 	type Viewer,
-	type VisibilityContext,
 	type Visibility,
+	type VisibilityContext,
 	type WorldEventEnvelope,
 } from "../../protocol/src/index.js";
-import type { CivilizationCounselOutcomeEffect } from "../../civilization/src/types.js";
 
 export interface CivilizationChronicleBoundary {
 	readonly eventId: string;
@@ -70,6 +70,25 @@ function citizenName(
 	return names[citizenId] ?? citizenId;
 }
 
+function humanizeIdentifier(value: string): string {
+	return value.replaceAll("-", " ");
+}
+
+function stockLocation(stockId: string): string {
+	if (stockId.startsWith("stock-origin-")) return "in the settlement reserve";
+	if (stockId.startsWith("stock-source-")) return "at its source";
+	if (stockId.startsWith("stock-work-")) return "at active worksites";
+	return "in the recorded reserve";
+}
+
+function stockObservationText(observation: {
+	readonly stockId: string;
+	readonly resourceTypeId: string;
+	readonly quantity: number;
+}): string {
+	return `${humanizeIdentifier(observation.resourceTypeId)} ${stockLocation(observation.stockId)}: ${String(observation.quantity)} units`;
+}
+
 function relationFor(
 	event: WorldEventEnvelope,
 	visibleEventIds: ReadonlySet<string>,
@@ -118,7 +137,7 @@ export function projectCivilizationChronicle(input: {
 		const payload = event.eventPayload;
 		let text: string | null = null;
 		if (payload.kind === "SponsorshipEstablished") {
-			text = `${citizenName(payload.citizenId, input.citizenNames)} entered a sponsorship covenant with ${payload.patronPrincipalId}.`;
+			text = `${citizenName(payload.citizenId, input.citizenNames)} entered a sponsorship covenant with ${input.viewer.kind === "participant" && input.viewer.principalId === payload.patronPrincipalId ? "you" : "their patron"}.`;
 		} else if (payload.kind === "PatronAbstained") {
 			text = `The patron withheld counsel for ${citizenName(payload.citizenId, input.citizenNames)} at this boundary.`;
 			unresolvedTension = `What will ${citizenName(payload.citizenId, input.citizenNames)} do without intervention?`;
@@ -166,10 +185,10 @@ export function projectCivilizationChronicle(input: {
 		const interpreted = fact.interpretationAction.replaceAll("-", " ");
 		const consequence =
 			fact.effect.kind === "reserve-inspection"
-				? `The later inspection recorded ${fact.effect.stockObservations.map((item) => `${item.stockId}=${String(item.quantity)}`).join(", ")}.`
+				? `The later inspection recorded ${fact.effect.stockObservations.map(stockObservationText).join("; ")}.`
 				: fact.effect.kind === "public-allegation"
 					? `A public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust by ${String(-fact.effect.trustDeltaBasisPoints)} and increased strain by ${String(fact.effect.strainDeltaBasisPoints)} basis points.`
-					: `The interpretation temporally preceded the standing plan ${fact.effect.planId} continuing.`;
+					: "The interpretation temporally preceded the existing standing plan continuing.";
 		beats.push({
 			beat: beats.length + 1,
 			text: `${citizenName(fact.citizenId, input.citizenNames)} reached the later decision boundary after choosing to ${interpreted}. ${consequence} The authoritative need ledger recorded ${fact.consumedNeedUnits} of ${fact.requiredNeedUnits} units consumed and ${fact.unmetNeedUnits} unmet.`,

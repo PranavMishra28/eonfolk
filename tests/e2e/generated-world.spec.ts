@@ -1955,7 +1955,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		})
 		.not.toBe(initialHash);
 	await expect(page.getByRole("status")).toContainText(
-		"entered a sponsorship covenant with patron:local",
+		"entered a sponsorship covenant with you",
 	);
 	await expect
 		.poll(() =>
@@ -2018,6 +2018,12 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(page.getByRole("status")).toContainText(
 		"later inspection recorded",
 	);
+	await expect(page.getByRole("status")).toContainText(
+		"food in the settlement reserve: 44 units",
+	);
+	await expect(page.getByRole("status")).not.toContainText("stock-origin-");
+	await expect(page.getByRole("status")).not.toContainText("stock-source-");
+	await expect(page.getByRole("status")).not.toContainText("stock-work-");
 	await expect(
 		page.getByRole("heading", { name: "Share this factual trace" }),
 	).toBeVisible();

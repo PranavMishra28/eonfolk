@@ -11,8 +11,8 @@ import {
 import {
 	buildCivilizationCounselDecisionContext,
 	createCivilizationSponsorSnapshotBoundary,
-	prepareCivilizationSponsorTransition,
 	parseCivilizationSponsorCommand,
+	prepareCivilizationSponsorTransition,
 	replayCivilizationSponsorEvents,
 } from "../../../packages/civilization/src/sponsor.js";
 import {
@@ -759,10 +759,11 @@ describe("canonical civilization sponsor reducer", () => {
 		});
 		expect(projection.beats).toHaveLength(2);
 		expect(projection.beats[0]).toMatchObject({
-			text: `Iri entered a sponsorship covenant with ${PATRON.principalId}.`,
+			text: "Iri entered a sponsorship covenant with you.",
 			relation: "fact",
 			evidenceEventIds: [followed.events[0]!.eventId],
 		});
+		expect(projection.storyCard).not.toContain(PATRON.principalId);
 
 		const afterRevocation = projectCivilizationChronicle({
 			events,
