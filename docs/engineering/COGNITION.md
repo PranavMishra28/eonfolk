@@ -27,7 +27,7 @@ Noninterference is stronger than redaction: two worlds differing only in facts d
 
 ## `IntentProposal` and grounded explanation
 
-`IntentProposal` contains stable proposal ID, context/actor/revision, exactly one known typed action, optional bounded typed plan/memory proposals, provenance, and a short `publicJustification`. V1 does not accept arbitrary justification text: Standard Brain renders it from `DecisionExplanation` through an authored template.
+`IntentProposal` contains stable proposal ID, context/actor/revision, exactly one known typed action, optional bounded typed plan/memory proposals, provenance, and a short `publicJustification`. V1 accepts no arbitrary justification text: Standard Brain renders from `DecisionExplanation`; the optional Model Brain returns only a closed `actionId`, after which Application derives references, counsel disposition, and public copy from that selected typed catalog entry.
 
 `DecisionExplanation` contains selected action/template IDs; decisive reason codes; visible fact/belief/relationship/commitment references actually read; integer score terms and tie-break record; counsel disposition (`accepted`, `rejected`, `delayed`, `reinterpreted`, or `not-applicable`); and discarded candidate IDs with bounded public reason codes.
 
@@ -81,7 +81,7 @@ A pass requires state-sensitive action/explanation changes and at least three di
 
 ## Optional local-model boundary
 
-The implemented macOS host is an optional experiment seam after the Standard-Brain loop. It receives the same bounded context/catalog, returns the same schema, and is untrusted. Provider/model/version/prompt/schema/artifact hash and the original structured proposal are preserved provenance, not identity or onboarding choice. Removing it preserves liveness and the entire game loop. Model migration is a later explicit cognition event.
+The implemented macOS host is an optional experiment seam after the Standard-Brain loop. It receives the same bounded context/catalog and may return only `{ schemaVersion, actionId }`; every extra field fails closed. Application locates the exact catalog entry and deterministically derives the typed action, evidence/relationship/value/commitment references, counsel disposition, and authored public stake sentence before the normal authority gateway. Provider/model/version/prompt/schema/artifact hash and the original two-field choice are preserved provenance, not identity or onboarding choice. Removing the model preserves liveness and the entire game loop. Model migration is a later explicit cognition event.
 
 Canonical replay never calls Standard Brain or a model: it applies the preserved accepted event history. Model reproducibility is not promised. Future model experiments rerun independent manifests and compare outcome distributions rather than treating one response/run as reproducible evidence.
 
@@ -89,7 +89,7 @@ V1 now includes a Node-only macOS process transport behind `BrainPort`. Before i
 
 This host is macOS-only and hashes large artifacts when the transport is created. The repository-owned Ollama translator permits only the contract-bound loopback port while the kernel denies other egress, requests one closed JSON choice at a named boundary, discards model working text, and applies the same authoritative validator and deterministic fallback as every other Brain. Linux CI compiles and property-tests the provider-neutral boundary but skips the macOS subprocess cases; exact-candidate target-Mac verification must run them. V1 still ships no provider SDK, provider UI, key, branded choice, continuous inference, training, embeddings, vector storage, or required model download.
 
-At clean commit `afdb66d`, exact `gpt-oss:20b` and Ollama 0.32.15 passed the 100-decision technical treatment corpus: 98 primary proposals were accepted, two public-justification failures fell back, all 50 hidden pairs selected the same action, warm p50/p95/max were 2,126/2,963/3,449 ms, memory pressure remained normal, and swap did not grow. The four-second ceiling is a fail-closed optional-treatment bound, not an input-latency promise. Exact provenance and limitations are retained in [the treatment evidence](../exec-plans/evidence/002/local-model-treatment.json). This promotes one technical treatment only; story-value and renderer-concurrent gates remain unproven.
+At clean commit `7e9af02`, exact `gpt-oss:20b` and Ollama 0.32.15 passed the 100-decision two-field treatment corpus: all 100 primary choices were accepted, all 50 hidden pairs selected the same action and exact public projection, and warm p50/p95/max were 1,139/1,877/2,076 ms. Memory pressure remained normal and swap did not grow. The four-second ceiling remains a fail-closed optional-treatment bound, not an input-latency promise. Exact provenance and limitations are retained in [the treatment evidence](../exec-plans/evidence/002/local-model-treatment.json). This promotes one technical treatment only; story-value and renderer-concurrent gates remain unproven.
 
 Recorded proposal restoration accepts no `BrainPort` or transport. It verifies the decision-record hash, context binding, canonical proposal bytes/hash, and the versioned validator before returning the frozen proposal; historical replay therefore cannot invoke inference through this path.
 

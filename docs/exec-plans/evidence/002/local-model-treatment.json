@@ -2,18 +2,18 @@
   "schemaVersion": "eonfolk-retained-local-model-treatment-v1",
   "status": "PASS",
   "claimBoundary": "Technical promotion of one optional local Model Brain treatment. It is noncanonical, never required for liveness, and has no human story-quality claim.",
-  "recordedAt": "2026-08-23T07:25:29.683Z",
+  "recordedAt": "2026-08-24T09:16:05.987Z",
   "source": {
-    "commit": "afdb66d0243871ce8ccc59ef04c286eda755dcd2",
-    "tree": "2b2f0ec71db936ec4639dd33f6ddb3fd7d49f870",
+    "commit": "7e9af02cc1257a8d0eedcab0c07b86afbd8d1239",
+    "tree": "1d90f3a4960fa8e1b667f5f9ebcad27563b0208f",
     "clean": true
   },
-  "reportHash": "9387a2233ec5c49b36affb9d0ca007d99bc0d52fe9a3b234a3301803380bb11f",
-  "resultCorpusSha256": "42d42904a8e17ba631dc98c17faed29784e33b1c6bf3f80e32e0c7639c19bc6f",
-  "contextsHash": "75567b5252c69bdd126c751fd9fca79da26846405117c98cec38511f170c72a9",
-  "serverLogSha256": "1dce5719784db64bfc4f799f682ffa31a0aa93a39987aa4b42210344d033caec",
+  "reportHash": "10821976650b81bbfda51e74ad09474d5e874fa477f16faba874ba57f12e228b",
+  "resultCorpusSha256": "2d1de739a0a7c510955eaba56c3de2f96c22d7f7bd3dfd4c4822b55dd544b215",
+  "contextsHash": "885aded6354c735080d6d93734ef9b25aec9dbaee6983c88e0037ea8c4f98aac",
+  "serverLogSha256": "8f28db79c2c2cf018b722e1c05f42a026b302d2733ac25bfad0c06d54446a8dc",
   "controls": {
-    "loopbackPort": 11435,
+    "loopbackPort": 11440,
     "modelSeeds": [42001, 42007],
     "visibleContexts": 25,
     "hiddenVariants": 2,
@@ -24,20 +24,20 @@
   },
   "summary": {
     "executions": 100,
-    "primaryAccepted": 98,
-    "fallbacks": 2,
-    "invalidOrUnavailableBasisPoints": 200,
-    "preferredAgreementBasisPoints": 8000,
-    "hiddenPairExactMatches": 46,
+    "primaryAccepted": 100,
+    "fallbacks": 0,
+    "invalidOrUnavailableBasisPoints": 0,
+    "preferredAgreementBasisPoints": 7600,
+    "hiddenPairExactMatches": 50,
     "hiddenPairActionMatches": 50,
     "hiddenPairs": 50,
-    "warmLatencyMs": { "p50": 2126, "p95": 2963, "maximum": 3449 },
-    "outputTokensPerSecond": { "p50": 90, "p95": 95 },
+    "warmLatencyMs": { "p50": 1139, "p95": 1877, "maximum": 2076 },
+    "outputTokensPerSecond": { "p50": 98, "p95": 100 },
     "maximumPressure": 1,
-    "maximumRunnerRssBytes": 15364145152,
+    "maximumRunnerRssBytes": 15168487424,
     "swapDeltaBytes": 0,
-    "minimumFreeDiskBytes": 133268774912,
-    "failureCounts": { "choice-justification-invalid": 2 },
+    "minimumFreeDiskBytes": 124037263360,
+    "failureCounts": {},
     "promotionGates": {
       "completeCorpus": true,
       "fallbackWithinFivePercent": true,
@@ -49,7 +49,7 @@
     }
   },
   "artifacts": {
-    "adapterSha256": "ac3780d9081924809f2b61b9ec00e8a60cad34783bbd91ff8cd2c041216299d7",
+    "adapterSha256": "9680f1f1e3f8a1f6064e5de1b0006abe8ca0ea90cd096d4120b8f45987a64f81",
     "node": { "version": "v22.23.1", "sha256": "2e3f1286a7eb3736346ed1803e458a0ff909e2b2d5bc746144dcb76970e9b99d" },
     "ollama": { "version": "0.32.15", "sha256": "eee609f0a6da58b978d453e0385fd0e3496e6cf319c639875669b51cb4277d2d" },
     "model": { "id": "gpt-oss:20b", "bytes": 13793422144, "sha256": "e7b273f9636059a689e3ddcab3716e4f65abe0143ac978e46673ad0e52d09efb", "license": "Apache-2.0", "licenseSha256": "f60356777647e927149cbd4c0ec1314a90caba9400ad205ddc4ce47ed001c2d6" },
@@ -60,6 +60,6 @@
     "Model proposals never mutate Reality and deterministic fallback remains mandatory.",
     "Preferred-action agreement is an automated oracle, not human story quality.",
     "Renderer-concurrent performance remains a separate acceptance gate.",
-    "Four hidden pairs differed in public wording while all 50 selected the same action."
+    "The model returns only a two-field typed choice; Application derives public copy and references from the selected catalog entry."
   ]
 }
