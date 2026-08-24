@@ -716,7 +716,9 @@ export function RiverholdApp() {
 			? "words"
 			: "illustrated",
 	);
-	const [rendererFailed, setRendererFailed] = useState(false);
+	const [rendererFailed, setRendererFailed] = useState(
+		() => sessionStorage.getItem("eonfolk:e2e-renderer-failure") === "1",
+	);
 	const [worldFocus, setWorldFocus] = useState<WorldFocus>({
 		kind: "overview",
 	});
