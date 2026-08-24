@@ -24,21 +24,22 @@ const LEGACY_MERGE_REQUIREMENT =
 const PREMERGE_REQUIREMENT =
 	"Draft PR marked ready after exact-candidate premerge evidence";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+// Persistence/reliability is part of systems-correctness, not a seventh review.
 const REQUIRED_REVIEW_DISCIPLINES = new Set([
 	"product-game",
 	"systems-correctness",
 	"visual-accessibility",
 	"cognition-eval",
-	"persistence-reliability",
-	"ci-security",
+	"security-ci",
+	"repository-readiness",
 ]);
 const REVIEW_ID_BY_DISCIPLINE = Object.freeze({
 	"product-game": "V1-RV-PRODUCT",
 	"systems-correctness": "V1-RV-SYSTEMS",
 	"visual-accessibility": "V1-RV-VISUAL",
 	"cognition-eval": "V1-RV-COGNITION",
-	"persistence-reliability": "V1-RV-PERSISTENCE",
-	"ci-security": "V1-RV-CI",
+	"security-ci": "V1-RV-SECURITY-CI",
+	"repository-readiness": "V1-RV-REPOSITORY-READINESS",
 });
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
 const POST_FREEZE_ROOT_FILES = new Set([
@@ -629,7 +630,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 	const evidenceSha = context.evidenceSha;
 	if (report === null || typeof report !== "object" || Array.isArray(report))
 		return { ok: false, failures: ["review evidence is not an object"] };
-	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v6")
+	if (report.schemaVersion !== "eonfolk-v1-review-confirmation-v7")
 		failures.push("unsupported review evidence schema");
 	if (
 		!exactKeys(report, [
@@ -644,7 +645,7 @@ export function validateReviewConfirmationEvidence(report, context = {}) {
 			"status",
 		])
 	)
-		failures.push("review evidence does not match the exact v5 envelope");
+		failures.push("review evidence does not match the exact v7 envelope");
 	if (report.status !== "PASS") failures.push("review evidence is not PASS");
 	if (
 		report.integrityClaim !==

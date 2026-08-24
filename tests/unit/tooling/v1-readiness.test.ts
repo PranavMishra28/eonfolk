@@ -10,8 +10,6 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { contentSha256 } from "../../../scripts/evidence-integrity.mjs";
-
 import {
 	canonicalGoalCommit,
 	evaluateV1Readiness,
@@ -25,6 +23,7 @@ import {
 	validateTargetMacDeepEvidence,
 	validateTestedIdentity,
 } from "../../../scripts/check-v1-readiness.mjs";
+import { contentSha256 } from "../../../scripts/evidence-integrity.mjs";
 import {
 	checkOrWriteInventory,
 	renderRepositoryInventory,
@@ -322,8 +321,8 @@ const disciplines = [
 	"systems-correctness",
 	"visual-accessibility",
 	"cognition-eval",
-	"persistence-reliability",
-	"ci-security",
+	"security-ci",
+	"repository-readiness",
 ] as const;
 
 function artifact(path: string, contents: string) {
@@ -358,8 +357,8 @@ function reviewEvidence(
 		"V1-RV-SYSTEMS",
 		"V1-RV-VISUAL",
 		"V1-RV-COGNITION",
-		"V1-RV-PERSISTENCE",
-		"V1-RV-CI",
+		"V1-RV-SECURITY-CI",
+		"V1-RV-REPOSITORY-READINESS",
 	];
 	const reviews = disciplines.map((discipline, index) => {
 		const reviewId = reviewIds[index];
@@ -482,7 +481,7 @@ function reviewEvidence(
 		}),
 	);
 	const report = {
-		schemaVersion: "eonfolk-v1-review-confirmation-v6",
+		schemaVersion: "eonfolk-v1-review-confirmation-v7",
 		status: "PASS",
 		integrityClaim:
 			"REPOSITORY_COMPUTABLE_PLUS_LIVE_GITHUB_RECEIPTS; REVIEWER_AGENT_IDENTITY_SELF_REPORTED",
@@ -1004,6 +1003,25 @@ describe("V1 readiness and generated inventory tooling", () => {
 		expect(failures).toContain(
 			"P0/P1 dispositions do not exactly cover review findings",
 		);
+	});
+
+	it("rejects the superseded persistence and CI review roster", () => {
+		const fixture = reviewEvidence("a".repeat(40), "b".repeat(40));
+		fixture.report.schemaVersion = "eonfolk-v1-review-confirmation-v6";
+		fixture.report.reviews[4].discipline = "persistence-reliability";
+		fixture.report.reviews[4].reviewId = "V1-RV-PERSISTENCE";
+		fixture.report.reviews[5].discipline = "ci-security";
+		fixture.report.reviews[5].reviewId = "V1-RV-CI";
+		fixture.report.outputSha256 = contentSha256(fixture.report);
+		const failures = validateReviewConfirmationEvidence(
+			fixture.report,
+			fixture.context,
+		).failures;
+		expect(failures).toContain("unsupported review evidence schema");
+		expect(failures).toContain(
+			"unknown review discipline persistence-reliability",
+		);
+		expect(failures).toContain("unknown review discipline ci-security");
 	});
 
 	it("requires a separately hashed fresh-confirmation artifact", () => {

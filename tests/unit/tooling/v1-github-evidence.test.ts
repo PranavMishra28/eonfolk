@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
 	mkdirSync,
 	mkdtempSync,
@@ -336,7 +336,7 @@ function fixture(mutation: Mutation = {}) {
 									conclusion: "success",
 								},
 								{
-									name: "Target-Mac exact 30-step DEEP intermediate",
+									name: "Target-Mac exact 31-step DEEP intermediate",
 									conclusion: "success",
 									runner_id: 501,
 									runner_name: runnerName,
@@ -420,6 +420,19 @@ function fixture(mutation: Mutation = {}) {
 }
 
 describe("live GitHub V1 evidence verification", () => {
+	it("requires the exact current independent-review producer roster", () => {
+		expect(REQUIRED_EVIDENCE_PURPOSES).toEqual([
+			"target-mac-deep",
+			"review:V1-RV-PRODUCT",
+			"review:V1-RV-SYSTEMS",
+			"review:V1-RV-VISUAL",
+			"review:V1-RV-COGNITION",
+			"review:V1-RV-SECURITY-CI",
+			"review:V1-RV-REPOSITORY-READINESS",
+			"final-confirmation",
+		]);
+	});
+
 	it("constructs and validates a non-self-referential three-commit evidence chain", () => {
 		const root = mkdtempSync(join(tmpdir(), "eonfolk-evidence-chain-"));
 		const output = join(root, "output");
