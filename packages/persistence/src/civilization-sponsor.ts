@@ -86,6 +86,32 @@ export interface CivilizationCounselBoundaryFact {
 	};
 }
 
+export interface CivilizationAbstentionBoundaryFact {
+	readonly schemaVersion: "eonfolk-abstention-boundary-fact-v1";
+	readonly citizenId: string;
+	readonly abstentionId: string;
+	readonly abstentionEventId: string;
+	readonly planId: string;
+	readonly planStepId: string;
+	readonly consequenceKind: "standing-plan-continued-after-patron-abstention";
+	readonly routineKind: SchedulerRoutineDecision["kind"];
+	readonly routineSubjectId: string;
+	readonly schedulerActionKinds: readonly string[];
+	readonly simulationTime: number;
+	readonly requiredNeedUnits: number;
+	readonly consumedNeedUnits: number;
+	readonly unmetNeedUnits: number;
+	readonly sourceStockIds: readonly string[];
+}
+
+export function civilizationAbstentionBoundaryAppendId(
+	abstentionId: string,
+): string {
+	const appendId = `abstention-boundary:${string(abstentionId, "abstentionId")}:1`;
+	if (appendId.length > 122) fail("INVALID_INPUT", "CSP");
+	return appendId;
+}
+
 function fail(
 	code: "INVALID_INPUT" | "STALE_STATE" | "UNSUPPORTED_VERSION",
 	message: string,
@@ -112,6 +138,24 @@ function integer(value: unknown, label: string): number {
 	if (!Number.isSafeInteger(value) || (value as number) < 0)
 		fail("INVALID_INPUT", `${label} must be a non-negative safe integer`);
 	return value as number;
+}
+
+function standingPlanRoutineKind(
+	stepKind: string,
+): SchedulerRoutineDecision["kind"] {
+	return stepKind === "Produce"
+		? "produce"
+		: stepKind === "TransportResource"
+			? "transport"
+			: stepKind === "WorkProject"
+				? "construct"
+				: stepKind === "Consume"
+					? "consume"
+					: stepKind === "JoinMigration"
+						? "travel"
+						: stepKind === "Away"
+							? "away"
+							: "social-maintenance";
 }
 
 function array(value: unknown, label: string): readonly unknown[] {
@@ -556,20 +600,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		step?.status !== "active"
 	)
 		fail("INVALID_INPUT", "CSP");
-	const routineKind =
-		step.kind === "Produce"
-			? "produce"
-			: step.kind === "TransportResource"
-				? "transport"
-				: step.kind === "WorkProject"
-					? "construct"
-					: step.kind === "Consume"
-						? "consume"
-						: step.kind === "JoinMigration"
-							? "travel"
-							: step.kind === "Away"
-								? "away"
-								: "social-maintenance";
+	const routineKind = standingPlanRoutineKind(step.kind);
 	const relationship = [...mind!.snapshot.relationships]
 		.sort((left, right) =>
 			left.relationshipId.localeCompare(right.relationshipId),
@@ -831,6 +862,181 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 			routineDecision: json(routineDecision, "boundary routine decision"),
 			schedulerActions: json(derived.actions, "boundary actions"),
 			schedulerRoutines: json(derived.routines, "boundary routines"),
+		},
+	});
+	return {
+		state: next,
+		fact,
+		request: {
+			schemaVersion: AUTHORITY_APPEND_SCHEMA_VERSION,
+			runId: input.head.runId,
+			regionId: input.head.regionId,
+			appendId,
+			batchId,
+			expectedRevision: input.head.revision,
+			expectedLastSequence: input.head.lastSequence,
+			expectedStateHash: input.head.stateHash,
+			expectedLastEventHash: input.head.lastEventHash,
+			fencingToken: input.head.fencingToken,
+			events: [event],
+		},
+	};
+}
+
+/**
+ * Advances one deterministic daily scheduler boundary after a recorded patron
+ * abstention. The citizen follows the already-authoritative Standing Plan; the
+ * abstention is chronology only and is never admitted as a causal parent.
+ */
+export async function createCivilizationAbstentionBoundaryAppend(input: {
+	readonly state: ReleaseGenesisCivilizationState;
+	readonly head: AuthorityHead;
+	readonly citizenId: string;
+	readonly abstentionId: string;
+}): Promise<
+	CivilizationSponsorAuthorityAppend & {
+		readonly fact: CivilizationAbstentionBoundaryFact;
+	}
+> {
+	const current = validateState(input.state);
+	if (current.phase !== "active" || current.civilization === null)
+		fail("INVALID_INPUT", "CSP");
+	if (
+		(await hashAuthoritativeState(current)) !== input.head.stateHash ||
+		current.scheduler.simulationTime !== input.head.simulationTime
+	)
+		fail("STALE_STATE", "CSP");
+	const civilization = current.civilization as unknown as CivilizationState;
+	assertCivilizationInvariants(civilization);
+	const abstention = civilization.patronAbstentions[input.abstentionId];
+	const mind = civilization.minds[input.citizenId];
+	const plan = mind?.snapshot.standingPlan;
+	const step = plan?.steps.find(({ stepId }) => stepId === plan.currentStepId);
+	if (
+		abstention?.citizenId !== input.citizenId ||
+		plan === undefined ||
+		plan.status !== "active" ||
+		plan.expiryBoundary < civilization.simulationTime ||
+		step?.status !== "active"
+	)
+		fail("INVALID_INPUT", "CSP");
+	const routineDecision: SchedulerRoutineDecision = {
+		schemaVersion: "eonfolk-civilization-routine-decision-v1",
+		citizenId: input.citizenId,
+		actionId: `abstention-follow:${input.abstentionId}`,
+		activeStandingPlanId: plan.planId,
+		kind: standingPlanRoutineKind(step.kind),
+		subjectId: step.targetIds[0] ?? input.citizenId,
+	};
+	const policy = deriveCivilizationSchedulerPolicy(
+		current.world as unknown as GeneratedWorldState,
+	);
+	let derived: ReturnType<typeof advanceGeneralizedScheduler>;
+	try {
+		derived = advanceGeneralizedScheduler(civilization, policy, [
+			routineDecision,
+		]);
+		assertCivilizationInvariants(derived.state);
+	} catch {
+		fail("INVALID_INPUT", "CSP");
+	}
+	const routine = derived.routines.find(
+		(candidate) => candidate.citizenId === input.citizenId,
+	);
+	const outcome = derived.state.needOutcomes
+		.filter(
+			(candidate) =>
+				candidate.citizenId === input.citizenId &&
+				candidate.evaluatedAtSimulationTime === derived.state.simulationTime,
+		)
+		.at(-1);
+	if (
+		derived.modelInvocations !== 0 ||
+		derived.state.simulationTime !== civilization.simulationTime + 86_400 ||
+		routine?.kind !== routineDecision.kind ||
+		routine?.subjectId !== routineDecision.subjectId ||
+		outcome === undefined
+	)
+		fail("INVALID_INPUT", "CSP");
+	const fact: CivilizationAbstentionBoundaryFact = {
+		schemaVersion: "eonfolk-abstention-boundary-fact-v1",
+		citizenId: input.citizenId,
+		abstentionId: input.abstentionId,
+		abstentionEventId: abstention.sourceEventId,
+		planId: plan.planId,
+		planStepId: step.stepId,
+		consequenceKind: "standing-plan-continued-after-patron-abstention",
+		routineKind: routineDecision.kind,
+		routineSubjectId: routineDecision.subjectId,
+		schedulerActionKinds: [
+			...new Set(derived.actions.map(({ kind }) => kind)),
+		].sort(),
+		simulationTime: derived.state.simulationTime,
+		requiredNeedUnits: outcome.foodRequiredUnits + outcome.waterRequiredUnits,
+		consumedNeedUnits: outcome.foodConsumedUnits + outcome.waterConsumedUnits,
+		unmetNeedUnits:
+			outcome.foodRequiredUnits -
+			outcome.foodConsumedUnits +
+			(outcome.waterRequiredUnits - outcome.waterConsumedUnits),
+		sourceStockIds: [...outcome.sourceStockIds].sort(),
+	};
+	const projectedActivities = projectCivilizationScheduledActivities({
+		state: derived.state,
+		world: current.world as unknown as GeneratedWorldState,
+		routines: derived.routines,
+	});
+	const next: ReleaseGenesisCivilizationState = {
+		...current,
+		civilization: json(derived.state, "abstention boundary civilization"),
+		scheduler: {
+			completedDay: current.scheduler.completedDay + 1,
+			simulationTime: derived.state.simulationTime,
+			modelInvocations: 0,
+			activities: json(projectedActivities, "abstention boundary activities"),
+		},
+	};
+	const appendId = civilizationAbstentionBoundaryAppendId(input.abstentionId);
+	const batchId = `batch:${appendId}`;
+	const event = await createAuthorityEvent({
+		runId: input.head.runId,
+		regionId: input.head.regionId,
+		engineVersion: input.head.engineVersion,
+		stateSchemaVersion: input.head.stateSchemaVersion,
+		appendId,
+		batchId,
+		eventId: `event:${appendId}`,
+		sequence: input.head.lastSequence + 1,
+		simulationTime: derived.state.simulationTime,
+		eventType: "CivilizationAbstentionBoundaryCommitted",
+		causalParents: [],
+		relatedEvents: [
+			{
+				eventId: abstention.sourceEventId,
+				relation: "temporal-predecessor",
+			},
+		],
+		visibility: {
+			kind: "patron-visible-through-covenant",
+			subjectCitizenId: input.citizenId,
+		},
+		provenance: {
+			mechanismId: "civilization.scheduler.abstention-boundary.v1",
+			cognitionDecisionId: null,
+			brainKind: null,
+		},
+		preStateHash: input.head.stateHash,
+		postStateHash: await hashAuthoritativeState(next),
+		previousEventHash: input.head.lastEventHash,
+		payload: {
+			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
+			transitionKind: "abstention-boundary",
+			fact: json(fact, "abstention boundary fact"),
+			routineDecision: json(
+				routineDecision,
+				"abstention boundary routine decision",
+			),
+			schedulerActions: json(derived.actions, "abstention boundary actions"),
+			schedulerRoutines: json(derived.routines, "abstention boundary routines"),
 		},
 	});
 	return {

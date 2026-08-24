@@ -15,6 +15,8 @@ import {
 	advanceGeneratedCivilization,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
+import type { CivilizationState } from "../../../packages/civilization/src/index.js";
+import { createCivilizationAbstentionBoundaryAppend } from "../../../packages/persistence/src/civilization-sponsor.js";
 import {
 	type AppendAuthorityBatchRequest,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
@@ -27,6 +29,7 @@ import {
 	EMPTY_EVENT_HASH,
 	type PersistenceError,
 	replayAuthoritativeEvents,
+	replayCivilizationHistory,
 	type VersionedCrashPoint,
 	type VersionedPersistencePort,
 } from "../../../packages/persistence/src/index.js";
@@ -898,6 +901,9 @@ async function run(): Promise<void> {
 	let generatedRefreshAppendCalls = 0;
 	let generatedFirstLoadPersisted = false;
 	let generatedRefreshObservedSponsor = false;
+	let generatedAbstentionBoundaryIdempotent = false;
+	let generatedAbstentionBoundaryReloaded = false;
+	let generatedAbstentionBoundaryRelatedOnly = false;
 	let generatedInvalidRefreshFailedClosed = false;
 	try {
 		const initial = await loadGeneratedWorldExperience();
@@ -918,6 +924,71 @@ async function run(): Promise<void> {
 		generatedRefreshObservedSponsor =
 			refreshed.sponsorPhase === "sponsored" &&
 			refreshed.stateHash === sponsored.authorityStateHash;
+		await sponsorGeneratedCitizen({
+			citizenId: initial.sponsorCitizenId,
+			regionId: initial.authorityRegionId,
+			databaseName: initial.authorityDatabaseName,
+			step: "abstain",
+		});
+		const boundaryPort = await BrowserVersionedPersistence.open({
+			databaseName: initial.authorityDatabaseName,
+		});
+		const boundaryScope = {
+			runId: "v1-generated-civilization",
+			regionId: initial.authorityRegionId,
+		};
+		const boundaryHead = await boundaryPort.loadHead(boundaryScope);
+		const boundarySnapshot =
+			await boundaryPort.loadLatestSnapshot(boundaryScope);
+		const boundaryReplay = await replayCivilizationHistory(boundaryPort, {
+			...boundaryScope,
+			snapshotId: boundarySnapshot.snapshotId,
+			toSequenceExclusive: boundaryHead.lastSequence + 1,
+		});
+		const boundaryCivilization = boundaryReplay.state
+			.civilization as unknown as CivilizationState;
+		const abstention = Object.values(boundaryCivilization.patronAbstentions)
+			.filter(({ citizenId }) => citizenId === initial.sponsorCitizenId)
+			.sort(
+				(left, right) => right.recordedAtRevision - left.recordedAtRevision,
+			)[0];
+		if (abstention === undefined)
+			throw new Error("durable browser abstention missing");
+		const abstentionBoundary = await createCivilizationAbstentionBoundaryAppend(
+			{
+				state: boundaryReplay.state,
+				head: boundaryHead,
+				citizenId: initial.sponsorCitizenId,
+				abstentionId: abstention.abstentionId,
+			},
+		);
+		const boundaryCommitted = await boundaryPort.appendEventBatch(
+			abstentionBoundary.request,
+		);
+		generatedAbstentionBoundaryIdempotent = (
+			await boundaryPort.appendEventBatch(abstentionBoundary.request)
+		).idempotent;
+		generatedAbstentionBoundaryRelatedOnly =
+			abstentionBoundary.request.events[0]?.causalParents.length === 0 &&
+			abstentionBoundary.request.events[0]?.relatedEvents[0]?.eventId ===
+				abstention.sourceEventId;
+		boundaryPort.close();
+		const reloadedBoundaryPort = await BrowserVersionedPersistence.open({
+			databaseName: initial.authorityDatabaseName,
+		});
+		const reloadedBoundary = await replayCivilizationHistory(
+			reloadedBoundaryPort,
+			{
+				...boundaryScope,
+				snapshotId: boundarySnapshot.snapshotId,
+				toSequenceExclusive: boundaryCommitted.head.lastSequence + 1,
+			},
+		);
+		generatedAbstentionBoundaryReloaded =
+			reloadedBoundary.stateHash === boundaryCommitted.head.stateHash &&
+			reloadedBoundary.state.scheduler.completedDay ===
+				boundaryReplay.state.scheduler.completedDay + 1;
+		reloadedBoundaryPort.close();
 		await corruptGeneratedAuthorityHead();
 		const quarantined = await refreshGeneratedWorldExperience();
 		generatedInvalidRefreshFailedClosed =
@@ -967,6 +1038,9 @@ async function run(): Promise<void> {
 				freshCatchUp.catchUpOperation.nextChapter === 5,
 			catchUpFreshProcessRevision: freshCatchUp.head.revision,
 			corruptionCode,
+			generatedAbstentionBoundaryIdempotent,
+			generatedAbstentionBoundaryReloaded,
+			generatedAbstentionBoundaryRelatedOnly,
 			generatedFirstLoadAppendCalls,
 			generatedFirstLoadPersisted,
 			generatedInvalidRefreshFailedClosed,

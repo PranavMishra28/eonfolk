@@ -18,6 +18,8 @@ import {
 	standardBrain,
 } from "../../../packages/cognition/src/index.js";
 import {
+	civilizationAbstentionBoundaryAppendId,
+	createCivilizationAbstentionBoundaryAppend,
 	createCivilizationCounselBoundaryAppend,
 	createCivilizationSponsorAuthorityAppend,
 	createCivilizationSponsorRejectionAppend,
@@ -356,9 +358,17 @@ describe("unified civilization sponsor authority", () => {
 		).rejects.toMatchObject({ code: "IDEMPOTENCY_COLLISION" });
 	});
 
-	it("atomically persists and reloads canonical patron abstention", async () => {
+	it("persists abstention and its model-free Standing Plan boundary", async () => {
 		const value = await fixture();
-		await value.port.appendEventBatch(value.append.request);
+		const sponsorship = await value.port.appendEventBatch(value.append.request);
+		await expect(
+			createCivilizationAbstentionBoundaryAppend({
+				state: value.append.state,
+				head: sponsorship.head,
+				citizenId: value.citizenId,
+				abstentionId: "missing-abstention",
+			}),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
 		const abstained = await appendCounselCommand(value, {
 			kind: "abstain",
 			abstentionId: `abstention:${value.citizenId}:1`,
@@ -379,6 +389,85 @@ describe("unified civilization sponsor authority", () => {
 			citizenId: value.citizenId,
 			patronPrincipalId: "patron:local",
 		});
+		const boundary = await createCivilizationAbstentionBoundaryAppend({
+			state: reloaded.state,
+			head: abstained.committed.head,
+			citizenId: value.citizenId,
+			abstentionId: `abstention:${value.citizenId}:1`,
+		});
+		const event = boundary.request.events[0]!;
+		expect(boundary.request.appendId).toBe(
+			civilizationAbstentionBoundaryAppendId(`abstention:${value.citizenId}:1`),
+		);
+		expect(boundary.fact).toMatchObject({
+			schemaVersion: "eonfolk-abstention-boundary-fact-v1",
+			citizenId: value.citizenId,
+			abstentionId: `abstention:${value.citizenId}:1`,
+			consequenceKind: "standing-plan-continued-after-patron-abstention",
+			simulationTime: reloaded.state.scheduler.simulationTime + 86_400,
+		});
+		expect(boundary.fact.schedulerActionKinds).toContain("need-evaluated");
+		expect(boundary.fact.requiredNeedUnits).toBeGreaterThan(0);
+		expect(event.causalParents).toEqual([]);
+		expect(event.relatedEvents).toEqual([
+			{
+				eventId: abstained.transition.events[0]!.eventId,
+				relation: "temporal-predecessor",
+			},
+		]);
+		expect(event.provenance).toEqual({
+			mechanismId: "civilization.scheduler.abstention-boundary.v1",
+			cognitionDecisionId: null,
+			brainKind: null,
+		});
+		expect(event.visibility).toEqual({
+			kind: "patron-visible-through-covenant",
+			subjectCitizenId: value.citizenId,
+		});
+		expect(boundary.state.scheduler.completedDay).toBe(
+			reloaded.state.scheduler.completedDay + 1,
+		);
+		const committed = await value.port.appendEventBatch(boundary.request);
+		expect(
+			(await value.port.appendEventBatch(boundary.request)).idempotent,
+		).toBe(true);
+		const afterReload = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: committed.head.lastSequence + 1,
+		});
+		expect(afterReload.state).toEqual(boundary.state);
+		expect(afterReload.stateHash).toBe(committed.head.stateHash);
+
+		const { eventHash: _eventHash, ...unsigned } = event;
+		const causalForgery = await createAuthorityEvent({
+			...unsigned,
+			causalParents: [
+				{
+					eventId: abstained.transition.events[0]!.eventId,
+					relation: "contributing",
+					mechanismId: "civilization.scheduler.abstention-boundary.v1",
+				},
+			],
+		});
+		await expect(
+			reduceCivilizationAuthorityEvent(reloaded.state, causalForgery),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+		const forged = await createAuthorityEvent({
+			...unsigned,
+			payload: {
+				...(event.payload as Record<string, unknown>),
+				arbitraryRealityPatch: {
+					op: "set",
+					path: ["scheduler", "completedDay"],
+					value: 999,
+				},
+			} as never,
+		});
+		await expect(
+			reduceCivilizationAuthorityEvent(reloaded.state, forged),
+		).rejects.toMatchObject({ code: "UNSUPPORTED_VERSION" });
 	});
 
 	it("atomically persists a rejected command without changing civilization", async () => {

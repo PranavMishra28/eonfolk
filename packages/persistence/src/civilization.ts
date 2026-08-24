@@ -41,9 +41,9 @@ import {
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
 	"eonfolk-release-genesis-civilization-state-v7" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v7" as const;
+	"eonfolk-release-genesis-civilization-transition-v8" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v10" as const;
+	"eonfolk-release-genesis-civilization-engine-v11" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -229,6 +229,24 @@ function counselOutcomeEffect(
 			effect as JsonValue,
 		) as unknown as CivilizationCounselOutcomeEffect;
 	fail("INVALID_INPUT", "CIVP");
+}
+
+function standingPlanRoutineKind(
+	stepKind: string,
+): SchedulerRoutineDecision["kind"] {
+	return stepKind === "Produce"
+		? "produce"
+		: stepKind === "TransportResource"
+			? "transport"
+			: stepKind === "WorkProject"
+				? "construct"
+				: stepKind === "Consume"
+					? "consume"
+					: stepKind === "JoinMigration"
+						? "travel"
+						: stepKind === "Away"
+							? "away"
+							: "social-maintenance";
 }
 
 function string(value: unknown, label: string): string {
@@ -885,6 +903,218 @@ export async function reduceCivilizationAuthorityEvent(
 				canonicalJson(current.sourceHistory) ||
 			event.simulationTime !== current.scheduler.simulationTime ||
 			next.civilization === null
+		)
+			fail("RANGE_GAP", "CIVP");
+		return next;
+	}
+	if (event.eventType === "CivilizationAbstentionBoundaryCommitted") {
+		if (
+			payload.schemaVersion !==
+				RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION ||
+			payload.transitionKind !== "abstention-boundary" ||
+			!exactKeys(payload, [
+				"schemaVersion",
+				"transitionKind",
+				"fact",
+				"routineDecision",
+				"schedulerActions",
+				"schedulerRoutines",
+			]) ||
+			current.phase !== "active" ||
+			current.civilization === null
+		)
+			fail("UNSUPPORTED_VERSION", "CIVP");
+		const fact = record(payload.fact, "abstention boundary fact");
+		if (
+			!exactKeys(fact, [
+				"schemaVersion",
+				"citizenId",
+				"abstentionId",
+				"abstentionEventId",
+				"planId",
+				"planStepId",
+				"consequenceKind",
+				"routineKind",
+				"routineSubjectId",
+				"schedulerActionKinds",
+				"simulationTime",
+				"requiredNeedUnits",
+				"consumedNeedUnits",
+				"unmetNeedUnits",
+				"sourceStockIds",
+			]) ||
+			fact.schemaVersion !== "eonfolk-abstention-boundary-fact-v1" ||
+			fact.consequenceKind !==
+				"standing-plan-continued-after-patron-abstention" ||
+			typeof fact.citizenId !== "string" ||
+			typeof fact.abstentionId !== "string" ||
+			typeof fact.abstentionEventId !== "string" ||
+			typeof fact.planId !== "string" ||
+			typeof fact.planStepId !== "string" ||
+			![
+				"produce",
+				"transport",
+				"construct",
+				"consume",
+				"social-maintenance",
+				"travel",
+				"away",
+			].includes(String(fact.routineKind)) ||
+			typeof fact.routineSubjectId !== "string" ||
+			array(fact.schedulerActionKinds, "abstention action kinds").some(
+				(kind) => typeof kind !== "string" || kind.length === 0,
+			) ||
+			array(fact.sourceStockIds, "abstention source stock IDs").some(
+				(stockId) => typeof stockId !== "string" || stockId.length === 0,
+			)
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const currentCivilization =
+			current.civilization as unknown as CivilizationState;
+		assertCivilizationInvariants(currentCivilization);
+		const abstention =
+			currentCivilization.patronAbstentions[String(fact.abstentionId)];
+		const plan =
+			currentCivilization.minds[String(fact.citizenId)]?.snapshot.standingPlan;
+		const planStep = plan?.steps.find(
+			({ stepId }) => stepId === plan.currentStepId,
+		);
+		const expectedRoutineKind = standingPlanRoutineKind(planStep?.kind ?? "");
+		const expectedRoutineSubjectId =
+			planStep?.targetIds[0] ?? String(fact.citizenId);
+		const routineRecord = record(
+			payload.routineDecision,
+			"abstention boundary routine decision",
+		);
+		if (
+			!exactKeys(routineRecord, [
+				"schemaVersion",
+				"citizenId",
+				"actionId",
+				"activeStandingPlanId",
+				"kind",
+				"subjectId",
+			]) ||
+			routineRecord.schemaVersion !== "eonfolk-civilization-routine-decision-v1"
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const routineDecision = cloneValue(
+			routineRecord as JsonValue,
+		) as unknown as SchedulerRoutineDecision;
+		const visibility = record(event.visibility, "abstention visibility");
+		if (
+			abstention?.citizenId !== fact.citizenId ||
+			abstention.sourceEventId !== fact.abstentionEventId ||
+			plan?.planId !== fact.planId ||
+			plan.status !== "active" ||
+			plan.expiryBoundary < currentCivilization.simulationTime ||
+			planStep?.stepId !== fact.planStepId ||
+			planStep.status !== "active" ||
+			fact.routineKind !== expectedRoutineKind ||
+			fact.routineSubjectId !== expectedRoutineSubjectId ||
+			routineDecision.citizenId !== fact.citizenId ||
+			routineDecision.actionId !==
+				`abstention-follow:${String(fact.abstentionId)}` ||
+			routineDecision.activeStandingPlanId !== fact.planId ||
+			routineDecision.kind !== expectedRoutineKind ||
+			routineDecision.subjectId !== expectedRoutineSubjectId ||
+			event.causalParents.length !== 0 ||
+			canonicalJson(event.relatedEvents as unknown as JsonValue) !==
+				canonicalJson([
+					{
+						eventId: fact.abstentionEventId,
+						relation: "temporal-predecessor",
+					},
+				] as JsonValue) ||
+			event.provenance.mechanismId !==
+				"civilization.scheduler.abstention-boundary.v1" ||
+			event.provenance.cognitionDecisionId !== null ||
+			event.provenance.brainKind !== null ||
+			!exactKeys(visibility, ["kind", "subjectCitizenId"]) ||
+			visibility.kind !== "patron-visible-through-covenant" ||
+			visibility.subjectCitizenId !== fact.citizenId
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const policy = deriveCivilizationSchedulerPolicy(
+			current.world as unknown as GeneratedWorldState,
+		);
+		let derived: ReturnType<typeof advanceGeneralizedScheduler>;
+		try {
+			derived = advanceGeneralizedScheduler(currentCivilization, policy, [
+				routineDecision,
+			]);
+			assertCivilizationInvariants(derived.state);
+		} catch {
+			fail("INVALID_INPUT", "CIVP");
+		}
+		const routine = derived.routines.find(
+			(candidate) => candidate.citizenId === fact.citizenId,
+		);
+		const outcome = derived.state.needOutcomes
+			.filter(
+				(candidate) =>
+					candidate.citizenId === fact.citizenId &&
+					candidate.evaluatedAtSimulationTime === derived.state.simulationTime,
+			)
+			.at(-1);
+		if (
+			derived.modelInvocations !== 0 ||
+			derived.state.simulationTime !==
+				currentCivilization.simulationTime + SECONDS_PER_DAY ||
+			routine?.kind !== fact.routineKind ||
+			routine?.subjectId !== fact.routineSubjectId ||
+			outcome === undefined ||
+			integer(fact.simulationTime, "abstention simulation time") !==
+				derived.state.simulationTime ||
+			integer(fact.requiredNeedUnits, "abstention required needs") !==
+				outcome.foodRequiredUnits + outcome.waterRequiredUnits ||
+			integer(fact.consumedNeedUnits, "abstention consumed needs") !==
+				outcome.foodConsumedUnits + outcome.waterConsumedUnits ||
+			integer(fact.unmetNeedUnits, "abstention unmet needs") !==
+				outcome.foodRequiredUnits -
+					outcome.foodConsumedUnits +
+					(outcome.waterRequiredUnits - outcome.waterConsumedUnits) ||
+			canonicalJson(fact.sourceStockIds as JsonValue) !==
+				canonicalJson([...outcome.sourceStockIds].sort() as JsonValue) ||
+			canonicalJson(fact.schedulerActionKinds as JsonValue) !==
+				canonicalJson(
+					[
+						...new Set(derived.actions.map(({ kind }) => kind)),
+					].sort() as JsonValue,
+				) ||
+			canonicalJson(derived.actions as unknown as JsonValue) !==
+				canonicalJson(payload.schedulerActions as JsonValue) ||
+			canonicalJson(derived.routines as unknown as JsonValue) !==
+				canonicalJson(payload.schedulerRoutines as JsonValue)
+		)
+			fail("STALE_STATE", "CIVP");
+		const expectedActivities = projectCivilizationScheduledActivities({
+			state: derived.state,
+			world: current.world as unknown as GeneratedWorldState,
+			routines: derived.routines,
+		});
+		const next: ReleaseGenesisCivilizationState = {
+			...current,
+			civilization: cloneValue(derived.state as unknown as JsonValue),
+			scheduler: {
+				completedDay: current.scheduler.completedDay + 1,
+				simulationTime: derived.state.simulationTime,
+				modelInvocations: 0,
+				activities: cloneValue(expectedActivities as unknown as JsonValue),
+			},
+		};
+		if (
+			next.worldIdentityHash !== current.worldIdentityHash ||
+			next.sourceInitialStateHash !== current.sourceInitialStateHash ||
+			next.finalExperimentStateHash !== current.finalExperimentStateHash ||
+			canonicalJson(next.world) !== canonicalJson(current.world) ||
+			canonicalJson(next.sourceHistory) !==
+				canonicalJson(current.sourceHistory) ||
+			next.scheduler.completedDay !== current.scheduler.completedDay + 1 ||
+			next.scheduler.simulationTime !==
+				current.scheduler.simulationTime + SECONDS_PER_DAY ||
+			event.simulationTime !== next.scheduler.simulationTime ||
+			next.scheduler.modelInvocations !== 0
 		)
 			fail("RANGE_GAP", "CIVP");
 		return next;

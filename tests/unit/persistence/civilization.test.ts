@@ -64,9 +64,9 @@ describe("Release Genesis civilization persistence", () => {
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v10",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v11",
 			stateVersion: "eonfolk-release-genesis-civilization-state-v7",
-			transitionVersion: "eonfolk-release-genesis-civilization-transition-v7",
+			transitionVersion: "eonfolk-release-genesis-civilization-transition-v8",
 		});
 	});
 
