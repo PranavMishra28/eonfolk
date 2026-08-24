@@ -9,13 +9,13 @@
 ## Identity
 
 - Branch: `feat/v1-civilization`
-- Software integration checkpoint: `5e6eb479d4b2c41b8547463fd2e1106d1affa08d`
+- Latest feature checkpoint before release-ledger reconciliation: `fd6b10aac2f65a1fae1ef1270dfb8e698ba49e43`
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft Mega PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization mega PR`
 - Machine: plugged-in Apple M4 Max with 48 GB unified memory
 - Publication boundary: private, local-only, no deployment, spend, account, credential, or public release
 
-The PR remains draft and unmerged. Product implementation is complete; do not mark it ready or merge until the exact FAST/PR/DEEP lattice and frozen-SHA reviews below pass.
+The PR remains draft and unmerged. Product implementation is complete through the sponsor-session and Chronicle focus-race repairs at `fd6b10a`; do not mark it ready or merge until the exact FAST/PR/DEEP lattice and frozen-SHA reviews below pass.
 
 ## What is executable now
 
@@ -31,13 +31,14 @@ Planning-era execution surfaces that were unreachable from V1 have been removed:
 
 ## Current green evidence
 
-- 471 unit tests and nine focused property tests.
+- 487 unit tests and nine focused property tests.
 - Fourteen of fourteen targeted mutants killed.
 - Thirteen of thirteen injected-fault browser journeys.
-- Chronicle navigation passed desktop and mobile production journeys.
+- The full sponsor/Chronicle journey passed after a focus-race regression was added; Chronicle navigation and deliberate Research mode passed seven of seven desktop/mobile production journeys.
+- Real Chromium IndexedDB persistence passed two of two focused tests after the validated sponsor-session optimization.
 - Typecheck, architecture, docs/Markdown, format, lint, build, bundle budget, dependency cohort, and production audit.
 - Fresh in-app browser inspection at 1728×1117, 1366×768, and 390×844: world canvas ready, zero horizontal overflow, contextual mobile citizen focus visible.
-- Current post-movement build: 185,452-byte critical shell and 665,591-byte initial-world JavaScript against the unchanged 204,800/665,600 limits.
+- Current feature-checkpoint build: 75,612-byte critical shell and 665,561-byte initial-world JavaScript against the unchanged 204,800/665,600 limits.
 
 These are integration checks, not the final exact-candidate PR/DEEP/review evidence.
 
@@ -62,4 +63,4 @@ sed -n '1,190p' GOAL.md
 pnpm verify:fast
 ```
 
-If the branch head differs from the checkpoint above, inspect `git log --oneline 5e6eb47..HEAD` and the actual diff before continuing. Never discard a dirty worktree or unique commit.
+If the branch head differs from the checkpoint above, inspect `git log --oneline fd6b10a..HEAD` and the actual diff before continuing. Never discard a dirty worktree or unique commit.
