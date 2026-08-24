@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "@playwright/test";
 
 const linuxCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const captureMedia = process.env.EONFOLK_CAPTURE_MEDIA === "1";
 
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
@@ -28,7 +29,9 @@ export default defineConfig({
 			snapshots: true,
 			sources: true,
 		},
-		video: "off",
+		video: captureMedia
+			? { mode: "on", size: { width: 960, height: 540 } }
+			: "off",
 		screenshot: "only-on-failure",
 		launchOptions: {
 			args: [

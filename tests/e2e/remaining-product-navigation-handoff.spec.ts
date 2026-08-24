@@ -367,6 +367,15 @@ for (const viewport of [
 				() => performance.getEntriesByType("navigation").length,
 			),
 		).toBe(objectNavigationCount);
+		if (process.env.EONFOLK_CAPTURE_MEDIA === "1")
+			await page.screenshot({
+				animations: "disabled",
+				caret: "hide",
+				fullPage: true,
+				path: test
+					.info()
+					.outputPath(`${viewport.label}-chronicle-object-focus.png`),
+			});
 		await page.goBack();
 		await expect(page).toHaveURL(focusHref({ kind: "citizen", citizenId }));
 		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(

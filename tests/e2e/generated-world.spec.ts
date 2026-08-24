@@ -2073,6 +2073,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.locator("main.v1-world")
 		.getAttribute("data-state-hash");
 	await expect(sponsor).toBeVisible();
+	if (process.env.EONFOLK_CAPTURE_MEDIA === "1")
+		await page.screenshot({
+			animations: "disabled",
+			caret: "hide",
+			fullPage: false,
+			path: test.info().outputPath("sponsor-mara-focus.png"),
+		});
 	await sponsor.click();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
