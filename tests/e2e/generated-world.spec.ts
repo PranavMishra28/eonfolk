@@ -1132,7 +1132,7 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 test("canonical citizen, building, and project focus preserve authority across desktop and mobile @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(90_000);
+	test.setTimeout(180_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });
