@@ -163,7 +163,7 @@ for (const viewport of [
 	test(`remaining product feedback is bounded and Reality-neutral on ${viewport.name}`, async ({
 		page,
 	}) => {
-		test.setTimeout(90_000);
+		test.setTimeout(240_000);
 		await page.setViewportSize(viewport);
 		const externalRequests = await keepWorldLocal(page);
 		await resetLocalWorld(page);

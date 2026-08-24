@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
+const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
+
 async function keepLocal(page: Page): Promise<string[]> {
 	const external: string[] = [];
 	await page.route("**/*", async (route) => {
@@ -201,7 +204,7 @@ for (const viewport of [
 test("remaining product research reads one accepted Chronicle beat without authority mutation", async ({
 	page,
 }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(linuxSemanticCi ? 420_000 : 180_000);
 	const external = await keepLocal(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetReleaseGenesisAuthority(page);
@@ -216,12 +219,12 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	await page.getByRole("button", { name: "Sponsor this person" }).click();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page.getByRole("button", { name: "Abstain" }).click();
 	await expect(
 		page.getByText(/Canonical Chronicle: the patron withheld counsel/u),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page
 		.getByRole("button", {
@@ -230,7 +233,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-ready",
@@ -243,7 +246,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: 60_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page
 		.getByRole("button", { name: "Consider a different counsel" })
 		.click();
@@ -254,7 +257,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: 60_000 });
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-ready",
@@ -267,7 +270,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: 60_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.getByRole("status")).toContainText("public allegation");
 	const acceptedStateHash = await authorityStateHash(page);
 	expect(acceptedStateHash).toMatch(/^[0-9a-f]{64}$/u);

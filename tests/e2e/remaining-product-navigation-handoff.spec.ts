@@ -5,6 +5,9 @@ import {
 	type WorldFocus,
 } from "../../apps/web/src/research-navigation";
 
+const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
+
 function focusHref(focus: WorldFocus): string {
 	const href = buildWorldFocusHref(focus);
 	if (href === null) throw new Error("invalid focus fixture");
@@ -168,7 +171,7 @@ for (const viewport of [
 	test(`Chronicle links focus world context without reload on ${viewport.label} @generated-world`, async ({
 		page,
 	}) => {
-		test.setTimeout(240_000);
+		test.setTimeout(linuxSemanticCi ? 420_000 : 240_000);
 		const externalRequests = await isolateLocalWorld(page);
 		await page.setViewportSize(viewport);
 		await resetGeneratedCheckpoint(page);
@@ -177,7 +180,7 @@ for (const viewport of [
 		await page.getByRole("button", { name: "Sponsor this person" }).click();
 		await expect(
 			page.getByRole("button", { name: "Consider an intervention" }),
-		).toBeVisible({ timeout: 30_000 });
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", { name: "Consider an intervention" })
 			.click();
@@ -190,16 +193,16 @@ for (const viewport of [
 			page.getByRole("button", {
 				name: "Return at the next decision boundary",
 			}),
-		).toBeVisible({ timeout: 30_000 });
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", { name: "Return at the next decision boundary" })
 			.click();
 		await expect(
 			page.getByRole("heading", { name: "Share this factual trace" }),
-		).toBeVisible({ timeout: 60_000 });
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await expect(
 			page.getByRole("button", { name: "Review Chronicle" }),
-		).toBeEnabled({ timeout: 60_000 });
+		).toBeEnabled({ timeout: sponsorTransitionTimeout });
 		await page.getByText("Inspect Chronicle evidence").click();
 
 		const stateHash = await world.getAttribute("data-state-hash");

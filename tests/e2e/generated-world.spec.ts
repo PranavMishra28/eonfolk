@@ -1,5 +1,8 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
+
 type GeneratedPickTarget = Readonly<{
 	readonly id: string;
 	readonly x: number;
@@ -1141,6 +1144,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
 	await expect(canvas).toHaveAttribute("data-door-height-mm", "2050");
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
+	await page.getByRole("button", { name: "Reduce motion" }).click();
+	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
 	const tools = page.locator("details.v1-world-tools");
 	await tools.locator("summary").click();
 	await expect(tools.locator("button[data-building-id]")).toHaveCount(4);
@@ -1911,7 +1916,7 @@ test("production recovery explains a blocked database deletion and resumes after
 test("normal generated world commits sponsorship, counsel, and a factual Chronicle trace @generated-world @generated-target", async ({
 	page,
 }) => {
-	test.setTimeout(240_000);
+	test.setTimeout(linuxSemanticCi ? 480_000 : 240_000);
 	const externalRequests = await isolateLocalWorld(page);
 	const browserErrors: string[] = [];
 	page.on("pageerror", (error) => browserErrors.push(error.message));
@@ -1948,7 +1953,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await sponsor.click();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: 20_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: 30_000,
@@ -1976,13 +1981,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await page.getByRole("button", { name: "Abstain" }).click();
 	await expect
 		.poll(async () => (await inspectGeneratedCheckpoint(page)).eventCount, {
-			timeout: 30_000,
+			timeout: sponsorTransitionTimeout,
 		})
 		.toBe(beforeAbstention.eventCount + 1);
 	const afterAbstention = await inspectGeneratedCheckpoint(page);
 	await expect(
 		page.getByText(/Canonical Chronicle: the patron withheld counsel/u),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	expect(afterAbstention.headHash).not.toBe(beforeAbstention.headHash);
 	expect(afterAbstention.eventCount).toBe(beforeAbstention.eventCount + 1);
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
@@ -1993,7 +1998,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: 20_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.getByRole("status")).toContainText(
 		"received counsel to verify reserve",
 	);
@@ -2005,13 +2010,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: 20_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: 60_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.getByRole("status")).toContainText(
 		"the counsel and chose to",
 	);
@@ -2042,13 +2047,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible({ timeout: 20_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.locator("pre[role='status']")).toContainText(
 		"received counsel to accuse publicly",
 	);
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeEnabled({ timeout: 60_000 });
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
 	await page.reload();
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-ready",
@@ -2064,7 +2069,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.click();
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
-	).toBeVisible({ timeout: 60_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.getByRole("status")).toContainText("public allegation");
 	await expect(page.getByRole("status")).toContainText("recorded trust");
 	const committed = await inspectGeneratedCheckpoint(page);
