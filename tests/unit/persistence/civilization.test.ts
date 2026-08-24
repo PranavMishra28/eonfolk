@@ -64,9 +64,9 @@ describe("Release Genesis civilization persistence", () => {
 	it("publishes an exact-only civilization migration policy", () => {
 		expect(CIVILIZATION_PERSISTENCE_MIGRATION_POLICY).toEqual({
 			mode: "exact-only",
-			engineVersion: "eonfolk-release-genesis-civilization-engine-v9",
+			engineVersion: "eonfolk-release-genesis-civilization-engine-v10",
 			stateVersion: "eonfolk-release-genesis-civilization-state-v7",
-			transitionVersion: "eonfolk-release-genesis-civilization-transition-v6",
+			transitionVersion: "eonfolk-release-genesis-civilization-transition-v7",
 		});
 	});
 
@@ -242,12 +242,6 @@ describe("Release Genesis civilization persistence", () => {
 
 		const event = plan.batches[0]?.events[0];
 		if (event === undefined) throw new Error("missing authority event");
-		const eventPayload = event.payload as {
-			readonly sourceEvents: readonly Record<string, unknown>[];
-		};
-		const payloadSourceEvent = eventPayload.sourceEvents[0];
-		if (payloadSourceEvent === undefined)
-			throw new Error("missing payload source event");
 		const {
 			eventHash: _eventHash,
 			schemaVersion: _schemaVersion,
@@ -257,9 +251,12 @@ describe("Release Genesis civilization persistence", () => {
 			...unsigned,
 			payload: {
 				...(event.payload as Record<string, unknown>),
-				sourceEvents: [
-					{ ...payloadSourceEvent, details: { forged: true } },
-					...eventPayload.sourceEvents.slice(1),
+				patch: [
+					{
+						op: "set",
+						path: ["scheduler", "completedDay"],
+						value: 999,
+					},
 				],
 			} as never,
 		});
@@ -275,7 +272,7 @@ describe("Release Genesis civilization persistence", () => {
 				snapshotId: plan.genesis.snapshot.snapshotId,
 				toSequenceExclusive: 2,
 			}),
-		).rejects.toMatchObject({ code: "STALE_STATE" });
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
 
 		await expect(
 			reduceCivilizationAuthorityEvent(

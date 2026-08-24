@@ -12,7 +12,6 @@ import {
 	applyCivilizationSponsorEvent,
 	applyCounselStandingPlanBoundary,
 	parseCivilizationSponsorEvent,
-	validateCommittedCivilizationDecisionRecord,
 } from "@eonfolk/civilization/sponsor";
 import type { GeneratedWorldState } from "@eonfolk/protocol";
 import { canonicalJson, cloneValue } from "./codec.js";
@@ -42,9 +41,9 @@ import {
 export const RELEASE_GENESIS_CIVILIZATION_STATE_VERSION =
 	"eonfolk-release-genesis-civilization-state-v7" as const;
 export const RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION =
-	"eonfolk-release-genesis-civilization-transition-v6" as const;
+	"eonfolk-release-genesis-civilization-transition-v7" as const;
 export const RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION =
-	"eonfolk-release-genesis-civilization-engine-v9" as const;
+	"eonfolk-release-genesis-civilization-engine-v10" as const;
 export const CIVILIZATION_PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	mode: "exact-only",
 	engineVersion: RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -108,30 +107,20 @@ export interface ReleaseGenesisCivilizationState {
 }
 
 export interface ReleaseGenesisCivilizationTransition {
-	readonly [key: string]: JsonValue;
 	readonly schemaVersion: typeof RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION;
 	readonly transitionKind: "checkpoint";
 	readonly previousCompletedDay: number;
 	readonly resultingCompletedDay: number;
 	readonly resultingSimulationTime: number;
 	readonly resultingExperimentStateHash: string;
-	readonly sourceSteps: readonly JsonValue[];
-	readonly sourceEvents: readonly JsonValue[];
-	readonly patch: readonly CivilizationJsonPatchOperation[];
+	readonly sourceStepHashes: readonly string[];
+	readonly sourceEventHashes: readonly string[];
+	readonly checkpoint: {
+		readonly world: JsonValue;
+		readonly civilization: JsonValue;
+		readonly activities: JsonValue;
+	};
 }
-
-export type CivilizationJsonPatchOperation =
-	| {
-			readonly [key: string]: JsonValue;
-			readonly op: "set";
-			readonly path: readonly string[];
-			readonly value: JsonValue;
-	  }
-	| {
-			readonly [key: string]: JsonValue;
-			readonly op: "delete";
-			readonly path: readonly string[];
-	  };
 
 export interface CivilizationPersistencePlan {
 	readonly scope: AuthorityScope;
@@ -499,97 +488,6 @@ function assertPrefix(
 		fail("RANGE_GAP", `${label} is not a stable prefix`);
 }
 
-function isJsonRecord(
-	value: unknown,
-): value is { readonly [key: string]: JsonValue } {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function createJsonPatch(
-	prior: JsonValue,
-	next: JsonValue,
-	path: readonly string[] = [],
-): readonly CivilizationJsonPatchOperation[] {
-	if (canonicalJson(prior) === canonicalJson(next)) return [];
-	if (isJsonRecord(prior) && isJsonRecord(next)) {
-		const operations: CivilizationJsonPatchOperation[] = [];
-		for (const key of [
-			...new Set([...Object.keys(prior), ...Object.keys(next)]),
-		].sort()) {
-			if (!(key in next))
-				operations.push({ op: "delete", path: [...path, key] });
-			else if (!(key in prior))
-				operations.push({
-					op: "set",
-					path: [...path, key],
-					value: cloneValue(next[key]!),
-				});
-			else
-				operations.push(
-					...createJsonPatch(prior[key]!, next[key]!, [...path, key]),
-				);
-		}
-		return operations;
-	}
-	if (path.length === 0) fail("INVALID_INPUT", "CIVP");
-	return [{ op: "set", path, value: cloneValue(next) }];
-}
-
-function safePath(value: unknown, label: string): readonly string[] {
-	const path = array(value, label).map((segment, index) => {
-		const result = string(segment, `${label}[${index}]`);
-		if (
-			result.length > 128 ||
-			result === "__proto__" ||
-			result === "constructor" ||
-			result === "prototype"
-		)
-			fail("INVALID_INPUT", "CIVP");
-		return result;
-	});
-	if (path.length < 1 || path.length > 32) fail("INVALID_INPUT", "CIVP");
-	return path;
-}
-
-function applyJsonPatch(
-	state: ReleaseGenesisCivilizationState,
-	value: unknown,
-): ReleaseGenesisCivilizationState {
-	const operations = array(value, "civilization patch");
-	if (operations.length > 4_096) fail("INVALID_INPUT", "CIVP");
-	const root = cloneValue(state) as unknown as Record<string, JsonValue>;
-	let priorPath = "";
-	const paths = new Set<string>();
-	for (const [index, operationValue] of operations.entries()) {
-		const operation = record(operationValue, `patch operation ${index}`);
-		const path = safePath(operation.path, `patch operation ${index}.path`);
-		const pathKey = canonicalJson(path);
-		if (
-			paths.has(pathKey) ||
-			(index > 0 && pathKey.localeCompare(priorPath) <= 0)
-		)
-			fail("INVALID_INPUT", "CIVP");
-		paths.add(pathKey);
-		priorPath = pathKey;
-		let parent: Record<string, JsonValue> = root;
-		for (const segment of path.slice(0, -1)) {
-			const child = parent[segment];
-			if (!isJsonRecord(child)) fail("RANGE_GAP", "CIVP");
-			parent = child as Record<string, JsonValue>;
-		}
-		const leaf = path.at(-1);
-		if (leaf === undefined) fail("INVALID_INPUT", "CIVP");
-		if (operation.op === "set") {
-			if (!("value" in operation)) fail("INVALID_INPUT", "CIVP");
-			parent[leaf] = json(operation.value, `patch operation ${index}.value`);
-		} else if (operation.op === "delete") {
-			if (!(leaf in parent)) fail("RANGE_GAP", "CIVP");
-			delete parent[leaf];
-		} else fail("UNSUPPORTED_VERSION", "CIVP");
-	}
-	return validatePersistedState(root);
-}
-
 function validatePersistedState(
 	value: JsonValue,
 ): ReleaseGenesisCivilizationState {
@@ -655,49 +553,6 @@ function validatePersistedState(
 	)
 		fail("RANGE_GAP", "CIVP");
 	return cloneValue(value) as ReleaseGenesisCivilizationState;
-}
-
-async function validateTransitionSourceRecords(
-	current: ReleaseGenesisCivilizationState,
-	event: AuthorityEventRecord,
-): Promise<void> {
-	const payload = record(event.payload, "civilization transition");
-	const sourceSteps = array(payload.sourceSteps, "transition.sourceSteps");
-	const sourceEvents = array(payload.sourceEvents, "transition.sourceEvents");
-	let priorStateHash = current.finalExperimentStateHash;
-	const stepEventHashes: string[] = [];
-	for (const [offset, step] of sourceSteps.entries()) {
-		const index = current.scheduler.completedDay + offset;
-		const validated = await validateSourceStep(step, index, priorStateHash);
-		priorStateHash = validated.postStateHash;
-		stepEventHashes.push(
-			...array(
-				record(step, `transition step ${index}`).eventHashes,
-				`transition step ${index}.eventHashes`,
-			).map((value, eventIndex) =>
-				hash(value, `transition step ${index}.eventHashes[${eventIndex}]`),
-			),
-		);
-	}
-	if (priorStateHash !== payload.resultingExperimentStateHash)
-		fail("STALE_STATE", "CIVP");
-	let priorEventHash = current.sourceHistory.eventHashes.at(-1) ?? null;
-	const eventHashes: string[] = [];
-	for (const [offset, sourceEvent] of sourceEvents.entries()) {
-		const index = current.sourceHistory.eventHashes.length + offset;
-		const validated = await validateSourceEvent(
-			sourceEvent,
-			index,
-			priorEventHash,
-		);
-		priorEventHash = validated.eventHash;
-		eventHashes.push(validated.eventHash);
-	}
-	if (
-		stepEventHashes.length !== eventHashes.length ||
-		stepEventHashes.some((value, index) => value !== eventHashes[index])
-	)
-		fail("RANGE_GAP", "CIVP");
 }
 
 async function validateCheckpointSourceState(
@@ -810,7 +665,6 @@ export async function createCivilizationPersistencePlan(
 
 	const states: ReleaseGenesisCivilizationState[] = [];
 	const transitions: ReleaseGenesisCivilizationTransition[] = [];
-	let priorState = genesisState;
 	let priorDay = 0;
 	let priorStepCount = 0;
 	let priorEventCount = 0;
@@ -842,11 +696,14 @@ export async function createCivilizationPersistencePlan(
 			resultingCompletedDay: state.scheduler.completedDay,
 			resultingSimulationTime: state.scheduler.simulationTime,
 			resultingExperimentStateHash: state.finalExperimentStateHash,
-			sourceSteps: checkpoint.steps.slice(priorStepCount),
-			sourceEvents: checkpoint.events.slice(priorEventCount),
-			patch: createJsonPatch(priorState, state),
+			sourceStepHashes: checkpoint.stepHashes.slice(priorStepCount),
+			sourceEventHashes: checkpoint.eventHashes.slice(priorEventCount),
+			checkpoint: {
+				world: checkpoint.world,
+				civilization: checkpoint.civilization,
+				activities: checkpoint.activities,
+			},
 		});
-		priorState = state;
 		priorDay = checkpoint.checkpoint.horizonDays;
 		priorStepCount = checkpoint.steps.length;
 		priorEventCount = checkpoint.events.length;
@@ -881,7 +738,8 @@ export async function createCivilizationPersistencePlan(
 						: [
 								{
 									eventId: `civilization-checkpoint-${states[index - 1]?.scheduler.completedDay ?? 0}`,
-									relation: "direct-cause",
+									relation: "direct",
+									mechanismId: "civilization.checkpoint-prefix-advance.v1",
 								},
 							],
 				visibility: { kind: "authority-only" },
@@ -893,7 +751,7 @@ export async function createCivilizationPersistencePlan(
 				preStateHash: priorStateHash,
 				postStateHash: await hashAuthoritativeState(state),
 				previousEventHash: priorEventHash,
-				payload: transition,
+				payload: transition as unknown as JsonValue,
 			});
 			events.push(event);
 			priorStateHash = event.postStateHash;
@@ -941,7 +799,7 @@ export async function reduceCivilizationAuthorityEvent(
 			payload.schemaVersion !==
 				RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION ||
 			payload.transitionKind !== "sponsor-rejected" ||
-			array(payload.patch, "rejected sponsor patch").length !== 0
+			!exactKeys(payload, ["schemaVersion", "transitionKind"])
 		)
 			fail("UNSUPPORTED_VERSION", "CIVP");
 		return current;
@@ -958,8 +816,6 @@ export async function reduceCivilizationAuthorityEvent(
 				"schemaVersion",
 				"transitionKind",
 				"protocolEvent",
-				"commandReceipt",
-				"decisionRecord",
 			]) ||
 			current.civilization === null
 		)
@@ -982,12 +838,8 @@ export async function reduceCivilizationAuthorityEvent(
 			fail("INVALID_INPUT", "CIVP");
 		const outerParents = protocolEvent.causalParents.map((parent) => ({
 			eventId: parent.eventId,
-			relation:
-				parent.relation === "direct"
-					? ("direct-cause" as const)
-					: parent.relation === "trigger"
-						? ("trigger" as const)
-						: ("contributing-condition" as const),
+			relation: parent.relation,
+			mechanismId: parent.mechanismId,
 		}));
 		const expectedMechanism =
 			protocolEvent.causalParents[0]?.mechanismId ??
@@ -995,6 +847,8 @@ export async function reduceCivilizationAuthorityEvent(
 		if (
 			canonicalJson(event.causalParents as unknown as JsonValue) !==
 				canonicalJson(outerParents as unknown as JsonValue) ||
+			canonicalJson(event.relatedEvents as unknown as JsonValue) !==
+				canonicalJson(protocolEvent.relatedEvents as unknown as JsonValue) ||
 			canonicalJson(event.visibility) !==
 				canonicalJson(protocolEvent.visibility as unknown as JsonValue) ||
 			event.provenance.mechanismId !== expectedMechanism ||
@@ -1006,19 +860,6 @@ export async function reduceCivilizationAuthorityEvent(
 				(protocolEvent.provenance.kind === "cognition" ? "standard" : null)
 		)
 			fail("INVALID_INPUT", "CIVP");
-		if (protocolEvent.eventPayload.kind === "CounselInterpreted") {
-			if (
-				!(await validateCommittedCivilizationDecisionRecord({
-					state: currentCivilization,
-					event: protocolEvent,
-					commandReceipt: payload.commandReceipt,
-					decisionRecord: payload.decisionRecord,
-				}))
-			)
-				fail("INVALID_INPUT", "CIVP");
-		} else if (payload.decisionRecord !== null) {
-			fail("INVALID_INPUT", "CIVP");
-		}
 		let postCivilization: CivilizationState;
 		try {
 			postCivilization = await applyCivilizationSponsorEvent({
@@ -1130,9 +971,6 @@ export async function reduceCivilizationAuthorityEvent(
 			array(fact.schedulerActionKinds, "boundary scheduler action kinds").some(
 				(kind) => typeof kind !== "string" || kind.length === 0,
 			) ||
-			(event.causalParents.length !== 1 && event.causalParents.length !== 2) ||
-			event.causalParents[0]?.eventId !== fact.interpretationEventId ||
-			event.causalParents[0]?.relation !== fact.causalRelation ||
 			event.provenance.mechanismId !==
 				"civilization.scheduler.counsel-boundary.v1"
 		)
@@ -1166,13 +1004,42 @@ export async function reduceCivilizationAuthorityEvent(
 			array(
 				counterfactual.schedulerActionKinds,
 				"counterfactual action kinds",
-			).some((kind) => typeof kind !== "string") ||
-			(counterfactual.abstentionEventId === null
-				? event.causalParents.length !== 1
-				: event.causalParents.length !== 2 ||
-					event.causalParents[1]?.eventId !==
-						counterfactual.abstentionEventId ||
-					event.causalParents[1]?.relation !== "temporal-predecessor")
+			).some((kind) => typeof kind !== "string")
+		)
+			fail("INVALID_INPUT", "CIVP");
+		const expectedCausalParents =
+			fact.causalRelation === "contributing-condition"
+				? [
+						{
+							eventId: String(fact.interpretationEventId),
+							relation: "contributing",
+							mechanismId: "civilization.scheduler.counsel-boundary.v1",
+						},
+					]
+				: [];
+		const expectedRelatedEvents = [
+			...(fact.causalRelation === "temporal-predecessor"
+				? [
+						{
+							eventId: String(fact.interpretationEventId),
+							relation: "temporal-predecessor",
+						},
+					]
+				: []),
+			...(counterfactual.abstentionEventId === null
+				? []
+				: [
+						{
+							eventId: String(counterfactual.abstentionEventId),
+							relation: "temporal-predecessor",
+						},
+					]),
+		];
+		if (
+			canonicalJson(event.causalParents as unknown as JsonValue) !==
+				canonicalJson(expectedCausalParents as unknown as JsonValue) ||
+			canonicalJson(event.relatedEvents as unknown as JsonValue) !==
+				canonicalJson(expectedRelatedEvents as unknown as JsonValue)
 		)
 			fail("INVALID_INPUT", "CIVP");
 		const counsel = currentCivilization.counsels[String(fact.interventionId)];
@@ -1217,7 +1084,7 @@ export async function reduceCivilizationAuthorityEvent(
 			resolution?.sourceEventId !== fact.interpretationEventId ||
 			resolution.action !== fact.interpretationAction ||
 			resolution.disposition !== fact.interpretationDisposition ||
-			event.causalParents[0]?.relation !==
+			fact.causalRelation !==
 				(resolution.action === "follow-plan"
 					? "temporal-predecessor"
 					: "contributing-condition") ||
@@ -1409,9 +1276,89 @@ export async function reduceCivilizationAuthorityEvent(
 		);
 	if (payload.transitionKind !== "checkpoint")
 		fail("UNSUPPORTED_VERSION", "CIVP");
+	if (
+		!exactKeys(payload, [
+			"schemaVersion",
+			"transitionKind",
+			"previousCompletedDay",
+			"resultingCompletedDay",
+			"resultingSimulationTime",
+			"resultingExperimentStateHash",
+			"sourceStepHashes",
+			"sourceEventHashes",
+			"checkpoint",
+		])
+	)
+		fail("INVALID_INPUT", "CIVP");
 	if (payload.previousCompletedDay !== current.scheduler.completedDay)
 		fail("RANGE_GAP", "CIVP");
-	const next = applyJsonPatch(current, payload.patch);
+	const resultingCompletedDay = integer(
+		payload.resultingCompletedDay,
+		"transition.resultingCompletedDay",
+	);
+	const resultingSimulationTime = integer(
+		payload.resultingSimulationTime,
+		"transition.resultingSimulationTime",
+	);
+	const resultingExperimentStateHash = hash(
+		payload.resultingExperimentStateHash,
+		"transition.resultingExperimentStateHash",
+	);
+	const sourceStepHashes = array(
+		payload.sourceStepHashes,
+		"transition.sourceStepHashes",
+	).map((value, index) => hash(value, `transition.sourceStepHashes[${index}]`));
+	const sourceEventHashes = array(
+		payload.sourceEventHashes,
+		"transition.sourceEventHashes",
+	).map((value, index) =>
+		hash(value, `transition.sourceEventHashes[${index}]`),
+	);
+	if (
+		resultingCompletedDay <= current.scheduler.completedDay ||
+		sourceStepHashes.length !==
+			resultingCompletedDay - current.scheduler.completedDay
+	)
+		fail("RANGE_GAP", "CIVP");
+	const checkpoint = record(payload.checkpoint, "transition.checkpoint");
+	if (!exactKeys(checkpoint, ["world", "civilization", "activities"]))
+		fail("INVALID_INPUT", "CIVP");
+	const checkpointWorld = json(checkpoint.world, "transition.checkpoint.world");
+	const checkpointCivilization = json(
+		checkpoint.civilization,
+		"transition.checkpoint.civilization",
+	);
+	const checkpointActivities = json(
+		checkpoint.activities,
+		"transition.checkpoint.activities",
+	);
+	try {
+		assertCivilizationInvariants(
+			checkpointCivilization as unknown as CivilizationState,
+		);
+	} catch {
+		fail("INVALID_INPUT", "CIVP");
+	}
+	const next = validatePersistedState({
+		schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
+		phase: "checkpoint",
+		worldIdentityHash: current.worldIdentityHash,
+		sourceInitialStateHash: current.sourceInitialStateHash,
+		finalExperimentStateHash: resultingExperimentStateHash,
+		world: checkpointWorld,
+		civilization: checkpointCivilization,
+		scheduler: {
+			completedDay: resultingCompletedDay,
+			simulationTime: resultingSimulationTime,
+			modelInvocations: 0,
+			activities: checkpointActivities,
+		},
+		sourceHistory: {
+			stepHashes: [...current.sourceHistory.stepHashes, ...sourceStepHashes],
+			eventHashes: [...current.sourceHistory.eventHashes, ...sourceEventHashes],
+		},
+	});
+	await validateCheckpointSourceState(next);
 	if (
 		next.phase !== "checkpoint" ||
 		next.worldIdentityHash !== current.worldIdentityHash ||
@@ -1428,41 +1375,6 @@ export async function reduceCivilizationAuthorityEvent(
 		payload.resultingExperimentStateHash !== next.finalExperimentStateHash
 	)
 		fail("STALE_STATE", "CIVP");
-	const priorSteps = current.sourceHistory.stepHashes;
-	const priorEvents = current.sourceHistory.eventHashes;
-	assertPrefix(
-		priorSteps,
-		next.sourceHistory.stepHashes,
-		"persisted step history",
-	);
-	assertPrefix(
-		priorEvents,
-		next.sourceHistory.eventHashes,
-		"persisted event history",
-	);
-	const sourceSteps = array(payload.sourceSteps, "transition.sourceSteps");
-	const sourceEvents = array(payload.sourceEvents, "transition.sourceEvents");
-	if (
-		next.sourceHistory.stepHashes.length !==
-			priorSteps.length + sourceSteps.length ||
-		next.sourceHistory.eventHashes.length !==
-			priorEvents.length + sourceEvents.length
-	)
-		fail("RANGE_GAP", "CIVP");
-	for (const [index, step] of sourceSteps.entries()) {
-		if (
-			record(step, `transition step ${index}`).stepHash !==
-			next.sourceHistory.stepHashes[priorSteps.length + index]
-		)
-			fail("STALE_STATE", "CIVP");
-	}
-	for (const [index, sourceEvent] of sourceEvents.entries()) {
-		if (
-			record(sourceEvent, `transition event ${index}`).eventHash !==
-			next.sourceHistory.eventHashes[priorEvents.length + index]
-		)
-			fail("STALE_STATE", "CIVP");
-	}
 	return next;
 }
 
@@ -1532,28 +1444,6 @@ export async function replayCivilizationHistory(
 				event.previousEventHash !== lastEventHash
 			)
 				fail("RANGE_GAP", "CIVP");
-			if (event.eventType === "CivilizationCheckpointCommitted")
-				await validateTransitionSourceRecords(state, event);
-			if (event.eventType === "CivilizationSponsorCommandCommitted") {
-				const stored = await port.getAppendReceipt(input, event.appendId);
-				const sponsorPayload = record(event.payload, "sponsor transition");
-				const embeddedReceipt = record(
-					sponsorPayload.commandReceipt,
-					"embedded sponsor receipt",
-				);
-				if (
-					stored === null ||
-					stored.resultingStateHash !== event.postStateHash ||
-					stored.resultingLastEventHash !== event.eventHash ||
-					canonicalJson(stored.decisionRecord as JsonValue) !==
-						canonicalJson(sponsorPayload.decisionRecord as JsonValue) ||
-					canonicalJson({
-						...record(stored.commandReceipt, "durable sponsor receipt"),
-						resultingWorldHeadHash: embeddedReceipt.resultingWorldHeadHash,
-					} as JsonValue) !== canonicalJson(embeddedReceipt as JsonValue)
-				)
-					fail("STALE_STATE", "CIVP");
-			}
 			state = await reduceCivilizationAuthorityEvent(state, event);
 			await validateCheckpointSourceState(state);
 			stateHash = await hashAuthoritativeState(state);

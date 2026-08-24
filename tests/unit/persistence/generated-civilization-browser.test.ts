@@ -7,7 +7,9 @@ import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/b
 import {
 	advanceGeneratedCivilization,
 	GENERATED_CIVILIZATION_CATCH_UP_HORIZONS,
+	GENERATED_CIVILIZATION_OPERATION_LIMITS,
 	migrateLegacyGeneratedCheckpoint,
+	prepareGeneratedCivilization,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
 import {
@@ -16,7 +18,11 @@ import {
 	type V1PersistedCheckpoint,
 } from "../../../apps/web/src/v1-indexeddb.js";
 import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
-import { MemoryVersionedPersistence } from "../../../packages/persistence/src/index.js";
+import {
+	MemoryVersionedPersistence,
+	persistAuthorityCatchUp,
+	type VersionedPersistencePort,
+} from "../../../packages/persistence/src/index.js";
 import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
@@ -145,6 +151,124 @@ describe("generated civilization versioned persistence", () => {
 		).toBe(true);
 		expect(result.head.lastSequence).toBe(5);
 		expect(result.snapshot.snapshotId).toBe("civilization-day-365");
+		expect(result.catchUpOperation).toMatchObject({
+			schemaVersion: "eonfolk-catch-up-receipt-v1",
+			operationId: "generated-day-365",
+			confirmationId: "confirmed-generated-day-365",
+			totalChapters: 5,
+			nextChapter: 5,
+			status: "complete",
+			finalRevision: 5,
+		});
+		expect(result.measurement).toMatchObject({
+			chapters: 5,
+			horizonDays: 365,
+			runnerInvocations: 5,
+			sourceSteps: 365,
+		});
+		expect(result.measurement.sourceEvents).toBeLessThanOrEqual(
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumSourceEvents,
+		);
+		expect(result.measurement.planBytes).toBeLessThanOrEqual(
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumPlanBytes,
+		);
+	});
+
+	it("resumes after the append/progress crash boundary through a fresh client", async () => {
+		const durable = new MemoryVersionedPersistence();
+		let crashed = false;
+		const crashingClient = new Proxy(durable, {
+			get(target, property) {
+				if (property === "appendEventBatch")
+					return async (
+						...args: Parameters<typeof target.appendEventBatch>
+					) => {
+						const result = await target.appendEventBatch(...args);
+						if (!crashed) {
+							crashed = true;
+							throw new Error("crash after durable chapter append");
+						}
+						return result;
+					};
+				const value = Reflect.get(target, property, target) as unknown;
+				return typeof value === "function" ? value.bind(target) : value;
+			},
+		}) as VersionedPersistencePort;
+		await expect(
+			advanceGeneratedCivilization({
+				port: crashingClient,
+				genesisWorld: world,
+				targetHorizonDays: 365,
+			}),
+		).rejects.toThrow("crash after durable chapter append");
+
+		const freshClient = new Proxy(durable, {
+			get(target, property) {
+				const value = Reflect.get(target, property, target) as unknown;
+				return typeof value === "function" ? value.bind(target) : value;
+			},
+		}) as VersionedPersistencePort;
+		const resumed = await advanceGeneratedCivilization({
+			port: freshClient,
+			genesisWorld: world,
+			targetHorizonDays: 365,
+		});
+		expect(resumed.catchUpOperation).toMatchObject({
+			status: "complete",
+			nextChapter: 5,
+		});
+		expect(resumed.head).toMatchObject({ revision: 5, lastSequence: 5 });
+		expect(resumed.idempotentAppends).toBe(1);
+	});
+
+	it("durably rejects an unconfirmed operation and collides on changed identity", async () => {
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: world,
+			targetHorizonDays: 7,
+		});
+		const port = new MemoryVersionedPersistence();
+		await port.initialize(prepared.plan.genesis);
+		const rejected = await persistAuthorityCatchUp(port, {
+			...prepared.plan.scope,
+			operationId: "unconfirmed-day-7",
+			confirmationId: "confirmation-declined",
+			confirmed: false,
+			chapters: prepared.plan.batches,
+		});
+		expect(rejected.receipt).toMatchObject({
+			status: "rejected",
+			nextChapter: 0,
+			rejectionCode: "CONFIRMATION_REJECTED",
+		});
+		expect(rejected.head.revision).toBe(0);
+		await expect(
+			persistAuthorityCatchUp(port, {
+				...prepared.plan.scope,
+				operationId: "unconfirmed-day-7",
+				confirmationId: "confirmation-declined",
+				confirmed: true,
+				chapters: prepared.plan.batches,
+			}),
+		).rejects.toMatchObject({ code: "CATCH_UP_ID_COLLISION" });
+		expect((await port.loadHead(prepared.plan.scope)).revision).toBe(0);
+	});
+
+	it("fails the measured runtime cap before opening durable authority", async () => {
+		let tick = 0;
+		const authorityRunner = vi.fn(async (input) => {
+			const result = await runCivilizationExperiment(input);
+			tick += 11;
+			return result;
+		});
+		await expect(
+			prepareGeneratedCivilization({
+				genesisWorld: world,
+				targetHorizonDays: 7,
+				authorityRunner,
+				now: () => tick,
+				maximumRuntimeMs: 10,
+			}),
+		).rejects.toThrow("preparation exceeded its cap");
 	});
 
 	it("rejects an invalid computed candidate before touching durable authority", async () => {

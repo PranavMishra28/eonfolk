@@ -63,14 +63,20 @@ export {
 	validateAuthorityEventRecord,
 } from "./versioned.js";
 export {
+	type AuthorityCatchUpPlan,
+	type AuthorityCatchUpResult,
+	persistAuthorityCatchUp,
+} from "./versioned-catchup.js";
+export {
 	type AppendAuthorityBatchRequest,
 	type AppendAuthorityBatchResult,
 	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
-	AUTHORITY_REJECTION_SCHEMA_VERSION,
+	AUTHORITY_CATCH_UP_RECEIPT_SCHEMA_VERSION,
 	AUTHORITY_EVENT_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
 	AUTHORITY_HEAD_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
 	type AuthorityAppendReceipt,
 	type AuthorityCausalParent,
@@ -79,6 +85,8 @@ export {
 	type AuthorityEventRangeRequest,
 	type AuthorityEventRecord,
 	type AuthorityHead,
+	type AuthorityRelatedEvent,
+	type AuthorityRelatedRelation,
 	type AuthorityReplayRequest,
 	type AuthorityReplayResult,
 	type AuthorityScope,

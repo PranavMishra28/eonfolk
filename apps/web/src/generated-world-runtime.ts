@@ -45,8 +45,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-/** Exact v5 namespace: earlier authority bytes remain untouched and cannot be misread. */
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v5";
+/** Exact v6 namespace: earlier authority bytes remain untouched and cannot be misread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v6";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -101,7 +101,6 @@ interface PreparedGeneratedWorldBase {
 }
 
 let pendingDefaultPreparedBase: Promise<PreparedGeneratedWorldBase> | undefined;
-let defaultAuthorityEstablished = false;
 
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
@@ -168,7 +167,6 @@ function projectAuthorityView(input: {
  */
 async function buildGeneratedWorldExperienceInternal(
 	options: GeneratedWorldBuildOptions,
-	preferEstablishedAuthority: boolean,
 ): Promise<GeneratedWorldExperience> {
 	if (generatedFaultHooks) await options.beforeAuthorityAdvance?.();
 	const authorityRunner: typeof runCivilizationExperiment = async (input) => {
@@ -290,45 +288,18 @@ async function buildGeneratedWorldExperienceInternal(
 					}),
 				});
 			};
-			let durableAuthority:
-				| Awaited<ReturnType<typeof readDurableAuthority>>
-				| undefined;
-			let usedEstablishedAuthority =
-				usesDefaultAuthority &&
-				preferEstablishedAuthority &&
-				defaultAuthorityEstablished;
-			if (usedEstablishedAuthority) {
-				try {
-					durableAuthority = await readDurableAuthority({
-						head: await openedPort.loadHead(scope),
-						restored: true,
-						catchUpReceipts: 0,
-					});
-				} catch (error) {
-					if (
-						!(error instanceof PersistenceError) ||
-						error.code !== "NOT_FOUND"
-					)
-						throw error;
-					usedEstablishedAuthority = false;
-				}
-			}
-			if (!usedEstablishedAuthority) {
-				const advanced = await persistPreparedGeneratedCivilization({
-					port: openedPort,
-					prepared,
-				});
-				durableAuthority = await readDurableAuthority({
-					head: advanced.head,
-					restored:
-						advanced.receipts.length > 0 &&
-						advanced.idempotentAppends === advanced.receipts.length,
-					catchUpReceipts: advanced.receipts.length,
-				});
-				if (usesDefaultAuthority) defaultAuthorityEstablished = true;
-			}
-			if (durableAuthority === undefined)
-				throw new Error("Durable authority missing");
+			const advanced = await persistPreparedGeneratedCivilization({
+				port: openedPort,
+				prepared,
+				confirmationId: `release-genesis-day-${targetHorizonDays}-confirmation`,
+			});
+			const durableAuthority = await readDurableAuthority({
+				head: advanced.head,
+				restored:
+					advanced.catchUpOperation.status === "complete" &&
+					advanced.idempotentAppends === advanced.receipts.length,
+				catchUpReceipts: advanced.catchUpOperation.nextChapter,
+			});
 			run = admittedRun;
 			previousRun = admittedPreviousRun;
 			authorityState = durableAuthority.state;
@@ -474,7 +445,7 @@ async function buildGeneratedWorldExperienceInternal(
 export function buildGeneratedWorldExperience(
 	options: GeneratedWorldBuildOptions = {},
 ): Promise<GeneratedWorldExperience> {
-	return buildGeneratedWorldExperienceInternal(options, false);
+	return buildGeneratedWorldExperienceInternal(options);
 }
 
 const INDEXED_DB_UNAVAILABLE_ERRORS = [
@@ -524,6 +495,6 @@ export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience
 
 /** Reloads the sole durable authority projection after an accepted command. */
 export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
-	pendingExperience = buildGeneratedWorldExperienceInternal({}, true);
+	pendingExperience = buildGeneratedWorldExperienceInternal({});
 	return pendingExperience;
 }

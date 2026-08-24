@@ -1,11 +1,11 @@
 import type { JsonValue } from "./types.js";
 
 export const VERSIONED_PERSISTENCE_PORT_VERSION =
-	"eonfolk-persistence-port-v3" as const;
+	"eonfolk-persistence-port-v4" as const;
 export const AUTHORITY_HEAD_SCHEMA_VERSION =
 	"eonfolk-authority-head-v1" as const;
 export const AUTHORITY_EVENT_SCHEMA_VERSION =
-	"eonfolk-authority-event-v1" as const;
+	"eonfolk-authority-event-v2" as const;
 export const AUTHORITY_SNAPSHOT_SCHEMA_VERSION =
 	"eonfolk-authority-snapshot-v1" as const;
 export const AUTHORITY_APPEND_SCHEMA_VERSION =
@@ -16,6 +16,8 @@ export const AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION =
 	"eonfolk-authority-append-receipt-v2" as const;
 export const AUTHORITY_GENESIS_SCHEMA_VERSION =
 	"eonfolk-authority-genesis-v1" as const;
+export const AUTHORITY_CATCH_UP_RECEIPT_SCHEMA_VERSION =
+	"eonfolk-catch-up-receipt-v1" as const;
 export const EMPTY_EVENT_HASH = "0".repeat(64);
 
 /**
@@ -28,6 +30,7 @@ export const PERSISTENCE_MIGRATION_POLICY = Object.freeze({
 	supportedRecordVersions: Object.freeze({
 		append: AUTHORITY_APPEND_SCHEMA_VERSION,
 		appendReceipt: AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
+		catchUpReceipt: AUTHORITY_CATCH_UP_RECEIPT_SCHEMA_VERSION,
 		rejection: AUTHORITY_REJECTION_SCHEMA_VERSION,
 		event: AUTHORITY_EVENT_SCHEMA_VERSION,
 		genesis: AUTHORITY_GENESIS_SCHEMA_VERSION,
@@ -54,16 +57,19 @@ export interface AuthorityHead extends AuthorityScope {
 	readonly headHash: string;
 }
 
-export type AuthorityCausalRelation =
-	| "direct-cause"
-	| "trigger"
-	| "contributing-condition"
-	| "temporal-predecessor"
-	| "allegation";
+export type AuthorityCausalRelation = "direct" | "trigger" | "contributing";
+
+export type AuthorityRelatedRelation = "temporal-predecessor" | "response-to";
 
 export interface AuthorityCausalParent {
 	readonly eventId: string;
 	readonly relation: AuthorityCausalRelation;
+	readonly mechanismId: string;
+}
+
+export interface AuthorityRelatedEvent {
+	readonly eventId: string;
+	readonly relation: AuthorityRelatedRelation;
 }
 
 export interface AuthorityEventProvenance {
@@ -83,6 +89,7 @@ export interface AuthorityEventRecord extends AuthorityScope {
 	readonly simulationTime: number;
 	readonly eventType: string;
 	readonly causalParents: readonly AuthorityCausalParent[];
+	readonly relatedEvents: readonly AuthorityRelatedEvent[];
 	readonly visibility: JsonValue;
 	readonly provenance: AuthorityEventProvenance;
 	readonly preStateHash: string;

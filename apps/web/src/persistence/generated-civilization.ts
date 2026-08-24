@@ -6,10 +6,12 @@ import {
 	type AuthorityAppendReceipt,
 	type AuthorityHead,
 	type AuthoritySnapshotRecord,
+	type CatchUpOperationRecord,
 	type CivilizationPersistencePlan,
 	createAuthoritySnapshot,
 	createCivilizationPersistencePlan,
 	hashAuthoritativeState,
+	persistAuthorityCatchUp,
 	type ReleaseGenesisCivilizationState,
 	replayCivilizationHistory,
 	type VersionedPersistencePort,
@@ -28,6 +30,15 @@ export const GENERATED_CIVILIZATION_GENESIS_SNAPSHOT_ID =
 	"civilization-genesis";
 export const LEGACY_CHECKPOINT_MIGRATION_VERSION =
 	"eonfolk-legacy-checkpoint-migration-v1" as const;
+export const GENERATED_CIVILIZATION_OPERATION_LIMITS = Object.freeze({
+	maximumHorizonDays: 365,
+	maximumChapters: 5,
+	maximumRunnerInvocations: 5,
+	maximumSourceSteps: 365,
+	maximumSourceEvents: 16_384,
+	maximumPlanBytes: 4_194_304,
+	maximumPreparationRuntimeMs: 30_000,
+} as const);
 
 export type GeneratedCivilizationCatchUpHorizon =
 	(typeof GENERATED_CIVILIZATION_CATCH_UP_HORIZONS)[number];
@@ -37,6 +48,17 @@ export interface AdvanceGeneratedCivilizationRequest {
 	readonly genesisWorld: GeneratedWorldState;
 	readonly targetHorizonDays: GeneratedCivilizationCatchUpHorizon;
 	readonly authorityRunner?: typeof runCivilizationExperiment;
+	readonly confirmationId?: string;
+}
+
+export interface GeneratedCivilizationOperationMeasurement {
+	readonly chapters: number;
+	readonly horizonDays: number;
+	readonly runnerInvocations: number;
+	readonly sourceSteps: number;
+	readonly sourceEvents: number;
+	readonly planBytes: number;
+	readonly preparationRuntimeMs: number;
 }
 
 export interface AdvanceGeneratedCivilizationResult {
@@ -46,12 +68,15 @@ export interface AdvanceGeneratedCivilizationResult {
 	readonly snapshot: AuthoritySnapshotRecord;
 	readonly receipts: readonly AuthorityAppendReceipt[];
 	readonly idempotentAppends: number;
+	readonly catchUpOperation: CatchUpOperationRecord;
+	readonly measurement: GeneratedCivilizationOperationMeasurement;
 }
 
 export interface PreparedGeneratedCivilization {
 	readonly targetHorizonDays: GeneratedCivilizationCatchUpHorizon;
 	readonly checkpoints: readonly CivilizationExperimentRun[];
 	readonly plan: CivilizationPersistencePlan;
+	readonly measurement: GeneratedCivilizationOperationMeasurement;
 }
 
 export interface LegacyCheckpointMigrationResult {
@@ -100,21 +125,36 @@ async function persistPlan(input: {
 	readonly port: VersionedPersistencePort;
 	readonly plan: CivilizationPersistencePlan;
 	readonly targetHorizonDays: number;
+	readonly confirmationId: string;
 }): Promise<{
 	readonly head: AuthorityHead;
 	readonly snapshot: AuthoritySnapshotRecord;
 	readonly receipts: readonly AuthorityAppendReceipt[];
 	readonly idempotentAppends: number;
+	readonly catchUpOperation: CatchUpOperationRecord;
 }> {
 	await input.port.initialize(input.plan.genesis);
-	const receipts: AuthorityAppendReceipt[] = [];
-	let idempotentAppends = 0;
-	for (const batch of input.plan.batches) {
-		const result = await input.port.appendEventBatch(batch);
-		receipts.push(result.receipt);
-		if (result.idempotent) idempotentAppends += 1;
-	}
-	const head = await input.port.loadHead(input.plan.scope);
+	const catchUp = await persistAuthorityCatchUp(input.port, {
+		...input.plan.scope,
+		operationId: `generated-day-${input.targetHorizonDays}`,
+		confirmationId: input.confirmationId,
+		confirmed: true,
+		chapters: input.plan.batches,
+	});
+	const receipts = await Promise.all(
+		input.plan.batches.map(async (batch) => {
+			const receipt = await input.port.getAppendReceipt(
+				input.plan.scope,
+				batch.appendId,
+			);
+			if (receipt === null) throw new Error("durable chapter receipt missing");
+			return receipt;
+		}),
+	);
+	const newlyCommitted =
+		catchUp.chapterReceipts.length - catchUp.idempotentChapters;
+	const idempotentAppends = receipts.length - newlyCommitted;
+	const head = catchUp.head;
 	let snapshotState = input.plan.finalState;
 	const extendedAuthority =
 		(await hashAuthoritativeState(snapshotState)) !== head.stateHash;
@@ -141,7 +181,13 @@ async function persistPlan(input: {
 		state: snapshotState,
 	});
 	await input.port.saveSnapshot({ snapshot, fencingToken: head.fencingToken });
-	return { head, snapshot, receipts, idempotentAppends };
+	return {
+		head,
+		snapshot,
+		receipts,
+		idempotentAppends,
+		catchUpOperation: catchUp.receipt,
+	};
 }
 
 /**
@@ -154,7 +200,16 @@ export async function prepareGeneratedCivilization(input: {
 	readonly genesisWorld: GeneratedWorldState;
 	readonly targetHorizonDays: GeneratedCivilizationCatchUpHorizon;
 	readonly authorityRunner?: typeof runCivilizationExperiment;
+	readonly now?: () => number;
+	readonly maximumRuntimeMs?: number;
 }): Promise<PreparedGeneratedCivilization> {
+	const now = input.now ?? (() => performance.now());
+	const startedAt = now();
+	const runtimeLimit =
+		input.maximumRuntimeMs ??
+		GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumPreparationRuntimeMs;
+	if (!Number.isFinite(runtimeLimit) || runtimeLimit <= 0)
+		throw new RangeError("invalid generated civilization runtime limit");
 	const authorityRunner = input.authorityRunner ?? runCivilizationExperiment;
 	const checkpoints: CivilizationExperimentRun[] = [];
 	for (const horizonDays of selectedHorizons(input.targetHorizonDays)) {
@@ -165,6 +220,10 @@ export async function prepareGeneratedCivilization(input: {
 		if (generated.metrics.modelInvocations !== 0)
 			throw new Error("generated civilization catch-up invoked a model");
 		checkpoints.push(generated);
+		if (now() - startedAt > runtimeLimit)
+			throw new RangeError(
+				"generated civilization preparation exceeded its cap",
+			);
 	}
 	const plan = await createCivilizationPersistencePlan({
 		runId: GENERATED_CIVILIZATION_RUN_ID,
@@ -176,25 +235,58 @@ export async function prepareGeneratedCivilization(input: {
 		snapshotId: "civilization",
 	});
 	assertGeneratedPreCommitInvariants(checkpoints);
+	const source = checkpoints.at(-1);
+	if (source === undefined) throw new Error("generated checkpoint missing");
+	const measurement: GeneratedCivilizationOperationMeasurement = Object.freeze({
+		chapters: plan.batches.length,
+		horizonDays: input.targetHorizonDays,
+		runnerInvocations: checkpoints.length,
+		sourceSteps: source.steps.length,
+		sourceEvents: source.events.length,
+		planBytes: new TextEncoder().encode(JSON.stringify(plan)).byteLength,
+		preparationRuntimeMs: Math.max(0, now() - startedAt),
+	});
+	if (
+		measurement.horizonDays >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumHorizonDays ||
+		measurement.chapters >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumChapters ||
+		measurement.runnerInvocations >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumRunnerInvocations ||
+		measurement.sourceSteps >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumSourceSteps ||
+		measurement.sourceEvents >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumSourceEvents ||
+		measurement.planBytes >
+			GENERATED_CIVILIZATION_OPERATION_LIMITS.maximumPlanBytes ||
+		measurement.preparationRuntimeMs > runtimeLimit
+	)
+		throw new RangeError("generated civilization operation exceeds V1 caps");
 	return Object.freeze({
 		targetHorizonDays: input.targetHorizonDays,
 		checkpoints: Object.freeze(checkpoints),
 		plan,
+		measurement,
 	});
 }
 
 export async function persistPreparedGeneratedCivilization(input: {
 	readonly port: VersionedPersistencePort;
 	readonly prepared: PreparedGeneratedCivilization;
+	readonly confirmationId?: string;
 }): Promise<AdvanceGeneratedCivilizationResult> {
 	const persisted = await persistPlan({
 		port: input.port,
 		plan: input.prepared.plan,
 		targetHorizonDays: input.prepared.targetHorizonDays,
+		confirmationId:
+			input.confirmationId ??
+			`confirmed-generated-day-${input.prepared.targetHorizonDays}`,
 	});
 	return {
 		targetHorizonDays: input.prepared.targetHorizonDays,
 		checkpoints: input.prepared.checkpoints,
+		measurement: input.prepared.measurement,
 		...persisted,
 	};
 }
@@ -217,6 +309,9 @@ export async function advanceGeneratedCivilization(
 	return await persistPreparedGeneratedCivilization({
 		port: input.port,
 		prepared,
+		...(input.confirmationId === undefined
+			? {}
+			: { confirmationId: input.confirmationId }),
 	});
 }
 
@@ -274,6 +369,7 @@ export async function migrateLegacyGeneratedCheckpoint(input: {
 			snapshotId: "civilization",
 		}),
 		targetHorizonDays: legacy.horizonDays,
+		confirmationId: `confirmed-legacy-day-${legacy.horizonDays}`,
 	});
 	return {
 		migrationVersion: LEGACY_CHECKPOINT_MIGRATION_VERSION,

@@ -3,17 +3,15 @@ import { canonicalJson, cloneValue } from "./codec.js";
 import { PersistenceError } from "./errors.js";
 import type { JsonValue, PersistenceBounds } from "./types.js";
 import {
+	type AppendAuthorityBatchRequest,
+	type AppendAuthorityBatchResult,
 	AUTHORITY_APPEND_RECEIPT_SCHEMA_VERSION,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
-	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	AUTHORITY_EVENT_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
 	AUTHORITY_HEAD_SCHEMA_VERSION,
+	AUTHORITY_REJECTION_SCHEMA_VERSION,
 	AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
-	EMPTY_EVENT_HASH,
-	VERSIONED_PERSISTENCE_PORT_VERSION,
-	type AppendAuthorityBatchRequest,
-	type AppendAuthorityBatchResult,
 	type AuthorityAppendReceipt,
 	type AuthorityEventRangeRequest,
 	type AuthorityEventRecord,
@@ -22,10 +20,12 @@ import {
 	type AuthorityReplayResult,
 	type AuthorityScope,
 	type AuthoritySnapshotRecord,
+	EMPTY_EVENT_HASH,
 	type InitializeAuthorityRequest,
 	type InitializeAuthorityResult,
 	type RecordRejectedAuthorityCommandRequest,
 	type SaveAuthoritySnapshotRequest,
+	VERSIONED_PERSISTENCE_PORT_VERSION,
 	type VersionedCrashInjector,
 	type VersionedPersistencePort,
 } from "./versioned-types.js";
@@ -168,15 +168,20 @@ export async function createAuthoritySnapshot(
 }
 
 export async function createAuthorityEvent(
-	input: Omit<AuthorityEventRecord, "eventHash" | "schemaVersion">,
+	input: Omit<
+		AuthorityEventRecord,
+		"eventHash" | "relatedEvents" | "schemaVersion"
+	> &
+		Partial<Pick<AuthorityEventRecord, "relatedEvents">>,
 ): Promise<AuthorityEventRecord> {
 	const unsigned = {
 		...input,
+		relatedEvents: input.relatedEvents ?? [],
 		schemaVersion: AUTHORITY_EVENT_SCHEMA_VERSION,
 	};
 	return {
 		...unsigned,
-		eventHash: await domainHash("eonfolk-authority-event-v1", unsigned),
+		eventHash: await domainHash("eonfolk-authority-event-v2", unsigned),
 	};
 }
 
@@ -277,16 +282,14 @@ export async function validateAuthorityEventRecord(
 	assertInteger(event.simulationTime, "event.simulationTime");
 	for (const [index, parent] of event.causalParents.entries()) {
 		assertIdentifier(parent.eventId, `event.causalParents[${index}].eventId`);
+		assertIdentifier(
+			parent.mechanismId,
+			`event.causalParents[${index}].mechanismId`,
+		);
 		if (
-			!(
-				[
-					"direct-cause",
-					"trigger",
-					"contributing-condition",
-					"temporal-predecessor",
-					"allegation",
-				] as const
-			).includes(parent.relation)
+			!(["direct", "trigger", "contributing"] as const).includes(
+				parent.relation,
+			)
 		) {
 			throw new PersistenceError(
 				"INVALID_INPUT",
@@ -294,6 +297,34 @@ export async function validateAuthorityEventRecord(
 			);
 		}
 	}
+	if (
+		new Set(event.causalParents.map(({ eventId }) => eventId)).size !==
+		event.causalParents.length
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"event causal parent IDs must be unique",
+		);
+	for (const [index, related] of event.relatedEvents.entries()) {
+		assertIdentifier(related.eventId, `event.relatedEvents[${index}].eventId`);
+		if (
+			!(["temporal-predecessor", "response-to"] as const).includes(
+				related.relation,
+			)
+		)
+			throw new PersistenceError(
+				"INVALID_INPUT",
+				`event.relatedEvents[${index}].relation is unsupported`,
+			);
+	}
+	if (
+		new Set(event.relatedEvents.map(({ eventId }) => eventId)).size !==
+		event.relatedEvents.length
+	)
+		throw new PersistenceError(
+			"INVALID_INPUT",
+			"event related IDs must be unique",
+		);
 	if (
 		event.provenance.brainKind !== null &&
 		event.provenance.brainKind !== "standard" &&
@@ -325,7 +356,7 @@ export async function validateAuthorityEventRecord(
 	assertHash(event.eventHash, "event.eventHash");
 	assertRecordBound(event as unknown as JsonValue, bounds, "authority event");
 	const expected = await domainHash(
-		"eonfolk-authority-event-v1",
+		"eonfolk-authority-event-v2",
 		withoutKey(event as unknown as Record<string, unknown>, "eventHash"),
 	);
 	if (expected !== event.eventHash) {
@@ -645,6 +676,15 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 		let previousEventHash = head.lastEventHash;
 		let previousSimulationTime = head.simulationTime;
 		const eventIds = new Set<string>();
+		const precedingEventIds = new Set(
+			[...this.#stores.events.values()]
+				.filter(
+					(existing) =>
+						existing.runId === request.runId &&
+						existing.regionId === request.regionId,
+				)
+				.map(({ eventId }) => eventId),
+		);
 		for (const [index, event] of request.events.entries()) {
 			await validateAuthorityEventRecord(event, this.#bounds);
 			assertScope(event, request, `event ${index}`);
@@ -687,7 +727,18 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 					"EVENT_COLLISION",
 					"event ID already exists in the authority stream",
 				);
+			for (const reference of [
+				...event.causalParents,
+				...event.relatedEvents,
+			]) {
+				if (!precedingEventIds.has(reference.eventId))
+					throw new PersistenceError(
+						"RANGE_GAP",
+						`event ${index} references a missing or non-preceding same-stream event`,
+					);
+			}
 			eventIds.add(event.eventId);
+			precedingEventIds.add(event.eventId);
 			previousStateHash = event.postStateHash;
 			previousEventHash = event.eventHash;
 			previousSimulationTime = event.simulationTime;

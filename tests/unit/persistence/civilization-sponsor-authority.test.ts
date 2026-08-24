@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	advanceGeneralizedScheduler,
+	type CivilizationState,
 	deriveCivilizationSchedulerPolicy,
 	projectCivilizationScheduledActivities,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	runCivilizationExperiment,
-	type CivilizationState,
 } from "../../../packages/civilization/src/index.js";
 import {
 	buildCivilizationCounselDecisionContext,
@@ -18,6 +18,11 @@ import {
 	standardBrain,
 } from "../../../packages/cognition/src/index.js";
 import {
+	createCivilizationCounselBoundaryAppend,
+	createCivilizationSponsorAuthorityAppend,
+	createCivilizationSponsorRejectionAppend,
+} from "../../../packages/persistence/src/civilization-sponsor.js";
+import {
 	createAuthorityEvent,
 	hashAuthoritativeState,
 	MemoryVersionedPersistence,
@@ -27,17 +32,11 @@ import {
 	type VersionedCrashPoint,
 } from "../../../packages/persistence/src/index.js";
 import {
-	createCivilizationCounselBoundaryAppend,
-	createCivilizationSponsorAuthorityAppend,
-	createCivilizationSponsorRejectionAppend,
-} from "../../../packages/persistence/src/civilization-sponsor.js";
-import {
-	createReleaseGenesis,
 	bytesFromHex,
-	decisionRecordHash,
+	createReleaseGenesis,
 	type GeneratedWorldState,
-	payloadFingerprint,
 	PROTOCOL_SCHEMA_VERSION,
+	payloadFingerprint,
 	seedPrng,
 	stateHash,
 } from "../../../packages/protocol/src/index.js";
@@ -674,7 +673,8 @@ describe("unified civilization sponsor authority", () => {
 			causalParents: [
 				{
 					eventId: value.transition.events[0]!.eventId,
-					relation: "contributing-condition",
+					relation: "contributing",
+					mechanismId: "civilization.scheduler.counsel-boundary.v1",
 				},
 			],
 		});
@@ -840,11 +840,12 @@ describe("unified civilization sponsor authority", () => {
 				abstentionEventId: abstention.transition.events[0]!.eventId,
 			},
 		});
-		expect(boundary.request.events[0]?.causalParents[0]).toMatchObject({
+		expect(boundary.request.events[0]?.causalParents).toEqual([]);
+		expect(boundary.request.events[0]?.relatedEvents[0]).toMatchObject({
 			eventId: resolved.transition.events[0]!.eventId,
 			relation: "temporal-predecessor",
 		});
-		expect(boundary.request.events[0]?.causalParents[1]).toEqual({
+		expect(boundary.request.events[0]?.relatedEvents[1]).toEqual({
 			eventId: abstention.transition.events[0]!.eventId,
 			relation: "temporal-predecessor",
 		});
@@ -856,7 +857,7 @@ describe("unified civilization sponsor authority", () => {
 		).resolves.toEqual(boundary.state);
 	});
 
-	it("rejects a rehashed substituted cognition record during authority replay", async () => {
+	it("replays canonical authority when cognitive audit records are unavailable or altered", async () => {
 		const value = await fixture();
 		await value.port.appendEventBatch(value.append.request);
 		const interventionId = `intervention:${value.citizenId}:tamper`;
@@ -865,36 +866,44 @@ describe("unified civilization sponsor authority", () => {
 			kind: "resolve",
 			interventionId,
 		});
-		const record = resolved.transition.committedDecisionRecord!;
-		const { decisionRecordHash: _recordHash, ...recordBody } = record;
-		const tamperedBody = {
-			...recordBody,
-			explanation: {
-				...record.explanation!,
-				templateId: "forged-explanation-template",
-			},
-		};
-		const tamperedRecord = {
-			...tamperedBody,
-			decisionRecordHash: await decisionRecordHash(tamperedBody),
-		};
 		const original = resolved.append.request.events[0]!;
-		const { eventHash: _eventHash, ...eventWithoutHash } = original;
-		const tamperedEvent = await createAuthorityEvent({
-			...eventWithoutHash,
-			payload: {
-				...(original.payload as Record<string, unknown>),
-				decisionRecord: tamperedRecord,
-			} as never,
-		});
-		const preState = await replayCivilizationHistory(value.port, {
+		expect(
+			Object.keys(original.payload as Record<string, unknown>),
+		).not.toContain("decisionRecord");
+		expect(
+			Object.keys(original.payload as Record<string, unknown>),
+		).not.toContain("commandReceipt");
+		const durableAudit = await value.port.getAppendReceipt(
+			{ runId: value.runId, regionId: value.regionId },
+			resolved.append.request.appendId,
+		);
+		expect(durableAudit?.decisionRecord).not.toBeNull();
+		const auditRead = vi
+			.spyOn(value.port, "getAppendReceipt")
+			.mockRejectedValue(new Error("cognitive audit ledger unavailable"));
+		const unavailableReplay = await replayCivilizationHistory(value.port, {
 			runId: value.runId,
 			regionId: value.regionId,
 			snapshotId: value.persisted.snapshot.snapshotId,
-			toSequenceExclusive: original.sequence,
+			toSequenceExclusive: resolved.committed.head.lastSequence + 1,
 		});
-		await expect(
-			reduceCivilizationAuthorityEvent(preState.state, tamperedEvent),
-		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+		expect(unavailableReplay.stateHash).toBe(resolved.committed.head.stateHash);
+		expect(auditRead).not.toHaveBeenCalled();
+		auditRead.mockResolvedValue(
+			durableAudit === null
+				? null
+				: {
+						...durableAudit,
+						decisionRecord: { altered: "untrusted audit bytes" },
+					},
+		);
+		const alteredReplay = await replayCivilizationHistory(value.port, {
+			runId: value.runId,
+			regionId: value.regionId,
+			snapshotId: value.persisted.snapshot.snapshotId,
+			toSequenceExclusive: resolved.committed.head.lastSequence + 1,
+		});
+		expect(alteredReplay.stateHash).toBe(resolved.committed.head.stateHash);
+		expect(auditRead).not.toHaveBeenCalled();
 	});
 });

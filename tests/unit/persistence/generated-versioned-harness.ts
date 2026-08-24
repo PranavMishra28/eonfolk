@@ -28,6 +28,7 @@ import {
 	type PersistenceError,
 	replayAuthoritativeEvents,
 	type VersionedCrashPoint,
+	type VersionedPersistencePort,
 } from "../../../packages/persistence/src/index.js";
 import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
@@ -44,6 +45,8 @@ declare global {
 const DATABASE = "eonfolk-generated-versioned-browser-test";
 const SESSION_DATABASE = "eonfolk-generated-versioned-session-browser-test";
 const CIVILIZATION_DATABASE = "eonfolk-generated-civilization-browser-test";
+const CATCH_UP_RESUME_DATABASE =
+	"eonfolk-generated-catch-up-resume-browser-test";
 const OPEN_FAILURE_DATABASE = "eonfolk-generated-open-failure-browser-test";
 const QUOTA_DATABASE = "eonfolk-generated-quota-browser-test";
 const SCOPE = { runId: "generated-browser-run", regionId: "generated-region" };
@@ -834,6 +837,54 @@ async function run(): Promise<void> {
 	restoredCivilizationPort.close();
 	await deleteDatabase(CIVILIZATION_DATABASE);
 
+	await deleteDatabase(CATCH_UP_RESUME_DATABASE);
+	const crashBoundaryPort = await BrowserVersionedPersistence.open({
+		databaseName: CATCH_UP_RESUME_DATABASE,
+	});
+	let catchUpBoundaryThrown = false;
+	let catchUpAppendCommitted = false;
+	const crashBoundaryClient = new Proxy(crashBoundaryPort, {
+		get(target, property) {
+			if (property === "appendEventBatch")
+				return async (
+					request: Parameters<typeof target.appendEventBatch>[0],
+				) => {
+					const result = await target.appendEventBatch(request);
+					if (!catchUpAppendCommitted) {
+						catchUpAppendCommitted = true;
+						throw new Error("crash after durable catch-up chapter");
+					}
+					return result;
+				};
+			const value = Reflect.get(target, property, target) as unknown;
+			return typeof value === "function" ? value.bind(target) : value;
+		},
+	}) as VersionedPersistencePort;
+	try {
+		await advanceGeneratedCivilization({
+			port: crashBoundaryClient,
+			genesisWorld: world,
+			targetHorizonDays: 365,
+		});
+	} catch {
+		catchUpBoundaryThrown = true;
+	}
+	const catchUpCrashHead = await crashBoundaryPort.loadHead({
+		runId: "v1-generated-civilization",
+		regionId: world.identity.worldId,
+	});
+	crashBoundaryPort.close();
+	const freshCatchUpPort = await BrowserVersionedPersistence.open({
+		databaseName: CATCH_UP_RESUME_DATABASE,
+	});
+	const freshCatchUp = await advanceGeneratedCivilization({
+		port: freshCatchUpPort,
+		genesisWorld: world,
+		targetHorizonDays: 365,
+	});
+	freshCatchUpPort.close();
+	await deleteDatabase(CATCH_UP_RESUME_DATABASE);
+
 	await deleteDatabase(GENERATED_WORLD_STORAGE_KEY);
 	const originalAppend = BrowserVersionedPersistence.prototype.appendEventBatch;
 	let generatedAppendCalls = 0;
@@ -909,6 +960,12 @@ async function run(): Promise<void> {
 			civilizationEvents: civilization.head.lastSequence,
 			civilizationReplayHashMatches:
 				civilizationReplay.stateHash === civilization.head.stateHash,
+			catchUpBoundaryThrown,
+			catchUpCrashRevision: catchUpCrashHead.revision,
+			catchUpFreshProcessComplete:
+				freshCatchUp.catchUpOperation.status === "complete" &&
+				freshCatchUp.catchUpOperation.nextChapter === 5,
+			catchUpFreshProcessRevision: freshCatchUp.head.revision,
 			corruptionCode,
 			generatedFirstLoadAppendCalls,
 			generatedFirstLoadPersisted,

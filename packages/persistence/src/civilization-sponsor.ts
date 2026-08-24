@@ -1,10 +1,10 @@
 import {
 	advanceGeneralizedScheduler,
 	assertCivilizationInvariants,
-	deriveCivilizationSchedulerPolicy,
-	projectCivilizationScheduledActivities,
 	type CivilizationCounselOutcomeEffect,
 	type CivilizationState,
+	deriveCivilizationSchedulerPolicy,
+	projectCivilizationScheduledActivities,
 	type SchedulerRoutineDecision,
 } from "@eonfolk/civilization";
 import {
@@ -15,17 +15,17 @@ import {
 	validateCommittedCivilizationDecisionRecord,
 } from "@eonfolk/civilization/sponsor";
 import {
-	batchId as protocolBatchId,
-	payloadFingerprint,
-	stateHash as protocolStateHash,
 	type GeneratedWorldState,
+	payloadFingerprint,
+	batchId as protocolBatchId,
+	stateHash as protocolStateHash,
 } from "@eonfolk/protocol";
-import { canonicalJson, cloneValue } from "./codec.js";
 import {
 	RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
 	RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 	type ReleaseGenesisCivilizationState,
 } from "./civilization.js";
+import { canonicalJson, cloneValue } from "./codec.js";
 import { PersistenceError } from "./errors.js";
 import type { JsonValue } from "./types.js";
 import { createAuthorityEvent, hashAuthoritativeState } from "./versioned.js";
@@ -414,9 +414,9 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 	};
 	const parents = array(protocolEvent.causalParents, "sponsor causalParents");
 	const relation = (value: unknown) => {
-		if (value === "direct") return "direct-cause" as const;
+		if (value === "direct") return "direct" as const;
 		if (value === "trigger") return "trigger" as const;
-		if (value === "contributing") return "contributing-condition" as const;
+		if (value === "contributing") return "contributing" as const;
 		fail("INVALID_INPUT", "CSP");
 	};
 	const appendId = string(receipt.commandId, "sponsor commandId");
@@ -443,6 +443,28 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 					`sponsor causal parent ${index}.eventId`,
 				),
 				relation: relation(parent.relation),
+				mechanismId: string(
+					parent.mechanismId,
+					`sponsor causal parent ${index}.mechanismId`,
+				),
+			};
+		}),
+		relatedEvents: array(
+			protocolEvent.relatedEvents,
+			"sponsor relatedEvents",
+		).map((value, index) => {
+			const related = record(value, `sponsor related event ${index}`);
+			if (
+				related.relation !== "temporal-predecessor" &&
+				related.relation !== "response-to"
+			)
+				fail("INVALID_INPUT", "CSP");
+			return {
+				eventId: string(
+					related.eventId,
+					`sponsor related event ${index}.eventId`,
+				),
+				relation: related.relation,
 			};
 		}),
 		visibility: json(protocolEvent.visibility, "sponsor visibility"),
@@ -467,8 +489,6 @@ export async function createCivilizationSponsorAuthorityAppend(input: {
 			schemaVersion: RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 			transitionKind: "sponsor",
 			protocolEvent: json(input.protocolEvent, "protocol sponsor event"),
-			commandReceipt: json(receipt, "protocol sponsor receipt"),
-			decisionRecord: decisionJson(input.decisionRecord),
 		},
 	});
 	const durableReceipt = json(
@@ -751,11 +771,25 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 			activities: json(projectedActivities, "boundary activities"),
 		},
 	};
-	const causalParents = [
-		{
-			eventId: resolution.sourceEventId,
-			relation: fact.causalRelation,
-		},
+	const causalParents =
+		fact.causalRelation === "contributing-condition"
+			? [
+					{
+						eventId: resolution.sourceEventId,
+						relation: "contributing" as const,
+						mechanismId: "civilization.scheduler.counsel-boundary.v1",
+					},
+				]
+			: [];
+	const relatedEvents = [
+		...(fact.causalRelation === "temporal-predecessor"
+			? [
+					{
+						eventId: resolution.sourceEventId,
+						relation: "temporal-predecessor" as const,
+					},
+				]
+			: []),
 		...(fact.counterfactual.abstentionEventId === null
 			? []
 			: [
@@ -777,6 +811,7 @@ export async function createCivilizationCounselBoundaryAppend(input: {
 		simulationTime: derived.state.simulationTime,
 		eventType: "CivilizationCounselBoundaryCommitted",
 		causalParents,
+		relatedEvents,
 		visibility: {
 			kind: "patron-visible-through-covenant",
 			subjectCitizenId: input.citizenId,

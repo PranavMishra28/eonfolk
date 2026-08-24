@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	type AppendAuthorityBatchRequest,
 	AUTHORITY_APPEND_SCHEMA_VERSION,
 	AUTHORITY_GENESIS_SCHEMA_VERSION,
 	AUTHORITY_REJECTION_SCHEMA_VERSION,
-	EMPTY_EVENT_HASH,
-	MemoryVersionedPersistence,
-	PERSISTENCE_MIGRATION_POLICY,
-	type PersistenceError,
+	type AuthorityEventRecord,
+	type AuthorityHead,
 	createAuthorityEvent,
 	createAuthorityHead,
 	createAuthoritySnapshot,
+	EMPTY_EVENT_HASH,
 	hashAuthoritativeState,
+	MemoryVersionedPersistence,
+	PERSISTENCE_MIGRATION_POLICY,
+	type PersistenceError,
 	replayAuthoritativeEvents,
-	validateAuthorityEventRecord,
-	type AppendAuthorityBatchRequest,
-	type AuthorityEventRecord,
-	type AuthorityHead,
 	type VersionedCrashPoint,
+	validateAuthorityEventRecord,
 } from "../../../packages/persistence/src/index.js";
 
 const SCOPE = Object.freeze({
@@ -107,7 +107,8 @@ async function append(
 					: [
 							{
 								eventId: events.at(-1)?.eventId ?? "missing",
-								relation: "direct-cause",
+								relation: "direct",
+								mechanismId: "counter-rule-v1",
 							},
 						],
 			visibility: { kind: "public" },
@@ -157,13 +158,14 @@ describe("MemoryVersionedPersistence", () => {
 	it("publishes an exact-only version and migration contract", () => {
 		expect(PERSISTENCE_MIGRATION_POLICY).toMatchObject({
 			mode: "exact-only",
-			portVersion: "eonfolk-persistence-port-v3",
+			portVersion: "eonfolk-persistence-port-v4",
 		});
 		expect(
 			Object.keys(PERSISTENCE_MIGRATION_POLICY.supportedRecordVersions),
 		).toEqual([
 			"append",
 			"appendReceipt",
+			"catchUpReceipt",
 			"rejection",
 			"event",
 			"genesis",
@@ -318,6 +320,76 @@ describe("MemoryVersionedPersistence", () => {
 				schemaVersion: "future-event-v2",
 			} as unknown as AuthorityEventRecord),
 		).rejects.toMatchObject({ code: "UNSUPPORTED_VERSION" });
+	});
+
+	it("requires exact preceding same-stream causal and related references", async () => {
+		const port = new MemoryVersionedPersistence();
+		await port.initialize(await genesis());
+		const firstRequest = await append(await port.loadHead(SCOPE), 1, [1]);
+		const first = firstRequest.events[0]!;
+		const { eventHash: _firstHash, ...firstWithoutHash } = first;
+		const missingParent = await createAuthorityEvent({
+			...firstWithoutHash,
+			causalParents: [
+				{
+					eventId: "missing-event",
+					relation: "direct",
+					mechanismId: "counter-rule-v1",
+				},
+			],
+		});
+		await expect(
+			port.appendEventBatch({
+				...firstRequest,
+				events: [missingParent],
+			}),
+		).rejects.toMatchObject({ code: "RANGE_GAP" });
+		await expect(
+			validateAuthorityEventRecord({
+				...missingParent,
+				causalParents: [
+					{
+						eventId: "missing-event",
+						relation: "allegation",
+						mechanismId: "counter-rule-v1",
+					},
+				],
+			} as unknown as AuthorityEventRecord),
+		).rejects.toMatchObject({ code: "INVALID_INPUT" });
+		const futureRequest = await append(await port.loadHead(SCOPE), 1, [1, 2]);
+		const futureFirst = futureRequest.events[0]!;
+		const { eventHash: _futureFirstHash, ...futureFirstWithoutHash } =
+			futureFirst;
+		const nonPrecedingParent = await createAuthorityEvent({
+			...futureFirstWithoutHash,
+			causalParents: [
+				{
+					eventId: futureRequest.events[1]!.eventId,
+					relation: "trigger",
+					mechanismId: "counter-rule-v1",
+				},
+			],
+		});
+		await expect(
+			port.appendEventBatch({
+				...futureRequest,
+				events: [nonPrecedingParent, futureRequest.events[1]!],
+			}),
+		).rejects.toMatchObject({ code: "RANGE_GAP" });
+
+		await port.appendEventBatch(firstRequest);
+		const secondRequest = await append(await port.loadHead(SCOPE), 2, [2]);
+		const second = secondRequest.events[0]!;
+		const { eventHash: _secondHash, ...secondWithoutHash } = second;
+		const related = await createAuthorityEvent({
+			...secondWithoutHash,
+			relatedEvents: [
+				{ eventId: first.eventId, relation: "temporal-predecessor" },
+			],
+		});
+		await expect(
+			port.appendEventBatch({ ...secondRequest, events: [related] }),
+		).resolves.toMatchObject({ head: { revision: 2 } });
 	});
 
 	it("saves only exact-head snapshots and replays without cognition", async () => {
