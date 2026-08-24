@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "./support/eonfolk-fixture";
 
 async function keepLocal(page: Page): Promise<string[]> {
 	const external: string[] = [];

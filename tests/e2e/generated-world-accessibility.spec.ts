@@ -1,4 +1,9 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+	expect,
+	type Locator,
+	type Page,
+	test,
+} from "./support/eonfolk-fixture";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;

@@ -1,4 +1,9 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+	expect,
+	type Locator,
+	type Page,
+	test,
+} from "./support/eonfolk-fixture";
 
 import { parseWorldFocusHref } from "../../apps/web/src/research-navigation";
 

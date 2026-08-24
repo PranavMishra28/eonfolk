@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "./support/eonfolk-fixture";
 
 const FAULT_KEY = "eonfolk:e2e-generated-world-fault-v1";
 const FAULT_APPLIED_KEY = `${FAULT_KEY}:applied`;

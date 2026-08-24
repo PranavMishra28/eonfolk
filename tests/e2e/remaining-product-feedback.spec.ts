@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "./support/eonfolk-fixture";
 
 const FEEDBACK_STORAGE_KEY = "eonfolk:release-genesis-feedback:v1";
 const AUTHORITY_DATABASE = "eonfolk-generated-authority-v7";
