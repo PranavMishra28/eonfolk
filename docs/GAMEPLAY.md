@@ -36,7 +36,7 @@ These are understandable primitives, not a generalized economy or story
 scripting framework. A deterministic Standard Brain handles routine behavior,
 so every required loop works with all model integrations removed.
 
-## The Riverhold decision
+## The first sponsor decision
 
 Mara discovers a mismatch between a public ledger and visible food stores. The
 player may advise private verification, urge immediate accusation, or abstain.

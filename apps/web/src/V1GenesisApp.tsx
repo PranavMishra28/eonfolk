@@ -940,20 +940,21 @@ function GeneratedContextPanel({
 											type="button"
 											onClick={() => setJourneyStage("left")}
 										>
-											Leave Riverhold at this checkpoint
+											Leave {projection.local.settlement.name} at this
+											checkpoint
 										</button>
 									</>
 								) : journeyStage === "left" ? (
 									<>
 										<p>
-											Riverhold remains on this device. Nothing advances until
-											you choose to return.
+											{projection.local.settlement.name} remains on this device.
+											Nothing advances until you choose to return.
 										</p>
 										<button
 											type="button"
 											onClick={() => setJourneyStage("returned")}
 										>
-											Return to Riverhold
+											Return to {projection.local.settlement.name}
 										</button>
 									</>
 								) : (

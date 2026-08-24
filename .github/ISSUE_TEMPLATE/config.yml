@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security policy
-    url: https://github.com/PranavMishra28/eonfolk/blob/main/SECURITY.md
-    about: Read this before sharing any potential vulnerability. Do not post exploit details publicly.
+    url: https://github.com/PranavMishra28/eonfolk/security/policy
+    about: Read this before sharing a vulnerability. Do not post exploit details publicly.

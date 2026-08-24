@@ -163,6 +163,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha diagnostics, headful zoom-equivalent, and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md), [headful reflow record](exec-plans/evidence/002/headful-zoom.json), and [physical-device status](exec-plans/evidence/002/physical-device.json) |
 | Founder Alpha world-presence operator override | [world-presence override](exec-plans/evidence/002/world-presence-override.md) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
+| Disposable IndexedDB/SQLite-WASM OPFS decision evidence | [SQLite/OPFS spike](exec-plans/evidence/003/sqlite-opfs-spike.json) |
 | Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
 | Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |
 | Local persistence benchmark evidence and limitations | [persistence evidence](exec-plans/evidence/001/implementation/persistence.json) |

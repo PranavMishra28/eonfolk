@@ -100,7 +100,9 @@ async function inspectGeneratedCheckpoint(page: Page) {
 	return page.evaluate(
 		() =>
 			new Promise<{
+				readonly catchUpMarkerReceiptCount: number;
 				readonly eventCount: number;
+				readonly eventAppendReceiptCount: number;
 				readonly operationCount: number;
 				readonly receiptCount: number;
 				readonly snapshotCount: number;
@@ -132,7 +134,7 @@ async function inspectGeneratedCheckpoint(page: Page) {
 								.objectStore("authorityOperations")
 								.count(),
 							events: transaction.objectStore("authorityEvents").count(),
-							receipts: transaction.objectStore("authorityReceipts").count(),
+							receipts: transaction.objectStore("authorityReceipts").getAll(),
 							snapshots: transaction.objectStore("authoritySnapshots").count(),
 						};
 						transaction.addEventListener(
@@ -145,10 +147,27 @@ async function inspectGeneratedCheckpoint(page: Page) {
 										simulationTime: number;
 									};
 								};
+								const receipts = requests.receipts.result as Array<{
+									value: {
+										fromSequenceInclusive: number;
+										toSequenceExclusive: number;
+										commandReceipt: null | { schemaVersion?: string };
+									};
+								}>;
 								resolve({
+									catchUpMarkerReceiptCount: receipts.filter(
+										(record) =>
+											record.value.commandReceipt?.schemaVersion ===
+											"eonfolk-authority-catch-up-marker-v1",
+									).length,
 									eventCount: requests.events.result,
+									eventAppendReceiptCount: receipts.filter(
+										(record) =>
+											record.value.toSequenceExclusive >
+											record.value.fromSequenceInclusive,
+									).length,
 									operationCount: requests.operations.result,
-									receiptCount: requests.receipts.result,
+									receiptCount: receipts.length,
 									snapshotCount: requests.snapshots.result,
 									headHash: stream.head.headHash,
 									stateHash: stream.head.stateHash,
@@ -1305,9 +1324,11 @@ test("generated founded settlement preserves the durable checkpoint @generated-w
 	await expect(page.getByText("Authority", { exact: true })).toHaveCount(0);
 	const firstCheckpoint = await inspectGeneratedCheckpoint(page);
 	expect(firstCheckpoint).toMatchObject({
+		catchUpMarkerReceiptCount: 6,
 		eventCount: 5,
-		operationCount: 6,
-		receiptCount: 5,
+		eventAppendReceiptCount: 5,
+		operationCount: 12,
+		receiptCount: 11,
 		snapshotCount: 2,
 	});
 	expect(externalRequests).toEqual([]);
@@ -2093,7 +2114,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		.click();
 	await expect(
 		page.getByRole("button", {
-			name: "Leave Riverhold at this checkpoint",
+			name: "Leave Dawnmere at this checkpoint",
 		}),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.reload();
@@ -2104,13 +2125,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", {
-			name: "Leave Riverhold at this checkpoint",
+			name: "Leave Dawnmere at this checkpoint",
 		}),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page
-		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 		.click();
-	await page.getByRole("button", { name: "Return to Riverhold" }).click();
+	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 	const beforeBoundaryHash = await page
 		.locator("main.v1-world")
 		.getAttribute("data-state-hash");
@@ -2157,7 +2178,13 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		page.getByRole("button", { name: /Confront them publicly/iu }),
 	).toHaveCount(0);
 	const committed = await inspectGeneratedCheckpoint(page);
-	expect(committed).toMatchObject({ eventCount: 9, receiptCount: 9 });
+	expect(committed).toMatchObject({
+		catchUpMarkerReceiptCount: 6,
+		eventAppendReceiptCount: 9,
+		eventCount: 9,
+		operationCount: 23,
+		receiptCount: 15,
+	});
 	expect(committed.simulationTime).toBe(366 * 86_400);
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
@@ -2238,6 +2265,14 @@ for (const viewport of [
 			"true",
 			{ timeout: 20_000 },
 		);
+		await page.screenshot({
+			animations: "disabled",
+			caret: "hide",
+			fullPage: false,
+			path: test
+				.info()
+				.outputPath(`world-${viewport.width}x${viewport.height}.png`),
+		});
 		await page.getByRole("button", { name: "Reduce motion" }).click();
 		await expect(world).toHaveAttribute("data-presentation-playing", "false");
 		await page.getByRole("button", { name: "World in words" }).click();

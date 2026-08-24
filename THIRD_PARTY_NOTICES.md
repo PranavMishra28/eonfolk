@@ -17,6 +17,14 @@ License does not grant trademark rights in:
 - `apps/web/public/eonfolk-mark.svg`; or
 - the EONFOLK mark as it appears in gameplay captures and recordings.
 
+The repository records `apps/web/public/eonfolk-mark.svg` as project-original;
+no third-party source asset or generated-image input is recorded in its asset
+history. Its SHA-256 is
+`8c4e42ba92645fb1605dec95da472ed135a11c1b2f7c39bd3b964f00617b6434`.
+Copyright remains with the project owner; the reservation above concerns
+trademark use, not factual attribution or the Apache-2.0 copyright terms that
+otherwise govern the file.
+
 This trademark reservation does not restrict the Apache-2.0 copyright license
 for original documentation media or the generated proxy geometry. The generated
 asset manifest records that proxy's repository-authored origin, hashes,

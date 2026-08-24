@@ -147,7 +147,7 @@ describe("V1 CI hardening", () => {
 
 	it("keeps manual evidence lanes in CI and the DEEP roster exact", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
-		expect(verificationStepsForTier("deep")).toHaveLength(31);
+		expect(verificationStepsForTier("deep")).toHaveLength(32);
 		expect(workflow).toContain("workflow_dispatch:");
 		expect(workflow).toContain("evidence_purpose:");
 		expect(workflow).toContain("target-mac-intermediate");

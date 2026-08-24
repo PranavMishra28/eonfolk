@@ -21,7 +21,7 @@ metadata until the maintainer explicitly chooses to publish.
 
 ## Release note draft
 
-### EONFOLK pre-alpha source release
+### v0.1.0-prealpha — EONFOLK source release
 
 This source snapshot contains a small, complete local civilization proof: one
 generated region, eight autonomous citizens, a sponsor intervention/abstention

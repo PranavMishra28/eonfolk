@@ -73,6 +73,7 @@ const publicScripts = new Set([
 	"scripts/benchmark-diagnostics-browser.mjs",
 	"scripts/benchmark-diagnostics.mjs",
 	"scripts/benchmark-persistence.mjs",
+	"scripts/benchmark-presentation-stress.mjs",
 	"scripts/benchmark-web.mjs",
 	"scripts/check-bibliography.mjs",
 	"scripts/check-boundaries.mjs",

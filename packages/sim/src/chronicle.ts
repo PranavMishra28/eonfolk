@@ -242,7 +242,8 @@ export function projectChronicle(input: {
 		return {
 			beat: (index + 1) as 1 | 2 | 3,
 			text:
-				sentence?.text ?? "Riverhold continues without a recorded consequence.",
+				sentence?.text ??
+				"The settlement continues without a recorded consequence.",
 			evidenceEventIds: sentence?.evidenceEventIds ?? [],
 		};
 	});

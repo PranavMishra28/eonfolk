@@ -13,7 +13,7 @@
 | Area | Status | Decision for the first slice | Reopen evidence |
 |---|---|---|---|
 | Browser persistence | **ADOPT** | Use the generic `PersistencePort` with IndexedDB in the browser and `MemoryPersistence` for pure tests. Keep manifests, world heads/batches/events, decisions, command receipts, catch-up receipts, and snapshots in distinct stores while transactions cross stores atomically. | IndexedDB transaction, quota, eviction, or recovery drills fail on target browsers; measured storage approaches 64 MiB; or Gate A/B needs query patterns the adapter cannot serve. |
-| SQLite/WASM over OPFS | **DEFER** | Add no SQLite dependency and claim no performance comparison. The official SQLite WASM documentation describes multiple OPFS VFS choices with worker, header, concurrency, locking, and portability tradeoffs; those costs do not buy a needed first-slice behavior. | After both product gates, run the same fixed workload against a pinned SQLite/WASM build when profiling shows IndexedDB—not simulation or rendering—is the bottleneck. |
+| SQLite/WASM over OPFS | **DEFER** | A disposable five-repetition browser spike compared a pinned SQLite 3.53.0 OPFS build with IndexedDB over 500 events, ten snapshots, and a 100-event range read. Both completed, but IndexedDB was already integrated and faster; SQLite added about 565 KB gzip plus cross-origin-isolation and worker/VFS complexity without enabling a missing V1 behavior. No SQLite dependency enters V1. | Re-run a production-shaped pinned comparison when profiling shows IndexedDB—not simulation or rendering—is the bottleneck, or when post-gate query/shared-region requirements materially change. |
 | Server/region persistence | **DEFER** | Preserve structural portability, but do not claim the browser adapter drops into a region server. Authentication, authorization, backups, outbox/alarm semantics, moderation, and import policy remain new work. | Both product gates pass and a shared canonical region is the next approved experiment. |
 | Broad local storage abstraction, event-sourcing framework, or premature CRDT | **REJECT** | One bounded port and one single-writer world are sufficient. Framework or distributed-conflict machinery would consume the solo slice without answering attachment. | A measured multiwriter requirement appears after product validation. |
 | TLA+ model | **SPIKE** | Keep a small executable model for atomic genesis/append, idempotent retry, fencing, catch-up progress, and crash/recovery. It is a review instrument, not a proof of TypeScript, IndexedDB, hashes, or the unbounded system. | Persistence transactions materially change; then update the model and bounded constants before accepting the change. |
@@ -31,15 +31,21 @@
 
 On 2026-08-21, `scripts/benchmark-persistence.mjs` ran Node 22.23.1 and the pinned Playwright Chromium on the target Mac. Each of five repetitions created genesis, committed 128 deterministic transitions with 1–4 events each (320 events total), then read the complete event interval after reopening IndexedDB.
 
-| Adapter | Median 128-transition append | Median 320-event recovery read | Interpretation |
+| Integrated adapter | Median 128-transition append | Median 320-event recovery read | Interpretation |
 |---|---:|---:|---|
 | Memory | 6.19 ms | 0.483 ms | Test/reference adapter only; no durability claim. |
 | IndexedDB | 62.1 ms | 11.4 ms | Comfortable for eight-citizen event boundaries in this synthetic smoke workload. |
-| SQLite/WASM + OPFS | Not run | Not run | **DEFER**, not “slower” or “faster.” No dependency was added. |
 
-These measurements are not a capacity forecast. They exclude renderer contention, quota pressure, large snapshots, eviction, mobile hardware, and OS power-loss durability. The harness prints all raw samples and fixed-workload metadata so later spikes can compare like with like.
+The separate disposable paired workload wrote 500 events and ten snapshots in
+one transaction, then read 100 events and the latest snapshot. Its first run
+recorded IndexedDB write/read medians of 6.645/0.480 ms and SQLite-WASM/OPFS
+medians of 10.755/1.665 ms, with 60.93 ms SQLite initialization. A second
+five-repetition run retained raw samples and observed the same ordering. These
+numbers are not compared with the 128-transition integrated benchmark above.
 
-The IndexedDB choice follows its transactional, asynchronous, Worker-available browser contract ([MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), accessed 2026-08-21). SQLite's own WASM persistence guide reports multiple OPFS modes and explicit threading, locking, concurrency, and header tradeoffs ([SQLite WASM persistent storage](https://sqlite.org/wasm/doc/trunk/persistence.md), accessed 2026-08-21). This is evidence for measuring later, not for assuming either backend wins.
+These measurements are not a capacity forecast. They exclude renderer contention, quota pressure, large snapshots, eviction, mobile hardware, and OS power-loss durability. The disposable harness was not retained in Git; its hashes, fixed workload, package integrity, raw reproduction samples, and this limitation are recorded in the evidence JSON.
+
+The IndexedDB choice follows its transactional, asynchronous, Worker-available browser contract ([MDN IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), accessed 2026-08-21). SQLite's own WASM persistence guide reports multiple OPFS modes and explicit threading, locking, concurrency, and header tradeoffs ([SQLite WASM persistent storage](https://sqlite.org/wasm/doc/trunk/persistence.md), accessed 2026-08-21). The [disposable spike evidence](../exec-plans/evidence/003/sqlite-opfs-spike.json) supports the bounded V1 decision; it does not establish a universal backend ranking.
 
 ## Bounded formal result
 

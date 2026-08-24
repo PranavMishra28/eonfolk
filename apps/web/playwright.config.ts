@@ -5,7 +5,7 @@ const linuxCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
-	outputDir: resolve(import.meta.dirname, "../../tmp/riverhold-playwright"),
+	outputDir: resolve(import.meta.dirname, "../../tmp/dawnmere-playwright"),
 	grepInvert: linuxCi ? /@fault|@illustrated-target/u : /@fault/u,
 	fullyParallel: false,
 	// Chromium netlog is a single release-evidence artifact. Multiple browser
@@ -46,7 +46,7 @@ export default defineConfig({
 				"--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1",
 				"--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
 				"--gaia-url=http://127.0.0.1:4174",
-				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/riverhold-playwright/netlog.json")}`,
+				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/dawnmere-playwright/netlog.json")}`,
 				"--metrics-recording-only",
 				"--no-default-browser-check",
 				"--no-first-run",

@@ -6,7 +6,7 @@ export default defineConfig({
 	...productionConfig,
 	grep: /@fault/u,
 	grepInvert: undefined,
-	outputDir: resolve(import.meta.dirname, "../../tmp/riverhold-playwright"),
+	outputDir: resolve(import.meta.dirname, "../../tmp/dawnmere-playwright"),
 	webServer: {
 		command:
 			"EONFOLK_E2E_CRASH_HOOKS=1 VITE_EONFOLK_DIAGNOSTICS_MODE=local ./node_modules/.bin/vite build && ./node_modules/.bin/vite preview --port 4174 --strictPort",

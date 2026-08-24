@@ -71,6 +71,12 @@ const DEEP_ONLY_STEPS = Object.freeze([
 		"--output",
 		"tmp/eonfolk-diagnostics-browser-comparison.json",
 	]),
+	step("presentation-stress-benchmark", "pnpm", [
+		"benchmark:presentation-stress",
+		"--output",
+		"tmp/eonfolk-presentation-stress.json",
+		"--require-clean",
+	]),
 	step("canonical-web-performance", "pnpm", ["test:performance"]),
 ]);
 const DEEP_MODEL_STEP = step("local-model-benchmark", "pnpm", [
@@ -105,6 +111,7 @@ const ARTIFACT_PATHS_BY_TIER = Object.freeze({
 		"tmp/eonfolk-persistence-benchmark.json",
 		"tmp/eonfolk-diagnostics-overhead.json",
 		"tmp/eonfolk-diagnostics-browser-comparison.json",
+		"tmp/eonfolk-presentation-stress.json",
 		"tmp/eonfolk-canonical-performance.json",
 		"tmp/eonfolk-local-model-benchmark.json",
 	]),
@@ -125,6 +132,11 @@ export const DEEP_BENCHMARK_CONTRACT = Object.freeze([
 		id: "diagnostics-browser",
 		path: "tmp/eonfolk-diagnostics-browser-comparison.json",
 		schemaVersion: "eonfolk-diagnostics-browser-comparison-v1",
+	}),
+	Object.freeze({
+		id: "presentation-stress",
+		path: "tmp/eonfolk-presentation-stress.json",
+		schemaVersion: "eonfolk-twelve-actor-presentation-stress-v1",
 	}),
 	Object.freeze({
 		id: "release-genesis-web-performance",
@@ -543,6 +555,27 @@ function benchmarkMeasurements(contract, report) {
 				maximumFrameP95Ms: maximumFrameP95(mode),
 				mode: mode.mode,
 			}));
+		case "presentation-stress":
+			if (report.status !== "PASS" || report.sourceClean !== true)
+				throw new Error("presentation stress benchmark is not a clean PASS");
+			if (
+				report.measurements?.length !== 3 ||
+				!report.measurements.every(
+					(measurement) =>
+						measurement.pass === true &&
+						measurement.twelve?.actorCount === 12 &&
+						measurement.twelve?.p95FrameMilliseconds <=
+							measurement.practicalBudget &&
+						measurement.p95Ratio <= 1.25,
+				)
+			)
+				throw new Error(
+					"presentation stress practicality budgets are not PASS",
+				);
+			return report.measurements.map((measurement) => ({
+				p95FrameMilliseconds: measurement.twelve.p95FrameMilliseconds,
+				viewport: measurement.name,
+			}));
 		case "release-genesis-web-performance": {
 			const expectedBudgets = {
 				desktop: {
@@ -651,11 +684,13 @@ export function validateDeepBenchmarkReport(contract, report, sourceCommit) {
 	if (report?.schemaVersion !== contract.schemaVersion)
 		throw new Error(`benchmark ${contract.id} schema is invalid`);
 	const reportSourceSha =
-		contract.id === "diagnostics-source" ||
-		contract.id === "local-model-treatment" ||
-		contract.id === "release-genesis-web-performance"
-			? report.source?.commit
-			: report.source?.start?.commit;
+		contract.id === "presentation-stress"
+			? report.sourceCommit
+			: contract.id === "diagnostics-source" ||
+					contract.id === "local-model-treatment" ||
+					contract.id === "release-genesis-web-performance"
+				? report.source?.commit
+				: report.source?.start?.commit;
 	if (reportSourceSha !== sourceCommit)
 		throw new Error(`benchmark ${contract.id} is not bound to exact HEAD`);
 	const measurements = benchmarkMeasurements(contract, report);

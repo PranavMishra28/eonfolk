@@ -250,9 +250,9 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		page.getByRole("button", { name: /Verify the evidence first/iu }),
 	).toHaveCount(0);
 	await page
-		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 		.click();
-	await page.getByRole("button", { name: "Return to Riverhold" }).click();
+	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 	await page
 		.getByRole("button", { name: "Continue to Mara's independent outcome" })
 		.click();
@@ -388,7 +388,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		})
 		.click();
 	await expect(
-		page.getByRole("button", { name: "Leave Riverhold at this checkpoint" }),
+		page.getByRole("button", { name: "Leave Dawnmere at this checkpoint" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
@@ -398,12 +398,12 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	);
 	await selectMara(page);
 	await expect(
-		page.getByRole("button", { name: "Leave Riverhold at this checkpoint" }),
+		page.getByRole("button", { name: "Leave Dawnmere at this checkpoint" }),
 	).toBeEnabled({ timeout: sponsorTransitionTimeout });
 	await page
-		.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 		.click();
-	await page.getByRole("button", { name: "Return to Riverhold" }).click();
+	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 	const beforeAccusationBoundaryHash =
 		await world.getAttribute("data-state-hash");
 	await page

@@ -45,6 +45,7 @@
 
 - [ ] User or contributor documentation is updated where needed.
 - [ ] `CHANGELOG.md` is updated for a notable change, or this is not user-facing.
+- [ ] New code, assets, media, and dependencies have recorded origin and compatible license terms, or none were added.
 
 ## Risks and reviewer focus
 

@@ -244,6 +244,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"tmp/eonfolk-persistence-benchmark.json",
 			"tmp/eonfolk-diagnostics-overhead.json",
 			"tmp/eonfolk-diagnostics-browser-comparison.json",
+			"tmp/eonfolk-presentation-stress.json",
 			"tmp/eonfolk-canonical-performance.json",
 			"tmp/eonfolk-local-model-benchmark.json",
 		]);
@@ -259,6 +260,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"persistence-bounded",
 			"diagnostics-source",
 			"diagnostics-browser",
+			"presentation-stress",
 			"release-genesis-web-performance",
 			"local-model-treatment",
 		]);
@@ -310,6 +312,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"persistence-benchmark",
 			"diagnostics-source-benchmark",
 			"diagnostics-browser-benchmark",
+			"presentation-stress-benchmark",
 			"canonical-web-performance",
 		]);
 		expect(new Set(deep.map((entry) => entry.id)).size).toBe(deep.length);

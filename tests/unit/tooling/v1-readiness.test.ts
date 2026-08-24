@@ -131,6 +131,24 @@ function rawBenchmark(id: string, head: string) {
 					frames: { arrival: { p95Ms: 1 } },
 				})),
 			});
+		case "presentation-stress":
+			return {
+				schemaVersion: "eonfolk-twelve-actor-presentation-stress-v1",
+				status: "PASS",
+				sourceCommit: head,
+				sourceClean: true,
+				measurements: [
+					["desktop", 25],
+					["laptop", 25],
+					["mobile", 33.3],
+				].map(([name, practicalBudget]) => ({
+					name,
+					practicalBudget,
+					p95Ratio: 1,
+					pass: true,
+					twelve: { actorCount: 12, p95FrameMilliseconds: 8 },
+				})),
+			};
 		case "release-genesis-web-performance": {
 			const profiles = ["desktop", "laptop", "mobile-emulation"];
 			const budgets = [
@@ -261,6 +279,11 @@ function evidence(head: string, tier: "pr" | "deep" = "deep") {
 				journeyMs: mode.journeyMs,
 				maximumFrameP95Ms: 1,
 				mode: mode.mode,
+			}));
+		if (contract.id === "presentation-stress")
+			return report.measurements.map((measurement: any) => ({
+				p95FrameMilliseconds: measurement.twelve.p95FrameMilliseconds,
+				viewport: measurement.name,
 			}));
 		if (contract.id === "release-genesis-web-performance")
 			return report.aggregates.map((profile: any) => ({

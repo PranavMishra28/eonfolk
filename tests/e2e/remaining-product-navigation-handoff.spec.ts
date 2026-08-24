@@ -196,13 +196,13 @@ for (const viewport of [
 			.click();
 		await expect(
 			page.getByRole("button", {
-				name: "Leave Riverhold at this checkpoint",
+				name: "Leave Dawnmere at this checkpoint",
 			}),
 		).toBeEnabled({ timeout: sponsorTransitionTimeout });
 		await page
-			.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 			.click();
-		await page.getByRole("button", { name: "Return to Riverhold" }).click();
+		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 		const beforeBoundaryHash = await world.getAttribute("data-state-hash");
 		await page
 			.getByRole("button", {

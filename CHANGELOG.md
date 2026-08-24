@@ -24,6 +24,8 @@ has not published a release.
   behavior, and a playable non-WebGL fallback.
 - A read-only research surface and consented, browser-only feedback queue with no
   upload path.
+- Consistent Dawnmere naming across live controls and browser journeys, plus a
+  non-authoritative twelve-actor presentation stress fixture.
 
 ### Security and reliability
 
@@ -38,7 +40,7 @@ has not published a release.
 
 - This is not a public release and has not completed unfamiliar-player studies.
 - Browser data has no backup, export, import, restore, or cloud recovery.
-- Physical-phone performance, broad screen-reader coverage, thermals, and a
-  twelve-citizen stress target remain unverified.
+- Physical-phone performance, broad screen-reader coverage, thermals, and
+  twelve-citizen gameplay depth remain unverified.
 - There is no hosted canonical world, account, public multiplayer, payment,
   production deployment, or required external inference.

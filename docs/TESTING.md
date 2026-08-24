@@ -68,3 +68,31 @@ five open PRs, and never auto-merged.
 Failed browser screenshots, traces, and videos should be retained for 14 days;
 accepted milestone screenshots for 30 days. Routine successful videos are not
 retained.
+
+## Public script responsibilities
+
+The public package scripts are the callers below. All tools are local-only
+unless a row explicitly names a network fetch; generated evidence stays under
+`tmp/` and is not canonical game state.
+
+| Scripts | Purpose and caller | Network / output |
+|---|---|---|
+| `check-runtime.mjs`, `typecheck.mjs`, `check-boundaries.mjs`, `check-diff.mjs` | Runtime, strict type graph, authority-layer, and tracked-diff gates; `verify:fast` | no network; console only |
+| `check-doc-links.mjs`, `check-bibliography.mjs` | Reader-link and bibliography validation; `docs:check` | no network; console only |
+| `validate-generated-assets.mjs`, `measure-bundle.mjs` | Generated-asset provenance and gzip payload gates; FAST/PR | no network; manifest or `tmp/eonfolk-bundle-measurement.json` |
+| `check-licenses.mjs` | Production dependency license allowlist; FAST/PR | no network; console only |
+| `validate-web-network.mjs` | Reject external browser requests from Playwright; PR | reads `tmp/dawnmere-playwright/netlog.json` |
+| `check-formal.mjs`, `formal-toolchain.mjs` | Run and identify the pinned TLA+ persistence model; PR/deep | caller fetches the hash-pinned TLC JAR; console only |
+| `check-targeted-mutations.mjs` | Kill the bounded pure-logic mutant set; manual deep | no network; console only |
+| `validate-browser-cohort.mjs`, `validate-browser-cohort.rb` | Cross-check the pinned Playwright browser identity; manual deep | no network; console only |
+| `benchmark-persistence.mjs` | Measure memory and real IndexedDB append/recovery; manual deep | loopback browser only; JSON under `tmp/` |
+| `benchmark-diagnostics.mjs`, `benchmark-diagnostics-browser.mjs` | Measure diagnostic overhead and browser noninterference; manual deep | loopback browser only; JSON under `tmp/` |
+| `benchmark-web.mjs` | Repeated desktop/laptop/mobile load, frame, memory, and interaction budgets; manual deep | loopback browser only; JSON and screenshots under `tmp/` |
+| `benchmark-presentation-stress.mjs` | Measure the twelve-actor presentation ceiling without adding canonical citizens; manual deep. Eight citizens retain the stricter production 16.7/33.3 ms gate; twelve synthetic actors must remain under 25/33.3 ms p95 and add at most 25% over the paired seven-actor fixture. | loopback headful browser only; JSON under `tmp/` |
+| `ollama-bounded-adapter.mjs` | Optional explicitly configured loopback model treatment; cognition benchmark only | loopback Ollama only; bounded JSON response |
+| `diagnose.mjs` | Local developer health snapshot used by `pnpm diagnose` | no network; redacted console report |
+| `evidence-integrity.mjs` | Shared deterministic content hashing for benchmark artifacts | library caller only; no direct output |
+
+The manual public Ubuntu lane runs the portable extended checks under Xvfb. The
+target-Mac DEEP lane additionally verifies the pinned macOS browser cohort and
+is the only lane eligible for target-device readiness evidence.

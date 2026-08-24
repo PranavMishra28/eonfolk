@@ -431,10 +431,11 @@ test.describe
 			);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await page.getByRole("button", { name: "Zoom in" }).click();
-			await expect(page.getByTestId("generated-camera-status")).toHaveAttribute(
-				"data-semantic-scale",
-				/(region|town|citizen)/u,
-			);
+			await expect(
+				page
+					.getByTestId("generated-semantic-world")
+					.getByTestId("generated-camera-status"),
+			).toHaveAttribute("data-semantic-scale", /(region|town|citizen)/u);
 			const diagnostic = await generatedFaultDiagnostic(page);
 			expect(diagnostic.outcome).toMatchObject({
 				category: "sentinel",

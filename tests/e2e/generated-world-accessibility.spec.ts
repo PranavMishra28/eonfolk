@@ -109,12 +109,12 @@ test("the canonical semantic sponsor journey is keyboard-only through Chronicle-
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 
 	const leave = page.getByRole("button", {
-		name: "Leave Riverhold at this checkpoint",
+		name: "Leave Dawnmere at this checkpoint",
 	});
 	await expectTouchFloor(leave);
 	await pressByKeyboard(page, leave);
 	const returnButton = page.getByRole("button", {
-		name: "Return to Riverhold",
+		name: "Return to Dawnmere",
 	});
 	await expectTouchFloor(returnButton);
 	await pressByKeyboard(page, returnButton);

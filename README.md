@@ -42,6 +42,8 @@ Requirements:
 - macOS or Linux
 - Node.js 22.23.1
 - pnpm 11.15.1 through Corepack
+- a current Chromium-family browser with WebGL2; the semantic world remains
+  playable when WebGL is unavailable
 
 ```sh
 corepack enable
@@ -79,6 +81,8 @@ with incomplete knowledge will treat the player's intervention as useful,
 premature, self-serving, or irrelevant—and what the world will remember.
 
 ![Dawnmere's embodied settlement at desktop scale, with seven residents, visible work, and a social interaction](docs/media/eonfolk-social-preview.png)
+
+![The factual Chronicle after a sponsor consequence, with causal roles and links back into the world](docs/media/eonfolk-chronicle-desktop.png)
 
 ## Architecture at a glance
 

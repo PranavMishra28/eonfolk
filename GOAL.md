@@ -99,7 +99,7 @@
 | Replay identity across long histories | VERIFIED |
 | Bounded causal catch-up for reload, 1 day, 7 days, and long absence | VERIFIED |
 | Catch-up crash and no-model recovery | VERIFIED |
-| IndexedDB versus SQLite-WASM/OPFS benchmark and decision | VERIFIED |
+| IndexedDB benchmark plus disposable SQLite-WASM/OPFS decision evidence | VERIFIED |
 | Future exhibition authority/persistence adapter seam | VERIFIED |
 | Flight Recorder correlates genesis, experiment, world, cognition, render, persistence, and performance | VERIFIED |
 | Sentinel covers integrity, privacy, cognition, navigation, render, network, and persistence anomalies | VERIFIED |

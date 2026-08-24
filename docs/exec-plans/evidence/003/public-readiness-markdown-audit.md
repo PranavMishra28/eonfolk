@@ -34,13 +34,14 @@ reachable only in that private archive and are excluded from the public export.
 | ARCHIVE PRIVATELY | 64 |
 | CONSOLIDATE | 37 |
 | DELETE FROM HEAD | 3 |
-| KEEP | 19 |
-| **Total** | **123** |
+| KEEP | 21 |
+| **Total** | **125** |
 
 ## Exact file audit
 
 | Markdown path | Disposition |
 |---|---|
+| `.github/pull_request_template.md` | KEEP |
 | `AGENTS.md` | ARCHIVE PRIVATELY |
 | `CHANGELOG.md` | KEEP |
 | `CODE_OF_CONDUCT.md` | KEEP |
@@ -55,6 +56,7 @@ reachable only in that private archive and are excluded from the public export.
 | `SUPPORT.md` | KEEP |
 | `THIRD_PARTY_NOTICES.md` | KEEP |
 | `config/public/INDEX.md` | KEEP |
+| `config/public/PUBLICATION.md` | KEEP |
 | `config/public/RESEARCH.md` | KEEP |
 | `docs/ACCESSIBILITY.md` | KEEP |
 | `docs/ARCHITECTURE.md` | KEEP |
@@ -167,8 +169,7 @@ reachable only in that private archive and are excluded from the public export.
 
 ## Validation rule
 
-The sorted table contains 123 unique paths and one disposition per
-path. Before the final export, compare it with
-`rg --files -g '*.md' | sort`; any missing, duplicate, or extra path blocks
-publication. The export's closed allowlist and private denylist independently
-fail on an unclassified tracked path.
+The sorted table contains 125 unique paths and one disposition per path. Before
+the final export, compare it with `git ls-files '*.md' | sort`; any missing,
+duplicate, or extra path blocks publication. The export's closed allowlist and
+private denylist independently fail on an unclassified tracked path.

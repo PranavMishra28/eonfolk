@@ -150,9 +150,9 @@ async function runMode(mode, browserExecutable) {
 			})
 			.click();
 		await page
-			.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 			.click();
-		await page.getByRole("button", { name: "Return to Riverhold" }).click();
+		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 		await page
 			.getByRole("button", {
 				name: "Advance one day to Mara's decision boundary",

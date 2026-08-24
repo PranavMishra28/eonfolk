@@ -403,6 +403,22 @@ function validateCanonicalMeasurements(id, measurements, failures) {
 				values: ["journeyMs", "maximumFrameP95Ms"],
 			});
 			break;
+		case "presentation-stress":
+			valid = exactNamedMeasurements(
+				measurements,
+				["desktop", "laptop", "mobile"],
+				{
+					name: "viewport",
+					values: ["p95FrameMilliseconds"],
+				},
+			);
+			if (valid)
+				valid = measurements.every(
+					(entry) =>
+						entry.p95FrameMilliseconds <=
+						(entry.viewport === "mobile" ? 33.3 : 25),
+				);
+			break;
 		case "release-genesis-web-performance": {
 			valid = exactNamedMeasurements(
 				measurements,
