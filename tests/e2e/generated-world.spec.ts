@@ -32,6 +32,49 @@ async function isolateLocalWorld(page: Page): Promise<string[]> {
 	return externalRequests;
 }
 
+type GeneratedWorkerPersistenceFault =
+	| Readonly<{ kind: "open"; name: "SecurityError" }>
+	| Readonly<{
+			kind: "request";
+			api: "get" | "put";
+			name: "NotReadableError" | "QuotaExceededError" | "UnknownError";
+	  }>;
+
+/** Injects a persistence failure inside the production authority Worker. */
+async function injectGeneratedWorkerPersistenceFault(
+	page: Page,
+	fault: GeneratedWorkerPersistenceFault,
+): Promise<void> {
+	await page.route(
+		/\/assets\/generated-world-runtime\.worker-[^/]+\.js$/u,
+		async (route) => {
+			const response = await route.fetch();
+			const body = await response.text();
+			const serializedFault = JSON.stringify(fault);
+			const injection = `{
+	const fault = ${serializedFault};
+	if (fault.kind === "open") {
+		Object.defineProperty(indexedDB, "open", {
+			configurable: true,
+			value: () => { throw new DOMException("private open detail", fault.name); },
+		});
+	} else {
+		const original = IDBObjectStore.prototype[fault.api];
+		Object.defineProperty(IDBObjectStore.prototype, fault.api, {
+			configurable: true,
+			value: function (...args) {
+				if (this.name.startsWith("authority"))
+					throw new DOMException("private " + fault.name + " detail", fault.name);
+				return Reflect.apply(original, this, args);
+			},
+		});
+	}
+}`;
+			await route.fulfill({ response, body: `${injection}\n${body}` });
+		},
+	);
+}
+
 async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 	await page.goto("/outside-canon");
 	await page.evaluate(
@@ -1408,16 +1451,9 @@ test("production ignores generated fault storage and exposes no harness markers 
 test("production degrades an IndexedDB SecurityError without leaking detail @generated-world", async ({
 	page,
 }) => {
-	await page.addInitScript(() => {
-		Object.defineProperty(indexedDB, "open", {
-			configurable: true,
-			value: () => {
-				throw new DOMException(
-					"injected production open denial",
-					"SecurityError",
-				);
-			},
-		});
+	await injectGeneratedWorkerPersistenceFault(page, {
+		kind: "open",
+		name: "SecurityError",
 	});
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
 	const world = page.locator("main.v1-world");
@@ -1433,9 +1469,7 @@ test("production degrades an IndexedDB SecurityError without leaking detail @gen
 		"SecurityError",
 	);
 	await expect(page.getByText(/Local persistence unavailable/u)).toBeVisible();
-	await expect(page.getByText("injected production open denial")).toHaveCount(
-		0,
-	);
+	await expect(page.getByText("private open detail")).toHaveCount(0);
 });
 
 for (const boundary of [
@@ -1446,17 +1480,10 @@ for (const boundary of [
 	test(`production degrades an IndexedDB ${boundary.name} at a real ${boundary.api} request @generated-world`, async ({
 		page,
 	}) => {
-		await page.addInitScript(({ api, name }) => {
-			const original = IDBObjectStore.prototype[api];
-			Object.defineProperty(IDBObjectStore.prototype, api, {
-				configurable: true,
-				value: function (this: IDBObjectStore, ...args: unknown[]) {
-					if (this.name.startsWith("authority"))
-						throw new DOMException(`private ${name} detail`, name);
-					return Reflect.apply(original, this, args);
-				},
-			});
-		}, boundary);
+		await injectGeneratedWorkerPersistenceFault(page, {
+			kind: "request",
+			...boundary,
+		});
 		await page.goto("/world", { waitUntil: "domcontentloaded" });
 		const world = page.locator("main.v1-world");
 		await expect(world).toHaveAttribute("data-persistence", "unavailable", {
