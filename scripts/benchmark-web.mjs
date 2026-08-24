@@ -325,6 +325,7 @@ async function focusCanonicalResident(page) {
 
 async function openSettlementOverview(page) {
 	const started = performance.now();
+	await page.locator(".v1-context-panel").hover({ timeout: 5_000 });
 	await page
 		.getByRole("button", { name: "Back to settlement" })
 		.click({ timeout: 5_000 });
