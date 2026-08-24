@@ -71,6 +71,19 @@ type WorldView = "embodied" | "semantic" | "overview";
 type GeneratedAssetState = "checking" | "verified" | "failed";
 
 const readableId = (value: string) => value.replace(/[-_:]+/gu, " ");
+const REDUCED_MOTION_STORAGE_KEY = "eonfolk:presentation:reduced-motion:v1";
+
+function initialReducedMotion(): boolean {
+	if (typeof window === "undefined") return false;
+	try {
+		const stored = window.localStorage.getItem(REDUCED_MOTION_STORAGE_KEY);
+		if (stored === "true") return true;
+		if (stored === "false") return false;
+	} catch {
+		// Storage denial must not block the system accessibility preference.
+	}
+	return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 function useGeneratedFault(): GeneratedWorldFaultSpec | null | undefined {
 	const [fault, setFault] = useState<
@@ -594,7 +607,11 @@ function GeneratedContextPanel({
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
 		const href = buildWorldFocusHref(focus);
-		return href === null ? null : <a href={href}>{label}</a>;
+		return href === null ? null : (
+			<a className="v1-world-focus-link" href={href}>
+				{label}
+			</a>
+		);
 	};
 	useEffect(() => {
 		setSponsorStatus("idle");
@@ -1122,11 +1139,7 @@ function GeneratedWorld({
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
 	const asset = useGeneratedAsset(fault);
-	const [reduceMotion, setReduceMotion] = useState(() =>
-		typeof window === "undefined"
-			? false
-			: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-	);
+	const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
 	const [presentationTick, setPresentationTick] = useState(0);
 	const [presentationPlaying, setPresentationPlaying] = useState(
 		() => !reduceMotion,
@@ -1146,6 +1159,7 @@ function GeneratedWorld({
 	const [focusedEventContext, setFocusedEventContext] =
 		useState<GeneratedChronicleEventContext | null>(null);
 	const eventFocusRequest = useRef<string | null>(null);
+	const initialLocationFocusApplied = useRef(false);
 	const navigationOutcomeReported = useRef(false);
 	const [focusedLocationId, setFocusedLocationId] = useState<string | null>(
 		null,
@@ -1302,17 +1316,32 @@ function GeneratedWorld({
 		[experience, reportNavigationRejection],
 	);
 	useEffect(() => {
-		if (window.location.search === "" && window.location.hash === "") return;
-		const focus = parseWorldFocusHref(
-			`${window.location.pathname}${window.location.search}${window.location.hash}`,
-		);
-		if (focus === null) {
-			reportNavigationRejection("invalid-envelope");
-			return;
+		const applyLocationFocus = () => {
+			if (window.location.search === "" && window.location.hash === "") {
+				eventFocusRequest.current = null;
+				setFocusedEventId(null);
+				setFocusedEventContext(null);
+				setFocusedLocationId(null);
+				setNavigationRejection(null);
+				dispatch({ type: "overview" });
+				return;
+			}
+			const focus = parseWorldFocusHref(
+				`${window.location.pathname}${window.location.search}${window.location.hash}`,
+			);
+			if (focus === null) {
+				reportNavigationRejection("invalid-envelope");
+				return;
+			}
+			focusWorldTarget(focus, false);
+		};
+		if (!initialLocationFocusApplied.current) {
+			initialLocationFocusApplied.current = true;
+			applyLocationFocus();
 		}
-		focusWorldTarget(focus, false);
-		// Initial focus is deliberately admitted once against the mounted authority.
-	}, []);
+		window.addEventListener("popstate", applyLocationFocus);
+		return () => window.removeEventListener("popstate", applyLocationFocus);
+	}, [focusWorldTarget, reportNavigationRejection]);
 
 	useEffect(() => {
 		if (!presentationPlaying || reduceMotion) return;
@@ -1447,6 +1476,16 @@ function GeneratedWorld({
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
 	const togglePresentation = () =>
 		setPresentationPlaying((playing) => !playing);
+	const toggleReducedMotion = () =>
+		setReduceMotion((value) => {
+			const next = !value;
+			try {
+				window.localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(next));
+			} catch {
+				// The in-memory preference still applies for this session.
+			}
+			return next;
+		});
 	const stepPresentation = () =>
 		setPresentationTick((presentationTick) => presentationTick + 1);
 	const contextPanel = () => (
@@ -1550,7 +1589,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={reduceMotion}
-						onClick={() => setReduceMotion((value) => !value)}
+						onClick={toggleReducedMotion}
 					>
 						{reduceMotion ? "Motion reduced" : "Reduce motion"}
 					</button>

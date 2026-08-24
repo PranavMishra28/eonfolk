@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 482 files excluding this generated file; SHA-256 `c9e41de8f935583f053ab4cac996c940732b0c402eff140bb9b59abdbcf150fd`.
+**File-set identity:** 483 files excluding this generated file; SHA-256 `a7a5bd33d38f61683391a3f2d6ac2b63a5ed22e65c3c0f8d313f781b4bda8dae`.
 
 ## Tracked topology
 
@@ -21,7 +21,7 @@
 | Repository tooling | 31 |
 | Research and reviews | 54 |
 | Root controls and configuration | 27 |
-| Tests and fixtures | 92 |
+| Tests and fixtures | 93 |
 
 ## Workspaces
 
@@ -41,7 +41,7 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 6 |
+| `tests/e2e` | 7 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |

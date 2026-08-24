@@ -367,6 +367,18 @@ for (const viewport of [
 				() => performance.getEntriesByType("navigation").length,
 			),
 		).toBe(objectNavigationCount);
+		await page.goBack();
+		await expect(page).toHaveURL(focusHref({ kind: "citizen", citizenId }));
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-focus-kind",
+			"citizen",
+		);
+		await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
+		expect(
+			await page.evaluate(
+				() => performance.getEntriesByType("navigation").length,
+			),
+		).toBe(objectNavigationCount);
 		await page.screenshot({
 			path: test
 				.info()
