@@ -173,9 +173,14 @@ for (const viewport of [
 	}) => {
 		test.setTimeout(linuxSemanticCi ? 420_000 : 240_000);
 		const externalRequests = await isolateLocalWorld(page);
+		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.setViewportSize(viewport);
 		await resetGeneratedCheckpoint(page);
 		const world = await openCanonicalWorld(page);
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-render-policy",
+			"on-demand",
+		);
 		const citizenId = await selectSponsorCandidate(page);
 		await page.getByRole("button", { name: "Sponsor this person" }).click();
 		await expect(

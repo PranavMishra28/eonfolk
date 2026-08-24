@@ -4,6 +4,7 @@ import {
 	GENERATED_WORLD_HORIZON_DAYS,
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
+	refreshGeneratedWorldExperience,
 } from "./generated-world-runtime";
 import { V1_GENESIS_WORLD_ID } from "./v1-genesis-runtime";
 
@@ -29,6 +30,14 @@ describe("canonical generated-world browser experience", () => {
 			catchUpReceipts: 0,
 		});
 		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v5");
+	});
+
+	it("refreshes from the immutable default base without changing admitted authority", async () => {
+		const first = await loadGeneratedWorldExperience();
+		const refreshed = await refreshGeneratedWorldExperience();
+
+		expect(refreshed).not.toBe(first);
+		expect(refreshed).toEqual(first);
 	});
 
 	it("projects every actual resident exactly once across founded settlements", async () => {

@@ -981,6 +981,7 @@ test("generated camera and canvas selection preserve the authoritative head @gen
 
 	await page.getByRole("button", { name: "Reduce motion" }).click();
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
+	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	const pickedCitizenId = await selectCanonicalResidentFromCanvas(page, canvas);
 	await expect(canvas).toHaveAttribute(
 		"data-last-world-pick",
@@ -1146,6 +1147,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-actor-count", "7");
 	await page.getByRole("button", { name: "Reduce motion" }).click();
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
+	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	const tools = page.locator("details.v1-world-tools");
 	await tools.locator("summary").click();
 	await expect(tools.locator("button[data-building-id]")).toHaveCount(4);
@@ -1923,6 +1925,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	page.on("console", (message) => {
 		if (message.type() === "error") browserErrors.push(message.text());
 	});
+	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/world");
@@ -1944,6 +1947,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
+	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	await selectSponsorCandidate(page);
 	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
 	const initialHash = await page

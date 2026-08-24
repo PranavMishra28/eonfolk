@@ -27,6 +27,7 @@ import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
 	GENERATED_CIVILIZATION_RUN_ID,
 	type GeneratedCivilizationCatchUpHorizon,
+	type PreparedGeneratedCivilization,
 	persistPreparedGeneratedCivilization,
 	prepareGeneratedCivilization,
 } from "./persistence/generated-civilization";
@@ -93,6 +94,13 @@ export interface GeneratedWorldBuildOptions {
 }
 
 let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
+
+interface PreparedGeneratedWorldBase {
+	readonly generatedWorld: GeneratedWorldState;
+	readonly prepared: PreparedGeneratedCivilization;
+}
+
+let pendingDefaultPreparedBase: Promise<PreparedGeneratedWorldBase> | undefined;
 
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
@@ -172,15 +180,6 @@ export async function buildGeneratedWorldExperience(
 			? (options.checkpointTransform?.(run) ?? run)
 			: run;
 	};
-	const releaseGenesis = await createReleaseGenesis({
-		releaseId: V1_GENESIS_RELEASE_ID,
-		seedHex: V1_GENESIS_SEED,
-	});
-	const generatedWorld = await generateWorld({
-		releaseGenesis,
-		worldId: V1_GENESIS_WORLD_ID,
-		treatmentId: "standard-brain",
-	});
 	const targetHorizonDays =
 		options.targetHorizonDays ?? GENERATED_WORLD_HORIZON_DAYS;
 	const databaseName = options.databaseName ?? GENERATED_WORLD_STORAGE_KEY;
@@ -197,11 +196,29 @@ export async function buildGeneratedWorldExperience(
 	}[] = [];
 	let authorityStateHash: string | null = null;
 	let persistence: GeneratedWorldPersistenceStatus | null = null;
-	const prepared = await prepareGeneratedCivilization({
-		genesisWorld: generatedWorld,
-		targetHorizonDays,
-		authorityRunner,
-	});
+	const prepareBase = async (): Promise<PreparedGeneratedWorldBase> => {
+		const releaseGenesis = await createReleaseGenesis({
+			releaseId: V1_GENESIS_RELEASE_ID,
+			seedHex: V1_GENESIS_SEED,
+		});
+		const generatedWorld = await generateWorld({
+			releaseGenesis,
+			worldId: V1_GENESIS_WORLD_ID,
+			treatmentId: "standard-brain",
+		});
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: generatedWorld,
+			targetHorizonDays,
+			authorityRunner,
+		});
+		return Object.freeze({ generatedWorld, prepared });
+	};
+	let preparedBase: Promise<PreparedGeneratedWorldBase>;
+	if (!generatedFaultHooks && Object.keys(options).length === 0) {
+		pendingDefaultPreparedBase ??= prepareBase();
+		preparedBase = pendingDefaultPreparedBase;
+	} else preparedBase = prepareBase();
+	const { generatedWorld, prepared } = await preparedBase;
 	const admittedRun = prepared.checkpoints.at(-1);
 	const admittedPreviousRun = prepared.checkpoints[0];
 	if (admittedRun === undefined || admittedPreviousRun === undefined)

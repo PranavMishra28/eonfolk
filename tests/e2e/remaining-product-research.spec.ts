@@ -206,6 +206,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 }) => {
 	test.setTimeout(linuxSemanticCi ? 420_000 : 180_000);
 	const external = await keepLocal(page);
+	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetReleaseGenesisAuthority(page);
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
@@ -214,6 +215,10 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		"data-ready",
 		"true",
 		{ timeout: 30_000 },
+	);
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-render-policy",
+		"on-demand",
 	);
 	await selectMara(page);
 	await page.getByRole("button", { name: "Sponsor this person" }).click();

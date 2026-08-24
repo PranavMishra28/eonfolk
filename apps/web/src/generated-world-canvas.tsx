@@ -213,17 +213,33 @@ function renderedActorFacing(
 function SceneProbe({
 	host,
 	onFailure,
+	renderOnDemand,
+	renderRevision,
 }: {
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly onFailure: () => void;
+	readonly renderOnDemand: boolean;
+	readonly renderRevision: string;
 }) {
 	const app = useApp();
 	const ready = useRef(false);
+	useEffect(() => {
+		app.autoRender = !renderOnDemand;
+		app.renderNextFrame = true;
+		return () => {
+			app.autoRender = true;
+			app.renderNextFrame = true;
+		};
+	}, [app, renderOnDemand]);
+	useEffect(() => {
+		if (renderOnDemand) app.renderNextFrame = true;
+	}, [app, renderOnDemand, renderRevision]);
 	useEffect(() => {
 		app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio, 1.5);
 		const resize = () => {
 			if (host.current === null) return;
 			app.resizeCanvas(host.current.clientWidth, host.current.clientHeight);
+			app.renderNextFrame = true;
 		};
 		resize();
 		const observer = new ResizeObserver(resize);
@@ -759,12 +775,35 @@ function GroundedSettlement({
 	const scale = projection.scene.physicalScale;
 	const selectedActorId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const focusRevision =
+		navigation.focus.kind === "overview"
+			? "overview"
+			: navigation.focus.kind === "citizen"
+				? `citizen:${navigation.focus.citizenId}`
+				: navigation.focus.kind === "building"
+					? `building:${navigation.focus.buildingId}`
+					: `project:${navigation.focus.projectId}`;
+	const renderRevision = [
+		projection.spatial.source.stateHash,
+		focusRevision,
+		navigation.followCitizen,
+		navigation.distanceMm,
+		navigation.yawDegrees,
+		navigation.pitchDegrees,
+		navigation.panOffsetMm.x,
+		navigation.panOffsetMm.z,
+	].join("|");
 	return (
 		<Application
 			deviceTypes={[DEVICETYPE_WEBGL2]}
 			className="generated-playcanvas"
 		>
-			<SceneProbe host={host} onFailure={onFailure} />
+			<SceneProbe
+				host={host}
+				onFailure={onFailure}
+				renderOnDemand={reducedMotion}
+				renderRevision={renderRevision}
+			/>
 			<GeneratedCamera
 				frame={frame}
 				projection={projection}
@@ -1091,6 +1130,7 @@ export function GeneratedWorldCanvas({
 			data-semantic-scale={fidelity.semanticScale}
 			data-fidelity-class={fidelity.fidelityClass}
 			data-navigation-mode={reducedMotion ? "direct" : "smooth"}
+			data-render-policy={reducedMotion ? "on-demand" : "continuous"}
 			data-citizen-height-mm={projection.scene.physicalScale.citizen.heightMm}
 			data-door-height-mm={projection.scene.physicalScale.door.heightMm}
 			data-road-width-mm={projection.scene.physicalScale.road.footpathWidthMm}
