@@ -16,8 +16,8 @@ The evidence files are documentation with inert `.txt`/`.json` paths, not an ins
 
 | Evidence | Raw bytes | SHA-256 | Meaning |
 |---|---:|---|---|
-| [package.json.txt](dependency-cohort/package.json.txt) | 610 | `deb01674b0f332a15df1b813781db92fcc4aa4406f89325661bcaacc0acb6036` | Exact direct dependencies and package-manager pin after obsolete harness removal |
-| [pnpm-lock.yaml.txt](dependency-cohort/pnpm-lock.yaml.txt) | 71,467 | `a59ebfe170d691e10e166d7a3ea60a08be26fc30be75812de81171871941c4db` | Exact pnpm 11.15.1 external resolution/integrity graph for the ten current workspaces |
+| [package.json.txt](dependency-cohort/package.json.txt) | 573 | `32c813843cfed796fc3526e322acdefb7d35c0e013e50cd5cbba4e2a15764196` | Exact direct dependencies and package-manager pin after obsolete harness removal |
+| [pnpm-lock.yaml.txt](dependency-cohort/pnpm-lock.yaml.txt) | 71,707 | `dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01` | Exact pnpm 11.15.1 external resolution/integrity graph for the ten current workspaces |
 | [licenses.jcs.json](dependency-cohort/licenses.jcs.json) | 44,616 | `1bedbaa5a7af5bf542f551c1925c76b2cb8f698b5ceba255ea0f526608a53ba1` | Canonical name/version/integrity/license/lifecycle record for all 224 packages |
 
 The license inventory is 164 MIT, 26 Apache-2.0, 12 MPL-2.0, nine MIT OR Apache-2.0, six BSD-3-Clause, five ISC, and one each of Python-2.0 and BSD-2-Clause. The only lifecycle metadata is `install: node-gyp rebuild` on optional `fsevents@2.3.2` and `fsevents@2.3.3`; installation suppresses all lifecycle scripts. PlayCanvas and its React wrapper are MIT. MPL-2.0 packages remain unmodified dependencies and require notice/source-offer review before public distribution.

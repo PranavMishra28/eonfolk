@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 487 files excluding this generated file; SHA-256 `d40c7a390e949f850d4458bdb34e014492442f07a2c73eb5c78c77aa147d4a49`.
+**File-set identity:** 495 files excluding this generated file; SHA-256 `8f39d800a2901916f1f279ffa3b67b86a2bf1278a18965b8083292bd37de5cbc`.
 
 ## Tracked topology
 
@@ -16,10 +16,10 @@
 | Documentation | 78 |
 | Frozen execution evidence | 35 |
 | GitHub automation | 9 |
-| Other tracked assets | 8 |
-| Packages | 95 |
+| Other tracked assets | 9 |
+| Packages | 96 |
 | Repository tooling | 31 |
-| Research and reviews | 48 |
+| Research and reviews | 54 |
 | Root controls and configuration | 27 |
 | Tests and fixtures | 93 |
 
@@ -31,7 +31,7 @@
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
-| `packages/persistence` | `@eonfolk/persistence` | 12 |
+| `packages/persistence` | `@eonfolk/persistence` | 13 |
 | `packages/protocol` | `@eonfolk/protocol` | 9 |
 | `packages/sim` | `@eonfolk/sim` | 10 |
 | `packages/world-presentation` | `@eonfolk/world-presentation` | 11 |
