@@ -6,13 +6,13 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 445 files excluding this generated file; SHA-256 `b68f43ac73fe3501fe9de4993fbaf99c66f6ce19195899b1c92dcc3494e33e6f`.
+**File-set identity:** 448 files excluding this generated file; SHA-256 `41164329207b8d1ae1463dd599e9370275f962efc1249e5b096815fc5a352425`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 60 |
+| Application code | 63 |
 | Documentation | 62 |
 | Frozen execution evidence | 33 |
 | GitHub automation | 4 |
@@ -27,7 +27,7 @@
 
 | Directory | Package | Source files |
 |---|---|---:|
-| `apps/web` | `@eonfolk/web` | 49 |
+| `apps/web` | `@eonfolk/web` | 52 |
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
