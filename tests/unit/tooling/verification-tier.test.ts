@@ -41,6 +41,16 @@ describe("V1 CI hardening", () => {
 		expect(packageManifest.scripts["verify:fast"]).toMatch(/pnpm build$/u);
 	});
 
+	it("keeps the diagnostics comparison on the explicit Riverhold treatment", () => {
+		const benchmark = readFileSync(
+			resolve("scripts/benchmark-diagnostics-browser.mjs"),
+			"utf8",
+		);
+		expect(benchmark).toMatch(
+			/page\.goto\(`\$\{origin\}\/legacy`, \{ waitUntil: "domcontentloaded" \}\)/u,
+		);
+	});
+
 	it("runs cognition once and retains Release Genesis evidence without promoting legacy", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		expect(workflow).not.toContain("run: pnpm test:cognition:portable");

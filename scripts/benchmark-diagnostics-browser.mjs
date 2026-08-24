@@ -123,7 +123,7 @@ async function runMode(mode, browserExecutable) {
 			}
 		});
 		const journeyStarted = performance.now();
-		await page.goto(origin, { waitUntil: "domcontentloaded" });
+		await page.goto(`${origin}/legacy`, { waitUntil: "domcontentloaded" });
 		await page
 			.getByLabel("Current Riverhold decision")
 			.getByRole("button", { name: "Follow Mara", exact: true })
