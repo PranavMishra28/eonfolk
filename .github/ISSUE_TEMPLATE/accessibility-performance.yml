@@ -1,0 +1,54 @@
+name: Accessibility or performance
+description: Report an access barrier, motion issue, weak-device failure, or measurable performance problem.
+title: "[Access/Performance]: "
+labels: [accessibility, performance]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Keyboard or focus
+        - Screen reader or semantic UI
+        - Reduced motion or animation
+        - Color, contrast, text, or zoom
+        - Non-WebGL fallback
+        - Loading or payload
+        - Frame rate, responsiveness, or heat
+        - Mobile or weak-device layout
+    validations:
+      required: true
+  - type: textarea
+    id: barrier
+    attributes:
+      label: Barrier or symptom
+      description: What action, information, or comfortable use was blocked?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and settings
+      description: Include OS, browser/version, viewport/DPR, device, input or assistive technology, motion setting, and power/network profile when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: measurement
+    attributes:
+      label: Reproduction or measurement
+      description: Give steps and, for performance, the metric, sample size, tool, and whether this was emulated or physical hardware.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data safety
+      options:
+        - label: Shared evidence contains no credentials, personal data, private world data, or unrelated browsing information.
+          required: true

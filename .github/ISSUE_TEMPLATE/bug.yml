@@ -1,0 +1,52 @@
+name: Bug report
+description: Report reproducible incorrect behavior in the local pre-alpha.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve EONFOLK. Do not include secrets, personal data, or exploit details. Security concerns follow SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      description: Paste the commit SHA when running from source.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the observable behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give the smallest numbered sequence that reliably reproduces the problem.
+      placeholder: |
+        1. Start a new local world
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, browser/version, viewport, input method, and reduced-motion setting.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Safe evidence
+      description: Optional screenshot, console excerpt, or sanitized diagnostics. Review it before posting.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data safety
+      options:
+        - label: I reviewed this report and removed credentials, personal data, private world data, and unrelated browsing information.
+          required: true
