@@ -437,15 +437,24 @@ export async function projectResearchEvidence(
 			boundaryVisibility.subjectCitizenId !== fact.citizenId
 		)
 			throw new Error("boundary is not visible through this patron covenant");
-		const causalParent = boundary.causalParents[0];
-		if (
-			causalParent === undefined ||
-			causalParent.eventId !== fact.interpretationEventId ||
-			causalParent.relation !== fact.causalRelation
-		)
+		const interpretationLink =
+			fact.causalRelation === "contributing-condition"
+				? boundary.causalParents.find(
+						(parent) =>
+							parent.eventId === fact.interpretationEventId &&
+							parent.relation === "contributing" &&
+							parent.mechanismId ===
+								"civilization.scheduler.counsel-boundary.v1",
+					)
+				: boundary.relatedEvents.find(
+						(related) =>
+							related.eventId === fact.interpretationEventId &&
+							related.relation === "temporal-predecessor",
+					);
+		if (interpretationLink === undefined)
 			throw new Error("boundary relation is not fact-bound");
 		const interpretation = events.find(
-			(event) => event.eventId === causalParent.eventId,
+			(event) => event.eventId === interpretationLink.eventId,
 		);
 		const interpretationPayload =
 			interpretation === undefined ? null : sponsorPayload(interpretation);
@@ -485,6 +494,7 @@ export async function projectResearchEvidence(
 				acceptedEventIds: Object.freeze([
 					boundary.eventId,
 					...boundary.causalParents.map(({ eventId }) => eventId),
+					...boundary.relatedEvents.map(({ eventId }) => eventId),
 				]),
 				causalRelation:
 					fact.causalRelation as ResearchEvidenceBeat["causalRelation"],

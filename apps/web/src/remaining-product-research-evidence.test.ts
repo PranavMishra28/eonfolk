@@ -26,6 +26,7 @@ async function event(
 		postStateHash: string;
 		payload: unknown;
 		causalParents?: AuthorityEventRecord["causalParents"];
+		relatedEvents?: AuthorityEventRecord["relatedEvents"];
 		mechanismId: string;
 	}>,
 ): Promise<AuthorityEventRecord> {
@@ -41,6 +42,7 @@ async function event(
 		simulationTime: input.sequence * 60,
 		eventType: input.eventType,
 		causalParents: input.causalParents ?? [],
+		relatedEvents: input.relatedEvents ?? [],
 		visibility:
 			input.eventType === "CivilizationCounselBoundaryCommitted"
 				? {
@@ -130,7 +132,8 @@ async function acceptedRows(options?: Readonly<{ withoutBoundary?: boolean }>) {
 				causalParents: [
 					{
 						eventId: interpreted.eventId,
-						relation: "contributing-condition",
+						relation: "contributing",
+						mechanismId: "civilization.scheduler.counsel-boundary.v1",
 					},
 				],
 				payload: {
@@ -238,7 +241,8 @@ describe("Release Genesis research evidence projection", () => {
 					...boundaryRow,
 					value: {
 						...boundary,
-						causalParents: [
+						causalParents: [],
+						relatedEvents: [
 							{
 								eventId: "event-interpretation-mara",
 								relation: "temporal-predecessor",

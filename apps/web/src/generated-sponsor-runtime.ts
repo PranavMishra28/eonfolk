@@ -19,11 +19,11 @@ import {
 } from "@eonfolk/persistence/civilization-sponsor";
 import {
 	bytesFromHex,
+	type GeneratedWorldState,
 	PROTOCOL_SCHEMA_VERSION,
 	payloadFingerprint,
 	seedPrng,
 	stateHash,
-	type GeneratedWorldState,
 	type WorldCommand,
 	type WorldCommandPayload,
 } from "@eonfolk/protocol";
@@ -705,22 +705,35 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				const payload = outer.payload as {
 					readonly fact?: CivilizationCounselBoundaryFact;
 				};
-				const parent = outer.causalParents[0];
-				if (
-					payload.fact === undefined ||
-					parent === undefined ||
-					parent.relation !== payload.fact.causalRelation
-				)
+				const fact = payload.fact;
+				const interpretationLink =
+					fact?.causalRelation === "contributing-condition"
+						? outer.causalParents.find(
+								(parent) =>
+									parent.eventId === fact.interpretationEventId &&
+									parent.relation === "contributing" &&
+									parent.mechanismId ===
+										"civilization.scheduler.counsel-boundary.v1",
+							)
+						: outer.relatedEvents.find(
+								(related) =>
+									related.eventId === fact?.interpretationEventId &&
+									related.relation === "temporal-predecessor",
+							);
+				if (fact === undefined || interpretationLink === undefined)
 					sponsorFail("BOUNDARY_CAUSAL_BINDING");
 				const stored = await port.getAppendReceipt(scope, outer.appendId);
 				if (stored === null) sponsorFail("BOUNDARY_RECEIPT_MISSING");
 				durableBoundaries.push({
 					eventId: outer.eventId,
-					parentEventIds: outer.causalParents.map(({ eventId }) => eventId),
+					parentEventIds: [
+						...outer.causalParents.map(({ eventId }) => eventId),
+						...outer.relatedEvents.map(({ eventId }) => eventId),
+					],
 					createdRevision: stored.revision,
 					visibility:
 						outer.visibility as CivilizationSponsorEventEnvelope["visibility"],
-					fact: payload.fact,
+					fact,
 				});
 				continue;
 			}
