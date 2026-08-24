@@ -1,11 +1,10 @@
+import { parseWorldFocusHref } from "../../apps/web/src/research-navigation";
 import {
 	expect,
 	type Locator,
 	type Page,
 	test,
 } from "./support/eonfolk-fixture";
-
-import { parseWorldFocusHref } from "../../apps/web/src/research-navigation";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -1207,8 +1206,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await page.keyboard.press("Enter");
 	await expect(citizenButton).toHaveAttribute("aria-pressed", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
+	await expect(canvas).toHaveAttribute("data-camera-distance-mm", "9000");
 
-	await page.getByRole("button", { name: "Back to settlement" }).click();
 	if (
 		!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
 	)
@@ -1220,7 +1219,21 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(projectButton).toHaveAttribute("aria-pressed", "true");
 	await expect(projectButton).toHaveAttribute("aria-current", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "project");
+	await expect(canvas).toHaveAttribute("data-camera-distance-mm", "28000");
 	await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
+	if (process.env.EONFOLK_CAPTURE_MEDIA === "1") {
+		if (await tools.evaluate((details) => (details as HTMLDetailsElement).open))
+			await tools.locator("summary").click();
+		await page
+			.locator(".v1-context-panel")
+			.evaluate((panel) => panel.scrollTo({ top: 0 }));
+		await page.screenshot({
+			animations: "disabled",
+			caret: "hide",
+			fullPage: true,
+			path: test.info().outputPath("desktop-citizen-to-project-focus.png"),
+		});
+	}
 	const projectHref = await page
 		.getByRole("link", { name: "Link to this project" })
 		.getAttribute("href");

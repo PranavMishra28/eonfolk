@@ -626,6 +626,68 @@ describe("generated navigation parity", () => {
 			),
 		});
 	});
+
+	it("restores useful building scale after citizen focus", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const citizen = model.actors[0];
+		const building = projection.local.buildings[0];
+		if (citizen === undefined || building === undefined)
+			throw new Error("fixture lacks a citizen or building");
+		const citizenFocus = reduceGeneratedNavigation(
+			INITIAL_GENERATED_NAVIGATION,
+			{
+				type: "select-citizen",
+				citizenId: citizen.citizenId,
+			},
+		);
+		expect(citizenFocus.distanceMm).toBe(9_000);
+
+		const buildingFocus = reduceGeneratedNavigation(citizenFocus, {
+			type: "select-building",
+			buildingId: building.buildingId,
+		});
+
+		expect(buildingFocus.distanceMm).toBe(24_000);
+		expect(
+			cameraIntentForGeneratedNavigation(projection, model, buildingFocus)
+				.distanceMm,
+		).toBe(24_000);
+	});
+
+	it("restores useful project scale after citizen focus", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const citizen = model.actors[0];
+		const project = model.projects[0];
+		if (citizen === undefined || project === undefined)
+			throw new Error("fixture lacks a citizen or project");
+		const citizenFocus = reduceGeneratedNavigation(
+			INITIAL_GENERATED_NAVIGATION,
+			{
+				type: "select-citizen",
+				citizenId: citizen.citizenId,
+			},
+		);
+		expect(citizenFocus.distanceMm).toBe(9_000);
+
+		const projectFocus = reduceGeneratedNavigation(citizenFocus, {
+			type: "select-project",
+			projectId: project.projectId,
+		});
+
+		expect(projectFocus.distanceMm).toBe(28_000);
+		expect(
+			cameraIntentForGeneratedNavigation(projection, model, projectFocus)
+				.distanceMm,
+		).toBe(28_000);
+	});
 });
 
 describe("generated asset provenance", () => {

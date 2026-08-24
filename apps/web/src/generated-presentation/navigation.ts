@@ -248,7 +248,7 @@ export function reduceGeneratedNavigation(
 					buildingId: action.buildingId,
 				}),
 				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 24_000),
+				distanceMm: 24_000,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-project":
@@ -260,7 +260,7 @@ export function reduceGeneratedNavigation(
 					projectId: action.projectId,
 				}),
 				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 28_000),
+				distanceMm: 28_000,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "toggle-follow":

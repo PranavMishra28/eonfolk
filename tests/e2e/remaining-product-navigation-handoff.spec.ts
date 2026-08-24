@@ -1,9 +1,9 @@
-import { expect, type Page, test } from "./support/eonfolk-fixture";
 import {
 	buildWorldFocusHref,
 	parseWorldFocusHref,
 	type WorldFocus,
 } from "../../apps/web/src/research-navigation";
+import { expect, type Page, test } from "./support/eonfolk-fixture";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -357,7 +357,11 @@ for (const viewport of [
 		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "");
 		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 			"data-focus-kind",
-			/(?:building|project)/u,
+			"building",
+		);
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-camera-distance-mm",
+			"24000",
 		);
 		await expect(
 			page.getByText(/(?:BUILDING|PROJECT) IN FOCUS/u),
