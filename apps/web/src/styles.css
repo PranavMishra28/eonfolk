@@ -3530,6 +3530,20 @@ em {
 	backdrop-filter: blur(10px);
 }
 
+.v1-semantic-layout > .v1-context-panel {
+	position: relative;
+	inset: auto;
+	width: min(80rem, calc(100% - 2rem));
+	max-height: none;
+	margin: 1rem auto;
+	overflow: visible;
+}
+
+.v1-semantic-layout > .v1-context-panel:not(:hover, :focus-within) {
+	width: min(80rem, calc(100% - 2rem));
+	max-height: none;
+}
+
 .v1-context-panel:not(:hover, :focus-within) {
 	width: 16rem;
 	max-height: none;

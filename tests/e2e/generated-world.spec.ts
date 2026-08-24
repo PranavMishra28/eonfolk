@@ -1429,6 +1429,21 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 	await citizen.focus();
 	await citizen.press("Enter");
 	await expect(citizen).toHaveAttribute("aria-pressed", "true");
+	const semanticContext = page.getByRole("complementary", {
+		name: "Canonical settlement context",
+	});
+	await expect(
+		semanticContext.getByRole("heading", { name: "Mara Vale" }),
+	).toBeVisible();
+	const sponsorAction = semanticContext.getByRole("button", {
+		name: "Sponsor this person",
+	});
+	await expect(sponsorAction).toBeVisible();
+	expect(
+		await sponsorAction.evaluate(
+			(button) => button.getBoundingClientRect().height,
+		),
+	).toBeGreaterThanOrEqual(43.9);
 	await page.getByRole("button", { name: "Embodied" }).click();
 	await expect(canvas).toBeVisible();
 	await expect(canvas).toHaveAttribute(
@@ -2116,9 +2131,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		kind: "citizen",
 		citizenId: "citizen-01",
 	});
-	await expect(
-		page.getByText(/reserve count is recorded/iu),
-	).toBeVisible();
+	await expect(page.getByText(/reserve count is recorded/iu)).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: /Confront them publicly/iu }),
 	).toHaveCount(0);

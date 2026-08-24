@@ -21,6 +21,11 @@ import {
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
+import type {
+	GeneratedBranchNextAction,
+	GeneratedChronicleEventContext,
+	GeneratedCounselContext,
+} from "./generated-sponsor-runtime";
 import {
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
@@ -28,11 +33,6 @@ import {
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import type { GeneratedWorldExperience } from "./generated-world-runtime";
-import type {
-	GeneratedBranchNextAction,
-	GeneratedChronicleEventContext,
-	GeneratedCounselContext,
-} from "./generated-sponsor-runtime";
 import {
 	buildWorldFocusHref,
 	parseWorldFocusHref,
@@ -1447,6 +1447,26 @@ function GeneratedWorld({
 		setPresentationPlaying((playing) => !playing);
 	const stepPresentation = () =>
 		setPresentationTick((presentationTick) => presentationTick + 1);
+	const contextPanel = () => (
+		<GeneratedContextPanel
+			projection={projection}
+			model={model}
+			navigation={navigation}
+			dispatch={dispatch}
+			presentationPlaying={presentationPlaying}
+			reducedMotion={reduceMotion}
+			onTogglePresentation={togglePresentation}
+			onStepPresentation={stepPresentation}
+			onNavigationRejected={reportNavigationRejection}
+			authorityRegionId={experience.authorityRegionId}
+			authorityDatabaseName={experience.authorityDatabaseName}
+			sponsorCitizenId={experience.sponsorCitizenId}
+			sponsorPhase={experience.sponsorPhase}
+			activeCounselIntent={experience.activeCounselIntent}
+			persistenceAvailable={experience.persistence.kind === "indexeddb"}
+			onAuthorityCommitted={onAuthorityRefresh}
+		/>
+	);
 
 	return (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: delegated native links dispatch click for keyboard activation
@@ -1624,7 +1644,10 @@ function GeneratedWorld({
 				/>
 			) : null}
 			{effectiveView === "semantic" ? (
-				<>
+				<section
+					className="v1-semantic-layout"
+					aria-label="Playable world in words"
+				>
 					{rendererFailed ? (
 						<div className="renderer-note" role="status">
 							<button type="button" onClick={retryRenderer}>
@@ -1654,7 +1677,8 @@ function GeneratedWorld({
 						onNavigationRejected={reportNavigationRejection}
 						focusedLocationId={focusedLocationId}
 					/>
-				</>
+					{contextPanel()}
+				</section>
 			) : null}
 			{effectiveView === "embodied" && !embodiedAvailable ? (
 				<ProjectionUnavailable projection={projection} />
@@ -1686,24 +1710,7 @@ function GeneratedWorld({
 						<div className="v1-world-vignette" aria-hidden="true" />
 						<GeneratedSceneTruth projection={projection} model={model} />
 					</div>
-					<GeneratedContextPanel
-						projection={projection}
-						model={model}
-						navigation={navigation}
-						dispatch={dispatch}
-						presentationPlaying={presentationPlaying}
-						reducedMotion={reduceMotion}
-						onTogglePresentation={togglePresentation}
-						onStepPresentation={stepPresentation}
-						onNavigationRejected={reportNavigationRejection}
-						authorityRegionId={experience.authorityRegionId}
-						authorityDatabaseName={experience.authorityDatabaseName}
-						sponsorCitizenId={experience.sponsorCitizenId}
-						sponsorPhase={experience.sponsorPhase}
-						activeCounselIntent={experience.activeCounselIntent}
-						persistenceAvailable={experience.persistence.kind === "indexeddb"}
-						onAuthorityCommitted={onAuthorityRefresh}
-					/>
+					{embodiedVisible ? contextPanel() : null}
 				</section>
 			) : null}
 			<details
