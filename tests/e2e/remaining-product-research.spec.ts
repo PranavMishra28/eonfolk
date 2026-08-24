@@ -241,9 +241,19 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		{ timeout: 30_000 },
 	);
 	await selectMara(page);
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	const beforeVerifiedBoundaryHash =
+		await world.getAttribute("data-state-hash");
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
+	await expect
+		.poll(() => world.getAttribute("data-state-hash"), {
+			timeout: sponsorTransitionTimeout,
+		})
+		.not.toBe(beforeVerifiedBoundaryHash);
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
@@ -265,9 +275,19 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		{ timeout: 30_000 },
 	);
 	await selectMara(page);
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	const beforeAccusationBoundaryHash =
+		await world.getAttribute("data-state-hash");
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
+	await expect
+		.poll(() => world.getAttribute("data-state-hash"), {
+			timeout: sponsorTransitionTimeout,
+		})
+		.not.toBe(beforeAccusationBoundaryHash);
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });

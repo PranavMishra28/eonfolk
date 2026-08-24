@@ -17,7 +17,17 @@ export default defineConfig({
 		baseURL: "http://127.0.0.1:4174",
 		browserName: "chromium",
 		headless: true,
-		trace: "retain-on-failure",
+		// The embodied world renders continuously. Capturing a JPEG on every trace
+		// frame produced 2,614 images (141 MiB across four failed traces) on the
+		// hosted Ubuntu run and starved the authoritative sponsor transitions that
+		// the tests were observing. Keep DOM snapshots, sources, and the separately
+		// configured failure screenshot, but do not record redundant trace filmstrips.
+		trace: {
+			mode: "retain-on-failure",
+			screenshots: false,
+			snapshots: true,
+			sources: true,
+		},
 		video: "off",
 		screenshot: "only-on-failure",
 		launchOptions: {

@@ -2011,9 +2011,20 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await expect(
+		page.getByRole("button", { name: "Return at the next decision boundary" }),
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	const beforeVerifiedBoundaryHash = await page
+		.locator("main.v1-world")
+		.getAttribute("data-state-hash");
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
+	await expect
+		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
+			timeout: sponsorTransitionTimeout,
+		})
+		.not.toBe(beforeVerifiedBoundaryHash);
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
@@ -2063,10 +2074,18 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await selectCanonicalMara(page);
 	await expect(
 		page.getByRole("button", { name: "Return at the next decision boundary" }),
-	).toBeVisible();
+	).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	const beforeAccusationBoundaryHash = await page
+		.locator("main.v1-world")
+		.getAttribute("data-state-hash");
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
+	await expect
+		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
+			timeout: sponsorTransitionTimeout,
+		})
+		.not.toBe(beforeAccusationBoundaryHash);
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });

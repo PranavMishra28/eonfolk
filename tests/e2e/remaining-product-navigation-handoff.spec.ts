@@ -193,10 +193,16 @@ for (const viewport of [
 			page.getByRole("button", {
 				name: "Return at the next decision boundary",
 			}),
-		).toBeVisible({ timeout: sponsorTransitionTimeout });
+		).toBeEnabled({ timeout: sponsorTransitionTimeout });
+		const beforeBoundaryHash = await world.getAttribute("data-state-hash");
 		await page
 			.getByRole("button", { name: "Return at the next decision boundary" })
 			.click();
+		await expect
+			.poll(() => world.getAttribute("data-state-hash"), {
+				timeout: sponsorTransitionTimeout,
+			})
+			.not.toBe(beforeBoundaryHash);
 		await expect(
 			page.getByRole("heading", { name: "Share this factual trace" }),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
