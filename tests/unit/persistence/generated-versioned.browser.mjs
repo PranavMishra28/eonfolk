@@ -36,13 +36,20 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 		assert.deepEqual(envelope?.result, {
 			validatedSession: {
 				fullValidationReads: 2,
-				persistedRevision: 1,
-				persistedEvents: 1,
+				preCommitFailureCaught: true,
+				revisionAfterPreCommitFailure: 0,
+				postCommitFailureCaught: true,
+				revisionAfterPostCommitFailure: 1,
+				persistedRevision: 2,
+				persistedEvents: 2,
 				persistedReceipt: true,
+				activeSessionCloseCode: "INVALID_INPUT",
 				concurrentWriteCode: "STALE_REVISION",
 				concurrentChangeCode: "STALE_REVISION",
 				postConcurrentFencingToken: 2,
 				corruptionCode: "STALE_STATE",
+				corruptionWriteCode: "STALE_REVISION",
+				corruptionWriteAtomic: true,
 				postSessionCorruptionCode: "STALE_STATE",
 			},
 			boundaryFailures: {

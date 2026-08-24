@@ -128,17 +128,49 @@ export async function sponsorGeneratedCitizen(
 		regionId: input.regionId,
 	};
 	let sessionStarted = false;
+	let bodyFailed = false;
+	let bodyError: unknown;
+	let result: GeneratedSponsorshipResult | null = null;
 	try {
 		await port.beginValidatedAuthoritySession(scope);
 		sessionStarted = true;
-		return await sponsorGeneratedCitizenInValidatedSession(input, port, scope);
-	} finally {
-		try {
-			if (sessionStarted) await port.endValidatedAuthoritySession(scope);
-		} finally {
-			port.close();
-		}
+		result = await sponsorGeneratedCitizenInValidatedSession(
+			input,
+			port,
+			scope,
+		);
+	} catch (error) {
+		bodyFailed = true;
+		bodyError = error;
 	}
+	let finalizationError: unknown;
+	try {
+		if (sessionStarted) await port.endValidatedAuthoritySession(scope);
+	} catch (error) {
+		finalizationError = error;
+	}
+	try {
+		port.close();
+	} catch (error) {
+		finalizationError =
+			finalizationError === undefined
+				? error
+				: new AggregateError(
+						[finalizationError, error],
+						"SP:SESSION_FINALIZATION_FAILED",
+					);
+	}
+	if (bodyFailed) {
+		if (finalizationError !== undefined)
+			throw new AggregateError(
+				[bodyError, finalizationError],
+				"SP:BODY_AND_SESSION_FINALIZATION_FAILED",
+			);
+		throw bodyError;
+	}
+	if (finalizationError !== undefined) throw finalizationError;
+	if (result === null) throw new Error("SP:SPONSOR_RESULT_MISSING");
+	return result;
 }
 
 async function sponsorGeneratedCitizenInValidatedSession(

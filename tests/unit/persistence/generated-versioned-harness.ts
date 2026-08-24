@@ -232,21 +232,30 @@ async function corruptEvent(
 async function verifyValidatedAuthoritySession(): Promise<
 	Readonly<{
 		readonly fullValidationReads: number;
+		readonly preCommitFailureCaught: boolean;
+		readonly revisionAfterPreCommitFailure: number;
+		readonly postCommitFailureCaught: boolean;
+		readonly revisionAfterPostCommitFailure: number;
 		readonly persistedRevision: number;
 		readonly persistedEvents: number;
 		readonly persistedReceipt: boolean;
+		readonly activeSessionCloseCode: string | null;
 		readonly concurrentWriteCode: string | null;
 		readonly concurrentChangeCode: string | null;
 		readonly postConcurrentFencingToken: number;
 		readonly corruptionCode: string | null;
+		readonly corruptionWriteCode: string | null;
+		readonly corruptionWriteAtomic: boolean;
 		readonly postSessionCorruptionCode: string | null;
 	}>
 > {
 	await deleteDatabase(SESSION_DATABASE);
 	const boundary = new OneShotBoundary();
+	const crash = new OneShotCrash();
 	const port = await BrowserVersionedPersistence.open({
 		databaseName: SESSION_DATABASE,
 		boundaryInjector: boundary,
+		crashInjector: crash,
 	});
 	const created = await genesis();
 	await port.initialize(created);
@@ -260,13 +269,29 @@ async function verifyValidatedAuthoritySession(): Promise<
 		toSequenceExclusive: 1,
 	});
 	const firstRequest = await append(created.head, 1);
-	await port.appendEventBatch(firstRequest);
-	await port.loadHead(SCOPE);
+	boundary.point = "transaction-abort";
+	let preCommitFailureCaught = false;
+	try {
+		await port.appendEventBatch(firstRequest);
+	} catch {
+		preCommitFailureCaught = true;
+	}
+	const revisionAfterPreCommitFailure = (await port.loadHead(SCOPE)).revision;
+	crash.point = "authority-append:after-commit";
+	let postCommitFailureCaught = false;
+	try {
+		await port.appendEventBatch(firstRequest);
+	} catch {
+		postCommitFailureCaught = true;
+	}
+	const headAfterPostCommitFailure = await port.loadHead(SCOPE);
+	const secondRequest = await append(headAfterPostCommitFailure, 2);
+	await port.appendEventBatch(secondRequest);
 	await port.getAppendReceipt(SCOPE, firstRequest.appendId);
 	const sessionEvents = await port.getEventRange({
 		...SCOPE,
 		fromSequenceInclusive: 1,
-		toSequenceExclusive: 2,
+		toSequenceExclusive: 3,
 	});
 	await port.endValidatedAuthoritySession(SCOPE);
 	const fullValidationReads = boundary.readHits - readsBefore;
@@ -279,7 +304,7 @@ async function verifyValidatedAuthoritySession(): Promise<
 	const persistedEvents = await reopened.getEventRange({
 		...SCOPE,
 		fromSequenceInclusive: 1,
-		toSequenceExclusive: 2,
+		toSequenceExclusive: 3,
 	});
 	const persistedReceipt =
 		(await reopened.getAppendReceipt(SCOPE, firstRequest.appendId)) !== null;
@@ -289,6 +314,12 @@ async function verifyValidatedAuthoritySession(): Promise<
 		databaseName: SESSION_DATABASE,
 	});
 	await sessionPort.beginValidatedAuthoritySession(SCOPE);
+	let activeSessionCloseCode: string | null = null;
+	try {
+		sessionPort.close();
+	} catch (error) {
+		activeSessionCloseCode = (error as PersistenceError).code;
+	}
 	const secondTab = await BrowserVersionedPersistence.open({
 		databaseName: SESSION_DATABASE,
 	});
@@ -301,7 +332,7 @@ async function verifyValidatedAuthoritySession(): Promise<
 	let concurrentWriteCode: string | null = null;
 	try {
 		const sessionHead = await sessionPort.loadHead(SCOPE);
-		await sessionPort.appendEventBatch(await append(sessionHead, 2));
+		await sessionPort.appendEventBatch(await append(sessionHead, 3));
 	} catch (error) {
 		concurrentWriteCode = (error as PersistenceError).code;
 	}
@@ -319,9 +350,18 @@ async function verifyValidatedAuthoritySession(): Promise<
 		databaseName: SESSION_DATABASE,
 	});
 	await corruptionPort.beginValidatedAuthoritySession(SCOPE);
-	const corruptionHead = await corruptionPort.loadHead(SCOPE);
-	await corruptionPort.appendEventBatch(await append(corruptionHead, 2));
 	await corruptEvent(SESSION_DATABASE, 1);
+	const corruptedMaterialBeforeWrite =
+		await inspectDatabaseMaterial(SESSION_DATABASE);
+	let corruptionWriteCode: string | null = null;
+	try {
+		const corruptionHead = await corruptionPort.loadHead(SCOPE);
+		await corruptionPort.appendEventBatch(await append(corruptionHead, 3));
+	} catch (error) {
+		corruptionWriteCode = (error as PersistenceError).code;
+	}
+	const corruptedMaterialAfterWrite =
+		await inspectDatabaseMaterial(SESSION_DATABASE);
 	let corruptionCode: string | null = null;
 	try {
 		await corruptionPort.endValidatedAuthoritySession(SCOPE);
@@ -338,12 +378,17 @@ async function verifyValidatedAuthoritySession(): Promise<
 	await deleteDatabase(SESSION_DATABASE);
 	return {
 		fullValidationReads,
+		preCommitFailureCaught,
+		revisionAfterPreCommitFailure,
+		postCommitFailureCaught,
+		revisionAfterPostCommitFailure: headAfterPostCommitFailure.revision,
 		persistedRevision: persistedHead.revision,
 		persistedEvents:
 			persistedEvents.length === sessionEvents.length
 				? persistedEvents.length
 				: -1,
 		persistedReceipt,
+		activeSessionCloseCode,
 		concurrentWriteCode,
 		concurrentChangeCode,
 		postConcurrentFencingToken:
@@ -351,6 +396,9 @@ async function verifyValidatedAuthoritySession(): Promise<
 				? postConcurrentFencingToken
 				: -1,
 		corruptionCode,
+		corruptionWriteCode,
+		corruptionWriteAtomic:
+			corruptedMaterialBeforeWrite === corruptedMaterialAfterWrite,
 		postSessionCorruptionCode,
 	};
 }
@@ -416,6 +464,46 @@ async function inspectStores(): Promise<readonly string[]> {
 	const stores = [...database.objectStoreNames].sort();
 	database.close();
 	return stores;
+}
+
+async function inspectDatabaseMaterial(databaseName: string): Promise<string> {
+	const request = indexedDB.open(databaseName);
+	const database = await new Promise<IDBDatabase>((resolve, reject) => {
+		request.addEventListener("success", () => resolve(request.result), {
+			once: true,
+		});
+		request.addEventListener("error", () => reject(request.error), {
+			once: true,
+		});
+	});
+	const stores = [...database.objectStoreNames].sort();
+	const transaction = database.transaction(stores, "readonly");
+	const done = new Promise<void>((resolve, reject) => {
+		transaction.addEventListener("complete", () => resolve(), { once: true });
+		transaction.addEventListener("abort", () => reject(transaction.error), {
+			once: true,
+		});
+		transaction.addEventListener("error", () => reject(transaction.error), {
+			once: true,
+		});
+	});
+	const rows = await Promise.all(
+		stores.map(
+			(store) =>
+				new Promise<unknown[]>((resolve, reject) => {
+					const all = transaction.objectStore(store).getAll();
+					all.addEventListener("success", () => resolve(all.result), {
+						once: true,
+					});
+					all.addEventListener("error", () => reject(all.error), {
+						once: true,
+					});
+				}),
+		),
+	);
+	await done;
+	database.close();
+	return JSON.stringify(rows);
 }
 
 async function inspectStoreCounts(): Promise<Readonly<Record<string, number>>> {

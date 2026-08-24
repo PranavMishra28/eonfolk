@@ -84,7 +84,17 @@ interface StoredRows {
 interface ValidatedAuthoritySession {
 	readonly scopeKey: string;
 	bundle: StreamBundle;
-	readonly memory: MemoryVersionedPersistence;
+	memory: MemoryVersionedPersistence;
+}
+
+interface CommitOperationInput {
+	readonly bundle: StreamBundle;
+	readonly operation: AuthorityOperation;
+	readonly head: AuthorityHead;
+	readonly write: (transaction: IDBTransaction) => void;
+	readonly before: Parameters<VersionedCrashInjector["hit"]>[0];
+	readonly after: Parameters<VersionedCrashInjector["hit"]>[0];
+	readonly receipt?: AuthorityAppendReceipt;
 }
 
 export interface BrowserVersionedPersistenceOptions {
@@ -390,7 +400,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	}
 
 	close(): void {
-		this.#validatedSession = null;
+		if (this.#validatedSession !== null)
+			fail("INVALID_INPUT", "validated authority session still active");
 		this.#database.close();
 	}
 
@@ -561,15 +572,18 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			fail("STALE_STATE", "materialized mismatch");
 	}
 
-	async #commitOperation(input: {
-		readonly bundle: StreamBundle;
-		readonly operation: AuthorityOperation;
-		readonly head: AuthorityHead;
-		readonly write: (transaction: IDBTransaction) => void;
-		readonly before: Parameters<VersionedCrashInjector["hit"]>[0];
-		readonly after: Parameters<VersionedCrashInjector["hit"]>[0];
-		readonly receipt?: AuthorityAppendReceipt;
-	}): Promise<void> {
+	async #commitOperation(input: CommitOperationInput): Promise<void> {
+		try {
+			await this.#commitOperationUnchecked(input);
+		} catch (error) {
+			const session = this.#validatedSession;
+			if (session !== null && session.bundle === input.bundle)
+				session.memory = await this.#hydrate(session.bundle);
+			throw error;
+		}
+	}
+
+	async #commitOperationUnchecked(input: CommitOperationInput): Promise<void> {
 		const operationNeedsReceipt =
 			input.operation.kind === "append" || input.operation.kind === "rejection";
 		if (operationNeedsReceipt && input.receipt === undefined)
@@ -584,34 +598,22 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		const done = transactionDone(transaction);
 		try {
 			this.#boundaryInjector?.hit("transaction-abort", transaction);
+			const stored = await storedRows(transaction, input.bundle.stream.genesis);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
-			let current: StreamRow | undefined;
-			if (sessionOwnsBundle) {
-				current = (await requestValue(streams.get(key))) as
-					| StreamRow
-					| undefined;
-				if (current === undefined || !equal(current, input.bundle.stream))
-					fail("STALE_REVISION", "head race");
-			} else {
-				const stored = await storedRows(
-					transaction,
-					input.bundle.stream.genesis,
-				);
-				current = stored.stream;
-				if (
-					current === undefined ||
-					!equal(current, input.bundle.stream) ||
-					!equal(materializedValues(stored), {
-						operations: input.bundle.operations,
-						events: input.bundle.events,
-						receipts: input.bundle.receipts,
-						snapshots: input.bundle.snapshots,
-					})
-				)
-					fail("STALE_REVISION", "head race");
-			}
+			const current = stored.stream;
+			if (
+				current === undefined ||
+				!equal(current, input.bundle.stream) ||
+				!equal(materializedValues(stored), {
+					operations: input.bundle.operations,
+					events: input.bundle.events,
+					receipts: input.bundle.receipts,
+					snapshots: input.bundle.snapshots,
+				})
+			)
+				fail("STALE_REVISION", "head race");
 			input.write(transaction);
 			transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).put({
 				key: recordKey(input.bundle.stream.genesis, input.operation.ordinal),
@@ -634,7 +636,6 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			throw error;
 		}
 		await done;
-		this.#hit(input.after);
 		if (session !== null && sessionOwnsBundle) {
 			const operation = clone(input.operation);
 			const receipt = input.receipt;
@@ -668,6 +669,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				snapshots,
 			});
 		}
+		this.#hit(input.after);
 	}
 
 	async initialize(
