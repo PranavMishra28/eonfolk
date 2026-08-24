@@ -64,11 +64,11 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 	return page.evaluate(async () => {
 		const databases = await indexedDB.databases();
 		if (
-			!databases.some(({ name }) => name === "eonfolk-generated-authority-v5")
+			!databases.some(({ name }) => name === "eonfolk-generated-authority-v7")
 		)
 			return null;
 		return await new Promise((resolve, reject) => {
-			const request = indexedDB.open("eonfolk-generated-authority-v5");
+			const request = indexedDB.open("eonfolk-generated-authority-v7");
 			request.onerror = () => reject(request.error);
 			request.onsuccess = () => {
 				const database = request.result;
@@ -590,13 +590,13 @@ test.describe
 			await page.evaluate(async () => {
 				await new Promise<void>((resolve, reject) => {
 					const deletion = indexedDB.deleteDatabase(
-						"eonfolk-generated-authority-v5",
+						"eonfolk-generated-authority-v7",
 					);
 					deletion.onsuccess = () => resolve();
 					deletion.onerror = () => reject(deletion.error);
 				});
 				await new Promise<void>((resolve, reject) => {
-					const open = indexedDB.open("eonfolk-generated-authority-v5", 1);
+					const open = indexedDB.open("eonfolk-generated-authority-v7", 1);
 					open.onsuccess = () => {
 						open.result.close();
 						resolve();
@@ -634,7 +634,7 @@ test.describe
 			await page.evaluate(
 				() =>
 					new Promise<void>((resolve, reject) => {
-						const open = indexedDB.open("eonfolk-generated-authority-v5");
+						const open = indexedDB.open("eonfolk-generated-authority-v7");
 						open.onerror = () => reject(open.error);
 						open.onsuccess = () => {
 							const database = open.result;

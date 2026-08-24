@@ -43,6 +43,27 @@ export interface CivilizationChronicleBoundary {
 	};
 }
 
+export interface CivilizationChronicleAbstentionBoundary {
+	readonly eventId: string;
+	readonly relatedEventIds: readonly string[];
+	readonly createdRevision: number;
+	readonly visibility: Visibility;
+	readonly fact: {
+		readonly schemaVersion: "eonfolk-abstention-boundary-fact-v1";
+		readonly citizenId: string;
+		readonly abstentionEventId: string;
+		readonly planId: string;
+		readonly planStepId: string;
+		readonly consequenceKind: "standing-plan-continued-after-patron-abstention";
+		readonly routineKind: string;
+		readonly routineSubjectId: string;
+		readonly simulationTime: number;
+		readonly requiredNeedUnits: number;
+		readonly consumedNeedUnits: number;
+		readonly unmetNeedUnits: number;
+	};
+}
+
 export interface CivilizationChronicleBeat {
 	readonly beat: number;
 	readonly text: string;
@@ -112,6 +133,7 @@ export function projectCivilizationChronicle(input: {
 	readonly visibilityContext: VisibilityContext;
 	readonly citizenNames: Readonly<Record<string, string>>;
 	readonly boundaries?: readonly CivilizationChronicleBoundary[];
+	readonly abstentionBoundaries?: readonly CivilizationChronicleAbstentionBoundary[];
 }): CivilizationChronicleProjection {
 	const visible = input.events.filter((event) => {
 		const createdRevision = input.eventRevisions[event.eventId];
@@ -202,10 +224,53 @@ export function projectCivilizationChronicle(input: {
 		});
 		unresolvedTension = `Will ${citizenName(fact.citizenId, input.citizenNames)} and the settlement cover the next daily boundary?`;
 	}
+	for (const boundary of input.abstentionBoundaries ?? []) {
+		const fact = boundary.fact;
+		if (
+			fact.schemaVersion !== "eonfolk-abstention-boundary-fact-v1" ||
+			fact.consequenceKind !==
+				"standing-plan-continued-after-patron-abstention" ||
+			boundary.createdRevision < 0 ||
+			canRead(
+				input.viewer,
+				input.purpose,
+				{
+					createdRevision: boundary.createdRevision,
+					visibility: boundary.visibility,
+				},
+				input.atRevision,
+				input.visibilityContext,
+			) !== "allow"
+		)
+			continue;
+		const name = citizenName(fact.citizenId, input.citizenNames);
+		beats.push({
+			beat: beats.length + 1,
+			text: `${name} received no advice and independently continued the active Standing Plan. At the next daily boundary, the recorded routine was ${humanizeIdentifier(fact.routineKind)} toward ${humanizeIdentifier(fact.routineSubjectId)}. Daily needs: ${String(fact.consumedNeedUnits)} of ${String(fact.requiredNeedUnits)} units met; ${String(fact.unmetNeedUnits)} unmet. Abstention preceded this outcome but is not recorded as its cause.`,
+			evidenceEventIds: [
+				boundary.eventId,
+				...boundary.relatedEventIds.filter((eventId) =>
+					visibleEventIds.has(eventId),
+				),
+			],
+			relation: "temporal-predecessor",
+		});
+		unresolvedTension = `What will ${name}'s independent plan demand at the next boundary?`;
+	}
 	const selected = beats.slice(-3).map((beat, index) => ({
 		...beat,
 		beat: index + 1,
 	}));
+	const subjectId = [...visible]
+		.reverse()
+		.map(({ eventPayload }) =>
+			"citizenId" in eventPayload ? eventPayload.citizenId : null,
+		)
+		.find((candidate): candidate is string => candidate !== null);
+	const subject =
+		subjectId === undefined
+			? "CITIZEN"
+			: citizenName(subjectId, input.citizenNames).toUpperCase();
 	return {
 		schemaVersion: "eonfolk-civilization-chronicle-v1",
 		visibilityPolicyVersion: VISIBILITY_POLICY_VERSION,
@@ -215,11 +280,11 @@ export function projectCivilizationChronicle(input: {
 			...(visible.some(
 				({ eventPayload }) => eventPayload.kind === "PatronAbstained",
 			)
-				? ["NO ADVICE / MARA CHOSE INDEPENDENTLY"]
+				? [`NO ADVICE / ${subject} CHOSE INDEPENDENTLY`]
 				: visible.some(
 							({ eventPayload }) => eventPayload.kind === "CounselIssued",
 						)
-					? ["YOU ADVISED / MARA DECIDED"]
+					? [`YOU ADVISED / ${subject} DECIDED`]
 					: []),
 			...selected.map(({ text }) => text),
 			...(unresolvedTension === null

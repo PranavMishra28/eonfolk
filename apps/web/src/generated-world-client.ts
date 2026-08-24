@@ -5,7 +5,7 @@ import type {
 
 export type { GeneratedWorldExperience } from "./generated-world-runtime";
 
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v5";
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v7";
 
 const generatedFaultHooks =
 	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&

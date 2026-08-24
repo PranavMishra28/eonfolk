@@ -577,7 +577,7 @@ describe("canonical civilization sponsor reducer", () => {
 			},
 			viewer: { kind: "participant", principalId: PATRON.principalId },
 			purpose: "chronicle-private",
-			atRevision: abstention.postState.revision,
+			atRevision: abstention.postState.revision + 1,
 			visibilityContext: {
 				policyVersion: VISIBILITY_POLICY_VERSION,
 				covenants: [
@@ -592,12 +592,40 @@ describe("canonical civilization sponsor reducer", () => {
 				nonproduction: false,
 			},
 			citizenNames: { [ACTOR]: "Iri" },
+			abstentionBoundaries: [
+				{
+					eventId: "event-abstention-boundary-one",
+					relatedEventIds: [abstention.events[0]!.eventId],
+					createdRevision: abstention.postState.revision + 1,
+					visibility: abstention.events[0]!.visibility,
+					fact: {
+						schemaVersion: "eonfolk-abstention-boundary-fact-v1",
+						citizenId: ACTOR,
+						abstentionEventId: abstention.events[0]!.eventId,
+						planId: "plan-actor",
+						planStepId: "step-actor",
+						consequenceKind: "standing-plan-continued-after-patron-abstention",
+						routineKind: "social-maintenance",
+						routineSubjectId: TARGET,
+						simulationTime: 86_400,
+						requiredNeedUnits: 4,
+						consumedNeedUnits: 3,
+						unmetNeedUnits: 1,
+					},
+				},
+			],
 		});
 		expect(chronicle.storyCard).toContain(
-			"NO ADVICE / MARA CHOSE INDEPENDENTLY",
+			"NO ADVICE / IRI CHOSE INDEPENDENTLY",
 		);
 		expect(chronicle.storyCard).toContain(
 			"boundary closed without sponsor input",
+		);
+		expect(chronicle.storyCard).toContain(
+			"independently continued the active Standing Plan",
+		);
+		expect(chronicle.storyCard).toContain(
+			"Abstention preceded this outcome but is not recorded as its cause",
 		);
 		expect(chronicle.storyCard).not.toMatch(/you advised|your counsel/iu);
 	});

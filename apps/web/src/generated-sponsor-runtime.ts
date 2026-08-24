@@ -12,7 +12,10 @@ import {
 } from "@eonfolk/cognition";
 import { replayCivilizationHistory } from "@eonfolk/persistence";
 import {
+	type CivilizationAbstentionBoundaryFact,
 	type CivilizationCounselBoundaryFact,
+	civilizationAbstentionBoundaryAppendId,
+	createCivilizationAbstentionBoundaryAppend,
 	createCivilizationCounselBoundaryAppend,
 	createCivilizationSponsorAuthorityAppend,
 	createCivilizationSponsorRejectionAppend,
@@ -47,7 +50,12 @@ interface GeneratedSponsorInput {
 	readonly regionId: string;
 	readonly databaseName: string;
 	readonly indexedDbFactory?: IDBFactory;
-	readonly step: "establish" | "abstain" | "counsel" | "resolve";
+	readonly step:
+		| "establish"
+		| "abstain"
+		| "advance-abstention"
+		| "counsel"
+		| "resolve";
 	readonly intent?: "verify-reserve" | "accuse-publicly";
 	readonly expectedAuthorityStateHash?: string;
 }
@@ -62,6 +70,7 @@ export interface GeneratedSponsorshipResult {
 	readonly authorityStateHash: string;
 	readonly phase: "sponsored" | "abstained" | "counseled" | "resolved";
 	readonly activeIntent: "verify-reserve" | "accuse-publicly" | null;
+	readonly consequenceRecorded: boolean;
 	readonly shareArtifact: string | null;
 	readonly counselContext: GeneratedCounselContext;
 	readonly nextAction: GeneratedBranchNextAction | null;
@@ -148,7 +157,9 @@ function chronicleEventContext(input: {
 }): GeneratedChronicleEventContext | null {
 	const payload = input.event.payload as {
 		readonly protocolEvent?: CivilizationSponsorEventEnvelope;
-		readonly fact?: CivilizationCounselBoundaryFact;
+		readonly fact?:
+			| CivilizationCounselBoundaryFact
+			| CivilizationAbstentionBoundaryFact;
 	};
 	const sponsorPayload = payload.protocolEvent?.eventPayload;
 	const fact = payload.fact;
@@ -170,7 +181,11 @@ function chronicleEventContext(input: {
 	let locationId: string | null = citizen.siteId;
 	let objectId: string | null = null;
 	let objectName: string | null = null;
-	if (fact?.effect.kind === "reserve-inspection") {
+	if (
+		fact !== undefined &&
+		"effect" in fact &&
+		fact.effect.kind === "reserve-inspection"
+	) {
 		const stock =
 			input.civilization.stocks[
 				fact.effect.stockObservations[0]?.stockId ?? ""
@@ -191,7 +206,11 @@ function chronicleEventContext(input: {
 			building?.buildingKind ??
 			project?.name ??
 			readable(stock?.stockId ?? "reserve");
-	} else if (fact?.effect.kind === "public-allegation") {
+	} else if (
+		fact !== undefined &&
+		"effect" in fact &&
+		fact.effect.kind === "public-allegation"
+	) {
 		const target = input.civilization.citizens[fact.effect.targetCitizenId];
 		objectName = `${citizen.name} and ${target?.name ?? readable(fact.effect.targetCitizenId)} relationship`;
 	}
@@ -323,6 +342,8 @@ export function assertGeneratedSponsorBoundaryAdmission(input: {
 		(input.step === "counsel" || input.step === "resolve")
 	)
 		sponsorFail("BOUNDARY_CLOSED_AFTER_ABSTENTION");
+	if (input.step === "advance-abstention" && !input.hasPriorAbstention)
+		sponsorFail("NO_ABSTENTION_TO_ADVANCE");
 }
 
 /**
@@ -611,6 +632,40 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				reason: "withhold-counsel",
 			});
 		}
+		if (input.step === "advance-abstention") {
+			if (priorAbstention === undefined)
+				sponsorFail("NO_ABSTENTION_TO_ADVANCE");
+			const boundaryAppendId = civilizationAbstentionBoundaryAppendId(
+				priorAbstention.abstentionId,
+			);
+			const priorBoundary = await port.getAppendReceipt(
+				scope,
+				boundaryAppendId,
+			);
+			if (priorBoundary === null) {
+				let boundaryHead = await port.loadHead(scope);
+				boundaryHead = await port.acquireWriterFence(
+					scope,
+					boundaryHead.fencingToken,
+				);
+				const boundarySnapshot = await port.loadLatestSnapshot(scope);
+				const boundaryReplay = await replayCivilizationHistory(port, {
+					...scope,
+					snapshotId: boundarySnapshot.snapshotId,
+					toSequenceExclusive: boundaryHead.lastSequence + 1,
+				});
+				const boundary = await createCivilizationAbstentionBoundaryAppend({
+					state: boundaryReplay.state,
+					head: boundaryHead,
+					citizenId: input.citizenId,
+					abstentionId: priorAbstention.abstentionId,
+				});
+				await port.appendEventBatch(boundary.request);
+				finalCivilization = boundary.state
+					.civilization as unknown as CivilizationState;
+				allIdempotent = false;
+			}
+		}
 		if (input.step === "counsel" || input.step === "resolve") {
 			finalCivilization = await commit(`counsel:${input.citizenId}:${intent}`, {
 				kind: "IssueCounsel",
@@ -685,6 +740,13 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			readonly visibility: CivilizationSponsorEventEnvelope["visibility"];
 			readonly fact: CivilizationCounselBoundaryFact;
 		}> = [];
+		const durableAbstentionBoundaries: Array<{
+			readonly eventId: string;
+			readonly relatedEventIds: readonly string[];
+			readonly createdRevision: number;
+			readonly visibility: CivilizationSponsorEventEnvelope["visibility"];
+			readonly fact: CivilizationAbstentionBoundaryFact;
+		}> = [];
 		const chronicleBaseSnapshotId = generatedSponsorChronicleBaseSnapshotId(
 			finalSnapshot.snapshotId,
 		);
@@ -737,6 +799,39 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				});
 				continue;
 			}
+			if (outer.eventType === "CivilizationAbstentionBoundaryCommitted") {
+				const fact = (
+					outer.payload as {
+						readonly fact?: CivilizationAbstentionBoundaryFact;
+					}
+				).fact;
+				const abstentionLink = outer.relatedEvents.find(
+					(related) =>
+						related.eventId === fact?.abstentionEventId &&
+						related.relation === "temporal-predecessor",
+				);
+				if (
+					fact === undefined ||
+					outer.causalParents.length !== 0 ||
+					abstentionLink === undefined ||
+					outer.provenance.mechanismId !==
+						"civilization.scheduler.abstention-boundary.v1" ||
+					outer.provenance.cognitionDecisionId !== null ||
+					outer.provenance.brainKind !== null
+				)
+					sponsorFail("ABSTENTION_BOUNDARY_BINDING");
+				const stored = await port.getAppendReceipt(scope, outer.appendId);
+				if (stored === null) sponsorFail("BOUNDARY_RECEIPT_MISSING");
+				durableAbstentionBoundaries.push({
+					eventId: outer.eventId,
+					relatedEventIds: outer.relatedEvents.map(({ eventId }) => eventId),
+					createdRevision: stored.revision,
+					visibility:
+						outer.visibility as CivilizationSponsorEventEnvelope["visibility"],
+					fact,
+				});
+				continue;
+			}
 			if (outer.eventType !== "CivilizationSponsorCommandCommitted") continue;
 			const protocolEvent = (
 				outer.payload as {
@@ -782,6 +877,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				]),
 			),
 			boundaries: durableBoundaries,
+			abstentionBoundaries: durableAbstentionBoundaries,
 		});
 		const activeUnresolved = Object.values(finalCivilization.counsels).find(
 			(counsel) =>
@@ -930,6 +1026,8 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			authorityStateHash: finalReplay.stateHash,
 			phase,
 			activeIntent: activeUnresolved?.intent ?? selectedCounsel?.intent ?? null,
+			consequenceRecorded:
+				durableBoundaries.length > 0 || durableAbstentionBoundaries.length > 0,
 			shareArtifact:
 				phase === "resolved" || phase === "abstained"
 					? chronicle.storyCard

@@ -87,6 +87,22 @@ describe("generated sponsor Chronicle event range", () => {
 				hasPriorAbstention: false,
 			}),
 		).not.toThrow();
+		expect(() =>
+			assertGeneratedSponsorBoundaryAdmission({
+				step: "advance-abstention",
+				expectedAuthorityStateHash: "head-b",
+				actualAuthorityStateHash: "head-b",
+				hasPriorAbstention: false,
+			}),
+		).toThrow("SP:NO_ABSTENTION_TO_ADVANCE");
+		expect(() =>
+			assertGeneratedSponsorBoundaryAdmission({
+				step: "advance-abstention",
+				expectedAuthorityStateHash: "head-b",
+				actualAuthorityStateHash: "head-b",
+				hasPriorAbstention: true,
+			}),
+		).not.toThrow();
 	});
 
 	it("anchors an authority-extension snapshot to its retained immutable base", () => {

@@ -29,7 +29,7 @@ describe("canonical generated-world browser experience", () => {
 			restored: false,
 			catchUpReceipts: 0,
 		});
-		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v5");
+		expect(GENERATED_WORLD_STORAGE_KEY).toBe("eonfolk-generated-authority-v7");
 	});
 
 	it("refreshes from the immutable default base without changing admitted authority", async () => {

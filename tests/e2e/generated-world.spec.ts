@@ -86,7 +86,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v5",
+					"eonfolk-generated-authority-v7",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -108,7 +108,7 @@ async function inspectGeneratedCheckpoint(page: Page) {
 				readonly stateHash: string;
 				readonly simulationTime: number;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5", 1);
+				const request = indexedDB.open("eonfolk-generated-authority-v7", 1);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -172,7 +172,7 @@ async function generatedAuthorityFingerprint(page: Page) {
 				readonly counts: Readonly<Record<string, number>>;
 				readonly digest: string;
 			}>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5");
+				const request = indexedDB.open("eonfolk-generated-authority-v7");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;
@@ -337,7 +337,7 @@ async function corruptGeneratedAuthority(
 					reject(transaction.error ?? new Error("corruption fixture aborted"));
 			});
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority-v5"),
+			indexedDB.open("eonfolk-generated-authority-v7"),
 		);
 		try {
 			if (kind === "range-gap") {
@@ -461,9 +461,9 @@ async function replaceGeneratedAuthorityWithOrphan(
 				request.onsuccess = () => resolve(request.result);
 				request.onerror = () => reject(request.error);
 			});
-		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority-v5");
+		const deleted = indexedDB.deleteDatabase("eonfolk-generated-authority-v7");
 		await requested(deleted);
-		const opened = indexedDB.open("eonfolk-generated-authority-v5", 1);
+		const opened = indexedDB.open("eonfolk-generated-authority-v7", 1);
 		opened.onupgradeneeded = () => {
 			for (const name of [
 				"authorityStreams",
@@ -527,7 +527,7 @@ async function forgeGeneratedAuthorityRowIdentity(
 				request.onerror = () => reject(request.error);
 			});
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority-v5"),
+			indexedDB.open("eonfolk-generated-authority-v7"),
 		);
 		try {
 			const transaction = opened.transaction(store, "readwrite");
@@ -596,7 +596,7 @@ async function installGeneratedAuthorityStreamFixture(
 		const runId = "v1-generated-civilization";
 		const expectedKey = JSON.stringify([runId, worldId]);
 		const opened = await requested(
-			indexedDB.open("eonfolk-generated-authority-v5"),
+			indexedDB.open("eonfolk-generated-authority-v7"),
 		);
 		const read = opened.transaction("authorityStreams", "readonly");
 		const readDone = completed(read);
@@ -616,9 +616,9 @@ async function installGeneratedAuthorityStreamFixture(
 
 		if (kind.startsWith("missing-")) {
 			await requested(
-				indexedDB.deleteDatabase("eonfolk-generated-authority-v5"),
+				indexedDB.deleteDatabase("eonfolk-generated-authority-v7"),
 			);
-			const recreated = indexedDB.open("eonfolk-generated-authority-v5", 1);
+			const recreated = indexedDB.open("eonfolk-generated-authority-v7", 1);
 			recreated.onupgradeneeded = () => {
 				for (const name of [
 					"authorityStreams",
@@ -648,7 +648,7 @@ async function installGeneratedAuthorityStreamFixture(
 		}
 
 		const database = await requested(
-			indexedDB.open("eonfolk-generated-authority-v5"),
+			indexedDB.open("eonfolk-generated-authority-v7"),
 		);
 		try {
 			const write = database.transaction("authorityStreams", "readwrite");
@@ -1347,7 +1347,7 @@ test("entry admits the deterministic view when canonical IndexedDB is newer @gen
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5", 2);
+				const request = indexedDB.open("eonfolk-generated-authority-v7", 2);
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -1957,7 +1957,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await blocker.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5");
+				const request = indexedDB.open("eonfolk-generated-authority-v7");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					request.result.onversionchange = () => undefined;

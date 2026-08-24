@@ -488,6 +488,7 @@ function GeneratedContextPanel({
 	onNavigationRejected,
 	authorityRegionId,
 	authorityDatabaseName,
+	authorityStateHash,
 	sponsorCitizenId,
 	sponsorPhase,
 	activeCounselIntent,
@@ -507,6 +508,7 @@ function GeneratedContextPanel({
 	) => void;
 	readonly authorityRegionId: string;
 	readonly authorityDatabaseName: string;
+	readonly authorityStateHash: string;
 	readonly sponsorCitizenId: string;
 	readonly sponsorPhase:
 		| "idle"
@@ -535,7 +537,7 @@ function GeneratedContextPanel({
 		useState<GeneratedBranchNextAction | null>(null);
 	const [expectedAuthorityStateHash, setExpectedAuthorityStateHash] = useState<
 		string | null
-	>(null);
+	>(authorityStateHash);
 	const [journeyStage, setJourneyStage] = useState<
 		"present" | "left" | "returned" | "advanced"
 	>("present");
@@ -544,6 +546,8 @@ function GeneratedContextPanel({
 	>("verify-reserve");
 	const [copyStatus, setCopyStatus] = useState("");
 	const [authorityRefreshing, setAuthorityRefreshing] = useState(false);
+	const authorityStateHashRef = useRef(authorityStateHash);
+	authorityStateHashRef.current = authorityStateHash;
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
@@ -599,7 +603,7 @@ function GeneratedContextPanel({
 		setChronicleBeats([]);
 		setCounselContext(null);
 		setNextAction(null);
-		setExpectedAuthorityStateHash(null);
+		setExpectedAuthorityStateHash(authorityStateHashRef.current);
 		setJourneyStage("present");
 		setCopyStatus("");
 		setAuthorityRefreshing(false);
@@ -610,7 +614,12 @@ function GeneratedContextPanel({
 		setActiveIntent(activeCounselIntent ?? "verify-reserve");
 	}, [activeCounselIntent, selectedCitizenId, sponsorCitizenId, sponsorPhase]);
 	const commitSponsor = (
-		step: "establish" | "abstain" | "counsel" | "resolve",
+		step:
+			| "establish"
+			| "abstain"
+			| "advance-abstention"
+			| "counsel"
+			| "resolve",
 		intent = activeIntent,
 	) => {
 		if (selectedActor === undefined) return;
@@ -643,13 +652,7 @@ function GeneratedContextPanel({
 				setExpectedAuthorityStateHash(result.authorityStateHash);
 				setSponsorStatus(result.phase);
 				setActiveIntent(result.activeIntent ?? intent);
-				if (result.phase === "resolved") setJourneyStage("advanced");
-				if (
-					step === "establish" &&
-					result.phase === "abstained" &&
-					journeyStage === "returned"
-				)
-					setJourneyStage("advanced");
+				if (result.consequenceRecorded) setJourneyStage("advanced");
 				if (!result.idempotent || step === "resolve") {
 					setAuthorityRefreshing(true);
 					await onAuthorityCommitted(result.authorityStateHash);
@@ -948,8 +951,7 @@ function GeneratedContextPanel({
 												if (sponsorStatus === "counseled")
 													commitSponsor("resolve", activeIntent);
 												else {
-													setJourneyStage("advanced");
-													if (shareArtifact === "") commitSponsor("establish");
+													commitSponsor("advance-abstention");
 												}
 											}}
 										>
@@ -1460,6 +1462,7 @@ function GeneratedWorld({
 			onNavigationRejected={reportNavigationRejection}
 			authorityRegionId={experience.authorityRegionId}
 			authorityDatabaseName={experience.authorityDatabaseName}
+			authorityStateHash={experience.stateHash}
 			sponsorCitizenId={experience.sponsorCitizenId}
 			sponsorPhase={experience.sponsorPhase}
 			activeCounselIntent={experience.activeCounselIntent}

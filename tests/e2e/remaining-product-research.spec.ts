@@ -22,7 +22,7 @@ async function resetReleaseGenesisAuthority(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v5",
+					"eonfolk-generated-authority-v7",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -36,7 +36,7 @@ async function authorityFingerprint(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5");
+				const request = indexedDB.open("eonfolk-generated-authority-v7");
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -107,7 +107,7 @@ async function authorityStateHash(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v5");
+				const request = indexedDB.open("eonfolk-generated-authority-v7");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;
@@ -261,14 +261,37 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 	).toBeVisible();
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
-	).toContainText("boundary closed without sponsor input");
+	).toContainText("independently continued the active Standing Plan");
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText(
+		"Abstention preceded this outcome but is not recorded as its cause",
+	);
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
 	).not.toContainText(/you advised|your counsel/iu);
 	await expect(
 		page.getByText(/Observe Mara's independent plan/iu),
 	).toBeVisible();
-	expect(await authorityStateHash(page)).toBe(abstainedStateHash);
+	const advancedStateHash = await authorityStateHash(page);
+	expect(advancedStateHash).not.toBe(abstainedStateHash);
+
+	await page.reload({ waitUntil: "domcontentloaded" });
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await selectMara(page);
+	await page
+		.getByRole("button", { name: "Review abstention Chronicle" })
+		.click();
+	await expect(
+		page.getByRole("list", { name: "Chronicle beats" }),
+	).toContainText("independently continued the active Standing Plan", {
+		timeout: sponsorTransitionTimeout,
+	});
+	expect(await authorityStateHash(page)).toBe(advancedStateHash);
 });
 
 test("a first-boundary action fails closed when its displayed context is stale", async ({

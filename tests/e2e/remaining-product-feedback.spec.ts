@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 const FEEDBACK_STORAGE_KEY = "eonfolk:release-genesis-feedback:v1";
-const AUTHORITY_DATABASE = "eonfolk-generated-authority-v5";
+const AUTHORITY_DATABASE = "eonfolk-generated-authority-v7";
 
 type StoredFeedback = Readonly<{
 	readonly schemaVersion: string;
