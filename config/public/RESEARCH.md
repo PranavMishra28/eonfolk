@@ -6,6 +6,8 @@ simulated citizens reproduce human behavior. The root
 
 ## Primary research spine
 
+<!-- bibliography-keys: park2023generative sumers2024coala wang2023voyager altera2024projectsid piao2026agentsociety nau2003shop2 silver2010pomcp lamport2002specifying -->
+
 | Area | Sources | Project use and limit |
 |---|---|---|
 | Agent memory and reflection | `park2023generative`, `sumers2024coala` | Motivates typed episodic, semantic, and social memory; prose never becomes authoritative truth |
