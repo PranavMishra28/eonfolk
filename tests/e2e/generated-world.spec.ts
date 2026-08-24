@@ -1171,7 +1171,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await tools.locator("summary").click();
 	const citizenButton = tools.locator("button[data-citizen-id]").first();
 	await citizenButton.focus();
-	await citizenButton.press("Enter");
+	await expect(citizenButton).toBeFocused();
+	await page.keyboard.press("Enter");
 	await expect(citizenButton).toHaveAttribute("aria-pressed", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 
@@ -1180,7 +1181,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await tools.locator("summary").click();
 	const projectButton = tools.locator("button[data-project-id]").first();
 	await projectButton.focus();
-	await projectButton.press("Enter");
+	await expect(projectButton).toBeFocused();
+	await page.keyboard.press("Enter");
 	await expect(projectButton).toHaveAttribute("aria-pressed", "true");
 	await expect(projectButton).toHaveAttribute("aria-current", "true");
 	await expect(canvas).toHaveAttribute("data-focus-kind", "project");
@@ -1208,7 +1210,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await tools.locator("summary").click();
 		const buildingButton = tools.locator("button[data-building-id]").first();
 		await buildingButton.focus();
-		await buildingButton.press("Enter");
+		await expect(buildingButton).toBeFocused();
+		await page.keyboard.press("Enter");
 		await expect(buildingButton).toHaveAttribute("aria-pressed", "true");
 		await expect(buildingButton).toHaveAttribute("aria-current", "true");
 		await expect(canvas).toHaveAttribute("data-camera-distance-mm", "24000");
@@ -1219,7 +1222,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 				await tools.locator("summary").click();
 			const mobileCitizen = tools.locator("button[data-citizen-id]").first();
 			await mobileCitizen.focus();
-			await mobileCitizen.press("Enter");
+			await expect(mobileCitizen).toBeFocused();
+			await page.keyboard.press("Enter");
 			await expect(mobileCitizen).toHaveAttribute("aria-pressed", "true");
 			await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
 			await page.getByRole("button", { name: "Back to settlement" }).click();
@@ -1227,7 +1231,8 @@ test("canonical citizen, building, and project focus preserve authority across d
 				await tools.locator("summary").click();
 			const mobileProject = tools.locator("button[data-project-id]").first();
 			await mobileProject.focus();
-			await mobileProject.press("Enter");
+			await expect(mobileProject).toBeFocused();
+			await page.keyboard.press("Enter");
 			await expect(mobileProject).toHaveAttribute("aria-pressed", "true");
 			await expect(mobileProject).toHaveAttribute("aria-current", "true");
 			await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
