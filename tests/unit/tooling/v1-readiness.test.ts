@@ -1095,6 +1095,33 @@ describe("V1 readiness and generated inventory tooling", () => {
 		});
 	});
 
+	it("ignores only trailing blanks before the excluded post-merge section", () => {
+		const canonicalSource = `${goal("IN PROGRESS")}\n`;
+		const currentSource = `${goal("VERIFIED")}\n\n## Post-merge operational reattestation\n\n| Requirement | State | Evidence |\n|---|---|---|\n| Protected merge completed | NOT STARTED | pending |\n`;
+		expect(
+			validateCanonicalGoalRoster(
+				parseRequiredStateRows(currentSource),
+				parseRequiredStateRows(canonicalSource),
+				{ source: currentSource, canonicalSource },
+			),
+		).toMatchObject({ ok: true, failures: [] });
+
+		const structurallyChanged = currentSource.replace(
+			"## Generalized world",
+			"## Rewritten authority",
+		);
+		expect(
+			validateCanonicalGoalRoster(
+				parseRequiredStateRows(structurallyChanged),
+				parseRequiredStateRows(canonicalSource),
+				{ source: structurallyChanged, canonicalSource },
+			),
+		).toMatchObject({
+			ok: false,
+			failures: ["GOAL changed outside state and evidence cells"],
+		});
+	});
+
 	it("uses one immutable GOAL introduction when protected main predates it", () => {
 		const baseSha = "a".repeat(40);
 		const introductionSha = "b".repeat(40);

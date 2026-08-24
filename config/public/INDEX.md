@@ -12,7 +12,7 @@ that owns your question.
 | Keyboard, semantic UI, motion, contrast, and weak-device fallback | [Accessibility](ACCESSIBILITY.md) |
 | Payload, display, frame, and population budgets | [Performance](PERFORMANCE.md) |
 | Primary research that shaped technical choices | [Research](RESEARCH.md) |
-| Publication metadata and sanitized-history boundary | [Publication readiness](PUBLICATION.md) |
+| Sanitized source-release boundary | [Source-release boundary](PUBLICATION.md) |
 
 Community policies live at the repository root:
 

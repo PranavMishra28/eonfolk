@@ -108,7 +108,7 @@ interface Frame {
 	readonly depth: number;
 }
 
-const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.41;
+const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.3;
 const OVERVIEW_YAW_OFFSET_DEGREES = 138;
 const OVERVIEW_PITCH_OFFSET_DEGREES = 8;
 
@@ -295,12 +295,38 @@ function GeneratedCamera({
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
 		const focus = navigation.focus;
+		const compact = (host.current?.clientWidth ?? window.innerWidth) < 600;
 		const actor =
 			focus.kind === "citizen"
 				? model.actors.find(({ citizenId }) => citizenId === focus.citizenId)
 				: undefined;
 		const actorPoint =
 			actor === undefined ? undefined : renderedActorPoint(projection, actor);
+		const socialInteraction = compact
+			? projection.spatial.interactions[0]
+			: undefined;
+		const socialActor = model.actors.find(
+			({ citizenId }) => citizenId === socialInteraction?.participantIds[0],
+		);
+		const socialPartner = model.actors.find(
+			({ citizenId }) => citizenId === socialInteraction?.participantIds[1],
+		);
+		const socialFrom =
+			socialActor === undefined
+				? undefined
+				: renderedActorPoint(projection, socialActor);
+		const socialTo =
+			socialPartner === undefined
+				? undefined
+				: renderedActorPoint(projection, socialPartner);
+		const socialPoint =
+			socialFrom === undefined || socialTo === undefined
+				? undefined
+				: {
+						x: Math.round((socialFrom.x + socialTo.x) / 2),
+						y: 1_000,
+						z: Math.round((socialFrom.z + socialTo.z) / 2),
+					};
 		const overviewMinimumMm = Math.round(
 			Math.max(frame.width, frame.depth) *
 				OVERVIEW_FRAME_DISTANCE_FACTOR *
@@ -311,7 +337,10 @@ function GeneratedCamera({
 			targetMm:
 				actorPoint === undefined
 					? focus.kind === "overview"
-						? { ...requested.targetMm, z: requested.targetMm.z + 4_000 }
+						? (socialPoint ?? {
+								...requested.targetMm,
+								z: requested.targetMm.z + 4_000,
+							})
 						: requested.targetMm
 					: {
 							...actorPoint,
@@ -334,7 +363,9 @@ function GeneratedCamera({
 						: requested.pitchDegrees,
 			distanceMm:
 				focus.kind === "overview"
-					? Math.max(requested.distanceMm, overviewMinimumMm)
+					? socialPoint === undefined
+						? Math.max(requested.distanceMm, overviewMinimumMm)
+						: 30_000
 					: requested.distanceMm,
 		});
 	}, [frame, model.actors, navigation.focus, projection, requested]);

@@ -67,7 +67,6 @@ const publicDocs = new Set([
 	"docs/DEVELOPMENT.md",
 	"docs/GAMEPLAY.md",
 	"docs/PERFORMANCE.md",
-	"docs/PUBLICATION.md",
 	"docs/TESTING.md",
 ]);
 const publicScripts = new Set([
@@ -111,6 +110,7 @@ const privateRootFiles = new Set([
 	"PLAN.md",
 	"RESUME.md",
 	"docs/INDEX.md",
+	"docs/PUBLICATION.md",
 	"docs/RESEARCH.md",
 	"package.json",
 	"packages/persistence/README.md",
@@ -200,6 +200,7 @@ const mapped = [
 	["config/public/ci.yml", ".github/workflows/ci.yml"],
 	["config/public/gitleaks.toml", ".gitleaks.toml"],
 	["config/public/INDEX.md", "docs/INDEX.md"],
+	["config/public/PUBLICATION.md", "docs/PUBLICATION.md"],
 	["config/public/RESEARCH.md", "docs/RESEARCH.md"],
 ];
 for (const [fromPath, toPath] of mapped) {

@@ -1445,6 +1445,53 @@ test("settlement overview and semantic people remain keyboard-operable @generate
 		.toBe(true);
 });
 
+test("mobile world controls and visible activity meet readability budgets @generated-world", async ({
+	page,
+}) => {
+	await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto("/world");
+	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-ready", "true", {
+		timeout: 20_000,
+	});
+	const framedResidents = await canvas.evaluate((element) => {
+		const bounds = element.getBoundingClientRect();
+		const targets = JSON.parse(
+			element.dataset.citizenPickTargets ?? "[]",
+		) as readonly { readonly x: number; readonly y: number }[];
+		return targets.filter(
+			({ x, y }) => x >= 0 && x <= bounds.width && y >= 0 && y <= bounds.height,
+		).length;
+	});
+	expect(framedResidents).toBeGreaterThanOrEqual(2);
+
+	const metrics = await page.evaluate(() =>
+		[
+			...document.querySelectorAll<HTMLElement>(
+				".v1-view-controls button, .generated-settlement-switcher button, .generated-scene-activity, .v1-world-tools > summary",
+			),
+		]
+			.filter((element) => element.getClientRects().length > 0)
+			.map((element) => ({
+				className: element.className,
+				fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+				height: element.getBoundingClientRect().height,
+				tagName: element.tagName,
+			})),
+	);
+	const activities = metrics.filter(({ className }) =>
+		String(className).includes("generated-scene-activity"),
+	);
+	expect(activities).toHaveLength(3);
+	expect(metrics.every(({ fontSize }) => fontSize >= 14)).toBe(true);
+	expect(
+		metrics
+			.filter(({ tagName }) => tagName === "BUTTON" || tagName === "SUMMARY")
+			.every(({ height }) => height >= 44),
+	).toBe(true);
+});
+
 test("production ignores generated fault storage and exposes no harness markers @generated-world", async ({
 	page,
 }) => {

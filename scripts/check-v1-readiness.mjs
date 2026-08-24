@@ -120,6 +120,7 @@ function immutableGoalStructureSha256(source) {
 			normalized.push(`| ${cells[0]} | <STATE> | <EVIDENCE> |`);
 		else normalized.push(line);
 	}
+	while (normalized.at(-1) === "") normalized.pop();
 	return sha256(normalized.join("\n"));
 }
 

@@ -1,0 +1,25 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-REPOSITORY-READINESS",
+	"discipline": "repository-readiness",
+	"reviewerAgentId": "frozen-repository-readiness-reviewer",
+	"reviewerSessionId": "frozen-repository-readiness-9aa568b",
+	"sourceSha": "9aa568b8d0b9a3bee6d522468f9d3928fced5820",
+	"completedAt": "2026-08-24T18:35:00.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-REPOSITORY-READINESS-P1-001",
+				"title": "Readiness guard fails the exact hosted candidate",
+				"narrative": "Hosted PR verification completes the substantive suite but cannot pass because the GOAL normalization defect falsely reports a structural change."
+			},
+			{
+				"id": "V1-RV-REPOSITORY-READINESS-P1-002",
+				"title": "SQLite OPFS GOAL evidence overstates measurement",
+				"narrative": "The GOAL row claims a verified IndexedDB-versus-SQLite-WASM/OPFS benchmark while the exact benchmark artifact and architecture decision explicitly say SQLite/OPFS was unmeasured and deferred."
+			}
+		]
+	}
+}

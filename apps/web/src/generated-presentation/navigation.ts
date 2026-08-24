@@ -158,7 +158,7 @@ export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 	Object.freeze({
 		focus: Object.freeze({ kind: "overview" }),
 		followCitizen: false,
-		distanceMm: 48_000,
+		distanceMm: 38_000,
 		yawDegrees: 42,
 		pitchDegrees: -38,
 		panOffsetMm: Object.freeze({ x: 0, z: 0 }),
@@ -222,7 +222,7 @@ export function reduceGeneratedNavigation(
 				...state,
 				focus: Object.freeze({ kind: "overview" }),
 				followCitizen: false,
-				distanceMm: 48_000,
+				distanceMm: 38_000,
 				yawDegrees: 42,
 				pitchDegrees: -38,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),

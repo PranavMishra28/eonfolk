@@ -11,6 +11,14 @@ import {
 	parseGeneratedNavigationAction,
 } from "../../generated-presentation";
 
+const ACTIVITY_LABELS: Readonly<Record<string, string>> = {
+	carry: "carrying supplies",
+	gather: "gathering resources",
+	"eat-rest": "resting and eating",
+	repair: "repairing a structure",
+	inspect: "checking the evidence",
+};
+
 /**
  * Keyboard/semantic parity for canvas selection, semantic zoom and follow.
  * It deliberately shares the renderer's navigation reducer instead of keeping
@@ -171,7 +179,9 @@ export function GeneratedEmbodimentControls({
 									})
 								}
 							>
-								{actor.name} · {actor.role} · {actor.animationClass}
+								{actor.name} · {actor.role} ·{" "}
+								{ACTIVITY_LABELS[actor.animationClass] ??
+									"moving through the settlement"}
 							</button>
 						</li>
 					))}

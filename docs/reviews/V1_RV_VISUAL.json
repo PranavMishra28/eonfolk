@@ -1,0 +1,30 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-VISUAL",
+	"discipline": "visual-accessibility",
+	"reviewerAgentId": "frozen-visual-accessibility-reviewer",
+	"reviewerSessionId": "frozen-visual-accessibility-9aa568b",
+	"sourceSha": "9aa568b8d0b9a3bee6d522468f9d3928fced5820",
+	"completedAt": "2026-08-24T18:33:00.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-VISUAL-P1-001",
+				"title": "Semantic fallback lacks critical product parity",
+				"narrative": "The weak-device world-in-words path omits full sponsor, Chronicle, and contextual-selection behavior and still exposes raw internal enumeration labels."
+			},
+			{
+				"id": "V1-RV-VISUAL-P1-002",
+				"title": "Default town view lacks inhabited-world presence",
+				"narrative": "The initial settlement is too dispersed, residents and tasks are too small, and mobile hides most activity, so the world is not visually convincing at first inspection."
+			},
+			{
+				"id": "V1-RV-VISUAL-P1-003",
+				"title": "Important controls miss touch target budget",
+				"narrative": "Several buttons and summaries measure between 40.8 and 42.4 CSS pixels high instead of meeting the provisional 44-pixel target."
+			}
+		]
+	}
+}

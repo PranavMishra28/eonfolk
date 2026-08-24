@@ -2897,13 +2897,13 @@ em {
 
 .v1-view-controls button,
 .v1-world-stage-tools button {
-	min-height: 2.65rem;
+	min-height: 2.75rem;
 	padding: 0.55rem 0.8rem;
 	border: 1px solid rgba(232, 225, 198, 0.3);
 	color: #ede6d1;
 	background: rgba(26, 39, 29, 0.88);
 	font: inherit;
-	font-size: 0.75rem;
+	font-size: 0.875rem;
 	font-weight: 750;
 	cursor: pointer;
 }
@@ -3410,7 +3410,7 @@ em {
 
 .generated-scene-interaction small {
 	color: #d6dfcd;
-	font-size: 0.61rem;
+	font-size: 0.875rem;
 	font-weight: 800;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -3448,12 +3448,12 @@ em {
 }
 
 .generated-scene-activity strong {
-	font-size: 0.62rem;
+	font-size: 0.875rem;
 }
 
 .generated-scene-activity span {
 	color: #d2d8cb;
-	font-size: 0.56rem;
+	font-size: 0.875rem;
 	white-space: nowrap;
 }
 
@@ -3490,7 +3490,7 @@ em {
 }
 
 .v1-camera-rail button {
-	min-height: 2.5rem;
+	min-height: 2.75rem;
 	padding: 0.45rem 0.7rem;
 	border: 1px solid rgba(255, 255, 255, 0.22);
 	color: inherit;
@@ -3508,7 +3508,7 @@ em {
 .v1-camera-rail span {
 	padding-inline: 0.45rem;
 	color: #c2c9b9;
-	font-size: 0.72rem;
+	font-size: 0.875rem;
 	text-transform: capitalize;
 }
 
@@ -3531,7 +3531,7 @@ em {
 }
 
 .v1-context-panel:not(:hover, :focus-within) {
-	width: 13rem;
+	width: 16rem;
 	max-height: none;
 	padding: 0.45rem;
 	background: rgba(232, 220, 192, 0.84);
@@ -3558,13 +3558,13 @@ em {
 
 	.v1-context-panel:not(:hover, :focus-within) .v1-live-interaction {
 		margin: 0;
-		font-size: 0.68rem;
+		font-size: 0.875rem;
 		line-height: 1.35;
 	}
 
 	.v1-context-panel:not(:hover, :focus-within) .v1-world-tools summary {
 		overflow: hidden;
-		font-size: 0.58rem;
+		font-size: 0.875rem;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
@@ -3574,7 +3574,7 @@ em {
 		> p {
 		display: block;
 		margin: 0.2rem 0;
-		font-size: 0.72rem;
+		font-size: 0.875rem;
 		line-height: 1.3;
 	}
 }
@@ -3631,7 +3631,7 @@ em {
 .v1-presence-card > p:not(.v1-kicker, .v1-context-role) {
 	margin: 0.45rem 0 0;
 	color: #555b4f;
-	font-size: 0.8rem;
+	font-size: 1rem;
 	line-height: 1.45;
 }
 
@@ -3648,7 +3648,7 @@ em {
 	padding: 0.3rem 0.45rem;
 	border: 1px solid rgba(35, 38, 31, 0.18);
 	background: rgba(246, 239, 216, 0.68);
-	font-size: 0.67rem;
+	font-size: 0.875rem;
 }
 
 .v1-focus-actions {
@@ -3661,7 +3661,7 @@ em {
 .v1-focus-actions button,
 .v1-focus-actions a,
 .v1-presence-roster button {
-	min-height: 2.55rem;
+	min-height: 2.75rem;
 	border: 1px solid rgba(35, 38, 31, 0.28);
 	color: inherit;
 	background: rgba(255, 250, 232, 0.56);
@@ -3673,7 +3673,7 @@ em {
 .v1-focus-actions a {
 	padding: 0.45rem 0.65rem;
 	overflow-wrap: normal;
-	font-size: 0.7rem;
+	font-size: 0.875rem;
 	font-weight: 800;
 	text-decoration: none;
 }
@@ -3710,12 +3710,12 @@ em {
 }
 
 .v1-presence-roster strong {
-	font-size: 0.7rem;
+	font-size: 0.875rem;
 }
 
 .v1-presence-roster span {
 	color: #62665b;
-	font-size: 0.61rem;
+	font-size: 0.875rem;
 	line-height: 1.3;
 }
 
@@ -3724,9 +3724,9 @@ em {
 }
 
 .v1-world-tools > summary {
-	min-height: 2.65rem;
+	min-height: 2.75rem;
 	padding: 0.68rem 0.45rem;
-	font-size: 0.69rem;
+	font-size: 0.875rem;
 	font-weight: 850;
 	cursor: pointer;
 }
@@ -3741,7 +3741,7 @@ em {
 
 .v1-context-role {
 	margin: 0 0 0.7rem;
-	font-size: 0.78rem;
+	font-size: 0.875rem;
 	font-weight: 800;
 	letter-spacing: 0.07em;
 	text-transform: uppercase;
@@ -3762,7 +3762,7 @@ em {
 }
 
 .v1-context-panel dt {
-	font-size: 0.66rem;
+	font-size: 0.875rem;
 	font-weight: 850;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -3770,7 +3770,7 @@ em {
 
 .v1-context-panel dd {
 	margin: 0;
-	font-size: 0.78rem;
+	font-size: 1rem;
 }
 
 .v1-people-list {
@@ -3810,13 +3810,13 @@ em {
 }
 
 .v1-people-list strong {
-	font-size: 0.76rem;
+	font-size: 0.875rem;
 }
 
 .v1-people-list small {
 	margin-top: 0.2rem;
 	color: #66695c;
-	font-size: 0.64rem;
+	font-size: 0.875rem;
 	line-height: 1.35;
 }
 
@@ -3912,7 +3912,7 @@ em {
 		min-width: 5.4rem;
 	}
 
-	.generated-scene-activity:nth-child(n + 2) {
+	.generated-scene-activity:nth-child(n + 4) {
 		display: none;
 	}
 
@@ -3934,7 +3934,7 @@ em {
 	.v1-view-controls button {
 		min-width: 0;
 		padding-inline: 0.35rem;
-		font-size: 0.66rem;
+		font-size: 0.875rem;
 	}
 
 	.v1-world-canvas-frame {
@@ -4004,7 +4004,7 @@ em {
 	color: inherit;
 	background: #1b271d;
 	font: inherit;
-	font-size: 0.76rem;
+	font-size: 0.875rem;
 	font-weight: 800;
 	text-align: left;
 	cursor: pointer;
@@ -4018,7 +4018,7 @@ em {
 
 .generated-settlement-switcher small {
 	color: #aeb5a7;
-	font-size: 0.62rem;
+	font-size: 0.875rem;
 	font-weight: 500;
 }
 
@@ -4039,7 +4039,7 @@ em {
 
 .generated-actor-detail > p:not(.v1-kicker, .v1-context-role) {
 	color: #5f6256;
-	font-size: 0.82rem;
+	font-size: 0.875rem;
 	line-height: 1.5;
 }
 
@@ -4141,7 +4141,7 @@ em {
 
 .generated-semantic li span {
 	color: #62665b;
-	font-size: 0.72rem;
+	font-size: 0.875rem;
 	line-height: 1.4;
 }
 

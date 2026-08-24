@@ -1,0 +1,35 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-PRODUCT",
+	"discipline": "product-game",
+	"reviewerAgentId": "frozen-product-game-reviewer",
+	"reviewerSessionId": "frozen-product-game-9aa568b",
+	"sourceSha": "9aa568b8d0b9a3bee6d522468f9d3928fced5820",
+	"completedAt": "2026-08-24T18:30:00.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-PRODUCT-P1-001",
+				"title": "Abstention is not a terminal sponsor branch",
+				"narrative": "The player can stack counsel immediately after abstaining, so abstention has no independent durable consequence, explicit leave-return proof, or branch-legal next action."
+			},
+			{
+				"id": "V1-RV-PRODUCT-P1-002",
+				"title": "Counsel lacks decision-legibility context",
+				"narrative": "The counsel surface omits the evidence, relationship, values, Standing Plan, uncertainty, and public reasons needed for an informed consequential choice."
+			},
+			{
+				"id": "V1-RV-PRODUCT-P1-003",
+				"title": "Chronicle links do not restore event time",
+				"narrative": "Chronicle links expose a raw event identifier and current context; URL reload rejects the event and cannot restore the authoritative event-time world focus."
+			},
+			{
+				"id": "V1-RV-PRODUCT-P1-004",
+				"title": "Legacy Founder Alpha product still ships",
+				"narrative": "The production route graph still exposes /legacy and carries Founder Alpha chunks, contradicting the single Release Genesis product identity and dead-code boundary."
+			}
+		]
+	}
+}

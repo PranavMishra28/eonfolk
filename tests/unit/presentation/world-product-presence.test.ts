@@ -37,7 +37,7 @@ describe("world-as-product presentation", () => {
 				{ ...INITIAL_GENERATED_NAVIGATION, distanceMm: 140_000 },
 				{ type: "overview" },
 			).distanceMm,
-		).toBe(48_000);
+		).toBe(38_000);
 	});
 
 	it("keeps human and building dimensions on the authoritative metric scale", async () => {

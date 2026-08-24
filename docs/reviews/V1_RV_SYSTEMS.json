@@ -1,0 +1,35 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-SYSTEMS",
+	"discipline": "systems-correctness",
+	"reviewerAgentId": "frozen-systems-correctness-reviewer",
+	"reviewerSessionId": "frozen-systems-correctness-9aa568b",
+	"sourceSha": "9aa568b8d0b9a3bee6d522468f9d3928fced5820",
+	"completedAt": "2026-08-24T18:31:00.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-SYSTEMS-P1-001",
+				"title": "Generic JSON patches mutate authoritative Reality",
+				"narrative": "Production replay applies generic checkpoint JSON patches instead of a closed set of complete typed domain transitions, weakening authoritative event validation."
+			},
+			{
+				"id": "V1-RV-SYSTEMS-P1-002",
+				"title": "Cognitive prose participates in canonical replay",
+				"narrative": "Sponsor event payloads and replay depend on raw command receipts and decision records, so changing an explanation can alter otherwise identical authoritative replay."
+			},
+			{
+				"id": "V1-RV-SYSTEMS-P1-003",
+				"title": "Causal edges admit noncausal relations",
+				"narrative": "Temporal predecessors and allegations can enter causalParents without a per-edge mechanism or strict parent existence and precedence validation."
+			},
+			{
+				"id": "V1-RV-SYSTEMS-P1-004",
+				"title": "Catch-up has no durable operation protocol",
+				"narrative": "Active production catch-up recomputes from genesis behind a process-local flag and cannot resume an idempotent durable operation after interruption."
+			}
+		]
+	}
+}
