@@ -292,6 +292,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			"browser-production",
 			"browser-production-network",
 			"production-audit",
+			"production-licenses",
 			"formal",
 		]);
 		expect(

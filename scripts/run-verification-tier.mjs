@@ -49,6 +49,7 @@ const PR_STEPS = Object.freeze([
 		"scripts/validate-web-network.mjs",
 	]),
 	step("production-audit", "pnpm", ["security:audit"]),
+	step("production-licenses", "pnpm", ["license:check"]),
 	step("formal", "pnpm", ["test:formal"]),
 ]);
 const DEEP_ONLY_STEPS = Object.freeze([

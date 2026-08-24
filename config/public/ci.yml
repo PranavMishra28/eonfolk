@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deep:
+        description: Run the manual extended verification tier
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check workflow syntax and shell contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "${RUNNER_TEMP}/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  ${RUNNER_TEMP}/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "${RUNNER_TEMP}/actionlint.tar.gz" -C "${RUNNER_TEMP}" actionlint
+          "${RUNNER_TEMP}/actionlint" -color
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.15.1
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          cache: pnpm
+
+      - name: Install Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install pinned Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Fetch repository-pinned TLA+ Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          tlc_url="$(node scripts/formal-toolchain.mjs --url)"
+          tlc_sha256="$(node scripts/formal-toolchain.mjs --sha256)"
+          curl --fail --location --silent --show-error \
+            "${tlc_url}" --output "${RUNNER_TEMP}/tla2tools.jar"
+          echo "${tlc_sha256}  ${RUNNER_TEMP}/tla2tools.jar" | sha256sum --check
+
+      - name: Run pull-request verification
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
+          EONFOLK_DIFF_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EONFOLK_DIFF_HEAD_SHA: ${{ github.sha }}
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: pnpm verify:pr
+
+      - name: Run manual extended checks
+        if: github.event_name == 'workflow_dispatch' && inputs.deep
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
+          TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: pnpm test:mutation && pnpm test:property:deep
+
+      - name: Retain accepted UI evidence
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-evidence-${{ github.run_id }}
+          path: apps/web/evidence
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Retain failing browser evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-failure-${{ github.run_id }}
+          path: |
+            tmp/riverhold-playwright
+            apps/web/evidence
+          if-no-files-found: ignore
+          retention-days: 14
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run pinned Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "${RUNNER_TEMP}/gitleaks.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  ${RUNNER_TEMP}/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf "${RUNNER_TEMP}/gitleaks.tar.gz" -C "${RUNNER_TEMP}" gitleaks
+          "${RUNNER_TEMP}/gitleaks" git --redact --no-banner

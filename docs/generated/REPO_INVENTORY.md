@@ -6,21 +6,21 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 448 files excluding this generated file; SHA-256 `41164329207b8d1ae1463dd599e9370275f962efc1249e5b096815fc5a352425`.
+**File-set identity:** 487 files excluding this generated file; SHA-256 `d40c7a390e949f850d4458bdb34e014492442f07a2c73eb5c78c77aa147d4a49`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
 | Application code | 63 |
-| Documentation | 62 |
-| Frozen execution evidence | 33 |
-| GitHub automation | 4 |
-| Other tracked assets | 3 |
+| Documentation | 78 |
+| Frozen execution evidence | 35 |
+| GitHub automation | 9 |
+| Other tracked assets | 8 |
 | Packages | 95 |
-| Repository tooling | 29 |
+| Repository tooling | 31 |
 | Research and reviews | 48 |
-| Root controls and configuration | 18 |
+| Root controls and configuration | 27 |
 | Tests and fixtures | 93 |
 
 ## Workspaces
@@ -57,11 +57,20 @@
 - `.npmrc`
 - `.nvmrc`
 - `AGENTS.md`
+- `CHANGELOG.md`
+- `CODE_OF_CONDUCT.md`
+- `CONTRIBUTING.md`
 - `FOUNDER_ALPHA_HANDOFF.md`
 - `GOAL.md`
+- `LICENSE`
+- `NOTICE`
 - `PLAN.md`
 - `README.md`
 - `RESUME.md`
+- `ROADMAP.md`
+- `SECURITY.md`
+- `SUPPORT.md`
+- `THIRD_PARTY_NOTICES.md`
 - `biome.json`
 - `package.json`
 - `pnpm-lock.yaml`

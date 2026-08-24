@@ -9,6 +9,7 @@ async function markdownFiles(directory) {
 	for (const entry of entries) {
 		if ([".git", "node_modules", "dist", "tmp"].includes(entry.name)) continue;
 		const path = resolve(directory, entry.name);
+		if (relative(root, path).startsWith("config/public")) continue;
 		if (entry.isDirectory()) files.push(...(await markdownFiles(path)));
 		else if (entry.isFile() && extname(entry.name) === ".md") files.push(path);
 	}
