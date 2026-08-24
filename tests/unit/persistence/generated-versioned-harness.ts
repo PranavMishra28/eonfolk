@@ -42,6 +42,7 @@ declare global {
 }
 
 const DATABASE = "eonfolk-generated-versioned-browser-test";
+const SESSION_DATABASE = "eonfolk-generated-versioned-session-browser-test";
 const CIVILIZATION_DATABASE = "eonfolk-generated-civilization-browser-test";
 const OPEN_FAILURE_DATABASE = "eonfolk-generated-open-failure-browser-test";
 const QUOTA_DATABASE = "eonfolk-generated-quota-browser-test";
@@ -63,11 +64,13 @@ class OneShotCrash {
 class OneShotBoundary {
 	point: BrowserPersistenceBoundaryPoint | null = null;
 	errorName: string | null = null;
+	readHits = 0;
 
 	hit(
 		point: BrowserPersistenceBoundaryPoint,
 		transaction?: IDBTransaction,
 	): void {
+		if (point === "read") this.readHits += 1;
 		if (point === this.point) {
 			this.point = null;
 			if (point === "transaction-abort") {
@@ -180,8 +183,11 @@ async function append(
 	};
 }
 
-async function corruptSecondEvent(): Promise<void> {
-	const request = indexedDB.open(DATABASE);
+async function corruptEvent(
+	databaseName = DATABASE,
+	sequence = 2,
+): Promise<void> {
+	const request = indexedDB.open(databaseName);
 	const database = await new Promise<IDBDatabase>((resolve, reject) => {
 		request.addEventListener("success", () => resolve(request.result), {
 			once: true,
@@ -200,7 +206,7 @@ async function corruptSecondEvent(): Promise<void> {
 		rows.addEventListener("success", () => {
 			const row = (
 				rows.result as Array<{ value: { sequence: number; payload: unknown } }>
-			).find((candidate) => candidate.value.sequence === 2);
+			).find((candidate) => candidate.value.sequence === sequence);
 			if (row === undefined) {
 				transaction.abort();
 				return;
@@ -221,6 +227,132 @@ async function corruptSecondEvent(): Promise<void> {
 		});
 	});
 	database.close();
+}
+
+async function verifyValidatedAuthoritySession(): Promise<
+	Readonly<{
+		readonly fullValidationReads: number;
+		readonly persistedRevision: number;
+		readonly persistedEvents: number;
+		readonly persistedReceipt: boolean;
+		readonly concurrentWriteCode: string | null;
+		readonly concurrentChangeCode: string | null;
+		readonly postConcurrentFencingToken: number;
+		readonly corruptionCode: string | null;
+		readonly postSessionCorruptionCode: string | null;
+	}>
+> {
+	await deleteDatabase(SESSION_DATABASE);
+	const boundary = new OneShotBoundary();
+	const port = await BrowserVersionedPersistence.open({
+		databaseName: SESSION_DATABASE,
+		boundaryInjector: boundary,
+	});
+	const created = await genesis();
+	await port.initialize(created);
+	const readsBefore = boundary.readHits;
+	await port.beginValidatedAuthoritySession(SCOPE);
+	await port.loadHead(SCOPE);
+	await port.loadLatestSnapshot(SCOPE);
+	await port.getEventRange({
+		...SCOPE,
+		fromSequenceInclusive: 1,
+		toSequenceExclusive: 1,
+	});
+	const firstRequest = await append(created.head, 1);
+	await port.appendEventBatch(firstRequest);
+	await port.loadHead(SCOPE);
+	await port.getAppendReceipt(SCOPE, firstRequest.appendId);
+	const sessionEvents = await port.getEventRange({
+		...SCOPE,
+		fromSequenceInclusive: 1,
+		toSequenceExclusive: 2,
+	});
+	await port.endValidatedAuthoritySession(SCOPE);
+	const fullValidationReads = boundary.readHits - readsBefore;
+	port.close();
+
+	const reopened = await BrowserVersionedPersistence.open({
+		databaseName: SESSION_DATABASE,
+	});
+	const persistedHead = await reopened.loadHead(SCOPE);
+	const persistedEvents = await reopened.getEventRange({
+		...SCOPE,
+		fromSequenceInclusive: 1,
+		toSequenceExclusive: 2,
+	});
+	const persistedReceipt =
+		(await reopened.getAppendReceipt(SCOPE, firstRequest.appendId)) !== null;
+	reopened.close();
+
+	const sessionPort = await BrowserVersionedPersistence.open({
+		databaseName: SESSION_DATABASE,
+	});
+	await sessionPort.beginValidatedAuthoritySession(SCOPE);
+	const secondTab = await BrowserVersionedPersistence.open({
+		databaseName: SESSION_DATABASE,
+	});
+	const secondTabHead = await secondTab.loadHead(SCOPE);
+	const secondTabFenced = await secondTab.acquireWriterFence(
+		SCOPE,
+		secondTabHead.fencingToken,
+	);
+	secondTab.close();
+	let concurrentWriteCode: string | null = null;
+	try {
+		const sessionHead = await sessionPort.loadHead(SCOPE);
+		await sessionPort.appendEventBatch(await append(sessionHead, 2));
+	} catch (error) {
+		concurrentWriteCode = (error as PersistenceError).code;
+	}
+	let concurrentChangeCode: string | null = null;
+	try {
+		await sessionPort.endValidatedAuthoritySession(SCOPE);
+	} catch (error) {
+		concurrentChangeCode = (error as PersistenceError).code;
+	}
+	const postConcurrentFencingToken = (await sessionPort.loadHead(SCOPE))
+		.fencingToken;
+	sessionPort.close();
+
+	const corruptionPort = await BrowserVersionedPersistence.open({
+		databaseName: SESSION_DATABASE,
+	});
+	await corruptionPort.beginValidatedAuthoritySession(SCOPE);
+	const corruptionHead = await corruptionPort.loadHead(SCOPE);
+	await corruptionPort.appendEventBatch(await append(corruptionHead, 2));
+	await corruptEvent(SESSION_DATABASE, 1);
+	let corruptionCode: string | null = null;
+	try {
+		await corruptionPort.endValidatedAuthoritySession(SCOPE);
+	} catch (error) {
+		corruptionCode = (error as PersistenceError).code;
+	}
+	let postSessionCorruptionCode: string | null = null;
+	try {
+		await corruptionPort.loadHead(SCOPE);
+	} catch (error) {
+		postSessionCorruptionCode = (error as PersistenceError).code;
+	}
+	corruptionPort.close();
+	await deleteDatabase(SESSION_DATABASE);
+	return {
+		fullValidationReads,
+		persistedRevision: persistedHead.revision,
+		persistedEvents:
+			persistedEvents.length === sessionEvents.length
+				? persistedEvents.length
+				: -1,
+		persistedReceipt,
+		concurrentWriteCode,
+		concurrentChangeCode,
+		postConcurrentFencingToken:
+			postConcurrentFencingToken === secondTabFenced.fencingToken
+				? postConcurrentFencingToken
+				: -1,
+		corruptionCode,
+		postSessionCorruptionCode,
+	};
 }
 
 async function corruptGeneratedAuthorityHead(): Promise<void> {
@@ -399,6 +531,7 @@ async function verifyOpenAndQuotaFailures(): Promise<{
 
 async function run(): Promise<void> {
 	const failures = await verifyOpenAndQuotaFailures();
+	const validatedSession = await verifyValidatedAuthoritySession();
 	await deleteDatabase();
 	const crash = new OneShotCrash();
 	const boundary = new OneShotBoundary();
@@ -565,7 +698,7 @@ async function run(): Promise<void> {
 			(event.payload as { readonly nextState: { readonly count: number } })
 				.nextState,
 	);
-	await corruptSecondEvent();
+	await corruptEvent();
 	let corruptionCode: string | null = null;
 	try {
 		await reopened.getEventRange({
@@ -654,6 +787,7 @@ async function run(): Promise<void> {
 	}
 	window.__generatedPersistenceResult = {
 		result: {
+			validatedSession,
 			boundaryFailures: {
 				open: openBoundaryFailed,
 				read: readBoundaryFailed,

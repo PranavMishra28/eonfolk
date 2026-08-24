@@ -81,6 +81,12 @@ interface StoredRows {
 	readonly snapshots: readonly KeyedRow<AuthoritySnapshotRecord>[];
 }
 
+interface ValidatedAuthoritySession {
+	readonly scopeKey: string;
+	bundle: StreamBundle;
+	readonly memory: MemoryVersionedPersistence;
+}
+
 export interface BrowserVersionedPersistenceOptions {
 	readonly databaseName?: string;
 	readonly factory?: IDBFactory;
@@ -357,6 +363,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	readonly #database: IDBDatabase;
 	readonly #crashInjector: VersionedCrashInjector | undefined;
 	readonly #boundaryInjector: BrowserPersistenceBoundaryInjector | undefined;
+	#validatedSession: ValidatedAuthoritySession | null = null;
 
 	private constructor(
 		database: IDBDatabase,
@@ -383,6 +390,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	}
 
 	close(): void {
+		this.#validatedSession = null;
 		this.#database.close();
 	}
 
@@ -450,6 +458,44 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			)
 				throw error;
 			fail("STALE_STATE", "malformed authority material");
+		}
+	}
+
+	async #validatedView(scope: AuthorityScope): Promise<
+		Readonly<{
+			bundle: StreamBundle;
+			memory: MemoryVersionedPersistence;
+		}>
+	> {
+		const session = this.#validatedSession;
+		if (session !== null && session.scopeKey === streamKey(scope))
+			return session;
+		const bundle = await this.#readBundle(scope);
+		return { bundle, memory: await this.#hydrate(bundle) };
+	}
+
+	async beginValidatedAuthoritySession(scope: AuthorityScope): Promise<void> {
+		if (this.#validatedSession !== null)
+			fail("INVALID_INPUT", "validated authority session already active");
+		const bundle = await this.#readBundle(scope);
+		this.#validatedSession = {
+			scopeKey: streamKey(scope),
+			bundle,
+			memory: await this.#hydrate(bundle),
+		};
+	}
+
+	async endValidatedAuthoritySession(scope: AuthorityScope): Promise<void> {
+		const session = this.#validatedSession;
+		if (session === null || session.scopeKey !== streamKey(scope))
+			fail("INVALID_INPUT", "validated authority session mismatch");
+		try {
+			const durableBundle = await this.#readBundle(scope);
+			await this.#hydrate(durableBundle);
+			if (!equal(durableBundle, session.bundle))
+				fail("STALE_REVISION", "authority changed during validated session");
+		} finally {
+			this.#validatedSession = null;
 		}
 	}
 
@@ -522,31 +568,50 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		readonly write: (transaction: IDBTransaction) => void;
 		readonly before: Parameters<VersionedCrashInjector["hit"]>[0];
 		readonly after: Parameters<VersionedCrashInjector["hit"]>[0];
+		readonly receipt?: AuthorityAppendReceipt;
 	}): Promise<void> {
+		const operationNeedsReceipt =
+			input.operation.kind === "append" || input.operation.kind === "rejection";
+		if (operationNeedsReceipt && input.receipt === undefined)
+			fail("STALE_STATE", "committed receipt missing");
 		this.#boundaryInjector?.hit("write");
 		const key = streamKey(input.bundle.stream.genesis);
+		const session = this.#validatedSession;
+		const sessionOwnsBundle = session?.bundle === input.bundle;
 		const transaction = this.#database.transaction(STORE_NAMES, "readwrite", {
 			durability: "strict",
 		});
 		const done = transactionDone(transaction);
 		try {
 			this.#boundaryInjector?.hit("transaction-abort", transaction);
-			const stored = await storedRows(transaction, input.bundle.stream.genesis);
 			const streams = transaction.objectStore(
 				GENERATED_AUTHORITY_STORES.streams,
 			);
-			const current = stored.stream;
-			if (
-				current === undefined ||
-				!equal(current, input.bundle.stream) ||
-				!equal(materializedValues(stored), {
-					operations: input.bundle.operations,
-					events: input.bundle.events,
-					receipts: input.bundle.receipts,
-					snapshots: input.bundle.snapshots,
-				})
-			)
-				fail("STALE_REVISION", "head race");
+			let current: StreamRow | undefined;
+			if (sessionOwnsBundle) {
+				current = (await requestValue(streams.get(key))) as
+					| StreamRow
+					| undefined;
+				if (current === undefined || !equal(current, input.bundle.stream))
+					fail("STALE_REVISION", "head race");
+			} else {
+				const stored = await storedRows(
+					transaction,
+					input.bundle.stream.genesis,
+				);
+				current = stored.stream;
+				if (
+					current === undefined ||
+					!equal(current, input.bundle.stream) ||
+					!equal(materializedValues(stored), {
+						operations: input.bundle.operations,
+						events: input.bundle.events,
+						receipts: input.bundle.receipts,
+						snapshots: input.bundle.snapshots,
+					})
+				)
+					fail("STALE_REVISION", "head race");
+			}
 			input.write(transaction);
 			transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).put({
 				key: recordKey(input.bundle.stream.genesis, input.operation.ordinal),
@@ -570,6 +635,39 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		}
 		await done;
 		this.#hit(input.after);
+		if (session !== null && sessionOwnsBundle) {
+			const operation = clone(input.operation);
+			const receipt = input.receipt;
+			const events =
+				operation.kind === "append"
+					? [...input.bundle.events, ...operation.request.events].sort(
+							(left, right) => left.sequence - right.sequence,
+						)
+					: [...input.bundle.events];
+			const receipts =
+				operation.kind === "append" || operation.kind === "rejection"
+					? [...input.bundle.receipts, receipt as AuthorityAppendReceipt].sort(
+							(left, right) => left.appendId.localeCompare(right.appendId),
+						)
+					: [...input.bundle.receipts];
+			const snapshots =
+				operation.kind === "snapshot"
+					? [...input.bundle.snapshots, operation.request.snapshot].sort(
+							(left, right) => left.snapshotId.localeCompare(right.snapshotId),
+						)
+					: [...input.bundle.snapshots];
+			session.bundle = clone({
+				stream: {
+					...input.bundle.stream,
+					head: input.head,
+					operationCount: input.bundle.stream.operationCount + 1,
+				},
+				operations: [...input.bundle.operations, operation],
+				events,
+				receipts,
+				snapshots,
+			});
+		}
 	}
 
 	async initialize(
@@ -631,24 +729,24 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	}
 
 	async loadHead(scope: AuthorityScope): Promise<AuthorityHead> {
-		const bundle = await this.#readBundle(scope);
-		return clone(await (await this.#hydrate(bundle)).loadHead(scope));
+		const view = await this.#validatedView(scope);
+		return clone(await view.memory.loadHead(scope));
 	}
 
 	async acquireWriterFence(
 		scope: AuthorityScope,
 		expectedFencingToken: number,
 	): Promise<AuthorityHead> {
-		const bundle = await this.#readBundle(scope);
-		const next = await (await this.#hydrate(bundle)).acquireWriterFence(
+		const view = await this.#validatedView(scope);
+		const next = await view.memory.acquireWriterFence(
 			scope,
 			expectedFencingToken,
 		);
 		await this.#commitOperation({
-			bundle,
+			bundle: view.bundle,
 			operation: {
 				kind: "fence",
-				ordinal: bundle.stream.operationCount,
+				ordinal: view.bundle.stream.operationCount,
 				expectedFencingToken,
 			},
 			head: next,
@@ -662,19 +760,18 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	async appendEventBatch(
 		request: AppendAuthorityBatchRequest,
 	): Promise<AppendAuthorityBatchResult> {
-		const bundle = await this.#readBundle(request);
-		const result = await (await this.#hydrate(bundle)).appendEventBatch(
-			request,
-		);
+		const view = await this.#validatedView(request);
+		const result = await view.memory.appendEventBatch(request);
 		if (result.idempotent) return clone(result);
 		await this.#commitOperation({
-			bundle,
+			bundle: view.bundle,
 			operation: {
 				kind: "append",
-				ordinal: bundle.stream.operationCount,
+				ordinal: view.bundle.stream.operationCount,
 				request: clone(request),
 			},
 			head: result.head,
+			receipt: result.receipt,
 			write: (transaction) => {
 				const events = transaction.objectStore(
 					GENERATED_AUTHORITY_STORES.events,
@@ -700,19 +797,18 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	async recordRejectedCommand(
 		request: RecordRejectedAuthorityCommandRequest,
 	): Promise<AppendAuthorityBatchResult> {
-		const bundle = await this.#readBundle(request);
-		const result = await (await this.#hydrate(bundle)).recordRejectedCommand(
-			request,
-		);
+		const view = await this.#validatedView(request);
+		const result = await view.memory.recordRejectedCommand(request);
 		if (result.idempotent) return clone(result);
 		await this.#commitOperation({
-			bundle,
+			bundle: view.bundle,
 			operation: {
 				kind: "rejection",
-				ordinal: bundle.stream.operationCount,
+				ordinal: view.bundle.stream.operationCount,
 				request: clone(request),
 			},
 			head: result.head,
+			receipt: result.receipt,
 			write: (transaction) =>
 				transaction.objectStore(GENERATED_AUTHORITY_STORES.receipts).put({
 					key: recordKey(request, request.appendId),
@@ -729,27 +825,14 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		scope: AuthorityScope,
 		appendId: string,
 	): Promise<AuthorityAppendReceipt | null> {
-		const bundle = await this.#readBundle(scope);
-		const expected = await (await this.#hydrate(bundle)).getAppendReceipt(
-			scope,
-			appendId,
+		const view = await this.#validatedView(scope);
+		const expected = await view.memory.getAppendReceipt(scope, appendId);
+		const actual = view.bundle.receipts.find(
+			(receipt) => receipt.appendId === appendId,
 		);
-		const transaction = this.#database.transaction(
-			GENERATED_AUTHORITY_STORES.receipts,
-			"readonly",
-		);
-		const done = transactionDone(transaction);
-		const row = (await requestValue(
-			transaction
-				.objectStore(GENERATED_AUTHORITY_STORES.receipts)
-				.get(recordKey(scope, appendId)),
-		)) as KeyedRow<AuthorityAppendReceipt> | undefined;
-		await done;
-		if (row !== undefined)
-			rowsForScope<AuthorityAppendReceipt>([row], scope, "appendId");
 		if (
-			(row === undefined) !== (expected === null) ||
-			(row !== undefined && !equal(row.value, expected))
+			(actual === undefined) !== (expected === null) ||
+			(actual !== undefined && !equal(actual, expected))
 		)
 			fail("STALE_STATE", "receipt mismatch");
 		return expected === null ? null : clone(expected);
@@ -758,19 +841,9 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	async getEventRange(
 		request: AuthorityEventRangeRequest,
 	): Promise<readonly AuthorityEventRecord[]> {
-		const bundle = await this.#readBundle(request);
-		const expected = await (await this.#hydrate(bundle)).getEventRange(request);
-		const transaction = this.#database.transaction(
-			GENERATED_AUTHORITY_STORES.events,
-			"readonly",
-		);
-		const done = transactionDone(transaction);
-		const rows = (await requestValue(
-			transaction.objectStore(GENERATED_AUTHORITY_STORES.events).getAll(),
-		)) as KeyedRow<AuthorityEventRecord>[];
-		await done;
-		const actual = rowsForScope<AuthorityEventRecord>(rows, request, "sequence")
-			.map((row) => row.value)
+		const view = await this.#validatedView(request);
+		const expected = await view.memory.getEventRange(request);
+		const actual = view.bundle.events
 			.filter(
 				(event) =>
 					event.sequence >= request.fromSequenceInclusive &&
@@ -784,11 +857,10 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 	async saveSnapshot(
 		request: SaveAuthoritySnapshotRequest,
 	): Promise<AuthoritySnapshotRecord> {
-		const bundle = await this.#readBundle(request.snapshot);
-		const reference = await this.#hydrate(bundle);
+		const view = await this.#validatedView(request.snapshot);
 		let prior: AuthoritySnapshotRecord | null = null;
 		try {
-			prior = await reference.loadSnapshot(
+			prior = await view.memory.loadSnapshot(
 				request.snapshot,
 				request.snapshot.snapshotId,
 			);
@@ -796,16 +868,16 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			if (!(error instanceof PersistenceError) || error.code !== "NOT_FOUND")
 				throw error;
 		}
-		const result = await reference.saveSnapshot(request);
+		const result = await view.memory.saveSnapshot(request);
 		if (prior !== null) return clone(result);
 		await this.#commitOperation({
-			bundle,
+			bundle: view.bundle,
 			operation: {
 				kind: "snapshot",
-				ordinal: bundle.stream.operationCount,
+				ordinal: view.bundle.stream.operationCount,
 				request: clone(request),
 			},
-			head: bundle.stream.head,
+			head: view.bundle.stream.head,
 			write: (transaction) =>
 				transaction.objectStore(GENERATED_AUTHORITY_STORES.snapshots).put({
 					key: recordKey(request.snapshot, request.snapshot.snapshotId),
@@ -822,36 +894,26 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		scope: AuthorityScope,
 		snapshotId: string,
 	): Promise<AuthoritySnapshotRecord> {
-		const bundle = await this.#readBundle(scope);
-		const expected = await (await this.#hydrate(bundle)).loadSnapshot(
-			scope,
-			snapshotId,
+		const view = await this.#validatedView(scope);
+		const expected = await view.memory.loadSnapshot(scope, snapshotId);
+		const actual = view.bundle.snapshots.find(
+			(snapshot) => snapshot.snapshotId === snapshotId,
 		);
-		const transaction = this.#database.transaction(
-			GENERATED_AUTHORITY_STORES.snapshots,
-			"readonly",
-		);
-		const done = transactionDone(transaction);
-		const row = (await requestValue(
-			transaction
-				.objectStore(GENERATED_AUTHORITY_STORES.snapshots)
-				.get(recordKey(scope, snapshotId)),
-		)) as KeyedRow<AuthoritySnapshotRecord> | undefined;
-		await done;
-		if (row !== undefined)
-			rowsForScope<AuthoritySnapshotRecord>([row], scope, "snapshotId");
-		if (row === undefined || !equal(row.value, expected))
+		if (actual === undefined || !equal(actual, expected))
 			fail("STALE_STATE", "snapshot mismatch");
-		return clone(row.value);
+		return clone(actual);
 	}
 
 	async loadLatestSnapshot(
 		scope: AuthorityScope,
 	): Promise<AuthoritySnapshotRecord> {
-		const bundle = await this.#readBundle(scope);
-		const expected = await (await this.#hydrate(bundle)).loadLatestSnapshot(
-			scope,
+		const view = await this.#validatedView(scope);
+		const expected = await view.memory.loadLatestSnapshot(scope);
+		const actual = view.bundle.snapshots.find(
+			(snapshot) => snapshot.snapshotId === expected.snapshotId,
 		);
-		return await this.loadSnapshot(scope, expected.snapshotId);
+		if (actual === undefined || !equal(actual, expected))
+			fail("STALE_STATE", "snapshot mismatch");
+		return clone(actual);
 	}
 }

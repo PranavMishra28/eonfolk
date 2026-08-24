@@ -34,6 +34,17 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 		);
 		assert.equal(envelope?.error, undefined, envelope?.error);
 		assert.deepEqual(envelope?.result, {
+			validatedSession: {
+				fullValidationReads: 2,
+				persistedRevision: 1,
+				persistedEvents: 1,
+				persistedReceipt: true,
+				concurrentWriteCode: "STALE_REVISION",
+				concurrentChangeCode: "STALE_REVISION",
+				postConcurrentFencingToken: 2,
+				corruptionCode: "STALE_STATE",
+				postSessionCorruptionCode: "STALE_STATE",
+			},
 			boundaryFailures: {
 				open: true,
 				quota: true,

@@ -41,6 +41,15 @@ type SponsorPayload = Extract<
 	}
 >;
 
+interface GeneratedSponsorInput {
+	readonly citizenId: string;
+	readonly regionId: string;
+	readonly databaseName: string;
+	readonly indexedDbFactory?: IDBFactory;
+	readonly step: "establish" | "abstain" | "counsel" | "resolve";
+	readonly intent?: "verify-reserve" | "accuse-publicly";
+}
+
 export interface GeneratedSponsorshipResult {
 	readonly citizenId: string;
 	readonly eventIds: readonly string[];
@@ -105,14 +114,9 @@ export function generatedSponsorChronicleBaseSnapshotId(
  * stream. Application invokes Standard Brain; Reality reconstructs and validates
  * the context, proposal, and resulting authority transition.
  */
-export async function sponsorGeneratedCitizen(input: {
-	readonly citizenId: string;
-	readonly regionId: string;
-	readonly databaseName: string;
-	readonly indexedDbFactory?: IDBFactory;
-	readonly step: "establish" | "abstain" | "counsel" | "resolve";
-	readonly intent?: "verify-reserve" | "accuse-publicly";
-}): Promise<GeneratedSponsorshipResult> {
+export async function sponsorGeneratedCitizen(
+	input: GeneratedSponsorInput,
+): Promise<GeneratedSponsorshipResult> {
 	const port = await BrowserVersionedPersistence.open({
 		...(input.indexedDbFactory === undefined
 			? {}
@@ -123,6 +127,25 @@ export async function sponsorGeneratedCitizen(input: {
 		runId: GENERATED_CIVILIZATION_RUN_ID,
 		regionId: input.regionId,
 	};
+	let sessionStarted = false;
+	try {
+		await port.beginValidatedAuthoritySession(scope);
+		sessionStarted = true;
+		return await sponsorGeneratedCitizenInValidatedSession(input, port, scope);
+	} finally {
+		try {
+			if (sessionStarted) await port.endValidatedAuthoritySession(scope);
+		} finally {
+			port.close();
+		}
+	}
+}
+
+async function sponsorGeneratedCitizenInValidatedSession(
+	input: GeneratedSponsorInput,
+	port: BrowserVersionedPersistence,
+	scope: Readonly<{ runId: string; regionId: string }>,
+): Promise<GeneratedSponsorshipResult> {
 	const covenantId = `covenant:${input.citizenId}`;
 	const initialHead = await port.loadHead(scope);
 	const initialSnapshot = await port.loadLatestSnapshot(scope);
@@ -399,7 +422,7 @@ export async function sponsorGeneratedCitizen(input: {
 		return transition.postState;
 	};
 
-	try {
+	{
 		let finalCivilization = await commit(
 			`sponsor:${input.citizenId}`,
 			{
@@ -643,7 +666,5 @@ export async function sponsorGeneratedCitizen(input: {
 				citizenId: input.citizenId,
 			})),
 		};
-	} finally {
-		port.close();
 	}
 }
