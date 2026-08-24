@@ -231,7 +231,9 @@ for (const viewport of [
 			.locator('a[href*="focus-kind=object"]')
 			.first()
 			.getAttribute("href");
-		expect(parseWorldFocusHref(objectHref ?? "")?.kind).toBe("object");
+		const objectFocus = parseWorldFocusHref(objectHref ?? "");
+		if (objectFocus?.kind !== "object")
+			throw new Error("Chronicle object link is not typed");
 		const citizenHref = await citizenLink.getAttribute("href");
 		expect(citizenHref).not.toContain(" ");
 		expect(citizenHref).not.toContain("name=");
@@ -334,6 +336,37 @@ for (const viewport of [
 				() => performance.getEntriesByType("navigation").length,
 			),
 		).toBe(navigationCount);
+
+		await page.goto(focusHref({ kind: "citizen", citizenId }), {
+			waitUntil: "domcontentloaded",
+		});
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 30_000 },
+		);
+		await page.getByRole("button", { name: "Review Chronicle" }).click();
+		await replay.getByText("Exact event evidence").click();
+		const objectLink = replay.locator('a[href*="focus-kind=object"]').first();
+		const objectNavigationCount = await page.evaluate(
+			() => performance.getEntriesByType("navigation").length,
+		);
+		await objectLink.focus();
+		await page.keyboard.press("Enter");
+		await expect(page).toHaveURL(focusHref(objectFocus));
+		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "");
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-focus-kind",
+			/(?:building|project)/u,
+		);
+		await expect(
+			page.getByText(/(?:BUILDING|PROJECT) IN FOCUS/u),
+		).toBeVisible();
+		expect(
+			await page.evaluate(
+				() => performance.getEntriesByType("navigation").length,
+			),
+		).toBe(objectNavigationCount);
 		await page.screenshot({
 			path: test
 				.info()
