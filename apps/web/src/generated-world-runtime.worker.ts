@@ -15,21 +15,6 @@ self.addEventListener("message", (message: MessageEvent<Request>) => {
 	void run.then(
 		(experience) =>
 			self.postMessage({ id: message.data.id, ok: true, experience }),
-		(error: unknown) =>
-			self.postMessage({
-				id: message.data.id,
-				ok: false,
-				error: {
-					name: error instanceof Error ? error.name : "Error",
-					message:
-						error instanceof Error ? error.message : "WORLD_WORKER_FAILED",
-					...(typeof error === "object" &&
-					error !== null &&
-					"code" in error &&
-					typeof error.code === "string"
-						? { code: error.code }
-						: {}),
-				},
-			}),
+		() => self.postMessage({ id: message.data.id, ok: false }),
 	);
 });

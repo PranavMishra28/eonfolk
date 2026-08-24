@@ -20,7 +20,6 @@ type WorkerResponse = Readonly<{
 	id: number;
 	ok: boolean;
 	experience?: GeneratedWorldExperience;
-	error?: Readonly<{ name: string; message: string; code?: string }>;
 }>;
 
 let worker: Worker | undefined;
@@ -45,14 +44,7 @@ function workerRequest(kind: WorkerRequest["kind"]) {
 		pending.delete(message.data.id);
 		if (message.data.ok && message.data.experience !== undefined)
 			request.resolve(message.data.experience);
-		else {
-			const detail = message.data.error;
-			const error = new Error(detail?.message ?? "WORLD_WORKER_FAILED");
-			error.name = detail?.name ?? "Error";
-			if (detail?.code !== undefined)
-				Object.defineProperty(error, "code", { value: detail.code });
-			request.reject(error);
-		}
+		else request.reject(new Error("WORLD_WORKER_FAILED"));
 	};
 	worker.onerror ??= () => {
 		for (const request of pending.values())
@@ -94,6 +86,3 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
 	initialExperience = workerRequest("refresh");
 	return initialExperience;
 }
-
-if (!generatedFaultHooks && typeof Worker !== "undefined")
-	initialExperience = workerRequest("load");

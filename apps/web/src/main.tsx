@@ -81,7 +81,9 @@ const genesisRoute =
 			: null;
 
 if (genesisRoute === "world") {
-	void import("./generated-world-client");
+	void import("./generated-world-client").then((client) =>
+		client.loadGeneratedWorldExperience(),
+	);
 	requestAnimationFrame(() =>
 		setTimeout(() => void import("./generated-world-canvas"), 425),
 	);
@@ -105,7 +107,6 @@ reactRoot.render(
 					genesisRoute === "world" ? (
 						<main className="v1-genesis-loading" aria-busy="true">
 							<h1>Advancing one world through its first year.</h1>
-							<p>Verifying its local authority before presenting facts.</p>
 						</main>
 					) : (
 						<main className="v1-genesis-shell" aria-busy="true">

@@ -95,7 +95,7 @@ export default defineConfig({
 					groups: [
 						{
 							name: "world-authority",
-							test: /(?:packages\/(?:civilization|cognition|persistence|sim|worldgen|world-presentation)|generated-(?:civilization|presentation|sponsor-runtime))/u,
+							test: /(?:packages\/(?:civilization|cognition|diagnostics|persistence|sim|worldgen|world-presentation)|apps\/web\/src\/diagnostics|generated-(?:civilization|presentation|sponsor-runtime))/u,
 						},
 					],
 				},

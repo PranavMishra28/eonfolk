@@ -22,13 +22,13 @@ afterEach(() => {
 });
 
 describe("generated world worker client", () => {
-	it("starts one eager load and reuses it until an explicit refresh", async () => {
+	it("starts one load and reuses it until an explicit refresh", async () => {
 		vi.stubGlobal("Worker", FakeWorker);
 		const client = await import("./generated-world-client");
+		const first = client.loadGeneratedWorldExperience();
 		const worker = FakeWorker.instances[0];
 		expect(worker?.requests).toEqual([{ id: 1, kind: "load" }]);
 
-		const first = client.loadGeneratedWorldExperience();
 		worker?.onmessage?.({
 			data: { id: 1, ok: true, experience: { worldId: "world" } },
 		} as MessageEvent);
@@ -50,6 +50,16 @@ describe("generated world worker client", () => {
 		const client = await import("./generated-world-client");
 		const pending = client.loadGeneratedWorldExperience();
 		FakeWorker.instances[0]?.onerror?.();
+		await expect(pending).rejects.toThrow("WORLD_WORKER_FAILED");
+	});
+
+	it("fails closed when the worker rejects authority construction", async () => {
+		vi.stubGlobal("Worker", FakeWorker);
+		const client = await import("./generated-world-client");
+		const pending = client.loadGeneratedWorldExperience();
+		FakeWorker.instances[0]?.onmessage?.({
+			data: { id: 1, ok: false },
+		} as MessageEvent);
 		await expect(pending).rejects.toThrow("WORLD_WORKER_FAILED");
 	});
 });
