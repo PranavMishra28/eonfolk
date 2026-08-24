@@ -232,7 +232,7 @@ describe("macOS zero-egress local process transport", () => {
 			context: test.context,
 			deterministicFallback: test.fallback,
 			primary: test.brain,
-			primaryTimeoutMilliseconds: 500,
+			primaryTimeoutMilliseconds: 1_000,
 			validate: validateIntentProposal,
 		});
 

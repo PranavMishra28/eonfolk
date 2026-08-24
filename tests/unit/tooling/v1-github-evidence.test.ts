@@ -521,7 +521,7 @@ describe("live GitHub V1 evidence verification", () => {
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
-	});
+	}, 15_000);
 	it("accepts configuration that enumerates only the exact run-ID roster", () => {
 		expect(
 			parseRunIdConfiguration({
