@@ -86,3 +86,6 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
 	initialExperience = workerRequest("refresh");
 	return initialExperience;
 }
+
+if (!generatedFaultHooks && typeof Worker !== "undefined")
+	initialExperience = workerRequest("load");

@@ -81,9 +81,7 @@ const genesisRoute =
 			: null;
 
 if (genesisRoute === "world") {
-	void import("./generated-world-client").then((client) =>
-		client.loadGeneratedWorldExperience(),
-	);
+	void import("./generated-world-client");
 	requestAnimationFrame(() =>
 		setTimeout(() => void import("./generated-world-canvas"), 425),
 	);

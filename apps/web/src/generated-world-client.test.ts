@@ -22,13 +22,13 @@ afterEach(() => {
 });
 
 describe("generated world worker client", () => {
-	it("starts one load and reuses it until an explicit refresh", async () => {
+	it("starts one eager load and reuses it until an explicit refresh", async () => {
 		vi.stubGlobal("Worker", FakeWorker);
 		const client = await import("./generated-world-client");
-		const first = client.loadGeneratedWorldExperience();
 		const worker = FakeWorker.instances[0];
 		expect(worker?.requests).toEqual([{ id: 1, kind: "load" }]);
 
+		const first = client.loadGeneratedWorldExperience();
 		worker?.onmessage?.({
 			data: { id: 1, ok: true, experience: { worldId: "world" } },
 		} as MessageEvent);
