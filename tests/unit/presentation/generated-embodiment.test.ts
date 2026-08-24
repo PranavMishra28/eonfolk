@@ -115,6 +115,7 @@ function routeVariant(input: {
 			originPlaceId: route.fromSiteId,
 			destinationPlaceId: route.toSiteId,
 			routeId: route.routeId,
+			progressBasisPoints: input.progressBasisPoints,
 			targetId: null,
 		},
 		action,
@@ -267,7 +268,9 @@ describe("generated embodiment projection", () => {
 		const sampled = ticks.map((tick) =>
 			generatedTraversalPointAtTick(middle.grounding, tick),
 		);
-		expect(new Set(sampled.slice(0, -1).map(JSON.stringify)).size).toBe(5);
+		expect(
+			new Set(sampled.slice(0, -1).map((value) => JSON.stringify(value))).size,
+		).toBe(5);
 		expect(sampled.at(-1)).toEqual(sampled.at(-2));
 		expect(sampled.at(-1)).toEqual(middle.positionMm);
 		expect(generatedTraversalPointAtTick(middle.grounding, 48)).toEqual(
@@ -635,6 +638,9 @@ describe("generated asset provenance", () => {
 		);
 		const gltf = JSON.parse(bytes.toString("utf8")) as {
 			readonly buffers: readonly Readonly<{ readonly uri: string }>[];
+			readonly extras: {
+				readonly eonfolk: { readonly thirdPartyMaterial: boolean };
+			};
 		};
 		expect(bytes.byteLength).toBe(3_929);
 		expect(createHash("sha256").update(bytes).digest("hex")).toBe(
@@ -643,10 +649,7 @@ describe("generated asset provenance", () => {
 		expect(gltf.buffers.every((buffer) => buffer.uri.startsWith("data:"))).toBe(
 			true,
 		);
-		expect(
-			(gltf as { extras: { eonfolk: { thirdPartyMaterial: boolean } } }).extras
-				.eonfolk.thirdPartyMaterial,
-		).toBe(false);
+		expect(gltf.extras.eonfolk.thirdPartyMaterial).toBe(false);
 		expect(() =>
 			assertGeneratedAssetBudget({ byteLength: bytes.byteLength }),
 		).not.toThrow();
@@ -693,7 +696,7 @@ describe("generated asset provenance", () => {
 			byteLength: GENERATED_FOLK_BINARY_ASSET.byteLength,
 			sha256: GENERATED_FOLK_BINARY_ASSET.sha256,
 			manifestSha256:
-				"69519819b59ddf72b8786a412e08145c3c235aaf6fe9ca932540821a20558392",
+				"aff11f20ba04bd2d8591f61f9bb4cb3dd5fce601f5557a808b50a3d5acecd4ee",
 			rendererIntegration: "procedural-reference-only",
 		});
 
@@ -718,7 +721,10 @@ describe("generated asset provenance", () => {
 		).rejects.toThrow(/manifest byte length|manifest digest/u);
 
 		const sameLengthManifestCorruption = Buffer.from(manifestBytes);
-		sameLengthManifestCorruption[0] ^= 1;
+		const firstManifestByte = sameLengthManifestCorruption[0];
+		if (firstManifestByte === undefined)
+			throw new Error("generated asset manifest must not be empty");
+		sameLengthManifestCorruption[0] = firstManifestByte ^ 1;
 		await expect(
 			verifyGeneratedFolkAsset((async (input: RequestInfo | URL) => {
 				const url = String(input);

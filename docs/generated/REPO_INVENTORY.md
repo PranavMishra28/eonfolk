@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 495 files excluding this generated file; SHA-256 `8f39d800a2901916f1f279ffa3b67b86a2bf1278a18965b8083292bd37de5cbc`.
+**File-set identity:** 498 files excluding this generated file; SHA-256 `e4c3f47a892a2f74c33aec1cbee1b188d0ce9ec80e07e706a8c1b981b42e891b`.
 
 ## Tracked topology
 
@@ -21,7 +21,7 @@
 | Repository tooling | 31 |
 | Research and reviews | 54 |
 | Root controls and configuration | 27 |
-| Tests and fixtures | 93 |
+| Tests and fixtures | 96 |
 
 ## Workspaces
 
@@ -46,7 +46,8 @@
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
 | `tests/timing` | 1 |
-| `tests/unit` | 63 |
+| `tests/tsconfig.json` | 1 |
+| `tests/unit` | 65 |
 
 ## Root controls and configuration
 
@@ -78,11 +79,11 @@
 - `references.bib`
 - `tsconfig.base.json`
 
-## Founder Alpha regression boundary
+## Historical naming boundary
 
-The tree contains 6 path names containing `Riverhold` or `Founder Alpha`. They are compatibility, historical, or Founder Alpha regression material. Their browser screenshots, traces, renderer probes, and verification artifacts are **INELIGIBLE FOR V1 READINESS** and cannot satisfy a V1 row in [GOAL.md](../../GOAL.md).
+The private tree contains 6 path names containing `Riverhold` or `Founder Alpha`. Current application paths may use Riverhold as the canonical settlement name; Founder Alpha review records are historical evidence and cannot satisfy a current V1 row in [GOAL.md](../../GOAL.md).
 
-CI labels the retained visual artifact `founder-alpha-regression-only-*` and writes it under `tmp/founder-alpha-regression-evidence`. The selectors may remain Riverhold-specific until the V1 presentation exists; passing them proves only that the legacy regression surface was not broken.
+The removed Founder Alpha browser application is preserved only in the private archive tag and external bundle; no production route or CI capture executes it.
 
 ## Regeneration contract
 

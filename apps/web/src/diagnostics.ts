@@ -50,31 +50,21 @@ export function routeIdentity(pathname?: string) {
 			pathname ??
 			(typeof window === "undefined" ? "/" : window.location.pathname)
 		).replace(/\/+$/u, "") || "/";
-	if (path !== "/legacy")
-		return Object.freeze({
-			genesisId: "release-genesis-browser-v1",
-			worldId: "eonfolk-genesis-world-v1",
-			experimentId: "v1-civilization-standard-v5",
-			runId: "eonfolk-genesis-world-v1",
-			cognitionTreatmentId: "cognition-standard-v1",
-			rendererVersion:
-				path === "/world"
-					? "playcanvas-generated-civilization-v1"
-					: path === "/research"
-						? "generated-research-surface-v1"
-						: path === "/developer"
-							? "generated-developer-surface-v1"
-							: "generated-civilization-entry-v1",
-			persistenceVersion: "versioned-browser-authority-v1",
-		});
 	return Object.freeze({
-		genesisId: "riverhold-local-genesis-v1",
-		worldId: "world-riverhold-local-v1",
-		experimentId: "riverhold-standard-brain-v1",
-		runId: "run_riverhold_0001",
+		genesisId: "release-genesis-browser-v1",
+		worldId: "eonfolk-genesis-world-v1",
+		experimentId: "v1-civilization-standard-v5",
+		runId: "eonfolk-genesis-world-v1",
 		cognitionTreatmentId: "cognition-standard-v1",
-		rendererVersion: "playcanvas-riverhold-v1",
-		persistenceVersion: "indexeddb-riverhold-v1",
+		rendererVersion:
+			path === "/world"
+				? "playcanvas-generated-civilization-v1"
+				: path === "/research"
+					? "generated-research-surface-v1"
+					: path === "/developer"
+						? "generated-developer-surface-v1"
+						: "generated-civilization-entry-v1",
+		persistenceVersion: "versioned-browser-authority-v1",
 	});
 }
 

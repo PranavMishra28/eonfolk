@@ -3981,8 +3981,7 @@ em {
 	}
 }
 
-/* Canonical generated-world presentation. These selectors intentionally do not
-   style the frozen /legacy Riverhold regression surface. */
+/* Canonical generated-world presentation. */
 .generated-world-canvas,
 .generated-playcanvas {
 	position: absolute;

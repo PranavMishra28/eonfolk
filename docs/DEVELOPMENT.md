@@ -22,7 +22,7 @@ corepack pnpm dev
 
 Vite binds to loopback. `/` introduces the product and `/world` enters the
 generated settlement. `/research` and `/developer` are deliberate secondary
-surfaces; `/legacy` preserves an older regression fixture.
+surfaces. Unknown routes fail closed without presenting a world as fact.
 
 Production-mode local preview:
 

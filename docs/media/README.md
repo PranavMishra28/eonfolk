@@ -33,7 +33,7 @@ reload, consequence, and Chronicle. It is not presented as real-time pacing.
 
 ## Rights
 
-These captures and recordings are reserved project media as described in
-[third-party notices](../../THIRD_PARTY_NOTICES.md). They contain the EONFOLK
-mark and the separately reserved runtime proxy asset. No broader media or asset
-license is implied.
+These original captures and recordings are licensed under Apache-2.0 as
+described in [third-party notices](../../THIRD_PARTY_NOTICES.md). The EONFOLK
+name and mark remain reserved trademarks; the license permits copyright reuse
+but does not grant trademark endorsement rights.

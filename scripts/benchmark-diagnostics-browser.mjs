@@ -123,30 +123,42 @@ async function runMode(mode, browserExecutable) {
 			}
 		});
 		const journeyStarted = performance.now();
-		await page.goto(`${origin}/legacy`, { waitUntil: "domcontentloaded" });
-		await page
-			.getByLabel("Current Riverhold decision")
-			.getByRole("button", { name: "Follow Mara", exact: true })
-			.click();
+		await page.goto(`${origin}/world`, { waitUntil: "domcontentloaded" });
+		const world = page.getByTestId("generated-world-canvas");
+		await world.waitFor({ state: "visible", timeout: 20_000 });
+		await page.waitForFunction(
+			() =>
+				document
+					.querySelector('[data-testid="generated-world-canvas"]')
+					?.getAttribute("data-ready") === "true",
+			undefined,
+			{ timeout: 20_000 },
+		);
 		const arrival = await sampleFrames(page);
-		await page.getByRole("button", { name: /Check why Mara doubts/i }).click();
-		await page.getByText("OBSERVED", { exact: true }).waitFor();
+		await page.locator(".v1-context-panel").hover();
+		await page
+			.locator('ul.v1-presence-roster button[data-citizen-id="citizen-01"]')
+			.click();
 		const busyMarket = await sampleFrames(page);
-		await page.getByRole("button", { name: /Review Mara's choices/i }).click();
-		await page.getByText("Verify the count privately", { exact: true }).click();
-		await page.getByRole("button", { name: "Offer counsel" }).click();
+		await page.getByRole("button", { name: "Sponsor this person" }).click();
 		await page
-			.getByRole("button", { name: /Leave Riverhold at checkpoint/i })
-			.click();
-		await page.getByRole("button", { name: /Return to Riverhold/i }).click();
-		await page.getByRole("button", { name: /Advance Riverhold/i }).click();
-		await page.getByText(/WHILE YOU WERE AWAY/i).waitFor();
-		await page
-			.getByRole("button", { name: /Ask Mara to publish the verified count/i })
+			.getByRole("button", { name: "Consider an intervention" })
 			.click();
 		await page
-			.getByRole("heading", { name: /What entered the record/i })
-			.waitFor();
+			.getByRole("button", {
+				name: "Verify the evidence first — delays a conclusion",
+			})
+			.click();
+		await page
+			.getByRole("button", { name: "Leave Riverhold at this checkpoint" })
+			.click();
+		await page.getByRole("button", { name: "Return to Riverhold" }).click();
+		await page
+			.getByRole("button", {
+				name: "Advance one day to Mara's decision boundary",
+			})
+			.click();
+		await page.getByRole("heading", { name: "What happened" }).waitFor();
 		const chronicle = await sampleFrames(page);
 		const journeyMs = performance.now() - journeyStarted;
 		const observerMode = await page.evaluate(() => {

@@ -88,7 +88,6 @@ export function InformationSurface({
 				<a className="v1-primary-link" href="/world">
 					Return to the world
 				</a>
-				<a href="/legacy">Open the frozen Founder Alpha regression</a>
 			</footer>
 		</main>
 	);

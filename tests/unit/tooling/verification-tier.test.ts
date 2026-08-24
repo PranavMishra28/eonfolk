@@ -13,7 +13,7 @@ describe("V1 CI hardening", () => {
 			classifyConditionalPaths(["apps/web/src/cognition/model-brain.ts"]),
 		).toEqual({ ui: true, cognition: true });
 		expect(
-			classifyConditionalPaths(["apps/web/src/components/StoryCard.tsx"]),
+			classifyConditionalPaths(["apps/web/src/generated-world-canvas.tsx"]),
 		).toEqual({ ui: true, cognition: false });
 		expect(classifyConditionalPaths(["docs/quality/TESTING.md"])).toEqual({
 			ui: false,
@@ -41,13 +41,13 @@ describe("V1 CI hardening", () => {
 		expect(packageManifest.scripts["verify:fast"]).toMatch(/pnpm build$/u);
 	});
 
-	it("keeps the diagnostics comparison on the explicit Riverhold treatment", () => {
+	it("keeps the diagnostics comparison on the canonical world", () => {
 		const benchmark = readFileSync(
 			resolve("scripts/benchmark-diagnostics-browser.mjs"),
 			"utf8",
 		);
 		expect(benchmark).toMatch(
-			/page\.goto\(`\$\{origin\}\/legacy`, \{ waitUntil: "domcontentloaded" \}\)/u,
+			/page\.goto\(`\$\{origin\}\/world`, \{ waitUntil: "domcontentloaded" \}\)/u,
 		);
 	});
 
@@ -61,7 +61,7 @@ describe("V1 CI hardening", () => {
 		);
 	});
 
-	it("runs cognition once and retains Release Genesis evidence without promoting legacy", () => {
+	it("runs cognition once and retains Release Genesis evidence", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		expect(workflow).not.toContain("run: pnpm test:cognition:portable");
 		expect(workflow).toContain("name: v1-release-genesis-browser-${{");
@@ -79,8 +79,7 @@ describe("V1 CI hardening", () => {
 		);
 		expect(runner).toContain('entryRoute: "/"');
 		expect(runner).toContain('worldRoute: "/world"');
-		expect(runner).toContain('page.goto("http://127.0.0.1:4174/legacy"');
-		expect(runner).toContain("INELIGIBLE FOR V1 READINESS");
+		expect(runner).not.toContain('page.goto("http://127.0.0.1:4174/legacy"');
 		expect(runner).toContain(
 			'{ name: "desktop-1728x1117", width: 1728, height: 1117 }',
 		);
@@ -104,7 +103,7 @@ describe("V1 CI hardening", () => {
 			"const productionBrowserCoverage = describeProductionBrowserCoverage();",
 		);
 		expect(runner).toContain("productionJourneysExecuted: actual.total");
-		expect(runner).toContain("legacyIllustratedJourneysExcluded");
+		expect(runner).toContain("targetOnlyJourneysExcluded");
 		expect(runner).toContain(
 			'actual.journeysByFile["generated-world.spec.ts"] ?? 0',
 		);

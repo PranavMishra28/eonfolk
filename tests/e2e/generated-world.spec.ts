@@ -1110,7 +1110,11 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 	});
 	const stateHashBeforeFollow = await world.getAttribute("data-state-hash");
 	const worldTools = page.locator("details.v1-world-tools");
-	if (!(await worldTools.evaluate((details) => details.open)))
+	if (
+		!(await worldTools.evaluate(
+			(details) => (details as HTMLDetailsElement).open,
+		))
+	)
 		await worldTools.locator("summary").click();
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "smooth");
 	const firstResident = worldTools
@@ -1169,7 +1173,9 @@ test("canonical citizen, building, and project focus preserve authority across d
 		page.getByRole("link", { name: "Link to this building" }),
 	).toHaveAttribute("href", /focus-kind=object/u);
 	await page.getByRole("button", { name: "Back to settlement" }).click();
-	if (!(await tools.evaluate((details) => details.open)))
+	if (
+		!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
+	)
 		await tools.locator("summary").click();
 	const citizenButton = tools.locator("button[data-citizen-id]").first();
 	await citizenButton.focus();
@@ -1179,7 +1185,9 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-focus-kind", "citizen");
 
 	await page.getByRole("button", { name: "Back to settlement" }).click();
-	if (!(await tools.evaluate((details) => details.open)))
+	if (
+		!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
+	)
 		await tools.locator("summary").click();
 	const projectButton = tools.locator("button[data-project-id]").first();
 	await projectButton.focus();
@@ -1208,7 +1216,9 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await page.setViewportSize(viewport);
 		const back = page.getByRole("button", { name: "Back to settlement" });
 		if (await back.isVisible()) await back.click();
-		if (!(await tools.evaluate((details) => details.open)))
+		if (
+			!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
+		)
 			await tools.locator("summary").click();
 		const buildingButton = tools.locator("button[data-building-id]").first();
 		await buildingButton.focus();
@@ -1220,7 +1230,11 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
 		if (viewport.width === 390) {
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (!(await tools.evaluate((details) => details.open)))
+			if (
+				!(await tools.evaluate(
+					(details) => (details as HTMLDetailsElement).open,
+				))
+			)
 				await tools.locator("summary").click();
 			const mobileCitizen = tools.locator("button[data-citizen-id]").first();
 			await mobileCitizen.focus();
@@ -1229,7 +1243,11 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await expect(mobileCitizen).toHaveAttribute("aria-pressed", "true");
 			await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (!(await tools.evaluate((details) => details.open)))
+			if (
+				!(await tools.evaluate(
+					(details) => (details as HTMLDetailsElement).open,
+				))
+			)
 				await tools.locator("summary").click();
 			const mobileProject = tools.locator("button[data-project-id]").first();
 			await mobileProject.focus();
@@ -1754,15 +1772,18 @@ for (const mismatch of [
 		store: "authorityOperations",
 		label: "operation",
 		id: 0,
+		mode: "logical-key-alias",
 	},
 	{
 		store: "authorityEvents",
 		label: "event",
 		id: 1,
+		mode: "logical-key-alias",
 	},
 	{
 		store: "authorityReceipts",
 		label: "receipt",
+		mode: "logical-key-alias",
 	},
 	{
 		store: "authoritySnapshots",

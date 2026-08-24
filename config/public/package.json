@@ -25,7 +25,7 @@
 		"test:property": "vitest run tests/property",
 		"test:property:focused": "vitest run tests/property/worldgen/generator.property.test.ts tests/property/civilization/economy.property.test.ts tests/property/cognition/planner.property.test.ts tests/property/persistence/generated-civilization.property.test.ts tests/property/world-presentation/generated-spatial.property.test.ts",
 		"test:property:deep": "EONFOLK_PROPERTY_PROFILE=deep vitest run tests/property --reporter=verbose",
-		"test:indexeddb": "node --test tests/unit/persistence/indexeddb.browser.mjs tests/unit/persistence/generated-versioned.browser.mjs",
+		"test:indexeddb": "node --test tests/unit/persistence/generated-versioned.browser.mjs",
 		"test:timing": "vitest run tests/timing --reporter=verbose",
 		"test:model:contexts": "vitest run tests/manual/local-model-benchmark.test.ts",
 		"test:model:benchmark": "EONFOLK_RUN_LOCAL_MODEL_BENCHMARK=1 vitest run tests/manual/local-model-benchmark.test.ts --reporter=verbose",

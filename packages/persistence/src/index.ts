@@ -16,11 +16,6 @@ export {
 	replayCivilizationHistory,
 } from "./civilization.js";
 export { PersistenceError, type PersistenceErrorCode } from "./errors.js";
-export {
-	IndexedDbPersistence,
-	type IndexedDbPersistenceOptions,
-	PERSISTENCE_STORE_NAMES,
-} from "./indexeddb.js";
 export { MemoryPersistence, type MemoryPersistenceOptions } from "./memory.js";
 export type {
 	AppendRejectedDecisionRequest,

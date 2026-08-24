@@ -13,8 +13,8 @@ export const GENERATED_FOLK_BINARY_ASSET = Object.freeze({
 export const GENERATED_ASSET_MANIFEST_URL =
 	"/assets/generated/ASSET_MANIFEST.json";
 const GENERATED_ASSET_MANIFEST = Object.freeze({
-	byteLength: 2_587,
-	sha256: "69519819b59ddf72b8786a412e08145c3c235aaf6fe9ca932540821a20558392",
+	byteLength: 2_611,
+	sha256: "aff11f20ba04bd2d8591f61f9bb4cb3dd5fce601f5557a808b50a3d5acecd4ee",
 });
 
 export interface GeneratedAssetIntegrity {

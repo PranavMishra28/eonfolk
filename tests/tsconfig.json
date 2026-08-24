@@ -1,0 +1,15 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "..",
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"../apps/web/src/build-globals.d.ts",
+		"./e2e/**/*.ts",
+		"./timing/**/*.ts",
+		"./property/persistence/**/*.ts",
+		"./property/presentation/**/*.ts",
+		"./unit/presentation/**/*.ts"
+	]
+}

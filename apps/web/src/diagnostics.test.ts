@@ -2,16 +2,19 @@ import { describe, expect, it } from "vitest";
 import { BrowserDiagnostics, routeIdentity } from "./diagnostics.js";
 
 describe("browser diagnostics boundary", () => {
-	it("binds only the explicit legacy route to Founder Alpha", () => {
-		for (const path of ["/", "/genesis", "/world", "/research", "/developer"])
+	it("binds every public route to Release Genesis", () => {
+		for (const path of [
+			"/",
+			"/genesis",
+			"/world",
+			"/research",
+			"/developer",
+			"/unknown",
+		])
 			expect(routeIdentity(path).worldId).toBe("eonfolk-genesis-world-v1");
 		expect(routeIdentity("/world")).toMatchObject({
 			rendererVersion: "playcanvas-generated-civilization-v1",
 			persistenceVersion: "versioned-browser-authority-v1",
-		});
-		expect(routeIdentity("/legacy")).toMatchObject({
-			worldId: "world-riverhold-local-v1",
-			rendererVersion: "playcanvas-riverhold-v1",
 		});
 	});
 

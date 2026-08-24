@@ -26,7 +26,7 @@
 			"generatedFrom": null,
 			"source": "repository-authored deterministic geometry",
 			"generator": "repository-authored glTF 2.0 JSON with embedded cuboid geometry; no Blender authorship claimed",
-			"rights": "Authored in this repository for EONFOLK; no third-party inputs or downloads; no standalone asset license granted.",
+			"rights": "Original EONFOLK asset with no third-party inputs; source and derived GLB are licensed under Apache-2.0 with this repository.",
 			"externalDependencies": [],
 			"partNodeNames": [
 				"torso",
@@ -50,7 +50,7 @@
 			"generatedFrom": "/assets/generated/eonfolk-folk-proxy.gltf",
 			"source": "repository-authored deterministic geometry",
 			"generator": "scripts/validate-generated-assets.mjs deterministic glTF-to-GLB conversion",
-			"rights": "Authored in this repository for EONFOLK; no third-party inputs or downloads; no standalone asset license granted.",
+			"rights": "Original EONFOLK asset with no third-party inputs; source and derived GLB are licensed under Apache-2.0 with this repository.",
 			"externalDependencies": [],
 			"partNodeNames": [
 				"torso",

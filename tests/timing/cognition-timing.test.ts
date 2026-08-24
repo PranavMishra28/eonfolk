@@ -142,7 +142,7 @@ describe("decision-trace timing noninterference", () => {
 					minimumMs: Math.min(...samples[name]),
 				},
 			]),
-		) as Record<(typeof names)[number], Record<string, number>>;
+		) as unknown as Record<(typeof names)[number], Record<string, number>>;
 		const medians = names.map((name) => summary[name].medianMs!);
 		const p95s = names.map((name) => summary[name].p95Ms!);
 		expect(

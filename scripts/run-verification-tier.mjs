@@ -355,14 +355,14 @@ export function describeProductionBrowserCoverage({
 		? listRoster("playwright.config.ts", targetMacEnvironment)
 		: actual;
 	const fault = listRoster("playwright.fault.config.ts", environment);
-	const legacyIllustratedJourneysExcluded = targetMac.total - actual.total;
-	if (legacyIllustratedJourneysExcluded < 0)
+	const targetOnlyJourneysExcluded = targetMac.total - actual.total;
+	if (targetOnlyJourneysExcluded < 0)
 		throw new Error("Linux production roster exceeds the target-Mac roster");
 	return Object.freeze({
 		mode: linuxSemanticCi ? "linux-semantic-ci" : "target-mac",
 		productionJourneysExecuted: actual.total,
 		targetMacProductionJourneysAvailable: targetMac.total,
-		legacyIllustratedJourneysExcluded,
+		targetOnlyJourneysExcluded,
 		generatedWorldJourneysExecuted:
 			actual.journeysByFile["generated-world.spec.ts"] ?? 0,
 		faultJourneysExecuted: fault.total,
@@ -373,9 +373,9 @@ export function describeProductionBrowserCoverage({
 
 export function browserJourneyClaim(coverage) {
 	const exclusion =
-		coverage.legacyIllustratedJourneysExcluded === 0
+		coverage.targetOnlyJourneysExcluded === 0
 			? "no target-Mac production journeys are excluded"
-			: `${coverage.legacyIllustratedJourneysExcluded} illustrated target-Mac production journeys are excluded`;
+			: `${coverage.targetOnlyJourneysExcluded} target-Mac production journeys are excluded`;
 	return `${coverage.faultJourneysExecuted} injected-fault journeys plus ${coverage.productionJourneysExecuted} production journeys, including ${coverage.generatedWorldJourneysExecuted} generated-world journeys; ${exclusion}`;
 }
 
@@ -926,66 +926,13 @@ async function releaseGenesisViewportEvidence(
 	}
 }
 
-async function legacyRegressionEvidence(browser, root) {
-	const context = await browser.newContext({
-		colorScheme: "light",
-		deviceScaleFactor: 1,
-		reducedMotion: "reduce",
-		viewport: { width: 1366, height: 768 },
-	});
-	const page = await context.newPage();
-	const observed = observePage(page);
-	await isolateNetwork(page, observed.externalAttempts);
-	try {
-		await page.goto("http://127.0.0.1:4174/legacy", {
-			waitUntil: "networkidle",
-		});
-		const canvas = page.getByTestId("riverhold-canvas");
-		await canvas.waitFor({ state: "visible", timeout: 15_000 });
-		await page.waitForFunction(
-			() =>
-				document
-					.querySelector('[data-testid="riverhold-canvas"]')
-					?.getAttribute("data-ready") === "true",
-			undefined,
-			{ timeout: 15_000 },
-		);
-		if ((await canvas.getAttribute("data-engine")) !== "playcanvas")
-			throw new Error("legacy regression renderer is not PlayCanvas");
-		if (observed.externalAttempts.length > 0 || observed.pageErrors.length > 0)
-			throw new Error(
-				"legacy regression emitted browser errors or external requests",
-			);
-		await page.screenshot({
-			animations: "disabled",
-			caret: "hide",
-			fullPage: true,
-			path: resolve(root, "legacy-laptop.png"),
-			scale: "css",
-		});
-		return {
-			claimBoundary:
-				"Frozen Founder Alpha/Riverhold regression only; INELIGIBLE FOR V1 READINESS.",
-			externalAttempts: 0,
-			pageErrors: 0,
-			route: "/legacy",
-			screenshot: "legacy-laptop.png",
-			status: "PASS",
-		};
-	} finally {
-		await context.close();
-	}
-}
-
 export async function captureV1BrowserEvidence({ outputDirectory }) {
 	const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 	const output = safeEvidenceDirectory(outputDirectory);
 	rmSync(output, { force: true, recursive: true });
 	const source = sourceState();
 	const v1Root = resolve(output, "release-genesis");
-	const legacyRoot = resolve(output, "legacy-regression");
 	mkdirSync(v1Root, { recursive: true });
-	mkdirSync(legacyRoot, { recursive: true });
 	const previewLog = resolve(output, "preview.log");
 	const previewLogDescriptor = openSync(previewLog, "w");
 	const preview = spawn(
@@ -1024,7 +971,6 @@ export async function captureV1BrowserEvidence({ outputDirectory }) {
 						enforceReadinessBudget: !linuxSemanticCi,
 					}),
 				);
-			const legacy = await legacyRegressionEvidence(browser, legacyRoot);
 			const v1Report = {
 				schemaVersion: "eonfolk-v1-release-genesis-browser-evidence-v1",
 				status: "PASS",
@@ -1041,11 +987,7 @@ export async function captureV1BrowserEvidence({ outputDirectory }) {
 				resolve(v1Root, "browser-evidence.json"),
 				`${JSON.stringify(v1Report, null, 2)}\n`,
 			);
-			writeFileSync(
-				resolve(legacyRoot, "browser-evidence.json"),
-				`${JSON.stringify(legacy, null, 2)}\n`,
-			);
-			return { legacy, releaseGenesis: v1Report };
+			return { releaseGenesis: v1Report };
 		} finally {
 			await browser.close();
 		}

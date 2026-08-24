@@ -65,5 +65,7 @@ Minimal labels: `bug`, `gameplay`, `accessibility`, `performance`, `enhancement`
 they are explicitly created.
 
 If Discussions are later enabled, start with **Announcements** (maintainer only),
-**Playtest reports**, **Ideas**, and **Questions**. Do not use Discussions as a
-security channel or enable it before moderation capacity exists.
+**Q&A**, **Ideas**, and **Show and Tell**. Issues are for reproducible defects and
+scoped work that can be closed; Discussions are for questions, proposals, play
+stories, and broader conversation. Do not use Discussions as a security channel
+or enable it before moderation capacity exists.

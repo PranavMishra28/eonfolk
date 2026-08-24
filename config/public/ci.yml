@@ -84,6 +84,12 @@ jobs:
           TLA2TOOLS_JAR: ${{ runner.temp }}/tla2tools.jar
         run: pnpm verify:pr
 
+      - name: Capture deterministic browser evidence
+        if: success()
+        env:
+          EONFOLK_ALLOW_LINUX_CI: "1"
+        run: node scripts/run-verification-tier.mjs v1-browser-evidence --output-dir tmp/v1-browser-evidence
+
       - name: Run manual extended checks
         if: github.event_name == 'workflow_dispatch' && inputs.deep
         env:
@@ -96,8 +102,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: browser-evidence-${{ github.run_id }}
-          path: apps/web/evidence
-          if-no-files-found: ignore
+          path: tmp/v1-browser-evidence/release-genesis
+          if-no-files-found: error
           retention-days: 30
 
       - name: Retain failing browser evidence
@@ -107,7 +113,7 @@ jobs:
           name: browser-failure-${{ github.run_id }}
           path: |
             tmp/riverhold-playwright
-            apps/web/evidence
+            tmp/v1-browser-evidence
           if-no-files-found: ignore
           retention-days: 14
 

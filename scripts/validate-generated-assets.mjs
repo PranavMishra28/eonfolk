@@ -27,7 +27,7 @@ export const GENERATED_PART_NODE_NAMES = Object.freeze([
 const SOURCE_URL = "/assets/generated/eonfolk-folk-proxy.gltf";
 const BINARY_URL = "/assets/generated/eonfolk-folk-proxy.glb";
 const RIGHTS =
-	"Authored in this repository for EONFOLK; no third-party inputs or downloads; no standalone asset license granted.";
+	"Original EONFOLK asset with no third-party inputs; source and derived GLB are licensed under Apache-2.0 with this repository.";
 const PRODUCTION_STATUS = "bounded V1 proxy; not final character art";
 const INTENDED_ROLE =
 	"recognizable humanoid proxy with named pose parts and task-prop anchor";

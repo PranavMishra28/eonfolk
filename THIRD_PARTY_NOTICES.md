@@ -3,27 +3,24 @@
 Copyright 2026 Pranav Mishra.
 
 Unless a file or section below says otherwise, original EONFOLK source code,
-tests, configuration, and documentation are licensed under the
-[Apache License 2.0](LICENSE).
+tests, configuration, documentation, gameplay captures, and the generated
+runtime proxy are licensed under the [Apache License 2.0](LICENSE).
 
 ## Reserved project materials
 
 The Apache License does not grant rights in the EONFOLK name, word mark, or logo
 except for reasonable use when describing the origin of the software.
 
-The following creative materials are not offered under a standalone content or
-asset license:
+The EONFOLK name, word mark, and logo are reserved project identity. The Apache
+License does not grant trademark rights in:
 
-- `apps/web/public/eonfolk-mark.svg`;
-- captured gameplay images and recordings under `docs/media/`; and
-- `apps/web/public/assets/generated/eonfolk-folk-proxy.gltf` plus its derived
-  `.glb` delivery file.
+- `apps/web/public/eonfolk-mark.svg`; or
+- the EONFOLK mark as it appears in gameplay captures and recordings.
 
-The generated asset manifest records the proxy's repository-authored origin,
-hashes, deterministic conversion, and absence of third-party inputs. Keeping it
-in a source distribution permits running and evaluating this project; it does
-not grant a general right to reuse the asset outside EONFOLK. Contact the
-copyright owner before separate reuse.
+This trademark reservation does not restrict the Apache-2.0 copyright license
+for original documentation media or the generated proxy geometry. The generated
+asset manifest records that proxy's repository-authored origin, hashes,
+deterministic conversion, absence of third-party inputs, and license scope.
 
 ## Runtime dependency notices
 

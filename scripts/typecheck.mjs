@@ -16,11 +16,14 @@ const projects = [
 	"tests/unit/diagnostics/tsconfig.json",
 	"tests/unit/world-presentation/tsconfig.json",
 	"tests/unit/worldgen/tsconfig.json",
+	"tests/unit/cognition/tsconfig.json",
 	"tests/property/worldgen/tsconfig.json",
 	"tests/property/civilization/tsconfig.json",
 	"tests/property/cognition/tsconfig.json",
+	"tests/property/world-presentation/tsconfig.json",
 	"tests/manual/tsconfig.json",
 	"apps/web/tsconfig.json",
+	"tests/tsconfig.json",
 ];
 
 const tsc = resolve(process.cwd(), "node_modules/.bin/tsc");

@@ -1393,8 +1393,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 		const first = renderRepositoryInventory(files, readRoot);
 		const second = renderRepositoryInventory([...files].reverse(), readRoot);
 		expect(first).toBe(second);
-		expect(first).toContain("Founder Alpha regression boundary");
-		expect(first).toContain("INELIGIBLE FOR V1 READINESS");
+		expect(first).toContain("Historical naming boundary");
+		expect(first).toContain(
+			"The removed Founder Alpha browser application is preserved only in the private archive tag and external bundle",
+		);
 	});
 
 	it("writes a reproducible inventory and detects a changed file set", () => {

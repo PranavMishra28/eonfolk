@@ -12,8 +12,8 @@ import {
 	claimBoundaryForTier,
 	DEEP_BENCHMARK_CONTRACT,
 	describeProductionBrowserCoverage,
-	parsePlaywrightRoster,
 	PRODUCTION_FAULT_SCAFFOLDING_MARKERS,
+	parsePlaywrightRoster,
 	runVerificationSteps,
 	verificationContractSha256,
 	verificationStepsForTier,
@@ -64,13 +64,13 @@ describe("Founder Alpha CI evidence controls", () => {
 			mode: "linux-semantic-ci",
 			productionJourneysExecuted: 56,
 			targetMacProductionJourneysAvailable: 58,
-			legacyIllustratedJourneysExcluded: 2,
+			targetOnlyJourneysExcluded: 2,
 			generatedWorldJourneysExecuted: 38,
 			faultJourneysExecuted: 13,
 			generatedTargetExecuted: true,
 		});
 		expect(browserJourneyClaim(coverage)).toBe(
-			"13 injected-fault journeys plus 56 production journeys, including 38 generated-world journeys; 2 illustrated target-Mac production journeys are excluded",
+			"13 injected-fault journeys plus 56 production journeys, including 38 generated-world journeys; 2 target-Mac production journeys are excluded",
 		);
 	});
 
@@ -347,7 +347,7 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(extendedJob).not.toContain("pnpm test:property:deep");
 	});
 
-	it("runs cognition and both real IndexedDB harnesses exactly through the tier", () => {
+	it("runs cognition and the canonical real IndexedDB harness exactly through the tier", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
 		const packageManifest = JSON.parse(
 			readFileSync(resolve("package.json"), "utf8"),
@@ -357,9 +357,6 @@ describe("Founder Alpha CI evidence controls", () => {
 		);
 		expect(cognitionSteps).toHaveLength(1);
 		expect(workflow).not.toContain("run: pnpm test:cognition:portable");
-		expect(packageManifest.scripts["test:indexeddb"]).toContain(
-			"tests/unit/persistence/indexeddb.browser.mjs",
-		);
 		expect(packageManifest.scripts["test:indexeddb"]).toContain(
 			"tests/unit/persistence/generated-versioned.browser.mjs",
 		);

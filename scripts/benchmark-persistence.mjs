@@ -7,11 +7,11 @@ import { chromium } from "@playwright/test";
 import { createServer } from "vite";
 import { contentSha256 } from "./evidence-integrity.mjs";
 
-export const PERSISTENCE_BENCHMARK_VERSION = "eonfolk-persistence-benchmark-v2";
+export const PERSISTENCE_BENCHMARK_VERSION = "eonfolk-persistence-benchmark-v3";
 const REPETITIONS = 5;
 const TRANSITIONS = 128;
 const WORKLOAD = Object.freeze({
-	eventCountByOrdinal: "1 + (ordinal mod 4)",
+	eventsPerAppend: 1,
 	repetitions: REPETITIONS,
 	seed: PERSISTENCE_BENCHMARK_VERSION,
 	transitionsPerRepetition: TRANSITIONS,
@@ -30,12 +30,14 @@ const SOURCE_FILES = Object.freeze([
 	"packages/persistence/src/codec.ts",
 	"packages/persistence/src/errors.ts",
 	"packages/persistence/src/memory.ts",
-	"packages/persistence/src/indexeddb.ts",
+	"packages/persistence/src/versioned.ts",
+	"packages/persistence/src/versioned-types.ts",
 	"packages/persistence/src/types.ts",
 	"packages/persistence/src/validation.ts",
 	"tests/unit/persistence/fixtures.ts",
-	"tests/unit/persistence/indexeddb-harness.html",
-	"tests/unit/persistence/indexeddb-harness.ts",
+	"apps/web/src/persistence/browser-versioned.ts",
+	"tests/unit/persistence/versioned-benchmark-harness.html",
+	"tests/unit/persistence/versioned-benchmark-harness.ts",
 ]);
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -138,9 +140,7 @@ async function memorySamples(modules) {
 		const appendStart = performance.now();
 		for (let ordinal = 1; ordinal <= TRANSITIONS; ordinal += 1) {
 			const head = await persistence.getHead(RUN_ID, REGION_ID);
-			await persistence.commitTransition(
-				transition(head, ordinal, 1 + (ordinal % 4)),
-			);
+			await persistence.commitTransition(transition(head, ordinal, 1));
 		}
 		const appendMilliseconds = performance.now() - appendStart;
 		const head = await persistence.getHead(RUN_ID, REGION_ID);
@@ -177,14 +177,16 @@ async function indexedDbSamples(forceFailure) {
 		browser = await chromium.launch({ headless: true });
 		const page = await browser.newPage();
 		await page.goto(
-			`http://127.0.0.1:${address.port}/tests/unit/persistence/indexeddb-harness.html?benchmark=1`,
+			`http://127.0.0.1:${address.port}/tests/unit/persistence/versioned-benchmark-harness.html`,
 		);
 		await page.waitForFunction(
-			() => window.__idbResult !== undefined,
+			() => window.__versionedPersistenceBenchmark !== undefined,
 			undefined,
 			{ timeout: 30_000 },
 		);
-		const result = await page.evaluate(() => window.__idbResult);
+		const result = await page.evaluate(
+			() => window.__versionedPersistenceBenchmark,
+		);
 		if (result?.error !== undefined) throw new Error(result.error);
 		return result?.result?.samples ?? [];
 	} finally {
@@ -242,7 +244,7 @@ async function run() {
 		status,
 		claimBoundary: arguments_.smokeOnly
 			? "Explicit smoke-only run; it cannot satisfy DEEP acceptance."
-			: "Fail-closed DEEP acceptance for the bounded Memory/IndexedDB workload; timing values are informational.",
+			: "Fail-closed DEEP acceptance for bounded in-memory and canonical versioned-browser persistence workloads; timing values are informational.",
 		recordedAt: new Date().toISOString(),
 		source: { start, end, stable: sourceStable },
 		runtime: {

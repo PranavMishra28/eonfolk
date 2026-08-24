@@ -929,6 +929,7 @@ async function run(): Promise<void> {
 			regionId: initial.authorityRegionId,
 			databaseName: initial.authorityDatabaseName,
 			step: "abstain",
+			expectedAuthorityStateHash: refreshed.stateHash,
 		});
 		const boundaryPort = await BrowserVersionedPersistence.open({
 			databaseName: initial.authorityDatabaseName,
