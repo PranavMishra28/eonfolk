@@ -517,7 +517,6 @@ function GeneratedContextPanel({
 			readonly text: string;
 			readonly relation: string;
 			readonly evidenceEventIds: readonly string[];
-			readonly citizenId: string;
 		}[]
 	>([]);
 	const [activeIntent, setActiveIntent] = useState<
@@ -891,7 +890,10 @@ function GeneratedContextPanel({
 													))}
 												</ul>
 												{worldLink(
-													{ kind: "citizen", citizenId: beat.citizenId },
+													{
+														kind: "citizen",
+														citizenId: sponsorCitizenId,
+													},
 													"Citizen",
 												)}
 												{selectedActor === undefined

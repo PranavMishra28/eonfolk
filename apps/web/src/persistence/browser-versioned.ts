@@ -73,6 +73,12 @@ interface StreamBundle {
 	readonly snapshots: readonly AuthoritySnapshotRecord[];
 }
 
+type MutableStreamBundle = {
+	-readonly [Key in keyof StreamBundle]: StreamBundle[Key] extends readonly (infer Item)[]
+		? Item[]
+		: StreamBundle[Key];
+};
+
 interface StoredRows {
 	readonly stream: StreamRow | undefined;
 	readonly operations: readonly KeyedRow<AuthorityOperation>[];
@@ -81,11 +87,7 @@ interface StoredRows {
 	readonly snapshots: readonly KeyedRow<AuthoritySnapshotRecord>[];
 }
 
-interface ValidatedAuthoritySession {
-	readonly scopeKey: string;
-	bundle: StreamBundle;
-	memory: MemoryVersionedPersistence;
-}
+type ValidatedAuthoritySession = [StreamBundle, MemoryVersionedPersistence];
 
 interface CommitOperationInput {
 	readonly bundle: StreamBundle;
@@ -99,7 +101,7 @@ interface CommitOperationInput {
 
 export interface BrowserVersionedPersistenceOptions {
 	readonly databaseName?: string;
-	readonly factory?: IDBFactory;
+	readonly factory?: IDBFactory | undefined;
 	readonly crashInjector?: VersionedCrashInjector;
 	readonly boundaryInjector?: BrowserPersistenceBoundaryInjector;
 }
@@ -472,42 +474,45 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		}
 	}
 
-	async #validatedView(scope: AuthorityScope): Promise<
-		Readonly<{
-			bundle: StreamBundle;
-			memory: MemoryVersionedPersistence;
-		}>
-	> {
+	async #validatedView(
+		scope: AuthorityScope,
+	): Promise<ValidatedAuthoritySession> {
 		const session = this.#validatedSession;
-		if (session !== null && session.scopeKey === streamKey(scope))
+		if (session !== null && session[0].stream.key === streamKey(scope))
 			return session;
 		const bundle = await this.#readBundle(scope);
-		return { bundle, memory: await this.#hydrate(bundle) };
+		return [bundle, await this.#hydrate(bundle)];
 	}
 
-	async beginValidatedAuthoritySession(scope: AuthorityScope): Promise<void> {
+	async session<T>(
+		scope: AuthorityScope,
+		operation: () => Promise<T>,
+	): Promise<T> {
 		if (this.#validatedSession !== null)
 			fail("INVALID_INPUT", "validated authority session already active");
 		const bundle = await this.#readBundle(scope);
-		this.#validatedSession = {
-			scopeKey: streamKey(scope),
-			bundle,
-			memory: await this.#hydrate(bundle),
-		};
-	}
-
-	async endValidatedAuthoritySession(scope: AuthorityScope): Promise<void> {
-		const session = this.#validatedSession;
-		if (session === null || session.scopeKey !== streamKey(scope))
-			fail("INVALID_INPUT", "validated authority session mismatch");
+		this.#validatedSession = [bundle, await this.#hydrate(bundle)];
+		let result: T | undefined;
+		const errors: unknown[] = [];
+		try {
+			result = await operation();
+		} catch (error) {
+			errors.push(error);
+		}
 		try {
 			const durableBundle = await this.#readBundle(scope);
 			await this.#hydrate(durableBundle);
-			if (!equal(durableBundle, session.bundle))
+			if (!equal(durableBundle, bundle))
 				fail("STALE_REVISION", "authority changed during validated session");
-		} finally {
-			this.#validatedSession = null;
+		} catch (error) {
+			errors.push(error);
 		}
+		this.#validatedSession = null;
+		if (errors.length)
+			throw errors.length > 1
+				? new AggregateError(errors, "SP:BODY_AND_SESSION_FINALIZATION_FAILED")
+				: errors[0];
+		return result as T;
 	}
 
 	async #verifyMaterializedStores(
@@ -521,8 +526,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				): operation is Extract<AuthorityOperation, { kind: "append" }> =>
 					operation.kind === "append",
 			)
-			.flatMap((operation) => operation.request.events)
-			.sort((left, right) => left.sequence - right.sequence);
+			.flatMap((operation) => operation.request.events);
 		const receiptOperations = bundle.operations.filter(
 			(
 				operation,
@@ -552,124 +556,106 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 				)
 				.map((operation) => operation.request.snapshot),
 		].sort((left, right) => left.snapshotId.localeCompare(right.snapshotId));
-		const actualEvents = [...bundle.events].sort(
-			(left, right) => left.sequence - right.sequence,
-		);
-		const actualReceipts = [...bundle.receipts].sort((left, right) =>
-			left.appendId.localeCompare(right.appendId),
-		);
 		expectedReceipts.sort((left, right) =>
 			left.appendId.localeCompare(right.appendId),
 		);
-		const actualSnapshots = [...bundle.snapshots].sort((left, right) =>
-			left.snapshotId.localeCompare(right.snapshotId),
-		);
 		if (
-			!equal(actualEvents, expectedEvents) ||
-			!equal(actualReceipts, expectedReceipts) ||
-			!equal(actualSnapshots, expectedSnapshots)
+			!equal(bundle.events, expectedEvents) ||
+			!equal(bundle.receipts, expectedReceipts) ||
+			!equal(bundle.snapshots, expectedSnapshots)
 		)
 			fail("STALE_STATE", "materialized mismatch");
 	}
 
 	async #commitOperation(input: CommitOperationInput): Promise<void> {
 		try {
-			await this.#commitOperationUnchecked(input);
+			const receipt = input.receipt;
+			const operationNeedsReceipt =
+				input.operation.kind === "append" ||
+				input.operation.kind === "rejection";
+			if (operationNeedsReceipt && receipt === undefined)
+				fail("STALE_STATE", "committed receipt missing");
+			this.#boundaryInjector?.hit("write");
+			const session = this.#validatedSession;
+			const transaction = this.#database.transaction(STORE_NAMES, "readwrite", {
+				durability: "strict",
+			});
+			const done = transactionDone(transaction);
+			try {
+				this.#boundaryInjector?.hit("transaction-abort", transaction);
+				const stored = await storedRows(
+					transaction,
+					input.bundle.stream.genesis,
+				);
+				const streams = transaction.objectStore(
+					GENERATED_AUTHORITY_STORES.streams,
+				);
+				const current = stored.stream;
+				if (
+					current === undefined ||
+					!equal(current, input.bundle.stream) ||
+					!equal(materializedValues(stored), {
+						operations: input.bundle.operations,
+						events: input.bundle.events,
+						receipts: input.bundle.receipts,
+						snapshots: input.bundle.snapshots,
+					})
+				)
+					fail("STALE_REVISION", "head race");
+				input.write(transaction);
+				transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).put({
+					key: recordKey(input.bundle.stream.genesis, input.operation.ordinal),
+					streamKey: streamKey(input.bundle.stream.genesis),
+					value: clone(input.operation),
+				} satisfies KeyedRow<AuthorityOperation>);
+				streams.put({
+					...current,
+					head: clone(input.head),
+					operationCount: current.operationCount + 1,
+				} satisfies StreamRow);
+				this.#hit(input.before);
+			} catch (error) {
+				try {
+					transaction.abort();
+				} catch {
+					// The browser may already have aborted the transaction.
+				}
+				await done.catch(() => undefined);
+				throw error;
+			}
+			await done;
+			if (session !== null && session[0] === input.bundle) {
+				const operation = input.operation;
+				const next = input.bundle as MutableStreamBundle;
+				next.stream = {
+					...next.stream,
+					head: input.head,
+					operationCount: next.stream.operationCount + 1,
+				};
+				next.operations.push(operation);
+				if (operation.kind === "append") {
+					next.events.push(...operation.request.events);
+				}
+				if (receipt !== undefined) {
+					next.receipts.push(receipt);
+					next.receipts.sort((left, right) =>
+						left.appendId.localeCompare(right.appendId),
+					);
+				}
+				if (operation.kind === "snapshot") {
+					next.snapshots.push(operation.request.snapshot);
+					next.snapshots.sort((left, right) =>
+						left.snapshotId.localeCompare(right.snapshotId),
+					);
+				}
+			}
+			this.#hit(input.after);
 		} catch (error) {
 			const session = this.#validatedSession;
-			if (session !== null && session.bundle === input.bundle)
-				session.memory = await this.#hydrate(session.bundle);
+			if (session !== null && session[0] === input.bundle)
+				session[1] = await this.#hydrate(session[0]);
 			throw error;
 		}
-	}
-
-	async #commitOperationUnchecked(input: CommitOperationInput): Promise<void> {
-		const operationNeedsReceipt =
-			input.operation.kind === "append" || input.operation.kind === "rejection";
-		if (operationNeedsReceipt && input.receipt === undefined)
-			fail("STALE_STATE", "committed receipt missing");
-		this.#boundaryInjector?.hit("write");
-		const key = streamKey(input.bundle.stream.genesis);
-		const session = this.#validatedSession;
-		const sessionOwnsBundle = session?.bundle === input.bundle;
-		const transaction = this.#database.transaction(STORE_NAMES, "readwrite", {
-			durability: "strict",
-		});
-		const done = transactionDone(transaction);
-		try {
-			this.#boundaryInjector?.hit("transaction-abort", transaction);
-			const stored = await storedRows(transaction, input.bundle.stream.genesis);
-			const streams = transaction.objectStore(
-				GENERATED_AUTHORITY_STORES.streams,
-			);
-			const current = stored.stream;
-			if (
-				current === undefined ||
-				!equal(current, input.bundle.stream) ||
-				!equal(materializedValues(stored), {
-					operations: input.bundle.operations,
-					events: input.bundle.events,
-					receipts: input.bundle.receipts,
-					snapshots: input.bundle.snapshots,
-				})
-			)
-				fail("STALE_REVISION", "head race");
-			input.write(transaction);
-			transaction.objectStore(GENERATED_AUTHORITY_STORES.operations).put({
-				key: recordKey(input.bundle.stream.genesis, input.operation.ordinal),
-				streamKey: key,
-				value: clone(input.operation),
-			} satisfies KeyedRow<AuthorityOperation>);
-			streams.put({
-				...current,
-				head: clone(input.head),
-				operationCount: current.operationCount + 1,
-			} satisfies StreamRow);
-			this.#hit(input.before);
-		} catch (error) {
-			try {
-				transaction.abort();
-			} catch {
-				// The browser may already have aborted the transaction.
-			}
-			await done.catch(() => undefined);
-			throw error;
-		}
-		await done;
-		if (session !== null && sessionOwnsBundle) {
-			const operation = clone(input.operation);
-			const receipt = input.receipt;
-			const events =
-				operation.kind === "append"
-					? [...input.bundle.events, ...operation.request.events].sort(
-							(left, right) => left.sequence - right.sequence,
-						)
-					: [...input.bundle.events];
-			const receipts =
-				operation.kind === "append" || operation.kind === "rejection"
-					? [...input.bundle.receipts, receipt as AuthorityAppendReceipt].sort(
-							(left, right) => left.appendId.localeCompare(right.appendId),
-						)
-					: [...input.bundle.receipts];
-			const snapshots =
-				operation.kind === "snapshot"
-					? [...input.bundle.snapshots, operation.request.snapshot].sort(
-							(left, right) => left.snapshotId.localeCompare(right.snapshotId),
-						)
-					: [...input.bundle.snapshots];
-			session.bundle = clone({
-				stream: {
-					...input.bundle.stream,
-					head: input.head,
-					operationCount: input.bundle.stream.operationCount + 1,
-				},
-				operations: [...input.bundle.operations, operation],
-				events,
-				receipts,
-				snapshots,
-			});
-		}
-		this.#hit(input.after);
 	}
 
 	async initialize(
@@ -732,7 +718,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 
 	async loadHead(scope: AuthorityScope): Promise<AuthorityHead> {
 		const view = await this.#validatedView(scope);
-		return clone(await view.memory.loadHead(scope));
+		return clone(await view[1].loadHead(scope));
 	}
 
 	async acquireWriterFence(
@@ -740,15 +726,12 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		expectedFencingToken: number,
 	): Promise<AuthorityHead> {
 		const view = await this.#validatedView(scope);
-		const next = await view.memory.acquireWriterFence(
-			scope,
-			expectedFencingToken,
-		);
+		const next = await view[1].acquireWriterFence(scope, expectedFencingToken);
 		await this.#commitOperation({
-			bundle: view.bundle,
+			bundle: view[0],
 			operation: {
 				kind: "fence",
-				ordinal: view.bundle.stream.operationCount,
+				ordinal: view[0].stream.operationCount,
 				expectedFencingToken,
 			},
 			head: next,
@@ -763,13 +746,13 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		request: AppendAuthorityBatchRequest,
 	): Promise<AppendAuthorityBatchResult> {
 		const view = await this.#validatedView(request);
-		const result = await view.memory.appendEventBatch(request);
+		const result = await view[1].appendEventBatch(request);
 		if (result.idempotent) return clone(result);
 		await this.#commitOperation({
-			bundle: view.bundle,
+			bundle: view[0],
 			operation: {
 				kind: "append",
-				ordinal: view.bundle.stream.operationCount,
+				ordinal: view[0].stream.operationCount,
 				request: clone(request),
 			},
 			head: result.head,
@@ -800,13 +783,13 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		request: RecordRejectedAuthorityCommandRequest,
 	): Promise<AppendAuthorityBatchResult> {
 		const view = await this.#validatedView(request);
-		const result = await view.memory.recordRejectedCommand(request);
+		const result = await view[1].recordRejectedCommand(request);
 		if (result.idempotent) return clone(result);
 		await this.#commitOperation({
-			bundle: view.bundle,
+			bundle: view[0],
 			operation: {
 				kind: "rejection",
-				ordinal: view.bundle.stream.operationCount,
+				ordinal: view[0].stream.operationCount,
 				request: clone(request),
 			},
 			head: result.head,
@@ -828,8 +811,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		appendId: string,
 	): Promise<AuthorityAppendReceipt | null> {
 		const view = await this.#validatedView(scope);
-		const expected = await view.memory.getAppendReceipt(scope, appendId);
-		const actual = view.bundle.receipts.find(
+		const expected = await view[1].getAppendReceipt(scope, appendId);
+		const actual = view[0].receipts.find(
 			(receipt) => receipt.appendId === appendId,
 		);
 		if (
@@ -844,14 +827,12 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		request: AuthorityEventRangeRequest,
 	): Promise<readonly AuthorityEventRecord[]> {
 		const view = await this.#validatedView(request);
-		const expected = await view.memory.getEventRange(request);
-		const actual = view.bundle.events
-			.filter(
-				(event) =>
-					event.sequence >= request.fromSequenceInclusive &&
-					event.sequence < request.toSequenceExclusive,
-			)
-			.sort((left, right) => left.sequence - right.sequence);
+		const expected = await view[1].getEventRange(request);
+		const actual = view[0].events.filter(
+			(event) =>
+				event.sequence >= request.fromSequenceInclusive &&
+				event.sequence < request.toSequenceExclusive,
+		);
 		if (!equal(actual, expected)) fail("STALE_STATE", "event mismatch");
 		return clone(actual);
 	}
@@ -862,7 +843,7 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		const view = await this.#validatedView(request.snapshot);
 		let prior: AuthoritySnapshotRecord | null = null;
 		try {
-			prior = await view.memory.loadSnapshot(
+			prior = await view[1].loadSnapshot(
 				request.snapshot,
 				request.snapshot.snapshotId,
 			);
@@ -870,16 +851,16 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 			if (!(error instanceof PersistenceError) || error.code !== "NOT_FOUND")
 				throw error;
 		}
-		const result = await view.memory.saveSnapshot(request);
+		const result = await view[1].saveSnapshot(request);
 		if (prior !== null) return clone(result);
 		await this.#commitOperation({
-			bundle: view.bundle,
+			bundle: view[0],
 			operation: {
 				kind: "snapshot",
-				ordinal: view.bundle.stream.operationCount,
+				ordinal: view[0].stream.operationCount,
 				request: clone(request),
 			},
-			head: view.bundle.stream.head,
+			head: view[0].stream.head,
 			write: (transaction) =>
 				transaction.objectStore(GENERATED_AUTHORITY_STORES.snapshots).put({
 					key: recordKey(request.snapshot, request.snapshot.snapshotId),
@@ -897,8 +878,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		snapshotId: string,
 	): Promise<AuthoritySnapshotRecord> {
 		const view = await this.#validatedView(scope);
-		const expected = await view.memory.loadSnapshot(scope, snapshotId);
-		const actual = view.bundle.snapshots.find(
+		const expected = await view[1].loadSnapshot(scope, snapshotId);
+		const actual = view[0].snapshots.find(
 			(snapshot) => snapshot.snapshotId === snapshotId,
 		);
 		if (actual === undefined || !equal(actual, expected))
@@ -910,8 +891,8 @@ export class BrowserVersionedPersistence implements VersionedPersistencePort {
 		scope: AuthorityScope,
 	): Promise<AuthoritySnapshotRecord> {
 		const view = await this.#validatedView(scope);
-		const expected = await view.memory.loadLatestSnapshot(scope);
-		const actual = view.bundle.snapshots.find(
+		const expected = await view[1].loadLatestSnapshot(scope);
+		const actual = view[0].snapshots.find(
 			(snapshot) => snapshot.snapshotId === expected.snapshotId,
 		);
 		if (actual === undefined || !equal(actual, expected))

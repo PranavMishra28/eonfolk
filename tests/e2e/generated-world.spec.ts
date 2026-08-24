@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+import { parseWorldFocusHref } from "../../apps/web/src/research-navigation";
+
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
 
@@ -2093,6 +2095,11 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await page
 		.getByRole("button", { name: "Return at the next decision boundary" })
 		.click();
+	const alternateResident = page.locator(
+		'ul.v1-presence-roster button[data-citizen-id="citizen-02"]',
+	);
+	await alternateResident.click();
+	await expect(alternateResident).toHaveAttribute("aria-pressed", "true");
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: sponsorTransitionTimeout,
@@ -2101,6 +2108,18 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	await expect(
 		page.getByRole("button", { name: "Review Chronicle" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	await expect(
+		page.getByRole("heading", { name: "Share this factual trace" }),
+	).toBeVisible();
+	await page.getByText("Inspect Chronicle evidence").click();
+	const chronicleCitizenHref = await page
+		.getByRole("link", { name: "Citizen" })
+		.first()
+		.getAttribute("href");
+	expect(parseWorldFocusHref(chronicleCitizenHref ?? "")).toEqual({
+		kind: "citizen",
+		citizenId: "citizen-01",
+	});
 	await expect(page.getByRole("status")).toContainText("public allegation");
 	await expect(page.getByRole("status")).toContainText("recorded trust");
 	const committed = await inspectGeneratedCheckpoint(page);

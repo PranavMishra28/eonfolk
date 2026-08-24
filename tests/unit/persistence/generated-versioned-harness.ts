@@ -260,40 +260,42 @@ async function verifyValidatedAuthoritySession(): Promise<
 	const created = await genesis();
 	await port.initialize(created);
 	const readsBefore = boundary.readHits;
-	await port.beginValidatedAuthoritySession(SCOPE);
-	await port.loadHead(SCOPE);
-	await port.loadLatestSnapshot(SCOPE);
-	await port.getEventRange({
-		...SCOPE,
-		fromSequenceInclusive: 1,
-		toSequenceExclusive: 1,
-	});
 	const firstRequest = await append(created.head, 1);
-	boundary.point = "transaction-abort";
 	let preCommitFailureCaught = false;
-	try {
-		await port.appendEventBatch(firstRequest);
-	} catch {
-		preCommitFailureCaught = true;
-	}
-	const revisionAfterPreCommitFailure = (await port.loadHead(SCOPE)).revision;
-	crash.point = "authority-append:after-commit";
 	let postCommitFailureCaught = false;
-	try {
-		await port.appendEventBatch(firstRequest);
-	} catch {
-		postCommitFailureCaught = true;
-	}
-	const headAfterPostCommitFailure = await port.loadHead(SCOPE);
-	const secondRequest = await append(headAfterPostCommitFailure, 2);
-	await port.appendEventBatch(secondRequest);
-	await port.getAppendReceipt(SCOPE, firstRequest.appendId);
-	const sessionEvents = await port.getEventRange({
-		...SCOPE,
-		fromSequenceInclusive: 1,
-		toSequenceExclusive: 3,
+	let revisionAfterPreCommitFailure = -1;
+	let revisionAfterPostCommitFailure = -1;
+	const sessionEvents = await port.session(SCOPE, async () => {
+		await port.loadHead(SCOPE);
+		await port.loadLatestSnapshot(SCOPE);
+		await port.getEventRange({
+			...SCOPE,
+			fromSequenceInclusive: 1,
+			toSequenceExclusive: 1,
+		});
+		boundary.point = "transaction-abort";
+		try {
+			await port.appendEventBatch(firstRequest);
+		} catch {
+			preCommitFailureCaught = true;
+		}
+		revisionAfterPreCommitFailure = (await port.loadHead(SCOPE)).revision;
+		crash.point = "authority-append:after-commit";
+		try {
+			await port.appendEventBatch(firstRequest);
+		} catch {
+			postCommitFailureCaught = true;
+		}
+		const headAfterPostCommitFailure = await port.loadHead(SCOPE);
+		revisionAfterPostCommitFailure = headAfterPostCommitFailure.revision;
+		await port.appendEventBatch(await append(headAfterPostCommitFailure, 2));
+		await port.getAppendReceipt(SCOPE, firstRequest.appendId);
+		return await port.getEventRange({
+			...SCOPE,
+			fromSequenceInclusive: 1,
+			toSequenceExclusive: 3,
+		});
 	});
-	await port.endValidatedAuthoritySession(SCOPE);
 	const fullValidationReads = boundary.readHits - readsBefore;
 	port.close();
 
@@ -313,32 +315,32 @@ async function verifyValidatedAuthoritySession(): Promise<
 	const sessionPort = await BrowserVersionedPersistence.open({
 		databaseName: SESSION_DATABASE,
 	});
-	await sessionPort.beginValidatedAuthoritySession(SCOPE);
 	let activeSessionCloseCode: string | null = null;
-	try {
-		sessionPort.close();
-	} catch (error) {
-		activeSessionCloseCode = (error as PersistenceError).code;
-	}
-	const secondTab = await BrowserVersionedPersistence.open({
-		databaseName: SESSION_DATABASE,
-	});
-	const secondTabHead = await secondTab.loadHead(SCOPE);
-	const secondTabFenced = await secondTab.acquireWriterFence(
-		SCOPE,
-		secondTabHead.fencingToken,
-	);
-	secondTab.close();
 	let concurrentWriteCode: string | null = null;
-	try {
-		const sessionHead = await sessionPort.loadHead(SCOPE);
-		await sessionPort.appendEventBatch(await append(sessionHead, 3));
-	} catch (error) {
-		concurrentWriteCode = (error as PersistenceError).code;
-	}
 	let concurrentChangeCode: string | null = null;
+	let secondTabFencingToken = -1;
 	try {
-		await sessionPort.endValidatedAuthoritySession(SCOPE);
+		await sessionPort.session(SCOPE, async () => {
+			try {
+				sessionPort.close();
+			} catch (error) {
+				activeSessionCloseCode = (error as PersistenceError).code;
+			}
+			const secondTab = await BrowserVersionedPersistence.open({
+				databaseName: SESSION_DATABASE,
+			});
+			const secondTabHead = await secondTab.loadHead(SCOPE);
+			secondTabFencingToken = (
+				await secondTab.acquireWriterFence(SCOPE, secondTabHead.fencingToken)
+			).fencingToken;
+			secondTab.close();
+			try {
+				const sessionHead = await sessionPort.loadHead(SCOPE);
+				await sessionPort.appendEventBatch(await append(sessionHead, 3));
+			} catch (error) {
+				concurrentWriteCode = (error as PersistenceError).code;
+			}
+		});
 	} catch (error) {
 		concurrentChangeCode = (error as PersistenceError).code;
 	}
@@ -349,22 +351,24 @@ async function verifyValidatedAuthoritySession(): Promise<
 	const corruptionPort = await BrowserVersionedPersistence.open({
 		databaseName: SESSION_DATABASE,
 	});
-	await corruptionPort.beginValidatedAuthoritySession(SCOPE);
-	await corruptEvent(SESSION_DATABASE, 1);
-	const corruptedMaterialBeforeWrite =
-		await inspectDatabaseMaterial(SESSION_DATABASE);
 	let corruptionWriteCode: string | null = null;
-	try {
-		const corruptionHead = await corruptionPort.loadHead(SCOPE);
-		await corruptionPort.appendEventBatch(await append(corruptionHead, 3));
-	} catch (error) {
-		corruptionWriteCode = (error as PersistenceError).code;
-	}
-	const corruptedMaterialAfterWrite =
-		await inspectDatabaseMaterial(SESSION_DATABASE);
+	let corruptedMaterialBeforeWrite = "";
+	let corruptedMaterialAfterWrite = "different";
 	let corruptionCode: string | null = null;
 	try {
-		await corruptionPort.endValidatedAuthoritySession(SCOPE);
+		await corruptionPort.session(SCOPE, async () => {
+			await corruptEvent(SESSION_DATABASE, 1);
+			corruptedMaterialBeforeWrite =
+				await inspectDatabaseMaterial(SESSION_DATABASE);
+			try {
+				const corruptionHead = await corruptionPort.loadHead(SCOPE);
+				await corruptionPort.appendEventBatch(await append(corruptionHead, 3));
+			} catch (error) {
+				corruptionWriteCode = (error as PersistenceError).code;
+			}
+			corruptedMaterialAfterWrite =
+				await inspectDatabaseMaterial(SESSION_DATABASE);
+		});
 	} catch (error) {
 		corruptionCode = (error as PersistenceError).code;
 	}
@@ -381,7 +385,7 @@ async function verifyValidatedAuthoritySession(): Promise<
 		preCommitFailureCaught,
 		revisionAfterPreCommitFailure,
 		postCommitFailureCaught,
-		revisionAfterPostCommitFailure: headAfterPostCommitFailure.revision,
+		revisionAfterPostCommitFailure,
 		persistedRevision: persistedHead.revision,
 		persistedEvents:
 			persistedEvents.length === sessionEvents.length
@@ -392,7 +396,7 @@ async function verifyValidatedAuthoritySession(): Promise<
 		concurrentWriteCode,
 		concurrentChangeCode,
 		postConcurrentFencingToken:
-			postConcurrentFencingToken === secondTabFenced.fencingToken
+			postConcurrentFencingToken === secondTabFencingToken
 				? postConcurrentFencingToken
 				: -1,
 		corruptionCode,

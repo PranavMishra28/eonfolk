@@ -50,29 +50,21 @@ interface GeneratedSponsorInput {
 	readonly intent?: "verify-reserve" | "accuse-publicly";
 }
 
+function sponsorFail(code: string): never {
+	throw new Error(`SP:${code}`);
+}
+
 export interface GeneratedSponsorshipResult {
-	readonly citizenId: string;
-	readonly eventIds: readonly string[];
 	readonly idempotent: boolean;
 	readonly chronicleTrace: string;
 	readonly authorityStateHash: string;
-	readonly civilizationStateHash: string;
-	readonly revision: number;
 	readonly phase: "sponsored" | "abstained" | "counseled" | "resolved";
 	readonly activeIntent: "verify-reserve" | "accuse-publicly" | null;
-	readonly disposition:
-		| "accepted"
-		| "delayed"
-		| "rejected"
-		| "reinterpreted"
-		| null;
 	readonly shareArtifact: string | null;
-	readonly simulationTime: number;
 	readonly chronicleBeats: readonly {
 		readonly text: string;
 		readonly relation: string;
 		readonly evidenceEventIds: readonly string[];
-		readonly citizenId: string;
 	}[];
 }
 
@@ -90,7 +82,7 @@ export function generatedSponsorChronicleRange(input: {
 		input.durableLastSequence < input.snapshotBaseSequence ||
 		input.durableLastSequence === Number.MAX_SAFE_INTEGER
 	)
-		throw new Error("SP:INVALID_CHRONICLE_RANGE");
+		sponsorFail("INVALID_CHRONICLE_RANGE");
 	return Object.freeze({
 		fromSequenceInclusive: input.snapshotBaseSequence + 1,
 		toSequenceExclusive: input.durableLastSequence + 1,
@@ -104,8 +96,7 @@ export function generatedSponsorChronicleBaseSnapshotId(
 		latestSnapshotId,
 	);
 	const baseSnapshotId = match?.[1];
-	if (baseSnapshotId === undefined)
-		throw new Error("SP:INVALID_CHRONICLE_SNAPSHOT");
+	if (baseSnapshotId === undefined) sponsorFail("INVALID_CHRONICLE_SNAPSHOT");
 	return baseSnapshotId;
 }
 
@@ -118,59 +109,20 @@ export async function sponsorGeneratedCitizen(
 	input: GeneratedSponsorInput,
 ): Promise<GeneratedSponsorshipResult> {
 	const port = await BrowserVersionedPersistence.open({
-		...(input.indexedDbFactory === undefined
-			? {}
-			: { factory: input.indexedDbFactory }),
+		factory: input.indexedDbFactory,
 		databaseName: input.databaseName,
 	});
 	const scope = {
 		runId: GENERATED_CIVILIZATION_RUN_ID,
 		regionId: input.regionId,
 	};
-	let sessionStarted = false;
-	let bodyFailed = false;
-	let bodyError: unknown;
-	let result: GeneratedSponsorshipResult | null = null;
 	try {
-		await port.beginValidatedAuthoritySession(scope);
-		sessionStarted = true;
-		result = await sponsorGeneratedCitizenInValidatedSession(
-			input,
-			port,
-			scope,
+		return await port.session(scope, async () =>
+			sponsorGeneratedCitizenInValidatedSession(input, port, scope),
 		);
-	} catch (error) {
-		bodyFailed = true;
-		bodyError = error;
-	}
-	let finalizationError: unknown;
-	try {
-		if (sessionStarted) await port.endValidatedAuthoritySession(scope);
-	} catch (error) {
-		finalizationError = error;
-	}
-	try {
+	} finally {
 		port.close();
-	} catch (error) {
-		finalizationError =
-			finalizationError === undefined
-				? error
-				: new AggregateError(
-						[finalizationError, error],
-						"SP:SESSION_FINALIZATION_FAILED",
-					);
 	}
-	if (bodyFailed) {
-		if (finalizationError !== undefined)
-			throw new AggregateError(
-				[bodyError, finalizationError],
-				"SP:BODY_AND_SESSION_FINALIZATION_FAILED",
-			);
-		throw bodyError;
-	}
-	if (finalizationError !== undefined) throw finalizationError;
-	if (result === null) throw new Error("SP:SPONSOR_RESULT_MISSING");
-	return result;
 }
 
 async function sponsorGeneratedCitizenInValidatedSession(
@@ -186,8 +138,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 		snapshotId: initialSnapshot.snapshotId,
 		toSequenceExclusive: initialHead.lastSequence + 1,
 	});
-	if (initialReplay.state.civilization === null)
-		throw new Error("SP:NO_CIVILIZATION");
+	if (initialReplay.state.civilization === null) sponsorFail("NO_CIVILIZATION");
 	const initialCivilization = initialReplay.state
 		.civilization as unknown as CivilizationState;
 	const unresolved = Object.values(initialCivilization.counsels)
@@ -203,22 +154,19 @@ async function sponsorGeneratedCitizenInValidatedSession(
 		input.intent !== undefined &&
 		unresolved?.intent !== input.intent
 	)
-		throw new Error("SP:UNRESOLVED_COUNSEL_MISMATCH");
+		sponsorFail("UNRESOLVED_COUNSEL_MISMATCH");
 	const intent = unresolved?.intent ?? input.intent ?? "verify-reserve";
 	const interventionId = `intervention:${input.citizenId}:${intent}`;
 	if (input.step === "resolve" && unresolved?.interventionId !== interventionId)
-		throw new Error("SP:NO_UNRESOLVED_COUNSEL");
+		sponsorFail("NO_UNRESOLVED_COUNSEL");
 	const decisionId = `decision:${scope.runId}:${input.regionId}:${interventionId}`;
 	const proposalId = `proposal:${scope.runId}:${input.regionId}:${interventionId}`;
-	const committedEvents: CivilizationSponsorEventEnvelope[] = [];
-	const eventRevisions: Record<string, number> = {};
 	let allIdempotent = true;
 
 	const commit = async (
 		commandId: string,
-		principal: WorldCommand["principal"],
 		payloadInput:
-			| SponsorPayload
+			| Exclude<SponsorPayload, { readonly kind: "ResolveCounsel" }>
 			| {
 					readonly kind: "derive-resolution";
 					readonly citizenId: string;
@@ -243,8 +191,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			snapshotId: snapshot.snapshotId,
 			toSequenceExclusive: head.lastSequence + 1,
 		});
-		if (replay.state.civilization === null)
-			throw new Error("SP:NO_CIVILIZATION");
+		if (replay.state.civilization === null) sponsorFail("NO_CIVILIZATION");
 		const civilization = replay.state
 			.civilization as unknown as CivilizationState;
 		if (prior !== null) {
@@ -277,7 +224,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				receipt.outcome !== "accepted" ||
 				receipt.payloadFingerprint !== (await payloadFingerprint(retryPayload))
 			)
-				throw new Error("SP:IDEMPOTENCY_COLLISION");
+				sponsorFail("IDEMPOTENCY_COLLISION");
 			return civilization;
 		}
 
@@ -292,7 +239,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				interventionId: payloadInput.interventionId,
 				decisionId: payloadInput.decisionId,
 			});
-			if (context === null) throw new Error("SP:NO_DECISION_CONTEXT");
+			if (context === null) sponsorFail("NO_DECISION_CONTEXT");
 			const chosen = await standardBrain(context, {
 				proposalId: payloadInput.proposalId,
 				prngState: await seedPrng(
@@ -302,7 +249,11 @@ async function sponsorGeneratedCitizenInValidatedSession(
 					payloadInput.decisionId,
 				),
 			});
-			const action =
+			const action:
+				| "verify-reserve"
+				| "accuse-publicly"
+				| "follow-plan"
+				| null =
 				chosen.proposal.action.kind === "VerifyReserve"
 					? "verify-reserve"
 					: chosen.proposal.action.kind === "AccusePublicly"
@@ -310,7 +261,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 						: chosen.proposal.action.kind === "FollowStandingPlan"
 							? "follow-plan"
 							: null;
-			if (action === null) throw new Error("SP:UNSUPPORTED_BRAIN_ACTION");
+			if (action === null) sponsorFail("UNSUPPORTED_BRAIN_ACTION");
 			payload = {
 				kind: "ResolveCounsel",
 				citizenId: payloadInput.citizenId,
@@ -350,62 +301,18 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			commandId,
 			payloadFingerprint: fingerprint,
 			expectedRevision: civilization.revision,
-			principal,
+			principal:
+				payloadInput.kind === "derive-resolution"
+					? { kind: "citizen", principalId: payloadInput.citizenId }
+					: {
+							kind: "patron",
+							principalId: "patron:local",
+							beneficiaryCitizenId: input.citizenId,
+						},
 			runId: scope.runId,
 			regionId: scope.regionId,
 			payload,
 		};
-		if (payload.kind === "ResolveCounsel" && resolution === undefined) {
-			const context = await buildCivilizationCounselDecisionContext({
-				state: civilization,
-				runId: scope.runId,
-				regionId: scope.regionId,
-				citizenId: payload.citizenId,
-				interventionId: payload.interventionId ?? "",
-				decisionId: payload.decisionId,
-			});
-			if (context === null) throw new Error("SP:CONTEXT_REBUILD_FAILED");
-			const chosen = await standardBrain(context, {
-				proposalId: payload.proposalId,
-				prngState: await seedPrng(
-					bytesFromHex(context.contextHash, 32),
-					"civilization-sponsor",
-					payload.citizenId,
-					payload.decisionId,
-				),
-			});
-			const expectedAction =
-				chosen.proposal.action.kind === "VerifyReserve"
-					? "verify-reserve"
-					: chosen.proposal.action.kind === "AccusePublicly"
-						? "accuse-publicly"
-						: chosen.proposal.action.kind === "FollowStandingPlan"
-							? "follow-plan"
-							: null;
-			if (expectedAction === null || expectedAction !== payload.action)
-				throw new Error("SP:DECISION_BINDING_FAILED");
-			resolution = {
-				decisionId: payload.decisionId,
-				context,
-				proposal: chosen.proposal,
-				decisionRecord: await createCognitiveDecisionRecord({
-					decisionId: payload.decisionId,
-					decisionBoundaryId: `boundary:${payload.decisionId}`,
-					wholePreStateHash: await stateHash(civilization),
-					context,
-					proposal: chosen.proposal,
-					failureCode: null,
-					validator: {
-						stage: "authorization",
-						outcome: "accepted",
-						reason: "Application validated deterministic Brain proposal",
-					},
-					proposedCommandId: commandId,
-					receiptRef: null,
-					acceptedEventInterval: null,
-				}),
-			};
-		}
 		const transition = await prepareCivilizationSponsorTransition({
 			state: civilization,
 			runId: scope.runId,
@@ -426,7 +333,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			fencingToken: head.fencingToken,
 			command,
 			authoritativeHistory: [],
-			...(resolution === undefined ? {} : { resolution }),
+			resolution,
 		});
 		if (!transition.accepted || transition.events[0] === undefined) {
 			const rejection = await createCivilizationSponsorRejectionAppend({
@@ -436,8 +343,8 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				decisionRecord: transition.committedDecisionRecord,
 			});
 			await port.recordRejectedCommand(rejection.request);
-			throw new Error(
-				`SP:COMMAND_REJECTED:${String(transition.receipt.rejectionCode)}`,
+			sponsorFail(
+				`COMMAND_REJECTED:${String(transition.receipt.rejectionCode)}`,
 			);
 		}
 		const event = transition.events[0];
@@ -449,62 +356,36 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			decisionRecord: transition.committedDecisionRecord,
 		});
 		await port.appendEventBatch(append.request);
-		committedEvents.push(event);
-		eventRevisions[event.eventId] = transition.postState.revision;
 		return transition.postState;
 	};
 
 	{
-		let finalCivilization = await commit(
-			`sponsor:${input.citizenId}`,
-			{
-				kind: "patron",
-				principalId: "patron:local",
-				beneficiaryCitizenId: input.citizenId,
-			},
-			{
-				kind: "EstablishSponsorship",
-				covenantId,
-				citizenId: input.citizenId,
-			},
-		);
+		let finalCivilization = await commit(`sponsor:${input.citizenId}`, {
+			kind: "EstablishSponsorship",
+			covenantId,
+			citizenId: input.citizenId,
+		});
 		if (input.step === "abstain") {
-			const abstentionId = `abstention:${input.citizenId}:${String(initialReplay.state.scheduler.completedDay)}`;
-			finalCivilization = await commit(
-				`abstain:${input.citizenId}:${String(initialReplay.state.scheduler.completedDay)}`,
-				{
-					kind: "patron",
-					principalId: "patron:local",
-					beneficiaryCitizenId: input.citizenId,
-				},
-				{
-					kind: "RecordPatronAbstention",
-					abstentionId,
-					citizenId: input.citizenId,
-					reason: "withhold-counsel",
-				},
-			);
+			const day = String(initialReplay.state.scheduler.completedDay);
+			const abstentionId = `abstention:${input.citizenId}:${day}`;
+			finalCivilization = await commit(`abstain:${input.citizenId}:${day}`, {
+				kind: "RecordPatronAbstention",
+				abstentionId,
+				citizenId: input.citizenId,
+				reason: "withhold-counsel",
+			});
 		}
 		if (input.step === "counsel" || input.step === "resolve") {
-			finalCivilization = await commit(
-				`counsel:${input.citizenId}:${intent}`,
-				{
-					kind: "patron",
-					principalId: "patron:local",
-					beneficiaryCitizenId: input.citizenId,
-				},
-				{
-					kind: "IssueCounsel",
-					interventionId,
-					citizenId: input.citizenId,
-					intent,
-				},
-			);
+			finalCivilization = await commit(`counsel:${input.citizenId}:${intent}`, {
+				kind: "IssueCounsel",
+				interventionId,
+				citizenId: input.citizenId,
+				intent,
+			});
 		}
 		if (input.step === "resolve") {
 			finalCivilization = await commit(
 				`resolve:${input.citizenId}:${intent}:1`,
-				{ kind: "citizen", principalId: input.citizenId },
 				{
 					kind: "derive-resolution",
 					citizenId: input.citizenId,
@@ -543,7 +424,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			}
 		}
 		const covenant = finalCivilization.sponsorships[covenantId];
-		if (covenant === undefined) throw new Error("SP:COVENANT_MISSING");
+		if (covenant === undefined) sponsorFail("COVENANT_MISSING");
 		const finalHead = await port.loadHead(scope);
 		const finalSnapshot = await port.loadLatestSnapshot(scope);
 		const finalReplay = await replayCivilizationHistory(port, {
@@ -557,7 +438,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 			(await stateHash(replayedCivilization)) !==
 			(await stateHash(finalCivilization))
 		)
-			throw new Error("SP:REPLAY_STATE_MISMATCH");
+			sponsorFail("REPLAY_STATE_MISMATCH");
 		const durableSponsorEvents: CivilizationSponsorEventEnvelope[] = [];
 		const durableEventRevisions: Record<string, number> = {};
 		const durableBoundaries: Array<{
@@ -592,9 +473,9 @@ async function sponsorGeneratedCitizenInValidatedSession(
 					parent === undefined ||
 					parent.relation !== payload.fact.causalRelation
 				)
-					throw new Error("SP:BOUNDARY_CAUSAL_BINDING");
+					sponsorFail("BOUNDARY_CAUSAL_BINDING");
 				const stored = await port.getAppendReceipt(scope, outer.appendId);
-				if (stored === null) throw new Error("SP:BOUNDARY_RECEIPT_MISSING");
+				if (stored === null) sponsorFail("BOUNDARY_RECEIPT_MISSING");
 				durableBoundaries.push({
 					eventId: outer.eventId,
 					parentEventIds: outer.causalParents.map(({ eventId }) => eventId),
@@ -619,7 +500,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 				} | null
 			)?.resultingRevision;
 			if (!Number.isSafeInteger(resultingRevision))
-				throw new Error("SP:SPONSOR_RECEIPT_REVISION");
+				sponsorFail("SPONSOR_RECEIPT_REVISION");
 			durableSponsorEvents.push(protocolEvent);
 			durableEventRevisions[protocolEvent.eventId] =
 				resultingRevision as number;
@@ -665,18 +546,14 @@ async function sponsorGeneratedCitizenInValidatedSession(
 						right.sourceEventId.localeCompare(left.sourceEventId),
 				)[0];
 		const resolution = selectedCounsel?.resolution;
-		const phase =
-			activeUnresolved !== undefined
-				? ("counseled" as const)
-				: resolution !== null && resolution !== undefined
-					? ("resolved" as const)
-					: input.step === "abstain"
-						? ("abstained" as const)
-						: ("sponsored" as const);
-		const shareArtifact = phase === "resolved" ? chronicle.storyCard : null;
+		const phase = activeUnresolved
+			? ("counseled" as const)
+			: resolution != null
+				? ("resolved" as const)
+				: input.step === "abstain"
+					? ("abstained" as const)
+					: ("sponsored" as const);
 		return {
-			citizenId: input.citizenId,
-			eventIds: committedEvents.map(({ eventId }) => eventId),
 			idempotent: allIdempotent,
 			chronicleTrace:
 				chronicle.storyCard ||
@@ -684,19 +561,10 @@ async function sponsorGeneratedCitizenInValidatedSession(
 					? "Counsel already recorded."
 					: "Sponsorship already recorded."),
 			authorityStateHash: finalReplay.stateHash,
-			civilizationStateHash: await stateHash(replayedCivilization),
-			revision: replayedCivilization.revision,
 			phase,
 			activeIntent: activeUnresolved?.intent ?? selectedCounsel?.intent ?? null,
-			disposition: resolution?.disposition ?? null,
-			shareArtifact,
-			simulationTime: finalReplay.state.scheduler.simulationTime,
-			chronicleBeats: chronicle.beats.map((beat) => ({
-				text: beat.text,
-				relation: beat.relation,
-				evidenceEventIds: beat.evidenceEventIds,
-				citizenId: input.citizenId,
-			})),
+			shareArtifact: phase === "resolved" ? chronicle.storyCard : null,
+			chronicleBeats: chronicle.beats,
 		};
 	}
 }

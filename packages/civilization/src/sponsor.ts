@@ -365,7 +365,7 @@ export interface CivilizationSponsorTransitionInput {
 	/** Contiguous, already-applied suffix that ends at state. */
 	readonly authoritativeHistory: readonly CivilizationAuthorityEventEnvelope[];
 	/** Application-produced proposal and audit record; Reality reconstructs and validates all authority inputs. */
-	readonly resolution?: ValidatedStandardBrainResolution;
+	readonly resolution?: ValidatedStandardBrainResolution | undefined;
 }
 
 export interface CivilizationSponsorTransition {
