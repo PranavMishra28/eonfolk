@@ -280,7 +280,7 @@ jobs:
         with:
           name: v1-browser-failure-${{ github.run_id }}
           path: |
-            tmp/riverhold-playwright
+            tmp/dawnmere-playwright
             tmp/v1-browser-evidence
             tmp/eonfolk-verification-pr.json
           if-no-files-found: ignore
@@ -377,7 +377,7 @@ jobs:
           name: v1-extended-failure-${{ github.run_id }}
           path: |
             tmp/eonfolk-verification-portable-extended.json
-            tmp/riverhold-playwright
+            tmp/dawnmere-playwright
             tmp/v1-browser-evidence
           if-no-files-found: ignore
           retention-days: 14
