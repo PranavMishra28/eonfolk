@@ -32,15 +32,8 @@ async function setup() {
 
 function validArtifact() {
 	return JSON.stringify({
-		schemaVersion: "eonfolk-model-choice-v1",
+		schemaVersion: "eonfolk-model-choice-v2",
 		actionId: "action-verify-reserve",
-		publicJustification:
-			"I will verify the reserve before making a public accusation.",
-		visibleRecordIdsRead: ["observation-ledger-mismatch"],
-		relationshipIdsRead: ["relationship-mara-toma"],
-		valueIdsRead: [],
-		commitmentIdsRead: [],
-		counselDisposition: "accepted",
 	});
 }
 
@@ -83,16 +76,18 @@ describe("closed model brain adapter", () => {
 		await expect(brainFor(output).propose(context)).rejects.toThrow();
 	});
 
-	it("cannot smuggle unread or hidden record identifiers through validation", async () => {
+	it("derives evidence references and public copy from the selected catalog entry", async () => {
 		const { context } = await setup();
-		const output = validArtifact().replace(
-			"observation-ledger-mismatch",
-			"hidden-toma-secret-mara",
+		const proposal = await brainFor(validArtifact()).propose(context);
+		expect(proposal.explanation.visibleRecordIdsRead).toEqual(
+			context.actionCatalog.find(
+				(entry) => entry.actionId === "action-verify-reserve",
+			)?.evidenceRecordIds,
 		);
-		const proposal = await brainFor(output).propose(context);
-		expect(await validateIntentProposal(context, proposal)).toBe(
-			"ACTION_UNAVAILABLE",
+		expect(proposal.publicJustification).toBe(
+			"This choice delays a public conclusion.",
 		);
+		expect(JSON.stringify(proposal)).not.toContain("hidden-toma-secret-mara");
 	});
 
 	it("falls back deterministically for malformed model output", async () => {

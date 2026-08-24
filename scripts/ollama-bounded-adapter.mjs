@@ -7,16 +7,7 @@ const MAX_OLLAMA_BODY_BYTES = 65_536;
 const MAX_OLLAMA_RESPONSE_BYTES = 65_536;
 const MAX_CHOICE_BYTES = 16_384;
 const OLLAMA_PATH = "/api/chat";
-const CHOICE_KEYS = [
-	"actionId",
-	"commitmentIdsRead",
-	"counselDisposition",
-	"publicJustification",
-	"relationshipIdsRead",
-	"schemaVersion",
-	"valueIdsRead",
-	"visibleRecordIdsRead",
-].sort();
+const CHOICE_KEYS = ["actionId", "schemaVersion"].sort();
 const TELEMETRY_SCHEMA_VERSION = "eonfolk-local-model-telemetry-v1";
 const ERROR_SCHEMA_VERSION = "eonfolk-local-model-error-v1";
 
@@ -64,15 +55,6 @@ function safeString(value, maximum = 256) {
 			const code = character.codePointAt(0);
 			return code <= 0x1f || code === 0x7f;
 		})
-	);
-}
-
-function uniqueSubset(value, allowed, maximum) {
-	return (
-		Array.isArray(value) &&
-		value.length <= maximum &&
-		new Set(value).size === value.length &&
-		value.every((item) => safeString(item, 256) && allowed.has(item))
 	);
 }
 
@@ -128,14 +110,6 @@ async function readInvocation() {
 	return envelope;
 }
 
-function arraySchema(ids, maximum) {
-	return {
-		type: "array",
-		items: ids.length === 0 ? { type: "string" } : { enum: ids },
-		maxItems: Math.min(maximum, ids.length),
-	};
-}
-
 function prepareOllamaRequest(envelope) {
 	const choiceRequest = envelope.choiceRequest;
 	const context = choiceRequest.context;
@@ -157,47 +131,13 @@ function prepareOllamaRequest(envelope) {
 		new Set(actionIds).size !== actionIds.length
 	)
 		fail("request-invalid");
-	const visibleRecordIds = context.visibleRecords.map(
-		(record) => record?.recordId,
-	);
-	const relationshipIds = context.relationships.map(
-		(relationship) => relationship?.relationshipId,
-	);
-	const valueIds = context.values.map((value) => value?.valueId);
-	for (const ids of [visibleRecordIds, relationshipIds, valueIds]) {
-		if (
-			ids.some((id) => !safeString(id, 256)) ||
-			new Set(ids).size !== ids.length
-		)
-			fail("request-invalid");
-	}
-	const commitmentIds = context.visibleRecords
-		.filter((record) => record?.kind === "commitment")
-		.map((record) => record.recordId);
-	if (
-		commitmentIds.some((id) => !safeString(id, 256)) ||
-		new Set(commitmentIds).size !== commitmentIds.length
-	)
-		fail("request-invalid");
 	const schema = {
 		type: "object",
 		additionalProperties: false,
 		required: CHOICE_KEYS,
 		properties: {
-			schemaVersion: { enum: ["eonfolk-model-choice-v1"] },
+			schemaVersion: { enum: ["eonfolk-model-choice-v2"] },
 			actionId: { enum: actionIds },
-			publicJustification: {
-				type: "string",
-				minLength: 8,
-				maxLength: 180,
-			},
-			visibleRecordIdsRead: arraySchema(visibleRecordIds, 32),
-			relationshipIdsRead: arraySchema(relationshipIds, 128),
-			valueIdsRead: arraySchema(valueIds, 128),
-			commitmentIdsRead: arraySchema(commitmentIds, 32),
-			counselDisposition: {
-				enum: ["accepted", "rejected", "reinterpreted", "not-applicable"],
-			},
 		},
 	};
 	const contextPrompt = [
@@ -226,11 +166,7 @@ function prepareOllamaRequest(envelope) {
 		fail("request-oversized");
 	return {
 		actionIds: new Set(actionIds),
-		commitmentIds: new Set(commitmentIds),
-		relationshipIds: new Set(relationshipIds),
 		requestBody,
-		valueIds: new Set(valueIds),
-		visibleRecordIds: new Set(visibleRecordIds),
 	};
 }
 
@@ -317,34 +253,10 @@ function validateChoice(ollamaResponse, references) {
 		choice === null ||
 		Array.isArray(choice) ||
 		!exactKeys(choice, CHOICE_KEYS) ||
-		choice.schemaVersion !== "eonfolk-model-choice-v1"
+		choice.schemaVersion !== "eonfolk-model-choice-v2"
 	)
 		fail("choice-shape-invalid");
 	if (!references.actionIds.has(choice.actionId)) fail("choice-action-invalid");
-	if (
-		!safeString(choice.publicJustification, 180) ||
-		[...choice.publicJustification].length < 8 ||
-		!/[.!?]$/u.test(choice.publicJustification)
-	)
-		fail("choice-justification-invalid");
-	if (
-		!uniqueSubset(choice.visibleRecordIdsRead, references.visibleRecordIds, 32)
-	)
-		fail("choice-visible-references-invalid");
-	if (
-		!uniqueSubset(choice.relationshipIdsRead, references.relationshipIds, 128)
-	)
-		fail("choice-relationship-references-invalid");
-	if (!uniqueSubset(choice.valueIdsRead, references.valueIds, 128))
-		fail("choice-value-references-invalid");
-	if (!uniqueSubset(choice.commitmentIdsRead, references.commitmentIds, 32))
-		fail("choice-commitment-references-invalid");
-	if (
-		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
-			choice.counselDisposition,
-		)
-	)
-		fail("choice-disposition-invalid");
 	return {
 		choice: canonicalJson(choice),
 		telemetry: canonicalJson({

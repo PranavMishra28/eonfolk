@@ -1,5 +1,6 @@
 import {
 	COGNITION_VERSION,
+	type ActionCatalogEntry,
 	type DecisionContext,
 	domainHash,
 	type IntentProposal,
@@ -9,40 +10,22 @@ import {
 import type { IntentProposalBrainPort } from "./brain-port.js";
 import type { LocalProcessBrainContract } from "./experiment.js";
 
-export const MODEL_CHOICE_SCHEMA_VERSION = "eonfolk-model-choice-v1" as const;
-export const MODEL_PROMPT_TEMPLATE_VERSION = "eonfolk-model-prompt-v1" as const;
+export const MODEL_CHOICE_SCHEMA_VERSION = "eonfolk-model-choice-v2" as const;
+export const MODEL_PROMPT_TEMPLATE_VERSION = "eonfolk-model-prompt-v2" as const;
 
 const promptTemplate = [
 	"Choose exactly one action from actionCatalog.",
 	"Use only the supplied visible records, relationships, values, plan, and public action metadata.",
-	"Return one JSON object matching responseSchema, with no Markdown, code, private reasoning, or extra fields.",
-	"publicJustification must be 8-180 NFC characters, contain no control characters, and end with punctuation.",
+	"Return only the selected actionId in one JSON object matching responseSchema, with no Markdown, code, private reasoning, or extra fields.",
 ].join("\n");
 
 const responseSchema = {
 	type: "object",
 	additionalProperties: false,
-	required: [
-		"schemaVersion",
-		"actionId",
-		"publicJustification",
-		"visibleRecordIdsRead",
-		"relationshipIdsRead",
-		"valueIdsRead",
-		"commitmentIdsRead",
-		"counselDisposition",
-	],
+	required: ["schemaVersion", "actionId"],
 	properties: {
 		schemaVersion: { const: MODEL_CHOICE_SCHEMA_VERSION },
 		actionId: { type: "string" },
-		publicJustification: { type: "string", minLength: 8, maxLength: 180 },
-		visibleRecordIdsRead: { type: "array", items: { type: "string" } },
-		relationshipIdsRead: { type: "array", items: { type: "string" } },
-		valueIdsRead: { type: "array", items: { type: "string" } },
-		commitmentIdsRead: { type: "array", items: { type: "string" } },
-		counselDisposition: {
-			enum: ["accepted", "rejected", "reinterpreted", "not-applicable"],
-		},
 	},
 } as const;
 
@@ -96,16 +79,6 @@ export interface ModelBrainConfiguration {
 interface ModelChoice {
 	readonly schemaVersion: typeof MODEL_CHOICE_SCHEMA_VERSION;
 	readonly actionId: string;
-	readonly publicJustification: string;
-	readonly visibleRecordIdsRead: readonly string[];
-	readonly relationshipIdsRead: readonly string[];
-	readonly valueIdsRead: readonly string[];
-	readonly commitmentIdsRead: readonly string[];
-	readonly counselDisposition:
-		| "accepted"
-		| "rejected"
-		| "reinterpreted"
-		| "not-applicable";
 }
 
 function assertBoundedLabel(value: string, label: string): void {
@@ -142,15 +115,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function stringArray(value: unknown, maximum: number): value is string[] {
-	return (
-		Array.isArray(value) &&
-		value.length <= maximum &&
-		value.every((item) => typeof item === "string")
-	);
-}
-
-function parseChoice(raw: string, context: DecisionContext): ModelChoice {
+function parseChoice(raw: string): ModelChoice {
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(raw);
@@ -159,29 +124,40 @@ function parseChoice(raw: string, context: DecisionContext): ModelChoice {
 	}
 	if (
 		!isRecord(parsed) ||
-		!exactKeys(parsed, [
-			"schemaVersion",
-			"actionId",
-			"publicJustification",
-			"visibleRecordIdsRead",
-			"relationshipIdsRead",
-			"valueIdsRead",
-			"commitmentIdsRead",
-			"counselDisposition",
-		]) ||
+		!exactKeys(parsed, ["schemaVersion", "actionId"]) ||
 		parsed.schemaVersion !== MODEL_CHOICE_SCHEMA_VERSION ||
-		typeof parsed.actionId !== "string" ||
-		typeof parsed.publicJustification !== "string" ||
-		!stringArray(parsed.visibleRecordIdsRead, context.budgets.maxRecords) ||
-		!stringArray(parsed.relationshipIdsRead, 128) ||
-		!stringArray(parsed.valueIdsRead, 128) ||
-		!stringArray(parsed.commitmentIdsRead, context.budgets.maxRecords) ||
-		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
-			String(parsed.counselDisposition),
-		)
+		typeof parsed.actionId !== "string"
 	)
 		throw new TypeError("model artifact violates the closed choice schema");
 	return parsed as unknown as ModelChoice;
+}
+
+function publicJustificationFor(entry: ActionCatalogEntry): string {
+	const stake = entry.publicStakes[0];
+	if (stake === undefined || stake.length < 1)
+		throw new TypeError("selected action has no authored public stake");
+	const justification = `This choice ${stake.replace(/[.!?]+$/u, "")}.`;
+	if (
+		[...justification].length < 8 ||
+		[...justification].length > 180 ||
+		justification !== justification.normalize("NFC") ||
+		[...justification].some((character) => {
+			const code = character.codePointAt(0);
+			return code !== undefined && (code <= 0x1f || code === 0x7f);
+		})
+	)
+		throw new TypeError("selected action has no safe public justification");
+	return justification;
+}
+
+function counselDispositionFor(
+	context: DecisionContext,
+	entry: ActionCatalogEntry,
+): "accepted" | "rejected" | "reinterpreted" | "not-applicable" {
+	if (context.counselIntent === null) return "not-applicable";
+	if (entry.counselAffinity === context.counselIntent) return "accepted";
+	if (entry.counselAffinity === "neutral") return "reinterpreted";
+	return "rejected";
 }
 
 function requestFor(context: DecisionContext): ModelChoiceRequest {
@@ -216,12 +192,12 @@ export async function modelChoiceContractDigests(): Promise<{
 	readonly proposalSchemaHash: string;
 }> {
 	return {
-		promptTemplateHash: await domainHash("EONFOLK:MODEL-PROMPT-TEMPLATE:v1", {
+		promptTemplateHash: await domainHash("EONFOLK:MODEL-PROMPT-TEMPLATE:v2", {
 			version: MODEL_PROMPT_TEMPLATE_VERSION,
 			promptTemplate,
 		}),
 		proposalSchemaHash: await domainHash(
-			"EONFOLK:MODEL-CHOICE-SCHEMA:v1",
+			"EONFOLK:MODEL-CHOICE-SCHEMA:v2",
 			responseSchema,
 		),
 	};
@@ -277,7 +253,7 @@ export function createModelBrain(
 			const artifactBytes = new TextEncoder().encode(raw);
 			if (artifactBytes.byteLength > configuration.maxResponseBytes)
 				throw new RangeError("model artifact exceeds its byte budget");
-			const choice = parseChoice(raw, context);
+			const choice = parseChoice(raw);
 			const catalogEntry = context.actionCatalog.find(
 				(entry) => entry.actionId === choice.actionId,
 			);
@@ -305,19 +281,30 @@ export function createModelBrain(
 					proposalSchemaHash: contractDigests.proposalSchemaHash,
 					artifactHash,
 				},
-				publicJustification: choice.publicJustification,
+				publicJustification: publicJustificationFor(catalogEntry),
 				explanation: {
 					selectedActionId: choice.actionId,
 					templateId: "model-proposal-v1",
 					decisiveReasonCodes: [],
-					visibleRecordIdsRead: choice.visibleRecordIdsRead,
-					relationshipIdsRead: choice.relationshipIdsRead,
-					valueIdsRead: choice.valueIdsRead,
-					commitmentIdsRead: choice.commitmentIdsRead,
+					visibleRecordIdsRead: catalogEntry.evidenceRecordIds,
+					relationshipIdsRead:
+						catalogEntry.relationshipId === null
+							? []
+							: [catalogEntry.relationshipId],
+					valueIdsRead: context.values
+						.filter((value) =>
+							new Set<string>(catalogEntry.tags).has(value.valueId),
+						)
+						.map((value) => value.valueId),
+					commitmentIdsRead: catalogEntry.tags.includes("commitment")
+						? context.visibleRecords
+								.filter((record) => record.kind === "commitment")
+								.map((record) => record.recordId)
+						: [],
 					scoreTerms: [],
 					totalScore: 0,
 					tieBreak: { used: false, draw: null, tiedActionIds: [] },
-					counselDisposition: choice.counselDisposition,
+					counselDisposition: counselDispositionFor(context, catalogEntry),
 					discardedCandidates: [],
 				},
 			};

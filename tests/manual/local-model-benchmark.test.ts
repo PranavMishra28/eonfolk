@@ -1027,7 +1027,7 @@ describe("manual bounded local Model Brain benchmark", () => {
 						generation: {
 							seed: modelSeed,
 							contextTokens: 4_096,
-							maxOutputTokens: 192,
+							maxOutputTokens: 256,
 							temperatureBasisPoints: 0,
 						},
 						limits: {

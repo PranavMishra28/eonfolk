@@ -39,14 +39,7 @@ afterEach(async () => {
 function choice(overrides: Record<string, unknown> = {}): string {
 	return jcs({
 		actionId: "action-verify-reserve",
-		commitmentIdsRead: [],
-		counselDisposition: "accepted",
-		publicJustification:
-			"I will verify the reserve before making a public accusation.",
-		relationshipIdsRead: ["relationship-mara-toma"],
-		schemaVersion: "eonfolk-model-choice-v1",
-		valueIdsRead: [],
-		visibleRecordIdsRead: ["observation-ledger-mismatch"],
+		schemaVersion: "eonfolk-model-choice-v2",
 		...overrides,
 	});
 }
@@ -221,24 +214,27 @@ describe("macOS zero-egress local process transport", () => {
 		await expect(stat(markerPath)).rejects.toMatchObject({ code: "ENOENT" });
 	});
 
-	macIt("rejects hidden-fact reads at the authority gateway", async () => {
-		const test = await harness({
-			mode: "success",
-			output: choice({
-				visibleRecordIdsRead: ["hidden-toma-secret-mara"],
-			}),
-		});
-		const result = await runDecisionGateway({
-			context: test.context,
-			deterministicFallback: test.fallback,
-			primary: test.brain,
-			primaryTimeoutMilliseconds: 1_000,
-			validate: validateIntentProposal,
-		});
+	macIt(
+		"rejects attempted hidden-fact fields at the closed parser",
+		async () => {
+			const test = await harness({
+				mode: "success",
+				output: choice({
+					visibleRecordIdsRead: ["hidden-toma-secret-mara"],
+				}),
+			});
+			const result = await runDecisionGateway({
+				context: test.context,
+				deterministicFallback: test.fallback,
+				primary: test.brain,
+				primaryTimeoutMilliseconds: 1_000,
+				validate: validateIntentProposal,
+			});
 
-		expect(result.primaryFailure).toBe("invalid");
-		expect(result.selectedSource).toBe("deterministic-fallback");
-	});
+			expect(result.primaryFailure).toBe("threw");
+			expect(result.selectedSource).toBe("deterministic-fallback");
+		},
+	);
 
 	macIt("forwards cancellation and terminates the active process", async () => {
 		const test = await harness({ mode: "hang", timeoutMs: 1_000 });

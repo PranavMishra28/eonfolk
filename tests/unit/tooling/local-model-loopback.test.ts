@@ -51,14 +51,7 @@ afterEach(async () => {
 function canonicalChoice(overrides: Record<string, unknown> = {}): string {
 	return jcs({
 		actionId: "action-verify-reserve",
-		commitmentIdsRead: [],
-		counselDisposition: "accepted",
-		publicJustification:
-			"I will verify the reserve before making a public accusation.",
-		relationshipIdsRead: ["relationship-mara-toma"],
-		schemaVersion: "eonfolk-model-choice-v1",
-		valueIdsRead: [],
-		visibleRecordIdsRead: ["observation-ledger-mismatch"],
+		schemaVersion: "eonfolk-model-choice-v2",
 		...overrides,
 	});
 }
@@ -341,16 +334,12 @@ describe("bounded Ollama loopback adapter", () => {
 			const format = capturedBody?.format as {
 				properties?: {
 					actionId?: { enum?: string[] };
-					commitmentIdsRead?: { items?: { enum?: string[] } };
 				};
 			};
 			expect(format.properties?.actionId?.enum).toEqual([
 				"action-accuse-publicly",
 				"action-follow-plan",
 				"action-verify-reserve",
-			]);
-			expect(format.properties?.commitmentIdsRead?.items?.enum ?? []).toEqual([
-				"commitment-ledger-accuracy",
 			]);
 			expect(capturedBody?.messages).toEqual([
 				expect.objectContaining({ role: "system" }),
@@ -372,6 +361,24 @@ describe("bounded Ollama loopback adapter", () => {
 	);
 
 	macIt.each([
+		[
+			"unexpected model field",
+			(_request: IncomingMessage, response: ServerResponse) => {
+				response.setHeader("content-type", "application/json");
+				response.end(
+					JSON.stringify({
+						done: true,
+						message: {
+							role: "assistant",
+							content: canonicalChoice({
+								publicJustification: "untrusted copy",
+							}),
+						},
+					}),
+				);
+			},
+			"choice-shape-invalid",
+		],
 		[
 			"malformed choice",
 			(_request: IncomingMessage, response: ServerResponse) => {
