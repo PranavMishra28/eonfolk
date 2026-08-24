@@ -6,32 +6,32 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 498 files excluding this generated file; SHA-256 `e4c3f47a892a2f74c33aec1cbee1b188d0ce9ec80e07e706a8c1b981b42e891b`.
+**File-set identity:** 482 files excluding this generated file; SHA-256 `c9e41de8f935583f053ab4cac996c940732b0c402eff140bb9b59abdbcf150fd`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 63 |
+| Application code | 52 |
 | Documentation | 78 |
 | Frozen execution evidence | 35 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
-| Packages | 96 |
+| Packages | 95 |
 | Repository tooling | 31 |
 | Research and reviews | 54 |
 | Root controls and configuration | 27 |
-| Tests and fixtures | 96 |
+| Tests and fixtures | 92 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
-| `apps/web` | `@eonfolk/web` | 52 |
+| `apps/web` | `@eonfolk/web` | 41 |
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
-| `packages/persistence` | `@eonfolk/persistence` | 13 |
+| `packages/persistence` | `@eonfolk/persistence` | 12 |
 | `packages/protocol` | `@eonfolk/protocol` | 9 |
 | `packages/sim` | `@eonfolk/sim` | 10 |
 | `packages/world-presentation` | `@eonfolk/world-presentation` | 11 |
@@ -41,13 +41,13 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 7 |
+| `tests/e2e` | 6 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
 | `tests/timing` | 1 |
 | `tests/tsconfig.json` | 1 |
-| `tests/unit` | 65 |
+| `tests/unit` | 62 |
 
 ## Root controls and configuration
 
@@ -81,7 +81,7 @@
 
 ## Historical naming boundary
 
-The private tree contains 6 path names containing `Riverhold` or `Founder Alpha`. Current application paths may use Riverhold as the canonical settlement name; Founder Alpha review records are historical evidence and cannot satisfy a current V1 row in [GOAL.md](../../GOAL.md).
+The private tree contains 3 path names containing `Riverhold` or `Founder Alpha`. Current application paths may use Riverhold as the canonical settlement name; Founder Alpha review records are historical evidence and cannot satisfy a current V1 row in [GOAL.md](../../GOAL.md).
 
 The removed Founder Alpha browser application is preserved only in the private archive tag and external bundle; no production route or CI capture executes it.
 
