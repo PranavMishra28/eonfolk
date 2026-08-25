@@ -1176,9 +1176,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 		});
 	});
 
-	it("uses one immutable GOAL introduction when protected main predates it", () => {
+	it("uses one immutable GOAL structure lock when protected main predates it", () => {
 		const baseSha = "a".repeat(40);
 		const introductionSha = "b".repeat(40);
+		const structureLockSha = "c".repeat(40);
 		expect(
 			canonicalGoalCommit({
 				baseSha,
@@ -1191,9 +1192,10 @@ describe("V1 readiness and generated inventory tooling", () => {
 				baseSha,
 				baseContainsGoal: false,
 				introductionCommits: [introductionSha],
+				structureLockSha,
 			}),
-		).toBe(introductionSha);
-		for (const introductionCommits of [[], [introductionSha, "c".repeat(40)]])
+		).toBe(structureLockSha);
+		for (const introductionCommits of [[], [introductionSha, structureLockSha]])
 			expect(() =>
 				canonicalGoalCommit({
 					baseSha,

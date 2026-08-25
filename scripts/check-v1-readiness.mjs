@@ -24,6 +24,9 @@ const LEGACY_MERGE_REQUIREMENT =
 const PREMERGE_REQUIREMENT =
 	"Draft PR marked ready after exact-candidate premerge evidence";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+// This commit finalized the immutable premerge roster and separated the
+// mandatory postmerge reattestation after GOAL.md's initial draft was added.
+const GOAL_STRUCTURE_LOCK_SHA = "de1fd691ffdab82af7324bdc9c83bfa916ec4fa6";
 // Persistence/reliability is part of systems-correctness, not a seventh review.
 const REQUIRED_REVIEW_DISCIPLINES = new Set([
 	"product-game",
@@ -150,6 +153,7 @@ export function canonicalGoalCommit({
 	baseSha,
 	baseContainsGoal,
 	introductionCommits,
+	structureLockSha = null,
 }) {
 	if (!SHA_PATTERN.test(baseSha))
 		throw new Error("canonical GOAL base SHA is invalid");
@@ -162,7 +166,10 @@ export function canonicalGoalCommit({
 		throw new Error(
 			"canonical GOAL requires exactly one immutable introduction commit",
 		);
-	return introductionCommits[0];
+	if (structureLockSha === null) return introductionCommits[0];
+	if (!SHA_PATTERN.test(structureLockSha))
+		throw new Error("canonical GOAL structure lock SHA is invalid");
+	return structureLockSha;
 }
 
 function sha256(value) {
@@ -1586,10 +1593,37 @@ function main() {
 				.trim()
 				.split(/\s+/u)
 				.filter(Boolean);
+	if (
+		!baseContainsGoal &&
+		(spawnSync(
+			"git",
+			[
+				"merge-base",
+				"--is-ancestor",
+				introductionCommits[0] ?? "",
+				GOAL_STRUCTURE_LOCK_SHA,
+			],
+			{ stdio: "ignore" },
+		).status !== 0 ||
+			spawnSync(
+				"git",
+				[
+					"merge-base",
+					"--is-ancestor",
+					GOAL_STRUCTURE_LOCK_SHA,
+					testedIdentity.candidateSha,
+				],
+				{ stdio: "ignore" },
+			).status !== 0)
+	)
+		throw new Error(
+			"canonical GOAL structure lock is outside the candidate ancestry",
+		);
 	const canonicalGoalSha = canonicalGoalCommit({
 		baseSha: testedIdentity.baseSha,
 		baseContainsGoal,
 		introductionCommits,
+		structureLockSha: baseContainsGoal ? null : GOAL_STRUCTURE_LOCK_SHA,
 	});
 	const canonicalGoalSource = execFileSync(
 		"git",
