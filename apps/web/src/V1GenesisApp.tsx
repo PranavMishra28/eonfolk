@@ -198,6 +198,37 @@ function WorldLoading() {
 	);
 }
 
+function WorldAuthorityShell() {
+	return (
+		<main
+			className="v1-world"
+			data-world-id="eonfolk-genesis-world-v1"
+			aria-busy="true"
+		>
+			<header className="v1-world-header">
+				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
+					<EonfolkMark label="" />
+					<span>EONFOLK</span>
+				</a>
+				<div className="v1-world-title">
+					<p className="v1-kicker">A LIVING SETTLEMENT</p>
+					<h1>Opening canonical local space</h1>
+					<p>The world identity is ready while local authority catches up.</p>
+				</div>
+				<nav className="v1-view-controls" aria-label="World view">
+					<button type="button" disabled>
+						Embodied
+					</button>
+					<button type="button">World in words</button>
+					<button type="button" disabled>
+						Settlements
+					</button>
+				</nav>
+			</header>
+		</main>
+	);
+}
+
 function WorldError({
 	error,
 	fault = null,
@@ -1806,7 +1837,8 @@ export function V1GenesisApp() {
 		window.dispatchEvent(new Event("eonfolk-authority-ready"));
 	}, [experience]);
 	if (error !== null) return <WorldError error={error} fault={fault} />;
-	if (fault === undefined || experience === null) return <WorldLoading />;
+	if (fault === undefined) return <WorldLoading />;
+	if (experience === null) return <WorldAuthorityShell />;
 	return (
 		<GeneratedWorld
 			experience={experience}

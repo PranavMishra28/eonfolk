@@ -79,6 +79,8 @@ describe("bounded world-presence pass", () => {
 		expect(main).toContain('className="v1-genesis-loading"');
 		expect(app).toContain("eonfolk-authority-ready");
 		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
+		expect(app).toContain("WorldAuthorityShell");
+		expect(app).toContain('data-world-id="eonfolk-genesis-world-v1"');
 		expect(vite).toContain("webglOnlyPlayCanvasReact()");
 		expect(vite).toContain("WebglGraphicsDevice");
 		expect(vite).not.toContain("WebgpuGraphicsDevice");
