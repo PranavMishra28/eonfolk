@@ -4,7 +4,9 @@ import { request as httpRequest } from "node:http";
 
 const MAX_FRAME_BYTES = 16_384;
 const MAX_OLLAMA_BODY_BYTES = 65_536;
-const MAX_OLLAMA_RESPONSE_BYTES = 65_536;
+// /api/show for gpt-oss includes tensor metadata (~70 KiB). Choice content stays
+// capped separately at MAX_CHOICE_BYTES.
+const MAX_OLLAMA_RESPONSE_BYTES = 262_144;
 const MAX_CHOICE_BYTES = 16_384;
 const OLLAMA_PATH = "/api/chat";
 const OLLAMA_SHOW_PATH = "/api/show";
@@ -162,7 +164,7 @@ function prepareOllamaRequest(envelope) {
 			temperature: (envelope.generation?.temperatureBasisPoints ?? 0) / 10_000,
 		},
 		stream: false,
-		think: false,
+		think: "low",
 	});
 	if (Buffer.byteLength(requestBody, "utf8") > MAX_OLLAMA_BODY_BYTES)
 		fail("request-oversized");

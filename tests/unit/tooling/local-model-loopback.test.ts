@@ -347,7 +347,7 @@ describe("bounded Ollama loopback adapter", () => {
 			expect(capturedBody).toMatchObject({
 				model: "fixture-model",
 				stream: false,
-				think: false,
+				think: "low",
 			});
 			const format = capturedBody?.format as {
 				properties?: {
@@ -435,7 +435,7 @@ describe("bounded Ollama loopback adapter", () => {
 			"oversized response",
 			(_request: IncomingMessage, response: ServerResponse) => {
 				response.setHeader("content-type", "application/json");
-				response.end(JSON.stringify({ padding: "x".repeat(70_000) }));
+				response.end(JSON.stringify({ padding: "x".repeat(300_000) }));
 			},
 			"response-oversized",
 		],
