@@ -2,34 +2,13 @@
 	"schemaVersion": "eonfolk-v1-structured-review-v3",
 	"reviewId": "V1-RV-COGNITION",
 	"discipline": "cognition-eval",
-	"reviewerAgentId": "frozen-cognition-eval-reviewer",
-	"reviewerSessionId": "frozen-cognition-eval-9aa568b",
-	"sourceSha": "9aa568b8d0b9a3bee6d522468f9d3928fced5820",
-	"completedAt": "2026-08-24T18:32:00.000Z",
-	"conclusion": "FINDINGS",
+	"reviewerAgentId": "eonfolk.v1.reviewer.cognition-eval.3b07af7",
+	"reviewerSessionId": "eonfolk.v1.session.cognition-eval.2026-08-25T09:15:00Z",
+	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
+	"completedAt": "2026-08-25T09:15:00.000Z",
+	"conclusion": "NO_P0_P1",
 	"findings": {
 		"p0": [],
-		"p1": [
-			{
-				"id": "V1-RV-COGNITION-P1-001",
-				"title": "Standard Brain authorization accepts substitutions",
-				"narrative": "The validator can accept a forged but legal alternative instead of recomputing and authorizing the exact deterministic proposal selected by Standard Brain."
-			},
-			{
-				"id": "V1-RV-COGNITION-P1-002",
-				"title": "Accepted Model Brain fails at scheduler boundary",
-				"narrative": "The benchmark exercises the gateway, but an accepted Model Brain proposal throws when it reaches the actual civilization scheduler decision boundary."
-			},
-			{
-				"id": "V1-RV-COGNITION-P1-003",
-				"title": "Primary failure provenance is overwritten by fallback",
-				"narrative": "The accepted fallback record cannot separately preserve the failed model attempt and its immutable provenance, leaving the operational decision history incomplete."
-			},
-			{
-				"id": "V1-RV-COGNITION-P1-004",
-				"title": "Model benchmark lacks manifest-bound artifact identity",
-				"narrative": "The local model benchmark is not cryptographically bound to its ExperimentManifest and does not attest the relationship between the recorded model tag and immutable blob."
-			}
-		]
+		"p1": []
 	}
 }
