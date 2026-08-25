@@ -347,7 +347,7 @@ describe("bounded Ollama loopback adapter", () => {
 			expect(capturedBody).toMatchObject({
 				model: "fixture-model",
 				stream: false,
-				think: "low",
+				think: false,
 			});
 			const format = capturedBody?.format as {
 				properties?: {

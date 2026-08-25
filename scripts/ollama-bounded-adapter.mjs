@@ -162,7 +162,7 @@ function prepareOllamaRequest(envelope) {
 			temperature: (envelope.generation?.temperatureBasisPoints ?? 0) / 10_000,
 		},
 		stream: false,
-		think: "low",
+		think: false,
 	});
 	if (Buffer.byteLength(requestBody, "utf8") > MAX_OLLAMA_BODY_BYTES)
 		fail("request-oversized");
