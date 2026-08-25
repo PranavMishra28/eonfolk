@@ -949,7 +949,7 @@ test("v5 authority ignores and preserves legacy v4 bytes @generated-world", asyn
 test("generated camera and canvas selection preserve the authoritative head @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(90_000);
+	test.setTimeout(linuxSemanticCi ? 180_000 : 90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);

@@ -284,30 +284,33 @@ test("the current world sustains a truthful watched eleven-second lifecycle @gen
 	const initialTick = Number(
 		await canvas.getAttribute("data-presentation-tick"),
 	);
-	const renderedPositions = new Set<string>();
-	const animationClasses = new Set<string>();
-	let maximumInteractions = 0;
-	for (let sample = 0; sample < 44; sample += 1) {
-		const state = await page.getByTestId("generated-world-canvas").evaluate(
-			(element) => ({
-				animations: element.dataset.animationClasses ?? "",
-				interactions: Number(element.dataset.interactionCount),
-				rendered: element.dataset.renderedActorPositions ?? "",
-			}),
-			undefined,
-			{ timeout: 15_000 },
-		);
-		renderedPositions.add(state.rendered);
-		for (const animation of state.animations.split(","))
-			if (animation !== "") animationClasses.add(animation);
-		maximumInteractions = Math.max(maximumInteractions, state.interactions);
-		await page.waitForTimeout(250);
-	}
+	const observed = await canvas.evaluate(async (element) => {
+		const renderedPositions = new Set<string>();
+		const animationClasses = new Set<string>();
+		let maximumInteractions = 0;
+		for (let sample = 0; sample < 44; sample += 1) {
+			renderedPositions.add(element.dataset.renderedActorPositions ?? "");
+			for (const animation of (element.dataset.animationClasses ?? "").split(
+				",",
+			))
+				if (animation !== "") animationClasses.add(animation);
+			maximumInteractions = Math.max(
+				maximumInteractions,
+				Number(element.dataset.interactionCount),
+			);
+			await new Promise((resolve) => window.setTimeout(resolve, 250));
+		}
+		return {
+			animationClasses: [...animationClasses],
+			maximumInteractions,
+			renderedPositions: [...renderedPositions],
+		};
+	});
 	const finalTick = Number(await canvas.getAttribute("data-presentation-tick"));
 	expect(finalTick).toBeGreaterThan(initialTick);
-	expect(renderedPositions.size).toBeGreaterThanOrEqual(3);
-	expect(animationClasses.size).toBeGreaterThanOrEqual(3);
-	expect(maximumInteractions).toBeGreaterThanOrEqual(1);
+	expect(observed.renderedPositions.length).toBeGreaterThanOrEqual(3);
+	expect(observed.animationClasses.length).toBeGreaterThanOrEqual(3);
+	expect(observed.maximumInteractions).toBeGreaterThanOrEqual(1);
 	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
 	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
 	await expect(world).toHaveAttribute("data-state-hash", initialHash ?? "");
