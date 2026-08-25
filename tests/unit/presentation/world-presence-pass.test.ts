@@ -74,7 +74,10 @@ describe("bounded world-presence pass", () => {
 		expect(main).toContain('genesisRoute === "entry"');
 		expect(main).toContain('import("./generated-world-client")');
 		expect(main).toContain('import("./generated-world-canvas")');
+		expect(main).toContain("eonfolk-authority-ready");
+		expect(main).not.toContain("425");
 		expect(main).toContain('className="v1-genesis-loading"');
+		expect(app).toContain("eonfolk-authority-ready");
 		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
 		expect(vite).toContain("webglOnlyPlayCanvasReact()");
 		expect(vite).toContain("WebglGraphicsDevice");

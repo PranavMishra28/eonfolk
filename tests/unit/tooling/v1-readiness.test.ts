@@ -206,7 +206,7 @@ function rawBenchmark(id: string, head: string) {
 		}
 		case "local-model-treatment":
 			return {
-				schemaVersion: "eonfolk-local-model-benchmark-v2",
+				schemaVersion: "eonfolk-local-model-benchmark-v3",
 				source: { commit: head, dirty: false },
 				summary: {
 					executions: 100,

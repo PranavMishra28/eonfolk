@@ -77,8 +77,12 @@ const genesisRoute =
 
 if (genesisRoute === "world") {
 	void import("./generated-world-client");
-	requestAnimationFrame(() =>
-		setTimeout(() => void import("./generated-world-canvas"), 425),
+	window.addEventListener(
+		"eonfolk-authority-ready",
+		() => {
+			void import("./generated-world-canvas");
+		},
+		{ once: true },
 	);
 }
 

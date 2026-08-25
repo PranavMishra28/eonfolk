@@ -146,7 +146,7 @@ export const DEEP_BENCHMARK_CONTRACT = Object.freeze([
 	Object.freeze({
 		id: "local-model-treatment",
 		path: "tmp/eonfolk-local-model-benchmark.json",
-		schemaVersion: "eonfolk-local-model-benchmark-v2",
+		schemaVersion: "eonfolk-local-model-benchmark-v3",
 	}),
 ]);
 export const PRODUCTION_FAULT_SCAFFOLDING_MARKERS = Object.freeze([
