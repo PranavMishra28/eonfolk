@@ -2,13 +2,25 @@
 	"schemaVersion": "eonfolk-v1-structured-review-v3",
 	"reviewId": "V1-RV-REPOSITORY-READINESS",
 	"discipline": "repository-readiness",
-	"reviewerAgentId": "eonfolk.v1.reviewer.repository-readiness.3b07af7",
-	"reviewerSessionId": "eonfolk.v1.session.repository-readiness.2026-08-25T09:17:00Z",
+	"reviewerAgentId": "cursor-grok-repo-readiness-3b07af7",
+	"reviewerSessionId": "repo-readiness-3b07af7-20260825t0859z",
 	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
-	"completedAt": "2026-08-25T09:17:00.000Z",
-	"conclusion": "NO_P0_P1",
+	"completedAt": "2026-08-25T08:59:01.000Z",
+	"conclusion": "FINDINGS",
 	"findings": {
-		"p0": [],
-		"p1": []
+		"p0": [
+			{
+				"id": "V1-RV-REPOSITORY-READINESS-P0-001",
+				"title": "Active authorities still define Founder Alpha Riverhold, not Release Genesis V1",
+				"narrative": "docs/INDEX.md is the content-authority map and still points operators at product/quality/engineering files whose binding status and implementation behavior describe the Founder Alpha first slice, not the V1 civilization on this SHA. docs/product/PRODUCT.md remains the sole product authority and still states that the first proof is one Riverhold scenario rather than a general civilization, and that implementation must exclude generalized economy/governance, models, and Observatory UI. That contradicts GOAL.md rows already marked VERIFIED for Release Genesis, a generated world, institutions/economy/migration/founding, an executable local Model Brain treatment, and separated research/developer surfaces, and it also contradicts the public README.md / docs/GAMEPLAY.md Dawnmere loop. The same hierarchy is internally stale on release operability: docs/quality/TESTING.md still presents Founder Alpha mega PR #7 and historical FA CI counts as the implemented testing/CI contract; docs/quality/VISUAL_QA.md still requires Advance Riverhold and claims an independent exact-YES automated release gate; docs/quality/PERFORMANCE.md’s status line claims a clean PlayCanvas battery while later treating Founder Alpha head f818d10 as the release-valid measurement and a later V1 checkpoint as canonical-battery-pending; docs/engineering/PERSISTENCE.md’s status line still says V1 browser wiring is incomplete while the body and GOAL claim versioned IndexedDB is executable. INDEX also still lists docs/engineering/FOUNDER_ALPHA_RELEASE.md as an engineering authority for CI/release-status claims even though that file is labeled historical and disclaims current V1 operations. A coordinator following INDEX would ship, evidence, or block the wrong product. Public export classification on this tree has zero unclassified paths and zero forbidden-marker hits in included files; the defect is the live private authority set, not the sanitizer."
+			}
+		],
+		"p1": [
+			{
+				"id": "V1-RV-REPOSITORY-READINESS-P1-001",
+				"title": "Frozen SHA already contains V1 review JSON while GOAL says reviews are not started",
+				"narrative": "Commit 3b07af7828d6b5774472295e92f52620719afe44 tracks docs/reviews/V1_RV_PRODUCT.json, V1_RV_SYSTEMS.json, V1_RV_VISUAL.json, V1_RV_COGNITION.json, V1_RV_SECURITY_CI.json, and V1_RV_REPOSITORY_READINESS.json (introduced by 42a498d, message: close frozen readiness and world review findings). GOAL.md on this same SHA lists “Six frozen-SHA independent reviews” as NOT STARTED. Ready-mode release proof is supposed to bind GitHub-attested review payloads and then allow only an approved post-freeze docs/reviews/*.json tail. Having those exact artifact paths already inside the software freeze makes independent reviews non-constructible without colliding with or being mistaken for in-tree files, and it contradicts the execution ledger that operators use to decide whether the draft PR may be marked ready."
+			}
+		]
 	}
 }

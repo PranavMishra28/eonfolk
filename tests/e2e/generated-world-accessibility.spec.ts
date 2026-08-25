@@ -194,6 +194,30 @@ test("manual reduced motion persists and critical mobile controls meet the 44px 
 	await expect(page.locator("main.v1-world")).toHaveClass(/v1-reduced-motion/u);
 });
 
+test("mobile citizen focus keeps keyboard camera and playback tools available @generated-world", async ({
+	page,
+}) => {
+	await isolateLocalWorld(page);
+	await page.setViewportSize({ width: 390, height: 844 });
+	await openCanonicalWorld(page);
+	const mara = page
+		.getByRole("list", { name: "Visible residents" })
+		.getByRole("button")
+		.filter({ hasText: "Mara Vale" });
+	await mara.click();
+	await expect(page.locator("aside.v1-context-panel")).toHaveAttribute(
+		"data-focus-kind",
+		"citizen",
+	);
+	await expect(page.locator("details.v1-world-tools")).toBeVisible();
+	await expect(
+		page.getByText("Camera, playback, and evidence"),
+	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Back to settlement" }),
+	).toBeVisible();
+});
+
 test("forced colors and a 200 percent zoom equivalent retain visible focus and reflow @generated-world", async ({
 	page,
 	context,
@@ -210,6 +234,16 @@ test("forced colors and a 200 percent zoom equivalent retain visible focus and r
 	).not.toBe("none");
 	await page.keyboard.press("Enter");
 	await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
+	await expect(words).toHaveAttribute("aria-pressed", "true");
+	const pressedChrome = await words.evaluate((element) => {
+		const style = getComputedStyle(element);
+		return {
+			borderTopWidth: Number.parseFloat(style.borderTopWidth),
+			outlineStyle: style.outlineStyle,
+		};
+	});
+	expect(pressedChrome.borderTopWidth).toBeGreaterThanOrEqual(3);
+	expect(pressedChrome.outlineStyle).not.toBe("none");
 
 	const cdp = await context.newCDPSession(page);
 	await cdp.send("Emulation.setDeviceMetricsOverride", {

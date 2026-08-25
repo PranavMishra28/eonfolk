@@ -2,13 +2,24 @@
 	"schemaVersion": "eonfolk-v1-structured-review-v3",
 	"reviewId": "V1-RV-VISUAL",
 	"discipline": "visual-accessibility",
-	"reviewerAgentId": "eonfolk.v1.reviewer.visual-accessibility.3b07af7",
-	"reviewerSessionId": "eonfolk.v1.session.visual-accessibility.2026-08-25T09:14:00Z",
+	"reviewerAgentId": "cursor-grok-visual-a11y-3b07af78-20260825",
+	"reviewerSessionId": "sess-v1-rv-visual-20260825T085300Z",
 	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
-	"completedAt": "2026-08-25T09:14:00.000Z",
-	"conclusion": "NO_P0_P1",
+	"completedAt": "2026-08-25T08:53:00.000Z",
+	"conclusion": "FINDINGS",
 	"findings": {
 		"p0": [],
-		"p1": []
+		"p1": [
+			{
+				"id": "V1-RV-VISUAL-P1-001",
+				"title": "Forced-colors selected state is not visually distinguishable on V1 chrome",
+				"narrative": "docs/ACCESSIBILITY.md requires a usable forced-colors presentation, but the live V1 surfaces (.v1-world header toggles, settlement switcher, resident/building/project lists, focus actions) encode pressed/current state only with custom background, border-color, and inset box-shadow. The only @media (forced-colors: active) rules in apps/web/src/styles.css target leftover Riverhold classes, not V1. Under forced colors those fills/shadows are stripped, so Embodied vs World in words vs a selected resident can collapse to identical ButtonFace/ButtonText chrome. The e2e check only asserts outlineStyle !== none after Tab; it does not prove selected or view-mode state remains visible. Keyboard operation still works via aria-pressed, but a forced-colors user cannot see which world view or person is current."
+			},
+			{
+				"id": "V1-RV-VISUAL-P1-002",
+				"title": "Mobile citizen focus hides the keyboard equivalents for canvas pan, zoom, and step",
+				"narrative": "The embodied canvas is role=img, not in the tab order, and documents drag/scroll plus semantic camera controls as the operating method. Those controls live in aside.v1-context-panel details.v1-world-tools (GeneratedEmbodimentControls: overview, zoom, orbit, pan, play/step). At max-width 720px, CSS sets display:none on .v1-world-tools (and the presence roster) whenever data-focus-kind is not overview. After a keyboard or roster select of a person—the path the footer instructs—pointer pan/zoom/pick on the canvas remain, but the keyboard/AT equivalents are removed from the accessibility tree. Follow/Back/Sponsor remain, and World in words remains, so the title is not unwinnable, but embodied keyboard/touch parity on the default mobile play path is broken for camera and reduced-motion stepping."
+			}
+		]
 	}
 }

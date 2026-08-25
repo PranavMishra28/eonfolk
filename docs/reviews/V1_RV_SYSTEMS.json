@@ -2,10 +2,10 @@
 	"schemaVersion": "eonfolk-v1-structured-review-v3",
 	"reviewId": "V1-RV-SYSTEMS",
 	"discipline": "systems-correctness",
-	"reviewerAgentId": "eonfolk.v1.reviewer.systems-correctness.3b07af7",
-	"reviewerSessionId": "eonfolk.v1.session.systems-correctness.2026-08-25T09:13:00Z",
+	"reviewerAgentId": "v1-rv-systems-grok-3b07af78-a8c1",
+	"reviewerSessionId": "v1-rv-systems-session-2026-08-25-0853z",
 	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
-	"completedAt": "2026-08-25T09:13:00.000Z",
+	"completedAt": "2026-08-25T08:53:00.000Z",
 	"conclusion": "NO_P0_P1",
 	"findings": {
 		"p0": [],

@@ -2190,6 +2190,24 @@ em {
 		outline: 3px solid Highlight !important;
 		outline-offset: 4px;
 	}
+	.v1-view-controls button[aria-pressed="true"],
+	.v1-world-stage-tools button[aria-pressed="true"],
+	.v1-focus-actions button[aria-pressed="true"],
+	.v1-presence-roster button[aria-pressed="true"],
+	.v1-people-list button[aria-pressed="true"],
+	.generated-settlement-switcher button[aria-pressed="true"],
+	.generated-semantic button[aria-pressed="true"],
+	.generated-settlement-cards button[aria-pressed="true"],
+	.generated-residents li button[aria-pressed="true"],
+	.generated-buildings li button[aria-pressed="true"],
+	.generated-projects li button[aria-pressed="true"] {
+		border: 3px solid Highlight;
+		outline: 2px solid ButtonText;
+		outline-offset: 2px;
+		box-shadow: none;
+		background: Highlight;
+		color: HighlightText;
+	}
 }
 
 /* World-as-product shell: Riverhold owns the viewport; context floats above it. */
@@ -3918,8 +3936,7 @@ em {
 		padding: 0.75rem;
 	}
 
-	.v1-context-panel:not([data-focus-kind="overview"])
-		:is(.v1-presence-roster, .v1-world-tools) {
+	.v1-context-panel:not([data-focus-kind="overview"]) .v1-presence-roster {
 		display: none;
 	}
 

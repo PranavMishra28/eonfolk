@@ -2,7 +2,7 @@
 
 **Purpose:** define blocking test layers, PR/nightly CI, dependency updates, repository protections, security-feature probes, and artifact retention.
 
-**Status:** IMPLEMENTED — Founder Alpha mega PR #7 merged; current identity and CI hardening must pass the same protected lattice before its mega-PR integration
+**Status:** V1 LATTICE BINDING — Founder Alpha mega PR #7 is historical; current identity and CI hardening must pass this protected lattice before V1 mega-PR integration
 
 **Authority boundary:** owns when checks run and what CI/repository policy must enforce. Exact product outcomes are owned by [quality bar](QUALITY_BAR.md); model rubrics by [evals](EVALS.md); screenshots by [visual QA](VISUAL_QA.md).
 

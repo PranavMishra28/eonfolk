@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** BUDGETS BINDING; CLEAN 15-RUN PLAYCANVAS BATTERY PASSED
+**Status:** BUDGETS BINDING; V1 CANONICAL LAB BINDS THE FREEZE SHA — Founder Alpha PlayCanvas battery is historical and is not V1 release evidence
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 

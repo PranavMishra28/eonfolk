@@ -2,7 +2,7 @@
 
 **Purpose:** define the consumer promise, ultimate product identity, participation roles, selected structure, falsification gates, and first-slice boundary.
 
-**Status:** ACCEPTED AFTER RED TEAM — still a product hypothesis until observed play
+**Status:** V1 RELEASE GENESIS IS THE LIVE PRODUCT — Riverhold remains frozen Gate 0 evidence, not current game identity
 
 **Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/completed/001-foundation.md) owns implementation scope.
 
@@ -20,7 +20,7 @@ EONFOLK's long-term identity has three inseparable parts:
 
 World is the product, Chronicle makes it legible, and Observatory makes bounded reproducible inquiry possible. Observatory is never the onboarding frame or justification for a shallow game. EONFOLK does not claim to simulate or predict human society; its defensible future research object is behavior and institutional emergence among autonomous AI agents inside persistent, grounded, reproducible simulated environments.
 
-The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. The first proof is explicitly **one Riverhold scenario**, not a general civilization, shared world, creator platform, or retention claim.
+The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. Historical Gate 0 used **one Riverhold scenario**. The current V1 product identity is **Release Genesis** (Dawnmere): a generated local civilization with the same sponsor/Chronicle shape, not a shared world, creator platform, or retention claim. Do not edit frozen Gate 0 treatment as live game logic.
 
 The desired emotion is responsible curiosity: “I care what Mara chooses, I affected her situation, and she is not my unit.” The human is a limited sponsor, not mayor, owner, chatbot operator, or god. Player-facing onboarding uses one action—**Follow Mara**—with the plain promise **She acts for herself**.
 
@@ -43,7 +43,7 @@ The same world/history must remain compatible with six future roles without impl
 | Experimenter | fork a versioned historical snapshot into a visibly non-canonical controlled run |
 | Creator | surface and broadcast compelling factual world events |
 
-The first slice implements only the smallest Stranger/Follower/Patron/Chronicle path around Mara. It adds no role selector, research dashboard, fork UI, creator tool, faction-follow system, or public publication.
+V1 implements the Stranger/Follower/Patron/Chronicle path around Mara in Dawnmere, plus the separate Research and Developer surfaces required by GOAL.md. It adds no role selector, fork UI, creator tool, faction-follow system, or public publication. Observatory remains a future research surface, not the onboarding frame.
 
 ## First-session contract
 
@@ -53,9 +53,9 @@ Within 60 seconds the player recognizes Mara, her suspicion, one relationship, o
 2. Mara's state-grounded interpretation and typed decision receipt;
 3. a delayed relationship/resource/institution consequence;
 4. a factual three-beat Chronicle; and
-5. after explicit leave/advance/return, one second bounded decision whose options depend on the first outcome.
+5. after explicit leave/advance/return, one outcome-legal next action whose options depend on the first outcome.
 
-The second decision may be repair the relationship, uphold the new rule, investigate further, or abstain; only outcome-legal options appear. A raw log, fixed cutscene, pretty simulation, green build, or favorable handpicked player cannot substitute.
+On Release Genesis that next action is the typed Chronicle `nextAction` (repair-relationship, investigate-uncertainty, or observe) expressed as world focus to the relevant citizen, object, or location, not a second first-boundary WorldCommand. A raw log, fixed cutscene, pretty simulation, green build, or favorable handpicked player cannot substitute.
 
 ## Evidence gates
 
@@ -91,7 +91,9 @@ Reopen the structure if Gate 0 selects another frame, three legal counsel paths 
 
 ## Resulting implementation behavior
 
-Implement one fixed authored Mara—no creator, roster, or fake choice—plus three counterfactual Riverhold histories and one outcome-dependent return decision. Preserve typed truth, cognitive-decision provenance, and an immutable run manifest underneath that loop. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, generalized economy/governance, death/lineage, models, Observatory UI, World Fork execution, and every additional participation role.
+## Resulting implementation behavior
+
+Implement one fixed authored Mara in Release Genesis Dawnmere—no creator, roster, or fake choice—plus one sponsor boundary whose Standard Brain may accept, reject, delay, or reinterpret counsel, a factual Chronicle, and an outcome-legal next world focus. Preserve typed truth, cognitive-decision provenance, and an immutable run manifest underneath that loop. Bounded V1 economy, institutions, migration, founding, and the local Model Brain treatment exist as GOAL-required software; they are not a generalized unbounded sim. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, death/lineage as a player verb, Observatory as onboarding, World Fork execution, and every additional participation role. Frozen Gate 0 Riverhold treatments remain historical evidence and are not live game logic.
 
 ## Constraint fit
 

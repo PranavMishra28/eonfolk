@@ -2,7 +2,7 @@
 
 **Purpose:** define what the player perceives and does from arrival through the first outcome-dependent return.
 
-**Status:** ACCEPTED AFTER RED TEAM — long-horizon loops remain hypotheses
+**Status:** V1 CURRENT LOOP IS DAWNMERE — Riverhold timing and Advance Riverhold remain frozen Founder Alpha evidence
 
 **Authority boundary:** this file owns player verbs, timing, decision boundaries, stopping, and return action. [PRODUCT](PRODUCT.md) owns the promise; [GAME_SYSTEMS](../game/GAME_SYSTEMS.md) owns mechanics; [CHRONICLE](CHRONICLE.md) owns factual explanation.
 
@@ -11,6 +11,8 @@
 ## Owned decision
 
 The first-proof loop is **observe → follow Mara → investigate → advise or abstain → Mara interprets → consequence → leave/advance/return → Chronicle explains → choose the next bounded risk**. Advice is scarce by situation, not currency. Gathering and care are citizen behaviors, not player chores.
+
+Executable V1 behavior follows [GAMEPLAY.md](../GAMEPLAY.md) in Dawnmere. Mara may accept, reject, delay, or reinterpret counsel; a public allegation and trust strain occur only when she accepts Accuse. The return “second action” on Release Genesis is the outcome-legal Chronicle focus (`repair-relationship`, `investigate-uncertainty`, or `observe`), not a second first-boundary WorldCommand. The Riverhold timing table and **Advance Riverhold** contract below remain historical Founder Alpha evidence.
 
 ## Retained verb contracts
 

@@ -2,7 +2,7 @@
 
 **Purpose:** lock crash-safe browser durability, run-scoped canonical/cognitive ledger separation, experiment identity, genesis, command receipts, single-writer fencing, snapshots, and replay interval semantics.
 
-**Status:** IMPLEMENTED FOUNDER-ALPHA ADAPTER PLUS V1 VERSIONED CONFORMANCE SEAM — V1 browser wiring incomplete
+**Status:** V1 VERSIONED INDEXEDDB EXECUTABLE — Founder Alpha adapter retained as a historical seam
 
 **Authority boundary:** this file owns the Founder Alpha `PersistencePort`, V1 `VersionedPersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
