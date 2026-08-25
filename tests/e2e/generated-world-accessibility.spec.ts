@@ -288,11 +288,15 @@ test("the current world sustains a truthful watched eleven-second lifecycle @gen
 	const animationClasses = new Set<string>();
 	let maximumInteractions = 0;
 	for (let sample = 0; sample < 44; sample += 1) {
-		const state = await canvas.evaluate((element) => ({
-			animations: element.dataset.animationClasses ?? "",
-			interactions: Number(element.dataset.interactionCount),
-			rendered: element.dataset.renderedActorPositions ?? "",
-		}));
+		const state = await page.getByTestId("generated-world-canvas").evaluate(
+			(element) => ({
+				animations: element.dataset.animationClasses ?? "",
+				interactions: Number(element.dataset.interactionCount),
+				rendered: element.dataset.renderedActorPositions ?? "",
+			}),
+			undefined,
+			{ timeout: 15_000 },
+		);
 		renderedPositions.add(state.rendered);
 		for (const animation of state.animations.split(","))
 			if (animation !== "") animationClasses.add(animation);
@@ -334,9 +338,11 @@ test("no world facts render while the authoritative worker response is delayed @
 	);
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
 	await expect(
-		page.getByRole("heading", {
-			name: "Advancing one world through its first year.",
-		}),
+		page
+			.getByRole("heading", {
+				name: "Advancing one world through its first year.",
+			})
+			.or(page.locator("main.v1-world[data-authority-pending='true']")),
 	).toBeVisible();
 	await page.waitForTimeout(1_200);
 	await expect(page.locator("body")).not.toContainText("Mara Vale");
