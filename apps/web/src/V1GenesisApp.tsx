@@ -203,6 +203,7 @@ function WorldAuthorityShell() {
 		<main
 			className="v1-world"
 			data-world-id="eonfolk-genesis-world-v1"
+			data-authority-pending="true"
 			aria-busy="true"
 		>
 			<header className="v1-world-header">
@@ -1838,7 +1839,8 @@ export function V1GenesisApp() {
 	}, [experience]);
 	if (error !== null) return <WorldError error={error} fault={fault} />;
 	if (fault === undefined) return <WorldLoading />;
-	if (experience === null) return <WorldAuthorityShell />;
+	if (experience === null)
+		return fault === null ? <WorldAuthorityShell /> : <WorldLoading />;
 	return (
 		<GeneratedWorld
 			experience={experience}

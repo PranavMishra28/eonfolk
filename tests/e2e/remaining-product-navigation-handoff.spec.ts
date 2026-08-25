@@ -46,6 +46,9 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 async function openCanonicalWorld(page: Page, href = "/world") {
 	await page.goto(href);
 	const world = page.locator("main.v1-world");
+	await expect(world).not.toHaveAttribute("data-authority-pending", "true", {
+		timeout: 30_000,
+	});
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});

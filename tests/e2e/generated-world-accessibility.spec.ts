@@ -40,6 +40,9 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 async function openCanonicalWorld(page: Page) {
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
 	const world = page.locator("main.v1-world");
+	await expect(world).not.toHaveAttribute("data-authority-pending", "true", {
+		timeout: 30_000,
+	});
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
@@ -336,10 +339,10 @@ test("no world facts render while the authoritative worker response is delayed @
 		}),
 	).toBeVisible();
 	await page.waitForTimeout(1_200);
-	await expect(page.locator("main.v1-world")).toHaveCount(0);
 	await expect(page.locator("body")).not.toContainText("Mara Vale");
 	await expect(page.locator("body")).not.toContainText("Sponsor this person");
 	await expect(page.locator("body")).not.toContainText("Review Chronicle");
+	await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-ready",
 		"true",
