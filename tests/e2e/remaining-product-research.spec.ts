@@ -253,12 +253,14 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
 		.click();
 	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
-	await page
-		.getByRole("button", { name: "Continue to Mara's independent outcome" })
-		.click();
+	const advance = page.getByRole("button", {
+		name: "Continue to Mara's independent outcome",
+	});
+	await expect(advance).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	await advance.click();
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
 	).toContainText("independently continued the active Standing Plan");

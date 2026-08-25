@@ -10,6 +10,11 @@
 
 - Branch: `feat/v1-civilization`
 - Last exact app/CI integration checkpoint before the media evidence tail: `9540593f9a58f0a014fd9f4366e666a1a0b3729c`
+- Hosted PR Verify at `e83a32b` failed 2 of 64 production journeys: the
+  eleven-second Living World watch used a 45s cap that Linux world-open
+  consumed, and abstention Chronicle used the default 5s visibility timeout
+  instead of the 120s sponsor transition budget. Local FAST is green; the two
+  journeys pass on this machine after the timeout repair.
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft Mega PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization mega PR`
 - Machine: plugged-in Apple M4 Max with 48 GB unified memory
@@ -55,9 +60,9 @@ These are integration checks, not the final exact-candidate PR/DEEP/review evide
 
 ## Remaining sequence
 
-1. Commit the inspected final media record, finish exact clean FAST and PR lanes,
-   reconcile the execution ledger and performance record, then freeze the
-   software candidate.
+1. Land the Linux CI timeout repair, finish exact clean FAST and PR lanes on
+   that head, reconcile the execution ledger and performance record, then freeze
+   the software candidate.
 2. Run the complete target-Mac DEEP lane under the required ephemeral non-admin runner boundary and retain its exact evidence.
 3. Run the six required independent reviews against the identical frozen SHA without cross-review exposure.
 4. Reconcile and repair every P0/P1 once, run the targeted confirmation, write the V1 handoff, and create the clean evidence/documentation tail permitted by the readiness contract.

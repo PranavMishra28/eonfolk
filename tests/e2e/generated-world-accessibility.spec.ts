@@ -269,11 +269,14 @@ test("mobile arrival is world-dominant with an opening action in the first viewp
 test("the current world sustains a truthful watched eleven-second lifecycle @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(45_000);
+	test.setTimeout(linuxSemanticCi ? 180_000 : 90_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 1366, height: 768 });
+	await resetGeneratedCheckpoint(page);
 	const world = await openCanonicalWorld(page);
+	await expect(world).toHaveAttribute("data-presentation-playing", "true");
 	const canvas = page.getByTestId("generated-world-canvas");
+	await expect(canvas).toHaveAttribute("data-render-policy", "continuous");
 	const initialHash = await world.getAttribute("data-state-hash");
 	const initialTick = Number(
 		await canvas.getAttribute("data-presentation-tick"),
