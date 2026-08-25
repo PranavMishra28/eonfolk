@@ -1794,12 +1794,12 @@ export function V1GenesisApp() {
 		};
 	}, [fault]);
 	useEffect(() => {
-		void loadGeneratedWorldCanvasModule();
-	}, []);
-	useEffect(() => {
 		document.title = "EONFOLK — Canonical generated world";
 	}, []);
 	const { experience, error, refresh } = useGeneratedExperience(fault);
+	useEffect(() => {
+		void loadGeneratedWorldCanvasModule();
+	}, []);
 	useEffect(() => {
 		if (experience === null) return;
 		window.dispatchEvent(new Event("eonfolk-authority-ready"));
