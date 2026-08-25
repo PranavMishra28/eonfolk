@@ -88,8 +88,9 @@ function initialReducedMotion(): boolean {
 function useGeneratedFault(): GeneratedWorldFaultSpec | null | undefined {
 	const [fault, setFault] = useState<
 		GeneratedWorldFaultSpec | null | undefined
-	>(undefined);
+	>(generatedFaultHooks ? undefined : null);
 	useEffect(() => {
+		if (!generatedFaultHooks) return;
 		let active = true;
 		void generatedWorldFaultModule.then((module) => {
 			if (active) setFault(module?.readGeneratedWorldFault() ?? null);
