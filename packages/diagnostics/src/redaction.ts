@@ -13,6 +13,7 @@ const allAllowedKeys = new Set([
 	"durationMs",
 	"displayedAction",
 	"distanceMm",
+	"domain",
 	"eventCount",
 	"fingerprint",
 	"invariant",
@@ -122,6 +123,7 @@ const categoryAllowedKeys: Readonly<
 	sentinel: new Set([
 		"attempt",
 		"code",
+		"domain",
 		"fingerprint",
 		"invariant",
 		"phase",

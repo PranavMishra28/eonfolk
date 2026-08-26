@@ -52,11 +52,11 @@ export interface SemanticTravelState {
 	readonly task: BehaviorFamily;
 }
 
-export const PROTOCOL_SCHEMA_VERSION = "1" as const;
+export const PROTOCOL_SCHEMA_VERSION = "2" as const;
 export const ENGINE_VERSION = "1" as const;
 export const DETERMINISM_VERSION = "eonfolk-determinism-v2" as const;
 export const REPLAY_VERSION = "eonfolk-replay-v1" as const;
-export const COGNITION_VERSION = "eonfolk-cognition-v1" as const;
+export const COGNITION_VERSION = "eonfolk-cognition-v2" as const;
 export const VISIBILITY_POLICY_VERSION = "riverhold-visibility-v1" as const;
 
 export type Principal =
@@ -70,6 +70,11 @@ export type Principal =
 
 export type WorldCommandPayload =
 	| { readonly kind: "Observe"; readonly targetId: string }
+	| {
+			readonly kind: "EstablishSponsorship";
+			readonly covenantId: string;
+			readonly citizenId: CitizenId;
+	  }
 	| {
 			readonly kind: "MoveCitizen";
 			readonly citizenId: CitizenId;
@@ -106,6 +111,12 @@ export type WorldCommandPayload =
 			readonly interventionId: string;
 			readonly citizenId: CitizenId;
 			readonly intent: "verify-reserve" | "accuse-publicly";
+	  }
+	| {
+			readonly kind: "RecordPatronAbstention";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
 	  }
 	| {
 			readonly kind: "ResolveCounsel";
@@ -177,12 +188,21 @@ export interface Provenance {
 	readonly proposalId?: ProposalId;
 }
 
+export interface SponsorshipEstablishedPayload {
+	readonly kind: "SponsorshipEstablished";
+	readonly covenantId: string;
+	readonly patronPrincipalId: string;
+	readonly citizenId: CitizenId;
+	readonly settlementId: string;
+}
+
 export type WorldEventPayload =
 	| {
 			readonly kind: "Observed";
 			readonly observerId: CitizenId;
 			readonly targetId: string;
 	  }
+	| SponsorshipEstablishedPayload
 	| {
 			readonly kind: "CitizenMoved";
 			readonly citizenId: CitizenId;
@@ -250,12 +270,19 @@ export type WorldEventPayload =
 			readonly intent: "verify-reserve" | "accuse-publicly";
 	  }
 	| {
+			readonly kind: "PatronAbstained";
+			readonly abstentionId: string;
+			readonly citizenId: CitizenId;
+			readonly reason: "withhold-counsel";
+	  }
+	| {
 			readonly kind: "CounselInterpreted";
 			readonly citizenId: CitizenId;
 			readonly interventionId: string | null;
 			readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
 			readonly disposition:
 				| "accepted"
+				| "delayed"
 				| "rejected"
 				| "reinterpreted"
 				| "not-applicable";
@@ -575,7 +602,27 @@ export type CognitionAction =
 	  }
 	| { readonly kind: "Consume"; readonly resource: "food" | "water" }
 	| { readonly kind: "Exchange"; readonly counterpartyId: CitizenId }
-	| { readonly kind: "RepairMill"; readonly millId: string };
+	| { readonly kind: "RepairMill"; readonly millId: string }
+	| {
+			readonly kind: "TransportResource";
+			readonly resourceTypeId: string;
+			readonly quantity: number;
+			readonly fromStorageId: string;
+			readonly toStorageId: string;
+	  }
+	| {
+			readonly kind: "WorkProject";
+			readonly projectId: string;
+			readonly milestoneId: string;
+			readonly siteId: string;
+	  }
+	| {
+			readonly kind: "ProposeProject";
+			readonly projectKind: string;
+			readonly settlementId: string;
+			readonly siteId: string;
+	  }
+	| { readonly kind: "JoinMigration"; readonly migrationId: string };
 
 export interface ActionCatalogEntry {
 	readonly actionId: string;
@@ -590,6 +637,7 @@ export interface ActionCatalogEntry {
 		| "relationship"
 		| "evidence"
 		| "risk"
+		| "delay"
 		| "counsel"
 	)[];
 	readonly evidenceRecordIds: readonly string[];
@@ -620,7 +668,7 @@ export interface DecisionContext {
 	readonly values: readonly ValuePriority[];
 	readonly relationships: readonly RelationshipState[];
 	readonly activeStandingPlan: StandingPlan;
-	readonly actionCatalogVersion: "riverhold-actions-v1";
+	readonly actionCatalogVersion: "civilization-actions-v1";
 	readonly actionCatalog: readonly ActionCatalogEntry[];
 	readonly budgets: DecisionBudgets;
 	readonly counselIntent: "verify-reserve" | "accuse-publicly" | null;
@@ -682,18 +730,69 @@ export interface IntentProposal {
 		readonly summaryKey: string;
 		readonly sourceIds: readonly string[];
 	} | null;
-	readonly provenance: {
-		readonly cognitionKind: "standard-brain";
-		readonly cognitionVersion: typeof COGNITION_VERSION;
-	};
+	readonly provenance:
+		| {
+				readonly cognitionKind: "standard-brain";
+				readonly cognitionVersion: typeof COGNITION_VERSION;
+		  }
+		| {
+				readonly cognitionKind: "model";
+				readonly cognitionVersion: typeof COGNITION_VERSION;
+				readonly provider: string;
+				readonly model: string;
+				readonly modelVersion: string;
+				readonly promptTemplateHash: string;
+				readonly proposalSchemaHash: string;
+				readonly artifactHash: string;
+		  };
 	readonly publicJustification: string;
 	readonly explanation: DecisionExplanation;
 	readonly proposalHash: string;
 }
 
+export type PrimaryAttemptDisposition =
+	| "not-attempted"
+	| "accepted"
+	| "timeout"
+	| "malformed"
+	| "invalid"
+	| "threw"
+	| "cancelled"
+	| "provider-unavailable";
+
+export type CognitiveAttemptProvenance =
+	| Extract<
+			IntentProposal["provenance"],
+			{ readonly cognitionKind: "standard-brain" }
+	  >
+	| (Omit<
+			Extract<
+				IntentProposal["provenance"],
+				{ readonly cognitionKind: "model" }
+			>,
+			"artifactHash"
+	  > & { readonly artifactHash: string | null });
+
+export interface CognitivePrimaryAttemptRecord {
+	readonly disposition: PrimaryAttemptDisposition;
+	/** Untrusted claimed provenance, retained as audit evidence, never authority. */
+	readonly provenance: CognitiveAttemptProvenance | null;
+	/** Present only when the attempted value was a closed, hash-valid proposal. */
+	readonly proposalCanonicalBytes: string | null;
+	readonly proposalHash: string | null;
+	/** Hash of bounded provider output; raw model text is never retained. */
+	readonly outputHash: string | null;
+}
+
+export interface CognitiveAcceptedFallbackRecord {
+	readonly proposalCanonicalBytes: string;
+	readonly proposalHash: string;
+	readonly explanation: DecisionExplanation;
+}
+
 export interface CognitiveDecisionRecord {
-	readonly schemaVersion: "eonfolk-cognitive-decision-record-v1";
-	readonly recordVersion: "1";
+	readonly schemaVersion: "eonfolk-cognitive-decision-record-v2";
+	readonly recordVersion: "2";
 	readonly decisionId: DecisionId;
 	readonly decisionBoundaryId: string;
 	readonly actorId: CitizenId;
@@ -725,6 +824,9 @@ export interface CognitiveDecisionRecord {
 	readonly proposalCanonicalBytes: string | null;
 	readonly proposalHash: string | null;
 	readonly explanation: DecisionExplanation | null;
+	readonly selectedSource: "primary" | "deterministic-fallback";
+	readonly primaryAttempt: CognitivePrimaryAttemptRecord;
+	readonly acceptedFallback: CognitiveAcceptedFallbackRecord | null;
 	readonly failureCode: "missing" | "timeout" | "malformed" | null;
 	readonly validator: {
 		readonly stage: "schema" | "authorization" | "domain" | "committed";
@@ -739,7 +841,7 @@ export interface CognitiveDecisionRecord {
 	readonly sensitivity: "citizen-private-audit";
 	readonly provenance: {
 		readonly kind: "cognition-audit";
-		readonly version: "1";
+		readonly version: "2";
 	};
 	readonly decisionRecordHash: string;
 }

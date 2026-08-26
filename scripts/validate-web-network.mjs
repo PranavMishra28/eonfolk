@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
 
@@ -58,12 +58,12 @@ export function inspectNetlogEgress(netlog) {
 }
 
 export function validateWebNetworkOutput(
-	output = "tmp/riverhold-playwright",
+	output = "tmp/dawnmere-playwright",
 	allowedOrigin = "http://127.0.0.1:4174",
 ) {
 	const routeLog = JSON.parse(readFileSync(`${output}/route-log.json`, "utf8"));
 	if (!Array.isArray(routeLog) || routeLog.length === 0)
-		throw new Error("empty Riverhold route log");
+		throw new Error("empty Dawnmere route log");
 	for (const entry of routeLog) {
 		if (
 			entry.action !== "allow" ||
@@ -87,9 +87,29 @@ export function validateWebNetworkOutput(
 	});
 }
 
+export function validateViewportEvidence(output = "tmp/dawnmere-playwright") {
+	const files = readdirSync(output, { recursive: true }).map(String);
+	const expected = [
+		"world-1728x1117.png",
+		"world-1366x768.png",
+		"world-390x844.png",
+	];
+	for (const filename of expected) {
+		const matches = files.filter((path) => path.endsWith(filename));
+		if (matches.length !== 1)
+			throw new Error(
+				`browser evidence requires exactly one ${filename}; found ${matches.length}`,
+			);
+	}
+	return Object.freeze({ viewports: Object.freeze(expected) });
+}
+
 if (import.meta.url === new URL(process.argv[1], "file:").href) {
 	const result = validateWebNetworkOutput();
+	const viewportEvidence = process.argv.includes("--require-viewports")
+		? validateViewportEvidence()
+		: null;
 	process.stdout.write(
-		`Riverhold network oracles pass: ${result.routeRequestCount} routed requests, ${result.netlogEventCount} netlog events, zero external attempts\n`,
+		`Dawnmere network oracles pass: ${result.routeRequestCount} routed requests, ${result.netlogEventCount} netlog events, zero external attempts${viewportEvidence === null ? "" : "; three required viewport captures present"}\n`,
 	);
 }

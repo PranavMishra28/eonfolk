@@ -6,9 +6,9 @@ const SAFE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/u;
 const ISO_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export const LOCAL_PROCESS_BRAIN_CONTRACT_VERSION =
-	"eonfolk-local-process-brain-contract-v1" as const;
+	"eonfolk-local-process-brain-contract-v3" as const;
 export const EXPERIMENT_MANIFEST_VERSION =
-	"eonfolk-experiment-manifest-v2" as const;
+	"eonfolk-experiment-manifest-v4" as const;
 export const EXPERIMENT_RESULT_VERSION =
 	"eonfolk-experiment-result-v2" as const;
 
@@ -31,6 +31,11 @@ export interface LocalProcessBrainContract {
 		readonly sourceCommit: string;
 		readonly executable: LocalArtifactIdentity;
 	};
+	readonly serviceRuntime: {
+		readonly kind: "ollama";
+		readonly sourceCommit: string;
+		readonly executable: LocalArtifactIdentity;
+	} | null;
 	readonly model: LocalArtifactIdentity;
 	readonly tokenizer: LocalArtifactIdentity;
 	readonly modelConfiguration: LocalArtifactIdentity;
@@ -39,7 +44,12 @@ export interface LocalProcessBrainContract {
 	readonly proposalSchemaHash: string;
 	readonly transport: "length-prefixed-jcs-stdin-single-jcs-stdout";
 	readonly modelSource: "preprovisioned-local";
-	readonly networkPolicy: "deny-all-required";
+	readonly networkPolicy: "deny-all-required" | "loopback-single-port-required";
+	readonly localEndpoint: {
+		readonly kind: "ollama-loopback";
+		readonly host: "127.0.0.1";
+		readonly port: number;
+	} | null;
 	readonly trustRemoteCode: false;
 	readonly environmentNames: readonly string[];
 	readonly generation: {
@@ -130,7 +140,7 @@ export interface ExperimentManifestV2 {
 	};
 	readonly brain: ExperimentBrainConfiguration;
 	readonly environment: {
-		readonly host: "MacBook M4 Pro";
+		readonly host: "MacBook M4 Pro" | "MacBook M4 Max";
 		readonly osVersion: string;
 		readonly runtimeVersion: string;
 		readonly totalMemoryBytes: number;
@@ -142,7 +152,10 @@ export interface ExperimentManifestV2 {
 		readonly maxRequestBytes: number;
 		readonly maxOutputBytes: number;
 		readonly timeoutMs: number;
-		readonly networkPolicy: "not-applicable" | "deny-all-required";
+		readonly networkPolicy:
+			| "not-applicable"
+			| "deny-all-required"
+			| "loopback-single-port-required";
 		readonly trustRemoteCode: false;
 	};
 	readonly manifestHash: string;
@@ -308,16 +321,49 @@ export async function createLocalProcessBrainContract(
 	if (
 		input.transport !== "length-prefixed-jcs-stdin-single-jcs-stdout" ||
 		input.modelSource !== "preprovisioned-local" ||
-		input.networkPolicy !== "deny-all-required" ||
+		(input.networkPolicy !== "deny-all-required" &&
+			input.networkPolicy !== "loopback-single-port-required") ||
 		input.trustRemoteCode !== false ||
 		input.limits.retries !== 0
 	)
 		throw new Error("local process contract weakens a required safety control");
+	if (
+		(input.networkPolicy === "deny-all-required") !==
+		(input.localEndpoint === null)
+	)
+		throw new Error("local endpoint must match the network policy");
+	if (input.localEndpoint !== null) {
+		if (
+			input.localEndpoint.kind !== "ollama-loopback" ||
+			input.localEndpoint.host !== "127.0.0.1" ||
+			!Number.isSafeInteger(input.localEndpoint.port) ||
+			input.localEndpoint.port < 1 ||
+			input.localEndpoint.port > 65_535
+		)
+			throw new Error("local endpoint is invalid");
+	}
 	assertSafeId(input.adapterId, "adapterId");
 	assertSafeText(input.adapterVersion, "adapterVersion", 128);
 	assertSha256(input.adapterHash, "adapterHash");
 	assertGitCommit(input.runtime.sourceCommit, "runtime.sourceCommit");
 	assertArtifact(input.runtime.executable, "runtime.executable");
+	if (
+		(input.networkPolicy === "loopback-single-port-required") !==
+		(input.serviceRuntime !== null)
+	)
+		throw new Error("service runtime must match the network policy");
+	if (input.serviceRuntime !== null) {
+		if (input.serviceRuntime.kind !== "ollama")
+			throw new TypeError("service runtime kind is unsupported");
+		assertGitCommit(
+			input.serviceRuntime.sourceCommit,
+			"serviceRuntime.sourceCommit",
+		);
+		assertArtifact(
+			input.serviceRuntime.executable,
+			"serviceRuntime.executable",
+		);
+	}
 	assertArtifact(input.model, "model");
 	assertArtifact(input.tokenizer, "tokenizer");
 	assertArtifact(input.modelConfiguration, "modelConfiguration");
@@ -372,7 +418,7 @@ export async function createLocalProcessBrainContract(
 		input.limits.warmTimeoutMs,
 		"limits.warmTimeoutMs",
 		1,
-		3_000,
+		4_000,
 	);
 	if (input.limits.warmTimeoutMs > input.limits.coldTimeoutMs)
 		throw new RangeError("warm timeout cannot exceed cold timeout");
@@ -382,6 +428,7 @@ export async function createLocalProcessBrainContract(
 		adapterVersion: input.adapterVersion,
 		adapterHash: input.adapterHash,
 		runtime: input.runtime,
+		serviceRuntime: input.serviceRuntime,
 		model: input.model,
 		tokenizer: input.tokenizer,
 		modelConfiguration: input.modelConfiguration,
@@ -391,6 +438,7 @@ export async function createLocalProcessBrainContract(
 		transport: input.transport,
 		modelSource: input.modelSource,
 		networkPolicy: input.networkPolicy,
+		localEndpoint: input.localEndpoint,
 		trustRemoteCode: input.trustRemoteCode,
 		environmentNames: [...input.environmentNames].sort(),
 		generation: input.generation,
@@ -399,11 +447,24 @@ export async function createLocalProcessBrainContract(
 	const contract = {
 		...withoutHash,
 		contractHash: await domainHash(
-			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v1",
+			"EONFOLK:LOCAL-PROCESS-BRAIN-CONTRACT:v3",
 			withoutHash,
 		),
 	} as LocalProcessBrainContract;
 	return deepFreeze(contract);
+}
+
+export async function verifyLocalProcessBrainContract(
+	contract: LocalProcessBrainContract,
+): Promise<boolean> {
+	try {
+		const { schemaVersion, contractHash, ...input } = contract;
+		if (schemaVersion !== LOCAL_PROCESS_BRAIN_CONTRACT_VERSION) return false;
+		const rebuilt = await createLocalProcessBrainContract(input);
+		return rebuilt.contractHash === contractHash;
+	} catch {
+		return false;
+	}
 }
 
 function assertBrainConfiguration(brain: ExperimentBrainConfiguration): void {
@@ -513,7 +574,10 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 		128 * 1024 * 1024 * 1024,
 	);
 	assertSafeText(input.environment.powerMode, "environment.powerMode", 128);
-	if (input.environment.host !== "MacBook M4 Pro")
+	if (
+		input.environment.host !== "MacBook M4 Pro" &&
+		input.environment.host !== "MacBook M4 Max"
+	)
 		throw new Error("experiment host is outside the Founder Alpha target");
 	if (
 		input.environment.cohort !== "cold" &&
@@ -524,7 +588,8 @@ function assertManifestInput(input: ExperimentManifestV2Input): void {
 		throw new Error("experiment controls weaken a required safety control");
 	if (
 		(input.brain.kind === "local-process-model") !==
-		(input.controls.networkPolicy === "deny-all-required")
+		(input.controls.networkPolicy === "deny-all-required" ||
+			input.controls.networkPolicy === "loopback-single-port-required")
 	)
 		throw new Error("network policy must match the selected brain kind");
 	assertBoundedInteger(
@@ -590,7 +655,7 @@ export async function createExperimentManifestV2(
 	const manifest = {
 		...withoutHash,
 		manifestHash: await domainHash(
-			"EONFOLK:EXPERIMENT-MANIFEST:v2",
+			"EONFOLK:EXPERIMENT-MANIFEST:v4",
 			withoutHash,
 		),
 	} as ExperimentManifestV2;

@@ -86,7 +86,7 @@ export async function decisionRecordHash(
 	recordWithoutHash: unknown,
 ): Promise<string> {
 	return sha256Hex(
-		tuple("EONFOLK:DECISION-RECORD:v1", [jcsBytes(recordWithoutHash)]),
+		tuple("EONFOLK:DECISION-RECORD:v2", [jcsBytes(recordWithoutHash)]),
 	);
 }
 

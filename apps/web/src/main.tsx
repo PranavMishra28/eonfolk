@@ -1,9 +1,29 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import {
+	Component,
+	type ErrorInfo,
+	lazy,
+	type ReactNode,
+	Suspense,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { RiverholdApp } from "./RiverholdApp";
 
 const root = document.getElementById("root");
-if (!root) throw new Error("Riverhold root is missing");
+if (!root) throw new Error("EONFOLK root is missing");
+
+const V1GenesisApp = lazy(async () => {
+	const module = await import("./V1GenesisApp");
+	return { default: module.V1GenesisApp };
+});
+
+const GenesisEntryApp = lazy(async () => {
+	const module = await import("./GenesisEntryApp");
+	return { default: module.GenesisEntryApp };
+});
+
+const InformationSurface = lazy(async () => {
+	const module = await import("./InformationSurface");
+	return { default: module.InformationSurface };
+});
 
 class RuntimeBoundary extends Component<
 	{ readonly children: ReactNode },
@@ -26,13 +46,13 @@ class RuntimeBoundary extends Component<
 					className="runtime-failure"
 					aria-labelledby="runtime-failure-title"
 				>
-					<p className="eyebrow">FOUNDER ALPHA UNAVAILABLE</p>
+					<p className="eyebrow">WORLD UNAVAILABLE</p>
 					<h1 id="runtime-failure-title">
-						Riverhold stopped before showing a world.
+						EONFOLK stopped before showing a world.
 					</h1>
 					<p>
-						No world state or Chronicle is being presented as authoritative.
-						Founder Alpha requires a working Web Worker and browser storage.
+						No world state or Chronicle is being presented as authoritative. The
+						local world requires a working Web Worker and browser storage.
 					</p>
 					<details>
 						<summary>Technical detail</summary>
@@ -47,8 +67,61 @@ class RuntimeBoundary extends Component<
 const reactRoot: Root = import.meta.hot?.data.reactRoot ?? createRoot(root);
 if (import.meta.hot) import.meta.hot.data.reactRoot = reactRoot;
 
+const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+const genesisRoute =
+	normalizedPath === "/" || normalizedPath === "/genesis"
+		? "entry"
+		: normalizedPath === "/world"
+			? "world"
+			: null;
+
+if (genesisRoute === "world") {
+	void import("./generated-world-client");
+	window.addEventListener(
+		"eonfolk-authority-ready",
+		() => {
+			void import("./generated-world-canvas");
+		},
+		{ once: true },
+	);
+}
+
 reactRoot.render(
 	<RuntimeBoundary>
-		<RiverholdApp />
+		{genesisRoute !== null ? (
+			<Suspense
+				fallback={
+					genesisRoute === "world" ? (
+						<main className="v1-genesis-loading" aria-busy="true">
+							<h1>Advancing one world through its first year.</h1>
+						</main>
+					) : (
+						<main className="v1-genesis-shell" aria-busy="true">
+							<p>Preparing Release Genesis…</p>
+						</main>
+					)
+				}
+			>
+				{genesisRoute === "entry" ? <GenesisEntryApp /> : <V1GenesisApp />}
+			</Suspense>
+		) : normalizedPath === "/research" || normalizedPath === "/developer" ? (
+			<Suspense
+				fallback={
+					<main className="v1-information" aria-busy="true">
+						<p>Opening the evidence surface…</p>
+					</main>
+				}
+			>
+				<InformationSurface
+					route={normalizedPath === "/research" ? "research" : "developer"}
+				/>
+			</Suspense>
+		) : (
+			<main className="runtime-failure" aria-labelledby="not-found-title">
+				<p className="eyebrow">UNKNOWN PLACE</p>
+				<h1 id="not-found-title">This route is outside the canonical world.</h1>
+				<a href="/">Return to EONFOLK</a>
+			</main>
+		)}
 	</RuntimeBoundary>,
 );

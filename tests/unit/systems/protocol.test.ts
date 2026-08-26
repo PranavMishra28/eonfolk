@@ -91,7 +91,7 @@ describe("determinism profile", () => {
 			regionId: "riverhold",
 			relatedEvents: [],
 			runId: "run_fixture_0001",
-			schemaVersion: "1",
+			schemaVersion: "2",
 			sequence: 1,
 			simulationTime: 1,
 			visibility: {
@@ -130,7 +130,7 @@ describe("determinism profile", () => {
 			["EONFOLK:DECISION-CONTEXT:v1", contextHash],
 			["EONFOLK:ACTION-CATALOG:v1", catalogHash],
 			["EONFOLK:INTENT-PROPOSAL:v1", proposalHash],
-			["EONFOLK:DECISION-RECORD:v1", decisionRecordHash],
+			["EONFOLK:DECISION-RECORD:v2", decisionRecordHash],
 		] as const;
 		for (const [domain, implementation] of cases) {
 			const independent = createHash("sha256")

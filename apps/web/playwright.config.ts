@@ -2,20 +2,36 @@ import { resolve } from "node:path";
 import { defineConfig } from "@playwright/test";
 
 const linuxCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const captureMedia = process.env.EONFOLK_CAPTURE_MEDIA === "1";
 
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
-	outputDir: resolve(import.meta.dirname, "../../tmp/riverhold-playwright"),
+	outputDir: resolve(import.meta.dirname, "../../tmp/dawnmere-playwright"),
 	grepInvert: linuxCi ? /@fault|@illustrated-target/u : /@fault/u,
 	fullyParallel: false,
+	// Chromium netlog is a single release-evidence artifact. Multiple browser
+	// workers would interleave writes and can leave syntactically invalid JSON.
+	workers: 1,
 	retries: 0,
 	reporter: "line",
 	use: {
 		baseURL: "http://127.0.0.1:4174",
 		browserName: "chromium",
 		headless: true,
-		trace: "retain-on-failure",
-		video: "off",
+		// The embodied world renders continuously. Capturing a JPEG on every trace
+		// frame produced 2,614 images (141 MiB across four failed traces) on the
+		// hosted Ubuntu run and starved the authoritative sponsor transitions that
+		// the tests were observing. Keep DOM snapshots, sources, and the separately
+		// configured failure screenshot, but do not record redundant trace filmstrips.
+		trace: {
+			mode: "retain-on-failure",
+			screenshots: false,
+			snapshots: true,
+			sources: true,
+		},
+		video: captureMedia
+			? { mode: "on", size: { width: 960, height: 540 } }
+			: "off",
 		screenshot: "only-on-failure",
 		launchOptions: {
 			args: [
@@ -33,7 +49,7 @@ export default defineConfig({
 				"--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1",
 				"--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
 				"--gaia-url=http://127.0.0.1:4174",
-				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/riverhold-playwright/netlog.json")}`,
+				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/dawnmere-playwright/netlog.json")}`,
 				"--metrics-recording-only",
 				"--no-default-browser-check",
 				"--no-first-run",

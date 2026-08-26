@@ -154,6 +154,7 @@ async function run() {
 			"TypeInvariant",
 			"AtomicGenesis",
 			"LedgerHeadAgreement",
+			"SnapshotHeadAgreement",
 			"CatchUpProgress",
 			"CrashPreservesDurableShape",
 		],

@@ -73,6 +73,14 @@ export function projectChronicle(input: {
 			visibleIds.has(related.eventId),
 		);
 		switch (payload.kind) {
+			case "SponsorshipEstablished":
+				sentences.push({
+					sentenceId: `sentence-${event.eventId}`,
+					text: `${nameFor(payload.citizenId, input.citizenNames)} entered a sponsorship covenant.`,
+					evidenceEventIds: [event.eventId],
+					relation: "fact",
+				});
+				break;
 			case "CounselIssued":
 				sentences.push({
 					sentenceId: `sentence-${event.eventId}`,
@@ -234,7 +242,8 @@ export function projectChronicle(input: {
 		return {
 			beat: (index + 1) as 1 | 2 | 3,
 			text:
-				sentence?.text ?? "Riverhold continues without a recorded consequence.",
+				sentence?.text ??
+				"The settlement continues without a recorded consequence.",
 			evidenceEventIds: sentence?.evidenceEventIds ?? [],
 		};
 	});

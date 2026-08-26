@@ -39,8 +39,13 @@ export interface DiagnosticIdentity {
 	readonly buildSha: string;
 	readonly appVersion: string;
 	readonly protocolVersion: string;
+	readonly genesisId: string;
+	readonly worldId: string;
 	readonly experimentId: string;
 	readonly runId: string;
+	readonly cognitionTreatmentId: string;
+	readonly rendererVersion: string;
+	readonly persistenceVersion: string;
 	readonly runtimeClass: DiagnosticRuntimeClass;
 	readonly viewportClass: DiagnosticViewportClass;
 	readonly diagnosticsMode: DiagnosticMode;

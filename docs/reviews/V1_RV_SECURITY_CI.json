@@ -1,0 +1,20 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-SECURITY-CI",
+	"discipline": "security-ci",
+	"reviewerAgentId": "eonfolk-v1-secci-ind-3b07af7-c84e1b92",
+	"reviewerSessionId": "eonfolk-v1-secci-sess-20260825T0853Z-7f21a6",
+	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
+	"completedAt": "2026-08-25T08:53:00.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-SECURITY-CI-P1-001",
+				"title": "Hosted Verify executes candidate CI and readiness code, so a post-review evidence commit can no-op required checks",
+				"narrative": "Independent inspection of 8eb6afa911cbe386e18dddd26f093aaeef9e5167...3b07af7828d6b5774472295e92f52620719afe44 shows the Mac intermediate and release-evidence finalizer correctly check out frozen control at inputs.frozen_candidate_sha, refuse to execute the evidence tree, and compare CONTROL_PATHS blobs before minting receipts. The protected Verify job does not. It is a single checkout of github.sha (pull_request merge ref or push HEAD) and then runs candidate scripts: classifyConditionalPaths from scripts/run-verification-tier.mjs, pnpm verify:pr, scripts/v1-github-evidence.mjs verify, and scripts/check-v1-readiness.mjs. GitHub evaluates pull_request workflows from that same PR merge commit, not from protected main. The post-freeze allowlist, SHA/ancestry/tag/receipt binding, and secret-scan job exist only as jobs and functions inside those candidate files. An evidence commit after this reviewed SHA can therefore replace .github/workflows/ci.yml (keeping job names Verify, Formal model, and Secret scan) and/or scripts/check-v1-readiness.mjs so hosted required checks go green without the frozen allowlist, live eight-run lattice, or gitleaks running. That is a candidate-controlled bootstrap hole in the exact phase the allowlist was meant to seal; human review of this freeze SHA does not inspect a later evidence commit. Premerge receipts remaining labeled PREMERGE_CANDIDATE_CONTROL does not close it, because the hosted gate that is supposed to consume those receipts is itself rewriteable from HEAD. Action pins, persist-credentials:false, contents/actions read, ignore-scripts install, checksum-pinned gitleaks/actionlint/TLC, tag/run/attempt artifact binding, in_progress push-to-main reattestation, merge-parent evidence SHA derivation, sandbox env stripping plus tested loopback/egress denial, CSP without unsafe-eval, vite/preview bound to 127.0.0.1, and no fetch/XHR/WebSocket in apps/web or packages were not treated as additional P0/P1 on this SHA."
+			}
+		]
+	}
+}

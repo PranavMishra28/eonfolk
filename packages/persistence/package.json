@@ -1,9 +1,15 @@
 {
 	"name": "@eonfolk/persistence",
 	"private": true,
+	"license": "Apache-2.0",
 	"version": "0.0.0",
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./civilization-sponsor": "./src/civilization-sponsor.ts"
+	},
+	"dependencies": {
+		"@eonfolk/civilization": "workspace:*",
+		"@eonfolk/protocol": "workspace:*"
 	}
 }

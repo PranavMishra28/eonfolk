@@ -1,0 +1,3 @@
+# Exact DEEP production bytes are hash-bound evidence, not editable source.
+# git diff --check must not reject vendor/shader whitespace inside those blobs.
+docs/exec-plans/evidence/003/release/deep-artifacts/** -text -diff

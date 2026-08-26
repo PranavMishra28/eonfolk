@@ -10,7 +10,11 @@ import {
 	sanitizeFeedbackImage,
 } from "../feedback";
 
-export function FeedbackPanel() {
+export function FeedbackPanel({
+	contextLabel = "EONFOLK FEEDBACK",
+}: {
+	readonly contextLabel?: string;
+} = {}) {
 	const queue = useMemo(() => new LocalFeedbackQueue(window.localStorage), []);
 	const attachmentInput = useRef<HTMLInputElement>(null);
 	const [open, setOpen] = useState(false);
@@ -69,7 +73,7 @@ export function FeedbackPanel() {
 				whatExpected,
 				diagnostics: includeDiagnostics ? browserDiagnostics.observer() : null,
 				attachment,
-				reportId: `alpha_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
+				reportId: `feedback_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
 				createdAtMs: Date.now(),
 			});
 			setQueuedReports(queue.save(report));
@@ -94,7 +98,7 @@ export function FeedbackPanel() {
 			aria-labelledby="feedback-title"
 		>
 			<div>
-				<p className="eyebrow">FOUNDER ALPHA FEEDBACK</p>
+				<p className="eyebrow">{contextLabel}</p>
 				<h2 id="feedback-title">What broke the spell?</h2>
 				{open && (
 					<p>
@@ -201,7 +205,7 @@ export function FeedbackPanel() {
 						/>
 						<span>
 							Include bounded structured diagnostics in this report (optional;
-							off until checked). Checking this turns on Alpha capture in this
+							off until checked). Checking this turns on bounded capture in this
 							tab. It never includes raw world state, prompts, hidden reasoning,
 							credentials, or browser history.
 						</span>
@@ -209,9 +213,8 @@ export function FeedbackPanel() {
 					<label className="feedback-consent feedback-unavailable">
 						<input type="checkbox" disabled />
 						<span>
-							Attach recent replay (unavailable). Replay capture was
-							deliberately rejected for Founder Alpha, so no replay data is
-							recorded or saved.
+							Attach recent replay (unavailable). This build does not capture
+							replay data for feedback reports.
 						</span>
 					</label>
 					<div className="feedback-actions">

@@ -29,6 +29,32 @@ interface ScoreOptions {
 	readonly ablate?: StandardBrainAblation;
 }
 
+function actionSupportsValue(
+	action: ActionCatalogEntry["action"],
+	valueId: string,
+): boolean {
+	if (action.kind === "VerifyReserve")
+		return [
+			"care",
+			"continuity",
+			"prudence",
+			"stewardship",
+			"reliability",
+		].includes(valueId);
+	if (action.kind === "AccusePublicly")
+		return [
+			"curiosity",
+			"fairness",
+			"solidarity",
+			"stewardship",
+			"continuity",
+			"reliability",
+		].includes(valueId);
+	if (action.kind === "FollowStandingPlan")
+		return ["continuity", "craft", "reliability"].includes(valueId);
+	return false;
+}
+
 function term(
 	code: ScoreTerm["code"],
 	value: number,
@@ -61,11 +87,32 @@ function score(
 			),
 		);
 	}
+	const visibleNeedEvidence = context.visibleRecords.filter(
+		(record) =>
+			entry.evidenceRecordIds.includes(record.recordId) &&
+			(record.kind === "observation" || record.kind === "belief") &&
+			record.confidence !== null,
+	);
+	if (entry.tags.includes("need") && visibleNeedEvidence.length > 0)
+		terms.push(
+			term(
+				"need",
+				Math.trunc(
+					visibleNeedEvidence.reduce(
+						(sum, record) => sum + (record.confidence ?? 0),
+						0,
+					) / visibleNeedEvidence.length,
+				),
+				visibleNeedEvidence.map(({ recordId }) => recordId),
+			),
+		);
 	const matchingValues =
 		options.ablate === "values"
 			? []
-			: context.values.filter((value) =>
-					entry.tags.includes(value.valueId as never),
+			: context.values.filter(
+					(value) =>
+						entry.tags.includes(value.valueId as never) ||
+						actionSupportsValue(entry.action, value.valueId),
 				);
 	if (matchingValues.length > 0)
 		terms.push(
@@ -147,13 +194,19 @@ function score(
 	return { entry, terms, total };
 }
 
-function disposition(
+/**
+ * Canonical counsel interpretation shared by the trusted Brain and authority.
+ * Civilization sponsorship defers a standing-plan interpretation to its typed
+ * later boundary; other decision surfaces retain their explicit rejection.
+ */
+export function counselDisposition(
 	context: DecisionContext,
 	selected: ActionCatalogEntry,
 ): DecisionExplanation["counselDisposition"] {
 	if (context.counselIntent === null) return "not-applicable";
 	if (selected.counselAffinity === context.counselIntent) return "accepted";
-	if (selected.action.kind === "FollowStandingPlan") return "rejected";
+	if (selected.action.kind === "FollowStandingPlan")
+		return selected.tags.includes("delay") ? "delayed" : "rejected";
 	return "reinterpreted";
 }
 
@@ -172,6 +225,7 @@ export function renderPublicJustification(
 	const reason =
 		{
 			plan: "it follows my standing plan",
+			need: "it answers the strongest need I can see",
 			commitment: "it honors a commitment I have already made",
 			value: "it fits the values guiding this choice",
 			relationship: "I weighed the trust this decision could change",
@@ -181,6 +235,8 @@ export function renderPublicJustification(
 		}[reasonCode] ?? "the visible facts support it";
 	if (explanation.counselDisposition === "accepted")
 		return `Your counsel matched my judgment: ${reason}.`;
+	if (explanation.counselDisposition === "delayed")
+		return `I will defer your counsel and keep my plan for now: ${reason}.`;
 	if (explanation.counselDisposition === "rejected")
 		return `I will keep my plan: ${reason}.`;
 	if (explanation.counselDisposition === "reinterpreted")
@@ -235,7 +291,7 @@ async function chooseWithStandardBrain(
 	const draw = tied.length > 1 ? xoshiro128StarStar(input.prngState) : null;
 	const selected = tied[draw === null ? 0 : draw.value % tied.length]!;
 	const nextPrngState = draw?.state ?? input.prngState;
-	const selectedDisposition = disposition(context, selected.entry);
+	const selectedDisposition = counselDisposition(context, selected.entry);
 	const decisive = [...selected.terms]
 		.sort(
 			(left, right) =>
@@ -373,17 +429,24 @@ export async function validateIntentProposal(
 		proposal.revision !== context.revision ||
 		proposal.schemaVersion !== "eonfolk-intent-proposal-v1" ||
 		!isPlainRecord(proposal.provenance) ||
-		!hasExactKeys(proposal.provenance, ["cognitionKind", "cognitionVersion"]) ||
-		proposal.provenance.cognitionKind !== "standard-brain" ||
-		proposal.provenance.cognitionVersion !== COGNITION_VERSION ||
 		proposal.planProposal !== null ||
 		proposal.memoryProposal !== null ||
 		typeof proposal.publicJustification !== "string" ||
 		proposal.publicJustification.length > 512 ||
-		!isClosedExplanation(proposal.explanation, context) ||
+		!isClosedProvenance(proposal.provenance) ||
+		!isClosedExplanation(
+			proposal.explanation,
+			context,
+			proposal.provenance.cognitionKind,
+		) ||
 		proposal.explanation.selectedActionId !== proposal.actionId ||
-		proposal.publicJustification !==
-			renderPublicJustification(proposal.explanation as DecisionExplanation)
+		(proposal.provenance.cognitionKind === "standard-brain" &&
+			proposal.publicJustification !==
+				renderPublicJustification(
+					proposal.explanation as DecisionExplanation,
+				)) ||
+		(proposal.provenance.cognitionKind === "model" &&
+			!isPublicModelJustification(proposal.publicJustification))
 	)
 		return "ACTION_UNAVAILABLE";
 	const catalogEntry = context.actionCatalog.find(
@@ -399,6 +462,100 @@ export async function validateIntentProposal(
 	if ((await proposalHash(withoutHash)) !== claimedHash)
 		return "ACTION_UNAVAILABLE";
 	return "accepted";
+}
+
+/**
+ * Standard-only authority check. Structural validation is insufficient because
+ * an attacker can rehash a different legal catalog action. Re-running the
+ * deterministic scorer with the authority-owned PRNG state binds the selected
+ * action and the complete explanation: score terms, decisive reasons,
+ * discarded candidates, tie-break, counsel disposition, and public copy.
+ */
+export async function authorizeStandardBrainProposal(
+	context: DecisionContext,
+	proposal: unknown,
+	prngState: PrngState,
+): Promise<"accepted" | "ACTION_UNAVAILABLE"> {
+	if (
+		(await validateIntentProposal(context, proposal)) !== "accepted" ||
+		!isPlainRecord(proposal) ||
+		!isPlainRecord(proposal.provenance) ||
+		proposal.provenance.cognitionKind !== "standard-brain" ||
+		typeof proposal.proposalId !== "string"
+	)
+		return "ACTION_UNAVAILABLE";
+	try {
+		const expected = await standardBrain(context, {
+			proposalId: proposal.proposalId,
+			prngState,
+		});
+		return jcs(expected.proposal) === jcs(proposal)
+			? "accepted"
+			: "ACTION_UNAVAILABLE";
+	} catch {
+		return "ACTION_UNAVAILABLE";
+	}
+}
+
+function isSha256(value: unknown): value is string {
+	return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
+}
+
+function containsControlCharacter(value: string): boolean {
+	return [...value].some((character) => {
+		const code = character.codePointAt(0);
+		return code !== undefined && (code <= 0x1f || code === 0x7f);
+	});
+}
+
+function isBoundedLabel(value: unknown): value is string {
+	return (
+		typeof value === "string" &&
+		value.length >= 1 &&
+		value.length <= 128 &&
+		!containsControlCharacter(value)
+	);
+}
+
+function isClosedProvenance(
+	value: Record<string, unknown>,
+): value is IntentProposal["provenance"] {
+	if (value.cognitionKind === "standard-brain") {
+		return (
+			hasExactKeys(value, ["cognitionKind", "cognitionVersion"]) &&
+			value.cognitionVersion === COGNITION_VERSION
+		);
+	}
+	return (
+		value.cognitionKind === "model" &&
+		hasExactKeys(value, [
+			"cognitionKind",
+			"cognitionVersion",
+			"provider",
+			"model",
+			"modelVersion",
+			"promptTemplateHash",
+			"proposalSchemaHash",
+			"artifactHash",
+		]) &&
+		value.cognitionVersion === COGNITION_VERSION &&
+		isBoundedLabel(value.provider) &&
+		isBoundedLabel(value.model) &&
+		isBoundedLabel(value.modelVersion) &&
+		isSha256(value.promptTemplateHash) &&
+		isSha256(value.proposalSchemaHash) &&
+		isSha256(value.artifactHash)
+	);
+}
+
+function isPublicModelJustification(value: string): boolean {
+	return (
+		[...value].length >= 8 &&
+		[...value].length <= 180 &&
+		value === value.normalize("NFC") &&
+		!containsControlCharacter(value) &&
+		/[.!?]$/u.test(value)
+	);
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -444,6 +601,7 @@ function isStringArray(value: unknown, maximum: number): value is string[] {
 function isClosedExplanation(
 	value: unknown,
 	context: DecisionContext,
+	cognitionKind: IntentProposal["provenance"]["cognitionKind"],
 ): value is DecisionExplanation {
 	if (
 		!isPlainRecord(value) ||
@@ -466,7 +624,9 @@ function isClosedExplanation(
 	if (
 		typeof value.selectedActionId !== "string" ||
 		typeof value.templateId !== "string" ||
-		!value.templateId.startsWith("standard-") ||
+		(cognitionKind === "standard-brain"
+			? !value.templateId.startsWith("standard-")
+			: value.templateId !== "model-proposal-v1") ||
 		!isStringArray(value.decisiveReasonCodes, 3) ||
 		!isStringArray(value.visibleRecordIdsRead, 128) ||
 		!isStringArray(value.relationshipIdsRead, 128) ||
@@ -479,6 +639,18 @@ function isClosedExplanation(
 		value.discardedCandidates.length > context.actionCatalog.length ||
 		!isPlainRecord(value.tieBreak) ||
 		!hasExactKeys(value.tieBreak, ["used", "draw", "tiedActionIds"])
+	)
+		return false;
+	if (
+		cognitionKind === "model" &&
+		(value.decisiveReasonCodes.length !== 0 ||
+			value.scoreTerms.length !== 0 ||
+			value.totalScore !== 0 ||
+			value.discardedCandidates.length !== 0 ||
+			value.tieBreak.used !== false ||
+			value.tieBreak.draw !== null ||
+			!Array.isArray(value.tieBreak.tiedActionIds) ||
+			value.tieBreak.tiedActionIds.length !== 0)
 	)
 		return false;
 	const visibleIds = new Set(
@@ -499,6 +671,7 @@ function isClosedExplanation(
 	const allowedCodes = new Set([
 		"plan",
 		"commitment",
+		"need",
 		"value",
 		"relationship",
 		"evidence",
@@ -508,9 +681,13 @@ function isClosedExplanation(
 	if (!value.decisiveReasonCodes.every((code) => allowedCodes.has(code)))
 		return false;
 	if (
-		!["accepted", "rejected", "reinterpreted", "not-applicable"].includes(
-			String(value.counselDisposition),
-		)
+		![
+			"accepted",
+			"delayed",
+			"rejected",
+			"reinterpreted",
+			"not-applicable",
+		].includes(String(value.counselDisposition))
 	)
 		return false;
 	if (!value.visibleRecordIdsRead.every((id) => visibleIds.has(id)))

@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { BrowserDiagnostics } from "./diagnostics.js";
+import { BrowserDiagnostics, routeIdentity } from "./diagnostics.js";
 
 describe("browser diagnostics boundary", () => {
+	it("binds every public route to Release Genesis", () => {
+		for (const path of [
+			"/",
+			"/genesis",
+			"/world",
+			"/research",
+			"/developer",
+			"/unknown",
+		])
+			expect(routeIdentity(path).worldId).toBe("eonfolk-genesis-world-v1");
+		expect(routeIdentity("/world")).toMatchObject({
+			rendererVersion: "playcanvas-generated-civilization-v1",
+			persistenceVersion: "versioned-browser-authority-v1",
+		});
+	});
+
 	it("keeps the local observer read-only and bounded", () => {
 		const diagnostics = new BrowserDiagnostics("local");
 		diagnostics.setWorldHead({

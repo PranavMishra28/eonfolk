@@ -61,7 +61,7 @@ export type FidelityClass = "LOD0" | "LOD1" | "LOD2" | "LOD3";
 
 export interface SpatialCellDefinition {
 	readonly cellId: string;
-	readonly regionId: "riverhold";
+	readonly regionId: string;
 	readonly centerMm: SpatialPointMm;
 	readonly radiusMm: number;
 	readonly placeIds: readonly string[];
@@ -138,7 +138,9 @@ export interface BlockedVolume {
 }
 
 export interface SpatialSceneDefinition {
-	readonly schemaVersion: "riverhold-spatial-scene-v2";
+	readonly schemaVersion:
+		| "riverhold-spatial-scene-v2"
+		| "eonfolk-generated-spatial-scene-v1";
 	readonly sceneVersion: string;
 	readonly metresPerWorldUnit: 1;
 	readonly regionExtentMm: Readonly<{
@@ -211,6 +213,8 @@ export interface SpatialActorProjection {
 		readonly originPlaceId: string;
 		readonly destinationPlaceId: string;
 		readonly routeId: string;
+		/** Canonical route progress when Reality exposes one; never camera-derived. */
+		readonly progressBasisPoints: number | null;
 		readonly targetId: string | null;
 	}>;
 	readonly interactionTarget: string | null;

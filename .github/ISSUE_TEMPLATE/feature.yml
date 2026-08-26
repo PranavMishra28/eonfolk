@@ -1,0 +1,44 @@
+name: Scoped feature proposal
+description: Propose the smallest change that solves a current player problem.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Player problem
+      description: What observable current experience is missing or failing?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Smallest useful outcome
+      description: Describe what the player could do or understand afterward, without prescribing architecture.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Falsifiable acceptance evidence
+      description: How could a reviewer prove this outcome works in the running game?
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Scope boundaries
+      options:
+        - label: The proposal preserves complete model-free play.
+          required: true
+        - label: The proposal does not require accounts, payments, deployment, proprietary data, or a partnership.
+          required: true
+        - label: I searched for an existing issue covering this player problem.
+          required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: What should remain out of scope?
+      description: Name adjacent systems or polish this proposal does not need.
+    validations:
+      required: true

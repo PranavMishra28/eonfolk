@@ -2,28 +2,31 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** FOUNDER ALPHA ACTIVE — 001 technical evidence retained; human product gates not run
+**Status:** V1 CIVILIZATION IN PROGRESS — Founder Alpha retained as prior evidence; human product gates not run
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [planning status](../PLAN.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md), [completed first slice](exec-plans/completed/001-foundation.md).
+**Related documents:** [planning status](../PLAN.md), [V1 ExecPlan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
-## Default six-file read order
+## V1 restart read order
 
-1. **This index.**
-2. [Product](product/PRODUCT.md).
-3. [Human loop](product/HUMAN_LOOP.md).
-4. [Distribution](product/DISTRIBUTION.md).
+1. [V1 execution ledger](../GOAL.md).
+2. [Operational restart](../RESUME.md).
+3. **This index.**
+4. [Product](product/PRODUCT.md).
 5. [Architecture](engineering/ARCHITECTURE.md).
-6. [002 Founder Alpha ExecPlan](exec-plans/active/002-founder-alpha.md).
+6. [V1 civilization ExecPlan](exec-plans/active/003-v1-civilization.md).
 
 ## Coordinator-owned shared authorities
 
 | Concern | Sole authority |
 |---|---|
 | Planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](../PLAN.md) |
+| Executable V1 requirement state | [GOAL.md](../GOAL.md) |
+| Exact V1 operational restart | [RESUME.md](../RESUME.md) |
+| V1 premerge evidence handoff | [V1_HANDOFF.md](../V1_HANDOFF.md) |
 | This ownership map and retained-artifact inventory | `INDEX.md` |
 | External and measured claim provenance | [SOURCE_LEDGER.md](research/SOURCE_LEDGER.md) |
 | Accepted decisions and review reconciliation | [DECISIONS.md](decisions/DECISIONS.md) |
@@ -75,8 +78,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | $0/$50/$300 scenarios and cost gates | [COST_MODEL.md](engineering/COST_MODEL.md) |
 | Trust boundaries, authorization, moderation and credentials | [SECURITY.md](engineering/SECURITY.md) |
 | Flight Recorder modes, redaction, Sentinel, incidents, observer, replay-capture seam, and diagnostics overhead | [DIAGNOSTICS.md](engineering/DIAGNOSTICS.md) |
-| Local feedback queue, consent, optional relay, dedup, quotas, retention, and delivery semantics | [FEEDBACK.md](engineering/FEEDBACK.md) |
-| Founder Alpha local preview, CI evidence, credential gates, and release-status claims | [FOUNDER_ALPHA_RELEASE.md](engineering/FOUNDER_ALPHA_RELEASE.md) |
+| Local feedback queue, consent, sanitization, retention, deletion, and explicit no-relay boundary | [FEEDBACK.md](engineering/FEEDBACK.md) |
+| Historical Founder Alpha local-preview/CI evidence (not current V1 operations) | [FOUNDER_ALPHA_RELEASE.md](engineering/FOUNDER_ALPHA_RELEASE.md) |
 | Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
 
 ## Quality authorities
@@ -93,6 +96,7 @@ Each concern has one authority. Research records evidence; reviews record object
 
 | Evidence set | Retained artifact |
 |---|---|
+| Compact primary-source map and root BibTeX catalog | [RESEARCH.md](RESEARCH.md) and [references.bib](../references.bib) |
 | Named competitors and adjacent substitutes | [COMPETITORS.md](research/COMPETITORS.md) |
 | Review/community/player behavior evidence | [PLAYER_RESEARCH.md](research/PLAYER_RESEARCH.md) |
 | Structures A–H, challenger comparison and scenario tournament | [GAME_DESIGN_RESEARCH.md](research/GAME_DESIGN_RESEARCH.md) |
@@ -111,6 +115,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
 | World-as-Product city-simulation, camera, residency, task, and animation principles | [WORLD_AS_PRODUCT_RESEARCH.md](research/WORLD_AS_PRODUCT_RESEARCH.md) |
 | Frozen World-as-Product technical truth and bounded-delta audit | [WORLD_AS_PRODUCT_TECH_SPIKE.md](research/WORLD_AS_PRODUCT_TECH_SPIKE.md) |
+| Exact read-only M4 Max local-model experiment and non-promotion evidence | [LOCAL_MODEL_LAB.md](research/LOCAL_MODEL_LAB.md) |
 
 ## Reviews
 
@@ -147,7 +152,8 @@ Each concern has one authority. Research records evidence; reviews record object
 | Concern | Retained artifact |
 |---|---|
 | ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
-| Sole living Founder Alpha plan | [002-founder-alpha.md](exec-plans/active/002-founder-alpha.md) |
+| Sole living V1 implementation plan | [003-v1-civilization.md](exec-plans/active/003-v1-civilization.md) |
+| Completed Founder Alpha implementation and evidence log | [002-founder-alpha.md](exec-plans/completed/002-founder-alpha.md) |
 | Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/completed/001-foundation.md) |
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |
 | Completed-plan retention path | `exec-plans/completed/.gitkeep` |
@@ -158,16 +164,17 @@ Each concern has one authority. Research records evidence; reviews record object
 | Founder Alpha diagnostics, headful zoom-equivalent, and physical-device evidence boundary | [002 evidence protocol](exec-plans/evidence/002/README.md), [headful reflow record](exec-plans/evidence/002/headful-zoom.json), and [physical-device status](exec-plans/evidence/002/physical-device.json) |
 | Founder Alpha world-presence operator override | [world-presence override](exec-plans/evidence/002/world-presence-override.md) |
 | Automated implementation performance evidence and its limitations | [performance evidence](exec-plans/evidence/001/implementation/performance.json) |
+| Disposable IndexedDB/SQLite-WASM OPFS decision evidence | [SQLite/OPFS spike](exec-plans/evidence/003/sqlite-opfs-spike.json) |
 | Automated implementation bundle evidence and limits | [bundle evidence](exec-plans/evidence/001/implementation/bundle.json) |
 | Decision-trace timing noninterference evidence | [timing evidence](exec-plans/evidence/001/implementation/decision-trace-timing.json) |
 | Local persistence benchmark evidence and limitations | [persistence evidence](exec-plans/evidence/001/implementation/persistence.json) |
 | Production dependency audit evidence and limitations | [security audit](exec-plans/evidence/001/implementation/security-audit.json) |
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
-| Final bootstrap handoff | [OVERNIGHT_HANDOFF.md](../OVERNIGHT_HANDOFF.md) |
-| Founder Alpha setup, verification, diagnosis, limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
+| Historical Founder Alpha setup, evidence limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |
+| Generated V1 repository archaeology and cleanup inventory | [REPO_INVENTORY.md](generated/REPO_INVENTORY.md) |
 
 Production code, pinned dependencies, workflows, and handoff evidence may now exist on `main` under the operator bootstrap override. Credentials, deployment artifacts, model weights, paid integrations, and generated concept pixels as runtime assets remain forbidden.

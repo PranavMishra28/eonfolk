@@ -1,0 +1,25 @@
+{
+	"schemaVersion": "eonfolk-v1-structured-review-v3",
+	"reviewId": "V1-RV-PRODUCT",
+	"discipline": "product-game",
+	"reviewerAgentId": "35cf0c69-cb9d-47bb-8602-ce72ca3638c9",
+	"reviewerSessionId": "eeac07b6-68db-4bae-ade9-757e79d68bdf",
+	"sourceSha": "3b07af7828d6b5774472295e92f52620719afe44",
+	"completedAt": "2026-08-25T08:58:43.000Z",
+	"conclusion": "FINDINGS",
+	"findings": {
+		"p0": [],
+		"p1": [
+			{
+				"id": "V1-RV-PRODUCT-P1-001",
+				"title": "Accuse counsel never yields advertised consequence",
+				"narrative": "HUMAN_LOOP and CHRONICLE require three reachable first-boundary histories, including Accuse now: a public allegation, strained Mara–Toma trust, and an attributed allegation that is not proof. In the playable Release Genesis path the Confront them publicly — risks trust control and accuseStake copy forecast that outcome, but the generated-world browser journey that issues that intent records rejected the advice, Standing Plan continued, and Research’s This accepted beat contains no allegation. Distinct public-accusation terminals exist only in fixture tests that force AccusePublicly or retune Mind; canonical Mara’s Standard Brain does not admit that history, so two of three advertised counsel intents do not produce materially different player-visible relationship/allegation consequences."
+			},
+			{
+				"id": "V1-RV-PRODUCT-P1-002",
+				"title": "Return next action is navigation only",
+				"narrative": "HUMAN_LOOP and PRODUCT require an explicit leave/advance/return then one outcome-legal second decision (repair, uphold, investigate, or observe) that can cause a later typed effect, and they forbid a return action that is only copy. After Chronicle, V1GenesisApp renders generated-sponsor-runtime nextAction solely as a worldFocus href (citizen/object/location). No second WorldCommand, receipt, or branch-legal option set exists; e2e covers Chronicle-to-focus and Copy factual trace, not a second authoritative choice. Repair-relationship and investigate-uncertainty therefore change camera/context only, leaving the sponsor loop incomplete."
+			}
+		]
+	}
+}

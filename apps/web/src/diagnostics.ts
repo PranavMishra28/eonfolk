@@ -8,6 +8,7 @@ import {
 	NativePerformanceMonitor,
 	projectLocalObserver,
 	Sentinel,
+	type SentinelInvariant,
 	type WorldHeadSummary,
 } from "@eonfolk/diagnostics";
 import { PROTOCOL_SCHEMA_VERSION } from "@eonfolk/protocol";
@@ -43,6 +44,30 @@ function viewportClass() {
 	return "wide" as const;
 }
 
+export function routeIdentity(pathname?: string) {
+	const path =
+		(
+			pathname ??
+			(typeof window === "undefined" ? "/" : window.location.pathname)
+		).replace(/\/+$/u, "") || "/";
+	return Object.freeze({
+		genesisId: "release-genesis-browser-v1",
+		worldId: "eonfolk-genesis-world-v1",
+		experimentId: "v1-civilization-standard-v5",
+		runId: "eonfolk-genesis-world-v1",
+		cognitionTreatmentId: "cognition-standard-v1",
+		rendererVersion:
+			path === "/world"
+				? "playcanvas-generated-civilization-v1"
+				: path === "/research"
+					? "generated-research-surface-v1"
+					: path === "/developer"
+						? "generated-developer-surface-v1"
+						: "generated-civilization-entry-v1",
+		persistenceVersion: "versioned-browser-authority-v1",
+	});
+}
+
 export class BrowserDiagnostics {
 	readonly #recorder: FlightRecorder;
 	#performance: NativePerformanceMonitor | null;
@@ -75,6 +100,7 @@ export class BrowserDiagnostics {
 			mode,
 			capabilities: this.#capabilities,
 			identity: {
+				...routeIdentity(),
 				diagnosticSessionId: diagnosticSessionId(),
 				buildSha:
 					typeof __EONFOLK_BUILD_SHA__ === "string"
@@ -85,8 +111,6 @@ export class BrowserDiagnostics {
 						? __EONFOLK_APP_VERSION__
 						: "unknown",
 				protocolVersion: PROTOCOL_SCHEMA_VERSION,
-				experimentId: "founder-alpha-standard-brain",
-				runId: "run_riverhold_0001",
 				runtimeClass: runtimeClass(),
 				viewportClass: viewportClass(),
 			},
@@ -177,6 +201,7 @@ export class BrowserDiagnostics {
 	async captureRuntimeFailure(input: {
 		readonly code: string;
 		readonly component: string;
+		readonly invariant?: SentinelInvariant;
 		readonly protectReality: () => void | Promise<void>;
 	}): Promise<DiagnosticIncident> {
 		const sentinel = new Sentinel({
@@ -185,7 +210,7 @@ export class BrowserDiagnostics {
 			recover: () => false,
 		});
 		const incident = await sentinel.check({
-			invariant: "authoritative-runtime-available",
+			invariant: input.invariant ?? "authoritative-runtime-available",
 			holds: false,
 			component: input.component,
 			code: input.code,

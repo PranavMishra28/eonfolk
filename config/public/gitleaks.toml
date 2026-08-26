@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Bibliography-key index misclassified as a generic API key"
+condition = "AND"
+paths = ['''^docs/RESEARCH\.md$''']
+rules = ['''generic-api-key''']
+
+[[allowlists]]
+description = "Hash-bound target-Mac DEEP production bundles committed only as inert evidence bytes"
+paths = ['''^docs/exec-plans/evidence/003/release/deep-artifacts/''']

@@ -2,9 +2,9 @@
 
 **Purpose:** Define how implementation plans are written, maintained, evidenced, reviewed and closed.
 
-**Status:** ACTIVE FOR FOUNDER ALPHA
+**Status:** ACTIVE FOR V1 CIVILIZATION
 
-**Authority boundary:** This file owns ExecPlan format and maintenance. [002 Founder Alpha](active/002-founder-alpha.md) is the sole living plan; [001-foundation](completed/001-foundation.md) owns completed first-slice history.
+**Authority boundary:** This file owns ExecPlan format and maintenance. [003 V1 civilization](active/003-v1-civilization.md) is the sole living plan; [002 Founder Alpha](completed/002-founder-alpha.md) and [001 foundation](completed/001-foundation.md) own completed history.
 
 **Related documents:** [quality bar](../quality/QUALITY_BAR.md), [testing](../quality/TESTING.md), [visual QA](../quality/VISUAL_QA.md), [planning status](../../PLAN.md).
 

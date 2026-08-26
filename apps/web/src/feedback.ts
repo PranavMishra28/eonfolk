@@ -8,7 +8,10 @@ import { normalizeIngressText } from "@eonfolk/protocol";
 export const FEEDBACK_SCHEMA_VERSION = "eonfolk-feedback-v1" as const;
 export const LOCAL_FEEDBACK_DIAGNOSTICS_VERSION =
 	"eonfolk-local-feedback-diagnostics-v1" as const;
-const STORAGE_KEY = "eonfolk:founder-alpha-feedback:v1";
+export const LOCAL_FEEDBACK_STORAGE_KEY =
+	"eonfolk:release-genesis-feedback:v1" as const;
+export const LEGACY_LOCAL_FEEDBACK_STORAGE_KEY =
+	"eonfolk:founder-alpha-feedback:v1" as const;
 const MAX_REPORTS = 3;
 export const FEEDBACK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
 export const FEEDBACK_QUEUE_MAX_BYTES = 4 * 1024 * 1024;
@@ -505,18 +508,59 @@ export class LocalFeedbackQueue {
 	constructor(storage: Storage, now: () => number = () => Date.now()) {
 		this.#storage = storage;
 		this.#now = now;
+		this.#migrateLegacyQueue();
+	}
+
+	#migrateLegacyQueue(): void {
+		try {
+			const legacyRaw = this.#storage.getItem(
+				LEGACY_LOCAL_FEEDBACK_STORAGE_KEY,
+			);
+			if (legacyRaw === null) return;
+			const currentRaw = this.#storage.getItem(LOCAL_FEEDBACK_STORAGE_KEY);
+			const parseArray = (raw: string | null): readonly unknown[] => {
+				if (
+					raw === null ||
+					new TextEncoder().encode(raw).byteLength > FEEDBACK_QUEUE_MAX_BYTES
+				)
+					return [];
+				try {
+					const value = JSON.parse(raw) as unknown;
+					return Array.isArray(value) ? value : [];
+				} catch {
+					return [];
+				}
+			};
+			const combined = [...parseArray(legacyRaw), ...parseArray(currentRaw)];
+			const deduplicated = new Map<string, unknown>();
+			for (const value of combined) {
+				const reportId =
+					isRecord(value) && typeof value.reportId === "string"
+						? value.reportId
+						: `invalid-${deduplicated.size}`;
+				deduplicated.set(reportId, value);
+			}
+			if (deduplicated.size > 0)
+				this.#storage.setItem(
+					LOCAL_FEEDBACK_STORAGE_KEY,
+					JSON.stringify([...deduplicated.values()]),
+				);
+			this.#storage.removeItem(LEGACY_LOCAL_FEEDBACK_STORAGE_KEY);
+		} catch {
+			/* unavailable storage stays non-authoritative */
+		}
 	}
 
 	list(): readonly LocalFeedbackReport[] {
 		try {
-			const raw = this.#storage.getItem(STORAGE_KEY) ?? "[]";
+			const raw = this.#storage.getItem(LOCAL_FEEDBACK_STORAGE_KEY) ?? "[]";
 			if (new TextEncoder().encode(raw).byteLength > FEEDBACK_QUEUE_MAX_BYTES) {
-				this.#storage.removeItem(STORAGE_KEY);
+				this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
 				return [];
 			}
 			const parsed = JSON.parse(raw) as unknown;
 			if (!Array.isArray(parsed)) {
-				this.#storage.removeItem(STORAGE_KEY);
+				this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
 				return [];
 			}
 			const nowMs = this.#now();
@@ -528,13 +572,14 @@ export class LocalFeedbackQueue {
 				.slice(-MAX_REPORTS);
 			const serialized = JSON.stringify(reports);
 			if (serialized !== raw) {
-				if (reports.length === 0) this.#storage.removeItem(STORAGE_KEY);
-				else this.#storage.setItem(STORAGE_KEY, serialized);
+				if (reports.length === 0)
+					this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
+				else this.#storage.setItem(LOCAL_FEEDBACK_STORAGE_KEY, serialized);
 			}
 			return Object.freeze(reports);
 		} catch {
 			try {
-				this.#storage.removeItem(STORAGE_KEY);
+				this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
 			} catch {
 				/* unavailable storage stays non-authoritative */
 			}
@@ -559,20 +604,26 @@ export class LocalFeedbackQueue {
 			new TextEncoder().encode(serialized).byteLength > FEEDBACK_QUEUE_MAX_BYTES
 		)
 			throw new RangeError("Feedback exceeds the local queue byte budget.");
-		this.#storage.setItem(STORAGE_KEY, serialized);
+		this.#storage.setItem(LOCAL_FEEDBACK_STORAGE_KEY, serialized);
 		return Object.freeze(reports);
 	}
 
 	clear(): void {
-		this.#storage.removeItem(STORAGE_KEY);
+		this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
+		this.#storage.removeItem(LEGACY_LOCAL_FEEDBACK_STORAGE_KEY);
 	}
 
 	remove(reportId: string): readonly LocalFeedbackReport[] {
 		const reports = this.list().filter(
 			(report) => report.reportId !== reportId,
 		);
-		if (reports.length === 0) this.#storage.removeItem(STORAGE_KEY);
-		else this.#storage.setItem(STORAGE_KEY, JSON.stringify(reports));
+		if (reports.length === 0)
+			this.#storage.removeItem(LOCAL_FEEDBACK_STORAGE_KEY);
+		else
+			this.#storage.setItem(
+				LOCAL_FEEDBACK_STORAGE_KEY,
+				JSON.stringify(reports),
+			);
 		return Object.freeze(reports);
 	}
 }

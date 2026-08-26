@@ -29,8 +29,8 @@ export const GOLDEN = {
 	batchId: "batch_lzlrylnas74sxzj7rnryod2l3j2u2vw2uakazb2uideg6rcbcoqa",
 	genesisHead:
 		"01b9357332a4012f244688f1a6d2cb5d1ee7b791ff01eb4326c0d6dce496b982",
-	eventHash: "bd40401273fbead505fd09acfd56d36cc2ddd97b35383c67b5c2cbe1b62fe9fd",
-	batchHash: "c9112b43d170cbf1c9d0a0ded5053c10889dbf160ec95110a70fbaaa11a8183a",
+	eventHash: "8f50980c35611771cfd25cf08c3c725e4b057f2fe03ef31d9796745a972b4eaa",
+	batchHash: "a6f087481198a8cd3aa19a4dca85bc80b446daa2bfb6549df8995afd0b4a02d8",
 	stableCitizenId:
 		"citizen_m4vq46wmgl36qgqreoahnrgwypbzfigrpx2whdm7avjrnegcnlna",
 	prngSeedDigest:

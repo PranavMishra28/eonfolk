@@ -21,15 +21,16 @@ VARIABLES phase,
           batches,
           events,
           receipts,
+          snapshots,
           catchStatus,
           nextChapter,
           crashed
 
 vars == << phase, revision, lastSequence, fence, batches, events, receipts,
-           catchStatus, nextChapter, crashed >>
+           snapshots, catchStatus, nextChapter, crashed >>
 
 DurableVars == << phase, revision, lastSequence, fence, batches, events,
-                 receipts, catchStatus, nextChapter >>
+                 receipts, snapshots, catchStatus, nextChapter >>
 
 Init ==
     /\ phase = "empty"
@@ -39,6 +40,7 @@ Init ==
     /\ batches = {}
     /\ events = {}
     /\ receipts = {}
+    /\ snapshots = {}
     /\ catchStatus = "none"
     /\ nextChapter = 0
     /\ crashed = FALSE
@@ -48,6 +50,7 @@ Genesis ==
     /\ phase = "empty"
     /\ phase' = "ready"
     /\ fence' = 1
+    /\ snapshots' = {0}
     /\ UNCHANGED << revision, lastSequence, batches, events, receipts,
                     catchStatus, nextChapter, crashed >>
 
@@ -57,7 +60,7 @@ ClaimFence ==
     /\ fence < MaxToken
     /\ fence' = fence + 1
     /\ UNCHANGED << phase, revision, lastSequence, batches, events, receipts,
-                    catchStatus, nextChapter, crashed >>
+                    snapshots, catchStatus, nextChapter, crashed >>
 
 Append(command, writerToken) ==
     /\ ~crashed
@@ -70,7 +73,7 @@ Append(command, writerToken) ==
     /\ batches' = batches \cup {revision + 1}
     /\ events' = events \cup {lastSequence + 1}
     /\ receipts' = receipts \cup {command}
-    /\ UNCHANGED << phase, fence, catchStatus, nextChapter, crashed >>
+    /\ UNCHANGED << phase, fence, snapshots, catchStatus, nextChapter, crashed >>
 
 IdempotentRetry(command) ==
     /\ ~crashed
@@ -92,7 +95,7 @@ BeginCatchUp ==
     /\ catchStatus' = "in-progress"
     /\ nextChapter' = 0
     /\ UNCHANGED << phase, revision, lastSequence, fence, batches, events,
-                    receipts, crashed >>
+                    receipts, snapshots, crashed >>
 
 AppendCatchUpChapter(command, writerToken) ==
     /\ ~crashed
@@ -111,7 +114,30 @@ AppendCatchUpChapter(command, writerToken) ==
     /\ catchStatus' = IF nextChapter + 1 = MaxChapters
                        THEN "complete"
                        ELSE "in-progress"
-    /\ UNCHANGED << phase, fence, crashed >>
+    /\ UNCHANGED << phase, fence, snapshots, crashed >>
+
+SaveExactHeadSnapshot(writerToken) ==
+    /\ ~crashed
+    /\ phase = "ready"
+    /\ writerToken = fence
+    /\ revision \notin snapshots
+    /\ snapshots' = snapshots \cup {revision}
+    /\ UNCHANGED << phase, revision, lastSequence, fence, batches, events,
+                    receipts, catchStatus, nextChapter, crashed >>
+
+IdempotentSnapshotRetry(writerToken) ==
+    /\ ~crashed
+    /\ phase = "ready"
+    /\ writerToken = fence
+    /\ revision \in snapshots
+    /\ UNCHANGED vars
+
+StaleSnapshotAttempt(snapshotRevision, writerToken) ==
+    /\ ~crashed
+    /\ phase = "ready"
+    /\ \/ snapshotRevision # revision
+       \/ writerToken # fence
+    /\ UNCHANGED vars
 
 Crash ==
     /\ ~crashed
@@ -134,6 +160,11 @@ Next ==
        \/ IdempotentRetry(command)
        \/ StaleWriterAttempt(command, writerToken)
        \/ AppendCatchUpChapter(command, writerToken)
+    \/ \E snapshotRevision \in 0..MaxRevision:
+          \E writerToken \in 0..MaxToken:
+            \/ SaveExactHeadSnapshot(writerToken)
+            \/ IdempotentSnapshotRetry(writerToken)
+            \/ StaleSnapshotAttempt(snapshotRevision, writerToken)
 
 TypeInvariant ==
     /\ phase \in {"empty", "ready"}
@@ -143,6 +174,7 @@ TypeInvariant ==
     /\ batches \subseteq 1..MaxRevision
     /\ events \subseteq 1..MaxRevision
     /\ receipts \subseteq Commands
+    /\ snapshots \subseteq 0..MaxRevision
     /\ catchStatus \in {"none", "in-progress", "complete"}
     /\ nextChapter \in 0..MaxChapters
     /\ crashed \in BOOLEAN
@@ -155,6 +187,7 @@ AtomicGenesis ==
        /\ batches = {}
        /\ events = {}
        /\ receipts = {}
+       /\ snapshots = {}
        /\ catchStatus = "none"
        /\ nextChapter = 0
     \/ /\ phase = "ready"
@@ -168,6 +201,12 @@ LedgerHeadAgreement ==
     /\ batches = 1..revision
     /\ events = 1..lastSequence
 
+SnapshotHeadAgreement ==
+    /\ (phase = "empty" => snapshots = {})
+    /\ (phase = "ready" =>
+          /\ 0 \in snapshots
+          /\ \A snapshotRevision \in snapshots: snapshotRevision <= revision)
+
 CatchUpProgress ==
     /\ nextChapter <= MaxChapters
     /\ (catchStatus = "none" => nextChapter = 0)
@@ -175,7 +214,8 @@ CatchUpProgress ==
     /\ (catchStatus = "complete" => nextChapter = MaxChapters)
 
 CrashPreservesDurableShape ==
-    crashed => AtomicGenesis /\ LedgerHeadAgreement /\ CatchUpProgress
+    crashed => AtomicGenesis /\ LedgerHeadAgreement /\ SnapshotHeadAgreement
+               /\ CatchUpProgress
 
 Spec == Init /\ [][Next]_vars
 

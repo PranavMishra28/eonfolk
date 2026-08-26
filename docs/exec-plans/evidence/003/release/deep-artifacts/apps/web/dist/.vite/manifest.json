@@ -1,0 +1,140 @@
+{
+  "/Users/eonfolk-ci/actions-runner/_work/eonfolk/eonfolk/candidate/apps/web/src/information-surface.css": {
+    "file": "assets/information-surface-P4VR5Yzu.css",
+    "src": "/Users/eonfolk-ci/actions-runner/_work/eonfolk/eonfolk/candidate/apps/web/src/information-surface.css"
+  },
+  "_EonfolkMark-C0-nieyk.js": {
+    "file": "assets/EonfolkMark-C0-nieyk.js",
+    "name": "EonfolkMark",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "__vite-optional-peer-dep:sync-ammo:@playcanvas/react": {
+    "file": "assets/react-C9fjN-h7.js",
+    "name": "react",
+    "src": "__vite-optional-peer-dep:sync-ammo:@playcanvas/react",
+    "isDynamicEntry": true
+  },
+  "_world-authority-BZYuuAbq.js": {
+    "file": "assets/world-authority-BZYuuAbq.js",
+    "name": "world-authority",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index-CFZ2Cjjp.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/V1GenesisApp.tsx",
+      "src/GenesisEntryApp.tsx",
+      "src/InformationSurface.tsx",
+      "src/generated-world-client.ts",
+      "src/generated-world-canvas.tsx"
+    ],
+    "css": [
+      "assets/index-DoLCE3-u.css"
+    ]
+  },
+  "src/GenesisEntryApp.tsx": {
+    "file": "assets/GenesisEntryApp-DsCjeBW3.js",
+    "name": "GenesisEntryApp",
+    "src": "src/GenesisEntryApp.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_EonfolkMark-C0-nieyk.js",
+      "_world-authority-BZYuuAbq.js",
+      "src/generated-world-client.ts"
+    ]
+  },
+  "src/InformationSurface.tsx": {
+    "file": "assets/InformationSurface-CXaW9YvK.js",
+    "name": "InformationSurface",
+    "src": "src/InformationSurface.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_EonfolkMark-C0-nieyk.js"
+    ],
+    "dynamicImports": [
+      "src/research-evidence.ts"
+    ],
+    "assets": [
+      "assets/information-surface-P4VR5Yzu.css"
+    ]
+  },
+  "src/V1GenesisApp.tsx": {
+    "file": "assets/V1GenesisApp-BRyxVI53.js",
+    "name": "V1GenesisApp",
+    "src": "src/V1GenesisApp.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_EonfolkMark-C0-nieyk.js",
+      "_world-authority-BZYuuAbq.js",
+      "src/generated-world-client.ts"
+    ],
+    "dynamicImports": [
+      "src/generated-world-canvas.tsx",
+      "src/components/FeedbackPanel.tsx",
+      "_world-authority-BZYuuAbq.js"
+    ]
+  },
+  "src/components/FeedbackPanel.tsx": {
+    "file": "assets/FeedbackPanel-DxYmeRlH.js",
+    "name": "FeedbackPanel",
+    "src": "src/components/FeedbackPanel.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_world-authority-BZYuuAbq.js"
+    ]
+  },
+  "src/generated-world-canvas.tsx": {
+    "file": "assets/generated-world-canvas-ryXfo9TX.js",
+    "name": "generated-world-canvas",
+    "src": "src/generated-world-canvas.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_world-authority-BZYuuAbq.js"
+    ],
+    "dynamicImports": [
+      "__vite-optional-peer-dep:sync-ammo:@playcanvas/react"
+    ]
+  },
+  "src/generated-world-client.ts": {
+    "file": "assets/generated-world-client-BYLZIf_K.js",
+    "name": "generated-world-client",
+    "src": "src/generated-world-client.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "dynamicImports": [
+      "src/generated-world-runtime.ts"
+    ]
+  },
+  "src/generated-world-runtime.ts": {
+    "file": "assets/generated-world-runtime-Tmu0HU9S.js",
+    "name": "generated-world-runtime",
+    "src": "src/generated-world-runtime.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_world-authority-BZYuuAbq.js"
+    ]
+  },
+  "src/research-evidence.ts": {
+    "file": "assets/research-evidence-CPelN1Ug.js",
+    "name": "research-evidence",
+    "src": "src/research-evidence.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_world-authority-BZYuuAbq.js"
+    ]
+  }
+}

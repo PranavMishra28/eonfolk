@@ -1,31 +1,52 @@
-<!-- Purpose: Capture implementation outcome, evidence, risks, and review scope. -->
-<!-- Status: Active pull-request template. -->
-<!-- Authority boundary: This template prompts evidence; docs/INDEX.md owns decisions. -->
-<!-- Related documents: docs/INDEX.md, PLAN.md, docs/exec-plans/active/, docs/decisions/DECISIONS.md. -->
+# Pull request
 
-# Implementation pull request
+## Player or system outcome
 
-## Outcome and bounded scope
+<!-- What becomes observably better? Link the issue or evidence. -->
 
-<!-- State the player-visible or system outcome. Name explicit exclusions and any ExecPlan deviation. -->
+## Boundaries
 
-## Authority and safety boundaries
+<!-- List included work, explicit exclusions, and any behavior or data migration. -->
 
-<!-- Confirm Reality remains sole authority. Note effects on cognition, diagnostics, feedback, privacy, cost, and external services. -->
+- Included:
+- Excluded:
+- Reality/cognition/persistence impact:
 
 ## Verification
 
-| Evidence | Command or artifact | Result | Commit/environment |
-|---|---|---|---|
-| FAST / focused tests |  |  |  |
-| PR or DEEP suite |  |  |  |
-| Browser-visible evidence |  |  |  |
-| Conditional cognition/UI/security evidence |  |  |  |
+| Check | Result and command |
+|---|---|
+| Formatting, lint, and typecheck | |
+| Unit, deterministic, and property tests | |
+| Production build | |
+| Critical browser journey | |
+| Additional focused checks | |
 
-<!-- Use PASS, FAIL, or NOT RUN. A build or backend suite does not substitute for a local browser playtest. -->
+<!-- Use PASS, FAIL, or NOT RUN with a reason. -->
 
-## Risks, deviations, and NOT RUN evidence
+## Browser evidence
 
-<!-- Keep human, physical-device, provider, credential, and deployment evidence honest. -->
+<!-- Required for player-facing changes. Include relevant desktop, laptop, and mobile evidence. A passing build is not a playtest. -->
 
-## Reviewer focus and read order
+## Accessibility and performance
+
+- [ ] Consequential actions remain keyboard and semantic-DOM accessible.
+- [ ] Reduced-motion behavior was checked where motion changed.
+- [ ] Payload, meaningful-display, and frame budgets were measured or unaffected.
+- [ ] Weak-device and non-WebGL degradation remains playable.
+
+## Security and privacy
+
+- [ ] Untrusted text and typed authority boundaries remain intact.
+- [ ] No credential, telemetry, hosted service, deployment, or new data collection was added unintentionally.
+- [ ] Persistence and network behavior were tested if affected.
+
+## Documentation and release notes
+
+- [ ] User or contributor documentation is updated where needed.
+- [ ] `CHANGELOG.md` is updated for a notable change, or this is not user-facing.
+- [ ] New code, assets, media, and dependencies have recorded origin and compatible license terms, or none were added.
+
+## Risks and reviewer focus
+
+<!-- Name the likeliest regression, untested environment, and files or journeys that deserve careful review. -->

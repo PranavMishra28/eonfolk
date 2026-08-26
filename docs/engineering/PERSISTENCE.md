@@ -2,15 +2,23 @@
 
 **Purpose:** lock crash-safe browser durability, run-scoped canonical/cognitive ledger separation, experiment identity, genesis, command receipts, single-writer fencing, snapshots, and replay interval semantics.
 
-**Status:** ACCEPTED AFTER RED TEAM — no backup/import surface in the first slice
+**Status:** V1 VERSIONED INDEXEDDB EXECUTABLE — Founder Alpha adapter retained as a historical seam
 
-**Authority boundary:** this file owns `PersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
+**Authority boundary:** this file owns the Founder Alpha `PersistencePort`, V1 `VersionedPersistencePort`, stored `CognitiveDecisionRecord`, `ExperimentManifest`, `CommandReceipt`, `CatchUpOperationReceipt`, `ReplayManifest`, IndexedDB commit order, writer fencing, and durability UX. [COGNITION](COGNITION.md) owns decision-record meaning; [OBSERVATORY](../product/OBSERVATORY.md) owns research semantics; [SIMULATION](SIMULATION.md) owns event/state bytes; [SECURITY](SECURITY.md) owns hostile-input bounds.
 
 **Related documents:** [architecture](ARCHITECTURE.md), [testing](../quality/TESTING.md), [engineering red team](../reviews/ENGINEERING_RED_TEAM.md), [ExecPlan](../exec-plans/completed/001-foundation.md)
 
 ## Owned decision
 
-The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The slice cannot back up, export, import, replace, fork, merge, migrate, or promote a world; that honest limitation is disclosed before commitment.
+The first slice keeps one local world in IndexedDB. It stores a Canonical World Ledger, a separate bounded Cognitive/Decision Ledger, and one immutable Experiment Manifest. One crash-safe genesis transaction creates the run. A transition becomes visible only after its batch header/events, durable head, command receipt, current fencing token, and associated consequential-decision record commit in one transaction. The V1 exact-version authority stream is now implemented in the browser with separate stream, operation, event, receipt, and snapshot stores; cross-store transactions, CAS heads, fencing, idempotency, corruption checks, exact migration, snapshot-plus-suffix replay, and deterministic 1/7/30/90/365-day catch-up are executable. The slice cannot back up, export, import, replace, fork, merge, or promote a world; that honest limitation is disclosed before commitment.
+
+## V1 versioned authority stream
+
+`VersionedPersistencePort` is the future exhibition/server boundary and coexists temporarily with the Founder Alpha port. It scopes every operation by run and region; initializes a hash-verified genesis head/snapshot atomically and idempotently; acquires a monotonically increasing writer fence; appends one bounded event batch against exact revision, sequence, state hash, prior event hash, runtime versions, and fencing token; returns a hashed receipt; retrieves verified continuous half-open ranges; and saves only snapshots that exactly describe the durable head.
+
+The current conformance adapter stages all changed maps before a single commit point. Injected crashes before that point leave no mutation; crashes after it recover through exact idempotent retry. Changed retries, duplicate batch/event IDs, stale writers, gaps, corrupt hashes, out-of-order simulation time, incompatible schemas, engines, or state versions fail closed. Replay accepts a caller-supplied deterministic reducer and snapshot/event bytes only—there is no Brain or transport parameter—and checks every pre/post state and prior-event hash.
+
+The generated civilization browser path uses the versioned IndexedDB authority directly. Real Chromium tests cover day-365 persistence, close/reopen, exact replay, crash boundaries, corruption and stale writers; unit/property tests cover every reviewed catch-up horizon with zero model invocation. Migration remains deliberately narrow: one reviewed legacy checkpoint schema is fully revalidated into a new stream, and unknown or future versions fail closed. Cognitive decision-ledger composition and user-facing backup/export remain separate requirements.
 
 ## Locked port
 

@@ -1,6 +1,7 @@
 {
 	"name": "@eonfolk/web",
 	"private": true,
+	"license": "Apache-2.0",
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
@@ -14,12 +15,14 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@eonfolk/civilization": "workspace:*",
 		"@eonfolk/cognition": "workspace:*",
 		"@eonfolk/diagnostics": "workspace:*",
 		"@eonfolk/persistence": "workspace:*",
 		"@eonfolk/protocol": "workspace:*",
 		"@eonfolk/sim": "workspace:*",
 		"@eonfolk/world-presentation": "workspace:*",
+		"@eonfolk/worldgen": "workspace:*",
 		"@playcanvas/react": "0.11.5",
 		"playcanvas": "2.21.4",
 		"react": "19.2.8",

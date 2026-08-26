@@ -1,0 +1,55 @@
+name: Gameplay feedback
+description: Describe a clear, confusing, boring, tense, or memorable play moment.
+title: "[Gameplay]: "
+labels: [gameplay]
+body:
+  - type: dropdown
+    id: moment
+    attributes:
+      label: Moment
+      options:
+        - First arrival
+        - Understanding citizen activity
+        - Following or investigating a citizen
+        - Intervention or abstention
+        - Consequence
+        - Return and catch-up
+        - Chronicle or replay
+        - Other current gameplay
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What did you do, expect, and feel?
+      description: Lead with the concrete moment rather than a proposed feature.
+    validations:
+      required: true
+  - type: textarea
+    id: understanding
+    attributes:
+      label: What did you believe was happening?
+      description: Name any citizen motive, causal link, or consequence that was unclear or untrusted.
+    validations:
+      required: true
+  - type: dropdown
+    id: return
+    attributes:
+      label: Would you return to this world?
+      options:
+        - Yes — I have a specific unresolved reason
+        - Maybe — the reason is weak or unclear
+        - No — I would stop here
+    validations:
+      required: true
+  - type: textarea
+    id: return_reason
+    attributes:
+      label: Why?
+      description: State the unresolved tension or the reason you would leave.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version

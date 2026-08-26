@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "eonfolk-sqlite-opfs-disposable-spike-v1",
+  "status": "PASS",
+  "measuredAt": "2026-08-24T21:06:00-07:00",
+  "sourceCommit": "f428b5f428fc1e4cad84431d717b954bca52e3ef",
+  "claimBoundary": "Disposable decision spike outside the repository. It compares one representative atomic browser workload and does not add SQLite to V1 or claim production equivalence.",
+  "harnessEvidence": {
+    "benchSha256": "e321a3d7a4288a86868301ebeddcea2c42f2b4212164a0005558a95d531d7b40",
+    "sqliteWorkerSha256": "f2227ecc8938e9926a85ef6c1ba2311efab534a83057af9c2fd8a82848cca99a",
+    "serverSha256": "ead78fc985cfe55251bac501c4bc44788ddbd05f18495c605a0c5e7a9ca8f5a9",
+    "packageLockSha256": "b2e405e4b5abd53a0f8a7717d2424d53fdb93420357d54ca15cfdcdfee0d8853",
+    "reproducibilityLimit": "The disposable scratch program was not retained as repository source or a Git branch. These hashes, package integrity, fixed workload, and raw reproduction samples support a bounded decision observation, not a repeatable repository benchmark or acceptance gate."
+  },
+  "environment": {
+    "host": "Apple M4 Max, macOS arm64",
+    "browser": "repository Playwright Chromium",
+    "crossOriginIsolated": true
+  },
+  "workload": {
+    "repetitions": 5,
+    "eventsPerRepetition": 500,
+    "snapshotsPerRepetition": 10,
+    "rangeReadEvents": 100,
+    "transactionShape": "one atomic event-and-snapshot write transaction per repetition"
+  },
+  "indexedDb": {
+    "openMedianMilliseconds": 0.25,
+    "writeMedianMilliseconds": 6.645,
+    "rangeAndSnapshotReadMedianMilliseconds": 0.48,
+    "originUsageBytesObserved": [140954, 86507, 86507, 135428, 86507]
+  },
+  "sqliteWasmOpfs": {
+    "package": "@sqlite.org/sqlite-wasm@3.53.0-build1",
+    "packageIntegrity": "sha512-PfWPWN2n+/37doa8oh2/oUXk4OOsRYZsxc1W1sDXIGb/Pu5Yrb+f2eyYpgQMGITVX7HVgxhs9P18Rc6I97ym/g==",
+    "sqliteVersion": "3.53.0",
+    "opfsAvailable": true,
+    "openMedianMilliseconds": 60.93,
+    "writeMedianMilliseconds": 10.755,
+    "rangeAndSnapshotReadMedianMilliseconds": 1.665,
+    "databaseBytes": 180224,
+    "deliveryBytesRaw": 1475600,
+    "deliveryBytesGzipByFile": {
+      "index.mjs": 154847,
+      "sqlite3.wasm": 399968,
+      "sqlite3-opfs-async-proxy.js": 10440
+    }
+  },
+  "reproductionRun": {
+    "measuredAt": "2026-08-24T22:08:00-07:00",
+    "repetitions": 5,
+    "indexedDb": {
+      "openMilliseconds": [1.7300000190734863, 0.3399999737739563, 0.3349999785423279, 0.375, 0.3400000333786011],
+      "writeMilliseconds": [9.709999978542328, 4.754999995231628, 5.035000026226044, 5.534999966621399, 5.439999997615814],
+      "readMilliseconds": [1.2900000214576721, 0.3400000333786011, 1.3049999475479126, 0.3450000286102295, 0.4049999713897705],
+      "medianMilliseconds": { "open": 0.3400000333786011, "write": 5.439999997615814, "read": 0.4049999713897705 }
+    },
+    "sqliteWasmOpfs": {
+      "openMilliseconds": [88.18000000715256, 75.65499997138977, 72.39499998092651, 73.39499998092651, 74.24000000953674],
+      "writeMilliseconds": [10.330000042915344, 10.835000038146973, 10.634999990463257, 11.169999957084656, 11.115000009536743],
+      "readMilliseconds": [1.6549999713897705, 1.6549999713897705, 1.5149999856948853, 1.6150000095367432, 1.6550000309944153],
+      "medianMilliseconds": { "open": 74.24000000953674, "write": 10.835000038146973, "read": 1.6549999713897705 }
+    }
+  },
+  "decision": "DEFER",
+  "decisionReason": "Both backends completed the bounded workload twice. IndexedDB is already integrated and had lower paired write/read medians in both observations. SQLite adds about 565 KB gzip before application glue plus cross-origin isolation and worker/VFS complexity without enabling a missing V1 behavior.",
+  "reopenTrigger": "Re-run a production-shaped pinned comparison only if IndexedDB profiling, query needs, or shared-region requirements become an observed bottleneck after product gates pass."
+}

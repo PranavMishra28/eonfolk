@@ -2,7 +2,23 @@
 useDefault = true
 
 [[allowlists]]
-description = "One historical synthetic idempotency UUID in the feedback-provider test"
+description = "One historical synthetic idempotency UUID in the now-archived feedback-provider test"
 condition = "AND"
 paths = ['''^tests/unit/feedback-worker/providers\.test\.ts$''']
 fingerprints = ['''20c4fd8873600879a65ee00540603ac6f0a4741a:tests/unit/feedback-worker/providers.test.ts:generic-api-key:58''']
+
+[[allowlists]]
+description = "Historical bibliography-key index misclassified as a generic API key"
+condition = "AND"
+paths = ['''^docs/RESEARCH\.md$''']
+fingerprints = ['''bb90954d4dfbedd30d11aeee257a09d7e3edbb20:docs/RESEARCH.md:generic-api-key:22''']
+
+[[allowlists]]
+description = "Public bibliography-key template misclassified as a generic API key"
+condition = "AND"
+paths = ['''^config/public/RESEARCH\.md$''']
+rules = ['''generic-api-key''']
+
+[[allowlists]]
+description = "Hash-bound target-Mac DEEP production bundles committed only as inert evidence bytes"
+paths = ['''^docs/exec-plans/evidence/003/release/deep-artifacts/''']

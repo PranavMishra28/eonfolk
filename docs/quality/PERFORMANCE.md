@@ -2,7 +2,7 @@
 
 **Purpose:** define provisional payload, display, frame, population, motion, semantic-access, and weak-device budgets.
 
-**Status:** BUDGETS BINDING; CLEAN 15-RUN PLAYCANVAS BATTERY PASSED
+**Status:** BUDGETS BINDING; V1 CANONICAL LAB BINDS THE FREEZE SHA — Founder Alpha PlayCanvas battery is historical and is not V1 release evidence
 
 **Authority boundary:** owns numerical performance/accessibility budgets and degradation order. Renderer choice is owned by [frontend](../engineering/FRONTEND.md); evidence procedure by [visual QA](VISUAL_QA.md).
 
@@ -21,6 +21,9 @@ The first slice targets eight rendered citizens and remains practical at twelve.
 | Compressed first-world 3D assets | **<=6 MB desktop; <=4 MB mobile** |
 | Meaningful world display on target M4 Pro/laptop profile | **<=3 seconds** |
 | Meaningful world display on realistic mid-tier mobile/4G profile | **<=5 seconds** |
+| Resident focus or settlement-overview response | **<=250 ms desktop/laptop; <=500 ms mobile emulation** |
+| Warm persisted-world reload | **<=3 seconds desktop/laptop; <=5 seconds mobile emulation** |
+| Used JavaScript heap after the measured journey | **<=128 MiB per fresh browser context** |
 
 The stricter staged requirement is: a fact-free authority-loading shell by **2 seconds**, operable **Follow Mara** after authoritative replay by **3 seconds**, and meaningful world by the table limit without displacing a pressed target. The loading shell must never invent Mara/world facts while Worker/storage authority is unresolved. “Meaningful” means Mara plus all eight citizen projections, their current activities, an interaction cue, and equivalent semantic rows are painted; it is not a spinner or partial scene.
 
@@ -46,7 +49,7 @@ For each lexically sorted emitted HTML/CSS/JavaScript file, deterministic `LC_AL
 | Mobile | 30 FPS minimum; p95 frame time **<=33.3 ms** with eight citizens |
 | Population | eight by default; twelve remains practical and legible in a measurement-only stress fixture; larger populations out of scope |
 
-Record p50/p95/worst frame time, long tasks, memory, dropped frames, worker advancement latency, and catch-up time with the browser version, viewport, device/profile, pixel ratio, quality tier, seed, and build commit. Avoid claiming physical-device performance from emulation alone.
+Record p50/p95/worst frame time, long tasks, memory, dropped frames, interaction latency, persisted-world reload latency, worker advancement latency, and catch-up time with the browser version, viewport, device/profile, pixel ratio, quality tier, seed, and build commit. The pinned target browser must expose `performance.memory`; unsupported heap evidence fails the canonical battery instead of silently passing. Avoid claiming physical-device performance from emulation alone.
 
 ## Disposable rendering evidence
 
@@ -124,7 +127,7 @@ Do not remove citizens, facts, interaction results, counsel, Chronicle, or repla
 
 - Catch-up runs in the worker, yields progress, and commits resumable deterministic batches. Define event/time safety limits from 30/90/365-day measurements before release.
 - The UI remains responsive during catch-up and can display the last committed world state.
-- External cognition is absent in V1. A later local-model spike must disclose artifact bytes and separately measure cold/warm latency, memory, heat, battery, and renderer p95. It cannot run concurrently in a way that violates the frame gates; pause/degrade optional inference or fall back to Standard Brain.
+- External cognition remains absent and local cognition remains optional. The promoted target-Mac technical treatment discloses exact artifact bytes and measured warm latency, token rate, runner RSS, pressure, swap, and disk evidence in [its retained report](../exec-plans/evidence/002/local-model-treatment.json). Heat, battery energy, and renderer-concurrent frame impact remain unproven. It cannot run concurrently in a way that violates frame gates; pause/degrade optional inference or fall back to Standard Brain.
 
 ## Diagnostics mode budgets
 

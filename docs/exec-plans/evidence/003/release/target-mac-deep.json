@@ -1,0 +1,575 @@
+{
+  "schemaVersion": "eonfolk-verification-tier-v3",
+  "tier": "deep",
+  "status": "PASS",
+  "integrityClaim": "REPOSITORY_COMPUTABLE_INTEGRITY_ONLY",
+  "verificationContractSha256": "b2e283798f8d725332cecff743022d389a6734f9b8614bb96d45525333eec4c8",
+  "claimBoundary": "Exact-tier evidence bound to one clean, unchanged source state.",
+  "recordedAt": "2026-08-26T07:43:14.755Z",
+  "source": {
+    "start": {
+      "commit": "2462e3817a660f6c584018d0dad228a7bed4f301",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+      "trackedTree": {
+        "checkout": "detached-full",
+        "fileCount": 490,
+        "manifestSha256": "d33aadcc27f123b51f490daf447782d78e581a1cb4b8d15d8b9bd3944070de5a"
+      }
+    },
+    "end": {
+      "commit": "2462e3817a660f6c584018d0dad228a7bed4f301",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+      "trackedTree": {
+        "checkout": "detached-full",
+        "fileCount": 490,
+        "manifestSha256": "d33aadcc27f123b51f490daf447782d78e581a1cb4b8d15d8b9bd3944070de5a"
+      }
+    },
+    "unchanged": true,
+    "acceptanceEligible": true
+  },
+  "environment": {
+    "node": "v22.23.1",
+    "pnpm": "11.15.1",
+    "host": "darwin 25.6.0 arm64",
+    "ci": true
+  },
+  "inputs": {
+    "productionBrowserCoverage": {
+      "mode": "target-mac",
+      "productionJourneysExecuted": 65,
+      "targetMacProductionJourneysAvailable": 65,
+      "targetOnlyJourneysExcluded": 0,
+      "generatedWorldJourneysExecuted": 43,
+      "faultJourneysExecuted": 11,
+      "generatedTargetExecuted": true
+    },
+    "propertyProfile": "deep: 500/320 deterministic runs",
+    "localModelTreatment": "exact 100-decision promoted treatment with deterministic fallback",
+    "diagnosticsModes": [
+      "off",
+      "local",
+      "alpha"
+    ],
+    "persistenceMode": "gating",
+    "canonicalWebProfile": "5 repetitions x 3 states x 3 viewports"
+  },
+  "subcommands": [
+    {
+      "id": "runtime",
+      "command": "pnpm runtime:check",
+      "durationMs": 557.120125,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "dependency-cohort",
+      "command": "pnpm cohort:check",
+      "durationMs": 521.578292,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "architecture",
+      "command": "pnpm architecture:check",
+      "durationMs": 520.962667,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "documentation",
+      "command": "pnpm docs:check",
+      "durationMs": 774.793042,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "markdown",
+      "command": "pnpm markdown:lint",
+      "durationMs": 1648.348625,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "diff-check",
+      "command": "pnpm diff:check",
+      "durationMs": 645.7842499999997,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "format",
+      "command": "pnpm format:check",
+      "durationMs": 1714.71875,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "lint",
+      "command": "pnpm lint",
+      "durationMs": 624.7808329999998,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "typecheck",
+      "command": "pnpm typecheck",
+      "durationMs": 5830.656875000001,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "unit",
+      "command": "pnpm test:unit",
+      "durationMs": 9471.645624999997,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "cognition-portable",
+      "command": "pnpm test:cognition:portable",
+      "durationMs": 4653.740207999999,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "property-pr",
+      "command": "pnpm test:property",
+      "durationMs": 4727.312582999999,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "indexeddb",
+      "command": "pnpm test:indexeddb",
+      "durationMs": 6543.479125000002,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "local-model-benchmark",
+      "command": "pnpm test:model:benchmark",
+      "durationMs": 182549.325791,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "timing",
+      "command": "pnpm test:timing",
+      "durationMs": 46353.84937499999,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "browser-fault",
+      "command": "pnpm --filter @eonfolk/web test:e2e:fault",
+      "durationMs": 45446.621291999996,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "browser-fault-network",
+      "command": "node scripts/validate-web-network.mjs",
+      "durationMs": 187.84424999996554,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "production-build",
+      "command": "pnpm build",
+      "durationMs": 1230.586874999979,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "bundle-budget",
+      "command": "pnpm budget:check",
+      "durationMs": 602.0349169999827,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "browser-production",
+      "command": "pnpm --filter @eonfolk/web test:e2e:production",
+      "durationMs": 362665.57249999995,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "browser-production-network",
+      "command": "node scripts/validate-web-network.mjs",
+      "durationMs": 303.73395799996797,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "production-audit",
+      "command": "pnpm security:audit",
+      "durationMs": 1175.1333329998888,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "production-licenses",
+      "command": "pnpm license:check",
+      "durationMs": 1466.7794170000125,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "formal",
+      "command": "pnpm test:formal",
+      "durationMs": 1154.372667000047,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "targeted-mutation",
+      "command": "pnpm test:mutation",
+      "durationMs": 23502.66987500002,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "property-deep",
+      "command": "pnpm test:property:deep",
+      "durationMs": 15183.213791000075,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "browser-cohort",
+      "command": "pnpm browser-cohort:check",
+      "durationMs": 1327.4097089999123,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "persistence-benchmark",
+      "command": "node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json",
+      "durationMs": 6568.198958000052,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "diagnostics-source-benchmark",
+      "command": "pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json",
+      "durationMs": 1172.6651670000283,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "diagnostics-browser-benchmark",
+      "command": "pnpm benchmark:diagnostics:browser --output tmp/eonfolk-diagnostics-browser-comparison.json",
+      "durationMs": 31170.480125000002,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "presentation-stress-benchmark",
+      "command": "pnpm benchmark:presentation-stress --output tmp/eonfolk-presentation-stress.json --require-clean",
+      "durationMs": 29999.674750000006,
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "id": "canonical-web-performance",
+      "command": "pnpm test:performance",
+      "durationMs": 1644696.375459,
+      "exitCode": 0,
+      "status": "PASS"
+    }
+  ],
+  "artifactAssertions": {
+    "productionDistPresent": true,
+    "filesInspected": 21,
+    "crashInjectionMarkersAbsent": true
+  },
+  "artifacts": {
+    "files": [
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/.vite/manifest.json",
+        "path": "apps/web/dist/.vite/manifest.json",
+        "bytes": 3932,
+        "sha256": "988e13522520e2b93136ab7fa813b927f4a15e94083de88fec699c3e408f47e7"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/EonfolkMark-C0-nieyk.js",
+        "path": "apps/web/dist/assets/EonfolkMark-C0-nieyk.js",
+        "bytes": 267,
+        "sha256": "858a008993e16cd3ba2d16d5164931632140531e4032d924b2f9a8167f909974"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/FeedbackPanel-DxYmeRlH.js",
+        "path": "apps/web/dist/assets/FeedbackPanel-DxYmeRlH.js",
+        "bytes": 15011,
+        "sha256": "c7c6cc11e8f3e7e10ffbeefa7ba7b40f4e753a85652d357c57e46d56bda0f215"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated-world-canvas-ryXfo9TX.js",
+        "path": "apps/web/dist/assets/generated-world-canvas-ryXfo9TX.js",
+        "bytes": 1949975,
+        "sha256": "4a1c8ddd97f7ae5124c7d9f1a9abe618138b47886e33d7505deb5a3ecc3af96d"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated-world-client-BYLZIf_K.js",
+        "path": "apps/web/dist/assets/generated-world-client-BYLZIf_K.js",
+        "bytes": 1364,
+        "sha256": "801fd5bfbdbdb93d0cc0a375c8c6651ddaeddadad9ff4ec7d69a31b9e4bef88b"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated-world-runtime-Tmu0HU9S.js",
+        "path": "apps/web/dist/assets/generated-world-runtime-Tmu0HU9S.js",
+        "bytes": 6066,
+        "sha256": "40bb0121fbf5f20d59a60adb81ca6037407ef217e568d6b215400e1a9c5ea329"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated-world-runtime.worker-BFG_RYOb.js",
+        "path": "apps/web/dist/assets/generated-world-runtime.worker-BFG_RYOb.js",
+        "bytes": 305903,
+        "sha256": "60860e0f1986577a08452a5f62482f56184272ee3b54fc143576f8f96eaaa110"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated/ASSET_MANIFEST.json",
+        "path": "apps/web/dist/assets/generated/ASSET_MANIFEST.json",
+        "bytes": 2611,
+        "sha256": "aff11f20ba04bd2d8591f61f9bb4cb3dd5fce601f5557a808b50a3d5acecd4ee"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated/eonfolk-folk-proxy.glb",
+        "path": "apps/web/dist/assets/generated/eonfolk-folk-proxy.glb",
+        "bytes": 3152,
+        "sha256": "198d0d7ec6e37f7a43fae872cfff0f3ba8e010c50a3cc7c29af21a2358120549"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/generated/eonfolk-folk-proxy.gltf",
+        "path": "apps/web/dist/assets/generated/eonfolk-folk-proxy.gltf",
+        "bytes": 3929,
+        "sha256": "a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/GenesisEntryApp-DsCjeBW3.js",
+        "path": "apps/web/dist/assets/GenesisEntryApp-DsCjeBW3.js",
+        "bytes": 2520,
+        "sha256": "6225b0d84331dd1e0770ac9874b8557f6652c2790fc449e104e7cea7250785cb"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/index-CFZ2Cjjp.js",
+        "path": "apps/web/dist/assets/index-CFZ2Cjjp.js",
+        "bytes": 194451,
+        "sha256": "a937e1ae0b0ff3c36cbdac2a943ffce4e69cf68141cad9d62f5bc36202ad6761"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/index-DoLCE3-u.css",
+        "path": "apps/web/dist/assets/index-DoLCE3-u.css",
+        "bytes": 66147,
+        "sha256": "2adabcb84223f83170826bd82bb59d167c2ba33a70ae9279ed05ec5cac7576df"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/information-surface-P4VR5Yzu.css",
+        "path": "apps/web/dist/assets/information-surface-P4VR5Yzu.css",
+        "bytes": 8358,
+        "sha256": "4c920e503db28b5c2d93876712c6166822159e564612d1f222ea2cf305e068ba"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/InformationSurface-CXaW9YvK.js",
+        "path": "apps/web/dist/assets/InformationSurface-CXaW9YvK.js",
+        "bytes": 11609,
+        "sha256": "c255579da081b7737680a9effcbe62268326b21e6c556022455c481f9ecdf204"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/react-C9fjN-h7.js",
+        "path": "apps/web/dist/assets/react-C9fjN-h7.js",
+        "bytes": 125,
+        "sha256": "d3c64ec5f7ccd5e51770b44b92ea3e934143697df03c56b65ee08fc98ec99141"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/research-evidence-CPelN1Ug.js",
+        "path": "apps/web/dist/assets/research-evidence-CPelN1Ug.js",
+        "bytes": 10432,
+        "sha256": "910f66ca458d224eb57d85f081ee44df79c4db35e7ea57246ac97735e5f5d744"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/V1GenesisApp-BRyxVI53.js",
+        "path": "apps/web/dist/assets/V1GenesisApp-BRyxVI53.js",
+        "bytes": 36712,
+        "sha256": "4e74a11ae3a55868ac3c47c9b0f55fca56defd725c8f473d82a42108aa0ddfe8"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/assets/world-authority-BZYuuAbq.js",
+        "path": "apps/web/dist/assets/world-authority-BZYuuAbq.js",
+        "bytes": 394059,
+        "sha256": "1053772d6e0b4fee27b68915a1e2c79a9720deaef35c5d8e5f567edfab3b9cc1"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/eonfolk-mark.svg",
+        "path": "apps/web/dist/eonfolk-mark.svg",
+        "bytes": 1083,
+        "sha256": "8c4e42ba92645fb1605dec95da472ed135a11c1b2f7c39bd3b964f00617b6434"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/apps/web/dist/index.html",
+        "path": "apps/web/dist/index.html",
+        "bytes": 939,
+        "sha256": "3478cf4831bc84da37895912b0d2a81dc2e3c438e03b999df68bd639aeb5130e"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-canonical-performance.json",
+        "path": "tmp/eonfolk-canonical-performance.json",
+        "bytes": 94007,
+        "sha256": "9c0484960db0cce1d0aa0ed6fb77cbadb673a3799861602d5fa4b3209d22e58a"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-diagnostics-browser-comparison.json",
+        "path": "tmp/eonfolk-diagnostics-browser-comparison.json",
+        "bytes": 5148,
+        "sha256": "d19edcc0feceac98e284fa2b6e643b08fdc9d58fddb7ed29e00a28a8929bf823"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-diagnostics-overhead.json",
+        "path": "tmp/eonfolk-diagnostics-overhead.json",
+        "bytes": 8170,
+        "sha256": "2fd3bdafcf9bbe3d6246210912a6d7547337d0177ddba071839d16294baed743"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-local-model-benchmark.json",
+        "path": "tmp/eonfolk-local-model-benchmark.json",
+        "bytes": 363555,
+        "sha256": "0bd3477a6f4a865b2b77bdf630a908d7e975dfb05e6afffa22c796d272acec21"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-persistence-benchmark.json",
+        "path": "tmp/eonfolk-persistence-benchmark.json",
+        "bytes": 9017,
+        "sha256": "ada7df698740839ffa60e7de84d59dfbb7b9f3a8856dd7a8c92d147cef955d47"
+      },
+      {
+        "evidencePath": "docs/exec-plans/evidence/003/release/deep-artifacts/tmp/eonfolk-presentation-stress.json",
+        "path": "tmp/eonfolk-presentation-stress.json",
+        "bytes": 2432,
+        "sha256": "5a376846a535cdb4a04e50f427de4d08803f7140d8720bd3e661c1bb94ec026a"
+      }
+    ],
+    "manifestSha256": "b38de627d9f408647517a7b45ce9845d827758d4e11f6836edabe7c47b352c70"
+  },
+  "benchmarkEvidence": [
+    {
+      "artifactSha256": "ada7df698740839ffa60e7de84d59dfbb7b9f3a8856dd7a8c92d147cef955d47",
+      "id": "persistence-bounded",
+      "measurements": {
+        "indexedDbAppendMedianMs": 1122.0999999642372,
+        "indexedDbRecoveryMedianMs": 16.099999964237213,
+        "memoryAppendMedianMs": 5.414708999999959,
+        "memoryRecoveryMedianMs": 0.22533300000003464
+      },
+      "path": "tmp/eonfolk-persistence-benchmark.json",
+      "schemaVersion": "eonfolk-persistence-benchmark-v3",
+      "status": "PASS"
+    },
+    {
+      "artifactSha256": "2fd3bdafcf9bbe3d6246210912a6d7547337d0177ddba071839d16294baed743",
+      "id": "diagnostics-source",
+      "measurements": [
+        {
+          "mode": "off",
+          "recordCallP95Ms": 0.00012499999999704414
+        },
+        {
+          "mode": "local",
+          "recordCallP95Ms": 0.007375000000024556
+        },
+        {
+          "mode": "alpha",
+          "recordCallP95Ms": 0.007584000000065316
+        }
+      ],
+      "path": "tmp/eonfolk-diagnostics-overhead.json",
+      "schemaVersion": "eonfolk-diagnostics-overhead-evidence-v1",
+      "status": "PASS"
+    },
+    {
+      "artifactSha256": "d19edcc0feceac98e284fa2b6e643b08fdc9d58fddb7ed29e00a28a8929bf823",
+      "id": "diagnostics-browser",
+      "measurements": [
+        {
+          "journeyMs": 9291.951459,
+          "maximumFrameP95Ms": 10.300000000000182,
+          "mode": "off"
+        },
+        {
+          "journeyMs": 7731.695666999998,
+          "maximumFrameP95Ms": 10.299999999999727,
+          "mode": "local"
+        },
+        {
+          "journeyMs": 8825.957584,
+          "maximumFrameP95Ms": 10.299999999999272,
+          "mode": "alpha"
+        }
+      ],
+      "path": "tmp/eonfolk-diagnostics-browser-comparison.json",
+      "schemaVersion": "eonfolk-diagnostics-browser-comparison-v1",
+      "status": "PASS"
+    },
+    {
+      "artifactSha256": "5a376846a535cdb4a04e50f427de4d08803f7140d8720bd3e661c1bb94ec026a",
+      "id": "presentation-stress",
+      "measurements": [
+        {
+          "p95FrameMilliseconds": 10,
+          "viewport": "desktop"
+        },
+        {
+          "p95FrameMilliseconds": 9.800000000000182,
+          "viewport": "laptop"
+        },
+        {
+          "p95FrameMilliseconds": 10,
+          "viewport": "mobile"
+        }
+      ],
+      "path": "tmp/eonfolk-presentation-stress.json",
+      "schemaVersion": "eonfolk-twelve-actor-presentation-stress-v1",
+      "status": "PASS"
+    },
+    {
+      "artifactSha256": "9c0484960db0cce1d0aa0ed6fb77cbadb673a3799861602d5fa4b3209d22e58a",
+      "id": "release-genesis-web-performance",
+      "measurements": [
+        {
+          "maximumMeaningfulWorldMs": 1365.2000000476837,
+          "pooledFrameP95Ms": 9.89999999999418,
+          "profile": "desktop"
+        },
+        {
+          "maximumMeaningfulWorldMs": 1262.800000011921,
+          "pooledFrameP95Ms": 10.099999999991269,
+          "profile": "laptop"
+        },
+        {
+          "maximumMeaningfulWorldMs": 4881.399999976158,
+          "pooledFrameP95Ms": 10.200000000004366,
+          "profile": "mobile-emulation"
+        }
+      ],
+      "path": "tmp/eonfolk-canonical-performance.json",
+      "schemaVersion": "eonfolk-release-genesis-web-performance-v3",
+      "status": "PASS"
+    },
+    {
+      "artifactSha256": "0bd3477a6f4a865b2b77bdf630a908d7e975dfb05e6afffa22c796d272acec21",
+      "id": "local-model-treatment",
+      "measurements": {
+        "executions": 100,
+        "fallbacks": 0,
+        "warmP95Ms": 1964
+      },
+      "path": "tmp/eonfolk-local-model-benchmark.json",
+      "schemaVersion": "eonfolk-local-model-benchmark-v3",
+      "status": "PASS"
+    }
+  ],
+  "outputSha256": "8b5605add3a68399d8b21f8f61fe27dfb42b69ff03514c9540832247d94aca52"
+}

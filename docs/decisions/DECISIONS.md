@@ -215,21 +215,21 @@
 
 **Reopen trigger.** Reconsider replay capture only if a concrete unreproducible Alpha defect survives structured traces and screenshots and a bounded spike passes privacy, sandbox, bundle, and overhead gates.
 
-### D-012 — Local feedback first; deployment-ready least-authority relay
+### D-012 — V1 feedback is local-only; remove dormant relay code
 
-**Decision.** Gameplay and feedback remain complete locally. The hosted seam is deploy-ready but not deployed: a minimal Worker validates bounded text/diagnostics, exact Origin, Turnstile, D1-backed reservation/dedup/lease state, and delivery through one private single-repository GitHub App with Metadata read and Issues write. Delivery is reconciled at-least-once, not claimed exactly-once. R2 attachments remain disabled.
+**Decision.** Gameplay and feedback are complete locally. V1 contains no hosted relay, Worker/D1/Turnstile/GitHub provider implementation, network destination, credential, or deployment path. Reports are sanitized, previewed, consented, retained, and deleted only in the current browser.
 
-**Evidence.** GitHub documents narrowly scoped installation tokens but no idempotency key on issue/comment creation, so D1 must own dedup and marker reconciliation [S-FA-PLATFORM-011] [S-FA-PLATFORM-012] [S-FA-PLATFORM-013]. Turnstile validation is mandatory and short-lived but is not identity or a quota [S-FA-PLATFORM-008] [S-FA-PLATFORM-009]. R2 requires a subscription and budget alerts do not cap spend [S-FA-PLATFORM-005] [S-FA-PLATFORM-006].
+**Evidence.** The product journey verifies bounded diagnostics, attachment re-encoding, redaction, retention, deletion, zero egress, and unchanged Reality. Historical Founder Alpha research showed that a relay would add provider credentials, abuse controls, D1 reconciliation, retention, logging, and cost uncertainty [S-FA-PLATFORM-005] [S-FA-PLATFORM-008] [S-FA-PLATFORM-011] [S-FA-PLATFORM-013]. None is required for the local V1.
 
-**Rejected alternatives.** Browser GitHub credentials, PATs, arbitrary repository input, exactly-once claims, automatic deployment, public attachment URLs, foundational hosted feedback, and R2 activation under an assumed free tier.
+**Rejected alternatives.** Retaining speculative deployment code, browser GitHub credentials, PATs, arbitrary repository input, automatic deployment, public attachment URLs, foundational hosted feedback, and R2 under an assumed free tier.
 
-**Remaining uncertainty.** No Cloudflare account, App registration, key import, live Turnstile, Worker CPU measurement, D1 deployment, public abuse test, or public URL has run.
+**Remaining uncertainty.** Human testers may misread local saving as submission or may not find deletion. A future public test may need remote collection, but no current service design is implied.
 
-**Resulting behavior.** The web app previews and queues sanitized reports locally with clear local/upload state and deletion. The relay is an optional adapter with hard schema/origin/rate/quota/retention boundaries and no game authority. Outage never blocks the world.
+**Resulting behavior.** The in-game drawer states that upload is unavailable, saves only sanitized local records after explicit diagnostics consent, and lets the player delete them. Feedback cannot mutate or pause Reality and never sends a request.
 
-**Constraint fit.** The accepted path incurs no cost or credentials now, uses no partner, and defers all operations while retaining a narrow future seam.
+**Constraint fit.** This removes unreachable security and maintenance surface, costs approximately $0, needs no account or partner, and leaves one solo builder with only the player-visible behavior V1 uses.
 
-**Reopen trigger.** Revalidate all quotas, logging defaults, credentials, CPU, D1 reconciliation, abuse controls, and cost posture before any real deployment; reject the relay if fault injection duplicates or loses accepted reports.
+**Reopen trigger.** Start a new current privacy, abuse, cost, credential, retention, deletion, and rollback design only if a separately approved public test requires remote collection. Historical relay code or reviews cannot be promoted into that design by default.
 
 ### D-013 — Planner earns inclusion; model stays an optional local seam
 
@@ -278,6 +278,22 @@
 **Constraint fit.** The tiers keep routine feedback short for one maintainer while reserving expensive evidence for explicit release work at approximately $0.
 
 **Reopen trigger.** Rebalance tiers when measured CI time or defect escape shows a check is misplaced; never remove a direct invariant falsification without an equal or stronger replacement.
+
+### D-016 — Do not promote POMCP without a calibrated generative model
+
+**Decision.** V1 does not promote POMCP. The implemented cognition path uses actor-visible `DecisionContext`, bounded legal affordances, deterministic routine/project planning, and an optional untrusted Model Brain proposal. EONFOLK currently has no calibrated black-box transition/observation sampler for any decision class, so a particle-belief search would manufacture probabilities rather than model justified uncertainty.
+
+**Evidence.** The primary POMCP paper requires a black-box generative model that samples a next state, observation, and reward for a state/action pair and represents belief with particles [S-FA-COG-003]. Repository inspection shows sourced typed beliefs and deterministic affordance search, but no authorized stochastic transition distribution, observation likelihood, calibrated reward model, or frozen information-gathering case. Sampling hidden canonical Reality would also violate the actor-visible context boundary.
+
+**Rejected alternatives.** Arbitrary rollout probabilities, treating belief confidence as a calibrated particle distribution, reading hidden Reality during search, and implementing POMCP merely to claim algorithmic breadth.
+
+**Remaining uncertainty.** A later investigation, uncertain trade, disease, reconnaissance, or diplomacy mechanic may create a legitimate value-of-information problem that the deterministic planners cannot solve.
+
+**Resulting behavior.** No POMCP runtime, dependency, particles, rollout values, or stochastic search enters V1. This does not weaken partial observability: Mind remains subjective and actor-bounded, while planners act only on authorized facts, beliefs, and legal actions. Rejection is an affirmative V1 technical disposition, not deferred required software.
+
+**Constraint fit.** The decision avoids unsupported complexity, floating/stochastic replay costs, and unearned research claims while preserving the solo, local, no-training, approximately-$0 operating constraints.
+
+**Reopen trigger.** Reopen only when one frozen actor-authorized case supplies typed and calibrated transition/observation distributions, materially different information value, and a predeclared benchmark where Standard Brain plus bounded planning both fail. A candidate must then beat both baselines without hidden-fact access, replay drift, or an unexplained player-facing choice.
 
 ## Founder Alpha frozen-review reconciliation
 

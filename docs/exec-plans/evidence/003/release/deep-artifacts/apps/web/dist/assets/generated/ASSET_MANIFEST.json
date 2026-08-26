@@ -1,0 +1,68 @@
+{
+	"schemaVersion": "eonfolk-generated-asset-manifest-v2",
+	"authoredOn": "2026-08-23",
+	"budget": {
+		"maximumInitialGeneratedAssetBytes": 4194304,
+		"trackedBytes": 7081,
+		"deliveryBytes": 3152
+	},
+	"pipeline": {
+		"validator": "scripts/validate-generated-assets.mjs",
+		"writeCommand": "pnpm assets:write",
+		"validationCommand": "pnpm assets:validate",
+		"sourcePath": "/assets/generated/eonfolk-folk-proxy.gltf",
+		"deliveryPath": "/assets/generated/eonfolk-folk-proxy.glb",
+		"conversion": "deterministic embedded-data glTF 2.0 to self-contained GLB 2.0",
+		"determinism": "GLB and manifest bytes are pure functions of the tracked source glTF and this validator version"
+	},
+	"assets": [
+		{
+			"assetId": "eonfolk-folk-proxy-v1",
+			"role": "authoring-source",
+			"path": "/assets/generated/eonfolk-folk-proxy.gltf",
+			"mediaType": "model/gltf+json",
+			"byteLength": 3929,
+			"sha256": "a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179",
+			"generatedFrom": null,
+			"source": "repository-authored deterministic geometry",
+			"generator": "repository-authored glTF 2.0 JSON with embedded cuboid geometry; no Blender authorship claimed",
+			"rights": "Original EONFOLK asset with no third-party inputs; source and derived GLB are licensed under Apache-2.0 with this repository.",
+			"externalDependencies": [],
+			"partNodeNames": [
+				"torso",
+				"head",
+				"arm-left",
+				"arm-right",
+				"leg-left",
+				"leg-right",
+				"task-prop-anchor"
+			],
+			"intendedRole": "recognizable humanoid proxy with named pose parts and task-prop anchor",
+			"productionStatus": "bounded V1 proxy; not final character art"
+		},
+		{
+			"assetId": "eonfolk-folk-proxy-glb-v1",
+			"role": "delivery",
+			"path": "/assets/generated/eonfolk-folk-proxy.glb",
+			"mediaType": "model/gltf-binary",
+			"byteLength": 3152,
+			"sha256": "198d0d7ec6e37f7a43fae872cfff0f3ba8e010c50a3cc7c29af21a2358120549",
+			"generatedFrom": "/assets/generated/eonfolk-folk-proxy.gltf",
+			"source": "repository-authored deterministic geometry",
+			"generator": "scripts/validate-generated-assets.mjs deterministic glTF-to-GLB conversion",
+			"rights": "Original EONFOLK asset with no third-party inputs; source and derived GLB are licensed under Apache-2.0 with this repository.",
+			"externalDependencies": [],
+			"partNodeNames": [
+				"torso",
+				"head",
+				"arm-left",
+				"arm-right",
+				"leg-left",
+				"leg-right",
+				"task-prop-anchor"
+			],
+			"intendedRole": "recognizable humanoid proxy with named pose parts and task-prop anchor",
+			"productionStatus": "bounded V1 proxy; not final character art"
+		}
+	]
+}

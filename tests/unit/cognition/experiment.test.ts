@@ -41,7 +41,7 @@ function manifestInput() {
 			determinism: "riverhold-determinism-v2",
 			replay: "riverhold-replay-v2",
 			visibility: "riverhold-visibility-v1",
-			catalog: "riverhold-actions-v1",
+			catalog: "civilization-actions-v1",
 			cognition: "riverhold-cognition-v1",
 		},
 		corpus: {
@@ -57,7 +57,7 @@ function manifestInput() {
 			standardBrainVersion: "riverhold-standard-brain-v1",
 		},
 		environment: {
-			host: "MacBook M4 Pro" as const,
+			host: "MacBook M4 Max" as const,
 			osVersion: "fixture-os-v1",
 			runtimeVersion: "node-fixture-v1",
 			totalMemoryBytes: 16 * 1024 * 1024 * 1024,
@@ -125,6 +125,7 @@ describe("BrainPort experiment contracts", () => {
 				sourceCommit: commitA,
 				executable: artifact("runtime-fixture", digestA),
 			},
+			serviceRuntime: null,
 			model: artifact("model-fixture", digestB, 4_096),
 			tokenizer: artifact("tokenizer-fixture", digestC),
 			modelConfiguration: artifact("config-fixture", digestA),
@@ -134,6 +135,7 @@ describe("BrainPort experiment contracts", () => {
 			transport: "length-prefixed-jcs-stdin-single-jcs-stdout",
 			modelSource: "preprovisioned-local",
 			networkPolicy: "deny-all-required",
+			localEndpoint: null,
 			trustRemoteCode: false,
 			environmentNames: [],
 			generation: {
@@ -170,6 +172,7 @@ describe("BrainPort experiment contracts", () => {
 				sourceCommit: commitA,
 				executable: artifact("runtime-fixture", digestA),
 			},
+			serviceRuntime: null,
 			model: artifact("model-fixture", digestB),
 			tokenizer: artifact("tokenizer-fixture", digestC),
 			modelConfiguration: artifact("config-fixture", digestA),
@@ -179,6 +182,7 @@ describe("BrainPort experiment contracts", () => {
 			transport: "length-prefixed-jcs-stdin-single-jcs-stdout" as const,
 			modelSource: "preprovisioned-local" as const,
 			networkPolicy: "deny-all-required" as const,
+			localEndpoint: null,
 			trustRemoteCode: false as const,
 			environmentNames: ["API_KEY"],
 			generation: {
@@ -206,6 +210,33 @@ describe("BrainPort experiment contracts", () => {
 				limits: { ...base.limits, maxStdoutBytes: 16_385 },
 			}),
 		).rejects.toThrow("limits.maxStdoutBytes is outside its integer budget");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				limits: { ...base.limits, warmTimeoutMs: 4_001 },
+			}),
+		).rejects.toThrow("limits.warmTimeoutMs is outside its integer budget");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				networkPolicy: "loopback-single-port-required",
+				localEndpoint: null,
+			}),
+		).rejects.toThrow("local endpoint must match the network policy");
+		await expect(
+			createLocalProcessBrainContract({
+				...base,
+				environmentNames: ["HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"],
+				networkPolicy: "loopback-single-port-required",
+				localEndpoint: {
+					kind: "ollama-loopback",
+					host: "127.0.0.1",
+					port: 70_000,
+				},
+			}),
+		).rejects.toThrow("local endpoint is invalid");
 	});
 
 	it("binds an ordered 2 x 2 x 5 execution plan into the manifest", async () => {

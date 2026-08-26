@@ -116,13 +116,12 @@
 - **Evidence required:** Every injected fault has a stable bounded reproduction ID and actionable trace; no prohibited bytes survive; no diagnostic dependency writes Reality; measured overhead stays within the Alpha budgets.
 - **Decision reopened:** D-011; remove event kinds or the recorder entirely before adding replay capture if cost exceeds diagnosis value.
 
-### Q-013 — Can the optional relay accept reports without duplicate delivery or hidden cost?
+### Q-013 — CLOSED FOR V1: remote feedback collection
 
-- **Why it matters:** A feedback convenience must not become an abuse, credential, quota, privacy, or operations burden.
-- **Current default:** Local queue is complete; deploy-ready Worker/D1/Turnstile/private-GitHub-App seam is disabled and R2 is off.
-- **Fastest falsification:** Fake-adapter fault matrix for lost create/comment responses, duplicate retries, expired leases/tokens, marker reconciliation, 403/410/422/429/5xx, origin/schema violations, and daily/monthly cap exhaustion.
-- **Evidence required:** Accepted reports reconcile without uncontrolled duplicate issues/comments; rejected/outage states remain local and playable; secrets and bodies never enter logs; real quota/cost/CPU evidence is mandatory before deployment.
-- **Decision reopened:** D-012; keep feedback local-only if the relay cannot meet these conditions.
+- **Why it mattered:** A feedback convenience could become an abuse, credential, quota, privacy, and operations burden.
+- **V1 resolution:** Keep feedback local-only and remove the dormant Worker/D1/Turnstile/GitHub relay implementation. The playable product and deletion path remain complete without a service.
+- **Reopen trigger:** A separately approved public test requires remote collection and begins with a current privacy, abuse, cost, credential, retention, deletion, and rollback design. Historical fake-adapter evidence does not authorize or specify a future deployment.
+- **Decision affected:** D-012 remains local-only for V1.
 
 ### Q-014 — Does bounded planning improve behavior enough to keep?
 

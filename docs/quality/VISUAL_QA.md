@@ -2,7 +2,7 @@
 
 **Purpose:** define deterministic browser evidence, manual interaction review, observer walkthroughs, and the visual fix loop.
 
-**Status:** AUTOMATED RELEASE GATE PASSED — independent exact-YES confirmation complete; unfamiliar-human gates remain NOT RUN
+**Status:** V1 PROCEDURE BINDING — Founder Alpha automated exact-YES gate is historical; V1 uses generated-world journeys; unfamiliar-human gates remain NOT RUN
 
 **Authority boundary:** owns viewport/browser evidence and visual review process. Visual language is owned by future `docs/design/DESIGN.md`; numerical limits by [performance](PERFORMANCE.md); CI retention by [testing](TESTING.md).
 
@@ -23,7 +23,7 @@ For a named commit, seed, browser version, and clean local build:
 5. inspect identity, value, relationship, tension, local-device notice, and complete state-changing investigation by 60 seconds;
 6. give one of two advice intents or abstain by pointer and keyboard;
 7. observe acceptance, rejection, delay, or reinterpretation and a later consequence;
-8. explicitly leave, reload, confirm **Advance Riverhold**, inspect While You Were Away, and take the outcome-dependent second action;
+8. explicitly leave, reload, confirm catch-up, inspect Chronicle, and take the outcome-dependent next world focus;
 9. step the Chronicle/replay and compare its facts/causal wording with authoritative events;
 10. inspect the ≤20-second three-beat **Copy story card** for five-second comprehension without a dead link;
 11. repeat consequential controls with reduced motion and semantic list/map fallback.

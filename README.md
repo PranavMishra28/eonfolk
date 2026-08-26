@@ -2,69 +2,186 @@
 
 ![EONFOLK mark](apps/web/public/eonfolk-mark.svg)
 
-EONFOLK is a local-first civilization game about following one autonomous life inside a persistent settlement. You investigate what a citizen can know, offer rare counsel they may reinterpret or reject, watch consequences unfold in the world, and return to a factual Chronicle.
+EONFOLK is an experimental, local-first civilization game. You follow one
+person inside a persistent settlement, offer rare high-level counsel, and watch
+them accept, reject, delay, or reinterpret it. The Chronicle then separates
+what happened from what people believed and who merely set events in motion.
 
-Founder Alpha is free, account-free, and complete without an external model or network service. It is a bounded product proof, not a public deployment or a claim that human fun, attachment, and retention gates have passed.
+> **Project status: pre-alpha.** The current build is a bounded product proof,
+> not a finished or hosted game. It runs locally, requires no account or model,
+> and stores its world in your browser.
+
+![A running EONFOLK sponsor journey: Mara is selected in Dawnmere, receives a consequential intervention, and returns with a Chronicle consequence](docs/media/eonfolk-sponsor-loop.gif)
+
+[Watch the 15-second MP4](docs/media/eonfolk-sponsor-loop.mp4) ·
+[Capture provenance](docs/media/README.md)
+
+## What you can play today
+
+- Explore a generated region and inhabited settlement at region, town, and
+  citizen camera scales.
+- Observe eight autonomous citizens gathering, carrying, repairing, trading,
+  meeting, and responding to social pressure.
+- Sponsor Mara in under a minute and give one consequential piece of counsel—or
+  deliberately abstain.
+- See Mara independently accept, reject, delay, or reinterpret the intervention.
+- Leave, reload, catch up, and replay the durable consequence.
+- Inspect a factual Chronicle that distinguishes direct cause, trigger,
+  contributing condition, temporal order, and allegation.
+- Use every important action through semantic keyboard controls, including a
+  playable non-WebGL fallback.
+
+The build does **not** include accounts, networking, deployment, payments,
+multiplayer, unrestricted dialogue, model downloads, or a generalized economy.
+Those are not hidden prerequisites.
 
 ## Quick start
 
-Runtime requirements: macOS on Apple Silicon, Node 22.23.1, and pnpm 11.15.1. Full PR/DEEP verification additionally requires Java 21. From a fresh clone:
+Requirements:
+
+- macOS or Linux
+- Node.js 22.23.1
+- pnpm 11.15.1 through Corepack
+- a current Chromium-family browser with WebGL2; the semantic world remains
+  playable when WebGL is unavailable
 
 ```sh
+corepack enable
 corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm dev
 ```
 
-Open the loopback URL printed by Vite. `dev` enables local diagnostics and hot reload without sending world, cognition, or feedback data off the device.
+Open the loopback URL printed by Vite. The product starts at `/`; the generated
+world is at `/world`. No command deploys or publishes the project.
 
-To build the production bundle and serve it locally:
+For a production-mode local run:
 
 ```sh
 corepack pnpm prod
 ```
 
-The production preview listens only on `127.0.0.1:4174`. It does not deploy or publish the game.
+## The product loop
 
-## What is implemented
+```text
+observe the world
+       ↓
+understand one citizen's facts, beliefs, and tension
+       ↓
+counsel or abstain
+       ↓
+the citizen decides independently
+       ↓
+the settlement changes
+       ↓
+return to a factual Chronicle and choose the next risk
+```
 
-- One 250 × 210 metre PlayCanvas/WebGL2 settlement with eight embodied citizens.
-- Deterministic Reality, Standard Brain autonomy, typed Mind state, event sourcing, IndexedDB snapshots, catch-up, and replay.
-- Visible travel, gathering, exchange, repair, social interaction, direct world selection, semantic zoom, and an equivalent list view.
-- One consequential Mara counsel path with acceptance, rejection, delay, Chronicle evidence, and Story Card attribution.
-- Keyboard operation, reduced motion, mobile reflow, renderer degradation, diagnostics, local feedback, and zero-egress browser checks.
+The player does not puppeteer a worker. The central tension is whether a person
+with incomplete knowledge will treat the player's intervention as useful,
+premature, self-serving, or irrelevant—and what the world will remember.
 
-Generated continents, a second settlement, hosted public worlds, required LLM inference, payments, accounts, and deployment are not Founder Alpha features.
+![Dawnmere's embodied settlement at desktop scale, with seven residents, visible work, and a social interaction](docs/media/eonfolk-social-preview.png)
 
-## Verification
+![The factual Chronicle after a sponsor consequence, with causal roles and links back into the world](docs/media/eonfolk-chronicle-desktop.png)
 
-Use the smallest useful tier while working:
+## Architecture at a glance
+
+```text
+React + semantic DOM + PlayCanvas world
+                    │
+             application validation
+           ┌────────┴────────┐
+           │                 │
+   deterministic worker   IndexedDB
+   Reality + scheduler     events, receipts,
+   + Standard Brain        snapshots, replay
+           │
+   immutable projections
+           │
+   world, Chronicle, diagnostics
+```
+
+Reality is the sole authority. Cognition proposes one typed action; validation
+accepts or rejects it atomically. Rendering, diagnostics, feedback, and prose
+cannot mutate the world. Canonical replay uses only versioned snapshots and
+accepted events, so the game remains complete without an LLM.
+
+Read [Architecture](docs/ARCHITECTURE.md) for boundaries and
+[Gameplay](docs/GAMEPLAY.md) for the current rules.
+
+## Privacy and data
+
+The current world, feedback drafts, and diagnostic captures stay in local
+browser storage. EONFOLK has no telemetry, account system, analytics relay, or
+server persistence. Clearing site data removes the local world. There is not yet
+a supported backup/import workflow, so do not treat a pre-alpha world as durable
+personal storage.
+
+Optional model experiments are isolated from authoritative state and are not
+part of normal onboarding or required verification.
+
+## Quality
+
+The repository checks formatting, lint, strict TypeScript, unit tests,
+deterministic and property tests, IndexedDB behavior, builds, browser journeys,
+network isolation, accessibility, payload/frame budgets, fault recovery,
+replay, model-free progress, and a bounded TLA+ persistence model.
 
 ```sh
 corepack pnpm verify:fast
 corepack pnpm exec playwright install chromium
-TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:pr
-TLA2TOOLS_JAR=/absolute/path/to/verified/tla2tools.jar corepack pnpm verify:deep
+TLA2TOOLS_JAR=/absolute/path/to/tla2tools.jar corepack pnpm verify:pr
 ```
 
-`verify:pr` is the merge baseline. It covers formatting, lint, strict types, unit/property tests, IndexedDB, deterministic simulation and replay, fault recovery, production build and payload budgets, browser journeys, dependency audit, zero network egress, and the bounded formal model. Read the pinned TLC URL and SHA-256 with `node scripts/formal-toolchain.mjs --url` and `--sha256`; never substitute an unverified jar.
+Java 21 and a verified `tla2tools.jar` are required only for the formal PR/deep
+tiers. See [Testing](docs/TESTING.md), [Accessibility](docs/ACCESSIBILITY.md), and
+[Performance](docs/PERFORMANCE.md).
 
-`verify:deep` is the target-Apple-Silicon release lattice. It additionally verifies the exact Playwright browser cohort, mutation/fuzz depth, persistence, diagnostics, and repeated three-viewport performance. Run `corepack pnpm browser-cohort:check` before committing to the longer tier; a different OS/browser cohort is not equivalent release evidence.
+## Project map
 
-The GitHub workflow repeats the protected PR baseline, full-history secret scan, formal model, and conditional three-viewport renderer evidence. A manual **extended** Linux workflow-dispatch tier adds the portable mutation gate and expanded deterministic properties without pretending to be the target-Mac DEEP/performance run. It is not scheduled, so a solo private repository does not consume hosted minutes without intent. Continuous deployment remains deliberately disabled pending a separate, concrete approval for account, origin, credentials, cost, retention, and rollback.
+| Path | Responsibility |
+|---|---|
+| `apps/web` | browser application, local worker orchestration, world and Chronicle |
+| `packages/protocol` | versioned identifiers, commands, events, visibility |
+| `packages/sim` | pure authoritative transitions, invariants, replay |
+| `packages/civilization` | bounded society state and deterministic scheduler |
+| `packages/cognition` | Standard Brain and untrusted proposal boundary |
+| `packages/persistence` | memory and IndexedDB event/snapshot adapters |
+| `packages/worldgen` | deterministic region generation |
+| `packages/world-presentation` | renderer-neutral spatial projections |
+| `packages/diagnostics` | redacted, non-authoritative local observation |
+| `formal` | bounded persistence specification |
+| `tests` | unit, property, timing, browser, fault, and model experiments |
 
-## Architecture and developer guide
+## Contributing and support
 
-Typed Reality is the only game-state authority. Mind holds visible facts, sourced beliefs, plans, and bounded budgets. Brain may propose only known typed actions; Application validates them atomically before Reality changes. Chronicle projects factual causal records without inventing causality. Diagnostics, feedback, experiments, and the Observatory cannot mutate Reality.
+Start with [Development](docs/DEVELOPMENT.md) and
+[Contributing](CONTRIBUTING.md). Please use the issue forms for bugs, gameplay
+feedback, accessibility/performance reports, and scoped proposals. Security
+reports follow [SECURITY.md](SECURITY.md); general help is in
+[SUPPORT.md](SUPPORT.md).
 
-Start with:
+The near-term direction is in [ROADMAP.md](ROADMAP.md). Changes are recorded in
+[CHANGELOG.md](CHANGELOG.md), and third-party components are documented in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-1. [Authority index](docs/INDEX.md)
-2. [Product](docs/product/PRODUCT.md)
-3. [Human loop](docs/product/HUMAN_LOOP.md)
-4. [Architecture](docs/engineering/ARCHITECTURE.md)
-5. [Simulation](docs/engineering/SIMULATION.md)
-6. [Founder Alpha ExecPlan](docs/exec-plans/active/002-founder-alpha.md)
-7. [Testing and CI](docs/quality/TESTING.md)
-8. [Local release boundary](docs/engineering/FOUNDER_ALPHA_RELEASE.md)
+## Current limitations
 
-Repository process and non-negotiable constraints are in [AGENTS.md](AGENTS.md). `docs/INDEX.md` is the sole authority map; new root-level architecture, goal, roadmap, or ADR files should not duplicate its canonical owners.
+- One local generated region and one sponsor storyline are deeply exercised;
+  content breadth and long-term player attachment remain unproven.
+- Browser storage has no supported backup, import, sync, or conflict merge.
+- Mobile behavior is tested through deterministic browser profiles; broad
+  physical-device coverage is still limited.
+- The world is deliberately small: eight active citizens by default and twelve
+  as a practical first-slice ceiling.
+- Public hosting, shared canon, moderation, and accounts require a separate
+  security and operations design.
+
+EONFOLK is an experiment in understandable autonomy, not a claim of sentience.
+
+## License
+
+Original source code, tests, configuration, and documentation are available
+under the [Apache License 2.0](LICENSE). The EONFOLK name/mark and specified
+creative assets are reserved; dependency and asset details are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
