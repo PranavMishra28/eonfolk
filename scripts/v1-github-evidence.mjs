@@ -78,6 +78,29 @@ function nonemptyIdentity(value) {
 	return typeof value === "string" && ID_PATTERN.test(value);
 }
 
+function assertMergePolicy(policy) {
+	if (
+		policy?.mergeCommitAllowed !== true ||
+		policy?.squashMergeAllowed !== false ||
+		policy?.rebaseMergeAllowed !== false ||
+		policy?.deleteBranchOnMerge !== false
+	)
+		throw new Error(
+			"repository owner, merge mode, or delete-branch-on-merge control is invalid",
+		);
+}
+
+async function requireLiveMergePolicy(client, repository) {
+	const [owner, name] = repository.split("/");
+	if (!nonemptyIdentity(owner) || !nonemptyIdentity(name))
+		throw new Error("repository identity is invalid");
+	const data = await client.graphql(
+		"query($owner:String!,$name:String!){repository(owner:$owner,name:$name){mergeCommitAllowed squashMergeAllowed rebaseMergeAllowed deleteBranchOnMerge}}",
+		{ owner, name },
+	);
+	assertMergePolicy(data?.repository);
+}
+
 /**
  * `dseditgroup` spells the negative membership result differently across macOS
  * releases: macOS 26 omits the word `group`. Both accepted forms must still name
@@ -729,15 +752,12 @@ export async function verifyGithubEvidenceRuns({
 	const repositoryMetadata = await client.json(`/repos/${repository}`);
 	if (
 		repositoryMetadata?.full_name !== repository ||
-		repositoryMetadata?.owner?.login !== expectedOwner ||
-		repositoryMetadata?.delete_branch_on_merge !== false ||
-		repositoryMetadata?.allow_merge_commit !== true ||
-		repositoryMetadata?.allow_squash_merge !== false ||
-		repositoryMetadata?.allow_rebase_merge !== false
+		repositoryMetadata?.owner?.login !== expectedOwner
 	)
 		throw new Error(
 			"repository owner, merge mode, or delete-branch-on-merge control is invalid",
 		);
+	await requireLiveMergePolicy(client, repository);
 	const main = await client.json(`/repos/${repository}/branches/main`);
 	if (
 		main?.name !== "main" ||
@@ -1060,22 +1080,24 @@ async function repositoryPreflight() {
 	const repository = requiredArgument("--repository");
 	const expectedOwner = requiredArgument("--expected-owner");
 	const expectedOperator = requiredArgument("--expected-operator");
-	const metadata = await githubClient(process.env.GITHUB_TOKEN).json(
-		`/repos/${repository}`,
-	);
+	const client = githubClient(process.env.GITHUB_TOKEN);
+	const metadata = await client.json(`/repos/${repository}`);
 	if (
 		repository.split("/")[0] !== expectedOwner ||
 		metadata?.full_name !== repository ||
 		metadata?.owner?.login !== expectedOwner ||
-		metadata?.delete_branch_on_merge !== false ||
-		metadata?.allow_merge_commit !== true ||
-		metadata?.allow_squash_merge !== false ||
-		metadata?.allow_rebase_merge !== false ||
 		process.env.GITHUB_ACTOR !== expectedOperator
 	)
 		throw new Error(
 			"repository owner/operator, merge mode, or delete-branch-on-merge preflight failed",
 		);
+	try {
+		await requireLiveMergePolicy(client, repository);
+	} catch {
+		throw new Error(
+			"repository owner/operator, merge mode, or delete-branch-on-merge preflight failed",
+		);
+	}
 }
 
 async function finalizeMacIntermediate() {
@@ -1382,6 +1404,31 @@ function githubClient(token) {
 			if (!response.ok)
 				throw new Error(`GitHub API ${path} returned ${response.status}`);
 			return response.json();
+		},
+		async graphql(query, variables) {
+			const response = await fetch("https://api.github.com/graphql", {
+				method: "POST",
+				headers: {
+					Accept: "application/vnd.github+json",
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+					"X-GitHub-Api-Version": "2022-11-28",
+				},
+				body: JSON.stringify({ query, variables }),
+			});
+			if (!response.ok)
+				throw new Error(`GitHub GraphQL returned ${response.status}`);
+			const body = await response.json();
+			if (
+				body === null ||
+				typeof body !== "object" ||
+				Array.isArray(body) ||
+				Array.isArray(body.errors) ||
+				body.data === null ||
+				typeof body.data !== "object"
+			)
+				throw new Error("GitHub GraphQL returned errors");
+			return body.data;
 		},
 		async bytes(url) {
 			if (new URL(url).origin !== "https://api.github.com")

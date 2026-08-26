@@ -273,6 +273,16 @@ function fixture(mutation: Mutation = {}) {
 	};
 	mutation.workflow?.(workflow);
 	const client = {
+		async graphql(_query: string, _variables: { owner: string; name: string }) {
+			return {
+				repository: {
+					mergeCommitAllowed: true,
+					squashMergeAllowed: false,
+					rebaseMergeAllowed: false,
+					deleteBranchOnMerge: mutation.autoDeleteBranches === true,
+				},
+			};
+		},
 		async json(path: string) {
 			if (path === `/repos/${repository}`)
 				return {
