@@ -1539,7 +1539,9 @@ function reviewValidationContext(trusted = { runs: new Map() }) {
 			});
 			if (!entry.startsWith("100644 blob "))
 				throw new Error("evidence artifact is missing or not a regular blob");
-			return execFileSync("git", ["show", `${commit}:${path}`]);
+			return execFileSync("git", ["show", `${commit}:${path}`], {
+				maxBuffer: 32 * 1024 * 1024,
+			});
 		},
 	};
 }
