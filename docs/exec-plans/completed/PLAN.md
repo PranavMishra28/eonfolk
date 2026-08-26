@@ -1,12 +1,16 @@
 # EONFOLK V1 integration plan
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. Exit
+> checkboxes below describe the premerge lattice, not current maintenance.
+> Current public entry is [README](../../../README.md).
+
 **Purpose:** Track the current V1 integration sequence, evidence gates, integration history, frozen candidate, and exit status.
 
-**Status:** FEATURE COMPLETE — draft Mega PR #9; exact-candidate release lattice pending
+**Status:** HISTORICAL — V1 software merged through PR #9
 
-**Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](docs/INDEX.md) owns document authority.
+**Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](../../INDEX.md) owns document authority.
 
-**Related documents:** [V1 ExecPlan](docs/exec-plans/active/003-v1-civilization.md), [source ledger](docs/research/SOURCE_LEDGER.md), [decisions](docs/decisions/DECISIONS.md), [risks](docs/decisions/RISKS.md), and [completed Founder Alpha plan](docs/exec-plans/completed/002-founder-alpha.md).
+**Related documents:** [V1 ExecPlan](../active/003-v1-civilization.md), [source ledger](../../research/SOURCE_LEDGER.md), [decisions](../../decisions/DECISIONS.md), [risks](../../decisions/RISKS.md), and [completed Founder Alpha plan](002-founder-alpha.md).
 
 ## Binding constraints
 

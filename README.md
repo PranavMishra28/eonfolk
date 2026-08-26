@@ -7,6 +7,11 @@ person inside a persistent settlement, offer rare high-level counsel, and watch
 them accept, reject, delay, or reinterpret it. The Chronicle then separates
 what happened from what people believed and who merely set events in motion.
 
+Citizens can be wrong. You can be wrong. Optional local models, if you enable
+them, can be nondeterministic. Canonical Reality is still deterministic and
+replayable: cognition, UI, and narration may propose or describe, but they
+cannot write the world.
+
 > **Project status: pre-alpha.** The current build is a bounded product proof,
 > not a finished or hosted game. It runs locally, requires no account or model,
 > and stores its world in your browser.
@@ -51,8 +56,14 @@ corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm dev
 ```
 
-Open the loopback URL printed by Vite. The product starts at `/`; the generated
-world is at `/world`. No command deploys or publishes the project.
+Open the loopback URL printed by Vite. `/` is the landing page; `/world` is the
+settlement. To complete the product loop locally: enter the world, select Mara
+Vale, choose **Sponsor this person**, then either offer counsel or abstain.
+Watch her independent response, leave and return, and read the Chronicle.
+
+No command deploys or publishes the project. For a 10–20 minute session with
+another person, use the [playtest kit](docs/playtesting/README.md). That kit
+does not collect data over the network.
 
 For a production-mode local run:
 
@@ -161,7 +172,8 @@ feedback, accessibility/performance reports, and scoped proposals. Security
 reports follow [SECURITY.md](SECURITY.md); general help is in
 [SUPPORT.md](SUPPORT.md).
 
-The near-term direction is in [ROADMAP.md](ROADMAP.md). Changes are recorded in
+The near-term direction is in [ROADMAP.md](ROADMAP.md). Local human sessions
+use the [playtest kit](docs/playtesting/README.md). Changes are recorded in
 [CHANGELOG.md](CHANGELOG.md), and third-party components are documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

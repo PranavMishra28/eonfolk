@@ -2,31 +2,32 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** V1 CIVILIZATION IN PROGRESS — Founder Alpha retained as prior evidence; human product gates not run
+**Status:** V1 MERGED TO MAIN — human product gates not run; historical ledgers retained under completed exec-plans
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [planning status](../PLAN.md), [V1 ExecPlan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
+**Related documents:** [historical ledgers](exec-plans/completed/README.md), [V1 ExecPlan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
-## V1 restart read order
+Public readers start at [README](../README.md). Maintainers reconstructing the V1 merge may read the completed ledgers next.
 
-1. [V1 execution ledger](../GOAL.md).
-2. [Operational restart](../RESUME.md).
-3. **This index.**
-4. [Product](product/PRODUCT.md).
-5. [Architecture](engineering/ARCHITECTURE.md).
-6. [V1 civilization ExecPlan](exec-plans/active/003-v1-civilization.md).
+## Maintainer read order
+
+1. [README](../README.md).
+2. **This index.**
+3. [Product](product/PRODUCT.md).
+4. [Architecture](engineering/ARCHITECTURE.md).
+5. Historical V1 ledger, if needed: [GOAL.md](exec-plans/completed/GOAL.md).
 
 ## Coordinator-owned shared authorities
 
 | Concern | Sole authority |
 |---|---|
-| Planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](../PLAN.md) |
-| Executable V1 requirement state | [GOAL.md](../GOAL.md) |
-| Exact V1 operational restart | [RESUME.md](../RESUME.md) |
-| V1 premerge evidence handoff | [V1_HANDOFF.md](../V1_HANDOFF.md) |
+| Historical V1 planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](exec-plans/completed/PLAN.md) |
+| Historical executable V1 requirement state | [GOAL.md](exec-plans/completed/GOAL.md) |
+| Historical V1 operational restart | [RESUME.md](exec-plans/completed/RESUME.md) |
+| Historical V1 premerge evidence handoff | [V1_HANDOFF.md](exec-plans/completed/V1_HANDOFF.md) |
 | This ownership map and retained-artifact inventory | `INDEX.md` |
 | External and measured claim provenance | [SOURCE_LEDGER.md](research/SOURCE_LEDGER.md) |
 | Accepted decisions and review reconciliation | [DECISIONS.md](decisions/DECISIONS.md) |
@@ -171,7 +172,9 @@ Each concern has one authority. Research records evidence; reviews record object
 | Production dependency audit evidence and limitations | [security audit](exec-plans/evidence/001/implementation/security-audit.json) |
 | Persistence adapter usage and explicit local-only limits | [persistence package README](../packages/persistence/README.md) |
 | Bounded persistence model meaning and execution | [formal model README](../formal/README.md) |
-| Historical Founder Alpha setup, evidence limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](../FOUNDER_ALPHA_HANDOFF.md) |
+| Historical Founder Alpha setup, evidence limits, and recovery handoff | [FOUNDER_ALPHA_HANDOFF.md](exec-plans/completed/FOUNDER_ALPHA_HANDOFF.md) |
+| Completed execution records and moved V1 ledgers | [completed README](exec-plans/completed/README.md) |
+| Private/local human playtest kit | [playtesting](playtesting/README.md) |
 | Secret-safe local examples | [.env.example](../.env.example) and [.gitignore](../.gitignore) |
 | Pull-request evidence checklist | [pull request template](../.github/pull_request_template.md) |
 | Markdown lint configuration | `../.markdownlint-cli2.jsonc` |

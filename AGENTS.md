@@ -2,23 +2,22 @@
 
 **Purpose:** Control repository agents during implementation and future maintenance.
 
-**Status:** ACTIVE REPOSITORY INSTRUCTIONS
+**Status:** ACTIVE REPOSITORY INSTRUCTIONS — V1 software is merged; do not reopen that lattice
 
 **Authority boundary:** This file owns agent process; [docs/INDEX.md](docs/INDEX.md) owns content authority.
 
-**Related documents:** [GOAL.md](GOAL.md), [RESUME.md](RESUME.md), [docs/INDEX.md](docs/INDEX.md).
+**Related documents:** [authority index](docs/INDEX.md), [historical V1 ledgers](docs/exec-plans/completed/README.md).
 
 This repository is the system of record for EONFOLK planning, implementation, and evidence.
 
 ## Mission and constraints
 
-- Implement the V1 civilization benchmark through the sole integration branch `feat/v1-civilization` and its one draft mega PR. `main` remains the protected integration target.
+- Maintain the merged local V1 product on ordinary branches targeting protected `main`. Do not reopen the V1 civilization lattice, rewrite frozen Gate 0 treatment resolution as game logic, or treat historical ledgers as current runbooks.
 - Preserve World/Reality/Epistemics/Truth/Brain/Chronicle/Experiment/Observatory boundaries: typed Reality is sole authority; diagnostics, feedback, cognition, ontology projections, and experiments never mutate it; no hidden chain-of-thought.
-- Keep all required V1 software in [GOAL.md](GOAL.md) until executable acceptance evidence is verified; difficulty or elapsed time never converts a requirement to future work.
 - Target approximately $0 spend; incur no cost, deploy nothing, and add no credentials without explicit approval.
-- V1 is useful and free. Payments, revenue operations, model training, proprietary datasets, partnerships, regulated data, and enterprise sales are out of scope.
-- Never edit or reuse frozen Gate 0 treatment resolution as authoritative game logic. Historical evidence is preserved by immutable tags.
-- Start with `GOAL.md`, then `RESUME.md`, then `docs/INDEX.md`.
+- The product remains useful and free. Payments, revenue operations, model training, proprietary datasets, partnerships, regulated data, and enterprise sales are out of scope.
+- Historical evidence is preserved by immutable tags and files under `docs/exec-plans/completed/`.
+- Start with [README.md](README.md), then [docs/INDEX.md](docs/INDEX.md). Use the completed V1 ledgers only when reconstructing that merge.
 
 ## Evidence language
 
@@ -33,7 +32,7 @@ Material external claims cite an `S-*` entry in `docs/research/SOURCE_LEDGER.md`
 
 Bounded agents work only on their assigned artifact and file allowlist. They do not create goals, broaden scope, spawn agents, or edit shared authorities. They return findings, evidence, objections, uncertainties, recommendations, tests, and one clean commit. Writing agents use isolated worktrees.
 
-The coordinator owns `GOAL.md`, `RESUME.md`, `docs/INDEX.md`, shared contracts, integration, and the one draft PR. The coordinator inspects every actual diff before integration.
+The coordinator owns `docs/INDEX.md`, shared contracts, integration, and pull requests. The coordinator inspects every actual diff before integration. Historical V1 ledgers under `docs/exec-plans/completed/` are snapshots, not living requirement lists.
 
 ## Document quality
 
@@ -46,4 +45,4 @@ Every authority document states the decision it owns, evidence that would reopen
 - search for unfinished-work markers, placeholders, and unsupported “current” claims
 - verify no credentials, deployment artifacts, unsupported product claims, or mutable evidence entered the tree
 - run the repository's fast or full verification command appropriate to the change
-- do not mark the draft PR ready or merge until every required `GOAL.md` row is VERIFIED and the frozen-SHA reviews pass
+- do not claim human attachment, adoption, or playtest results without dated human notes stored outside git

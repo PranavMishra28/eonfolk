@@ -1,8 +1,13 @@
 # Resume EONFOLK V1
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. The
+> `feat/v1-civilization` branch and draft mega PR are no longer the current
+> operator path. Machine-local paths below were true on the build machine.
+> Current public entry is [README](../../../README.md).
+
 **Purpose:** Give a zero-context coordinator the exact restart while Release Genesis remains in the one V1 mega PR.
 
-**Status:** FEATURE COMPLETE — exact-candidate DEEP PASS recorded; premerge evidence tail in progress
+**Status:** HISTORICAL — V1 software merged; this restart targeted the premerge branch
 
 **Authority boundary:** [GOAL.md](GOAL.md) owns requirement state; this file owns the operational restart.
 
@@ -73,12 +78,12 @@ Do not restart architecture or product planning, add another PR, weaken the payl
 ## Restart commands
 
 ```bash
-cd /Users/pranav/Documents/ChatGPT/metaverse
+# From the repository root. The historical branch below is merged.
 git fetch --all --tags --prune
-git switch feat/v1-civilization
+git switch main
 git status --short --branch
 git log -1 --oneline
-sed -n '1,190p' GOAL.md
+sed -n '1,190p' docs/exec-plans/completed/GOAL.md
 pnpm verify:fast
 ```
 

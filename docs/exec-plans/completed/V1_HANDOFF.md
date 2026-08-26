@@ -1,8 +1,12 @@
 # V1 handoff
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. Current
+> public entry is [README](../../../README.md). Do not reopen the V1 lattice
+> from this file.
+
 **Purpose:** Bind the exact-candidate Release Genesis evidence and state honest limitations after the frozen-SHA lattice.
 
-**Status:** PREMERGE CANDIDATE CONTROL
+**Status:** HISTORICAL — premerge candidate control at merge
 
 **Authority boundary:** This file does not amend GOAL.md requirement text, frozen software, or Reality. It reports the completed premerge lattice.
 

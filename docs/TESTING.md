@@ -69,6 +69,18 @@ Failed browser screenshots, traces, and videos should be retained for 14 days;
 accepted milestone screenshots for 30 days. Routine successful videos are not
 retained.
 
+## Synthetic product evaluation
+
+`pnpm evaluate:synthetic` runs labeled Playwright personas A–G. It is
+**automated product evaluation, not human research**. Reports write to
+`tmp/synthetic-evaluation/` and must not be cited as fun, attachment,
+comprehension, adoption, or retention evidence.
+
+The suite may fail on broken routes, missing labels, unreachable sponsor
+controls, reload drift, Chronicle wording that overcredits the player, keyboard
+or semantic fallback gaps, and loopback egress. Human playtests use
+[docs/playtesting](playtesting/README.md).
+
 ## Public script responsibilities
 
 The public package scripts are the callers below. All tools are local-only
@@ -91,6 +103,7 @@ unless a row explicitly names a network fetch; generated evidence stays under
 | `benchmark-presentation-stress.mjs` | Measure the twelve-actor presentation ceiling without adding canonical citizens; manual deep. Eight citizens retain the stricter production 16.7/33.3 ms gate; twelve synthetic actors must remain under 25/33.3 ms p95 and add at most 25% over the paired seven-actor fixture. | loopback headful browser only; JSON under `tmp/` |
 | `ollama-bounded-adapter.mjs` | Optional explicitly configured loopback model treatment; cognition benchmark only | loopback Ollama only; bounded JSON response |
 | `diagnose.mjs` | Local developer health snapshot used by `pnpm diagnose` | no network; redacted console report |
+| Playwright `@synthetic` journeys | Mechanical product-evaluation personas; `evaluate:synthetic` | loopback only; JSON under `tmp/synthetic-evaluation/` |
 | `evidence-integrity.mjs` | Shared deterministic content hashing for benchmark artifacts | library caller only; no direct output |
 
 The manual public Ubuntu lane runs the portable extended checks under Xvfb. The

@@ -22,7 +22,7 @@ const developerContent = {
 		},
 		{
 			title: "Current boundary",
-			body: "The repository remains an internal, account-free local benchmark. There is no production deployment, payment path, required provider, or public multiplayer authority.",
+			body: "The current build is an account-free local benchmark. There is no production deployment, payment path, required provider, or public multiplayer authority.",
 		},
 	],
 } as const;
