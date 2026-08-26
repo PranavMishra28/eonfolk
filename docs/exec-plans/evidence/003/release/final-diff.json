@@ -1,0 +1,10 @@
+{
+	"schemaVersion": "eonfolk-v1-final-diff-v1",
+	"binding": {
+		"baseSha": "3b07af7828d6b5774472295e92f52620719afe44",
+		"baseTreeSha": "f96c172cf2a48bc77c5da864474a05f986a70392",
+		"diffSha256": "62bb20fa052473a9449c407d4ee10acf922073a70de53a2aef916bb6174f17ed",
+		"headSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+		"headTreeSha": "b773e7859e895bab0f70f170ea72f8a4b9b3a516"
+	}
+}

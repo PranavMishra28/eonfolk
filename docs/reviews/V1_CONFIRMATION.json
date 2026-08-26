@@ -1,0 +1,11 @@
+{
+	"schemaVersion": "eonfolk-v1-final-confirmation-v3",
+	"status": "PASS",
+	"sourceSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+	"reviewerAgentId": "cursor-grok-v1-confirm-9500762-20260826",
+	"reviewerSessionId": "confirm-session-9500762-20260826t0626z",
+	"completedAt": "2026-08-26T06:26:00.000Z",
+	"deepEvidenceOutputSha256": "6abcf037bc2861912f271915194f113ab2988caa9e60c28813fed52fdd9a3067",
+	"reconciliationSha256": "5ec7a37bbfcb965fe5f26a895b223ec986007ebe7ddef2b8ca169606e9dcab9f",
+	"finalDiffSha256": "84813eb1a5294c35add60ff6b1131e81d6961291a60ad709f6a0a23ad1358c03"
+}

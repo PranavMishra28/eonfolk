@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 488 files excluding this generated file; SHA-256 `0d553fcdad76094436436cc399dd9c850ca3e7e42a5e67b56f8b0b0716bee31f`.
+**File-set identity:** 494 files excluding this generated file; SHA-256 `4db72c2d9b17dfaea4f0b358257e1d11377859bb0efac09ea7c376c6f194ab14`.
 
 ## Tracked topology
 
@@ -14,13 +14,13 @@
 |---|---:|
 | Application code | 52 |
 | Documentation | 78 |
-| Frozen execution evidence | 36 |
+| Frozen execution evidence | 40 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
 | Packages | 95 |
 | Repository tooling | 32 |
-| Research and reviews | 54 |
-| Root controls and configuration | 27 |
+| Research and reviews | 55 |
+| Root controls and configuration | 28 |
 | Tests and fixtures | 96 |
 
 ## Workspaces
@@ -72,6 +72,7 @@
 - `SECURITY.md`
 - `SUPPORT.md`
 - `THIRD_PARTY_NOTICES.md`
+- `V1_HANDOFF.md`
 - `biome.json`
 - `package.json`
 - `pnpm-lock.yaml`

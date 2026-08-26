@@ -1,0 +1,113 @@
+{
+	"schemaVersion": "eonfolk-v1-reconciliation-v2",
+	"initialReviewSha": "3b07af7828d6b5774472295e92f52620719afe44",
+	"frozenCandidateSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+	"completedAt": "2026-08-26T06:25:00.000Z",
+	"dispositions": [
+		{
+			"findingId": "V1-RV-PRODUCT-P1-001",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "The filed finding is correct on 3b07af7: canonical Mara does not admit a playable Accuse-accepted public-allegation history.",
+			"affectedScope": "HUMAN_LOOP/CHRONICLE advertised Accuse consequence and generated-world counsel.",
+			"remediationOrFalsification": "b7738df restates the executable contract: a public allegation occurs only when Mara accepts Accuse; fixture-forced Accuse remains test-only.",
+			"validatingEvidence": "HUMAN_LOOP.md on the frozen candidate plus generated-world journeys on the exact DEEP PASS.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-PRODUCT-P1-002",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "The filed finding is correct on 3b07af7: Chronicle nextAction was a worldFocus href without a second WorldCommand.",
+			"affectedScope": "Sponsor return loop and V1GenesisApp nextAction rendering.",
+			"remediationOrFalsification": "b7738df binds the Release Genesis return action to the outcome-legal Chronicle focus rather than a second first-boundary command.",
+			"validatingEvidence": "HUMAN_LOOP.md owned-decision paragraph and frozen-candidate Chronicle-to-focus journeys.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-REPOSITORY-READINESS-P0-001",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "Live authorities on 3b07af7 still described Founder Alpha Riverhold and would have shipped the wrong product.",
+			"affectedScope": "docs/INDEX.md, PRODUCT.md, TESTING.md, VISUAL_QA.md, PERFORMANCE.md, PERSISTENCE.md.",
+			"remediationOrFalsification": "b7738df retargets those live authorities to Release Genesis Dawnmere and removes FOUNDER_ALPHA_RELEASE.md as a current engineering authority.",
+			"validatingEvidence": "The frozen-candidate authority files and DEEP docs/Markdown constituents.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-REPOSITORY-READINESS-P1-001",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "3b07af7 already tracked V1_RV_*.json while GOAL listed reviews as NOT STARTED, colliding with the post-freeze review tail.",
+			"affectedScope": "docs/reviews/V1_RV_*.json and GOAL.md review roster state.",
+			"remediationOrFalsification": "The six filed reviews remain the bound initial-review artifacts; this evidence commit updates GOAL review/confirmation rows after the distinct frozen software SHA.",
+			"validatingEvidence": "Pairwise-distinct initialReviewSha, frozenCandidateSha, and this evidence commit.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-SECURITY-CI-P1-001",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "Hosted Verify still executes candidate-controlled scripts; that bootstrap hole is real and must stay labeled PREMERGE_CANDIDATE_CONTROL.",
+			"affectedScope": "Protected Verify job, post-freeze allowlist, and eight-run receipt consumption.",
+			"remediationOrFalsification": "Mac intermediate and release finalizers check out frozen control, compare CONTROL_PATHS, and never execute evidence-tree code; later freeze commits bind GraphQL merge policy and the non-admin runner gate. Human review of this evidence commit remains a trust root.",
+			"validatingEvidence": "TESTING.md bootstrap wording plus successful hosted Mac preflight/finalizer on run 32934694679.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "9500762b4510fcd7580b4bb9268f1c3146bafdba"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-VISUAL-P1-001",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "Forced-colors selected state on V1 chrome was indistinguishable on 3b07af7.",
+			"affectedScope": "apps/web/src/styles.css V1 chrome and accessibility e2e.",
+			"remediationOrFalsification": "b7738df adds V1 forced-colors selected/current rules and an e2e assertion that selected state remains visible.",
+			"validatingEvidence": "styles.css forced-colors rules and generated-world accessibility journeys in the DEEP PASS.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		},
+		{
+			"findingId": "V1-RV-VISUAL-P1-002",
+			"disposition": "ACCEPT",
+			"status": "CLOSED",
+			"rationale": "Mobile citizen focus hid keyboard camera/step tools on 3b07af7.",
+			"affectedScope": "Mobile .v1-world-tools visibility under citizen focus.",
+			"remediationOrFalsification": "b7738df keeps generated embodiment controls available after mobile citizen focus and covers the path in e2e.",
+			"validatingEvidence": "Accessibility e2e on the frozen candidate and DEEP browser constituents.",
+			"evidenceRefs": [
+				{
+					"kind": "git-commit",
+					"sha": "b7738dff1abc60517e55466a70105bd84282c1b1"
+				}
+			]
+		}
+	]
+}
