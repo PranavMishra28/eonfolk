@@ -1,8 +1,7 @@
 # Founder Alpha handoff
 
 > **Historical record.** Founder Alpha is superseded by the merged V1 product.
-> Machine-local Node paths below were true on the build machine. Current public
-> entry is [README](../../../README.md).
+> Current public entry is [README](../../../README.md).
 
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
@@ -18,7 +17,7 @@ Authoritative Reality, cognition records, experiments, diagnostics, feedback, Ch
 
 ## Exact setup and local run
 
-Use the pinned arm64 runtime from the repository root:
+Use the pinned Node runtime from `.nvmrc` at the repository root:
 
 ```sh
 # Use Node 22.23.1 from `.nvmrc` and pnpm 11.15.1 through Corepack.
@@ -98,4 +97,4 @@ These remain **NOT RUN**: unfamiliar-human Gate 0/A/B and Story Card studies; fu
 
 ## Git and release boundary
 
-Repository `PranavMishra28/eonfolk` is private with default branch `main`. The release branch is `feat/002-founder-alpha`; the one permitted PR title is `Founder Alpha: observability, feedback, cognition, polish, and release hardening`. Merge is authorized only after targeted confirmation reports zero P0/P1 and protected `Verify`, `Formal model`, and `Secret scan` checks are green. After merge, verify `main == origin/main`, preserve immutable evidence tags, remove merged/stale Founder Alpha branches and external worktrees, and leave unrelated Dependabot PRs unmerged.
+When written, repository `PranavMishra28/eonfolk` was private with default branch `main`. The release branch is `feat/002-founder-alpha`; the one permitted PR title is `Founder Alpha: observability, feedback, cognition, polish, and release hardening`. Merge is authorized only after targeted confirmation reports zero P0/P1 and protected `Verify`, `Formal model`, and `Secret scan` checks are green. After merge, verify `main == origin/main`, preserve immutable evidence tags, remove merged/stale Founder Alpha branches and external worktrees, and leave unrelated Dependabot PRs unmerged.

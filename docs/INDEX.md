@@ -116,7 +116,7 @@ Public readers start at [README](../README.md). Maintainers reconstructing the V
 | Founder Alpha humanoid/environment asset provenance, licensing, security, and payload research | [WORLD_PRESENCE_ASSET_RESEARCH.md](research/WORLD_PRESENCE_ASSET_RESEARCH.md) |
 | World-as-Product city-simulation, camera, residency, task, and animation principles | [WORLD_AS_PRODUCT_RESEARCH.md](research/WORLD_AS_PRODUCT_RESEARCH.md) |
 | Frozen World-as-Product technical truth and bounded-delta audit | [WORLD_AS_PRODUCT_TECH_SPIKE.md](research/WORLD_AS_PRODUCT_TECH_SPIKE.md) |
-| Exact read-only M4 Max local-model experiment and non-promotion evidence | [LOCAL_MODEL_LAB.md](research/LOCAL_MODEL_LAB.md) |
+| Exact read-only local-model experiment and non-promotion evidence | [LOCAL_MODEL_LAB.md](research/LOCAL_MODEL_LAB.md) |
 
 ## Reviews
 

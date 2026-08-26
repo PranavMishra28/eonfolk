@@ -16,7 +16,7 @@
 
 - One solo builder; preserve a compelling 40–60-hour proof shape even while constructing the larger internal V1 benchmark.
 - Target approximately $0 spend. No deployment, paid action, credentials, or public publication without separate approval. The V1 Goal and the operator's plugged-in-machine instruction authorize controlled local open-weight model downloads within the stated disk/memory safety envelope; weights remain outside Git.
-- Apple M4 Max with 48 GB unified memory is the measured development machine. No owned GPU infrastructure and no model training or fine-tuning.
+- A local Apple Silicon Mac is the measured development machine. No owned GPU infrastructure and no model training or fine-tuning.
 - V1 remains useful/free and complete without external inference. Payments, revenue operations, regulated data, proprietary datasets, partnerships, and enterprise sales are excluded.
 - Typed Reality is sole authority. Mind is actor-bounded. Brain is untrusted. Application validates. Chronicle and Observatory cannot mutate Reality.
 - One integration branch, `feat/v1-civilization`, and one private draft mega PR target `main`.

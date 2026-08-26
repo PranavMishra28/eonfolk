@@ -18,11 +18,11 @@
 | frozenCandidateSha | `2462e3817a660f6c584018d0dad228a7bed4f301` |
 | Target-Mac intermediate | run `32940785784` attempt 1 |
 | DEEP outputSha256 | `8b5605add3a68399d8b21f8f61fe27dfb42b69ff03514c9540832247d94aca52` |
-| Intermediate runner | `eonfolk-deep-20260826u3m1` (id 27), observed absent after the job |
+| Intermediate runner | ephemeral nonce-named self-hosted runner, observed absent after the job |
 
 ## What the lattice proved
 
-The six independent reviews inspected `initialReviewSha`. Accepted P0/P1 findings were closed on the frozen candidate, principally by `b7738df`, then confirmed against the exact DEEP PASS. Target-Mac 32-step DEEP ran as non-admin `eonfolk-ci` on the ephemeral nonce runner and produced a hosted-finalized PASS whose source start/end commit is the frozen SHA.
+The six independent reviews inspected `initialReviewSha`. Accepted P0/P1 findings were closed on the frozen candidate, principally by `b7738df`, then confirmed against the exact DEEP PASS. Target-Mac 32-step DEEP ran as a non-admin Standard CI user on the ephemeral nonce runner and produced a hosted-finalized PASS whose source start/end commit is the frozen SHA.
 
 ## Honest limitations
 

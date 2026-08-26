@@ -10,7 +10,7 @@
 
 ## Source identity
 
-- Operator attachment: `/Users/pranav/.codex/attachments/01319c82-f16f-4c87-9b11-f0cdc82424ed/pasted-text-1.txt`
+- Operator attachment: operator-supplied paste outside the repository (not retained in git)
 - SHA-256: `d1d339de6a0814b316bd9e7d95c7c9c948cf1d13dfc9bfbb3f10934cc91d89d2`
 - Read in full: 1,545 lines / 36,201 bytes
 - Recorded date: 2026-08-21
