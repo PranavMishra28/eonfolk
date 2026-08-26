@@ -78,6 +78,20 @@ function nonemptyIdentity(value) {
 	return typeof value === "string" && ID_PATTERN.test(value);
 }
 
+/**
+ * `dseditgroup` spells the negative membership result differently across macOS
+ * releases: macOS 26 omits the word `group`. Both accepted forms must still name
+ * the exact runner user and state nonmembership, so this binds the user instead
+ * of matching a bare suffix.
+ */
+function provesNonAdmin(output, user) {
+	if (typeof output !== "string" || !nonemptyIdentity(user)) return false;
+	return (
+		output === `no ${user} is NOT a member of admin` ||
+		output === `no ${user} is NOT a member of group admin`
+	);
+}
+
 function parseJson(bytes, label) {
 	let value;
 	try {
@@ -268,8 +282,7 @@ function validateLifecycle(lifecycle, frozenCandidateSha, controlSha) {
 			JSON.stringify(macLabels(lifecycle.runnerNonce)) ||
 		!nonemptyIdentity(lifecycle.runnerName) ||
 		!nonemptyIdentity(lifecycle.runnerUser) ||
-		typeof lifecycle.nonAdminCheckOutput !== "string" ||
-		!/ is NOT a member of group admin$/u.test(lifecycle.nonAdminCheckOutput) ||
+		!provesNonAdmin(lifecycle.nonAdminCheckOutput, lifecycle.runnerUser) ||
 		lifecycle.nonAdminUser !== true ||
 		lifecycle.preflight !== "JOB_ASSIGNED_EXACT_NONCE_RUNNER" ||
 		lifecycle.teardown !== "EXTERNAL_COORDINATOR_PROBE_REQUIRED" ||
@@ -1118,8 +1131,7 @@ async function finalizeMacIntermediate() {
 		runner.runnerName !== runnerName ||
 		runner.runnerNonce !== runnerNonce ||
 		runner.nonAdminUser !== true ||
-		typeof runner.nonAdminCheckOutput !== "string" ||
-		!/ is NOT a member of group admin$/u.test(runner.nonAdminCheckOutput) ||
+		!provesNonAdmin(runner.nonAdminCheckOutput, runner.runnerUser) ||
 		!nonemptyIdentity(runner.runnerUser)
 	)
 		throw new Error(

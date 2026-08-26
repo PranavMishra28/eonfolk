@@ -91,8 +91,6 @@ Reopen the structure if Gate 0 selects another frame, three legal counsel paths 
 
 ## Resulting implementation behavior
 
-## Resulting implementation behavior
-
 Implement one fixed authored Mara in Release Genesis Dawnmere—no creator, roster, or fake choice—plus one sponsor boundary whose Standard Brain may accept, reject, delay, or reinterpret counsel, a factual Chronicle, and an outcome-legal next world focus. Preserve typed truth, cognitive-decision provenance, and an immutable run manifest underneath that loop. Bounded V1 economy, institutions, migration, founding, and the local Model Brain treatment exist as GOAL-required software; they are not a generalized unbounded sim. Exclude server, accounts, deployment, multiplayer, payments, public recipient route, unrestricted dialogue, death/lineage as a player verb, Observatory as onboarding, World Fork execution, and every additional participation role. Frozen Gate 0 Riverhold treatments remain historical evidence and are not live game logic.
 
 ## Constraint fit

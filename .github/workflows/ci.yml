@@ -459,7 +459,8 @@ jobs:
             echo "dseditgroup failed while checking target-Mac runner identity" >&2
             exit 1
           fi
-          [[ "${membership_output}" == *" is NOT a member of group admin" ]]
+          [[ "${membership_output}" == "no ${runner_user} is NOT a member of admin" \
+            || "${membership_output}" == "no ${runner_user} is NOT a member of group admin" ]]
           identity_dir="${RUNNER_TEMP}/v1-mac-identity"
           mkdir "${identity_dir}"
           printf '{"schemaVersion":"eonfolk-v1-mac-runner-v2","controlSha":"%s","frozenCandidateSha":"%s","runnerName":"%s","runnerNonce":"%s","runnerUser":"%s","nonAdminCheckOutput":"%s","nonAdminUser":true}\n' \

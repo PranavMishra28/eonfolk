@@ -210,9 +210,7 @@ test("mobile citizen focus keeps keyboard camera and playback tools available @g
 		"citizen",
 	);
 	await expect(page.locator("details.v1-world-tools")).toBeVisible();
-	await expect(
-		page.getByText("Camera, playback, and evidence"),
-	).toBeVisible();
+	await expect(page.getByText("Camera, playback, and evidence")).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: "Back to settlement" }),
 	).toBeVisible();

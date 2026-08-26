@@ -168,7 +168,7 @@ function fixture(mutation: Mutation = {}) {
 							runnerNonce,
 							runnerUser: "eonfolk-ci-user",
 							nonAdminCheckOutput:
-								"user eonfolk-ci-user is NOT a member of group admin",
+								"no eonfolk-ci-user is NOT a member of admin",
 							nonAdminUser: true,
 							preflight: "JOB_ASSIGNED_EXACT_NONCE_RUNNER",
 							teardown: "EXTERNAL_COORDINATOR_PROBE_REQUIRED",
