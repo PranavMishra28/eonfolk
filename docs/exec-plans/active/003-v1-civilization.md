@@ -4,7 +4,7 @@
 
 **Status:** ACTIVE — product integration complete; exact-candidate release lattice pending
 
-**Authority boundary:** This file owns implementation sequence, evidence expectations, deviations, and integration progress. [GOAL.md](../../../GOAL.md) owns requirement state; [RESUME.md](../../../RESUME.md) owns the exact restart; [INDEX.md](../../INDEX.md) maps product and engineering authorities.
+**Authority boundary:** This file owns implementation sequence, evidence expectations, deviations, and integration progress. [GOAL.md](../completed/GOAL.md) owns requirement state; [RESUME.md](../completed/RESUME.md) owns the exact restart; [INDEX.md](../../INDEX.md) maps product and engineering authorities.
 
 **Owner:** Coordinator on `feat/v1-civilization`.
 
@@ -81,7 +81,7 @@ Status: not started; no candidate frozen.
 
 ## Continuous logs
 
-Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](../../../RESUME.md); requirement state is maintained in [GOAL.md](../../../GOAL.md); coordinator integrations are summarized in [PLAN.md](../../../PLAN.md). Every material deviation must be recorded there before the next integration push.
+Detailed commit-level checkpoints and limitations are maintained in [RESUME.md](../completed/RESUME.md); requirement state is maintained in [GOAL.md](../completed/GOAL.md); coordinator integrations are summarized in [PLAN.md](../completed/PLAN.md). Every material deviation must be recorded there before the next integration push.
 
 - 2026-08-22 — Integrated a deterministic 30/90/365 experiment harness. It establishes replayable test infrastructure but cannot satisfy emergence while its decisions are fixed-day and its founding remains record-only.
 - 2026-08-22 — Added the supplementary portable-extended GitHub Actions tier. Its exact-source manifest explicitly cannot substitute for target-Mac DEEP or V1 readiness.

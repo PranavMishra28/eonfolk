@@ -197,6 +197,16 @@ jobs:
           elif [[ "${V1_EVENT_NAME}" == "pull_request" ]] && [[ "${V1_PULL_REQUEST_DRAFT}" == "false" ]]; then
             V1_READINESS_MODE="ready"
           fi
+          # PR #9 merged V1 software to main. Ordinary follow-on PRs must not
+          # reopen that lattice: ready-mode rebinds the eight producer receipts
+          # to HEAD, and draft mode still treats archived GOAL.md as living.
+          V1_MERGED_MAIN_SHA="2f4ccdd7c7a8c50c2ad1abbd8ab5e950393b8582"
+          if [[ "${V1_BASE_HEAD}" == "${V1_MERGED_MAIN_SHA}" ]] ||
+            git merge-base --is-ancestor "${V1_MERGED_MAIN_SHA}" "${V1_BASE_HEAD}" ||
+            git cat-file -e "${V1_BASE_HEAD}:docs/exec-plans/completed/GOAL.md"; then
+            echo "V1 is already on the integration base; skipping the frozen-candidate readiness lattice"
+            exit 0
+          fi
           V1_TESTED_KIND="candidate"
           if [[ "${V1_EVENT_NAME}" == "pull_request" ]]; then
             V1_TESTED_KIND="pull-request-merge"

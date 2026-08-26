@@ -4,24 +4,24 @@
 
 **Status:** GENERATED — `pnpm inventory:check` fails when this file differs from the repository file set.
 
-**Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
+**Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../exec-plans/completed/GOAL.md) owns required-state decisions as a historical V1 ledger.
 
-**File-set identity:** 522 files excluding this generated file; SHA-256 `17bd1df850dfb344289326924f7e4dea29f0a92ba0c161bde89904acfc37aaaa`.
+**File-set identity:** 533 files excluding this generated file; SHA-256 `d030b14290f57883e3494a89b64fd9d4818c956c136db4ba61ca2071f43ea072`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 52 |
-| Documentation | 78 |
+| Application code | 53 |
+| Documentation | 91 |
 | Frozen execution evidence | 67 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
 | Packages | 95 |
 | Repository tooling | 32 |
 | Research and reviews | 55 |
-| Root controls and configuration | 29 |
-| Tests and fixtures | 96 |
+| Root controls and configuration | 24 |
+| Tests and fixtures | 98 |
 
 ## Workspaces
 
@@ -41,7 +41,7 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 10 |
+| `tests/e2e` | 12 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
@@ -62,18 +62,13 @@
 - `CHANGELOG.md`
 - `CODE_OF_CONDUCT.md`
 - `CONTRIBUTING.md`
-- `FOUNDER_ALPHA_HANDOFF.md`
-- `GOAL.md`
 - `LICENSE`
 - `NOTICE`
-- `PLAN.md`
 - `README.md`
-- `RESUME.md`
 - `ROADMAP.md`
 - `SECURITY.md`
 - `SUPPORT.md`
 - `THIRD_PARTY_NOTICES.md`
-- `V1_HANDOFF.md`
 - `biome.json`
 - `package.json`
 - `pnpm-lock.yaml`
@@ -83,7 +78,7 @@
 
 ## Historical naming boundary
 
-The private tree contains 3 path names containing `Riverhold` or `Founder Alpha`. Current application paths may use Riverhold as the canonical settlement name; Founder Alpha review records are historical evidence and cannot satisfy a current V1 row in [GOAL.md](../../GOAL.md).
+The repository contains 3 path names containing `Riverhold` or `Founder Alpha`. Current application paths may use Riverhold as the canonical settlement name; Founder Alpha review records are historical evidence and cannot satisfy a current V1 row in [GOAL.md](../exec-plans/completed/GOAL.md).
 
 The removed Founder Alpha browser application is preserved only in the private archive tag and external bundle; no production route or CI capture executes it.
 

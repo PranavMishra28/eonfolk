@@ -1,10 +1,13 @@
 # Founder Alpha handoff
 
+> **Historical record.** Founder Alpha is superseded by the merged V1 product.
+> Current public entry is [README](../../../README.md).
+
 **Purpose:** give a zero-context operator the exact local run, diagnosis, verification, recovery, and evidence boundaries for Founder Alpha.
 
 **Status:** HISTORICAL FOUNDER ALPHA HANDOFF — integrated and retained for regression; V1 supersedes current operations
 
-**Authority boundary:** this file is a historical operational summary. [docs/INDEX.md](docs/INDEX.md) maps current authority; [completed 002](docs/exec-plans/completed/002-founder-alpha.md) preserves Founder Alpha execution status; [FOUNDER_ALPHA_RELEASE.md](docs/engineering/FOUNDER_ALPHA_RELEASE.md) preserves its release boundary.
+**Authority boundary:** this file is a historical operational summary. [docs/INDEX.md](../../INDEX.md) maps current authority; [completed 002](002-founder-alpha.md) preserves Founder Alpha execution status; [FOUNDER_ALPHA_RELEASE.md](../../engineering/FOUNDER_ALPHA_RELEASE.md) preserves its release boundary.
 
 ## What works
 
@@ -14,13 +17,14 @@ Authoritative Reality, cognition records, experiments, diagnostics, feedback, Ch
 
 ## Exact setup and local run
 
-Use the pinned arm64 runtime from the repository root:
+Use the pinned Node runtime from `.nvmrc` at the repository root:
 
 ```sh
-export PATH=/Users/pranav/.nvm/versions/node/v22.23.1/bin:$PATH
-pnpm install --frozen-lockfile --ignore-scripts
-pnpm runtime:check
-pnpm --filter @eonfolk/web dev
+# Use Node 22.23.1 from `.nvmrc` and pnpm 11.15.1 through Corepack.
+corepack enable
+corepack pnpm install --frozen-lockfile --ignore-scripts
+corepack pnpm runtime:check
+corepack pnpm --filter @eonfolk/web dev
 ```
 
 Open the printed loopback URL. For the exact production bundle:
@@ -93,4 +97,4 @@ These remain **NOT RUN**: unfamiliar-human Gate 0/A/B and Story Card studies; fu
 
 ## Git and release boundary
 
-Repository `PranavMishra28/eonfolk` is private with default branch `main`. The release branch is `feat/002-founder-alpha`; the one permitted PR title is `Founder Alpha: observability, feedback, cognition, polish, and release hardening`. Merge is authorized only after targeted confirmation reports zero P0/P1 and protected `Verify`, `Formal model`, and `Secret scan` checks are green. After merge, verify `main == origin/main`, preserve immutable evidence tags, remove merged/stale Founder Alpha branches and external worktrees, and leave unrelated Dependabot PRs unmerged.
+When written, repository `PranavMishra28/eonfolk` was private with default branch `main`. The release branch is `feat/002-founder-alpha`; the one permitted PR title is `Founder Alpha: observability, feedback, cognition, polish, and release hardening`. Merge is authorized only after targeted confirmation reports zero P0/P1 and protected `Verify`, `Formal model`, and `Secret scan` checks are green. After merge, verify `main == origin/main`, preserve immutable evidence tags, remove merged/stale Founder Alpha branches and external worktrees, and leave unrelated Dependabot PRs unmerged.

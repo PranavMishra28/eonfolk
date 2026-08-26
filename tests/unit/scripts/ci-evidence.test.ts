@@ -157,7 +157,8 @@ describe("Founder Alpha CI evidence controls", () => {
 			resolve("apps/web/playwright.config.ts"),
 			"utf8",
 		);
-		expect(config).toContain("linuxCi ? /@fault|@illustrated-target/u");
+		expect(config).toContain("/@fault|@illustrated-target|@synthetic/u");
+		expect(config).toContain("/@fault|@synthetic/u");
 		expect(config).not.toContain("@fault|@generated-target");
 		expect(config).not.toContain("@fault|@generated-world");
 

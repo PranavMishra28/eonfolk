@@ -6,8 +6,10 @@ attachment before considering any hosted platform.
 
 ## Now — test attachment with people
 
-- Run a small, consented invite playtest with systemic-game players, AI-native
-  skeptics, nontechnical observers, and creators.
+- Run a small, consented local playtest with systemic-game players, AI-native
+  skeptics, nontechnical observers, and creators. Use
+  [docs/playtesting](docs/playtesting/README.md). Raw notes stay on the
+  maintainer's machine.
 - Measure whether new players can identify three citizen activities, understand
   one social interaction, and create or follow a citizen in the first minute.
 - Measure whether players can predict plausible intervention responses, explain

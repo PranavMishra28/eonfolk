@@ -127,6 +127,13 @@ describe("V1 CI hardening", () => {
 			'if [[ "' + "$" + '{V1_EVENT_NAME}" == "push" ]]',
 		);
 		expect(workflow).toContain('V1_READINESS_MODE="ready"');
+		expect(workflow).toContain("2f4ccdd7c7a8c50c2ad1abbd8ab5e950393b8582");
+		expect(workflow).toContain(
+			"skipping the frozen-candidate readiness lattice",
+		);
+		expect(workflow).toContain(
+			"${V1_BASE_HEAD}:docs/exec-plans/completed/GOAL.md",
+		);
 		expect(workflow).toContain('--tested-kind "' + "$" + '{V1_TESTED_KIND}"');
 		expect(workflow).toContain('--tested-head "' + "$" + '{V1_TESTED_HEAD}"');
 		expect(workflow).toContain('--base-head "' + "$" + '{V1_BASE_HEAD}"');

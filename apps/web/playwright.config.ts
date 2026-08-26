@@ -7,7 +7,9 @@ const captureMedia = process.env.EONFOLK_CAPTURE_MEDIA === "1";
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
 	outputDir: resolve(import.meta.dirname, "../../tmp/dawnmere-playwright"),
-	grepInvert: linuxCi ? /@fault|@illustrated-target/u : /@fault/u,
+	grepInvert: linuxCi
+		? /@fault|@illustrated-target|@synthetic/u
+		: /@fault|@synthetic/u,
 	fullyParallel: false,
 	// Chromium netlog is a single release-evidence artifact. Multiple browser
 	// workers would interleave writes and can leave syntactically invalid JSON.

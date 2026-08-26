@@ -1,18 +1,22 @@
 # EONFOLK V1 integration plan
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. Exit
+> checkboxes below describe the premerge lattice, not current maintenance.
+> Current public entry is [README](../../../README.md).
+
 **Purpose:** Track the current V1 integration sequence, evidence gates, integration history, frozen candidate, and exit status.
 
-**Status:** FEATURE COMPLETE — draft Mega PR #9; exact-candidate release lattice pending
+**Status:** HISTORICAL — V1 software merged through PR #9
 
-**Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](docs/INDEX.md) owns document authority.
+**Authority boundary:** [GOAL.md](GOAL.md) owns every required software state. [RESUME.md](RESUME.md) owns the exact restart. This file owns integration sequencing and checkpoints. [docs/INDEX.md](../../INDEX.md) owns document authority.
 
-**Related documents:** [V1 ExecPlan](docs/exec-plans/active/003-v1-civilization.md), [source ledger](docs/research/SOURCE_LEDGER.md), [decisions](docs/decisions/DECISIONS.md), [risks](docs/decisions/RISKS.md), and [completed Founder Alpha plan](docs/exec-plans/completed/002-founder-alpha.md).
+**Related documents:** [V1 ExecPlan](../active/003-v1-civilization.md), [source ledger](../../research/SOURCE_LEDGER.md), [decisions](../../decisions/DECISIONS.md), [risks](../../decisions/RISKS.md), and [completed Founder Alpha plan](002-founder-alpha.md).
 
 ## Binding constraints
 
 - One solo builder; preserve a compelling 40–60-hour proof shape even while constructing the larger internal V1 benchmark.
 - Target approximately $0 spend. No deployment, paid action, credentials, or public publication without separate approval. The V1 Goal and the operator's plugged-in-machine instruction authorize controlled local open-weight model downloads within the stated disk/memory safety envelope; weights remain outside Git.
-- Apple M4 Max with 48 GB unified memory is the measured development machine. No owned GPU infrastructure and no model training or fine-tuning.
+- A local Apple Silicon Mac is the measured development machine. No owned GPU infrastructure and no model training or fine-tuning.
 - V1 remains useful/free and complete without external inference. Payments, revenue operations, regulated data, proprietary datasets, partnerships, and enterprise sales are excluded.
 - Typed Reality is sole authority. Mind is actor-bounded. Brain is untrusted. Application validates. Chronicle and Observatory cannot mutate Reality.
 - One integration branch, `feat/v1-civilization`, and one private draft mega PR target `main`.

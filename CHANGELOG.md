@@ -24,6 +24,8 @@ has not published a release.
   behavior, and a playable non-WebGL fallback.
 - A read-only research surface and consented, browser-only feedback queue with no
   upload path.
+- A local human playtest kit and a labeled synthetic product-evaluation
+  harness. Neither is human attachment evidence.
 - Consistent Dawnmere naming across live controls and browser journeys, plus a
   non-authoritative twelve-actor presentation stress fixture.
 
@@ -38,7 +40,8 @@ has not published a release.
 
 ### Known limitations
 
-- This is not a public release and has not completed unfamiliar-player studies.
+- This source repository is public; there is no versioned product release and
+  no hosted game. Unfamiliar-player studies have not been run.
 - Browser data has no backup, export, import, restore, or cloud recovery.
 - Physical-phone performance, broad screen-reader coverage, thermals, and
   twelve-citizen gameplay depth remain unverified.

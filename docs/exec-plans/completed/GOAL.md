@@ -1,18 +1,23 @@
 # EONFOLK V1 civilization execution ledger
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. This is
+> not a current runbook. Status rows and private-repository claims were true
+> when written. Current public entry is [README](../../../README.md). Do not
+> reopen the V1 lattice from this file.
+
 **Purpose:** Authoritative executable-software checklist for the internal V1 civilization benchmark.
 
-**Status:** IN PROGRESS
+**Status:** HISTORICAL — V1 software merged; human studies remain not run
 
-**Authority boundary:** This file owns V1 execution state. `docs/INDEX.md` continues to map current content authorities until the V1 documentation consolidation is verified.
+**Authority boundary:** This file owns V1 execution state as of the merge. `docs/INDEX.md` continues to map current content authorities.
 
-**Related:** [RESUME.md](RESUME.md), [AGENTS.md](AGENTS.md), [README.md](README.md).
+**Related:** [RESUME.md](RESUME.md), [AGENTS.md](../../../AGENTS.md), [README.md](../../../README.md).
 
 ## Run identity and completion rule
 
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`, inspected 2026-08-22 Pacific.
 - Integration lineage: `feat/v1-civilization` → one draft PR → `main`.
-- Machine: Apple M4 Max, 48 GB unified memory; 150 GiB free at start; Ollama installed; 17 GB existing Ollama model cache.
+- Machine: a local Apple Silicon development Mac with optional local-model tooling; model weights stayed outside Git.
 - Required states are only **NOT STARTED**, **IN PROGRESS**, **VERIFIED**, and **BLOCKED EXTERNALLY**.
 - The PR stays draft and unmerged until every required software row below is **VERIFIED**. Human studies may remain not run and public deployment may remain not deployed.
 

@@ -106,10 +106,6 @@ const privateRootFiles = new Set([
 	".github/workflows/ci.yml",
 	".gitleaks.toml",
 	"AGENTS.md",
-	"FOUNDER_ALPHA_HANDOFF.md",
-	"GOAL.md",
-	"PLAN.md",
-	"RESUME.md",
 	"docs/INDEX.md",
 	"docs/PUBLICATION.md",
 	"docs/RESEARCH.md",
@@ -211,7 +207,6 @@ for (const [fromPath, toPath] of mapped) {
 }
 
 const forbiddenText = [
-	"/Users/pranav",
 	".codex/attachments",
 	"Mega PR",
 	"GOAL.md",
@@ -219,6 +214,7 @@ const forbiddenText = [
 	"pasted-text",
 	"subagent",
 ];
+const forbiddenHomePath = /\/Users\/[A-Za-z0-9._-]+/u;
 for (const path of [...selected, ...mapped.map(([, value]) => value)]) {
 	if (/\.(?:glb|png|gif|webp|mp4)$/u.test(path)) continue;
 	const contents = readFileSync(resolve(output, path), "utf8");
@@ -228,6 +224,10 @@ for (const path of [...selected, ...mapped.map(([, value]) => value)]) {
 				`public export rejects internal marker ${marker}: ${path}`,
 			);
 	}
+	if (forbiddenHomePath.test(contents))
+		throw new Error(
+			`public export rejects internal marker home-directory path: ${path}`,
+		);
 }
 
 const files = [...selected, ...mapped.map(([, path]) => path)]

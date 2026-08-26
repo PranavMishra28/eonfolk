@@ -1,8 +1,12 @@
 # Resume EONFOLK V1
 
+> **Historical record.** Frozen after V1 merged to `main` through PR #9. The
+> `feat/v1-civilization` branch and draft mega PR are no longer the current
+> operator path. Current public entry is [README](../../../README.md).
+
 **Purpose:** Give a zero-context coordinator the exact restart while Release Genesis remains in the one V1 mega PR.
 
-**Status:** FEATURE COMPLETE — exact-candidate DEEP PASS recorded; premerge evidence tail in progress
+**Status:** HISTORICAL — V1 software merged; this restart targeted the premerge branch
 
 **Authority boundary:** [GOAL.md](GOAL.md) owns requirement state; this file owns the operational restart.
 
@@ -17,7 +21,7 @@
   journeys pass on this machine after the timeout repair.
 - Starting `origin/main`: `8eb6afa911cbe386e18dddd26f093aaeef9e5167`
 - Draft Mega PR: [#9](https://github.com/PranavMishra28/eonfolk/pull/9), `V1 INCOMPLETE: EONFOLK civilization mega PR`
-- Machine: plugged-in Apple M4 Max with 48 GB unified memory
+- Machine: a plugged-in local Apple Silicon development Mac
 - Publication boundary: private, local-only, no deployment, spend, account, credential, or public release
 
 Exact target-Mac DEEP intermediate run `32940785784` PASSed on frozen SHA `2462e38`. The PR remains draft until the evidence tail, eight receipts, and readiness checker pass. Product implementation is complete through the sponsor, Chronicle, accessible navigation, public export, SQLite/OPFS decision, twelve-actor presentation stress, reproducible media hooks, route auditing, and stable citizen/building/project camera-scale repairs integrated through `9540593`; do not mark it ready or merge until the exact FAST/PR/DEEP lattice and frozen-SHA reviews below pass.
@@ -73,12 +77,12 @@ Do not restart architecture or product planning, add another PR, weaken the payl
 ## Restart commands
 
 ```bash
-cd /Users/pranav/Documents/ChatGPT/metaverse
+# From the repository root. The historical branch below is merged.
 git fetch --all --tags --prune
-git switch feat/v1-civilization
+git switch main
 git status --short --branch
 git log -1 --oneline
-sed -n '1,190p' GOAL.md
+sed -n '1,190p' docs/exec-plans/completed/GOAL.md
 pnpm verify:fast
 ```
 

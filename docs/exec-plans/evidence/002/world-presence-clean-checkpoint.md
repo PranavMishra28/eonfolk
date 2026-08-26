@@ -6,7 +6,7 @@
 
 **Authority boundary:** this record reports one local command sequence. Numerical budgets remain owned by [Performance](../../../quality/PERFORMANCE.md), release status by the [Founder Alpha plan](../../active/002-founder-alpha.md), and the inhabited/alive verdict by [Visual QA](../../../quality/VISUAL_QA.md).
 
-**Related documents:** [evidence index](README.md), [source ledger](../../../research/SOURCE_LEDGER.md), [D-008](../../../decisions/DECISIONS.md#d-008--continuous-living-woodcut-world-on-playcanvas), and [Founder Alpha handoff](../../../../FOUNDER_ALPHA_HANDOFF.md).
+**Related documents:** [evidence index](README.md), [source ledger](../../../research/SOURCE_LEDGER.md), [D-008](../../../decisions/DECISIONS.md#d-008--continuous-living-woodcut-world-on-playcanvas), and [Founder Alpha handoff](../../completed/FOUNDER_ALPHA_HANDOFF.md).
 
 ## Bound source
 

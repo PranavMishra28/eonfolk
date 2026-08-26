@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file explains retained Founder Alpha evidence. It does not define current V1 operations, authorize deployment, or claim that historical source paths still exist.
 
-**Related documents:** [completed Founder Alpha plan](../exec-plans/completed/002-founder-alpha.md), [historical handoff](../../FOUNDER_ALPHA_HANDOFF.md), [current feedback](FEEDBACK.md), and [current V1 plan](../exec-plans/active/003-v1-civilization.md).
+**Related documents:** [completed Founder Alpha plan](../exec-plans/completed/002-founder-alpha.md), [historical handoff](../exec-plans/completed/FOUNDER_ALPHA_HANDOFF.md), [current feedback](FEEDBACK.md), and [current V1 plan](../exec-plans/active/003-v1-civilization.md).
 
 ## Historical decision and evidence
 

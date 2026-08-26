@@ -24,6 +24,9 @@ Vite binds to loopback. `/` introduces the product and `/world` enters the
 generated settlement. `/research` and `/developer` are deliberate secondary
 surfaces. Unknown routes fail closed without presenting a world as fact.
 
+Local human sessions use the [playtest kit](playtesting/README.md). Automated
+personas are `pnpm evaluate:synthetic` and are not human evidence.
+
 Production-mode local preview:
 
 ```sh

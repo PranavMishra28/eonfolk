@@ -17,7 +17,7 @@ Security concerns follow [SECURITY.md](SECURITY.md).
 ## Development setup
 
 The pinned toolchain is Node 22.23.1 and pnpm 11.15.1. Java 21 is needed only for
-the formal-model checks.
+the formal-model checks, not for ordinary play or `pnpm verify:fast`.
 
 ```sh
 corepack pnpm install --frozen-lockfile --ignore-scripts
@@ -33,9 +33,16 @@ Run the normal edit loop before submitting:
 corepack pnpm verify:fast
 ```
 
-Changes to simulation, replay, persistence, cognition, or critical browser
-journeys may require the deeper checks documented in the repository. State every
-check that was not run.
+`verify:fast` is the default contributor gate. `verify:pr` additionally runs
+browser journeys, IndexedDB, formal TLA+ (needs `TLA2TOOLS_JAR`), and
+zero-egress checks. State every check that was not run.
+
+Optional local sessions with a person use the
+[playtest kit](docs/playtesting/README.md). Automated personas are
+`pnpm evaluate:synthetic` and are not human evidence.
+
+A useful first contribution is a precise bug, accessibility, or gameplay
+observation with commit, browser, and viewport—not a new subsystem.
 
 ## Change principles
 

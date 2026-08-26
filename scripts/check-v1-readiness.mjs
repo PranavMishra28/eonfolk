@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentSha256, sha256Bytes } from "./evidence-integrity.mjs";
@@ -51,6 +51,11 @@ const POST_FREEZE_ROOT_FILES = new Set([
 	"README.md",
 	"RESUME.md",
 	"V1_HANDOFF.md",
+	"docs/exec-plans/completed/GOAL.md",
+	"docs/exec-plans/completed/PLAN.md",
+	"docs/exec-plans/completed/RESUME.md",
+	"docs/exec-plans/completed/V1_HANDOFF.md",
+	"docs/exec-plans/completed/FOUNDER_ALPHA_HANDOFF.md",
 ]);
 
 export function parseRequiredStateRows(source) {
@@ -1552,7 +1557,12 @@ function main() {
 		throw new Error(
 			"usage: check-v1-readiness.mjs --mode draft|ready [--head candidate-sha --base-head sha --tested-head sha --tested-kind candidate|pull-request-merge --deep-evidence path --review-evidence path]",
 		);
-	const goalPath = resolve(argument("--goal") ?? "GOAL.md");
+	const goalPath = resolve(
+		argument("--goal") ??
+			(existsSync("docs/exec-plans/completed/GOAL.md")
+				? "docs/exec-plans/completed/GOAL.md"
+				: "GOAL.md"),
+	);
 	const head =
 		argument("--head") ??
 		execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -1574,6 +1584,17 @@ function main() {
 	const goalSource = readFileSync(goalPath, "utf8");
 	const rows = parseRequiredStateRows(goalSource);
 	const baseContainsGoal =
+		spawnSync(
+			"git",
+			[
+				"cat-file",
+				"-e",
+				`${testedIdentity.baseSha}:docs/exec-plans/completed/GOAL.md`,
+			],
+			{
+				stdio: "ignore",
+			},
+		).status === 0 ||
 		spawnSync("git", ["cat-file", "-e", `${testedIdentity.baseSha}:GOAL.md`], {
 			stdio: "ignore",
 		}).status === 0;
@@ -1589,6 +1610,7 @@ function main() {
 					testedIdentity.candidateSha,
 					"--",
 					"GOAL.md",
+					"docs/exec-plans/completed/GOAL.md",
 				],
 				{ encoding: "utf8" },
 			)
@@ -1627,9 +1649,20 @@ function main() {
 		introductionCommits,
 		structureLockSha: baseContainsGoal ? null : GOAL_STRUCTURE_LOCK_SHA,
 	});
+	const canonicalGoalPath = [
+		"docs/exec-plans/completed/GOAL.md",
+		"GOAL.md",
+	].find(
+		(path) =>
+			spawnSync("git", ["cat-file", "-e", `${canonicalGoalSha}:${path}`], {
+				stdio: "ignore",
+			}).status === 0,
+	);
+	if (canonicalGoalPath === undefined)
+		throw new Error(`GOAL ledger missing at ${canonicalGoalSha}`);
 	const canonicalGoalSource = execFileSync(
 		"git",
-		["show", `${canonicalGoalSha}:GOAL.md`],
+		["show", `${canonicalGoalSha}:${canonicalGoalPath}`],
 		{ encoding: "utf8" },
 	);
 	const canonicalRows = parseRequiredStateRows(canonicalGoalSource);
