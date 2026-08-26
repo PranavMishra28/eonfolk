@@ -1,0 +1,1 @@
+import{n as e}from"./index-gFam98Jv.js";var t=e();function n({className:e,label:n}){let r=[`eonfolk-mark`,e].filter(Boolean).join(` `);return(0,t.jsx)(`img`,{className:r,src:`/eonfolk-mark.svg`,alt:n??``,"aria-hidden":n===void 0||void 0,draggable:!1})}export{n as t};

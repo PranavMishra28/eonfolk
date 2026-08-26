@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "eonfolk-diagnostics-browser-comparison-v1",
+  "status": "PASS",
+  "claimBoundary": "Headless reduced-motion comparison of one identical bounded journey across compile-time OFF, LOCAL, and ALPHA modes; not the canonical headed absolute performance or physical-device gate.",
+  "recordedAt": "2026-08-26T05:49:43.312Z",
+  "source": {
+    "start": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+    },
+    "end": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+    },
+    "unchanged": true,
+    "stable": true
+  },
+  "runtime": {
+    "node": "v22.23.1",
+    "host": "darwin 25.6.0 arm64",
+    "chromium": {
+      "executablePath": "/Users/eonfolk-ci/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "version": "Google Chrome for Testing 151.0.7922.34",
+      "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e"
+    }
+  },
+  "workload": {
+    "modes": [
+      "off",
+      "local",
+      "alpha"
+    ],
+    "viewport": "1366x768",
+    "reducedMotion": true,
+    "frameSampleMsPerState": 1000,
+    "states": [
+      "arrival",
+      "busy-market",
+      "chronicle"
+    ],
+    "journey": "arrival -> follow -> investigate -> counsel -> leave/return -> catch-up -> Chronicle"
+  },
+  "gates": {
+    "maximumP95FrameMs": 33.3,
+    "maximumRelativeJourneyFactor": 1.75,
+    "maximumRelativeJourneyAllowanceMs": 750,
+    "assertions": [
+      {
+        "mode": "off",
+        "frameBudget": true,
+        "journeyComparison": true,
+        "zeroEgress": true,
+        "cleanConsole": true,
+        "modeEvidence": true
+      },
+      {
+        "mode": "local",
+        "frameBudget": true,
+        "journeyComparison": true,
+        "zeroEgress": true,
+        "cleanConsole": true,
+        "modeEvidence": true
+      },
+      {
+        "mode": "alpha",
+        "frameBudget": true,
+        "journeyComparison": true,
+        "zeroEgress": true,
+        "cleanConsole": true,
+        "modeEvidence": true
+      }
+    ]
+  },
+  "modes": [
+    {
+      "mode": "off",
+      "configuredAtBuild": true,
+      "observerMode": "not-exposed",
+      "builtOutput": {
+        "files": 21,
+        "totalBytes": 3018645,
+        "manifestSha256": "025c99591150ed2f92c9bc62fc181af2546a71a44909094639ce7b8d8a29a01e"
+      },
+      "journeyMs": 9397.30725,
+      "frames": {
+        "arrival": {
+          "count": 120,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.299999999999727,
+          "worstMs": 9.400000000000091
+        },
+        "busyMarket": {
+          "count": 120,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.300000000000182,
+          "worstMs": 9.400000000000091
+        },
+        "chronicle": {
+          "count": 120,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.399999999999636
+        }
+      },
+      "externalRequests": [],
+      "consoleProblems": []
+    },
+    {
+      "mode": "local",
+      "configuredAtBuild": true,
+      "observerMode": "local",
+      "builtOutput": {
+        "files": 21,
+        "totalBytes": 3018647,
+        "manifestSha256": "cab049e1c135d43eb44d564371054ac14bbd075fff0ea13352b37bfbab0e89d3"
+      },
+      "journeyMs": 7732.5700000000015,
+      "frames": {
+        "arrival": {
+          "count": 121,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.099999999999909,
+          "worstMs": 9.300000000000182
+        },
+        "busyMarket": {
+          "count": 121,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.299999999999727,
+          "worstMs": 9.400000000000091
+        },
+        "chronicle": {
+          "count": 120,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.199999999999818,
+          "worstMs": 9.399999999999636
+        }
+      },
+      "externalRequests": [],
+      "consoleProblems": []
+    },
+    {
+      "mode": "alpha",
+      "configuredAtBuild": true,
+      "observerMode": "not-exposed",
+      "builtOutput": {
+        "files": 21,
+        "totalBytes": 3018647,
+        "manifestSha256": "5be487315a54d50163017951bae0b21172031c0615f49bee506be89238c96d1f"
+      },
+      "journeyMs": 8225.826709,
+      "frames": {
+        "arrival": {
+          "count": 120,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.099999999999909,
+          "worstMs": 9.399999999999864
+        },
+        "busyMarket": {
+          "count": 121,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.099999999999909,
+          "worstMs": 9.400000000000091
+        },
+        "chronicle": {
+          "count": 121,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.199999999999818,
+          "worstMs": 9.400000000000546
+        }
+      },
+      "externalRequests": [],
+      "consoleProblems": []
+    }
+  ],
+  "outputSha256": "4fe18c06ecfdff186b9f81c355ff35c35b7eeca3a7e3dd922cc92aec82d830ab"
+}

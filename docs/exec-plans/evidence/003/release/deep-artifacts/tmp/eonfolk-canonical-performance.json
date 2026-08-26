@@ -1,0 +1,2242 @@
+{
+  "schemaVersion": "eonfolk-release-genesis-web-performance-v3",
+  "measuredAt": "2026-08-26T06:17:39.343Z",
+  "canonical": true,
+  "runtime": {
+    "node": "v22.23.1",
+    "host": "darwin 25.6.0 arm64",
+    "chromium": {
+      "executablePath": "/Users/eonfolk-ci/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "version": "Google Chrome for Testing 151.0.7922.34",
+      "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+      "cohort": {
+        "revision": 1234,
+        "version": "Google Chrome for Testing 151.0.7922.34",
+        "manifestBytes": 62239,
+        "manifestSha256": "25995bc88bf20b6de47b46eb3571b250989846a797c0b8924b8794627b6175fc",
+        "files": 326,
+        "links": 5,
+        "totalBytes": 372002382,
+        "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+        "frameworkBytes": 237813488,
+        "frameworkSha256": "269114cf695f1c50b54e0816a1442e41dc468d28672e2dedc2036105fb5a8dbe"
+      },
+      "validators": [
+        {
+          "command": "node scripts/validate-browser-cohort.mjs",
+          "output": "browser cohort valid: 326 files, 5 links, 372002382 bytes"
+        },
+        {
+          "command": "ruby scripts/validate-browser-cohort.rb",
+          "output": "browser cohort valid: 326 files, 5 links, 372002382 bytes"
+        }
+      ]
+    },
+    "headed": true,
+    "previewOrigin": "http://127.0.0.1:4173",
+    "power": {
+      "start": {
+        "source": "Battery Power",
+        "percentage": 62,
+        "powerMode": 0,
+        "accepted": true,
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t62%; discharging; 1:32 remaining present: true"
+      },
+      "end": {
+        "source": "Battery Power",
+        "percentage": 51,
+        "powerMode": 0,
+        "accepted": true,
+        "batteryStatus": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35455075)\t51%; discharging; 2:05 remaining present: true"
+      },
+      "profileAccepted": true,
+      "acceptanceRule": "stable AC or stable Battery >=50%, with macOS powermode 0; numerical budgets never change"
+    }
+  },
+  "source": {
+    "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+    "workingTreeDirty": false,
+    "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+    "start": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "workingTreeDirty": false,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+    },
+    "end": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "workingTreeDirty": false,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+    },
+    "stable": true,
+    "commands": [
+      {
+        "command": "pnpm --filter @eonfolk/web build",
+        "exitCode": 0
+      },
+      {
+        "command": "pnpm benchmark:web",
+        "exitCode": 0
+      }
+    ],
+    "builtOutput": {
+      "start": {
+        "root": "/Users/eonfolk-ci/actions-runner/_work/eonfolk/eonfolk/candidate/apps/web/dist",
+        "files": 21,
+        "totalBytes": 3018645,
+        "manifestSha256": "742d6991ff92658d932bd190d43e65bf5c73677a264c831626bae55ae89e3258",
+        "entries": [
+          {
+            "path": ".vite/manifest.json",
+            "bytes": 3932,
+            "sha256": "91c0756b718b0793b77f5bfbd868ccfc0f1106a3fd2fbee5ece884212d4c1ed3"
+          },
+          {
+            "path": "assets/EonfolkMark-Dz3PYw53.js",
+            "bytes": 267,
+            "sha256": "0c33f3bf3f4fd6fded9fbb1971dc03d7446e2deccea6eb1d8693d1d580c625d1"
+          },
+          {
+            "path": "assets/FeedbackPanel-CRGiF6cw.js",
+            "bytes": 15011,
+            "sha256": "c51d2822e5c87c9f0d273da354698fcd989da9303ca85122a8fa0ac705b3bfca"
+          },
+          {
+            "path": "assets/GenesisEntryApp-BO5YJyTq.js",
+            "bytes": 2520,
+            "sha256": "3963bed498c5a1512bcd7eb45aa5b4c3b6aa7207165924f0b8b9e53b867e4dba"
+          },
+          {
+            "path": "assets/InformationSurface-CWMQ38xQ.js",
+            "bytes": 11609,
+            "sha256": "f39e5b9a868495cf4daeddca5738350a346fa3d7b6bf487a27aa8f73955f2905"
+          },
+          {
+            "path": "assets/V1GenesisApp-CYwibKXM.js",
+            "bytes": 36712,
+            "sha256": "fc93ea4eb5092a21427d00eb62594907483db53b5ba38c100f92532d2ccb6c50"
+          },
+          {
+            "path": "assets/generated-world-canvas-BMy9BFWw.js",
+            "bytes": 1949975,
+            "sha256": "12673e34aa9b78c50914454b3cf36ccb7391ef7e3d50c6f6d472395ccd6137da"
+          },
+          {
+            "path": "assets/generated-world-client-D4cFs1t7.js",
+            "bytes": 1364,
+            "sha256": "e720d933405c3e3a20a861510c61baa328d8b1c0e07eb1cc77c998d464d0f6fc"
+          },
+          {
+            "path": "assets/generated-world-runtime-CKuOqbgy.js",
+            "bytes": 6066,
+            "sha256": "42a1887d725f4616bfd1046646d01edde5541742ff1b25fed2fee698415a02e7"
+          },
+          {
+            "path": "assets/generated-world-runtime.worker-BFG_RYOb.js",
+            "bytes": 305903,
+            "sha256": "60860e0f1986577a08452a5f62482f56184272ee3b54fc143576f8f96eaaa110"
+          },
+          {
+            "path": "assets/generated/ASSET_MANIFEST.json",
+            "bytes": 2611,
+            "sha256": "aff11f20ba04bd2d8591f61f9bb4cb3dd5fce601f5557a808b50a3d5acecd4ee"
+          },
+          {
+            "path": "assets/generated/eonfolk-folk-proxy.glb",
+            "bytes": 3152,
+            "sha256": "198d0d7ec6e37f7a43fae872cfff0f3ba8e010c50a3cc7c29af21a2358120549"
+          },
+          {
+            "path": "assets/generated/eonfolk-folk-proxy.gltf",
+            "bytes": 3929,
+            "sha256": "a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179"
+          },
+          {
+            "path": "assets/index-DoLCE3-u.css",
+            "bytes": 66147,
+            "sha256": "2adabcb84223f83170826bd82bb59d167c2ba33a70ae9279ed05ec5cac7576df"
+          },
+          {
+            "path": "assets/index-gFam98Jv.js",
+            "bytes": 194451,
+            "sha256": "df8d7e084c2838f40c0c61aa9ae9118890fbee97d34884326c7795e19f85eeec"
+          },
+          {
+            "path": "assets/information-surface-P4VR5Yzu.css",
+            "bytes": 8358,
+            "sha256": "4c920e503db28b5c2d93876712c6166822159e564612d1f222ea2cf305e068ba"
+          },
+          {
+            "path": "assets/react-C9fjN-h7.js",
+            "bytes": 125,
+            "sha256": "d3c64ec5f7ccd5e51770b44b92ea3e934143697df03c56b65ee08fc98ec99141"
+          },
+          {
+            "path": "assets/research-evidence-BZ0jmt3z.js",
+            "bytes": 10432,
+            "sha256": "b812087844ea2e1d5c76adca92f1b18ccc83327c07fbd453d2ee132d54bf923d"
+          },
+          {
+            "path": "assets/world-authority-OJfuzfaP.js",
+            "bytes": 394059,
+            "sha256": "c581c15c90177ec98346ddbe4808787eab8e267208da949758df1d67f4d3b996"
+          },
+          {
+            "path": "eonfolk-mark.svg",
+            "bytes": 1083,
+            "sha256": "8c4e42ba92645fb1605dec95da472ed135a11c1b2f7c39bd3b964f00617b6434"
+          },
+          {
+            "path": "index.html",
+            "bytes": 939,
+            "sha256": "7d18fc483109d872e09a652b76f72f587eaa033b726f463696abe557ea5c5979"
+          }
+        ]
+      },
+      "end": {
+        "root": "/Users/eonfolk-ci/actions-runner/_work/eonfolk/eonfolk/candidate/apps/web/dist",
+        "files": 21,
+        "totalBytes": 3018645,
+        "manifestSha256": "742d6991ff92658d932bd190d43e65bf5c73677a264c831626bae55ae89e3258",
+        "entries": [
+          {
+            "path": ".vite/manifest.json",
+            "bytes": 3932,
+            "sha256": "91c0756b718b0793b77f5bfbd868ccfc0f1106a3fd2fbee5ece884212d4c1ed3"
+          },
+          {
+            "path": "assets/EonfolkMark-Dz3PYw53.js",
+            "bytes": 267,
+            "sha256": "0c33f3bf3f4fd6fded9fbb1971dc03d7446e2deccea6eb1d8693d1d580c625d1"
+          },
+          {
+            "path": "assets/FeedbackPanel-CRGiF6cw.js",
+            "bytes": 15011,
+            "sha256": "c51d2822e5c87c9f0d273da354698fcd989da9303ca85122a8fa0ac705b3bfca"
+          },
+          {
+            "path": "assets/GenesisEntryApp-BO5YJyTq.js",
+            "bytes": 2520,
+            "sha256": "3963bed498c5a1512bcd7eb45aa5b4c3b6aa7207165924f0b8b9e53b867e4dba"
+          },
+          {
+            "path": "assets/InformationSurface-CWMQ38xQ.js",
+            "bytes": 11609,
+            "sha256": "f39e5b9a868495cf4daeddca5738350a346fa3d7b6bf487a27aa8f73955f2905"
+          },
+          {
+            "path": "assets/V1GenesisApp-CYwibKXM.js",
+            "bytes": 36712,
+            "sha256": "fc93ea4eb5092a21427d00eb62594907483db53b5ba38c100f92532d2ccb6c50"
+          },
+          {
+            "path": "assets/generated-world-canvas-BMy9BFWw.js",
+            "bytes": 1949975,
+            "sha256": "12673e34aa9b78c50914454b3cf36ccb7391ef7e3d50c6f6d472395ccd6137da"
+          },
+          {
+            "path": "assets/generated-world-client-D4cFs1t7.js",
+            "bytes": 1364,
+            "sha256": "e720d933405c3e3a20a861510c61baa328d8b1c0e07eb1cc77c998d464d0f6fc"
+          },
+          {
+            "path": "assets/generated-world-runtime-CKuOqbgy.js",
+            "bytes": 6066,
+            "sha256": "42a1887d725f4616bfd1046646d01edde5541742ff1b25fed2fee698415a02e7"
+          },
+          {
+            "path": "assets/generated-world-runtime.worker-BFG_RYOb.js",
+            "bytes": 305903,
+            "sha256": "60860e0f1986577a08452a5f62482f56184272ee3b54fc143576f8f96eaaa110"
+          },
+          {
+            "path": "assets/generated/ASSET_MANIFEST.json",
+            "bytes": 2611,
+            "sha256": "aff11f20ba04bd2d8591f61f9bb4cb3dd5fce601f5557a808b50a3d5acecd4ee"
+          },
+          {
+            "path": "assets/generated/eonfolk-folk-proxy.glb",
+            "bytes": 3152,
+            "sha256": "198d0d7ec6e37f7a43fae872cfff0f3ba8e010c50a3cc7c29af21a2358120549"
+          },
+          {
+            "path": "assets/generated/eonfolk-folk-proxy.gltf",
+            "bytes": 3929,
+            "sha256": "a639294bb1ae71731265f510089d72bef0677ed5de64c98c70724ad5fce64179"
+          },
+          {
+            "path": "assets/index-DoLCE3-u.css",
+            "bytes": 66147,
+            "sha256": "2adabcb84223f83170826bd82bb59d167c2ba33a70ae9279ed05ec5cac7576df"
+          },
+          {
+            "path": "assets/index-gFam98Jv.js",
+            "bytes": 194451,
+            "sha256": "df8d7e084c2838f40c0c61aa9ae9118890fbee97d34884326c7795e19f85eeec"
+          },
+          {
+            "path": "assets/information-surface-P4VR5Yzu.css",
+            "bytes": 8358,
+            "sha256": "4c920e503db28b5c2d93876712c6166822159e564612d1f222ea2cf305e068ba"
+          },
+          {
+            "path": "assets/react-C9fjN-h7.js",
+            "bytes": 125,
+            "sha256": "d3c64ec5f7ccd5e51770b44b92ea3e934143697df03c56b65ee08fc98ec99141"
+          },
+          {
+            "path": "assets/research-evidence-BZ0jmt3z.js",
+            "bytes": 10432,
+            "sha256": "b812087844ea2e1d5c76adca92f1b18ccc83327c07fbd453d2ee132d54bf923d"
+          },
+          {
+            "path": "assets/world-authority-OJfuzfaP.js",
+            "bytes": 394059,
+            "sha256": "c581c15c90177ec98346ddbe4808787eab8e267208da949758df1d67f4d3b996"
+          },
+          {
+            "path": "eonfolk-mark.svg",
+            "bytes": 1083,
+            "sha256": "8c4e42ba92645fb1605dec95da472ed135a11c1b2f7c39bd3b964f00617b6434"
+          },
+          {
+            "path": "index.html",
+            "bytes": 939,
+            "sha256": "7d18fc483109d872e09a652b76f72f587eaa033b726f463696abe557ea5c5979"
+          }
+        ]
+      },
+      "stable": true
+    }
+  },
+  "fixture": {
+    "run": "release-genesis-generated-world",
+    "route": "/world",
+    "worldId": "eonfolk-genesis-world-v1",
+    "population": 8,
+    "visibleSettlementResidents": 7,
+    "motion": "no-preference",
+    "quality": "default",
+    "focus": "foreground"
+  },
+  "procedure": {
+    "repetitions": 5,
+    "freshBrowserPerRun": true,
+    "coldContextPerRun": true,
+    "cacheDisabled": true,
+    "serviceWorkersBlocked": true,
+    "persistenceReload": "required same-route reload with stable state hash",
+    "stateWarmupMs": 5000,
+    "stateMeasurementMs": 30000,
+    "states": [
+      "world-arrival",
+      "citizen-focus",
+      "settlement-overview"
+    ]
+  },
+  "budgets": [
+    {
+      "profile": "desktop",
+      "maximumDisplayMs": 3000,
+      "maximumInteractionLatencyMs": 250,
+      "maximumP95FrameMs": 16.7,
+      "maximumPersistenceReloadMs": 3000,
+      "maximumUsedJsHeapBytes": 134217728
+    },
+    {
+      "profile": "laptop",
+      "maximumDisplayMs": 3000,
+      "maximumInteractionLatencyMs": 250,
+      "maximumP95FrameMs": 16.7,
+      "maximumPersistenceReloadMs": 3000,
+      "maximumUsedJsHeapBytes": 134217728
+    },
+    {
+      "profile": "mobile-emulation",
+      "maximumDisplayMs": 5000,
+      "maximumInteractionLatencyMs": 500,
+      "maximumP95FrameMs": 33.3,
+      "maximumPersistenceReloadMs": 5000,
+      "maximumUsedJsHeapBytes": 134217728
+    }
+  ],
+  "runs": [
+    {
+      "profile": "desktop",
+      "repetition": 1,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 54.90000003576279,
+        "ctaMs": 362.19999998807907,
+        "meaningfulWorldMs": 1356.9000000357628
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 52.511083999997936,
+      "overviewLatencyMs": 45.00504099999671,
+      "persistenceReload": {
+        "latencyMs": 1254.559208999999,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.199999999999818,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.10000000000582,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 17.5,
+          "droppedFrameCount": 1
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 28349027
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 2,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 49.5,
+        "ctaMs": 350.89999997615814,
+        "meaningfulWorldMs": 1338.300000011921
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 62.914875000016764,
+      "overviewLatencyMs": 45.26137500000186,
+      "persistenceReload": {
+        "latencyMs": 1267.3290419999976,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 27917895
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 3,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 56.59999996423721,
+        "ctaMs": 355.0999999642372,
+        "meaningfulWorldMs": 1378.2999999523163
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 60.07208299997728,
+      "overviewLatencyMs": 49.0109999999986,
+      "persistenceReload": {
+        "latencyMs": 1256.883332999947,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 10.599999999991269,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 28176342
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 4,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 51,
+        "ctaMs": 351,
+        "meaningfulWorldMs": 1361.199999988079
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 54.96925000002375,
+      "overviewLatencyMs": 49.25541600002907,
+      "persistenceReload": {
+        "latencyMs": 1266.1029169999529,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3605,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.299999999999272,
+          "worstMs": 10.600000000000364,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 31049795
+      }
+    },
+    {
+      "profile": "desktop",
+      "repetition": 5,
+      "viewport": "1728x1117",
+      "deviceScaleFactor": 2,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 51.80000001192093,
+        "ctaMs": 351.69999998807907,
+        "meaningfulWorldMs": 1336.300000011921
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 59.307374999974854,
+      "overviewLatencyMs": 41.11050000000978,
+      "persistenceReload": {
+        "latencyMs": 1246.4680839999346,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3603,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.299999999995634,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 10.39999999999418,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 28274402
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 1,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 48.89999997615814,
+        "ctaMs": 351.7999999523163,
+        "meaningfulWorldMs": 1348.5
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 60.76987499999814,
+      "overviewLatencyMs": 47.42154200002551,
+      "persistenceReload": {
+        "latencyMs": 1245.405167000019,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3600,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 44218804
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 2,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 55.80000001192093,
+        "ctaMs": 354.80000001192093,
+        "meaningfulWorldMs": 1359.3999999761581
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 53.7954590000445,
+      "overviewLatencyMs": 48.546875,
+      "persistenceReload": {
+        "latencyMs": 1244.1852910000598,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 38438314
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 3,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 54.80000001192093,
+        "ctaMs": 353.19999998807907,
+        "meaningfulWorldMs": 1349
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 58.282291000010446,
+      "overviewLatencyMs": 41.706583000021055,
+      "persistenceReload": {
+        "latencyMs": 1223.3466669999762,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 10.599999999998545,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999988358,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 38481334
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 4,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 49.5,
+        "ctaMs": 353.9000000357628,
+        "meaningfulWorldMs": 1329.6000000238419
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 57.08950000000186,
+      "overviewLatencyMs": 43.03349999990314,
+      "persistenceReload": {
+        "latencyMs": 1201.4485409999033,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3603,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.30000000000291,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.30000000000291,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 38663411
+      }
+    },
+    {
+      "profile": "laptop",
+      "repetition": 5,
+      "viewport": "1366x768",
+      "deviceScaleFactor": 1,
+      "cpuSlowdown": 1,
+      "network": "unthrottled-local",
+      "marks": {
+        "shellMs": 49.19999998807907,
+        "ctaMs": 350,
+        "meaningfulWorldMs": 1333
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 56.79450000007637,
+      "overviewLatencyMs": 48.18987499992363,
+      "persistenceReload": {
+        "latencyMs": 1218.6362090001348,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999988358,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 36755457
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 1,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 772.3999999761581,
+        "ctaMs": 1906.300000011921,
+        "meaningfulWorldMs": 4857.5
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 85.07512499997392,
+      "overviewLatencyMs": 64.13454200001433,
+      "persistenceReload": {
+        "latencyMs": 1344.5082080001011,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3601,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999995634,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 11,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 39683469
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 2,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 771.1000000238419,
+        "ctaMs": 1906.5,
+        "meaningfulWorldMs": 4887.900000035763
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 89.57449999987148,
+      "overviewLatencyMs": 57.7886250000447,
+      "persistenceReload": {
+        "latencyMs": 1369.0052090000827,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999988358,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 38782961
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 3,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 770.7000000476837,
+        "ctaMs": 1916.4000000357628,
+        "meaningfulWorldMs": 4897.800000011921
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 97.08016699994914,
+      "overviewLatencyMs": 65.77412499999627,
+      "persistenceReload": {
+        "latencyMs": 1361.0448330000509,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 45575317
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 4,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 771,
+        "ctaMs": 1910.4000000357628,
+        "meaningfulWorldMs": 4866.800000011921
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 87.31641700002365,
+      "overviewLatencyMs": 56.53741700015962,
+      "persistenceReload": {
+        "latencyMs": 1532.2047919998877,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3602,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 9.400000000001455,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3601,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 13.30000000000291,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 39406635
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "repetition": 5,
+      "viewport": "390x844",
+      "deviceScaleFactor": 3,
+      "cpuSlowdown": 4,
+      "network": "1.6Mbps-down-750Kbps-up-150ms-rtt",
+      "marks": {
+        "shellMs": 780.3000000119209,
+        "ctaMs": 1917.699999988079,
+        "meaningfulWorldMs": 4864.300000011921
+      },
+      "markEvidence": {
+        "shell": {
+          "factFreeAuthorityShell": true,
+          "factSurfaceCount": 0,
+          "loadingHeading": "Advancing one world through its first year."
+        },
+        "cta": {
+          "authorityReady": true,
+          "controlEnabled": true,
+          "controlFocusable": true,
+          "route": "/world"
+        },
+        "meaningfulWorld": {
+          "canvasPainted": true,
+          "actorCount": 7,
+          "assetIntegrityVerified": true,
+          "canonicalPopulation": 8,
+          "canonicalActivityGrounded": true,
+          "persistenceEstablished": true,
+          "residentControlCount": 7,
+          "route": "/world",
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "visibleInteractionCount": 1,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "worldInvariant": {
+        "beforeSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        },
+        "afterSample": {
+          "actorCount": 7,
+          "assetIntegrity": "verified",
+          "canvasReady": "true",
+          "canonicalActionIds": "scheduled:5595:citizen-01:interaction-slot_7ta66ylf6tdyiws4by6yrntx7utce6nf4i2ywily3q4fz2e4yh2a,scheduled:5595:citizen-02:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-03:interaction-slot_avgmyaue36np3babuvxxy4v274qgqfjfughv5vr6oez6yexwcs3a,scheduled:5595:citizen-05:route_nmh52l34fcswa2btn5sgwpm57p26rdpfpoqtcvn72c3wfl6o47ca,scheduled:5595:citizen-06:interaction-slot_dps6xyvwnvi5cuxyyqwfxspr4p4yyw2dyjlfekmxf6keooystblq,scheduled:5595:citizen-07:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-08,scheduled:5595:citizen-08:interaction-slot_nitkyyw3l4rtpbfl2fomyzutltmvny4zv4os3fjpxmrewyaajnca:citizen-07",
+          "canonicalPopulation": 8,
+          "contradictionCount": 0,
+          "persistenceRestored": "false",
+          "persistence": "indexeddb",
+          "residentControlCount": 7,
+          "routeSegmentCount": 16,
+          "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+          "teleportCount": 0,
+          "worldId": "eonfolk-genesis-world-v1"
+        }
+      },
+      "residentFocusLatencyMs": 91.71287499996834,
+      "overviewLatencyMs": 66.57945899991319,
+      "persistenceReload": {
+        "latencyMs": 1398.2568329998758,
+        "persistenceRestored": "true",
+        "route": "/world",
+        "stateHash": "a75b8c3c1794ab5bee1aa7781e8cd9b87ee26eb69a91cfd567d0c4577d490b9c",
+        "stateHashStable": true
+      },
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 3603,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 11.399999999997817,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 3602,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 3600,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 9.400000000008731,
+          "droppedFrameCount": 0
+        }
+      ],
+      "diagnostics": {
+        "longTasksMs": [],
+        "usedJsHeapBytes": 39079270
+      }
+    }
+  ],
+  "aggregates": [
+    {
+      "profile": "desktop",
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 18013,
+          "p50Ms": 8.300000000001091,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 10.600000000000364,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 18005,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 10.39999999999418,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 18007,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.19999999999709,
+          "worstMs": 17.5,
+          "droppedFrameCount": 1
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54025,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 9.200000000000728,
+        "worstMs": 17.5,
+        "droppedFrameCount": 1
+      }
+    },
+    {
+      "profile": "laptop",
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 18006,
+          "p50Ms": 8.300000000000182,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 10.599999999998545,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 18008,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999995634,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 18008,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.299999999988358,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54022,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 9.200000000011642,
+        "worstMs": 10.599999999998545,
+        "droppedFrameCount": 0
+      }
+    },
+    {
+      "profile": "mobile-emulation",
+      "states": [
+        {
+          "state": "world-arrival",
+          "sampleCount": 18010,
+          "p50Ms": 8.299999999999272,
+          "p95Ms": 9.200000000000728,
+          "worstMs": 11.399999999997817,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "citizen-focus",
+          "sampleCount": 18006,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000004366,
+          "worstMs": 9.5,
+          "droppedFrameCount": 0
+        },
+        {
+          "state": "settlement-overview",
+          "sampleCount": 18002,
+          "p50Ms": 8.30000000000291,
+          "p95Ms": 9.200000000011642,
+          "worstMs": 13.30000000000291,
+          "droppedFrameCount": 0
+        }
+      ],
+      "pooled": {
+        "sampleCount": 54018,
+        "p50Ms": 8.30000000000291,
+        "p95Ms": 9.200000000004366,
+        "worstMs": 13.30000000000291,
+        "droppedFrameCount": 0
+      }
+    }
+  ],
+  "networkOracle": {
+    "routeRequestCount": 390,
+    "externalRouteAttempts": [],
+    "externalNetlogAttempts": [],
+    "netlogRuns": [
+      {
+        "profile": "desktop",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "desktop",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-desktop-5.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "laptop",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-laptop-5.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 1,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-1.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 2,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-2.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 3,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-3.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 4,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-4.json",
+        "externalAttempts": []
+      },
+      {
+        "profile": "mobile-emulation",
+        "repetition": 5,
+        "path": "tmp/eonfolk-canonical-performance-netlog-mobile-emulation-5.json",
+        "externalAttempts": []
+      }
+    ]
+  },
+  "limitations": [
+    "Mobile is canonical throttled emulation on the target Mac, not a physical phone.",
+    "Memory is reported only when Chromium exposes performance.memory.",
+    "This is a local pre-release measurement, not field telemetry or a human gate.",
+    "The persisted-authority claim is limited to an actual warm /world reload with the same state hash; it does not claim server durability."
+  ]
+}

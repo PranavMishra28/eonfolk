@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "eonfolk-diagnostics-overhead-evidence-v1",
+  "status": "PASS",
+  "claimBoundary": "Deterministic source-level recorder workload only; this does not satisfy integrated browser frame, input, display, network, persistence, or physical-device gates.",
+  "recordedAt": "2026-08-26T05:49:12.474Z",
+  "source": {
+    "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+    "clean": true,
+    "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+    "sourceManifest": [
+      {
+        "path": "packages/diagnostics/src/fingerprint.ts",
+        "sha256": "00eeb38100914877d99ad62e3747a5bbb71e59f0ecc113bb17a0f6c98dfef1c7"
+      },
+      {
+        "path": "packages/diagnostics/src/recorder.ts",
+        "sha256": "a34a6f7d14b2973263532433b03b814957fec8571e27c2ac989f4ab9c7c700b3"
+      },
+      {
+        "path": "packages/diagnostics/src/redaction.ts",
+        "sha256": "ac10769cc1a92c8d3e721d0e7c4b72d8c0349ddf7f1d17000d553cc3ad53d83c"
+      },
+      {
+        "path": "packages/diagnostics/src/ring-buffer.ts",
+        "sha256": "2d06bcb2f559d3c897fcbf1825c8cd32da7831650eb37d378503b93c6e3596f4"
+      },
+      {
+        "path": "packages/diagnostics/src/types.ts",
+        "sha256": "2cd641d6ad76ca718cdc09b100f5d156e1d447a5368b76a986cfb7b8a29cbac1"
+      },
+      {
+        "path": "packages/protocol/src/canonical.ts",
+        "sha256": "98492f4a2e965da905a956565ed0b94c206b3751778cda44d0eeb091dc43fb79"
+      },
+      {
+        "path": "scripts/benchmark-diagnostics.mjs",
+        "sha256": "0e2620a27ca6653300156d6ab850c55f69246293a09035cfd8514328b9a5385a"
+      }
+    ],
+    "sourceManifestSha256": "cb956282a69bc88e5f19978b14533dec66ccdd0ff6bead5533063acc0c9e4f4f"
+  },
+  "runtime": {
+    "node": "22.23.1",
+    "expectedNode": "22.23.1",
+    "architecture": "arm64",
+    "platform": "darwin",
+    "release": "25.6.0",
+    "matchesRepositoryRuntime": true
+  },
+  "workload": {
+    "version": "eonfolk-diagnostics-overhead-v1",
+    "repetitions": 7,
+    "warmupCallsPerRepetition": 1024,
+    "measuredCallsPerRepetition": 4096,
+    "modeledCallsPerMinute": 60,
+    "failureEveryCalls": 64,
+    "workloadSha256": "687f0ed623123010223e11d7042dc80f6954fa62fbe1f1ec9a67cc151d553194"
+  },
+  "modes": [
+    {
+      "mode": "off",
+      "identity": {
+        "diagnosticSessionId": "session-benchmark-off",
+        "buildSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+        "appVersion": "0.0.0",
+        "protocolVersion": "1",
+        "genesisId": "genesis-unknown",
+        "worldId": "world-unknown",
+        "experimentId": "diagnostics-overhead",
+        "runId": "run-benchmark",
+        "cognitionTreatmentId": "cognition-standard-v1",
+        "rendererVersion": "renderer-unknown",
+        "persistenceVersion": "persistence-unknown",
+        "runtimeClass": "node",
+        "viewportClass": "non-visual",
+        "diagnosticsMode": "off"
+      },
+      "diagnosticSchema": "eonfolk-diagnostics-v1",
+      "redactionPolicy": "eonfolk-redaction-v2",
+      "recordCall": {
+        "count": 28672,
+        "p50Ms": 0.00004200000000764703,
+        "p95Ms": 0.00012499999999704414,
+        "worstMs": 0.022249999999985448
+      },
+      "freeze": {
+        "count": 7,
+        "p50Ms": 0.13079199999998536,
+        "p95Ms": 0.4563750000000084,
+        "worstMs": 0.4563750000000084
+      },
+      "modeledSerializedBytesPerMinuteAt60Calls": 279,
+      "modeledRateGate": "INFORMATIONAL — the authority contract defines bounded live bytes, not a bytes/minute ceiling",
+      "maximumSnapshot": {
+        "events": 65,
+        "bytes": 18245,
+        "droppedEvents": 0
+      },
+      "assertions": {
+        "recordCallP95": {
+          "observedMs": 0.00012499999999704414,
+          "maximumMs": 0.5,
+          "pass": true
+        },
+        "liveEvents": {
+          "observed": 65,
+          "maximum": 128,
+          "pass": true
+        },
+        "liveBytes": {
+          "observed": 18245,
+          "maximum": 131072,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "mode": "local",
+      "identity": {
+        "diagnosticSessionId": "session-benchmark-local",
+        "buildSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+        "appVersion": "0.0.0",
+        "protocolVersion": "1",
+        "genesisId": "genesis-unknown",
+        "worldId": "world-unknown",
+        "experimentId": "diagnostics-overhead",
+        "runId": "run-benchmark",
+        "cognitionTreatmentId": "cognition-standard-v1",
+        "rendererVersion": "renderer-unknown",
+        "persistenceVersion": "persistence-unknown",
+        "runtimeClass": "node",
+        "viewportClass": "non-visual",
+        "diagnosticsMode": "local"
+      },
+      "diagnosticSchema": "eonfolk-diagnostics-v1",
+      "redactionPolicy": "eonfolk-redaction-v2",
+      "recordCall": {
+        "count": 28672,
+        "p50Ms": 0.006290999999976066,
+        "p95Ms": 0.008207999999996218,
+        "worstMs": 0.48775000000000546
+      },
+      "freeze": {
+        "count": 7,
+        "p50Ms": 0.16395800000000804,
+        "p95Ms": 0.40187499999998977,
+        "worstMs": 0.40187499999998977
+      },
+      "modeledSerializedBytesPerMinuteAt60Calls": 17589,
+      "modeledRateGate": "INFORMATIONAL — the authority contract defines bounded live bytes, not a bytes/minute ceiling",
+      "maximumSnapshot": {
+        "events": 2048,
+        "bytes": 617952,
+        "droppedEvents": 2049
+      },
+      "assertions": {
+        "recordCallP95": {
+          "observedMs": 0.008207999999996218,
+          "maximumMs": 1,
+          "pass": true
+        },
+        "liveEvents": {
+          "observed": 2048,
+          "maximum": 2048,
+          "pass": true
+        },
+        "liveBytes": {
+          "observed": 617952,
+          "maximum": 2097152,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "mode": "alpha",
+      "identity": {
+        "diagnosticSessionId": "session-benchmark-alpha",
+        "buildSha": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+        "appVersion": "0.0.0",
+        "protocolVersion": "1",
+        "genesisId": "genesis-unknown",
+        "worldId": "world-unknown",
+        "experimentId": "diagnostics-overhead",
+        "runId": "run-benchmark",
+        "cognitionTreatmentId": "cognition-standard-v1",
+        "rendererVersion": "renderer-unknown",
+        "persistenceVersion": "persistence-unknown",
+        "runtimeClass": "node",
+        "viewportClass": "non-visual",
+        "diagnosticsMode": "alpha"
+      },
+      "diagnosticSchema": "eonfolk-diagnostics-v1",
+      "redactionPolicy": "eonfolk-redaction-v2",
+      "recordCall": {
+        "count": 28672,
+        "p50Ms": 0.006500000000016826,
+        "p95Ms": 0.008290999999985615,
+        "worstMs": 0.2585419999999772
+      },
+      "freeze": {
+        "count": 7,
+        "p50Ms": 0.09825000000000728,
+        "p95Ms": 0.21433300000001054,
+        "worstMs": 0.21433300000001054
+      },
+      "modeledSerializedBytesPerMinuteAt60Calls": 17589,
+      "modeledRateGate": "INFORMATIONAL — the authority contract defines bounded live bytes, not a bytes/minute ceiling",
+      "maximumSnapshot": {
+        "events": 512,
+        "bytes": 154488,
+        "droppedEvents": 3585
+      },
+      "assertions": {
+        "recordCallP95": {
+          "observedMs": 0.008290999999985615,
+          "maximumMs": 1,
+          "pass": true
+        },
+        "liveEvents": {
+          "observed": 512,
+          "maximum": 512,
+          "pass": true
+        },
+        "liveBytes": {
+          "observed": 154488,
+          "maximum": 524288,
+          "pass": true
+        }
+      },
+      "pass": true
+    }
+  ],
+  "unsupported": {
+    "browserFrameP95": "UNSUPPORTED_IN_SOURCE_MICROBENCHMARK",
+    "frameRegressionByMode": "UNSUPPORTED_IN_SOURCE_MICROBENCHMARK",
+    "longTasks": "UNSUPPORTED_IN_SOURCE_MICROBENCHMARK",
+    "inputLatency": "UNSUPPORTED_IN_SOURCE_MICROBENCHMARK",
+    "meaningfulWorldDisplay": "UNSUPPORTED_IN_SOURCE_MICROBENCHMARK",
+    "heap": "UNSUPPORTED_WITHOUT_INTRUSIVE_GC_INSTRUMENTATION",
+    "alphaUpload": "NOT_IMPLEMENTED_AND_NOT_RUN",
+    "physicalDevice": "NOT_RUN"
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "schemaVersion": "eonfolk-persistence-benchmark-v3",
+  "status": "PASS",
+  "claimBoundary": "Fail-closed DEEP acceptance for bounded in-memory and canonical versioned-browser persistence workloads; timing values are informational.",
+  "recordedAt": "2026-08-26T05:49:11.296Z",
+  "source": {
+    "start": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+      "sourceManifest": [
+        {
+          "path": "package.json",
+          "sha256": "33f2ee3f39790962bd2302a26124ffcce9c94977ba4a57889fb016d4f1c3b809"
+        },
+        {
+          "path": "pnpm-lock.yaml",
+          "sha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+        },
+        {
+          "path": "scripts/benchmark-persistence.mjs",
+          "sha256": "93626a109cc64ec14677642c89a55a830ff9493aa6637ff54334de53fbded7b5"
+        },
+        {
+          "path": "packages/persistence/src/index.ts",
+          "sha256": "81c00274a4e7518c857aad97951138f44ea2195ba18dcec7b399bf46c10771a7"
+        },
+        {
+          "path": "packages/persistence/src/bounds.ts",
+          "sha256": "b6a45bfec229ee87be22feb3a15b93239da09c126e0b1f95d0e9e767f2ee0361"
+        },
+        {
+          "path": "packages/persistence/src/codec.ts",
+          "sha256": "c1a2c54d2890f5d72273ce080c5bb171e4aa8fc1a4567eca56a4578b46495a86"
+        },
+        {
+          "path": "packages/persistence/src/errors.ts",
+          "sha256": "8fb9ce2bf1b69e28ec7df1dbb574593b7fc032901140709e87b382a1668b892f"
+        },
+        {
+          "path": "packages/persistence/src/memory.ts",
+          "sha256": "b5094af46a961ba752e196ad7334831af4e3326042386838911b3c21f54d283c"
+        },
+        {
+          "path": "packages/persistence/src/versioned.ts",
+          "sha256": "74ce4170f42c2efa11fc9dc55eb8c44dd285ea601db2352fd11eabb587003140"
+        },
+        {
+          "path": "packages/persistence/src/versioned-types.ts",
+          "sha256": "f4d6fbb07d0cb7b7f56fe12c6bab140aa7155fc72fbddfef9bbedb0779bfb935"
+        },
+        {
+          "path": "packages/persistence/src/types.ts",
+          "sha256": "cff4e47a437fab6d9b196096831b199dea2748b898206f387afee01a02463c9c"
+        },
+        {
+          "path": "packages/persistence/src/validation.ts",
+          "sha256": "a082bb8095ea08fba76a48b7ccf33ad3e7554f282cafcd50a47d740d2694a191"
+        },
+        {
+          "path": "tests/unit/persistence/fixtures.ts",
+          "sha256": "92da43fc0253a025b881606cff9684af455c196cf2334dbf4f516ee7c29a20e1"
+        },
+        {
+          "path": "apps/web/src/persistence/browser-versioned.ts",
+          "sha256": "5e6602e7e7e66a1310286798cf46c4221c26854cd78aae426ece6daef7902ac8"
+        },
+        {
+          "path": "tests/unit/persistence/versioned-benchmark-harness.html",
+          "sha256": "773a9a3f9f1586e258d679dd11b348195f80e39d5a57432b3bc5d3a4e5ff2525"
+        },
+        {
+          "path": "tests/unit/persistence/versioned-benchmark-harness.ts",
+          "sha256": "10c2e9e72be0a05e6c77a3b29191442fa82ab101cb7cbd405621dcc151e960c0"
+        }
+      ],
+      "sourceManifestSha256": "29a366ccc9d6ef97be35d3b6bb0a1e7555000dfc978e90c32971109d59703c52"
+    },
+    "end": {
+      "commit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+      "clean": true,
+      "lockfileSha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01",
+      "sourceManifest": [
+        {
+          "path": "package.json",
+          "sha256": "33f2ee3f39790962bd2302a26124ffcce9c94977ba4a57889fb016d4f1c3b809"
+        },
+        {
+          "path": "pnpm-lock.yaml",
+          "sha256": "dec8e86d7ca019df1343633f70e4ed93dc219b29a80e918b1e4228a59ccc8c01"
+        },
+        {
+          "path": "scripts/benchmark-persistence.mjs",
+          "sha256": "93626a109cc64ec14677642c89a55a830ff9493aa6637ff54334de53fbded7b5"
+        },
+        {
+          "path": "packages/persistence/src/index.ts",
+          "sha256": "81c00274a4e7518c857aad97951138f44ea2195ba18dcec7b399bf46c10771a7"
+        },
+        {
+          "path": "packages/persistence/src/bounds.ts",
+          "sha256": "b6a45bfec229ee87be22feb3a15b93239da09c126e0b1f95d0e9e767f2ee0361"
+        },
+        {
+          "path": "packages/persistence/src/codec.ts",
+          "sha256": "c1a2c54d2890f5d72273ce080c5bb171e4aa8fc1a4567eca56a4578b46495a86"
+        },
+        {
+          "path": "packages/persistence/src/errors.ts",
+          "sha256": "8fb9ce2bf1b69e28ec7df1dbb574593b7fc032901140709e87b382a1668b892f"
+        },
+        {
+          "path": "packages/persistence/src/memory.ts",
+          "sha256": "b5094af46a961ba752e196ad7334831af4e3326042386838911b3c21f54d283c"
+        },
+        {
+          "path": "packages/persistence/src/versioned.ts",
+          "sha256": "74ce4170f42c2efa11fc9dc55eb8c44dd285ea601db2352fd11eabb587003140"
+        },
+        {
+          "path": "packages/persistence/src/versioned-types.ts",
+          "sha256": "f4d6fbb07d0cb7b7f56fe12c6bab140aa7155fc72fbddfef9bbedb0779bfb935"
+        },
+        {
+          "path": "packages/persistence/src/types.ts",
+          "sha256": "cff4e47a437fab6d9b196096831b199dea2748b898206f387afee01a02463c9c"
+        },
+        {
+          "path": "packages/persistence/src/validation.ts",
+          "sha256": "a082bb8095ea08fba76a48b7ccf33ad3e7554f282cafcd50a47d740d2694a191"
+        },
+        {
+          "path": "tests/unit/persistence/fixtures.ts",
+          "sha256": "92da43fc0253a025b881606cff9684af455c196cf2334dbf4f516ee7c29a20e1"
+        },
+        {
+          "path": "apps/web/src/persistence/browser-versioned.ts",
+          "sha256": "5e6602e7e7e66a1310286798cf46c4221c26854cd78aae426ece6daef7902ac8"
+        },
+        {
+          "path": "tests/unit/persistence/versioned-benchmark-harness.html",
+          "sha256": "773a9a3f9f1586e258d679dd11b348195f80e39d5a57432b3bc5d3a4e5ff2525"
+        },
+        {
+          "path": "tests/unit/persistence/versioned-benchmark-harness.ts",
+          "sha256": "10c2e9e72be0a05e6c77a3b29191442fa82ab101cb7cbd405621dcc151e960c0"
+        }
+      ],
+      "sourceManifestSha256": "29a366ccc9d6ef97be35d3b6bb0a1e7555000dfc978e90c32971109d59703c52"
+    },
+    "stable": true
+  },
+  "runtime": {
+    "node": "v22.23.1",
+    "host": "darwin 25.6.0 arm64",
+    "chromium": {
+      "executablePath": "/Users/eonfolk-ci/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "version": "Google Chrome for Testing 151.0.7922.34",
+      "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e",
+      "expected": {
+        "version": "Google Chrome for Testing 151.0.7922.34",
+        "launcherSha256": "a596b1cfc6353e987fcec8d71a23a28cd6a9e7a6b4e20b908e4c4fcffe51158e"
+      },
+      "accepted": true
+    }
+  },
+  "workload": {
+    "eventsPerAppend": 1,
+    "repetitions": 5,
+    "seed": "eonfolk-persistence-benchmark-v3",
+    "transitionsPerRepetition": 128
+  },
+  "memory": {
+    "appendMedianMilliseconds": 5.947000000000003,
+    "recoveryMedianMilliseconds": 0.22820799999999508,
+    "samples": [
+      {
+        "appendMilliseconds": 8.145582999999988,
+        "recoveryMilliseconds": 0.29616699999996854
+      },
+      {
+        "appendMilliseconds": 6.3920420000000036,
+        "recoveryMilliseconds": 0.24912499999999227
+      },
+      {
+        "appendMilliseconds": 5.947000000000003,
+        "recoveryMilliseconds": 0.22779100000002472
+      },
+      {
+        "appendMilliseconds": 5.812666000000036,
+        "recoveryMilliseconds": 0.22820799999999508
+      },
+      {
+        "appendMilliseconds": 5.277999999999963,
+        "recoveryMilliseconds": 0.226791999999989
+      }
+    ]
+  },
+  "indexedDb": {
+    "available": true,
+    "appendMedianMilliseconds": 1154.6000000238419,
+    "recoveryMedianMilliseconds": 15.699999988079071,
+    "samples": [
+      {
+        "appendMilliseconds": 1216.7999999523163,
+        "recoveryMilliseconds": 17.30000001192093
+      },
+      {
+        "appendMilliseconds": 1162.8999999761581,
+        "recoveryMilliseconds": 15.699999988079071
+      },
+      {
+        "appendMilliseconds": 1154.6000000238419,
+        "recoveryMilliseconds": 15.600000023841858
+      },
+      {
+        "appendMilliseconds": 1140.800000011921,
+        "recoveryMilliseconds": 16.200000047683716
+      },
+      {
+        "appendMilliseconds": 1148,
+        "recoveryMilliseconds": 15
+      }
+    ]
+  },
+  "acceptance": {
+    "mode": "gating",
+    "assertions": {
+      "cleanSource": true,
+      "sourceStable": true,
+      "browserCohort": true,
+      "memorySamples": true,
+      "indexedDbAvailable": true,
+      "indexedDbSamples": true
+    },
+    "pass": true
+  },
+  "sqliteOpfs": {
+    "decision": "DEFER",
+    "measured": false,
+    "reason": "No SQLite dependency is authorized. OPFS needs a later measured spike."
+  },
+  "outputSha256": "1e091ace0adf5dc8d6be76883f94bd7bb95959d8bd106fc62b5f12f4581e49e5"
+}

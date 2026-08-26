@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "eonfolk-twelve-actor-presentation-stress-v1",
+  "status": "PASS",
+  "recordedAt": "2026-08-26T05:50:13.230Z",
+  "sourceCommit": "9500762b4510fcd7580b4bb9268f1c3146bafdba",
+  "sourceClean": true,
+  "environment": {
+    "node": "v22.23.1",
+    "host": "darwin 25.6.0 arm64",
+    "browser": "151.0.7922.34",
+    "executablePath": "/Users/eonfolk-ci/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+  },
+  "claimBoundary": "Non-authoritative measurement-only fixture comparing seven and twelve presentation actors over the same real generated PlayCanvas scene. The authoritative eight-citizen production benchmark retains its 16.7/33.3 ms budgets. This separate twelve-actor practicality gate requires no more than 25 ms desktop/laptop or 33.3 ms mobile p95 and no more than 25% overhead versus the identical seven-actor fixture. It does not add citizens to Reality or claim population gameplay depth.",
+  "measurements": [
+    {
+      "name": "desktop",
+      "width": 1728,
+      "height": 1117,
+      "deviceScaleFactor": 2,
+      "budget": 16.7,
+      "practicalBudget": 25,
+      "baseline": {
+        "actorCount": 7,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.299999999999727
+      },
+      "twelve": {
+        "actorCount": 12,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.200000000000273
+      },
+      "p95Ratio": 0.9892473118280154,
+      "pass": true
+    },
+    {
+      "name": "laptop",
+      "width": 1366,
+      "height": 768,
+      "deviceScaleFactor": 1,
+      "budget": 16.7,
+      "practicalBudget": 25,
+      "baseline": {
+        "actorCount": 7,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.200000000000273
+      },
+      "twelve": {
+        "actorCount": 12,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.299999999999272
+      },
+      "p95Ratio": 1.0108695652172823,
+      "pass": true
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 3,
+      "budget": 33.3,
+      "practicalBudget": 33.3,
+      "baseline": {
+        "actorCount": 7,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.100000000000364
+      },
+      "twelve": {
+        "actorCount": 12,
+        "frameSamples": 300,
+        "p95FrameMilliseconds": 9.099999999999909
+      },
+      "p95Ratio": 0.99999999999995,
+      "pass": true
+    }
+  ]
+}
