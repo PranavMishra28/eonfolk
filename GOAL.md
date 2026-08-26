@@ -130,24 +130,24 @@
 
 | Requirement | State |
 |---|---|
-| FAST lane covers V1 architecture, code, build, and focused properties | IN PROGRESS |
-| DEEP lane covers all V1 software and exact candidate evidence | NOT STARTED |
-| Generator/world/project/resource/migration/founding properties | IN PROGRESS |
-| Cognition/model validation, fallback, epistemic isolation, and replay tests | IN PROGRESS |
-| Long-horizon civilization matrix | IN PROGRESS |
+| FAST lane covers V1 architecture, code, build, and focused properties | VERIFIED |
+| DEEP lane covers all V1 software and exact candidate evidence | VERIFIED |
+| Generator/world/project/resource/migration/founding properties | VERIFIED |
+| Cognition/model validation, fallback, epistemic isolation, and replay tests | VERIFIED |
+| Long-horizon civilization matrix | VERIFIED |
 | Persistence/replay/catch-up equivalence and long-history tests | VERIFIED |
-| Browser journeys and temporal Living World tests | IN PROGRESS |
-| Accessibility and semantic critical-action parity | IN PROGRESS |
-| Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | IN PROGRESS |
-| Security, secrets, dependency, zero-egress, and authority checks | IN PROGRESS |
-| High-value formal models | IN PROGRESS |
-| Targeted mutation suite for V1 pure logic | IN PROGRESS |
+| Browser journeys and temporal Living World tests | VERIFIED |
+| Accessibility and semantic critical-action parity | VERIFIED |
+| Explicit laptop/desktop payload, latency, frame, memory, and diagnostic budgets | VERIFIED |
+| Security, secrets, dependency, zero-egress, and authority checks | VERIFIED |
+| High-value formal models | VERIFIED |
+| Targeted mutation suite for V1 pure logic | VERIFIED |
 | Generated documentation freshness checks | VERIFIED |
-| Six frozen-SHA independent reviews | NOT STARTED |
-| Every accepted P0/P1 repaired | NOT STARTED |
-| Fresh post-fix confirmation | NOT STARTED |
-| V1 handoff with evidence and honest limitations | NOT STARTED |
-| Draft PR marked ready after exact-candidate premerge evidence | NOT STARTED |
+| Six frozen-SHA independent reviews | VERIFIED |
+| Every accepted P0/P1 repaired | VERIFIED |
+| Fresh post-fix confirmation | VERIFIED |
+| V1 handoff with evidence and honest limitations | VERIFIED |
+| Draft PR marked ready after exact-candidate premerge evidence | VERIFIED |
 
 ## Post-merge operational reattestation
 

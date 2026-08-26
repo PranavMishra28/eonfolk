@@ -26,6 +26,7 @@ Each concern has one authority. Research records evidence; reviews record object
 | Planning status, gates, integrations, frozen SHA, exit checklist | [PLAN.md](../PLAN.md) |
 | Executable V1 requirement state | [GOAL.md](../GOAL.md) |
 | Exact V1 operational restart | [RESUME.md](../RESUME.md) |
+| V1 premerge evidence handoff | [V1_HANDOFF.md](../V1_HANDOFF.md) |
 | This ownership map and retained-artifact inventory | `INDEX.md` |
 | External and measured claim provenance | [SOURCE_LEDGER.md](research/SOURCE_LEDGER.md) |
 | Accepted decisions and review reconciliation | [DECISIONS.md](decisions/DECISIONS.md) |
