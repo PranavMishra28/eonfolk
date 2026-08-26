@@ -6,7 +6,7 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../../GOAL.md) owns required-state decisions.
 
-**File-set identity:** 488 files excluding this generated file; SHA-256 `0d553fcdad76094436436cc399dd9c850ca3e7e42a5e67b56f8b0b0716bee31f`.
+**File-set identity:** 489 files excluding this generated file; SHA-256 `b20f8fc59921e8ec38601572c81e17fdfee0b3a180f0db4473dde0adbe6ab443`.
 
 ## Tracked topology
 
@@ -20,7 +20,7 @@
 | Packages | 95 |
 | Repository tooling | 32 |
 | Research and reviews | 54 |
-| Root controls and configuration | 27 |
+| Root controls and configuration | 28 |
 | Tests and fixtures | 96 |
 
 ## Workspaces
@@ -52,6 +52,7 @@
 ## Root controls and configuration
 
 - `.env.example`
+- `.gitattributes`
 - `.gitignore`
 - `.gitleaks.toml`
 - `.markdownlint-cli2.jsonc`

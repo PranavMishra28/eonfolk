@@ -18,3 +18,7 @@ description = "Public bibliography-key template misclassified as a generic API k
 condition = "AND"
 paths = ['''^config/public/RESEARCH\.md$''']
 rules = ['''generic-api-key''']
+
+[[allowlists]]
+description = "Hash-bound target-Mac DEEP production bundles committed only as inert evidence bytes"
+paths = ['''^docs/exec-plans/evidence/003/release/deep-artifacts/''']
