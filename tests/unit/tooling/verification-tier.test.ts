@@ -127,21 +127,12 @@ describe("V1 CI hardening", () => {
 			'if [[ "' + "$" + '{V1_EVENT_NAME}" == "push" ]]',
 		);
 		expect(workflow).toContain('V1_READINESS_MODE="ready"');
-		expect(workflow).toContain("2462e3817a660f6c584018d0dad228a7bed4f301");
+		expect(workflow).toContain("2f4ccdd7c7a8c50c2ad1abbd8ab5e950393b8582");
 		expect(workflow).toContain(
-			'git merge-base --is-ancestor "' +
-				"$" +
-				'{V1_FROZEN_CANDIDATE_SHA}" "' +
-				"$" +
-				'{V1_BASE_HEAD}"',
+			"skipping the frozen-candidate readiness lattice",
 		);
 		expect(workflow).toContain(
-			"using the non-claiming draft readiness boundary",
-		);
-		expect(
-			readFileSync(resolve("docs/exec-plans/completed/V1_HANDOFF.md"), "utf8"),
-		).toContain(
-			"frozenCandidateSha | `2462e3817a660f6c584018d0dad228a7bed4f301`",
+			"${V1_BASE_HEAD}:docs/exec-plans/completed/GOAL.md",
 		);
 		expect(workflow).toContain('--tested-kind "' + "$" + '{V1_TESTED_KIND}"');
 		expect(workflow).toContain('--tested-head "' + "$" + '{V1_TESTED_HEAD}"');
