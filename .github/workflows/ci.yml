@@ -455,10 +455,7 @@ jobs:
           [[ "$(id -u)" -gt 0 ]]
           runner_user="$(id -un)"
           [[ "${runner_user}" =~ ^[A-Za-z0-9._-]+$ ]]
-          if ! membership_output="$(dseditgroup -o checkmember -m "${runner_user}" admin 2>&1)"; then
-            echo "dseditgroup failed while checking target-Mac runner identity" >&2
-            exit 1
-          fi
+          membership_output="$(dseditgroup -o checkmember -m "${runner_user}" admin 2>&1 || true)"
           [[ "${membership_output}" == "no ${runner_user} is NOT a member of admin" \
             || "${membership_output}" == "no ${runner_user} is NOT a member of group admin" ]]
           identity_dir="${RUNNER_TEMP}/v1-mac-identity"
