@@ -25,10 +25,10 @@ Requested another session or returned later without prompting: yes / no
 --- Log ---
 Time | Kind | Note
 -----|------|-----
-     | observed | 
+     | observed |
      | quote | ""
-     | inference | 
-     | interpretation | 
+     | inference |
+     | interpretation |
 
 First confusion:
 First meaningful action:
