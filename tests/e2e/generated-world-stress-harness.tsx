@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { GeneratedWorldCanvas } from "../../apps/web/src/generated-world-canvas";
 import { INITIAL_GENERATED_NAVIGATION } from "../../apps/web/src/generated-presentation";
+import { GeneratedWorldCanvas } from "../../apps/web/src/generated-world-canvas";
 import { buildGeneratedWorldExperience } from "../../apps/web/src/generated-world-runtime";
 
 declare global {

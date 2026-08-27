@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	V1_GENESIS_RELEASE_ID,
+	V1_GENESIS_SEED,
+	V1_GENESIS_WORLD_ID,
+} from "../../../apps/web/src/v1-genesis-runtime.js";
+import {
 	auditCivilizationState,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
@@ -10,11 +15,6 @@ import {
 	jcs,
 } from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
-import {
-	V1_GENESIS_RELEASE_ID,
-	V1_GENESIS_SEED,
-	V1_GENESIS_WORLD_ID,
-} from "../../../apps/web/src/v1-genesis-runtime.js";
 
 async function releaseGenesisWorld() {
 	return generateWorld({

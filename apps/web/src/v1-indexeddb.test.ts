@@ -1,4 +1,8 @@
 import {
+	type CivilizationExperimentRun,
+	runCivilizationExperiment,
+} from "@eonfolk/civilization";
+import {
 	hashAuthoritativeState,
 	type JsonValue,
 	RELEASE_GENESIS_CIVILIZATION_ENGINE_VERSION,
@@ -11,10 +15,6 @@ import {
 } from "@eonfolk/protocol";
 import { generateWorld } from "@eonfolk/worldgen";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import {
-	type CivilizationExperimentRun,
-	runCivilizationExperiment,
-} from "@eonfolk/civilization";
 import {
 	catchUpV1Checkpoint,
 	createV1IndexedDbStorage,

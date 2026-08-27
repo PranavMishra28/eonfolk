@@ -1,9 +1,9 @@
+import { describe, expect, it } from "vitest";
 import {
+	type CanonicalActionRef,
 	chronicleCameraComposition,
 	workToolForAction,
-	type CanonicalActionRef,
 } from "../../../packages/world-presentation/src/index.js";
-import { describe, expect, it } from "vitest";
 
 const action = (
 	kind: CanonicalActionRef["kind"],

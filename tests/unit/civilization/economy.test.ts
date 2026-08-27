@@ -1,10 +1,8 @@
-import { jcs } from "../../../packages/protocol/src/index.js";
 import { describe, expect, it } from "vitest";
-
 import {
-	CivilizationError,
 	assertCivilizationInvariants,
 	auditCivilizationState,
+	CivilizationError,
 	completeProduction,
 	registerAgreement,
 	registerHousehold,
@@ -15,12 +13,13 @@ import {
 	startProduction,
 	transferResources,
 } from "../../../packages/civilization/src/index.js";
+import { jcs } from "../../../packages/protocol/src/index.js";
 import {
 	CITIZEN_A,
 	CITIZEN_B,
+	millingRecipe,
 	SETTLEMENT,
 	SITE,
-	millingRecipe,
 	stateWithCitizenStocks,
 	stateWithResources,
 	stock,

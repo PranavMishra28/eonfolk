@@ -140,22 +140,18 @@ async function runMode(mode, browserExecutable) {
 			.locator('ul.v1-presence-roster button[data-citizen-id="citizen-01"]')
 			.click();
 		const busyMarket = await sampleFrames(page);
-		await page.getByRole("button", { name: "Sponsor this person" }).click();
+		await page.getByRole("button", { name: "Sponsor Mara" }).click();
 		await page
 			.getByRole("button", { name: "Consider an intervention" })
 			.click();
 		await page
 			.getByRole("button", {
-				name: "Verify the evidence first — delays a conclusion",
+				name: "Check the stores first",
 			})
 			.click();
 		await page
-			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-			.click();
-		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
-		await page
 			.getByRole("button", {
-				name: "Advance one day to Mara's decision boundary",
+				name: "See Mara's decision",
 			})
 			.click();
 		await page.getByRole("heading", { name: "What happened" }).waitFor();

@@ -64,11 +64,11 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 	return page.evaluate(async () => {
 		const databases = await indexedDB.databases();
 		if (
-			!databases.some(({ name }) => name === "eonfolk-generated-authority-v7")
+			!databases.some(({ name }) => name === "eonfolk-generated-authority-v8")
 		)
 			return null;
 		return await new Promise((resolve, reject) => {
-			const request = indexedDB.open("eonfolk-generated-authority-v7");
+			const request = indexedDB.open("eonfolk-generated-authority-v8");
 			request.onerror = () => reject(request.error);
 			request.onsuccess = () => {
 				const database = request.result;
@@ -558,7 +558,7 @@ test.describe
 			const externalRequests = await openFaultedWorld(page, "latency");
 			await expect(
 				page.getByRole("heading", {
-					name: "Advancing one world through its first year.",
+					name: "Opening Dawnmere…",
 				}),
 			).toBeVisible();
 			await expect(page.locator("main.v1-world")).toHaveCount(0);
@@ -591,13 +591,13 @@ test.describe
 			await page.evaluate(async () => {
 				await new Promise<void>((resolve, reject) => {
 					const deletion = indexedDB.deleteDatabase(
-						"eonfolk-generated-authority-v7",
+						"eonfolk-generated-authority-v8",
 					);
 					deletion.onsuccess = () => resolve();
 					deletion.onerror = () => reject(deletion.error);
 				});
 				await new Promise<void>((resolve, reject) => {
-					const open = indexedDB.open("eonfolk-generated-authority-v7", 1);
+					const open = indexedDB.open("eonfolk-generated-authority-v8", 1);
 					open.onsuccess = () => {
 						open.result.close();
 						resolve();
@@ -635,7 +635,7 @@ test.describe
 			await page.evaluate(
 				() =>
 					new Promise<void>((resolve, reject) => {
-						const open = indexedDB.open("eonfolk-generated-authority-v7");
+						const open = indexedDB.open("eonfolk-generated-authority-v8");
 						open.onerror = () => reject(open.error);
 						open.onsuccess = () => {
 							const database = open.result;

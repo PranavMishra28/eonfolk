@@ -1,16 +1,14 @@
-import { jcs } from "../../../packages/protocol/src/index.js";
 import { describe, expect, it } from "vitest";
-
 import {
-	CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 	arriveCitizen,
 	assertCivilizationInvariants,
+	CIVILIZATION_SOCIAL_SCHEMA_VERSION,
 	departCitizen,
 	deriveActorPressureEstimates,
 	deriveCanonicalPressures,
 	formHousehold,
-	legalCollectiveProjectAffordances,
 	leaveHousehold,
+	legalCollectiveProjectAffordances,
 	observeActorStocks,
 	registerAgreement,
 	registerCitizen,
@@ -20,6 +18,7 @@ import {
 	registerStock,
 	registerStorage,
 } from "../../../packages/civilization/src/index.js";
+import { jcs } from "../../../packages/protocol/src/index.js";
 import {
 	CITIZEN_A,
 	CITIZEN_B,

@@ -838,11 +838,11 @@ async function releaseGenesisViewportEvidence(
 		const entryWorldId = await entry.getAttribute("data-world-id");
 		const entryHeading = await page.locator("h1").first().textContent();
 		const entryLink = page.getByRole("link", {
-			name: "Enter the living world",
+			name: "Enter Dawnmere",
 		});
 		if (entryWorldId !== "eonfolk-genesis-world-v1")
 			throw new Error(`entry world identity is ${String(entryWorldId)}`);
-		if (entryHeading?.trim() !== "A civilization has already begun.")
+		if (entryHeading?.trim() !== "Follow Mara Vale. She acts for herself.")
 			throw new Error(`unexpected entry heading ${String(entryHeading)}`);
 		const entryReadyMs = performance.now() - entryNavigationStartedAt;
 		await page.screenshot({
@@ -928,22 +928,19 @@ async function releaseGenesisViewportEvidence(
 			);
 		if (
 			(await page
-				.getByRole("navigation", { name: "Settlements" })
-				.getByRole("button")
-				.count()) < 2
+				.getByRole("heading", { name: "Dawnmere", level: 1 })
+				.count()) < 1
 		)
-			failures.push(
-				"generated civilization exposes fewer than two settlements",
-			);
-		await page.getByRole("button", { name: "World in words" }).click();
+			failures.push("Dawnmere is not the first-session settlement");
+		await page.getByRole("button", { name: "In words" }).click();
 		const semantic = page.getByTestId("generated-semantic-world");
 		await semantic.waitFor({ state: "visible" });
 		const semanticResidents = semantic
-			.getByRole("group", { name: "Canonical residents" })
+			.getByRole("group", { name: "People here" })
 			.getByRole("button");
 		if ((await semanticResidents.count()) !== probe.actorCount)
 			failures.push("semantic world does not preserve resident parity");
-		await page.getByRole("button", { name: "Embodied" }).click();
+		await page.getByRole("button", { name: "Watch" }).click();
 		await canvas.waitFor({ state: "visible" });
 		await page.waitForFunction(
 			() =>

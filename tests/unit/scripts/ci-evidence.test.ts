@@ -114,7 +114,7 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(source).toContain('route: "/world"');
 		expect(source).toContain('worldId: "eonfolk-genesis-world-v1"');
 		expect(source).toContain("generated-world-canvas");
-		expect(source).toContain("actorCount === 7");
+		expect(source).toContain("actorCount === 8");
 		expect(source).toContain("canonicalPopulation === 8");
 		expect(source).toContain("visibleInteractionCount >= 1");
 		expect(source).toContain(
@@ -191,7 +191,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			parityFailure,
 		);
 		expect(parityCheck).toContain(
-			'.getByRole("group", { name: "Canonical residents" })',
+			'.getByRole("group", { name: "People here" })',
 		);
 		expect(parityCheck).toContain('.getByRole("button")');
 		expect(parityCheck).not.toContain('semantic.locator("button")');

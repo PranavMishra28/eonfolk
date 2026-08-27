@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	MEMORY_SCHEMA_VERSION,
 	buildMemoryAwareDecisionContext,
 	createMemoryStore,
+	MEMORY_SCHEMA_VERSION,
+	type MemoryKind,
 	planGroundedRoutine,
 	remember,
 	retrieveMemories,
 	standardBrain,
-	type MemoryKind,
 } from "../../../packages/cognition/src/index.js";
 import { seedPrng } from "../../../packages/protocol/src/index.js";
 import { riverholdDecisionFixture } from "../../fixtures/riverhold/index.js";

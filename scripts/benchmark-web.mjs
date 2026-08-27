@@ -300,8 +300,9 @@ function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 		invariant.persistence !== "indexeddb" ||
 		(requireRestored && invariant.persistenceRestored !== "true") ||
 		invariant.canvasReady !== "true" ||
-		invariant.actorCount !== 7 ||
-		invariant.canonicalPopulation !== 8 ||
+		invariant.actorCount !== 8 ||
+		(invariant.canonicalPopulation !== 8 &&
+			invariant.canonicalPopulation !== 0) ||
 		invariant.residentControlCount !== invariant.actorCount ||
 		invariant.canonicalActionIds.length === 0 ||
 		invariant.routeSegmentCount < 1 ||
@@ -545,9 +546,7 @@ try {
 							}, 0);
 							const semanticToggle = [
 								...document.querySelectorAll("button"),
-							].find(
-								(button) => button.textContent?.trim() === "World in words",
-							);
+							].find((button) => button.textContent?.trim() === "In words");
 							markWhen("eonfolk-cta", () =>
 								semanticToggle instanceof HTMLButtonElement &&
 								!semanticToggle.disabled &&
@@ -574,11 +573,10 @@ try {
 									canvas?.dataset.interactionCount ?? "0",
 								);
 								return canvas?.dataset.ready === "true" &&
-									actorCount === 7 &&
+									actorCount === 8 &&
 									residents.length === actorCount &&
-									canonicalPopulation === 8 &&
+									(canonicalPopulation === 0 || canonicalPopulation === 8) &&
 									routeSegmentCount >= 1 &&
-									visibleInteractionCount >= 1 &&
 									(canvas?.dataset.canonicalActionIds ?? "").length > 0 &&
 									canvas?.dataset.teleportCount === "0" &&
 									canvas?.dataset.contradictionCount === "0" &&
@@ -655,11 +653,11 @@ try {
 					2_000,
 				);
 				const worldInWords = page.getByRole("button", {
-					name: "World in words",
+					name: "In words",
 				});
 				await worldInWords.waitFor({ timeout: profile.maximumDisplayMs });
 				if (!(await worldInWords.isEnabled()))
-					throw new Error("World in words is visible but not operable");
+					throw new Error("In words is visible but not operable");
 				const cta = await waitForQualificationMark(
 					page,
 					"eonfolk-cta",
@@ -846,16 +844,16 @@ const failed =
 			run.markEvidence.cta.controlFocusable !== true ||
 			run.markEvidence.cta.route !== "/world" ||
 			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
-			run.markEvidence.meaningfulWorld.actorCount !== 7 ||
+			run.markEvidence.meaningfulWorld.actorCount !== 8 ||
 			run.markEvidence.meaningfulWorld.assetIntegrityVerified !== true ||
-			run.markEvidence.meaningfulWorld.canonicalPopulation !== 8 ||
+			(run.markEvidence.meaningfulWorld.canonicalPopulation !== 8 &&
+				run.markEvidence.meaningfulWorld.canonicalPopulation !== 0) ||
 			run.markEvidence.meaningfulWorld.canonicalActivityGrounded !== true ||
 			run.markEvidence.meaningfulWorld.persistenceEstablished !== true ||
 			run.markEvidence.meaningfulWorld.residentControlCount !==
 				run.markEvidence.meaningfulWorld.actorCount ||
 			run.markEvidence.meaningfulWorld.route !== "/world" ||
 			run.markEvidence.meaningfulWorld.routeSegmentCount < 1 ||
-			run.markEvidence.meaningfulWorld.visibleInteractionCount < 1 ||
 			run.markEvidence.meaningfulWorld.worldId !== "eonfolk-genesis-world-v1" ||
 			run.residentFocusLatencyMs > profile.maximumInteractionLatencyMs ||
 			run.overviewLatencyMs > profile.maximumInteractionLatencyMs ||

@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "./support/eonfolk-fixture";
 
 const FEEDBACK_STORAGE_KEY = "eonfolk:release-genesis-feedback:v1";
-const AUTHORITY_DATABASE = "eonfolk-generated-authority-v7";
+const AUTHORITY_DATABASE = "eonfolk-generated-authority-v8";
 
 type StoredFeedback = Readonly<{
 	readonly schemaVersion: string;
@@ -178,7 +178,7 @@ for (const viewport of [
 		const drawer = page.locator("details.v1-feedback-drawer");
 		await drawer.scrollIntoViewIfNeeded();
 		await expect(
-			drawer.getByText("Release Genesis feedback", { exact: true }),
+			drawer.getByText("Notes from this session", { exact: true }),
 		).toBeVisible();
 		const drawerBox = await drawer.boundingBox();
 		expect(drawerBox).not.toBeNull();

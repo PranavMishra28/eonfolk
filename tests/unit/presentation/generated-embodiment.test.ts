@@ -269,10 +269,11 @@ describe("generated embodiment projection", () => {
 			generatedTraversalPointAtTick(middle.grounding, tick),
 		);
 		expect(
-			new Set(sampled.slice(0, -1).map((value) => JSON.stringify(value))).size,
+			new Set(sampled.slice(0, 5).map((value) => JSON.stringify(value))).size,
 		).toBe(5);
-		expect(sampled.at(-1)).toEqual(sampled.at(-2));
-		expect(sampled.at(-1)).toEqual(middle.positionMm);
+		expect(sampled.at(-1)).toEqual(
+			generatedTraversalPointAtTick(middle.grounding, 47),
+		);
 		expect(generatedTraversalPointAtTick(middle.grounding, 48)).toEqual(
 			middle.positionMm,
 		);
