@@ -6,48 +6,48 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../exec-plans/completed/GOAL.md) owns required-state decisions as a historical V1 ledger.
 
-**File-set identity:** 534 files excluding this generated file; SHA-256 `b41f1a1abeb3742f7ba99426214fc40d2f0c75b77c7490b36dd7e0cf6f0f0a52`.
+**File-set identity:** 539 files excluding this generated file; SHA-256 `ac2bc8ef2fd92dd7139280755e67edd6a113db4e13ff2b500e0f2f64d30917b8`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 54 |
+| Application code | 56 |
 | Documentation | 91 |
 | Frozen execution evidence | 67 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
-| Packages | 95 |
+| Packages | 96 |
 | Repository tooling | 32 |
 | Research and reviews | 55 |
 | Root controls and configuration | 24 |
-| Tests and fixtures | 98 |
+| Tests and fixtures | 100 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
-| `apps/web` | `@eonfolk/web` | 42 |
+| `apps/web` | `@eonfolk/web` | 44 |
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
 | `packages/persistence` | `@eonfolk/persistence` | 12 |
 | `packages/protocol` | `@eonfolk/protocol` | 9 |
 | `packages/sim` | `@eonfolk/sim` | 10 |
-| `packages/world-presentation` | `@eonfolk/world-presentation` | 11 |
+| `packages/world-presentation` | `@eonfolk/world-presentation` | 12 |
 | `packages/worldgen` | `@eonfolk/worldgen` | 1 |
 
 ## Test cohorts
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 12 |
+| `tests/e2e` | 13 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |
 | `tests/timing` | 1 |
 | `tests/tsconfig.json` | 1 |
-| `tests/unit` | 62 |
+| `tests/unit` | 63 |
 
 ## Root controls and configuration
 

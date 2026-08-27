@@ -149,6 +149,7 @@ export function generatedNavigationReferencesExist(
 	return true;
 }
 
+const FOLLOW_CAMERA_DISTANCE_MM = 18_000;
 const MIN_CAMERA_DISTANCE_MM = 8_000;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
 const MAX_CAMERA_PAN_MM = 150_000;
@@ -268,7 +269,7 @@ export function reduceGeneratedNavigation(
 			return Object.freeze({
 				...state,
 				followCitizen: !state.followCitizen,
-				distanceMm: state.followCitizen ? 9_000 : MIN_CAMERA_DISTANCE_MM,
+				distanceMm: state.followCitizen ? 9_000 : FOLLOW_CAMERA_DISTANCE_MM,
 			});
 		case "zoom":
 			return Object.freeze({
@@ -398,10 +399,13 @@ export function cameraIntentForGeneratedNavigation(
 		const actor = model.actors.find(
 			(candidate) => candidate.citizenId === citizenId,
 		);
-		if (actor === undefined) throw new Error("Citizen not visible");
-		targetMm = actor.positionMm;
-		followCitizenId = state.followCitizen ? actor.citizenId : null;
-		semanticLabel = `${state.followCitizen ? "Following" : "Viewing"} ${actor.name}: ${actor.semanticLabel}`;
+		if (actor === undefined) {
+			semanticLabel = "This person is no longer in this settlement";
+		} else {
+			targetMm = actor.positionMm;
+			followCitizenId = state.followCitizen ? actor.citizenId : null;
+			semanticLabel = `${state.followCitizen ? "Following" : "Viewing"} ${actor.name}: ${actor.semanticLabel}`;
+		}
 	} else if (state.focus.kind === "building") {
 		const buildingId = state.focus.buildingId;
 		const building = projection.local.buildings.find(

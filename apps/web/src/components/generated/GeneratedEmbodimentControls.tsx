@@ -252,7 +252,7 @@ export function GeneratedEmbodimentControls({
 										})
 									}
 								>
-									{building.buildingKind}
+									{building.semanticLabel}
 								</button>
 							</li>
 						);

@@ -313,6 +313,7 @@ function GeneratedCamera({
 						actor,
 						reducedMotion ? 48 : presentationTick,
 					);
+		const following = Boolean(navigation.followCitizen && actorPoint);
 		const socialInteraction = compact
 			? projection.spatial.interactions[0]
 			: undefined;
@@ -364,22 +365,26 @@ function GeneratedCamera({
 					: {
 							...actorPoint,
 							y: actorPoint.y + 1_000,
-							z:
-								actorPoint.z -
-								((host.current?.clientWidth ?? 800) < 600 ? 800 : 2_400),
+							z: following
+								? actorPoint.z
+								: actorPoint.z - (compact ? 800 : 2_400),
 						},
 			yawDegrees:
 				focus.kind === "overview"
 					? requested.yawDegrees + OVERVIEW_YAW_OFFSET_DEGREES
-					: focus.kind === "citizen"
-						? requested.yawDegrees + 48
-						: requested.yawDegrees,
+					: following
+						? requested.yawDegrees
+						: focus.kind === "citizen"
+							? requested.yawDegrees + 48
+							: requested.yawDegrees,
 			pitchDegrees:
 				focus.kind === "overview"
 					? requested.pitchDegrees + OVERVIEW_PITCH_OFFSET_DEGREES
-					: focus.kind === "citizen"
-						? requested.pitchDegrees + 14
-						: requested.pitchDegrees,
+					: following
+						? requested.pitchDegrees
+						: focus.kind === "citizen"
+							? requested.pitchDegrees + 14
+							: requested.pitchDegrees,
 			distanceMm:
 				focus.kind === "overview"
 					? socialPoint === undefined
@@ -391,6 +396,7 @@ function GeneratedCamera({
 		frame,
 		model.actors,
 		navigation.focus,
+		navigation.followCitizen,
 		presentationTick,
 		projection,
 		reducedMotion,
@@ -1295,10 +1301,22 @@ function CitizenNameOverlay({
 					({ citizenId }) => citizenId === target.id,
 				);
 				if (actor === undefined) return null;
+				const hostEl = host.current;
+				const width = hostEl?.clientWidth ?? 0;
+				const height = hostEl?.clientHeight ?? 0;
+				const pad = 16;
+				const left =
+					width <= pad * 2
+						? target.x
+						: Math.max(pad, Math.min(target.x, width - pad));
+				const top =
+					height <= pad * 2
+						? target.y
+						: Math.max(pad, Math.min(target.y, height - pad));
 				return (
 					<li
 						key={target.id}
-						style={{ left: target.x, top: target.y }}
+						style={{ left, top }}
 						data-sponsored={actor.name === "Mara Vale" ? "true" : undefined}
 					>
 						<button

@@ -1,4 +1,7 @@
-import type { CivilizationState } from "@eonfolk/civilization";
+import {
+	type CivilizationState,
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
+} from "@eonfolk/civilization";
 import {
 	buildCivilizationCounselDecisionContext,
 	type CivilizationSponsorEventEnvelope,
@@ -31,6 +34,12 @@ import {
 	type WorldCommandPayload,
 } from "@eonfolk/protocol";
 import { projectCivilizationChronicle } from "@eonfolk/sim/civilization-chronicle";
+import {
+	projectDisplayName,
+	relationshipKindDisplayName,
+	valueDisplayName,
+} from "@eonfolk/world-presentation";
+import { withAuthorityWriter } from "./authority-writer";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import { GENERATED_CIVILIZATION_RUN_ID } from "./persistence/generated-civilization";
 
@@ -95,6 +104,7 @@ export interface GeneratedCounselContext {
 	readonly verifyStake: string;
 	readonly accuseStake: string;
 	readonly abstainStake: string;
+	readonly hasAllegation: boolean;
 }
 
 export interface GeneratedBranchNextAction {
@@ -203,9 +213,11 @@ function chronicleEventContext(input: {
 		);
 		objectId = building?.buildingId ?? project?.projectId ?? null;
 		objectName =
-			building?.buildingKind ??
-			project?.name ??
-			readable(stock?.stockId ?? "reserve");
+			building === undefined
+				? project === undefined
+					? readable(stock?.stockId ?? "reserve")
+					: projectDisplayName(project.name)
+				: building.buildingKind.replaceAll("-", " ");
 	} else if (
 		fact !== undefined &&
 		"effect" in fact &&
@@ -265,28 +277,72 @@ function counselContext(
 		)
 		.reduce((total, stock) => total + stock.quantity, 0);
 	const relatedName = relatedCitizen?.name ?? "a neighbor";
+	const residents = Object.values(civilization.citizens).filter(
+		(candidate) =>
+			candidate.residenceState === "resident" &&
+			candidate.settlementId === citizen.settlementId,
+	);
+	const dailyWaterNeed = residents.reduce(
+		(total, candidate) => total + candidate.waterRequiredUnitsPerDay,
+		0,
+	);
+	const daysOfWater =
+		dailyWaterNeed > 0 ? Math.floor(waterUnits / dailyWaterNeed) : 0;
+	const traveller =
+		civilization.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID];
+	const migration = civilization.migrations["migration-founding-party"];
+	const departureBeat =
+		traveller !== undefined &&
+		(migration?.state === "planned" ||
+			migration?.state === "travelling" ||
+			traveller.residenceState !== "resident")
+			? traveller
+			: undefined;
+	const hasAllegation = allegation !== undefined;
+	const fact =
+		departureBeat === undefined
+			? daysOfWater >= 7
+				? "Dawnmere's water stores are not in crisis. No theft is recorded."
+				: `Dawnmere has about ${String(daysOfWater)} day${daysOfWater === 1 ? "" : "s"} of water at the current daily need. No theft is recorded.`
+			: migration?.state === "planned"
+				? `${departureBeat.name} is preparing to leave Dawnmere for a second founding.`
+				: `${departureBeat.name} has left Dawnmere. This is a named departure, not a silent roster change.`;
+	const recordedBelief = evidence[0]?.proposition;
+	const falseWaterCrisis =
+		recordedBelief !== undefined &&
+		/only one day of prepared water/iu.test(recordedBelief) &&
+		daysOfWater >= 7;
+	const belief =
+		recordedBelief !== undefined && !falseWaterCrisis
+			? recordedBelief
+			: departureBeat === undefined
+				? `${citizen.name} has not recorded a crisis at this boundary.`
+				: `${citizen.name} can see ${departureBeat.name}'s departure taking shape.`;
 	return Object.freeze({
 		authorityStateHash,
 		citizenName: citizen.name,
-		fact: `Dawnmere holds ${String(waterUnits)} units of prepared water. No theft is recorded.`,
-		belief:
-			evidence[0]?.proposition ??
-			"The settlement has only one day of prepared water.",
-		allegation:
-			allegation?.proposition ??
-			`No one is accused. There is no allegation against ${relatedName}.`,
-		values: mind.values.map(({ valueId }) => readable(valueId)),
+		fact,
+		belief,
+		allegation: hasAllegation
+			? (allegation?.proposition ?? "")
+			: `No one is accused. There is no allegation against ${relatedName}.`,
+		values: mind.values.map(({ valueId }) => valueDisplayName(valueId)),
 		relationship:
 			relatedCitizen === undefined
 				? `${citizen.name} has no recorded close relationship at this boundary.`
-				: `${citizen.name} and ${relatedName} are ${relatedKind ?? "close"}; they share the water worry.`,
+				: `${citizen.name} and ${relatedName} are ${relationshipKindDisplayName(relatedKind ?? "friend")}.`,
 		standingPlan: `${citizen.name} is continuing her day's work.`,
 		uncertainty:
-			"Whether the stores will last is still unknown. The record does not name a culprit.",
+			departureBeat === undefined
+				? "No shortage or accusation is recorded at this boundary."
+				: `Whether ${departureBeat.name}'s second founding will take hold is still unknown.`,
 		verifyStake:
-			"Checking the stores first can add a sourced count, but it delays speaking up.",
-		accuseStake: `Raising this with ${relatedName} can bring the shortage into the open, and it can strain the friendship.`,
+			"Checking the stores first can add a sourced count before any other move.",
+		accuseStake: hasAllegation
+			? `Raising this with ${relatedName} can bring the recorded claim into the open, and it can strain the friendship.`
+			: `There is no allegation to raise with ${relatedName}.`,
 		abstainStake: `${citizen.name} keeps her own plan. You take no credit for what she does next.`,
+		hasAllegation,
 	});
 }
 
@@ -351,21 +407,23 @@ export function assertGeneratedSponsorBoundaryAdmission(input: {
 export async function sponsorGeneratedCitizen(
 	input: GeneratedSponsorInput,
 ): Promise<GeneratedSponsorshipResult> {
-	const port = await BrowserVersionedPersistence.open({
-		factory: input.indexedDbFactory,
-		databaseName: input.databaseName,
+	return await withAuthorityWriter(async () => {
+		const port = await BrowserVersionedPersistence.open({
+			factory: input.indexedDbFactory,
+			databaseName: input.databaseName,
+		});
+		const scope = {
+			runId: GENERATED_CIVILIZATION_RUN_ID,
+			regionId: input.regionId,
+		};
+		try {
+			return await port.session(scope, async () =>
+				sponsorGeneratedCitizenInValidatedSession(input, port, scope),
+			);
+		} finally {
+			port.close();
+		}
 	});
-	const scope = {
-		runId: GENERATED_CIVILIZATION_RUN_ID,
-		regionId: input.regionId,
-	};
-	try {
-		return await port.session(scope, async () =>
-			sponsorGeneratedCitizenInValidatedSession(input, port, scope),
-		);
-	} finally {
-		port.close();
-	}
 }
 
 async function sponsorGeneratedCitizenInValidatedSession(
@@ -989,8 +1047,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 							? {
 									id: "investigate-uncertainty",
 									label: "Inspect the verified reserve context",
-									description:
-										"The reserve count is recorded; motive and wrongdoing remain unproven.",
+									description: "The reserve count is recorded.",
 									focus: {
 										kind: "object",
 										objectId: eventContext.objectId,

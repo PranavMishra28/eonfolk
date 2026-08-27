@@ -1,3 +1,9 @@
+import {
+	buildingKindDisplayName,
+	placeKindPhrase,
+	siteKindPhrase,
+} from "./display-names";
+
 type TerrainKind =
 	| "water"
 	| "wetland"
@@ -803,7 +809,7 @@ function projectSite(site: SiteState): GeneratedSiteProjection {
 		placeIds: sortedIds(site.placeIds),
 		buildingIds: sortedIds(site.buildingIds),
 		interactionSlotIds: sortedIds(site.interactionSlotIds),
-		semanticLabel: `${site.name}, a ${humanize(site.kind).toLowerCase()} site`,
+		semanticLabel: `${site.name}, ${siteKindPhrase(site.kind)} site`,
 	});
 }
 
@@ -816,7 +822,7 @@ function projectPlace(place: PlaceState): GeneratedPlaceProjection {
 		kind: place.kind,
 		position: metricPoint(place.position),
 		interactionSlotIds: sortedIds(place.interactionSlotIds),
-		semanticLabel: `${place.name}, a ${humanize(place.kind).toLowerCase()} place`,
+		semanticLabel: `${place.name}, ${placeKindPhrase(place.kind)} place`,
 	});
 }
 
@@ -833,7 +839,7 @@ function projectBuilding(
 		entranceSlotId: building.entranceSlotId,
 		conditionBasisPoints: building.conditionBasisPoints,
 		capacity: building.capacity,
-		semanticLabel: `${humanize(building.buildingKind)} at ${site.name}`,
+		semanticLabel: `${buildingKindDisplayName(building.buildingKind)} at ${site.name}`,
 	});
 }
 
@@ -956,7 +962,7 @@ function followTargets(input: {
 				extentX: DEFAULT_FOLLOW_EXTENT_MILLIMETERS,
 				extentY: DEFAULT_FOLLOW_EXTENT_MILLIMETERS,
 				extentElevation: DEFAULT_FOLLOW_EXTENT_MILLIMETERS,
-				semanticLabel: `Follow activity at the ${humanize(building.buildingKind).toLowerCase()}`,
+				semanticLabel: `Follow activity at the ${buildingKindDisplayName(building.buildingKind).toLowerCase()}`,
 			}),
 		);
 	}

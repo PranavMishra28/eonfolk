@@ -1,10 +1,12 @@
-import type {
-	AnimationClass,
-	GeneratedCivilizationSpatialProjection,
-	GeneratedSpatialActivityInput,
-	PropKind,
-	SpatialActorProjection,
-	SpatialPointMm,
+import {
+	type AnimationClass,
+	type GeneratedCivilizationSpatialProjection,
+	type GeneratedSpatialActivityInput,
+	type PropKind,
+	projectDisplayName,
+	projectStateDisplayName,
+	type SpatialActorProjection,
+	type SpatialPointMm,
 } from "@eonfolk/world-presentation";
 
 export const GENERATED_EMBODIMENT_SCHEMA_VERSION =
@@ -525,10 +527,10 @@ function projectDeltas(
 				changed,
 				semanticLabel:
 					prior === undefined
-						? `${project.name}: ${project.state}; current checkpoint baseline`
+						? `${projectDisplayName(project.name)}: ${projectStateDisplayName(project.state)}; current checkpoint baseline`
 						: changed
-							? `${project.name}: ${prior.state} to ${project.state}; ${progressDeltaBasisPoints >= 0 ? "+" : ""}${Math.round(progressDeltaBasisPoints / 100)}% progress`
-							: `${project.name}: ${project.state}; no change in this interval`,
+							? `${projectDisplayName(project.name)}: ${projectStateDisplayName(prior.state)} to ${projectStateDisplayName(project.state)}; ${progressDeltaBasisPoints >= 0 ? "+" : ""}${Math.round(progressDeltaBasisPoints / 100)}% progress`
+							: `${projectDisplayName(project.name)}: ${projectStateDisplayName(project.state)}; no change in this interval`,
 			});
 		}),
 	);

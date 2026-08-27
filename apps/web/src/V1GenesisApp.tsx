@@ -1,4 +1,7 @@
-import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
+import {
+	countNoun,
+	type GeneratedCivilizationSpatialProjection,
+} from "@eonfolk/world-presentation";
 import {
 	lazy,
 	Suspense,
@@ -28,18 +31,27 @@ import type {
 } from "./generated-sponsor-runtime";
 import {
 	advanceGeneratedWorldLiveDay,
+	catchUpGeneratedWorldReturnDays,
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
-import type { GeneratedWorldExperience } from "./generated-world-runtime";
+import type {
+	GeneratedWorldExperience,
+	GeneratedWorldHappening,
+} from "./generated-world-runtime";
 import {
 	authorityDayIntervalMs,
+	clearPendingReturnCatchUp,
 	type PlayRate,
 	presentationIntervalMs,
 	proposedReturnCatchUpDays,
+	readLastActiveWallMs,
+	readPendingReturnCatchUp,
+	returnCatchUpOperationId,
 	writeLastActiveWallMs,
+	writePendingReturnCatchUp,
 } from "./play-clock";
 import {
 	buildWorldFocusHref,
@@ -117,6 +129,10 @@ function useGeneratedExperience(
 	readonly error: Error | null;
 	readonly refresh: (expectedStateHash?: string) => Promise<void>;
 	readonly advanceDay: () => Promise<void>;
+	readonly catchUpDays: (input: {
+		readonly operationId: string;
+		readonly additionalDays: number;
+	}) => Promise<void>;
 } {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
@@ -155,6 +171,15 @@ function useGeneratedExperience(
 	const advanceDay = useCallback(async () => {
 		setExperience(await advanceGeneratedWorldLiveDay());
 	}, []);
+	const catchUpDays = useCallback(
+		async (input: {
+			readonly operationId: string;
+			readonly additionalDays: number;
+		}) => {
+			setExperience(await catchUpGeneratedWorldReturnDays(input));
+		},
+		[],
+	);
 	return {
 		experience,
 		error,
@@ -174,6 +199,7 @@ function useGeneratedExperience(
 			);
 		},
 		advanceDay,
+		catchUpDays,
 	};
 }
 
@@ -348,7 +374,8 @@ function SemanticSettlement({
 				<p>
 					{projection.local.semanticCounts.sites} places,{" "}
 					{projection.local.semanticCounts.routes} paths, and{" "}
-					{projection.spatial.actors.length} people at work.
+					{countNoun(projection.spatial.actors.length, "person", "people")} at
+					work.
 				</p>
 			</div>
 			<GeneratedEmbodimentControls
@@ -399,7 +426,15 @@ function SettlementOverview({
 		>
 			<header>
 				<p className="v1-kicker">CIVILIZATION OVERVIEW</p>
-				<h2>One world, {experience.settlementCount} inhabited places.</h2>
+				<h2>
+					One world,{" "}
+					{countNoun(
+						experience.settlementCount,
+						"inhabited place",
+						"inhabited places",
+					)}
+					.
+				</h2>
 			</header>
 			<div className="generated-settlement-cards">
 				{experience.projections.map((projection) => (
@@ -412,7 +447,14 @@ function SettlementOverview({
 						<h3>{projection.local.settlement.name}</h3>
 						<p>{projection.local.settlement.semanticLabel}</p>
 						<ul>
-							<li>{projection.spatial.actors.length} people at work</li>
+							<li>
+								{countNoun(
+									projection.spatial.actors.length,
+									"person",
+									"people",
+								)}{" "}
+								at work
+							</li>
 							<li>{projection.local.semanticCounts.sites} places</li>
 							<li>{projection.projects.length} works in progress</li>
 						</ul>
@@ -591,6 +633,7 @@ function GeneratedContextPanel({
 	activeCounselIntent,
 	persistenceAvailable,
 	onAuthorityCommitted,
+	happenings,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -616,6 +659,7 @@ function GeneratedContextPanel({
 	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly persistenceAvailable: boolean;
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
+	readonly happenings: readonly GeneratedWorldHappening[];
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -677,8 +721,8 @@ function GeneratedContextPanel({
 			? {
 					kind: "building",
 					id: selectedBuilding.buildingId,
-					name: selectedBuilding.buildingKind,
-					status: `In ${Math.round(selectedBuilding.conditionBasisPoints / 100)}% condition · holds ${selectedBuilding.capacity}.`,
+					name: selectedBuilding.semanticLabel,
+					status: `In ${Math.round(selectedBuilding.conditionBasisPoints / 100)}% condition · holds ${String(selectedBuilding.capacity)}.`,
 				}
 			: selectedProject === undefined
 				? undefined
@@ -686,7 +730,7 @@ function GeneratedContextPanel({
 						kind: "project",
 						id: selectedProject.projectId,
 						name: selectedProject.name,
-						status: `${Math.round(selectedProject.progressBasisPoints / 100)}% complete.`,
+						status: selectedProject.semanticLabel,
 					};
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
@@ -711,7 +755,14 @@ function GeneratedContextPanel({
 	}, [selectedCitizenId]);
 	useEffect(() => {
 		if (selectedCitizenId !== sponsorCitizenId) return;
-		setSponsorStatus(sponsorPhase);
+		setSponsorStatus((current) =>
+			current === "confirming" ||
+			current === "saving" ||
+			current === "counseling" ||
+			current === "returning"
+				? current
+				: sponsorPhase,
+		);
 		setActiveIntent(activeCounselIntent ?? "verify-reserve");
 	}, [activeCounselIntent, selectedCitizenId, sponsorCitizenId, sponsorPhase]);
 	const commitSponsor = (
@@ -862,9 +913,42 @@ function GeneratedContextPanel({
 							</p>
 						) : null}
 						<p>
-							{model.actors.length} lives are unfolding at once. Select someone
-							to move from the settlement view into their immediate work.
+							{countNoun(
+								model.actors.length,
+								"life is unfolding",
+								"lives are unfolding",
+							)}{" "}
+							at once. Select someone to move from the settlement view into
+							their immediate work.
 						</p>
+						{happenings.length === 0 ? null : (
+							<ul className="v1-happening-list" aria-label="Named happenings">
+								{happenings.map((happening) => (
+									<li
+										key={happening.happeningId}
+										data-happening-id={happening.happeningId}
+									>
+										<strong>{happening.title}.</strong> {happening.summary}
+										{happening.citizenId === null ||
+										!model.actors.some(
+											(actor) => actor.citizenId === happening.citizenId,
+										) ? null : (
+											<button
+												type="button"
+												onClick={() =>
+													dispatch({
+														type: "select-citizen",
+														citizenId: happening.citizenId as string,
+													})
+												}
+											>
+												Find {happening.citizenName}
+											</button>
+										)}
+									</li>
+								))}
+							</ul>
+						)}
 						<ul className="v1-activity-summary" aria-label="Visible activities">
 							{[...activityCounts].map(([activity, count]) => (
 								<li key={activity}>
@@ -896,9 +980,9 @@ function GeneratedContextPanel({
 						</p>
 						{canSponsor ? (
 							<p>
-								<strong>Current tension:</strong> the settlement has only one
-								day of prepared water, and Iven shares that worry. Advice is
-								optional.
+								<strong>Current tension:</strong>{" "}
+								{happenings[0]?.summary ??
+									"Mara can be sponsored. Counsel is a visible next step, not a silent label."}
 							</p>
 						) : (
 							<p>
@@ -936,16 +1020,19 @@ function GeneratedContextPanel({
 										sponsorStatus === "confirming" ||
 										sponsorStatus === "counseled"
 									}
-									onClick={() =>
-										sponsorStatus === "resolved" ||
-										sponsorStatus === "abstained"
-											? commitSponsor("establish")
-											: sponsorStatus === "sponsored"
-												? counselContext === null
-													? commitSponsor("establish", activeIntent, true)
-													: setSponsorStatus("confirming")
-												: commitSponsor("establish")
-									}
+									onClick={() => {
+										if (sponsorStatus === "confirming") return;
+										if (
+											sponsorStatus === "resolved" ||
+											sponsorStatus === "abstained"
+										)
+											commitSponsor("establish");
+										else if (sponsorStatus === "sponsored")
+											counselContext === null
+												? commitSponsor("establish", activeIntent, true)
+												: setSponsorStatus("confirming");
+										else commitSponsor("establish", activeIntent, true);
+									}}
 								>
 									{sponsorStatus === "saving"
 										? "Establishing…"
@@ -1000,18 +1087,21 @@ function GeneratedContextPanel({
 								{counselContext === null ? null : (
 									<p>{counselContext.verifyStake}</p>
 								)}
-								<button
-									type="button"
-									disabled={authorityRefreshing}
-									onClick={() => {
-										setActiveIntent("accuse-publicly");
-										commitSponsor("counsel", "accuse-publicly");
-									}}
-								>
-									Raise this with Iven
-								</button>
-								{counselContext === null ? null : (
-									<p>{counselContext.accuseStake}</p>
+								{counselContext === null ||
+								!counselContext.hasAllegation ? null : (
+									<>
+										<button
+											type="button"
+											disabled={authorityRefreshing}
+											onClick={() => {
+												setActiveIntent("accuse-publicly");
+												commitSponsor("counsel", "accuse-publicly");
+											}}
+										>
+											Raise this with Iven
+										</button>
+										<p>{counselContext.accuseStake}</p>
+									</>
 								)}
 								<button
 									type="button"
@@ -1166,7 +1256,9 @@ function GeneratedContextPanel({
 							type="button"
 							data-citizen-id={actor.citizenId}
 							data-sponsored={
-								actor.citizenId === sponsorCitizenId ? "true" : undefined
+								actor.citizenId === sponsorCitizenId && sponsorPhase !== "idle"
+									? "true"
+									: undefined
 							}
 							aria-pressed={selectedActor?.citizenId === actor.citizenId}
 							onClick={() =>
@@ -1178,7 +1270,9 @@ function GeneratedContextPanel({
 						>
 							<strong>
 								{actor.name}
-								{actor.citizenId === sponsorCitizenId ? " · sponsored" : ""}
+								{actor.citizenId === sponsorCitizenId && sponsorPhase !== "idle"
+									? " · sponsored"
+									: ""}
 							</strong>
 							<span>{actorActivity(actor, projection)}</span>
 						</button>
@@ -1208,11 +1302,16 @@ function GeneratedWorld({
 	fault,
 	onAuthorityRefresh,
 	onAdvanceDay,
+	onCatchUpDays,
 }: {
 	readonly experience: GeneratedWorldExperience;
 	readonly fault: GeneratedWorldFaultSpec | null;
 	readonly onAuthorityRefresh: (expectedStateHash?: string) => Promise<void>;
 	readonly onAdvanceDay: () => Promise<void>;
+	readonly onCatchUpDays: (input: {
+		readonly operationId: string;
+		readonly additionalDays: number;
+	}) => Promise<void>;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
@@ -1222,6 +1321,9 @@ function GeneratedWorld({
 	const [presentationTick, setPresentationTick] = useState(0);
 	const presentationPlaying = playRate !== 0;
 	const advancingDay = useRef(false);
+	const catchingUp = useRef(false);
+	const experienceRef = useRef(experience);
+	experienceRef.current = experience;
 	const [catchUpProposal, setCatchUpProposal] = useState(0);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
 	const [rebuildState, setRebuildState] = useState<
@@ -1290,6 +1392,7 @@ function GeneratedWorld({
 	);
 	const focusWorldTarget = useCallback(
 		(focus: WorldFocus, updateHistory = true) => {
+			const currentExperience = experienceRef.current;
 			const href = buildWorldFocusHref(focus)!;
 			if (focus.kind === "event") {
 				eventFocusRequest.current = focus.eventId;
@@ -1301,8 +1404,8 @@ function GeneratedWorld({
 					.then(({ loadGeneratedChronicleEventFocus }) =>
 						loadGeneratedChronicleEventFocus({
 							eventId: focus.eventId,
-							regionId: experience.authorityRegionId,
-							databaseName: experience.authorityDatabaseName,
+							regionId: currentExperience.authorityRegionId,
+							databaseName: currentExperience.authorityDatabaseName,
 						}),
 					)
 					.then((context) => {
@@ -1312,10 +1415,11 @@ function GeneratedWorld({
 							reportNavigationRejection("foreign-reference");
 							return;
 						}
-						const settlement = experience.embodiments.find((candidate) =>
-							candidate.actors.some(
-								({ citizenId }) => citizenId === context.citizenId,
-							),
+						const settlement = experienceRef.current.embodiments.find(
+							(candidate) =>
+								candidate.actors.some(
+									({ citizenId }) => citizenId === context.citizenId,
+								),
 						);
 						if (settlement === undefined) {
 							setFocusedEventId(null);
@@ -1342,8 +1446,9 @@ function GeneratedWorld({
 			setFocusedEventId(null);
 			setFocusedEventContext(null);
 			const targetId = worldFocusId(focus);
-			const matches = experience.projections.flatMap((candidate) => {
-				const settlement = experience.embodiments.find(
+			const latest = experienceRef.current;
+			const matches = latest.projections.flatMap((candidate) => {
+				const settlement = latest.embodiments.find(
 					({ settlementId }) =>
 						settlementId === candidate.local.settlement.settlementId,
 				);
@@ -1392,7 +1497,7 @@ function GeneratedWorld({
 			if (match.kind === "location") setView("semantic");
 			if (updateHistory) window.history.pushState(null, "", href);
 		},
-		[experience, reportNavigationRejection],
+		[reportNavigationRejection],
 	);
 	useEffect(() => {
 		const applyLocationFocus = () => {
@@ -1434,19 +1539,33 @@ function GeneratedWorld({
 
 	useEffect(() => {
 		const interval = authorityDayIntervalMs(playRate);
-		if (interval === null || experience.sponsorPhase !== "idle") return;
+		if (interval === null || catchUpProposal > 0 || catchingUp.current) return;
 		const id = window.setInterval(() => {
-			if (advancingDay.current) return;
+			if (advancingDay.current || catchingUp.current) return;
 			advancingDay.current = true;
-			void onAdvanceDay().finally(() => {
-				advancingDay.current = false;
-			});
+			void onAdvanceDay()
+				.then(() => {
+					writeLastActiveWallMs();
+				})
+				.catch(() => undefined)
+				.finally(() => {
+					advancingDay.current = false;
+				});
 		}, interval);
 		return () => window.clearInterval(id);
-	}, [experience.sponsorPhase, onAdvanceDay, playRate]);
+	}, [catchUpProposal, onAdvanceDay, playRate]);
 
 	useEffect(() => {
-		setCatchUpProposal(proposedReturnCatchUpDays());
+		setCatchUpProposal(
+			proposedReturnCatchUpDays(
+				Date.now(),
+				readLastActiveWallMs(),
+				experience.horizonDays,
+			),
+		);
+	}, [experience.horizonDays]);
+
+	useEffect(() => {
 		const persist = () => writeLastActiveWallMs();
 		window.addEventListener("pagehide", persist);
 		const onVisibility = () => {
@@ -1577,6 +1696,10 @@ function GeneratedWorld({
 		!rendererFailed &&
 		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
+	const clockLocked = experience.persistence.kind !== "indexeddb";
+	const clockLockReason = clockLocked
+		? "Time controls need local storage."
+		: undefined;
 	const togglePresentation = () =>
 		setPlayRate((rate) => {
 			const next = rate === 0 ? 1 : 0;
@@ -1614,6 +1737,7 @@ function GeneratedWorld({
 			activeCounselIntent={experience.activeCounselIntent}
 			persistenceAvailable={experience.persistence.kind === "indexeddb"}
 			onAuthorityCommitted={onAuthorityRefresh}
+			happenings={experience.happenings}
 		/>
 	);
 
@@ -1639,6 +1763,9 @@ function GeneratedWorld({
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-play-rate={String(playRate)}
+			data-horizon-days={String(experience.horizonDays)}
+			data-sponsor-phase={experience.sponsorPhase}
+			data-catch-up-proposal={String(catchUpProposal)}
 			data-navigation-rejection={navigationRejection ?? undefined}
 			data-focused-event-id={focusedEventId ?? undefined}
 			onClick={(event) => {
@@ -1667,14 +1794,24 @@ function GeneratedWorld({
 					<p className="v1-kicker">A LIVING SETTLEMENT</p>
 					<h1>{projection.local.settlement.name}</h1>
 					<p>
-						Day {experience.horizonDays} · {projection.spatial.actors.length}{" "}
-						people
+						Day {experience.horizonDays} ·{" "}
+						{countNoun(projection.spatial.actors.length, "person", "people")}
 					</p>
+					{experience.happenings.length === 0 ? null : (
+						<p
+							className="v1-world-happening"
+							data-happening-id={experience.happenings[0]?.happeningId}
+						>
+							{experience.happenings[0]?.title}
+						</p>
+					)}
 				</div>
 				<nav className="v1-view-controls" aria-label="Time">
 					<button
 						type="button"
 						aria-pressed={playRate === 0}
+						disabled={clockLocked}
+						title={clockLockReason}
 						onClick={() => {
 							writeLastActiveWallMs();
 							setPlayRate(0);
@@ -1685,6 +1822,8 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 1}
+						disabled={clockLocked}
+						title={clockLockReason}
 						onClick={() => setPlayRate(1)}
 					>
 						Play
@@ -1692,6 +1831,8 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 3}
+						disabled={clockLocked}
+						title={clockLockReason}
 						onClick={() => setPlayRate(3)}
 					>
 						Faster
@@ -1747,24 +1888,62 @@ function GeneratedWorld({
 					</details>
 				</nav>
 			</header>
-			{catchUpProposal > 0 && experience.sponsorPhase === "idle" ? (
+			{catchUpProposal > 0 ? (
 				<p className="renderer-note" role="status">
 					You were away. {catchUpProposal} day
 					{catchUpProposal === 1 ? "" : "s"} can pass if you choose.{" "}
 					<button
 						type="button"
+						disabled={clockLocked}
 						onClick={() => {
+							const pending = readPendingReturnCatchUp();
+							const currentDay = experience.horizonDays;
 							const days = catchUpProposal;
-							setCatchUpProposal(0);
-							void (async () => {
-								for (let day = 0; day < days; day += 1) await onAdvanceDay();
-								writeLastActiveWallMs();
-							})();
+							if (days < 1) return;
+							const lastActive = readLastActiveWallMs() ?? Date.now();
+							const operationId =
+								pending?.operationId ?? returnCatchUpOperationId(lastActive);
+							writePendingReturnCatchUp({
+								operationId,
+								fromDay: pending?.fromDay ?? currentDay,
+								toDay: pending?.toDay ?? currentDay + days,
+								lastActiveMs: pending?.lastActiveMs ?? lastActive,
+							});
+							catchingUp.current = true;
+							void onCatchUpDays({
+								operationId,
+								additionalDays: days,
+							})
+								.then(() => {
+									clearPendingReturnCatchUp();
+									writeLastActiveWallMs();
+									setCatchUpProposal(0);
+								})
+								.catch(() => {
+									setCatchUpProposal(
+										proposedReturnCatchUpDays(
+											Date.now(),
+											readLastActiveWallMs(),
+											experienceRef.current.horizonDays,
+										),
+									);
+								})
+								.finally(() => {
+									catchingUp.current = false;
+								});
 						}}
 					>
 						Let those days pass
 					</button>{" "}
-					<button type="button" onClick={() => setCatchUpProposal(0)}>
+					<button
+						type="button"
+						onClick={() => {
+							setPlayRate(0);
+							writeLastActiveWallMs();
+							clearPendingReturnCatchUp();
+							setCatchUpProposal(0);
+						}}
+					>
 						Stay on this day
 					</button>
 				</p>
@@ -1948,8 +2127,14 @@ function GeneratedWorld({
 			</details>
 			<footer className="v1-world-footer">
 				<p>
-					Watch first. Select a person to learn more. Time keeps moving until
-					you pause it.
+					Watch first. Select a person to learn more.{" "}
+					{clockLocked
+						? "This view is read-only; days cannot pass here."
+						: catchUpProposal > 0
+							? "Days are waiting on your choice before time continues."
+							: playRate === 0
+								? "Time is paused. Play when you want another day to pass."
+								: "Time keeps moving until you pause it."}
 				</p>
 			</footer>
 		</main>
@@ -1974,7 +2159,7 @@ export function V1GenesisApp() {
 	useEffect(() => {
 		document.title = "EONFOLK — Dawnmere";
 	}, []);
-	const { experience, error, refresh, advanceDay } =
+	const { experience, error, refresh, advanceDay, catchUpDays } =
 		useGeneratedExperience(fault);
 	useEffect(() => {
 		void loadGeneratedWorldCanvasModule();
@@ -1993,6 +2178,7 @@ export function V1GenesisApp() {
 			fault={fault}
 			onAuthorityRefresh={refresh}
 			onAdvanceDay={advanceDay}
+			onCatchUpDays={catchUpDays}
 		/>
 	);
 }

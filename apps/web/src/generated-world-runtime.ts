@@ -4,6 +4,7 @@ import {
 	type CivilizationScheduledActivity,
 	type CivilizationState,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import {
@@ -26,6 +27,7 @@ import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-v
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
 	appendLiveGeneratedCivilizationDay,
+	catchUpLiveGeneratedCivilizationDays,
 	GENERATED_CIVILIZATION_RUN_ID,
 	type GeneratedCivilizationCatchUpHorizon,
 	type PreparedGeneratedCivilization,
@@ -80,6 +82,15 @@ export interface GeneratedWorldExperience {
 		| "counseled"
 		| "resolved";
 	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
+	readonly happenings: readonly GeneratedWorldHappening[];
+}
+
+export interface GeneratedWorldHappening {
+	readonly happeningId: string;
+	readonly title: string;
+	readonly summary: string;
+	readonly citizenId: string | null;
+	readonly citizenName: string | null;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -102,6 +113,61 @@ interface PreparedGeneratedWorldBase {
 }
 
 let pendingDefaultPreparedBase: Promise<PreparedGeneratedWorldBase> | undefined;
+
+function happeningsFromCivilization(
+	civilization: CivilizationState,
+): readonly GeneratedWorldHappening[] {
+	const happenings: GeneratedWorldHappening[] = [];
+	const traveller =
+		civilization.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID];
+	const migration = civilization.migrations["migration-founding-party"];
+	if (traveller !== undefined && migration !== undefined) {
+		if (migration.state === "planned")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-prepares-to-leave",
+					title: `${traveller.name} is preparing to leave Dawnmere`,
+					summary: `${traveller.name} is gathering for a second founding. The expedition can still be watched from this settlement.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+		else if (migration.state === "travelling")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-left-dawnmere",
+					title: `${traveller.name} left Dawnmere`,
+					summary: `${traveller.name} set out to found another settlement. This is a named beat, not a silent roster change.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+		else if (migration.state === "arrived")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-founded-settlement",
+					title: `${traveller.name} reached new ground`,
+					summary: `${traveller.name} arrived with the founding party.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+	} else if (
+		traveller !== undefined &&
+		traveller.residenceState !== "resident"
+	) {
+		happenings.push(
+			Object.freeze({
+				happeningId: "orin-left-dawnmere",
+				title: `${traveller.name} left Dawnmere`,
+				summary: `${traveller.name} is no longer resident in the origin settlement.`,
+				citizenId: traveller.citizenId,
+				citizenName: traveller.name,
+			}),
+		);
+	}
+	return Object.freeze(happenings);
+}
 
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
@@ -440,6 +506,7 @@ async function buildGeneratedWorldExperienceInternal(
 							? "sponsored"
 							: "idle",
 		activeCounselIntent: activeCounsel?.intent ?? null,
+		happenings: happeningsFromCivilization(sponsorCivilization),
 	});
 }
 
@@ -502,7 +569,6 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
 
 /**
  * Player-authorized scheduler step. Wall clock must not call this.
- * After sponsorship exists the append is a no-op so counsel state is preserved.
  */
 export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
 	const indexedDbFactory = globalThis.indexedDB;
@@ -525,6 +591,39 @@ export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExpe
 		await appendLiveGeneratedCivilizationDay({
 			port,
 			genesisWorld: generatedWorld,
+		});
+	} finally {
+		port.close();
+	}
+	return await refreshGeneratedWorldExperience();
+}
+
+export async function catchUpGeneratedWorldReturnDays(input: {
+	readonly operationId: string;
+	readonly additionalDays: number;
+}): Promise<GeneratedWorldExperience> {
+	const indexedDbFactory = globalThis.indexedDB;
+	if (indexedDbFactory === undefined)
+		return await refreshGeneratedWorldExperience();
+	const releaseGenesis = await createReleaseGenesis({
+		releaseId: V1_GENESIS_RELEASE_ID,
+		seedHex: V1_GENESIS_SEED,
+	});
+	const generatedWorld = await generateWorld({
+		releaseGenesis,
+		worldId: V1_GENESIS_WORLD_ID,
+		treatmentId: "standard-brain",
+	});
+	const port = await BrowserVersionedPersistence.open({
+		factory: indexedDbFactory,
+		databaseName: GENERATED_WORLD_STORAGE_KEY,
+	});
+	try {
+		await catchUpLiveGeneratedCivilizationDays({
+			port,
+			genesisWorld: generatedWorld,
+			operationId: input.operationId,
+			additionalDays: input.additionalDays,
 		});
 	} finally {
 		port.close();
