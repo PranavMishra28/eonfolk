@@ -1571,7 +1571,8 @@ function GeneratedWorld({
 			interval === null ||
 			catchUpProposal > 0 ||
 			catchingUp.current ||
-			consideringCounsel
+			consideringCounsel ||
+			experience.persistence.kind !== "indexeddb"
 		)
 			return;
 		const id = window.setInterval(() => {
@@ -1588,7 +1589,13 @@ function GeneratedWorld({
 				});
 		}, interval);
 		return () => window.clearInterval(id);
-	}, [catchUpProposal, consideringCounsel, onAdvanceDay, playRate]);
+	}, [
+		catchUpProposal,
+		consideringCounsel,
+		experience.persistence.kind,
+		onAdvanceDay,
+		playRate,
+	]);
 
 	useEffect(() => {
 		setCatchUpProposal(

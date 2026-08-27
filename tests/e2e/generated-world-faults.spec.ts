@@ -48,10 +48,11 @@ async function openFaultedWorld(
 }
 
 async function pauseWorldTime(page: Page): Promise<void> {
-	await page
+	const pause = page
 		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
+		.getByRole("button", { name: "Pause" });
+	if (await pause.isDisabled()) return;
+	await pause.click();
 	await expect(page.locator("main.v1-world")).toHaveAttribute(
 		"data-play-rate",
 		"0",
