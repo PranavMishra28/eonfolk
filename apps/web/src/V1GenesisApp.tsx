@@ -1,4 +1,7 @@
-import type { GeneratedCivilizationSpatialProjection } from "@eonfolk/world-presentation";
+import {
+	countNoun,
+	type GeneratedCivilizationSpatialProjection,
+} from "@eonfolk/world-presentation";
 import {
 	lazy,
 	Suspense,
@@ -27,12 +30,29 @@ import type {
 	GeneratedCounselContext,
 } from "./generated-sponsor-runtime";
 import {
+	advanceGeneratedWorldLiveDay,
+	catchUpGeneratedWorldReturnDays,
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
-import type { GeneratedWorldExperience } from "./generated-world-runtime";
+import type {
+	GeneratedWorldExperience,
+	GeneratedWorldHappening,
+} from "./generated-world-runtime";
+import {
+	authorityDayIntervalMs,
+	clearPendingReturnCatchUp,
+	type PlayRate,
+	presentationIntervalMs,
+	proposedReturnCatchUpDays,
+	readLastActiveWallMs,
+	readPendingReturnCatchUp,
+	returnCatchUpOperationId,
+	writeLastActiveWallMs,
+	writePendingReturnCatchUp,
+} from "./play-clock";
 import {
 	buildWorldFocusHref,
 	parseWorldFocusHref,
@@ -108,6 +128,11 @@ function useGeneratedExperience(
 	readonly experience: GeneratedWorldExperience | null;
 	readonly error: Error | null;
 	readonly refresh: (expectedStateHash?: string) => Promise<void>;
+	readonly advanceDay: () => Promise<void>;
+	readonly catchUpDays: (input: {
+		readonly operationId: string;
+		readonly additionalDays: number;
+	}) => Promise<void>;
 } {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
@@ -143,6 +168,18 @@ function useGeneratedExperience(
 			active = false;
 		};
 	}, [fault]);
+	const advanceDay = useCallback(async () => {
+		setExperience(await advanceGeneratedWorldLiveDay());
+	}, []);
+	const catchUpDays = useCallback(
+		async (input: {
+			readonly operationId: string;
+			readonly additionalDays: number;
+		}) => {
+			setExperience(await catchUpGeneratedWorldReturnDays(input));
+		},
+		[],
+	);
 	return {
 		experience,
 		error,
@@ -161,6 +198,8 @@ function useGeneratedExperience(
 				"The projection did not reach the committed authority head",
 			);
 		},
+		advanceDay,
+		catchUpDays,
 	};
 }
 
@@ -192,8 +231,8 @@ function useGeneratedAsset(
 function WorldLoading() {
 	return (
 		<main className="v1-genesis-shell v1-genesis-loading" aria-busy="true">
-			<p className="v1-kicker">GENERATING CANONICAL REALITY</p>
-			<h1>Advancing one world through its first year.</h1>
+			<p className="v1-kicker">OPENING DAWNMERE</p>
+			<h1>Opening Dawnmere…</h1>
 		</main>
 	);
 }
@@ -207,22 +246,24 @@ function WorldAuthorityShell() {
 			aria-busy="true"
 		>
 			<header className="v1-world-header">
-				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
+				<a className="v1-brand" href="/" aria-label="Eonfolk home">
 					<EonfolkMark label="" />
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-world-title">
 					<p className="v1-kicker">A LIVING SETTLEMENT</p>
-					<h1>Opening canonical local space</h1>
-					<p>The world identity is ready while local authority catches up.</p>
+					<h1>Opening Dawnmere</h1>
+					<p>People are already at work.</p>
 				</div>
-				<nav className="v1-view-controls" aria-label="World view">
+				<nav className="v1-view-controls" aria-label="Time">
 					<button type="button" disabled>
-						Embodied
+						Pause
 					</button>
-					<button type="button">World in words</button>
 					<button type="button" disabled>
-						Settlements
+						Play
+					</button>
+					<button type="button" disabled>
+						Faster
 					</button>
 				</nav>
 			</header>
@@ -272,8 +313,8 @@ function WorldError({
 					Retry without the failed local input
 				</button>
 			)}
-			<a className="v1-text-link" href="/genesis">
-				Try the canonical origin again
+			<a className="v1-text-link" href="/">
+				Try Dawnmere again
 			</a>
 		</main>
 	);
@@ -286,12 +327,12 @@ function ProjectionUnavailable({
 }) {
 	return (
 		<section className="generated-unavailable" role="status">
-			<p className="v1-kicker">EMBODIED VIEW UNAVAILABLE</p>
+			<p className="v1-kicker">WATCH VIEW UNAVAILABLE</p>
 			<h2>No activity is being inferred for this settlement.</h2>
 			<p>
-				Canonical projection stopped because{" "}
+				This view stopped because{" "}
 				{projection.availability.reasons.map(readableId).join(" and ")}. The
-				grounded places remain inspectable below.
+				places remain inspectable in words.
 			</p>
 		</section>
 	);
@@ -328,12 +369,13 @@ function SemanticSettlement({
 			data-testid="generated-semantic-world"
 		>
 			<div>
-				<p className="v1-kicker">WORLD IN WORDS</p>
-				<h2>{projection.local.settlement.semanticLabel}</h2>
+				<p className="v1-kicker">IN WORDS</p>
+				<h2>{projection.local.settlement.name}</h2>
 				<p>
-					{projection.local.semanticCounts.sites} grounded sites,{" "}
-					{projection.local.semanticCounts.routes} routes, and{" "}
-					{projection.spatial.actors.length} visibly scheduled residents.
+					{projection.local.semanticCounts.sites} places,{" "}
+					{projection.local.semanticCounts.routes} paths, and{" "}
+					{countNoun(projection.spatial.actors.length, "person", "people")} at
+					work.
 				</p>
 			</div>
 			<GeneratedEmbodimentControls
@@ -348,7 +390,7 @@ function SemanticSettlement({
 				onNavigationRejected={onNavigationRejected}
 			/>
 			<section aria-labelledby="semantic-places-title">
-				<h3 id="semantic-places-title">Grounded places</h3>
+				<h3 id="semantic-places-title">Places</h3>
 				<ul>
 					{projection.local.sites.map((site) => {
 						const focused = focusedLocationId === site.siteId;
@@ -384,7 +426,15 @@ function SettlementOverview({
 		>
 			<header>
 				<p className="v1-kicker">CIVILIZATION OVERVIEW</p>
-				<h2>One world, {experience.settlementCount} inhabited places.</h2>
+				<h2>
+					One world,{" "}
+					{countNoun(
+						experience.settlementCount,
+						"inhabited place",
+						"inhabited places",
+					)}
+					.
+				</h2>
 			</header>
 			<div className="generated-settlement-cards">
 				{experience.projections.map((projection) => (
@@ -397,9 +447,16 @@ function SettlementOverview({
 						<h3>{projection.local.settlement.name}</h3>
 						<p>{projection.local.settlement.semanticLabel}</p>
 						<ul>
-							<li>{projection.spatial.actors.length} resident activities</li>
-							<li>{projection.local.semanticCounts.sites} grounded sites</li>
-							<li>{projection.projects.length} canonical projects</li>
+							<li>
+								{countNoun(
+									projection.spatial.actors.length,
+									"person",
+									"people",
+								)}{" "}
+								at work
+							</li>
+							<li>{projection.local.semanticCounts.sites} places</li>
+							<li>{projection.projects.length} works in progress</li>
 						</ul>
 						<button
 							type="button"
@@ -461,9 +518,11 @@ function actorActivity(
 function GeneratedSceneTruth({
 	projection,
 	model,
+	selectedCitizenId,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
+	readonly selectedCitizenId: string | null;
 }) {
 	const interaction = projection.spatial.interactions[0];
 	if (interaction === undefined) return null;
@@ -487,7 +546,6 @@ function GeneratedSceneTruth({
 				) === index,
 		)
 		.slice(0, 4);
-	const participantNames = participants.map(({ name }) => name).join(" + ");
 	return (
 		<div
 			className="generated-scene-truth"
@@ -499,7 +557,27 @@ function GeneratedSceneTruth({
 			<p className="generated-scene-interaction">
 				<span aria-hidden="true" className="generated-scene-signal" />
 				<span>
-					<strong>{participantNames}</strong>
+					{participants.map((actor, index) => (
+						<span key={actor.citizenId}>
+							{index === 0 ? null : " + "}
+							<button
+								type="button"
+								aria-pressed={selectedCitizenId === actor.citizenId}
+								onClick={() =>
+									window.dispatchEvent(
+										new CustomEvent("eonfolk:generated-navigation", {
+											detail: Object.freeze({
+												type: "select-citizen",
+												citizenId: actor.citizenId,
+											}),
+										}),
+									)
+								}
+							>
+								{actor.name}
+							</button>
+						</span>
+					))}
 					<small>
 						{interaction.status === "in-progress" ? "In" : "Completed"}{" "}
 						{interaction.kind}
@@ -513,8 +591,23 @@ function GeneratedSceneTruth({
 						key={actor.citizenId}
 						className={`generated-scene-activity generated-scene-activity--${actor.animationClass}`}
 					>
-						<strong>{actor.name.split(" ")[0]}</strong>
-						<span>{actorActivity(actor, projection).split(" at ")[0]}</span>
+						<button
+							type="button"
+							aria-pressed={selectedCitizenId === actor.citizenId}
+							onClick={() =>
+								window.dispatchEvent(
+									new CustomEvent("eonfolk:generated-navigation", {
+										detail: Object.freeze({
+											type: "select-citizen",
+											citizenId: actor.citizenId,
+										}),
+									}),
+								)
+							}
+						>
+							<strong>{actor.name.split(" ")[0]}</strong>
+							<span>{actorActivity(actor, projection).split(" at ")[0]}</span>
+						</button>
 					</li>
 				))}
 			</ul>
@@ -540,6 +633,8 @@ function GeneratedContextPanel({
 	activeCounselIntent,
 	persistenceAvailable,
 	onAuthorityCommitted,
+	happenings,
+	onCounselConsiderationChange,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -565,6 +660,8 @@ function GeneratedContextPanel({
 	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly persistenceAvailable: boolean;
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
+	readonly happenings: readonly GeneratedWorldHappening[];
+	readonly onCounselConsiderationChange: (open: boolean) => void;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -594,6 +691,21 @@ function GeneratedContextPanel({
 	const [authorityRefreshing, setAuthorityRefreshing] = useState(false);
 	const authorityStateHashRef = useRef(authorityStateHash);
 	authorityStateHashRef.current = authorityStateHash;
+	useEffect(() => {
+		onCounselConsiderationChange(
+			sponsorStatus === "confirming" || sponsorStatus === "counseling",
+		);
+	}, [onCounselConsiderationChange, sponsorStatus]);
+	useEffect(() => {
+		if (
+			sponsorStatus === "confirming" ||
+			sponsorStatus === "saving" ||
+			sponsorStatus === "counseling" ||
+			sponsorStatus === "returning"
+		)
+			return;
+		setExpectedAuthorityStateHash(authorityStateHash);
+	}, [authorityStateHash, sponsorStatus]);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
@@ -626,8 +738,8 @@ function GeneratedContextPanel({
 			? {
 					kind: "building",
 					id: selectedBuilding.buildingId,
-					name: selectedBuilding.buildingKind,
-					status: `Condition ${Math.round(selectedBuilding.conditionBasisPoints / 100)}% · capacity ${selectedBuilding.capacity}.`,
+					name: selectedBuilding.semanticLabel,
+					status: `In ${Math.round(selectedBuilding.conditionBasisPoints / 100)}% condition · holds ${String(selectedBuilding.capacity)}.`,
 				}
 			: selectedProject === undefined
 				? undefined
@@ -635,7 +747,7 @@ function GeneratedContextPanel({
 						kind: "project",
 						id: selectedProject.projectId,
 						name: selectedProject.name,
-						status: `State ${selectedProject.state} · ${Math.round(selectedProject.progressBasisPoints / 100)}% complete.`,
+						status: selectedProject.semanticLabel,
 					};
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
 	const worldLink = (focus: WorldFocus, label: string) => {
@@ -660,7 +772,14 @@ function GeneratedContextPanel({
 	}, [selectedCitizenId]);
 	useEffect(() => {
 		if (selectedCitizenId !== sponsorCitizenId) return;
-		setSponsorStatus(sponsorPhase);
+		setSponsorStatus((current) =>
+			current === "confirming" ||
+			current === "saving" ||
+			current === "counseling" ||
+			current === "returning"
+				? current
+				: sponsorPhase,
+		);
 		setActiveIntent(activeCounselIntent ?? "verify-reserve");
 	}, [activeCounselIntent, selectedCitizenId, sponsorCitizenId, sponsorPhase]);
 	const commitSponsor = (
@@ -671,6 +790,7 @@ function GeneratedContextPanel({
 			| "counsel"
 			| "resolve",
 		intent = activeIntent,
+		openCounsel = false,
 	) => {
 		if (selectedActor === undefined) return;
 		setSponsorStatus(
@@ -680,8 +800,8 @@ function GeneratedContextPanel({
 					? "counseling"
 					: "returning",
 		);
-		void import("./generated-sponsor-runtime")
-			.then(({ sponsorGeneratedCitizen }) =>
+		void import("./generated-sponsor-runtime").then(
+			({ playerFacingSponsorFailure, sponsorGeneratedCitizen }) =>
 				sponsorGeneratedCitizen({
 					citizenId: selectedActor.citizenId,
 					regionId: authorityRegionId,
@@ -691,37 +811,41 @@ function GeneratedContextPanel({
 					...(expectedAuthorityStateHash === null
 						? {}
 						: { expectedAuthorityStateHash }),
-				}),
-			)
-			.then(async (result) => {
-				setChronicleTrace(result.chronicleTrace);
-				setShareArtifact(result.shareArtifact ?? "");
-				setChronicleBeats(result.chronicleBeats);
-				setCounselContext(result.counselContext);
-				setNextAction(result.nextAction);
-				setExpectedAuthorityStateHash(result.authorityStateHash);
-				setSponsorStatus(result.phase);
-				setActiveIntent(result.activeIntent ?? intent);
-				if (result.consequenceRecorded) setJourneyStage("advanced");
-				if (!result.idempotent || step === "resolve") {
-					setAuthorityRefreshing(true);
-					await onAuthorityCommitted(result.authorityStateHash);
-					setAuthorityRefreshing(false);
-				}
-			})
-			.then(undefined, (reason: unknown) => {
-				setAuthorityRefreshing(false);
-				if (step !== "establish") {
-					setChronicleBeats([]);
-					setShareArtifact("");
-					setChronicleTrace(
-						reason instanceof Error
-							? `${reason.message}; prior state preserved.`
-							: "Action unavailable; prior state preserved.",
-					);
-				}
-				setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
-			});
+				}).then(
+					async (result) => {
+						setChronicleTrace(result.chronicleTrace);
+						setShareArtifact(result.shareArtifact ?? "");
+						setChronicleBeats(result.chronicleBeats);
+						setCounselContext(result.counselContext);
+						setNextAction(result.nextAction);
+						setExpectedAuthorityStateHash(result.authorityStateHash);
+						setSponsorStatus(
+							openCounsel && result.phase === "sponsored"
+								? "confirming"
+								: result.phase,
+						);
+						setActiveIntent(result.activeIntent ?? intent);
+						if (result.consequenceRecorded) setJourneyStage("advanced");
+						if (!result.idempotent || step === "resolve") {
+							setAuthorityRefreshing(true);
+							try {
+								await onAuthorityCommitted(result.authorityStateHash);
+							} finally {
+								setAuthorityRefreshing(false);
+							}
+						}
+					},
+					(reason: unknown) => {
+						setAuthorityRefreshing(false);
+						if (step !== "establish") {
+							setChronicleBeats([]);
+							setShareArtifact("");
+							setChronicleTrace(playerFacingSponsorFailure(reason));
+						}
+						setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
+					},
+				),
+		);
 	};
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
@@ -753,7 +877,7 @@ function GeneratedContextPanel({
 	return (
 		<aside
 			className="v1-context-panel"
-			aria-label="Canonical settlement context"
+			aria-label="People and counsel"
 			data-focus-kind={navigation.focus.kind}
 		>
 			<section className="v1-presence-card" aria-live="polite">
@@ -772,8 +896,8 @@ function GeneratedContextPanel({
 				{selectedObject !== undefined ? (
 					<>
 						<p>
-							<strong>Grounded at:</strong>{" "}
-							{selectedObjectSite?.name ?? "canonical site"}.
+							<strong>Place:</strong>{" "}
+							{selectedObjectSite?.name ?? "this settlement"}.
 						</p>
 						<p>{selectedObject.status}</p>
 						<div className="v1-focus-actions">
@@ -806,9 +930,42 @@ function GeneratedContextPanel({
 							</p>
 						) : null}
 						<p>
-							{model.actors.length} lives are unfolding at once. Select someone
-							to move from the settlement view into their immediate work.
+							{countNoun(
+								model.actors.length,
+								"life is unfolding",
+								"lives are unfolding",
+							)}{" "}
+							at once. Select someone to move from the settlement view into
+							their immediate work.
 						</p>
+						{happenings.length === 0 ? null : (
+							<ul className="v1-happening-list" aria-label="Named happenings">
+								{happenings.map((happening) => (
+									<li
+										key={happening.happeningId}
+										data-happening-id={happening.happeningId}
+									>
+										<strong>{happening.title}.</strong> {happening.summary}
+										{happening.citizenId === null ||
+										!model.actors.some(
+											(actor) => actor.citizenId === happening.citizenId,
+										) ? null : (
+											<button
+												type="button"
+												onClick={() =>
+													dispatch({
+														type: "select-citizen",
+														citizenId: happening.citizenId as string,
+													})
+												}
+											>
+												Find {happening.citizenName}
+											</button>
+										)}
+									</li>
+								))}
+							</ul>
+						)}
 						<ul className="v1-activity-summary" aria-label="Visible activities">
 							{[...activityCounts].map(([activity, count]) => (
 								<li key={activity}>
@@ -823,15 +980,33 @@ function GeneratedContextPanel({
 						<p>{actorActivity(selectedActor, projection)}.</p>
 						<p>
 							<strong>Immediate relationship:</strong>{" "}
-							{selectedActor.interactionTarget === null
-								? "No one is currently beside them."
-								: `They are engaged with ${model.actors.find(({ citizenId }) => citizenId === selectedActor.interactionTarget)?.name ?? "another resident"}.`}
+							{activeInteraction !== undefined &&
+							interactionParticipants.some(
+								(actor) => actor.citizenId === selectedActor.citizenId,
+							) &&
+							interactionParticipants.length >= 2
+								? `They are ${interactionPhrase} with ${interactionParticipants
+										.filter(
+											(actor) => actor.citizenId !== selectedActor.citizenId,
+										)
+										.map(({ name }) => name)
+										.join(
+											" and ",
+										)}${interactionPlace === undefined ? "" : ` at ${interactionPlace}`}.`
+								: "No one is currently beside them."}
 						</p>
-						<p>
-							<strong>Current tension:</strong> continue{" "}
-							{actorActivity(selectedActor, projection)}, or pause to examine
-							your counsel without any guarantee they will follow it.
-						</p>
+						{canSponsor ? (
+							<p>
+								<strong>Current tension:</strong>{" "}
+								{happenings[0]?.summary ??
+									"Mara can be sponsored. Counsel is a visible next step, not a silent label."}
+							</p>
+						) : (
+							<p>
+								{selectedActor.name} is at work. Sponsorship is Mara's
+								relationship, not a button on every person.
+							</p>
+						)}
 						<p className="v1-local-disclosure">
 							This world is stored only in this browser. There is no account,
 							cloud backup, or recovery copy.
@@ -850,50 +1025,47 @@ function GeneratedContextPanel({
 							>
 								Back to settlement
 							</button>
-							<button
-								type="button"
-								disabled={
-									!persistenceAvailable ||
-									!canSponsor ||
-									authorityRefreshing ||
-									sponsorStatus === "saving" ||
-									sponsorStatus === "counseling" ||
-									sponsorStatus === "returning" ||
-									sponsorStatus === "confirming" ||
-									sponsorStatus === "counseled" ||
-									journeyStage === "left" ||
-									journeyStage === "returned"
-								}
-								onClick={() =>
-									sponsorStatus === "resolved" || sponsorStatus === "abstained"
-										? commitSponsor("establish")
-										: sponsorStatus === "sponsored"
-											? counselContext === null
-												? commitSponsor("establish")
-												: setSponsorStatus("confirming")
-											: commitSponsor("establish")
-								}
-							>
-								{sponsorStatus === "saving"
-									? "Establishing…"
-									: sponsorStatus === "counseling"
-										? "Considering…"
-										: sponsorStatus === "sponsored" ||
-												sponsorStatus === "confirming"
-											? "Consider an intervention"
-											: sponsorStatus === "abstained"
-												? "Review abstention Chronicle"
-												: sponsorStatus === "resolved"
-													? "Review Chronicle"
-													: "Sponsor this person"}
-							</button>
+							{canSponsor ? (
+								<button
+									type="button"
+									disabled={
+										!persistenceAvailable ||
+										authorityRefreshing ||
+										sponsorStatus === "saving" ||
+										sponsorStatus === "counseling" ||
+										sponsorStatus === "returning" ||
+										sponsorStatus === "confirming" ||
+										sponsorStatus === "counseled"
+									}
+									onClick={() => {
+										if (sponsorStatus === "confirming") return;
+										if (
+											sponsorStatus === "resolved" ||
+											sponsorStatus === "abstained"
+										)
+											commitSponsor("establish");
+										else if (sponsorStatus === "sponsored")
+											counselContext === null
+												? commitSponsor("establish", activeIntent, true)
+												: setSponsorStatus("confirming");
+										else commitSponsor("establish", activeIntent, true);
+									}}
+								>
+									{sponsorStatus === "saving"
+										? "Establishing…"
+										: sponsorStatus === "counseling"
+											? "Considering…"
+											: sponsorStatus === "sponsored" ||
+													sponsorStatus === "confirming"
+												? "Consider an intervention"
+												: sponsorStatus === "abstained"
+													? "Review abstention Chronicle"
+													: sponsorStatus === "resolved"
+														? "Review Chronicle"
+														: "Sponsor Mara"}
+								</button>
+							) : null}
 						</div>
-						{canSponsor ? null : (
-							<p>
-								This resident has no local counsel relationship at this
-								boundary.
-							</p>
-						)}
 						{sponsorStatus === "confirming" ? (
 							<section aria-label="Counsel stakes">
 								<h3>Choose at Mara's first boundary</h3>
@@ -903,7 +1075,7 @@ function GeneratedContextPanel({
 								</p>
 								{counselContext === null ? null : (
 									<dl>
-										<dt>Reality fact</dt>
+										<dt>What is recorded</dt>
 										<dd>{counselContext.fact}</dd>
 										<dt>Mara's belief</dt>
 										<dd>{counselContext.belief}</dd>
@@ -911,9 +1083,9 @@ function GeneratedContextPanel({
 										<dd>{counselContext.allegation}</dd>
 										<dt>Values</dt>
 										<dd>{counselContext.values.join(", ")}</dd>
-										<dt>Mara and Toma</dt>
+										<dt>Mara and Iven</dt>
 										<dd>{counselContext.relationship}</dd>
-										<dt>Active Standing Plan</dt>
+										<dt>What she is doing</dt>
 										<dd>{counselContext.standingPlan}</dd>
 										<dt>Still uncertain</dt>
 										<dd>{counselContext.uncertainty}</dd>
@@ -927,23 +1099,26 @@ function GeneratedContextPanel({
 										commitSponsor("counsel", "verify-reserve");
 									}}
 								>
-									Verify the evidence first — delays a conclusion
+									Check the stores first
 								</button>
 								{counselContext === null ? null : (
 									<p>{counselContext.verifyStake}</p>
 								)}
-								<button
-									type="button"
-									disabled={authorityRefreshing}
-									onClick={() => {
-										setActiveIntent("accuse-publicly");
-										commitSponsor("counsel", "accuse-publicly");
-									}}
-								>
-									Confront them publicly — risks trust
-								</button>
-								{counselContext === null ? null : (
-									<p>{counselContext.accuseStake}</p>
+								{counselContext === null ||
+								!counselContext.hasAllegation ? null : (
+									<>
+										<button
+											type="button"
+											disabled={authorityRefreshing}
+											onClick={() => {
+												setActiveIntent("accuse-publicly");
+												commitSponsor("counsel", "accuse-publicly");
+											}}
+										>
+											Raise this with Iven
+										</button>
+										<p>{counselContext.accuseStake}</p>
+									</>
 								)}
 								<button
 									type="button"
@@ -957,61 +1132,39 @@ function GeneratedContextPanel({
 								{counselContext === null ? null : (
 									<p>{counselContext.abstainStake}</p>
 								)}
+								<button
+									type="button"
+									onClick={() => setSponsorStatus("sponsored")}
+								>
+									Keep watching
+								</button>
+								<p>
+									Paused while you consider advice. Time resumes after you
+									choose or dismiss.
+								</p>
 							</section>
 						) : null}
 						{sponsorStatus === "counseled" ||
 						(sponsorStatus === "abstained" && journeyStage !== "advanced") ? (
-							<section aria-label="Leave and return">
-								{journeyStage === "present" ? (
-									<>
-										<p>
-											{sponsorStatus === "counseled"
-												? "The advice is durable. Mara has not interpreted it yet."
-												: "No advice was given. This first boundary is durably closed and cannot accept counsel later."}
-										</p>
-										<button
-											type="button"
-											onClick={() => setJourneyStage("left")}
-										>
-											Leave {projection.local.settlement.name} at this
-											checkpoint
-										</button>
-									</>
-								) : journeyStage === "left" ? (
-									<>
-										<p>
-											{projection.local.settlement.name} remains on this device.
-											Nothing advances until you choose to return.
-										</p>
-										<button
-											type="button"
-											onClick={() => setJourneyStage("returned")}
-										>
-											Return to {projection.local.settlement.name}
-										</button>
-									</>
-								) : (
-									<>
-										<p>
-											Advance is explicit and bounded to this recorded branch.
-										</p>
-										<button
-											type="button"
-											disabled={authorityRefreshing}
-											onClick={() => {
-												if (sponsorStatus === "counseled")
-													commitSponsor("resolve", activeIntent);
-												else {
-													commitSponsor("advance-abstention");
-												}
-											}}
-										>
-											{sponsorStatus === "counseled"
-												? "Advance one day to Mara's decision boundary"
-												: "Continue to Mara's independent outcome"}
-										</button>
-									</>
-								)}
+							<section aria-label="See Mara's next step">
+								<p>
+									{sponsorStatus === "counseled"
+										? "The advice is recorded. Mara has not interpreted it yet."
+										: "No advice was given. This first boundary is durably closed and cannot accept counsel later."}
+								</p>
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => {
+										if (sponsorStatus === "counseled")
+											commitSponsor("resolve", activeIntent);
+										else commitSponsor("advance-abstention");
+									}}
+								>
+									{sponsorStatus === "counseled"
+										? "See Mara's decision"
+										: "See what she did on her own"}
+								</button>
 							</section>
 						) : null}
 						{sponsorStatus === "failed" ? (
@@ -1123,12 +1276,17 @@ function GeneratedContextPanel({
 					</>
 				)}
 			</section>
-			<ul className="v1-presence-roster" aria-label="Visible residents">
+			<ul className="v1-presence-roster" aria-label="People here">
 				{model.actors.map((actor) => (
 					<li key={actor.citizenId}>
 						<button
 							type="button"
 							data-citizen-id={actor.citizenId}
+							data-sponsored={
+								actor.citizenId === sponsorCitizenId && sponsorPhase !== "idle"
+									? "true"
+									: undefined
+							}
 							aria-pressed={selectedActor?.citizenId === actor.citizenId}
 							onClick={() =>
 								dispatch({
@@ -1137,7 +1295,12 @@ function GeneratedContextPanel({
 								})
 							}
 						>
-							<strong>{actor.name}</strong>
+							<strong>
+								{actor.name}
+								{actor.citizenId === sponsorCitizenId && sponsorPhase !== "idle"
+									? " · sponsored"
+									: ""}
+							</strong>
 							<span>{actorActivity(actor, projection)}</span>
 						</button>
 					</li>
@@ -1165,19 +1328,33 @@ function GeneratedWorld({
 	experience,
 	fault,
 	onAuthorityRefresh,
+	onAdvanceDay,
+	onCatchUpDays,
 }: {
 	readonly experience: GeneratedWorldExperience;
 	readonly fault: GeneratedWorldFaultSpec | null;
 	readonly onAuthorityRefresh: (expectedStateHash?: string) => Promise<void>;
+	readonly onAdvanceDay: () => Promise<void>;
+	readonly onCatchUpDays: (input: {
+		readonly operationId: string;
+		readonly additionalDays: number;
+	}) => Promise<void>;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
+	const [playRate, setPlayRate] = useState<PlayRate>(1);
+	const [consideringCounsel, setConsideringCounsel] = useState(false);
+	const resumePlayRate = useRef<PlayRate>(1);
+	const pausedForCounsel = useRef(false);
 	const [presentationTick, setPresentationTick] = useState(0);
-	const [presentationPlaying, setPresentationPlaying] = useState(
-		() => !reduceMotion,
-	);
+	const presentationPlaying = playRate !== 0;
+	const advancingDay = useRef(false);
+	const catchingUp = useRef(false);
+	const experienceRef = useRef(experience);
+	experienceRef.current = experience;
+	const [catchUpProposal, setCatchUpProposal] = useState(0);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
 	const [rebuildState, setRebuildState] = useState<
 		"idle" | "deleting" | "blocked" | "error"
@@ -1245,6 +1422,7 @@ function GeneratedWorld({
 	);
 	const focusWorldTarget = useCallback(
 		(focus: WorldFocus, updateHistory = true) => {
+			const currentExperience = experienceRef.current;
 			const href = buildWorldFocusHref(focus)!;
 			if (focus.kind === "event") {
 				eventFocusRequest.current = focus.eventId;
@@ -1256,8 +1434,8 @@ function GeneratedWorld({
 					.then(({ loadGeneratedChronicleEventFocus }) =>
 						loadGeneratedChronicleEventFocus({
 							eventId: focus.eventId,
-							regionId: experience.authorityRegionId,
-							databaseName: experience.authorityDatabaseName,
+							regionId: currentExperience.authorityRegionId,
+							databaseName: currentExperience.authorityDatabaseName,
 						}),
 					)
 					.then((context) => {
@@ -1267,10 +1445,11 @@ function GeneratedWorld({
 							reportNavigationRejection("foreign-reference");
 							return;
 						}
-						const settlement = experience.embodiments.find((candidate) =>
-							candidate.actors.some(
-								({ citizenId }) => citizenId === context.citizenId,
-							),
+						const settlement = experienceRef.current.embodiments.find(
+							(candidate) =>
+								candidate.actors.some(
+									({ citizenId }) => citizenId === context.citizenId,
+								),
 						);
 						if (settlement === undefined) {
 							setFocusedEventId(null);
@@ -1297,8 +1476,9 @@ function GeneratedWorld({
 			setFocusedEventId(null);
 			setFocusedEventContext(null);
 			const targetId = worldFocusId(focus);
-			const matches = experience.projections.flatMap((candidate) => {
-				const settlement = experience.embodiments.find(
+			const latest = experienceRef.current;
+			const matches = latest.projections.flatMap((candidate) => {
+				const settlement = latest.embodiments.find(
 					({ settlementId }) =>
 						settlementId === candidate.local.settlement.settlementId,
 				);
@@ -1347,7 +1527,7 @@ function GeneratedWorld({
 			if (match.kind === "location") setView("semantic");
 			if (updateHistory) window.history.pushState(null, "", href);
 		},
-		[experience, reportNavigationRejection],
+		[reportNavigationRejection],
 	);
 	useEffect(() => {
 		const applyLocationFocus = () => {
@@ -1378,17 +1558,69 @@ function GeneratedWorld({
 	}, [focusWorldTarget, reportNavigationRejection]);
 
 	useEffect(() => {
-		if (!presentationPlaying || reduceMotion) return;
-		const interval = window.setInterval(
+		const interval = presentationIntervalMs(playRate);
+		if (interval === null) return;
+		const id = window.setInterval(
 			() => setPresentationTick((tick) => tick + 1),
-			125,
+			interval,
 		);
-		return () => window.clearInterval(interval);
-	}, [presentationPlaying, reduceMotion]);
+		return () => window.clearInterval(id);
+	}, [playRate]);
 
 	useEffect(() => {
-		if (reduceMotion) setPresentationPlaying(false);
-	}, [reduceMotion]);
+		const interval = authorityDayIntervalMs(playRate);
+		if (
+			interval === null ||
+			catchUpProposal > 0 ||
+			catchingUp.current ||
+			consideringCounsel ||
+			experience.persistence.kind !== "indexeddb"
+		)
+			return;
+		const id = window.setInterval(() => {
+			if (advancingDay.current || catchingUp.current || consideringCounsel)
+				return;
+			advancingDay.current = true;
+			void onAdvanceDay()
+				.then(() => {
+					writeLastActiveWallMs();
+				})
+				.catch(() => undefined)
+				.finally(() => {
+					advancingDay.current = false;
+				});
+		}, interval);
+		return () => window.clearInterval(id);
+	}, [
+		catchUpProposal,
+		consideringCounsel,
+		experience.persistence.kind,
+		onAdvanceDay,
+		playRate,
+	]);
+
+	useEffect(() => {
+		setCatchUpProposal(
+			proposedReturnCatchUpDays(
+				Date.now(),
+				readLastActiveWallMs(),
+				experience.horizonDays,
+			),
+		);
+	}, [experience.horizonDays]);
+
+	useEffect(() => {
+		const persist = () => writeLastActiveWallMs();
+		window.addEventListener("pagehide", persist);
+		const onVisibility = () => {
+			if (document.visibilityState === "hidden") persist();
+		};
+		document.addEventListener("visibilitychange", onVisibility);
+		return () => {
+			window.removeEventListener("pagehide", persist);
+			document.removeEventListener("visibilitychange", onVisibility);
+		};
+	}, []);
 
 	useEffect(() => {
 		if (projection === undefined) return;
@@ -1455,6 +1687,23 @@ function GeneratedWorld({
 		});
 	}, [asset]);
 
+	useEffect(() => {
+		if (consideringCounsel) {
+			if (!pausedForCounsel.current) {
+				pausedForCounsel.current = true;
+				setPlayRate((current) => {
+					resumePlayRate.current = current;
+					return 0;
+				});
+			}
+			return;
+		}
+		if (pausedForCounsel.current) {
+			pausedForCounsel.current = false;
+			setPlayRate(resumePlayRate.current);
+		}
+	}, [consideringCounsel]);
+
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
 	const openSettlement = (settlementId: string) => {
@@ -1508,8 +1757,18 @@ function GeneratedWorld({
 		!rendererFailed &&
 		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
+	const clockLocked = experience.persistence.kind !== "indexeddb";
+	const clockLockReason = consideringCounsel
+		? "Paused while you consider advice"
+		: clockLocked
+			? "Time controls need local storage."
+			: undefined;
 	const togglePresentation = () =>
-		setPresentationPlaying((playing) => !playing);
+		setPlayRate((rate) => {
+			const next = rate === 0 ? 1 : 0;
+			if (next === 0) writeLastActiveWallMs();
+			return next;
+		});
 	const toggleReducedMotion = () =>
 		setReduceMotion((value) => {
 			const next = !value;
@@ -1541,6 +1800,8 @@ function GeneratedWorld({
 			activeCounselIntent={experience.activeCounselIntent}
 			persistenceAvailable={experience.persistence.kind === "indexeddb"}
 			onAuthorityCommitted={onAuthorityRefresh}
+			happenings={experience.happenings}
+			onCounselConsiderationChange={setConsideringCounsel}
 		/>
 	);
 
@@ -1565,6 +1826,11 @@ function GeneratedWorld({
 			data-asset-integrity={asset}
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
+			data-play-rate={String(playRate)}
+			data-counsel-open={String(consideringCounsel)}
+			data-horizon-days={String(experience.horizonDays)}
+			data-sponsor-phase={experience.sponsorPhase}
+			data-catch-up-proposal={String(catchUpProposal)}
 			data-navigation-rejection={navigationRejection ?? undefined}
 			data-focused-event-id={focusedEventId ?? undefined}
 			onClick={(event) => {
@@ -1585,7 +1851,7 @@ function GeneratedWorld({
 				: {})}
 		>
 			<header className="v1-world-header">
-				<a className="v1-brand" href="/genesis" aria-label="Canonical origin">
+				<a className="v1-brand" href="/" aria-label="Eonfolk home">
 					<EonfolkMark label="" />
 					<span>EONFOLK</span>
 				</a>
@@ -1593,10 +1859,63 @@ function GeneratedWorld({
 					<p className="v1-kicker">A LIVING SETTLEMENT</p>
 					<h1>{projection.local.settlement.name}</h1>
 					<p>
-						Day {experience.horizonDays} · {projection.spatial.actors.length}{" "}
-						visible residents
+						Day {experience.horizonDays} ·{" "}
+						{countNoun(projection.spatial.actors.length, "person", "people")}
 					</p>
+					{experience.happenings.length === 0 ? null : (
+						<p
+							className="v1-world-happening"
+							data-happening-id={experience.happenings[0]?.happeningId}
+						>
+							{experience.happenings[0]?.title}
+						</p>
+					)}
 				</div>
+				<nav className="v1-view-controls" aria-label="Time">
+					<button
+						type="button"
+						aria-pressed={playRate === 0}
+						disabled={clockLocked || consideringCounsel}
+						title={clockLockReason}
+						onClick={() => {
+							writeLastActiveWallMs();
+							setPlayRate(0);
+						}}
+					>
+						Pause
+					</button>
+					<button
+						type="button"
+						aria-pressed={playRate === 1}
+						disabled={clockLocked || consideringCounsel}
+						title={clockLockReason}
+						onClick={() => setPlayRate(1)}
+					>
+						Play
+					</button>
+					<button
+						type="button"
+						aria-pressed={playRate === 3}
+						disabled={clockLocked || consideringCounsel}
+						title={clockLockReason}
+						onClick={() => setPlayRate(3)}
+					>
+						Faster
+					</button>
+					<button
+						type="button"
+						data-testid="follow-mara"
+						onClick={() => {
+							dispatch({
+								type: "select-citizen",
+								citizenId: experience.sponsorCitizenId,
+							});
+							dispatch({ type: "toggle-follow" });
+						}}
+					>
+						Follow Mara
+					</button>
+				</nav>
 				<nav className="v1-view-controls" aria-label="World view">
 					<button
 						type="button"
@@ -1604,31 +1923,96 @@ function GeneratedWorld({
 						disabled={!assetVerified}
 						onClick={() => setView("embodied")}
 					>
-						Embodied
+						Watch
 					</button>
 					<button
 						type="button"
 						aria-pressed={effectiveView === "semantic"}
 						onClick={() => setView("semantic")}
 					>
-						World in words
+						In words
 					</button>
-					<button
-						type="button"
-						aria-pressed={effectiveView === "overview"}
-						onClick={() => setView("overview")}
-					>
-						Settlements
-					</button>
-					<button
-						type="button"
-						aria-pressed={reduceMotion}
-						onClick={toggleReducedMotion}
-					>
-						{reduceMotion ? "Motion reduced" : "Reduce motion"}
-					</button>
+					{experience.settlementCount < 2 ? null : (
+						<button
+							type="button"
+							aria-pressed={effectiveView === "overview"}
+							onClick={() => setView("overview")}
+						>
+							Settlements
+						</button>
+					)}
+					<details className="v1-world-settings">
+						<summary>Settings</summary>
+						<button
+							type="button"
+							aria-pressed={reduceMotion}
+							onClick={toggleReducedMotion}
+						>
+							{reduceMotion ? "Motion reduced" : "Reduce motion"}
+						</button>
+					</details>
 				</nav>
 			</header>
+			{catchUpProposal > 0 ? (
+				<p className="renderer-note" role="status">
+					You were away. {catchUpProposal} day
+					{catchUpProposal === 1 ? "" : "s"} can pass if you choose.{" "}
+					<button
+						type="button"
+						disabled={clockLocked}
+						onClick={() => {
+							const pending = readPendingReturnCatchUp();
+							const currentDay = experience.horizonDays;
+							const days = catchUpProposal;
+							if (days < 1) return;
+							const lastActive = readLastActiveWallMs() ?? Date.now();
+							const operationId =
+								pending?.operationId ?? returnCatchUpOperationId(lastActive);
+							writePendingReturnCatchUp({
+								operationId,
+								fromDay: pending?.fromDay ?? currentDay,
+								toDay: pending?.toDay ?? currentDay + days,
+								lastActiveMs: pending?.lastActiveMs ?? lastActive,
+							});
+							catchingUp.current = true;
+							void onCatchUpDays({
+								operationId,
+								additionalDays: days,
+							})
+								.then(() => {
+									clearPendingReturnCatchUp();
+									writeLastActiveWallMs();
+									setCatchUpProposal(0);
+								})
+								.catch(() => {
+									setCatchUpProposal(
+										proposedReturnCatchUpDays(
+											Date.now(),
+											readLastActiveWallMs(),
+											experienceRef.current.horizonDays,
+										),
+									);
+								})
+								.finally(() => {
+									catchingUp.current = false;
+								});
+						}}
+					>
+						Let those days pass
+					</button>{" "}
+					<button
+						type="button"
+						onClick={() => {
+							setPlayRate(0);
+							writeLastActiveWallMs();
+							clearPendingReturnCatchUp();
+							setCatchUpProposal(0);
+						}}
+					>
+						Stay on this day
+					</button>
+				</p>
+			) : null}
 			{focusedEventId === null ? null : focusedEventContext === null ? (
 				<p className="renderer-note" role="status">
 					Restoring this Chronicle event from the local world record…
@@ -1690,28 +2074,29 @@ function GeneratedWorld({
 				</p>
 			) : null}
 
-			<nav className="generated-settlement-switcher" aria-label="Settlements">
-				{experience.projections.map((candidate) => (
-					<button
-						key={candidate.local.settlement.settlementId}
-						type="button"
-						aria-pressed={
-							candidate.local.settlement.settlementId ===
-							projection.local.settlement.settlementId
-						}
-						onClick={() =>
-							openSettlement(candidate.local.settlement.settlementId)
-						}
-					>
-						{candidate.local.settlement.name}
-						<small>
-							{candidate.spatial.actors.length} resident
-							{candidate.spatial.actors.length === 1 ? "" : "s"}
-						</small>
-					</button>
-				))}
-			</nav>
-
+			{experience.settlementCount < 2 ? null : (
+				<nav className="generated-settlement-switcher" aria-label="Settlements">
+					{experience.projections.map((candidate) => (
+						<button
+							key={candidate.local.settlement.settlementId}
+							type="button"
+							aria-pressed={
+								candidate.local.settlement.settlementId ===
+								projection.local.settlement.settlementId
+							}
+							onClick={() =>
+								openSettlement(candidate.local.settlement.settlementId)
+							}
+						>
+							{candidate.local.settlement.name}
+							<small>
+								{candidate.spatial.actors.length} resident
+								{candidate.spatial.actors.length === 1 ? "" : "s"}
+							</small>
+						</button>
+					))}
+				</nav>
+			)}
 			{effectiveView === "overview" ? (
 				<SettlementOverview
 					experience={experience}
@@ -1720,25 +2105,22 @@ function GeneratedWorld({
 				/>
 			) : null}
 			{effectiveView === "semantic" ? (
-				<section
-					className="v1-semantic-layout"
-					aria-label="Playable world in words"
-				>
+				<section className="v1-semantic-layout" aria-label="World in words">
 					{rendererFailed ? (
 						<div className="renderer-note" role="status">
 							<button type="button" onClick={retryRenderer}>
-								Retry embodied renderer
+								Retry the watch view
 							</button>
 						</div>
 					) : asset === "checking" ? (
 						<p className="renderer-note" role="status">
-							Verifying the repository-authored proxy geometry contract.
-							Canonical world actions remain inspectable in words.
+							The watch view is still opening. People remain inspectable in
+							words.
 						</p>
 					) : asset === "failed" ? (
 						<p className="renderer-note" role="status">
-							The proxy geometry reference did not pass integrity checks. The
-							canonical world remains inspectable without it.
+							The picture of Dawnmere could not be verified. The town remains
+							inspectable in words.
 						</p>
 					) : null}
 					<SemanticSettlement
@@ -1762,7 +2144,7 @@ function GeneratedWorld({
 			{embodiedAvailable ? (
 				<section
 					className="v1-living-stage"
-					aria-label="Embodied settlement"
+					aria-label="Dawnmere"
 					aria-hidden={!embodiedVisible}
 					style={embodiedVisible ? undefined : { display: "none" }}
 				>
@@ -1770,7 +2152,7 @@ function GeneratedWorld({
 						<Suspense
 							fallback={
 								<section className="v1-living-loading" aria-busy="true">
-									<p>Opening canonical local space…</p>
+									<p>Opening Dawnmere…</p>
 								</section>
 							}
 						>
@@ -1784,7 +2166,15 @@ function GeneratedWorld({
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
-						<GeneratedSceneTruth projection={projection} model={model} />
+						<GeneratedSceneTruth
+							projection={projection}
+							model={model}
+							selectedCitizenId={
+								navigation.focus.kind === "citizen"
+									? navigation.focus.citizenId
+									: null
+							}
+						/>
 					</div>
 					{embodiedVisible ? contextPanel() : null}
 				</section>
@@ -1793,7 +2183,7 @@ function GeneratedWorld({
 				className="v1-feedback-drawer"
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
-				<summary>Release Genesis feedback</summary>
+				<summary>Notes from this session</summary>
 				{feedbackOpen ? (
 					<Suspense fallback={<p>Opening the local feedback form…</p>}>
 						<FeedbackPanel />
@@ -1801,11 +2191,18 @@ function GeneratedWorld({
 				) : null}
 			</details>
 			<footer className="v1-world-footer">
-				<p>Watch first. Select a person or place to learn more.</p>
-				<nav aria-label="Evidence and development">
-					<a href="/research">Research evidence</a>
-					<a href="/developer">Developer surface</a>
-				</nav>
+				<p>
+					Watch first. Select a person to learn more.{" "}
+					{clockLocked
+						? "This view is read-only; days cannot pass here."
+						: consideringCounsel
+							? "Paused while you consider advice"
+							: catchUpProposal > 0
+								? "Days are waiting on your choice before time continues."
+								: playRate === 0
+									? "Time is paused. Play when you want another day to pass."
+									: "Time keeps moving until you pause it."}
+				</p>
 			</footer>
 		</main>
 	);
@@ -1827,9 +2224,10 @@ export function V1GenesisApp() {
 		};
 	}, [fault]);
 	useEffect(() => {
-		document.title = "EONFOLK — Canonical generated world";
+		document.title = "EONFOLK — Dawnmere";
 	}, []);
-	const { experience, error, refresh } = useGeneratedExperience(fault);
+	const { experience, error, refresh, advanceDay, catchUpDays } =
+		useGeneratedExperience(fault);
 	useEffect(() => {
 		void loadGeneratedWorldCanvasModule();
 	}, []);
@@ -1846,6 +2244,8 @@ export function V1GenesisApp() {
 			experience={experience}
 			fault={fault}
 			onAuthorityRefresh={refresh}
+			onAdvanceDay={advanceDay}
+			onCatchUpDays={catchUpDays}
 		/>
 	);
 }

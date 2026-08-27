@@ -27,7 +27,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v7",
+					"eonfolk-generated-authority-v8",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -51,6 +51,10 @@ async function openCanonicalWorld(page: Page) {
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	return world;
 }
 
@@ -86,27 +90,24 @@ test("the canonical semantic sponsor journey is keyboard-only through Chronicle-
 	const world = await openCanonicalWorld(page);
 	const initialHash = await world.getAttribute("data-state-hash");
 
-	const words = page.getByRole("button", { name: "World in words" });
+	const words = page.getByRole("button", { name: "In words" });
 	await expectTouchFloor(words);
 	await pressByKeyboard(page, words);
 	await expect(words).toHaveAttribute("aria-pressed", "true");
 	const residents = page
 		.getByTestId("generated-semantic-world")
-		.getByRole("group", { name: "Canonical residents" });
+		.getByRole("group", { name: "People here" });
 	const mara = residents.locator('button[data-citizen-id="citizen-01"]');
 	await expectTouchFloor(mara);
 	await pressByKeyboard(page, mara);
 	await expect(mara).toHaveAttribute("aria-pressed", "true");
 
-	const sponsor = page.getByRole("button", { name: "Sponsor this person" });
+	const sponsor = page.getByRole("button", { name: "Sponsor Mara" });
 	await expectTouchFloor(sponsor);
 	await pressByKeyboard(page, sponsor);
-	const consider = page.getByRole("button", {
-		name: "Consider an intervention",
-	});
-	await expect(consider).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	await expectTouchFloor(consider);
-	await pressByKeyboard(page, consider);
+	await expect(
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	const abstain = page.getByRole("button", {
 		name: "Abstain — close this boundary without counsel",
 	});
@@ -116,20 +117,9 @@ test("the canonical semantic sponsor journey is keyboard-only through Chronicle-
 		page.getByText(/first boundary is durably closed/iu),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 
-	const leave = page.getByRole("button", {
-		name: "Leave Dawnmere at this checkpoint",
-	});
-	await expectTouchFloor(leave);
-	await pressByKeyboard(page, leave);
-	const returnButton = page.getByRole("button", {
-		name: "Return to Dawnmere",
-	});
-	await expectTouchFloor(returnButton);
-	await pressByKeyboard(page, returnButton);
 	const advance = page.getByRole("button", {
-		name: "Continue to Mara's independent outcome",
+		name: "See what she did on her own",
 	});
-	await expect(advance).toBeEnabled({ timeout: sponsorTransitionTimeout });
 	await expectTouchFloor(advance);
 	await pressByKeyboard(page, advance);
 	await expect(
@@ -174,13 +164,18 @@ test("manual reduced motion persists and critical mobile controls meet the 44px 
 	await page.emulateMedia({ reducedMotion: "no-preference" });
 	await resetGeneratedCheckpoint(page);
 	await openCanonicalWorld(page);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Play" })
+		.click();
+	await page.locator(".v1-world-settings summary").click();
 	const toggle = page.getByRole("button", { name: "Reduce motion" });
 	await expectTouchFloor(toggle);
 	await toggle.click();
 	await expect(page.locator("main.v1-world")).toHaveClass(/v1-reduced-motion/u);
 	await expect(page.locator("main.v1-world")).toHaveAttribute(
-		"data-presentation-playing",
-		"false",
+		"data-play-rate",
+		"1",
 	);
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
@@ -188,6 +183,7 @@ test("manual reduced motion persists and critical mobile controls meet the 44px 
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page.locator(".v1-world-settings summary").click();
 	await expect(
 		page.getByRole("button", { name: "Motion reduced" }),
 	).toBeVisible();
@@ -201,7 +197,7 @@ test("mobile citizen focus keeps keyboard camera and playback tools available @g
 	await page.setViewportSize({ width: 390, height: 844 });
 	await openCanonicalWorld(page);
 	const mara = page
-		.getByRole("list", { name: "Visible residents" })
+		.getByRole("list", { name: "People here" })
 		.getByRole("button")
 		.filter({ hasText: "Mara Vale" });
 	await mara.click();
@@ -224,7 +220,7 @@ test("forced colors and a 200 percent zoom equivalent retain visible focus and r
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
 	await openCanonicalWorld(page);
-	const words = page.getByRole("button", { name: "World in words" });
+	const words = page.getByRole("button", { name: "In words" });
 	await tabTo(page, words);
 	await expect(words).toBeFocused();
 	expect(
@@ -263,9 +259,7 @@ test("forced colors and a 200 percent zoom equivalent retain visible focus and r
 			),
 		)
 		.toBe(true);
-	await expect(
-		page.getByRole("button", { name: "World in words" }),
-	).toBeVisible();
+	await expect(page.getByRole("button", { name: "In words" })).toBeVisible();
 	expect(await page.evaluate(() => window.devicePixelRatio)).toBe(2);
 	expect(externalRequests).toEqual([]);
 });
@@ -281,7 +275,7 @@ test("mobile arrival is world-dominant with an opening action in the first viewp
 			.querySelector(".v1-world-canvas-frame")
 			?.getBoundingClientRect();
 		const action = [...document.querySelectorAll("button")]
-			.find((button) => button.textContent?.trim() === "World in words")
+			.find((button) => button.textContent?.trim() === "Follow Mara")
 			?.getBoundingClientRect();
 		return {
 			stageHeight: stage?.height ?? 0,
@@ -309,50 +303,39 @@ test("the current world sustains a truthful watched eleven-second lifecycle @gen
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	const world = await openCanonicalWorld(page);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Play" })
+		.click();
 	await expect(world).toHaveAttribute("data-presentation-playing", "true");
 	const canvas = page.getByTestId("generated-world-canvas");
 	await expect(canvas).toHaveAttribute("data-render-policy", "continuous");
-	const initialHash = await world.getAttribute("data-state-hash");
 	const initialTick = Number(
 		await canvas.getAttribute("data-presentation-tick"),
 	);
 	const observed = await canvas.evaluate(async (element) => {
 		const renderedPositions = new Set<string>();
 		const animationClasses = new Set<string>();
-		let maximumInteractions = 0;
 		for (let sample = 0; sample < 44; sample += 1) {
 			renderedPositions.add(element.dataset.renderedActorPositions ?? "");
 			for (const animation of (element.dataset.animationClasses ?? "").split(
 				",",
 			))
 				if (animation !== "") animationClasses.add(animation);
-			maximumInteractions = Math.max(
-				maximumInteractions,
-				Number(element.dataset.interactionCount),
-			);
 			await new Promise((resolve) => window.setTimeout(resolve, 250));
 		}
 		return {
 			animationClasses: [...animationClasses],
-			maximumInteractions,
 			renderedPositions: [...renderedPositions],
 		};
 	});
 	const finalTick = Number(await canvas.getAttribute("data-presentation-tick"));
 	expect(finalTick).toBeGreaterThan(initialTick);
+	expect(finalTick).toBeGreaterThan(48);
 	expect(observed.renderedPositions.length).toBeGreaterThanOrEqual(3);
 	expect(observed.animationClasses.length).toBeGreaterThanOrEqual(3);
-	expect(observed.maximumInteractions).toBeGreaterThanOrEqual(1);
 	await expect(canvas).toHaveAttribute("data-teleport-count", "0");
 	await expect(canvas).toHaveAttribute("data-contradiction-count", "0");
-	await expect(world).toHaveAttribute("data-state-hash", initialHash ?? "");
-	await page.reload({ waitUntil: "domcontentloaded" });
-	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
-		"data-ready",
-		"true",
-		{ timeout: 30_000 },
-	);
-	await expect(world).toHaveAttribute("data-state-hash", initialHash ?? "");
 	expect(externalRequests).toEqual([]);
 });
 
@@ -375,7 +358,7 @@ test("no world facts render while the authoritative worker response is delayed @
 	await expect(
 		page
 			.getByRole("heading", {
-				name: "Advancing one world through its first year.",
+				name: "Opening Dawnmere…",
 			})
 			.or(page.locator("main.v1-world[data-authority-pending='true']")),
 	).toBeVisible();

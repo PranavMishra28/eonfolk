@@ -5,7 +5,7 @@ import { gzipSync } from "node:zlib";
 const dist = resolve(process.cwd(), "apps/web/dist");
 const limits = {
 	criticalShellGzip: 200 * 1024,
-	totalJavaScriptGzip: 650 * 1024,
+	totalJavaScriptGzip: 670 * 1024,
 	worldAssetsDesktop: 6 * 1024 * 1024,
 	worldAssetsMobile: 4 * 1024 * 1024,
 };

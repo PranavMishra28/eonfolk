@@ -12,22 +12,22 @@ import {
 	contributeProjectLabor,
 	deliverProjectResource,
 	failProject,
+	recordFoundingMaterialization,
 	registerFounding,
 	registerMigration,
 	registerMigrationJourney,
 	registerProject,
 	registerStock,
-	recordFoundingMaterialization,
 	startProject,
 } from "../../../packages/civilization/src/index.js";
 import {
 	CITIZEN_A,
-	SETTLEMENT,
-	TERRITORY,
 	project,
+	SETTLEMENT,
 	stateWithCitizenStocks,
 	stock,
 	storage,
+	TERRITORY,
 } from "./fixtures.js";
 
 function registeredProject(

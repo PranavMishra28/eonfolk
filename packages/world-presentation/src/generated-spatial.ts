@@ -1,4 +1,9 @@
 import {
+	projectDisplayName,
+	projectStateDisplayName,
+	roleDisplayName,
+} from "./display-names";
+import {
 	type GeneratedMetricPointProjection,
 	type GeneratedRouteProjection,
 	type GeneratedSettlementLocalProjection,
@@ -673,7 +678,7 @@ function projectProjects(
 				return Object.freeze({
 					projectId: project.projectId,
 					kind: project.kind,
-					name: project.name,
+					name: projectDisplayName(project.name),
 					settlementId: project.settlementId,
 					siteId: project.siteId,
 					state: project.state,
@@ -684,7 +689,7 @@ function projectProjects(
 					sourceEventIds: Object.freeze(
 						[...project.sourceEventIds].sort(compareIds),
 					),
-					semanticLabel: `${project.name} is ${project.state} at ${project.siteId}`,
+					semanticLabel: `${projectDisplayName(project.name)} is ${projectStateDisplayName(project.state)} at ${project.siteId}`,
 				});
 			}),
 	);
@@ -903,7 +908,7 @@ function activityActor(input: {
 		citizenId: citizen.citizenId,
 		slug: citizen.citizenId,
 		name: citizen.name,
-		role: citizen.primaryRoleId ?? "unassigned",
+		role: roleDisplayName(citizen.primaryRoleId),
 		placeId: citizen.siteId,
 		positionMm: position,
 		facingDegrees,

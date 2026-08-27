@@ -2880,6 +2880,8 @@ em {
 	grid-template-rows: auto 1fr auto auto;
 	height: auto;
 	min-height: 100vh;
+	max-width: 100%;
+	overflow-x: clip;
 }
 
 .v1-world-header {
@@ -3540,6 +3542,7 @@ em {
 	min-width: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
+	scrollbar-gutter: stable;
 	padding: 0.75rem;
 	color: #25281f;
 	border: 1px solid rgba(255, 250, 232, 0.5);
@@ -3562,25 +3565,22 @@ em {
 	max-height: none;
 }
 
-.v1-context-panel:not(:hover, :focus-within) {
-	width: 16rem;
-	max-height: none;
-	padding: 0.45rem;
-	background: rgba(232, 220, 192, 0.84);
-}
-
 @media (min-width: 721px) {
-	.v1-context-panel:not(:hover, :focus-within) .v1-presence-card {
-		margin: 0 !important;
-		padding: 0.55rem !important;
+	main.v1-world[data-counsel-open="true"] .v1-context-panel {
+		width: min(24rem, 34vw);
 	}
 
-	.v1-context-panel:not(:hover, :focus-within)
-		.v1-presence-card
-		> p:not(.v1-live-interaction),
-	.v1-context-panel:not(:hover, :focus-within) .v1-activity-summary,
-	.v1-context-panel:not(:hover, :focus-within) .v1-presence-roster {
-		display: none;
+	main.v1-world[data-counsel-open="true"] .v1-context-panel h2 {
+		font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+	}
+
+	main.v1-world[data-counsel-open="true"] .v1-presence-roster {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	main.v1-world[data-counsel-open="true"] .v1-focus-actions {
+		flex-direction: column;
+		align-items: stretch;
 	}
 
 	.v1-context-panel:not(:hover, :focus-within) h2 {
@@ -3596,9 +3596,9 @@ em {
 
 	.v1-context-panel:not(:hover, :focus-within) .v1-world-tools summary {
 		overflow: hidden;
+		max-width: 100%;
 		font-size: 0.875rem;
-		white-space: nowrap;
-		text-overflow: ellipsis;
+		white-space: normal;
 	}
 
 	.v1-context-panel:not(:hover, :focus-within):not([data-focus-kind="overview"])
@@ -3611,10 +3611,18 @@ em {
 	}
 }
 
+.v1-context-panel,
 .v1-context-panel * {
+	box-sizing: border-box;
 	min-width: 0;
 	max-width: 100%;
 	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.v1-context-panel h2,
+.v1-context-panel h3 {
+	text-wrap: wrap;
 }
 
 .v1-context-panel pre {
@@ -3624,13 +3632,17 @@ em {
 
 .v1-world-focus-link {
 	display: inline-flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: center;
-	min-width: 2.75rem;
+	min-width: 0;
+	max-width: 100%;
 	min-height: 2.75rem;
 	padding: 0.5rem 0.65rem;
 	color: inherit;
 	font-weight: 800;
+	white-space: normal;
+	overflow-wrap: anywhere;
 	text-decoration-thickness: 0.12em;
 	text-underline-offset: 0.16em;
 }
@@ -3640,8 +3652,17 @@ em {
 .v1-place-selection {
 	margin: 0 0 0.8rem;
 	padding: 0.9rem;
+	overflow-x: hidden;
+	max-width: 100%;
 	border: 1px solid rgba(35, 38, 31, 0.2);
 	background: rgba(255, 250, 232, 0.5);
+}
+
+.v1-context-panel > section:not(.v1-presence-card) button {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	white-space: normal;
 }
 
 .v1-context-now {
@@ -3717,7 +3738,8 @@ em {
 .v1-focus-actions button,
 .v1-focus-actions a {
 	padding: 0.45rem 0.65rem;
-	overflow-wrap: normal;
+	overflow-wrap: anywhere;
+	white-space: normal;
 	font-size: 0.875rem;
 	font-weight: 800;
 	text-decoration: none;
@@ -3732,6 +3754,7 @@ em {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.3rem;
+	max-width: 100%;
 	max-height: 15.5rem;
 	margin: 0 0 0.55rem;
 	padding: 0;
@@ -3765,6 +3788,8 @@ em {
 }
 
 .v1-world-tools {
+	max-width: 100%;
+	overflow-x: hidden;
 	border-top: 1px solid rgba(35, 38, 31, 0.2);
 }
 
@@ -3788,8 +3813,9 @@ em {
 	margin: 0 0 0.7rem;
 	font-size: 0.875rem;
 	font-weight: 800;
-	letter-spacing: 0.07em;
+	letter-spacing: 0.04em;
 	text-transform: uppercase;
+	overflow-wrap: anywhere;
 }
 
 .v1-context-panel dl {
@@ -3936,10 +3962,6 @@ em {
 		padding: 0.75rem;
 	}
 
-	.v1-context-panel:not([data-focus-kind="overview"]) .v1-presence-roster {
-		display: none;
-	}
-
 	.generated-scene-truth {
 		left: 0.55rem;
 		right: 0.55rem;
@@ -3968,11 +3990,14 @@ em {
 @media (max-width: 480px) {
 	.v1-world-header {
 		padding: 0.75rem;
+		min-width: 0;
 	}
 
 	.v1-view-controls {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
+		max-width: 100%;
+		min-width: 0;
 	}
 
 	.v1-view-controls button {
@@ -4005,6 +4030,16 @@ em {
 	}
 }
 
+@media (max-width: 240px) {
+	.v1-view-controls {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.v1-world-title h1 {
+		font-size: 1.25rem;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.detail-sheet--world-selection {
 		animation: none;
@@ -4027,6 +4062,71 @@ em {
 	height: 100%;
 	touch-action: none;
 	cursor: grab;
+}
+
+.generated-citizen-labels {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	pointer-events: none;
+}
+
+.generated-citizen-labels li {
+	position: absolute;
+	transform: translate(-50%, calc(-100% - 0.35rem));
+	pointer-events: auto;
+}
+
+.generated-citizen-labels button {
+	display: grid;
+	gap: 0.05rem;
+	min-width: 2.75rem;
+	padding: 0.2rem 0.45rem;
+	border: 1px solid rgba(35, 38, 31, 0.35);
+	border-radius: 0.35rem;
+	color: #23180c;
+	background: rgba(255, 248, 230, 0.92);
+	font: inherit;
+	font-size: 0.75rem;
+	line-height: 1.2;
+	text-align: left;
+	cursor: pointer;
+}
+
+.generated-citizen-labels button[aria-pressed="true"],
+.generated-citizen-labels li[data-sponsored="true"] button {
+	border-color: #6b4a1a;
+	box-shadow: 0 0 0 2px rgba(107, 74, 26, 0.35);
+}
+
+.generated-scene-truth button {
+	display: inline-grid;
+	gap: 0.05rem;
+	min-height: 2.75rem;
+	padding: 0.2rem 0.4rem;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.v1-world-settings {
+	display: inline-block;
+}
+
+.v1-world-settings summary {
+	cursor: pointer;
+	min-height: 2.75rem;
+	padding: 0.4rem 0.7rem;
+}
+
+.v1-presence-roster button[data-sponsored="true"] {
+	box-shadow: inset 3px 0 0 #6b4a1a;
 }
 
 .generated-settlement-switcher {

@@ -1,10 +1,12 @@
-import type {
-	AnimationClass,
-	GeneratedCivilizationSpatialProjection,
-	GeneratedSpatialActivityInput,
-	PropKind,
-	SpatialActorProjection,
-	SpatialPointMm,
+import {
+	type AnimationClass,
+	type GeneratedCivilizationSpatialProjection,
+	type GeneratedSpatialActivityInput,
+	type PropKind,
+	projectDisplayName,
+	projectStateDisplayName,
+	type SpatialActorProjection,
+	type SpatialPointMm,
 } from "@eonfolk/world-presentation";
 
 export const GENERATED_EMBODIMENT_SCHEMA_VERSION =
@@ -334,13 +336,22 @@ function routeTopology(
 	]);
 }
 
-/** Replays only the proven past prefix, then holds at the exact Reality point. */
+/**
+ * Replays the proven route continuously while the player is watching.
+ * Tick 48 remains the authoritative end of the current day's path; later ticks
+ * reverse along the same points so presentation never freezes.
+ */
 export function generatedTraversalPointAtTick(
 	grounding: GeneratedGrounding,
 	presentationTick: number,
 ): SpatialPointMm {
 	const points = grounding.traversalPathMm!;
-	const scaled = Math.min(presentationTick, 48) * (points.length - 1);
+	if (!Number.isSafeInteger(presentationTick) || presentationTick < 0)
+		throw new Error("presentationTick must be a non-negative safe integer");
+	const cycle = 96;
+	const phase = presentationTick % cycle;
+	const forwardTick = phase <= 48 ? phase : cycle - phase;
+	const scaled = forwardTick * (points.length - 1);
 	const index = Math.min(Math.floor(scaled / 48), points.length - 2);
 	const progress = scaled / 48 - index;
 	const from = points[index]!;
@@ -516,10 +527,10 @@ function projectDeltas(
 				changed,
 				semanticLabel:
 					prior === undefined
-						? `${project.name}: ${project.state}; current checkpoint baseline`
+						? `${projectDisplayName(project.name)}: ${projectStateDisplayName(project.state)}; current checkpoint baseline`
 						: changed
-							? `${project.name}: ${prior.state} to ${project.state}; ${progressDeltaBasisPoints >= 0 ? "+" : ""}${progressDeltaBasisPoints} progress basis points`
-							: `${project.name}: ${project.state}; no change in this interval`,
+							? `${projectDisplayName(project.name)}: ${projectStateDisplayName(prior.state)} to ${projectStateDisplayName(project.state)}; ${progressDeltaBasisPoints >= 0 ? "+" : ""}${Math.round(progressDeltaBasisPoints / 100)}% progress`
+							: `${projectDisplayName(project.name)}: ${projectStateDisplayName(project.state)}; no change in this interval`,
 			});
 		}),
 	);

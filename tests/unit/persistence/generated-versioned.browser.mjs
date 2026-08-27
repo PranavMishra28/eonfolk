@@ -71,7 +71,7 @@ test("generated authority uses real Chromium IndexedDB event and snapshot stores
 			generatedAbstentionBoundaryIdempotent: true,
 			generatedAbstentionBoundaryReloaded: true,
 			generatedAbstentionBoundaryRelatedOnly: true,
-			generatedFirstLoadAppendCalls: 5,
+			generatedFirstLoadAppendCalls: 1,
 			generatedFirstLoadPersisted: true,
 			generatedInvalidRefreshFailedClosed: true,
 			generatedRefreshAppendCalls: 0,

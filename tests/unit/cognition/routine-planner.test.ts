@@ -4,11 +4,11 @@ import {
 	advanceStandingPlan,
 	assertStandingPlan,
 	interruptStandingPlan,
+	type PlanningAffordance,
 	planProjectWork,
 	planRoutine,
 	replanStandingPlan,
 	retryStandingPlan,
-	type PlanningAffordance,
 } from "../../../packages/cognition/src/index.js";
 import type { ProjectState } from "../../../packages/protocol/src/index.js";
 

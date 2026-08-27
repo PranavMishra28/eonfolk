@@ -93,11 +93,11 @@ reactRoot.render(
 				fallback={
 					genesisRoute === "world" ? (
 						<main className="v1-genesis-loading" aria-busy="true">
-							<h1>Advancing one world through its first year.</h1>
+							<h1>Opening Dawnmere…</h1>
 						</main>
 					) : (
 						<main className="v1-genesis-shell" aria-busy="true">
-							<p>Preparing Release Genesis…</p>
+							<p>Opening Dawnmere…</p>
 						</main>
 					)
 				}

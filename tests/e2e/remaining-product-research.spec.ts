@@ -22,7 +22,7 @@ async function resetReleaseGenesisAuthority(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v7",
+					"eonfolk-generated-authority-v8",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -36,7 +36,7 @@ async function authorityFingerprint(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v7");
+				const request = indexedDB.open("eonfolk-generated-authority-v8");
 				request.addEventListener("error", () => reject(request.error), {
 					once: true,
 				});
@@ -107,7 +107,7 @@ async function authorityStateHash(page: Page): Promise<string> {
 	return await page.evaluate(
 		() =>
 			new Promise<string>((resolve, reject) => {
-				const request = indexedDB.open("eonfolk-generated-authority-v7");
+				const request = indexedDB.open("eonfolk-generated-authority-v8");
 				request.onerror = () => reject(request.error);
 				request.onsuccess = () => {
 					const database = request.result;
@@ -132,7 +132,6 @@ async function authorityStateHash(page: Page): Promise<string> {
 }
 
 async function selectMara(page: Page): Promise<void> {
-	await page.locator(".v1-context-panel").hover();
 	const mara = page.locator(
 		'ul.v1-presence-roster button[data-citizen-id="citizen-01"]',
 	);
@@ -214,15 +213,15 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(page);
-	await page.getByRole("button", { name: "Sponsor this person" }).click();
-	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
+	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page
 		.getByRole("button", {
 			name: "Abstain — close this boundary without counsel",
@@ -239,6 +238,10 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(page);
 	await expect(
 		page.getByRole("button", { name: "Review abstention Chronicle" }),
@@ -247,14 +250,10 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toHaveCount(0);
 	await expect(
-		page.getByRole("button", { name: /Verify the evidence first/iu }),
+		page.getByRole("button", { name: /Check the stores first/iu }),
 	).toHaveCount(0);
-	await page
-		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-		.click();
-	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 	const advance = page.getByRole("button", {
-		name: "Continue to Mara's independent outcome",
+		name: "See what she did on her own",
 	});
 	await expect(advance).toBeEnabled({ timeout: sponsorTransitionTimeout });
 	await advance.click();
@@ -284,6 +283,10 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(page);
 	await page
 		.getByRole("button", { name: "Review abstention Chronicle" })
@@ -309,15 +312,15 @@ test("a first-boundary action fails closed when its displayed context is stale",
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(page);
-	await page.getByRole("button", { name: "Sponsor this person" }).click();
-	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
+	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 
 	const other = await page.context().newPage();
 	await keepLocal(other);
@@ -328,12 +331,19 @@ test("a first-boundary action fails closed when its displayed context is stale",
 		"true",
 		{ timeout: 30_000 },
 	);
+	await other
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(other);
-	await other.getByRole("button", { name: "Consider an intervention" }).click();
+	const consider = other.getByRole("button", {
+		name: "Consider an intervention",
+	});
+	await expect(consider).toBeEnabled({ timeout: sponsorTransitionTimeout });
+	await consider.click();
 	await expect(
-		other.getByRole("button", { name: "Consider an intervention" }),
+		other.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await other.getByRole("button", { name: "Consider an intervention" }).click();
 	await other
 		.getByRole("button", {
 			name: "Abstain — close this boundary without counsel",
@@ -348,12 +358,15 @@ test("a first-boundary action fails closed when its displayed context is stale",
 
 	await page
 		.getByRole("button", {
-			name: "Verify the evidence first — delays a conclusion",
+			name: "Check the stores first",
 		})
 		.click();
 	await expect(page.getByRole("status")).toContainText(
-		"CURRENT_CONTEXT_MISMATCH",
+		"The town moved while this choice was open",
 		{ timeout: sponsorTransitionTimeout },
+	);
+	await expect(page.getByRole("status")).not.toContainText(
+		/SP:|CURRENT_CONTEXT_MISMATCH/u,
 	);
 	expect(await authorityFingerprint(page)).toBe(beforeStaleAttempt);
 	await other.close();
@@ -374,23 +387,26 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 		"data-render-policy",
 		"on-demand",
 	);
 	await selectMara(page);
-	await page.getByRole("button", { name: "Sponsor this person" }).click();
+	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page
 		.getByRole("button", {
-			name: "Confront them publicly — risks trust",
+			name: "Check the stores first",
 		})
 		.click();
 	await expect(
-		page.getByRole("button", { name: "Leave Dawnmere at this checkpoint" }),
+		page.getByRole("button", { name: "See Mara's decision" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
@@ -398,19 +414,19 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	await selectMara(page);
 	await expect(
-		page.getByRole("button", { name: "Leave Dawnmere at this checkpoint" }),
+		page.getByRole("button", { name: "See Mara's decision" }),
 	).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	await page
-		.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-		.click();
-	await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 	const beforeAccusationBoundaryHash =
 		await world.getAttribute("data-state-hash");
 	await page
 		.getByRole("button", {
-			name: "Advance one day to Mara's decision boundary",
+			name: "See Mara's decision",
 		})
 		.click();
 	await expect
@@ -423,10 +439,10 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
-	).toContainText("rejected the advice");
+	).toContainText("inspection recorded");
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
-	).toContainText("Standing Plan continued");
+	).toContainText("accepted the advice");
 	const acceptedStateHash = await authorityStateHash(page);
 	expect(acceptedStateHash).toMatch(/^[0-9a-f]{64}$/u);
 	const before = await authorityFingerprint(page);
@@ -440,7 +456,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		}),
 	).toBeVisible();
 	await expect(evidence.getByText("Accepted world record")).toBeVisible();
-	await expect(evidence.getByText("temporal predecessor")).toBeVisible();
+	await expect(evidence.getByText("contributing condition")).toBeVisible();
 	await expect(
 		evidence.getByText("civilization.scheduler.counsel-boundary.v1"),
 	).toBeVisible();

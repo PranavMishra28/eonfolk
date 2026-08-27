@@ -1,4 +1,8 @@
 import {
+	type CivilizationExperimentRun,
+	runCivilizationExperiment,
+} from "@eonfolk/civilization";
+import {
 	createCivilizationPersistencePlan,
 	hashAuthoritativeState,
 	type JsonValue,
@@ -7,10 +11,6 @@ import {
 	RELEASE_GENESIS_CIVILIZATION_TRANSITION_VERSION,
 } from "@eonfolk/persistence";
 import type { GeneratedWorldState } from "@eonfolk/protocol";
-import {
-	type CivilizationExperimentRun,
-	runCivilizationExperiment,
-} from "@eonfolk/civilization";
 
 export const V1_INDEXEDDB_DATABASE = "eonfolk-v1-civilization";
 export const V1_INDEXEDDB_STORE = "canonical-checkpoints";

@@ -3,13 +3,18 @@ import {
 	assertGeneratedSponsorBoundaryAdmission,
 	generatedSponsorChronicleBaseSnapshotId,
 	generatedSponsorChronicleRange,
+	playerFacingSponsorFailure,
 } from "../../../apps/web/src/generated-sponsor-runtime.js";
 import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	advanceGeneratedCivilization,
+	appendLiveGeneratedCivilizationDay,
+	catchUpLiveGeneratedCivilizationDays,
 	GENERATED_CIVILIZATION_CATCH_UP_HORIZONS,
 	GENERATED_CIVILIZATION_OPERATION_LIMITS,
+	GENERATED_CIVILIZATION_RUN_ID,
 	migrateLegacyGeneratedCheckpoint,
+	persistPreparedGeneratedCivilization,
 	prepareGeneratedCivilization,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
@@ -18,13 +23,41 @@ import {
 	type V1CheckpointStoragePort,
 	type V1PersistedCheckpoint,
 } from "../../../apps/web/src/v1-indexeddb.js";
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import {
+	assertCivilizationInvariants,
+	type CivilizationState,
+	RELEASE_GENESIS_MARA_CITIZEN_ID,
+	runCivilizationExperiment,
+} from "../../../packages/civilization/src/index.js";
+import {
+	buildCivilizationCounselDecisionContext,
+	createCivilizationSponsorSnapshotBoundary,
+	prepareCivilizationSponsorTransition,
+	type ValidatedStandardBrainResolution,
+} from "../../../packages/civilization/src/sponsor.js";
+import {
+	createCognitiveDecisionRecord,
+	standardBrain,
+} from "../../../packages/cognition/src/index.js";
+import {
+	createCivilizationAbstentionBoundaryAppend,
+	createCivilizationCounselBoundaryAppend,
+	createCivilizationSponsorAuthorityAppend,
+} from "../../../packages/persistence/src/civilization-sponsor.js";
 import {
 	MemoryVersionedPersistence,
 	persistAuthorityCatchUp,
+	replayCivilizationHistory,
 	type VersionedPersistencePort,
 } from "../../../packages/persistence/src/index.js";
-import { createReleaseGenesis } from "../../../packages/protocol/src/index.js";
+import {
+	bytesFromHex,
+	createReleaseGenesis,
+	PROTOCOL_SCHEMA_VERSION,
+	payloadFingerprint,
+	seedPrng,
+	stateHash,
+} from "../../../packages/protocol/src/index.js";
 import { generateWorld } from "../../../packages/worldgen/src/index.js";
 
 class LegacyMemoryPort implements V1CheckpointStoragePort {
@@ -60,6 +93,242 @@ beforeAll(async () => {
 		treatmentId: "standard-brain",
 	});
 });
+
+function generatedAuthorityScope() {
+	return {
+		runId: GENERATED_CIVILIZATION_RUN_ID,
+		regionId: world.identity.worldId,
+	};
+}
+
+async function persistGeneratedOrigin() {
+	const prepared = await prepareGeneratedCivilization({
+		genesisWorld: world,
+		targetHorizonDays: 1,
+	});
+	const port = new MemoryVersionedPersistence();
+	await persistPreparedGeneratedCivilization({ port, prepared });
+	return port;
+}
+
+async function loadGeneratedAuthority(port: MemoryVersionedPersistence) {
+	const scope = generatedAuthorityScope();
+	const head = await port.loadHead(scope);
+	const snapshot = await port.loadLatestSnapshot(scope);
+	const replay = await replayCivilizationHistory(port, {
+		...scope,
+		snapshotId: snapshot.snapshotId,
+		toSequenceExclusive: head.lastSequence + 1,
+	});
+	return { scope, head, snapshot, replay };
+}
+
+function sponsoredCivilization(replay: {
+	readonly state: { readonly civilization: unknown };
+}): CivilizationState {
+	const civilization = replay.state.civilization as CivilizationState | null;
+	if (civilization === null) throw new Error("generated civilization missing");
+	assertCivilizationInvariants(civilization);
+	return civilization;
+}
+
+async function appendGeneratedSponsorCommand(
+	port: MemoryVersionedPersistence,
+	input:
+		| { readonly kind: "establish" }
+		| { readonly kind: "abstain"; readonly abstentionId: string }
+		| {
+				readonly kind: "issue";
+				readonly interventionId: string;
+				readonly intent?: "verify-reserve";
+		  }
+		| { readonly kind: "resolve"; readonly interventionId: string },
+) {
+	const { scope, head, snapshot, replay } = await loadGeneratedAuthority(port);
+	const state = sponsoredCivilization(replay);
+	const citizenId = RELEASE_GENESIS_MARA_CITIZEN_ID;
+	const citizen = state.citizens[citizenId];
+	const mind = state.minds[citizenId];
+	const counselCapable = mind?.snapshot.relationships.some((relationship) => {
+		const target = state.citizens[relationship.toCitizenId];
+		return (
+			target?.residenceState === "resident" &&
+			target.settlementId === citizen?.settlementId &&
+			target.siteId === citizen.siteId
+		);
+	});
+	if (citizen?.residenceState !== "resident" || !counselCapable)
+		throw new Error("canonical Mara fixture is not locally counsel-capable");
+	const operationId =
+		input.kind === "establish"
+			? citizenId
+			: input.kind === "abstain"
+				? input.abstentionId
+				: input.interventionId;
+	const decisionId = `decision:${operationId}`;
+	const proposalId = `proposal:${operationId}`;
+	let payload:
+		| {
+				readonly kind: "EstablishSponsorship";
+				readonly covenantId: string;
+				readonly citizenId: string;
+		  }
+		| {
+				readonly kind: "RecordPatronAbstention";
+				readonly abstentionId: string;
+				readonly citizenId: string;
+				readonly reason: "withhold-counsel";
+		  }
+		| {
+				readonly kind: "IssueCounsel";
+				readonly interventionId: string;
+				readonly citizenId: string;
+				readonly intent: "verify-reserve";
+		  }
+		| {
+				readonly kind: "ResolveCounsel";
+				readonly citizenId: string;
+				readonly interventionId: string;
+				readonly decisionId: string;
+				readonly proposalId: string;
+				readonly action: "verify-reserve" | "accuse-publicly" | "follow-plan";
+		  } =
+		input.kind === "establish"
+			? {
+					kind: "EstablishSponsorship",
+					covenantId: `covenant:${citizenId}`,
+					citizenId,
+				}
+			: input.kind === "abstain"
+				? {
+						kind: "RecordPatronAbstention",
+						abstentionId: input.abstentionId,
+						citizenId,
+						reason: "withhold-counsel",
+					}
+				: input.kind === "issue"
+					? {
+							kind: "IssueCounsel",
+							interventionId: input.interventionId,
+							citizenId,
+							intent: input.intent ?? "verify-reserve",
+						}
+					: {
+							kind: "ResolveCounsel",
+							citizenId,
+							interventionId: input.interventionId,
+							decisionId,
+							proposalId,
+							action: "follow-plan",
+						};
+	let resolution: ValidatedStandardBrainResolution | undefined;
+	if (input.kind === "resolve") {
+		const context = await buildCivilizationCounselDecisionContext({
+			state,
+			runId: scope.runId,
+			regionId: scope.regionId,
+			citizenId,
+			interventionId: input.interventionId,
+			decisionId,
+		});
+		if (context === null) throw new Error("missing test counsel context");
+		const chosen = await standardBrain(context, {
+			proposalId,
+			prngState: await seedPrng(
+				bytesFromHex(context.contextHash, 32),
+				"civilization-sponsor-test",
+				citizenId,
+				decisionId,
+			),
+		});
+		payload = {
+			kind: "ResolveCounsel",
+			citizenId,
+			interventionId: input.interventionId,
+			decisionId,
+			proposalId,
+			action:
+				chosen.proposal.action.kind === "VerifyReserve"
+					? "verify-reserve"
+					: chosen.proposal.action.kind === "AccusePublicly"
+						? "accuse-publicly"
+						: "follow-plan",
+		};
+		resolution = {
+			decisionId,
+			context,
+			proposal: chosen.proposal,
+			decisionRecord: await createCognitiveDecisionRecord({
+				decisionId,
+				decisionBoundaryId: `boundary:${decisionId}`,
+				wholePreStateHash: await stateHash(state),
+				context,
+				proposal: chosen.proposal,
+				failureCode: null,
+				validator: {
+					stage: "authorization",
+					outcome: "accepted",
+					reason: "test Application validated Standard Brain",
+				},
+				proposedCommandId: `${input.kind}:${operationId}`,
+				receiptRef: null,
+				acceptedEventInterval: null,
+			}),
+		};
+	}
+	const command = {
+		schemaVersion: PROTOCOL_SCHEMA_VERSION,
+		commandId: `${input.kind}:${operationId}`,
+		payloadFingerprint: await payloadFingerprint(payload),
+		expectedRevision: state.revision,
+		principal:
+			input.kind === "establish" ||
+			input.kind === "issue" ||
+			input.kind === "abstain"
+				? ({
+						kind: "patron" as const,
+						principalId: "patron:local",
+						beneficiaryCitizenId: citizenId,
+					} as const)
+				: ({ kind: "citizen" as const, principalId: citizenId } as const),
+		runId: scope.runId,
+		regionId: scope.regionId,
+		payload,
+	};
+	const transition = await prepareCivilizationSponsorTransition({
+		state,
+		runId: scope.runId,
+		regionId: scope.regionId,
+		priorWorldHeadHash: head.lastEventHash,
+		nextSequence: head.lastSequence + 1,
+		snapshotBoundary: await createCivilizationSponsorSnapshotBoundary({
+			snapshotId: snapshot.snapshotId,
+			runId: scope.runId,
+			regionId: scope.regionId,
+			stateHash: await stateHash(state),
+			revision: state.revision,
+			simulationTime: state.simulationTime,
+			nextSequence: head.lastSequence + 1,
+			baseWorldHeadHash: head.lastEventHash,
+		}),
+		authoritativeHeaders: [],
+		fencingToken: head.fencingToken,
+		command,
+		authoritativeHistory: [],
+		...(resolution === undefined ? {} : { resolution }),
+	});
+	if (!transition.accepted || transition.events[0] === undefined)
+		throw new Error(`${input.kind} transition rejected`);
+	const append = await createCivilizationSponsorAuthorityAppend({
+		state: replay.state,
+		head,
+		protocolEvent: transition.events[0],
+		commandReceipt: transition.receipt,
+		decisionRecord: transition.committedDecisionRecord,
+	});
+	const committed = await port.appendEventBatch(append.request);
+	return { transition, append, committed };
+}
 
 describe("generated sponsor Chronicle event range", () => {
 	it("admits first-boundary actions only against current context and never after abstention", () => {
@@ -103,6 +372,24 @@ describe("generated sponsor Chronicle event range", () => {
 				hasPriorAbstention: true,
 			}),
 		).not.toThrow();
+	});
+
+	it("keeps engine codes off the play surface", () => {
+		expect(
+			playerFacingSponsorFailure(
+				new Error("SP:CURRENT_CONTEXT_MISMATCH; prior state preserved"),
+			),
+		).toBe(
+			"The town moved while this choice was open. Your previous view is unchanged.",
+		);
+		expect(playerFacingSponsorFailure(new Error("SP:COVENANT_MISSING"))).toBe(
+			"That action could not be saved. Your previous view is unchanged.",
+		);
+		expect(
+			playerFacingSponsorFailure(
+				new Error("SP:CURRENT_CONTEXT_MISMATCH; prior state preserved"),
+			),
+		).not.toMatch(/SP:/u);
 	});
 
 	it("anchors an authority-extension snapshot to its retained immutable base", () => {
@@ -427,4 +714,173 @@ describe("generated civilization versioned persistence", () => {
 		).rejects.toThrow("outside the reviewed catch-up catalog");
 		expect(authorityRunner).not.toHaveBeenCalled();
 	});
+
+	it("appends a live day instead of freezing after the origin checkpoint", async () => {
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: world,
+			targetHorizonDays: 1,
+		});
+		const port = new MemoryVersionedPersistence();
+		await persistPreparedGeneratedCivilization({ port, prepared });
+		const first = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(first.advanced).toBe(true);
+		expect(first.horizonDays).toBe(2);
+		const second = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(second.advanced).toBe(true);
+		expect(second.horizonDays).toBe(3);
+	}, 120_000);
+
+	it("keeps Mara's covenant valid across a live day, counsel, and the next live day", async () => {
+		const port = await persistGeneratedOrigin();
+		await appendGeneratedSponsorCommand(port, { kind: "establish" });
+		const afterSponsor = await loadGeneratedAuthority(port);
+		const sponsored = sponsoredCivilization(afterSponsor.replay);
+		const covenantId = `covenant:${RELEASE_GENESIS_MARA_CITIZEN_ID}`;
+		const covenant = sponsored.sponsorships[covenantId];
+		expect(covenant).toBeDefined();
+		expect(
+			sponsored.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID]?.sourceEventIds,
+		).toContain(covenant?.sourceEventId);
+		const afterLiveDay = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(afterLiveDay.advanced).toBe(true);
+		const replayedDay = await loadGeneratedAuthority(port);
+		const continued = sponsoredCivilization(replayedDay.replay);
+		expect(continued.sponsorships[covenantId]?.sourceEventId).toBe(
+			covenant?.sourceEventId,
+		);
+		expect(
+			continued.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID]?.sourceEventIds,
+		).toContain(covenant?.sourceEventId);
+		const interventionId = `intervention:${RELEASE_GENESIS_MARA_CITIZEN_ID}:verify-reserve`;
+		const issued = await appendGeneratedSponsorCommand(port, {
+			kind: "issue",
+			interventionId,
+			intent: "verify-reserve",
+		});
+		expect(issued.transition.events[0]?.eventPayload.kind).toBe(
+			"CounselIssued",
+		);
+		await appendGeneratedSponsorCommand(port, {
+			kind: "resolve",
+			interventionId,
+		});
+		const resolved = await loadGeneratedAuthority(port);
+		const boundary = await createCivilizationCounselBoundaryAppend({
+			state: resolved.replay.state,
+			head: resolved.head,
+			citizenId: RELEASE_GENESIS_MARA_CITIZEN_ID,
+			interventionId,
+		});
+		await port.appendEventBatch(boundary.request);
+		const afterBoundary = await loadGeneratedAuthority(port);
+		expect(afterBoundary.replay.state.scheduler.completedDay).toBe(
+			resolved.replay.state.scheduler.completedDay + 1,
+		);
+		expect(afterBoundary.replay.state.phase).toBe("active");
+		const laterDay = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(laterDay.advanced).toBe(true);
+		const finalReplay = await loadGeneratedAuthority(port);
+		const finalCivilization = sponsoredCivilization(finalReplay.replay);
+		expect(finalCivilization.sponsorships[covenantId]).toBeDefined();
+		expect(
+			Object.keys(finalCivilization.counselOutcomes).length,
+		).toBeGreaterThan(0);
+	}, 180_000);
+
+	it("lets another live day append after an abstention boundary", async () => {
+		const port = await persistGeneratedOrigin();
+		await appendGeneratedSponsorCommand(port, { kind: "establish" });
+		const abstentionId = `abstention:${RELEASE_GENESIS_MARA_CITIZEN_ID}:1`;
+		await appendGeneratedSponsorCommand(port, {
+			kind: "abstain",
+			abstentionId,
+		});
+		const abstained = await loadGeneratedAuthority(port);
+		const boundary = await createCivilizationAbstentionBoundaryAppend({
+			state: abstained.replay.state,
+			head: abstained.head,
+			citizenId: RELEASE_GENESIS_MARA_CITIZEN_ID,
+			abstentionId,
+		});
+		await port.appendEventBatch(boundary.request);
+		const laterDay = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(laterDay.advanced).toBe(true);
+		const replayed = await loadGeneratedAuthority(port);
+		expect(
+			sponsoredCivilization(replayed.replay).patronAbstentions[abstentionId],
+		).toBeDefined();
+	}, 180_000);
+
+	it("resumes return catch-up without double-advancing after a crash", async () => {
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: world,
+			targetHorizonDays: 1,
+		});
+		const durable = new MemoryVersionedPersistence();
+		await persistPreparedGeneratedCivilization({ port: durable, prepared });
+		let liveDayAppends = 0;
+		const crashingClient = new Proxy(durable, {
+			get(target, property) {
+				if (property === "appendEventBatch")
+					return async (
+						...args: Parameters<typeof target.appendEventBatch>
+					) => {
+						const result = await target.appendEventBatch(...args);
+						const appendId = args[0]?.appendId ?? "";
+						if (
+							typeof appendId === "string" &&
+							appendId.startsWith("civilization-live-day-")
+						) {
+							liveDayAppends += 1;
+							if (liveDayAppends === 3)
+								throw new Error("crash after durable live catch-up chapter");
+						}
+						return result;
+					};
+				const value = Reflect.get(target, property, target) as unknown;
+				return typeof value === "function" ? value.bind(target) : value;
+			},
+		}) as VersionedPersistencePort;
+		await expect(
+			catchUpLiveGeneratedCivilizationDays({
+				port: crashingClient,
+				genesisWorld: world,
+				operationId: "rl-test-return",
+				additionalDays: 7,
+			}),
+		).rejects.toThrow("crash after durable live catch-up chapter");
+		const crashed = await replayGeneratedCivilization({
+			port: durable,
+			regionId: world.identity.worldId,
+		});
+		expect(crashed.state.scheduler.completedDay).toBe(4);
+		const resumed = await catchUpLiveGeneratedCivilizationDays({
+			port: durable,
+			genesisWorld: world,
+			operationId: "rl-test-return",
+			additionalDays: 7,
+		});
+		expect(resumed.horizonDays).toBe(8);
+		expect(resumed.catchUpOperation.status).toBe("complete");
+		const replayed = await replayGeneratedCivilization({
+			port: durable,
+			regionId: world.identity.worldId,
+		});
+		expect(replayed.state.scheduler.completedDay).toBe(8);
+	}, 180_000);
 });

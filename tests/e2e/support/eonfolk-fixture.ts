@@ -7,8 +7,8 @@ import {
 } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
-	expect,
 	test as base,
+	expect,
 	type Locator,
 	type Page,
 	type Request,
@@ -82,5 +82,5 @@ export const test = base.extend<{ routeAudit: undefined }>({
 	],
 });
 
-export { expect };
 export type { Locator, Page };
+export { expect };

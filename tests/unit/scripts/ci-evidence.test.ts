@@ -108,15 +108,17 @@ describe("Founder Alpha CI evidence controls", () => {
 		]);
 	});
 
-	it("keeps the canonical web benchmark on Release Genesis /world", () => {
+	it("keeps the web benchmark on Dawnmere /world", () => {
 		const source = readFileSync(resolve("scripts/benchmark-web.mjs"), "utf8");
 		expect(source).toContain("await page.goto(`" + "$" + "{origin}/world`");
 		expect(source).toContain('route: "/world"');
 		expect(source).toContain('worldId: "eonfolk-genesis-world-v1"');
 		expect(source).toContain("generated-world-canvas");
-		expect(source).toContain("actorCount === 7");
+		expect(source).toContain("actorCount === 8");
 		expect(source).toContain("canonicalPopulation === 8");
-		expect(source).toContain("visibleInteractionCount >= 1");
+		expect(source).not.toContain("canonicalPopulation === 0");
+		expect(source).toContain("switcherPopulation");
+		expect(source).toContain('ul[aria-label="Visible activities"]');
 		expect(source).toContain(
 			'page.locator("ul.v1-presence-roster button").first()',
 		);
@@ -191,7 +193,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			parityFailure,
 		);
 		expect(parityCheck).toContain(
-			'.getByRole("group", { name: "Canonical residents" })',
+			'.getByRole("group", { name: "People here" })',
 		);
 		expect(parityCheck).toContain('.getByRole("button")');
 		expect(parityCheck).not.toContain('semantic.locator("button")');

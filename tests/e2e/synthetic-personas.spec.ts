@@ -24,7 +24,6 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await expect(
 			page.getByRole("heading", { name: "Dawnmere", level: 1 }),
 		).toBeVisible();
-		await page.locator(".v1-context-panel").hover();
 		await expect(
 			page.locator(
 				'ul.v1-presence-roster button[data-citizen-id="citizen-01"]',
@@ -78,6 +77,10 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 			"true",
 			{ timeout: 30_000 },
 		);
+		await page
+			.getByRole("navigation", { name: "Time" })
+			.getByRole("button", { name: "Pause" })
+			.click();
 		expect(
 			await page.locator("main.v1-world").getAttribute("data-state-hash"),
 		).toBe(before);
@@ -103,13 +106,10 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await resetGeneratedCheckpoint(page);
 		await openCanonicalWorld(page);
 		await selectCanonicalMara(page);
-		await page.getByRole("button", { name: "Sponsor this person" }).click();
-		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click({ timeout: sponsorTransitionTimeout });
+		await page.getByRole("button", { name: "Sponsor Mara" }).click();
 		await expect(
-			page.getByText(/Mara may accept, reject, delay, or reinterpret/iu),
-		).toBeVisible();
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", {
 				name: "Abstain — close this boundary without counsel",
@@ -119,12 +119,8 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 			page.getByText(/first boundary is durably closed/iu),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
-			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-			.click();
-		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
-		await page
 			.getByRole("button", {
-				name: "Continue to Mara's independent outcome",
+				name: "See what she did on her own",
 			})
 			.click();
 		await expect(
@@ -157,19 +153,21 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await resetGeneratedCheckpoint(page);
 		await page.goto("/");
 		await expect(
-			page.getByRole("heading", { name: "A civilization has already begun." }),
+			page.getByRole("heading", {
+				name: "Follow Mara Vale. She acts for herself.",
+			}),
 		).toBeVisible();
 		await expect(
 			page.getByText(/canonical hash|reducer|persistence fence/iu),
 		).toHaveCount(0);
-		await page.getByRole("link", { name: "Enter the living world" }).click();
+		await page.getByRole("link", { name: "Enter Dawnmere" }).click();
 		await expect(page).toHaveURL(/\/world$/u);
 		await expect(
 			page.getByRole("heading", { name: "Dawnmere", level: 1 }),
 		).toBeVisible({ timeout: 30_000 });
 		await selectCanonicalMara(page);
 		await expect(
-			page.getByRole("button", { name: "Sponsor this person" }),
+			page.getByRole("button", { name: "Sponsor Mara" }),
 		).toBeEnabled();
 		expect(external).toEqual([]);
 		writeSyntheticReport({
@@ -192,7 +190,7 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await resetGeneratedCheckpoint(page);
 		await openCanonicalWorld(page);
-		const words = page.getByRole("button", { name: "World in words" });
+		const words = page.getByRole("button", { name: "In words" });
 		await words.click();
 		await expect(words).toHaveAttribute("aria-pressed", "true");
 		const mara = page
@@ -200,7 +198,7 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 			.locator('button[data-citizen-id="citizen-01"]');
 		await mara.click();
 		await expect(
-			page.getByRole("button", { name: "Sponsor this person" }),
+			page.getByRole("button", { name: "Sponsor Mara" }),
 		).toBeEnabled();
 		expect(external).toEqual([]);
 		writeSyntheticReport({
@@ -223,7 +221,7 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await page.setViewportSize({ width: 1366, height: 768 });
 		await resetGeneratedCheckpoint(page);
 		await page.goto("/");
-		await page.getByRole("link", { name: "Enter the living world" }).click();
+		await page.getByRole("link", { name: "Enter Dawnmere" }).click();
 		await expect(
 			page.getByRole("heading", { name: "Dawnmere", level: 1 }),
 		).toBeVisible({ timeout: 60_000 });
@@ -249,17 +247,17 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await resetGeneratedCheckpoint(page);
 		await openCanonicalWorld(page);
 		await selectCanonicalMara(page);
-		await page.getByRole("button", { name: "Sponsor this person" }).click();
-		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click({ timeout: sponsorTransitionTimeout });
+		await page.getByRole("button", { name: "Sponsor Mara" }).click();
+		await expect(
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", {
-				name: "Confront them publicly — risks trust",
+				name: "Check the stores first",
 			})
 			.click();
 		await expect(
-			page.getByRole("button", { name: "Leave Dawnmere at this checkpoint" }),
+			page.getByRole("button", { name: "See Mara's decision" }),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page.reload({ waitUntil: "domcontentloaded" });
 		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
@@ -269,12 +267,8 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		);
 		await selectCanonicalMara(page);
 		await page
-			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-			.click();
-		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
-		await page
 			.getByRole("button", {
-				name: "Advance one day to Mara's decision boundary",
+				name: "See Mara's decision",
 			})
 			.click();
 		await expect(
@@ -282,7 +276,7 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await expect(
 			page.getByRole("list", { name: "Chronicle beats" }),
-		).toContainText("rejected the advice");
+		).toContainText("inspection recorded");
 		await expect(
 			page.getByRole("list", { name: "Chronicle beats" }),
 		).not.toContainText(/you made Mara|you forced|you caused the rejection/iu);

@@ -1,9 +1,9 @@
 import { createReleaseGenesis } from "@eonfolk/protocol";
 import {
-	projectGeneratedSettlementLocal,
-	projectGeneratedWorldOverview,
 	type GeneratedSettlementLocalProjection,
 	type GeneratedWorldOverviewProjection,
+	projectGeneratedSettlementLocal,
+	projectGeneratedWorldOverview,
 } from "@eonfolk/world-presentation";
 import { generateWorld } from "@eonfolk/worldgen";
 

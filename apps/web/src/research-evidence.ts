@@ -9,8 +9,9 @@ import {
 	EMPTY_EVENT_HASH,
 	validateAuthorityEventRecord,
 } from "@eonfolk/persistence";
+import { GENERATED_WORLD_STORAGE_KEY } from "./generated-world-runtime";
 
-const AUTHORITY_DATABASE = "eonfolk-generated-authority-v7";
+const AUTHORITY_DATABASE = GENERATED_WORLD_STORAGE_KEY;
 const RELEASE_GENESIS_RUN_ID = "v1-generated-civilization";
 const AUTHORITY_STORES = Object.freeze({
 	streams: "authorityStreams",

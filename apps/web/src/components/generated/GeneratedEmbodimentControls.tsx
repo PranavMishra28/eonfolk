@@ -16,7 +16,7 @@ const ACTIVITY_LABELS: Readonly<Record<string, string>> = {
 	gather: "gathering resources",
 	"eat-rest": "resting and eating",
 	repair: "repairing a structure",
-	inspect: "checking the evidence",
+	inspect: "checking stores",
 };
 
 /**
@@ -29,9 +29,9 @@ export function GeneratedEmbodimentControls({
 	model,
 	navigation,
 	dispatch,
-	presentationPlaying,
-	reducedMotion,
-	onTogglePresentation,
+	presentationPlaying: _presentationPlaying,
+	reducedMotion: _reducedMotion,
+	onTogglePresentation: _onTogglePresentation,
 	onStepPresentation,
 	onNavigationRejected,
 }: {
@@ -71,13 +71,68 @@ export function GeneratedEmbodimentControls({
 		navigation.focus.kind === "building" ? navigation.focus.buildingId : null;
 	const selectedProjectId =
 		navigation.focus.kind === "project" ? navigation.focus.projectId : null;
+	const mara = model.actors.find((actor) => actor.name === "Mara Vale");
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (
+				event.target instanceof HTMLInputElement ||
+				event.target instanceof HTMLTextAreaElement ||
+				event.target instanceof HTMLSelectElement
+			) {
+				return;
+			}
+			if (event.key === "f" || event.key === "F") {
+				if (mara === undefined) return;
+				event.preventDefault();
+				dispatch({ type: "select-citizen", citizenId: mara.citizenId });
+				dispatch({ type: "toggle-follow" });
+				return;
+			}
+			if (event.key === "Home" || event.key === "0") {
+				event.preventDefault();
+				dispatch({ type: "overview" });
+				return;
+			}
+			if (event.key === "ArrowLeft") {
+				event.preventDefault();
+				dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 });
+				return;
+			}
+			if (event.key === "ArrowRight") {
+				event.preventDefault();
+				dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 });
+				return;
+			}
+			if (event.key === "ArrowUp") {
+				event.preventDefault();
+				dispatch({ type: "pan", xDeltaMm: 0, zDeltaMm: -8_000 });
+				return;
+			}
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				dispatch({ type: "pan", xDeltaMm: 0, zDeltaMm: 8_000 });
+				return;
+			}
+			if (event.key === "+" || event.key === "=") {
+				event.preventDefault();
+				dispatch({ type: "zoom", deltaMm: -8_000 });
+				return;
+			}
+			if (event.key === "-" || event.key === "_") {
+				event.preventDefault();
+				dispatch({ type: "zoom", deltaMm: 8_000 });
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [dispatch, mara]);
 	return (
 		<section
 			className="generated-embodiment-controls"
 			aria-label="World navigation"
 		>
 			<fieldset className="generated-camera-controls">
-				<legend>World camera controls</legend>
+				<legend>Look around</legend>
 				<button type="button" onClick={() => dispatch({ type: "overview" })}>
 					Settlement overview
 				</button>
@@ -139,18 +194,10 @@ export function GeneratedEmbodimentControls({
 					aria-pressed={navigation.followCitizen}
 					onClick={() => dispatch({ type: "toggle-follow" })}
 				>
-					{navigation.followCitizen ? "Stop following" : "Follow citizen"}
-				</button>
-				<button
-					type="button"
-					disabled={reducedMotion}
-					aria-pressed={presentationPlaying}
-					onClick={onTogglePresentation}
-				>
-					{presentationPlaying ? "Pause motion" : "Play motion"}
+					{navigation.followCitizen ? "Stop following" : "Follow this person"}
 				</button>
 				<button type="button" onClick={onStepPresentation}>
-					Step one pose
+					Step one beat
 				</button>
 			</fieldset>
 			<p
@@ -162,7 +209,7 @@ export function GeneratedEmbodimentControls({
 				{navigation.distanceMm / 1_000}m
 			</p>
 			<fieldset className="generated-residents">
-				<legend>Canonical residents</legend>
+				<legend>People here</legend>
 				<ul>
 					{model.actors.map((actor) => (
 						<li key={actor.citizenId}>
@@ -188,7 +235,7 @@ export function GeneratedEmbodimentControls({
 				</ul>
 			</fieldset>
 			{projection.local.buildings.length === 0 ? null : (
-				<ul className="generated-buildings" aria-label="Canonical buildings">
+				<ul className="generated-buildings" aria-label="Buildings">
 					{projection.local.buildings.map((building) => {
 						const selected = selectedBuildingId === building.buildingId;
 						return (
@@ -205,7 +252,7 @@ export function GeneratedEmbodimentControls({
 										})
 									}
 								>
-									{building.buildingKind}
+									{building.semanticLabel}
 								</button>
 							</li>
 						);
@@ -213,7 +260,7 @@ export function GeneratedEmbodimentControls({
 				</ul>
 			)}
 			{model.projects.length === 0 ? null : (
-				<ul className="generated-projects" aria-label="Canonical projects">
+				<ul className="generated-projects" aria-label="Works in progress">
 					{model.projects.map((project) => (
 						<li key={project.projectId}>
 							<button
@@ -238,7 +285,7 @@ export function GeneratedEmbodimentControls({
 			)}
 			{model.limitations.length === 0 ? null : (
 				<div className="generated-limitations" role="status">
-					<strong>Canonical movement limit</strong>
+					<strong>What this view cannot show</strong>
 					<ul>
 						{model.limitations.map((limitation) => (
 							<li key={limitation}>{limitation}</li>

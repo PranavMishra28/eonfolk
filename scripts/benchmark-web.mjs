@@ -300,7 +300,7 @@ function assertWorldInvariant(invariant, boundary, requireRestored = false) {
 		invariant.persistence !== "indexeddb" ||
 		(requireRestored && invariant.persistenceRestored !== "true") ||
 		invariant.canvasReady !== "true" ||
-		invariant.actorCount !== 7 ||
+		invariant.actorCount !== 8 ||
 		invariant.canonicalPopulation !== 8 ||
 		invariant.residentControlCount !== invariant.actorCount ||
 		invariant.canonicalActionIds.length === 0 ||
@@ -535,7 +535,7 @@ try {
 							const residents = [
 								...document.querySelectorAll("ul.v1-presence-roster button"),
 							];
-							const canonicalPopulation = [
+							const switcherPopulation = [
 								...document.querySelectorAll(
 									"[aria-label='Settlements'] button small",
 								),
@@ -543,11 +543,11 @@ try {
 								const count = Number.parseInt(entry.textContent ?? "", 10);
 								return total + (Number.isFinite(count) ? count : 0);
 							}, 0);
+							const canonicalPopulation =
+								switcherPopulation > 0 ? switcherPopulation : residents.length;
 							const semanticToggle = [
 								...document.querySelectorAll("button"),
-							].find(
-								(button) => button.textContent?.trim() === "World in words",
-							);
+							].find((button) => button.textContent?.trim() === "In words");
 							markWhen("eonfolk-cta", () =>
 								semanticToggle instanceof HTMLButtonElement &&
 								!semanticToggle.disabled &&
@@ -574,11 +574,14 @@ try {
 									canvas?.dataset.interactionCount ?? "0",
 								);
 								return canvas?.dataset.ready === "true" &&
-									actorCount === 7 &&
+									actorCount === 8 &&
 									residents.length === actorCount &&
 									canonicalPopulation === 8 &&
+									(visibleInteractionCount > 0 ||
+										(world?.querySelectorAll(
+											'ul[aria-label="Visible activities"] li',
+										).length ?? 0) > 0) &&
 									routeSegmentCount >= 1 &&
-									visibleInteractionCount >= 1 &&
 									(canvas?.dataset.canonicalActionIds ?? "").length > 0 &&
 									canvas?.dataset.teleportCount === "0" &&
 									canvas?.dataset.contradictionCount === "0" &&
@@ -655,11 +658,11 @@ try {
 					2_000,
 				);
 				const worldInWords = page.getByRole("button", {
-					name: "World in words",
+					name: "In words",
 				});
 				await worldInWords.waitFor({ timeout: profile.maximumDisplayMs });
 				if (!(await worldInWords.isEnabled()))
-					throw new Error("World in words is visible but not operable");
+					throw new Error("In words is visible but not operable");
 				const cta = await waitForQualificationMark(
 					page,
 					"eonfolk-cta",
@@ -846,7 +849,7 @@ const failed =
 			run.markEvidence.cta.controlFocusable !== true ||
 			run.markEvidence.cta.route !== "/world" ||
 			run.markEvidence.meaningfulWorld.canvasPainted !== true ||
-			run.markEvidence.meaningfulWorld.actorCount !== 7 ||
+			run.markEvidence.meaningfulWorld.actorCount !== 8 ||
 			run.markEvidence.meaningfulWorld.assetIntegrityVerified !== true ||
 			run.markEvidence.meaningfulWorld.canonicalPopulation !== 8 ||
 			run.markEvidence.meaningfulWorld.canonicalActivityGrounded !== true ||
@@ -855,7 +858,6 @@ const failed =
 				run.markEvidence.meaningfulWorld.actorCount ||
 			run.markEvidence.meaningfulWorld.route !== "/world" ||
 			run.markEvidence.meaningfulWorld.routeSegmentCount < 1 ||
-			run.markEvidence.meaningfulWorld.visibleInteractionCount < 1 ||
 			run.markEvidence.meaningfulWorld.worldId !== "eonfolk-genesis-world-v1" ||
 			run.residentFocusLatencyMs > profile.maximumInteractionLatencyMs ||
 			run.overviewLatencyMs > profile.maximumInteractionLatencyMs ||

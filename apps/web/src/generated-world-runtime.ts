@@ -4,6 +4,7 @@ import {
 	type CivilizationScheduledActivity,
 	type CivilizationState,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import {
@@ -25,6 +26,8 @@ import {
 import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-versioned";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
+	appendLiveGeneratedCivilizationDay,
+	catchUpLiveGeneratedCivilizationDays,
 	GENERATED_CIVILIZATION_RUN_ID,
 	type GeneratedCivilizationCatchUpHorizon,
 	type PreparedGeneratedCivilization,
@@ -45,8 +48,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-/** Exact v7 namespace: earlier authority bytes remain untouched and cannot be misread. */
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v7";
+/** Exact v8 namespace: first session starts at day 1; earlier 365-day v7 bytes stay unread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v8";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -79,6 +82,15 @@ export interface GeneratedWorldExperience {
 		| "counseled"
 		| "resolved";
 	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
+	readonly happenings: readonly GeneratedWorldHappening[];
+}
+
+export interface GeneratedWorldHappening {
+	readonly happeningId: string;
+	readonly title: string;
+	readonly summary: string;
+	readonly citizenId: string | null;
+	readonly citizenName: string | null;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -101,6 +113,103 @@ interface PreparedGeneratedWorldBase {
 }
 
 let pendingDefaultPreparedBase: Promise<PreparedGeneratedWorldBase> | undefined;
+
+function happeningsFromCivilization(
+	civilization: CivilizationState,
+): readonly GeneratedWorldHappening[] {
+	const happenings: GeneratedWorldHappening[] = [];
+	const mara = civilization.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
+	const counselOutcome = Object.values(civilization.counselOutcomes)
+		.filter((outcome) => outcome.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID)
+		.sort((left, right) => left.recordedAtRevision - right.recordedAtRevision)
+		.at(-1);
+	if (mara !== undefined && counselOutcome !== undefined) {
+		if (counselOutcome.effect.kind === "reserve-inspection")
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} checked the stores`,
+					summary: `${mara.name} inspected the settlement reserve. That is a recorded observation, not a rumor.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+		else if (counselOutcome.effect.kind === "public-allegation") {
+			const target =
+				civilization.citizens[counselOutcome.effect.targetCitizenId];
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} spoke publicly`,
+					summary:
+						target === undefined
+							? `${mara.name} made a public allegation. That is recorded speech, not a proven fact.`
+							: `${mara.name} made a public allegation about ${target.name}. That is recorded speech, not a proven fact.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+		} else
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} kept to her plan`,
+					summary: `${mara.name} continued her standing plan after the advice. That is a recorded choice.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+	}
+	const traveller =
+		civilization.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID];
+	const migration = civilization.migrations["migration-founding-party"];
+	if (traveller !== undefined && migration !== undefined) {
+		if (migration.state === "planned")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-prepares-to-leave",
+					title: `${traveller.name} is preparing to leave Dawnmere`,
+					summary: `${traveller.name} is gathering for a second founding. The expedition can still be watched from this settlement.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+		else if (migration.state === "travelling")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-left-dawnmere",
+					title: `${traveller.name} left Dawnmere`,
+					summary: `${traveller.name} set out to found another settlement.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+		else if (migration.state === "arrived")
+			happenings.push(
+				Object.freeze({
+					happeningId: "orin-founded-settlement",
+					title: `${traveller.name} reached new ground`,
+					summary: `${traveller.name} arrived with the founding party.`,
+					citizenId: traveller.citizenId,
+					citizenName: traveller.name,
+				}),
+			);
+	} else if (
+		traveller !== undefined &&
+		traveller.residenceState !== "resident"
+	) {
+		happenings.push(
+			Object.freeze({
+				happeningId: "orin-left-dawnmere",
+				title: `${traveller.name} left Dawnmere`,
+				summary: `${traveller.name} is no longer resident in the origin settlement.`,
+				citizenId: traveller.citizenId,
+				citizenName: traveller.name,
+			}),
+		);
+	}
+	return Object.freeze(happenings);
+}
 
 function projectCheckpoint(
 	run: CivilizationExperimentRun,
@@ -181,7 +290,7 @@ async function buildGeneratedWorldExperienceInternal(
 			: run;
 	};
 	const targetHorizonDays =
-		options.targetHorizonDays ?? GENERATED_WORLD_HORIZON_DAYS;
+		options.targetHorizonDays ?? GENERATED_WORLD_INITIAL_HORIZON_DAYS;
 	const databaseName = options.databaseName ?? GENERATED_WORLD_STORAGE_KEY;
 	const indexedDbFactory =
 		options.indexedDbFactory === undefined
@@ -439,6 +548,7 @@ async function buildGeneratedWorldExperienceInternal(
 							? "sponsored"
 							: "idle",
 		activeCounselIntent: activeCounsel?.intent ?? null,
+		happenings: happeningsFromCivilization(sponsorCivilization),
 	});
 }
 
@@ -497,4 +607,68 @@ export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience
 export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
 	pendingExperience = buildGeneratedWorldExperienceInternal({});
 	return pendingExperience;
+}
+
+/**
+ * Player-authorized scheduler step. Wall clock must not call this.
+ */
+export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
+	const indexedDbFactory = globalThis.indexedDB;
+	if (indexedDbFactory === undefined)
+		return await refreshGeneratedWorldExperience();
+	const releaseGenesis = await createReleaseGenesis({
+		releaseId: V1_GENESIS_RELEASE_ID,
+		seedHex: V1_GENESIS_SEED,
+	});
+	const generatedWorld = await generateWorld({
+		releaseGenesis,
+		worldId: V1_GENESIS_WORLD_ID,
+		treatmentId: "standard-brain",
+	});
+	const port = await BrowserVersionedPersistence.open({
+		factory: indexedDbFactory,
+		databaseName: GENERATED_WORLD_STORAGE_KEY,
+	});
+	try {
+		await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: generatedWorld,
+		});
+	} finally {
+		port.close();
+	}
+	return await refreshGeneratedWorldExperience();
+}
+
+export async function catchUpGeneratedWorldReturnDays(input: {
+	readonly operationId: string;
+	readonly additionalDays: number;
+}): Promise<GeneratedWorldExperience> {
+	const indexedDbFactory = globalThis.indexedDB;
+	if (indexedDbFactory === undefined)
+		return await refreshGeneratedWorldExperience();
+	const releaseGenesis = await createReleaseGenesis({
+		releaseId: V1_GENESIS_RELEASE_ID,
+		seedHex: V1_GENESIS_SEED,
+	});
+	const generatedWorld = await generateWorld({
+		releaseGenesis,
+		worldId: V1_GENESIS_WORLD_ID,
+		treatmentId: "standard-brain",
+	});
+	const port = await BrowserVersionedPersistence.open({
+		factory: indexedDbFactory,
+		databaseName: GENERATED_WORLD_STORAGE_KEY,
+	});
+	try {
+		await catchUpLiveGeneratedCivilizationDays({
+			port,
+			genesisWorld: generatedWorld,
+			operationId: input.operationId,
+			additionalDays: input.additionalDays,
+		});
+	} finally {
+		port.close();
+	}
+	return await refreshGeneratedWorldExperience();
 }

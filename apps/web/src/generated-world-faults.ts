@@ -75,7 +75,7 @@ const FAULT_SPECS: Readonly<
 		code: "GENERATED_RENDERER_UNAVAILABLE",
 		disposition: "degraded",
 		message:
-			"The embodied renderer is unavailable. The same canonical world remains usable in semantic form.",
+			"The watch view is unavailable. The same settlement remains usable in words.",
 	}),
 	asset: Object.freeze({
 		kind: "asset",

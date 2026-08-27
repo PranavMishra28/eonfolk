@@ -1,4 +1,7 @@
-import type { CivilizationState } from "@eonfolk/civilization";
+import {
+	type CivilizationState,
+	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
+} from "@eonfolk/civilization";
 import {
 	buildCivilizationCounselDecisionContext,
 	type CivilizationSponsorEventEnvelope,
@@ -31,6 +34,12 @@ import {
 	type WorldCommandPayload,
 } from "@eonfolk/protocol";
 import { projectCivilizationChronicle } from "@eonfolk/sim/civilization-chronicle";
+import {
+	projectDisplayName,
+	relationshipKindDisplayName,
+	valueDisplayName,
+} from "@eonfolk/world-presentation";
+import { withAuthorityWriter } from "./authority-writer";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import { GENERATED_CIVILIZATION_RUN_ID } from "./persistence/generated-civilization";
 
@@ -64,6 +73,23 @@ function sponsorFail(code: string): never {
 	throw new Error(`SP:${code}`);
 }
 
+/** Play-surface copy. Engine codes stay in thrown errors, never in the world UI. */
+export function playerFacingSponsorFailure(reason: unknown): string {
+	const raw = reason instanceof Error ? reason.message : String(reason);
+	const code = raw.startsWith("SP:")
+		? (raw.slice(3).split(/[;\s]/u)[0] ?? "")
+		: "";
+	if (code === "CURRENT_CONTEXT_MISMATCH")
+		return "The town moved while this choice was open. Your previous view is unchanged.";
+	if (code.length > 0)
+		return "That action could not be saved. Your previous view is unchanged.";
+	if (raw.length > 0 && !raw.includes("SP:"))
+		return raw.endsWith(".")
+			? `${raw} Your previous view is unchanged.`
+			: `${raw}. Your previous view is unchanged.`;
+	return "That action could not be saved. Your previous view is unchanged.";
+}
+
 export interface GeneratedSponsorshipResult {
 	readonly idempotent: boolean;
 	readonly chronicleTrace: string;
@@ -95,6 +121,7 @@ export interface GeneratedCounselContext {
 	readonly verifyStake: string;
 	readonly accuseStake: string;
 	readonly abstainStake: string;
+	readonly hasAllegation: boolean;
 }
 
 export interface GeneratedBranchNextAction {
@@ -203,9 +230,11 @@ function chronicleEventContext(input: {
 		);
 		objectId = building?.buildingId ?? project?.projectId ?? null;
 		objectName =
-			building?.buildingKind ??
-			project?.name ??
-			readable(stock?.stockId ?? "reserve");
+			building === undefined
+				? project === undefined
+					? readable(stock?.stockId ?? "reserve")
+					: projectDisplayName(project.name)
+				: building.buildingKind.replaceAll("-", " ");
 	} else if (
 		fact !== undefined &&
 		"effect" in fact &&
@@ -235,61 +264,102 @@ function counselContext(
 	const mind = civilization.minds[citizenId]?.snapshot;
 	if (citizen === undefined || mind === undefined)
 		sponsorFail("NO_COUNSEL_CONTEXT");
-	const toma = Object.values(civilization.citizens).find(
-		(candidate) => candidate.name === "Toma Reed",
-	);
-	const maraToma = Object.values(civilization.relationships).find(
+	const relatedMind = mind.relationships[0];
+	const relatedCitizen =
+		relatedMind === undefined
+			? undefined
+			: civilization.citizens[relatedMind.toCitizenId];
+	const relatedKind = Object.values(civilization.relationships).find(
 		(relationship) =>
-			toma !== undefined &&
-			((relationship.fromCitizenId === citizenId &&
-				relationship.toCitizenId === toma.citizenId) ||
-				(relationship.toCitizenId === citizenId &&
-					relationship.fromCitizenId === toma.citizenId)),
-	);
+			relatedCitizen !== undefined &&
+			relationship.fromCitizenId === citizenId &&
+			relationship.toCitizenId === relatedCitizen.citizenId,
+	)?.kind;
 	const evidence = mind.records.filter(
 		(record) => record.kind !== "message-claim",
 	);
 	const allegation = mind.records.find(
 		(record) => record.kind === "message-claim",
 	);
-	const planStep = mind.standingPlan.steps.find(
-		(step) => step.stepId === mind.standingPlan.currentStepId,
-	);
 	const settlementStocks = Object.values(civilization.stocks).filter(
 		(stock) =>
 			stock.owner.kind === "settlement" &&
 			stock.owner.settlementId === citizen.settlementId,
 	);
-	const recordedUnits = settlementStocks.reduce(
-		(total, stock) => total + stock.quantity,
+	const waterUnits = settlementStocks
+		.filter(
+			(stock) =>
+				stock.resourceTypeId === "water" ||
+				stock.resourceTypeId === "spring-water",
+		)
+		.reduce((total, stock) => total + stock.quantity, 0);
+	const relatedName = relatedCitizen?.name ?? "a neighbor";
+	const residents = Object.values(civilization.citizens).filter(
+		(candidate) =>
+			candidate.residenceState === "resident" &&
+			candidate.settlementId === citizen.settlementId,
+	);
+	const dailyWaterNeed = residents.reduce(
+		(total, candidate) => total + candidate.waterRequiredUnitsPerDay,
 		0,
 	);
+	const daysOfWater =
+		dailyWaterNeed > 0 ? Math.floor(waterUnits / dailyWaterNeed) : 0;
+	const traveller =
+		civilization.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID];
+	const migration = civilization.migrations["migration-founding-party"];
+	const departureBeat =
+		traveller !== undefined &&
+		(migration?.state === "planned" ||
+			migration?.state === "travelling" ||
+			traveller.residenceState !== "resident")
+			? traveller
+			: undefined;
+	const hasAllegation = allegation !== undefined;
+	const fact =
+		departureBeat === undefined
+			? daysOfWater >= 7
+				? "Dawnmere's water stores are not in crisis. No theft is recorded."
+				: `Dawnmere has about ${String(daysOfWater)} day${daysOfWater === 1 ? "" : "s"} of water at the current daily need. No theft is recorded.`
+			: migration?.state === "planned"
+				? `${departureBeat.name} is preparing to leave Dawnmere for a second founding.`
+				: `${departureBeat.name} has left Dawnmere. This is a named departure, not a silent roster change.`;
+	const recordedBelief = evidence[0]?.proposition;
+	const falseWaterCrisis =
+		recordedBelief !== undefined &&
+		/only one day of prepared water/iu.test(recordedBelief) &&
+		daysOfWater >= 7;
+	const belief =
+		recordedBelief !== undefined && !falseWaterCrisis
+			? recordedBelief
+			: departureBeat === undefined
+				? `${citizen.name} has not recorded a crisis at this boundary.`
+				: `${citizen.name} can see ${departureBeat.name}'s departure taking shape.`;
 	return Object.freeze({
 		authorityStateHash,
 		citizenName: citizen.name,
-		fact: `Reality records ${String(recordedUnits)} resource units across ${String(settlementStocks.length)} settlement-owned stocks; it does not record theft.`,
-		belief:
-			evidence[0]?.proposition ??
-			`${citizen.name} has no recorded reserve-mismatch observation or belief in the current authoritative Mind.`,
-		allegation:
-			allegation?.proposition ??
-			`No allegation against ${toma?.name ?? "Toma"} is recorded at this boundary.`,
-		values: mind.values.map(({ valueId }) => readable(valueId)),
+		fact,
+		belief,
+		allegation: hasAllegation
+			? (allegation?.proposition ?? "")
+			: `No one is accused. There is no allegation against ${relatedName}.`,
+		values: mind.values.map(({ valueId }) => valueDisplayName(valueId)),
 		relationship:
-			maraToma === undefined
-				? `Current Reality records no direct ${citizen.name}–${toma?.name ?? "Toma"} relationship.`
-				: `${citizen.name} and ${toma?.name ?? "Toma"}: trust ${String(maraToma.trustBasisPoints)} / 10,000; strain ${String(maraToma.strainBasisPoints)} / 10,000.`,
-		standingPlan: `${readable(mind.standingPlan.goalType)} — ${readable(planStep?.kind ?? mind.standingPlan.currentStepId)} (${mind.standingPlan.status}).`,
+			relatedCitizen === undefined
+				? `${citizen.name} has no recorded close relationship at this boundary.`
+				: `${citizen.name} and ${relatedName} are ${relationshipKindDisplayName(relatedKind ?? "friend")}.`,
+		standingPlan: `${citizen.name} is continuing her day's work.`,
 		uncertainty:
-			evidence.length === 0
-				? "The current record does not establish a ledger mismatch, a sealed-reserve motive, or wrongdoing."
-				: "The recorded evidence does not establish another citizen's motive or wrongdoing.",
+			departureBeat === undefined
+				? "No shortage or accusation is recorded at this boundary."
+				: `Whether ${departureBeat.name}'s second founding will take hold is still unknown.`,
 		verifyStake:
-			"A private inspection can add sourced reserve evidence, but it delays a public conclusion.",
-		accuseStake:
-			"A public allegation can prompt scrutiny, but it can strain the relationship and remains an allegation until verified.",
-		abstainStake:
-			"No counsel enters Mara's decision. Her active Standing Plan continues without sponsor causal credit.",
+			"Checking the stores first can add a sourced count before any other move.",
+		accuseStake: hasAllegation
+			? `Raising this with ${relatedName} can bring the recorded claim into the open, and it can strain the friendship.`
+			: `There is no allegation to raise with ${relatedName}.`,
+		abstainStake: `${citizen.name} keeps her own plan. You take no credit for what she does next.`,
+		hasAllegation,
 	});
 }
 
@@ -354,21 +424,23 @@ export function assertGeneratedSponsorBoundaryAdmission(input: {
 export async function sponsorGeneratedCitizen(
 	input: GeneratedSponsorInput,
 ): Promise<GeneratedSponsorshipResult> {
-	const port = await BrowserVersionedPersistence.open({
-		factory: input.indexedDbFactory,
-		databaseName: input.databaseName,
+	return await withAuthorityWriter(async () => {
+		const port = await BrowserVersionedPersistence.open({
+			factory: input.indexedDbFactory,
+			databaseName: input.databaseName,
+		});
+		const scope = {
+			runId: GENERATED_CIVILIZATION_RUN_ID,
+			regionId: input.regionId,
+		};
+		try {
+			return await port.session(scope, async () =>
+				sponsorGeneratedCitizenInValidatedSession(input, port, scope),
+			);
+		} finally {
+			port.close();
+		}
 	});
-	const scope = {
-		runId: GENERATED_CIVILIZATION_RUN_ID,
-		regionId: input.regionId,
-	};
-	try {
-		return await port.session(scope, async () =>
-			sponsorGeneratedCitizenInValidatedSession(input, port, scope),
-		);
-	} finally {
-		port.close();
-	}
 }
 
 async function sponsorGeneratedCitizenInValidatedSession(
@@ -992,8 +1064,7 @@ async function sponsorGeneratedCitizenInValidatedSession(
 							? {
 									id: "investigate-uncertainty",
 									label: "Inspect the verified reserve context",
-									description:
-										"The reserve count is recorded; motive and wrongdoing remain unproven.",
+									description: "The reserve count is recorded.",
 									focus: {
 										kind: "object",
 										objectId: eventContext.objectId,

@@ -20,6 +20,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 
 import {
@@ -181,12 +182,37 @@ function renderedActorPoint(
 		slotId === null || slotId === undefined
 			? undefined
 			: projection.scene.nodes[slotId];
-	if (node === undefined || ordinal < 0) return actor.positionMm;
+	const coincidents = [...projection.spatial.actors]
+		.filter(
+			(candidate) =>
+				candidate.positionMm.x === actor.positionMm.x &&
+				candidate.positionMm.y === actor.positionMm.y &&
+				candidate.positionMm.z === actor.positionMm.z,
+		)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId));
+	const occupantIndex =
+		coincidents.length > 1
+			? coincidents.findIndex(
+					(candidate) => candidate.citizenId === actor.citizenId,
+				)
+			: ordinal;
+	const occupantCount =
+		coincidents.length > 1 ? coincidents.length : participantIds.length;
+	if (node === undefined || occupantIndex < 0) {
+		if (coincidents.length <= 1) return actor.positionMm;
+		const offset = (occupantIndex - (coincidents.length - 1) / 2) * 2_200;
+		return {
+			x: Math.round(actor.positionMm.x + offset),
+			y: actor.positionMm.y,
+			z: actor.positionMm.z,
+		};
+	}
 	const offset =
-		(ordinal - (participantIds.length - 1) / 2) *
+		(occupantIndex - (occupantCount - 1) / 2) *
 		Math.max(2_200, node.occupantSpacingMm);
 	const angle = (node.facingDegrees * Math.PI) / 180;
-	const clearance = Math.max(6_000, node.occupantSpacingMm);
+	const clearance =
+		coincidents.length > 1 ? 0 : Math.max(6_000, node.occupantSpacingMm);
 	return {
 		x: Math.round(node.x + Math.cos(angle) * offset),
 		y: node.y,
@@ -269,6 +295,7 @@ function GeneratedCamera({
 	projection,
 	model,
 	navigation,
+	presentationTick,
 	reducedMotion,
 	host,
 }: {
@@ -276,6 +303,7 @@ function GeneratedCamera({
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
 	readonly navigation: GeneratedNavigationState;
+	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
 }) {
@@ -289,6 +317,8 @@ function GeneratedCamera({
 	} | null>(null);
 	const navigationRef = useRef(navigation);
 	navigationRef.current = navigation;
+	const presentationTickRef = useRef(presentationTick);
+	presentationTickRef.current = presentationTick;
 	const requested = useMemo(
 		() => cameraIntentForGeneratedNavigation(projection, model, navigation),
 		[model, navigation, projection],
@@ -301,7 +331,14 @@ function GeneratedCamera({
 				? model.actors.find(({ citizenId }) => citizenId === focus.citizenId)
 				: undefined;
 		const actorPoint =
-			actor === undefined ? undefined : renderedActorPoint(projection, actor);
+			actor === undefined
+				? undefined
+				: renderedActorPoint(
+						projection,
+						actor,
+						reducedMotion ? 48 : presentationTick,
+					);
+		const following = Boolean(navigation.followCitizen && actorPoint);
 		const socialInteraction = compact
 			? projection.spatial.interactions[0]
 			: undefined;
@@ -314,11 +351,19 @@ function GeneratedCamera({
 		const socialFrom =
 			socialActor === undefined
 				? undefined
-				: renderedActorPoint(projection, socialActor);
+				: renderedActorPoint(
+						projection,
+						socialActor,
+						reducedMotion ? 48 : presentationTick,
+					);
 		const socialTo =
 			socialPartner === undefined
 				? undefined
-				: renderedActorPoint(projection, socialPartner);
+				: renderedActorPoint(
+						projection,
+						socialPartner,
+						reducedMotion ? 48 : presentationTick,
+					);
 		const socialPoint =
 			socialFrom === undefined || socialTo === undefined
 				? undefined
@@ -345,22 +390,26 @@ function GeneratedCamera({
 					: {
 							...actorPoint,
 							y: actorPoint.y + 1_000,
-							z:
-								actorPoint.z -
-								((host.current?.clientWidth ?? 800) < 600 ? 800 : 2_400),
+							z: following
+								? actorPoint.z
+								: actorPoint.z - (compact ? 800 : 2_400),
 						},
 			yawDegrees:
 				focus.kind === "overview"
 					? requested.yawDegrees + OVERVIEW_YAW_OFFSET_DEGREES
-					: focus.kind === "citizen"
-						? requested.yawDegrees + 48
-						: requested.yawDegrees,
+					: following
+						? requested.yawDegrees
+						: focus.kind === "citizen"
+							? requested.yawDegrees + 48
+							: requested.yawDegrees,
 			pitchDegrees:
 				focus.kind === "overview"
 					? requested.pitchDegrees + OVERVIEW_PITCH_OFFSET_DEGREES
-					: focus.kind === "citizen"
-						? requested.pitchDegrees + 14
-						: requested.pitchDegrees,
+					: following
+						? requested.pitchDegrees
+						: focus.kind === "citizen"
+							? requested.pitchDegrees + 14
+							: requested.pitchDegrees,
 			distanceMm:
 				focus.kind === "overview"
 					? socialPoint === undefined
@@ -368,7 +417,16 @@ function GeneratedCamera({
 						: 30_000
 					: requested.distanceMm,
 		});
-	}, [frame, model.actors, navigation.focus, projection, requested]);
+	}, [
+		frame,
+		model.actors,
+		navigation.focus,
+		navigation.followCitizen,
+		presentationTick,
+		projection,
+		reducedMotion,
+		requested,
+	]);
 	const desiredRef = useRef(desired);
 	desiredRef.current = desired;
 	const current = useRef(desired);
@@ -440,7 +498,7 @@ function GeneratedCamera({
 					distance: Math.hypot(target.x - x, target.y - y),
 				}))
 				.sort((left, right) => left.distance - right.distance)[0];
-			const threshold = event.pointerType === "touch" ? 42 : 28;
+			const threshold = event.pointerType === "touch" ? 72 : 56;
 			if (nearest === undefined || nearest.distance > threshold) return;
 			emit({ type: "select-citizen", citizenId: nearest.citizenId });
 		};
@@ -507,7 +565,11 @@ function GeneratedCamera({
 				host.current.dataset.citizenPickTargets = JSON.stringify(
 					model.actors.map((actor) => {
 						const point = localPoint(
-							renderedActorPoint(projection, actor),
+							renderedActorPoint(
+								projection,
+								actor,
+								reducedMotion ? 48 : presentationTickRef.current,
+							),
 							frame,
 						);
 						const screen = cameraComponent.worldToScreen(
@@ -840,6 +902,7 @@ function GroundedSettlement({
 				projection={projection}
 				model={model}
 				navigation={navigation}
+				presentationTick={presentationTick}
 				reducedMotion={reducedMotion}
 				host={host}
 			/>
@@ -856,8 +919,19 @@ function GroundedSettlement({
 			</Entity>
 			<Primitive
 				position={[0, -0.2, 0]}
-				scale={[frame.width + 180, 0.4, frame.depth + 180]}
+				scale={[frame.width + 14, 0.4, frame.depth + 14]}
 				color={palette.ground}
+			/>
+			<Primitive
+				type="cylinder"
+				position={[0, -0.08, 0]}
+				scale={[
+					Math.max(frame.width, frame.depth) * 0.62,
+					0.16,
+					Math.max(frame.width, frame.depth) * 0.62,
+				]}
+				color={palette.soil}
+				castShadows={false}
 			/>
 			<WorldContext frame={frame} />
 			{projection.scene.edges
@@ -1182,6 +1256,114 @@ export function GeneratedWorldCanvas({
 					onFailure={onFailure}
 				/>
 			</RendererBoundary>
+			<CitizenNameOverlay
+				host={host}
+				model={model}
+				selectedCitizenId={
+					navigation.focus.kind === "citizen"
+						? navigation.focus.citizenId
+						: null
+				}
+			/>
 		</div>
+	);
+}
+
+const INTENT_WORDS: Readonly<Record<string, string>> = {
+	idle: "pausing",
+	walk: "walking",
+	carry: "carrying",
+	gather: "gathering",
+	inspect: "checking stores",
+	talk: "speaking",
+	listen: "listening",
+	exchange: "trading",
+	repair: "repairing",
+	"eat-rest": "resting",
+	react: "reacting",
+};
+
+function CitizenNameOverlay({
+	host,
+	model,
+	selectedCitizenId,
+}: {
+	readonly host: RefObject<HTMLDivElement | null>;
+	readonly model: GeneratedEmbodimentProjection;
+	readonly selectedCitizenId: string | null;
+}) {
+	const [targets, setTargets] = useState<
+		readonly { readonly id: string; readonly x: number; readonly y: number }[]
+	>([]);
+	useEffect(() => {
+		let frame = 0;
+		let previous = "";
+		const tick = () => {
+			const next = host.current?.dataset.citizenPickTargets ?? "[]";
+			if (next !== previous) {
+				previous = next;
+				try {
+					setTargets(
+						JSON.parse(next) as readonly {
+							readonly id: string;
+							readonly x: number;
+							readonly y: number;
+						}[],
+					);
+				} catch {
+					setTargets([]);
+				}
+			}
+			frame = requestAnimationFrame(tick);
+		};
+		frame = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(frame);
+	}, [host]);
+	return (
+		<ul className="generated-citizen-labels" aria-label="People in view">
+			{targets.map((target) => {
+				const actor = model.actors.find(
+					({ citizenId }) => citizenId === target.id,
+				);
+				if (actor === undefined) return null;
+				const hostEl = host.current;
+				const width = hostEl?.clientWidth ?? 0;
+				const height = hostEl?.clientHeight ?? 0;
+				const pad = 16;
+				const left =
+					width <= pad * 2
+						? target.x
+						: Math.max(pad, Math.min(target.x, width - pad));
+				const top =
+					height <= pad * 2
+						? target.y
+						: Math.max(pad, Math.min(target.y, height - pad));
+				return (
+					<li
+						key={target.id}
+						style={{ left, top }}
+						data-sponsored={actor.name === "Mara Vale" ? "true" : undefined}
+					>
+						<button
+							type="button"
+							aria-pressed={selectedCitizenId === actor.citizenId}
+							onClick={() =>
+								window.dispatchEvent(
+									new CustomEvent(GENERATED_NAVIGATION_EVENT, {
+										detail: Object.freeze({
+											type: "select-citizen",
+											citizenId: actor.citizenId,
+										}),
+									}),
+								)
+							}
+						>
+							<strong>{actor.name}</strong>
+							<span>{INTENT_WORDS[actor.animationClass] ?? "at work"}</span>
+						</button>
+					</li>
+				);
+			})}
+		</ul>
 	);
 }

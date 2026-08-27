@@ -18,13 +18,17 @@ test("Release Genesis owns the product root and keeps evidence deliberate", asyn
 }) => {
 	const external = await keepLocal(page);
 	await page.goto("/");
-	await expect(page).toHaveTitle("EONFOLK — A civilization has begun");
+	await expect(page).toHaveTitle("EONFOLK — Follow Mara Vale");
 	await expect(
-		page.getByRole("heading", { name: "A civilization has already begun." }),
+		page.getByRole("heading", {
+			name: "Follow Mara Vale. She acts for herself.",
+		}),
 	).toBeVisible();
 	await expect(
-		page.getByRole("link", { name: "Enter the living world" }),
+		page.getByRole("link", { name: "Enter Dawnmere" }),
 	).toHaveAttribute("href", "/world");
+	await expect(page.getByRole("link", { name: "Research" })).toHaveCount(0);
+	await expect(page.getByRole("link", { name: "Developer" })).toHaveCount(0);
 	await expect(
 		page.getByText(/canonical hash|reducer|persistence fence/iu),
 	).toHaveCount(0);

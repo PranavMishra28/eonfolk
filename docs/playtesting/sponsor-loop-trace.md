@@ -8,7 +8,7 @@ second tracing subsystem.
 
 1. `/` landing → `/world` Dawnmere.
 2. Select Mara Vale (roster or semantic world).
-3. **Sponsor this person** → **Consider an intervention**.
+3. **Sponsor Mara** → **Consider an intervention**.
 4. Facts available to the player, Mara’s beliefs, values, Standing Plan, and
    allegation status are listed before a choice.
 5. Choose verify, public confrontation, or abstain. Copy on the panel states

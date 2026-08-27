@@ -1,13 +1,12 @@
-import type { ProjectState } from "../../../packages/protocol/src/index.js";
-import { jcs } from "../../../packages/protocol/src/index.js";
 import { describe, expect, it } from "vitest";
-
 import {
-	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
 	advanceGeneralizedScheduler,
 	assertCivilizationInvariants,
 	auditCivilizationState,
+	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
+	type CivilizationState,
 	createCivilizationState,
+	type GeneralizedSchedulerPolicy,
 	registerAgreement,
 	registerCitizen,
 	registerInstitution,
@@ -17,10 +16,10 @@ import {
 	registerStock,
 	registerStorage,
 	runGeneralizedSchedulerHorizon,
-	type CivilizationState,
-	type GeneralizedSchedulerPolicy,
 	type SchedulerRoutineDecision,
 } from "../../../packages/civilization/src/index.js";
+import type { ProjectState } from "../../../packages/protocol/src/index.js";
+import { jcs } from "../../../packages/protocol/src/index.js";
 
 const DAY = 86_400;
 const SETTLEMENT = "settlement-river";

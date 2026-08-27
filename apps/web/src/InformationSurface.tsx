@@ -266,7 +266,7 @@ function CurrentAcceptedEvidence({
 						? "No local Release Genesis authority exists in this browser. Enter the world to begin its record."
 						: "This local world has no accepted counsel consequence yet. Research mode will not invent one."}
 				</p>
-				<a href="/world">Enter Release Genesis</a>
+				<a href="/world">Enter Dawnmere</a>
 			</section>
 		);
 

@@ -47,6 +47,18 @@ async function openFaultedWorld(
 	return externalRequests;
 }
 
+async function pauseWorldTime(page: Page): Promise<void> {
+	const pause = page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" });
+	if (await pause.isDisabled()) return;
+	await pause.click();
+	await expect(page.locator("main.v1-world")).toHaveAttribute(
+		"data-play-rate",
+		"0",
+	);
+}
+
 async function expectRecoverableWorld(
 	page: Page,
 	kind: FaultKind,
@@ -57,6 +69,7 @@ async function expectRecoverableWorld(
 	});
 	await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u);
 	await expect(page.getByTestId("generated-world-fault-status")).toBeVisible();
+	await pauseWorldTime(page);
 	return (await world.getAttribute("data-state-hash")) ?? "";
 }
 
@@ -64,11 +77,11 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 	return page.evaluate(async () => {
 		const databases = await indexedDB.databases();
 		if (
-			!databases.some(({ name }) => name === "eonfolk-generated-authority-v7")
+			!databases.some(({ name }) => name === "eonfolk-generated-authority-v8")
 		)
 			return null;
 		return await new Promise((resolve, reject) => {
-			const request = indexedDB.open("eonfolk-generated-authority-v7");
+			const request = indexedDB.open("eonfolk-generated-authority-v8");
 			request.onerror = () => reject(request.error);
 			request.onsuccess = () => {
 				const database = request.result;
@@ -294,6 +307,7 @@ test.describe
 					/^[0-9a-f]{64}$/u,
 					{ timeout: 30_000 },
 				);
+				await pauseWorldTime(page);
 				const canonicalHash = await canonical.getAttribute("data-state-hash");
 				const before = await authorityFingerprint(page);
 				await page.evaluate(
@@ -311,7 +325,7 @@ test.describe
 				);
 				await expect(page.locator("html")).toHaveAttribute(
 					"data-fault-candidate-checkpoints",
-					"5",
+					"1",
 				);
 				if (kind === "checkpoint")
 					await expect(error).toHaveAttribute(
@@ -353,8 +367,13 @@ test.describe
 					.click();
 				await expect(page.locator("main.v1-world")).toHaveAttribute(
 					"data-state-hash",
-					canonicalHash ?? "",
+					/^[0-9a-f]{64}$/u,
 					{ timeout: 30_000 },
+				);
+				await pauseWorldTime(page);
+				await expect(page.locator("main.v1-world")).toHaveAttribute(
+					"data-state-hash",
+					canonicalHash ?? "",
 				);
 				expect(externalRequests).toEqual([]);
 			});
@@ -368,10 +387,7 @@ test.describe
 			const authority = await authorityFingerprint(page);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
-			await page
-				.locator(".generated-settlement-switcher button")
-				.first()
-				.click();
+			await page.getByRole("button", { name: "Zoom in" }).click();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
@@ -403,14 +419,13 @@ test.describe
 				},
 			});
 			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
-			await page
-				.getByRole("button", { name: "Retry embodied renderer" })
-				.click();
+			await page.getByRole("button", { name: "Retry the watch view" }).click();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 				"data-ready",
 				"true",
 				{ timeout: 30_000 },
 			);
+			await pauseWorldTime(page);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
 				hash,
@@ -558,7 +573,7 @@ test.describe
 			const externalRequests = await openFaultedWorld(page, "latency");
 			await expect(
 				page.getByRole("heading", {
-					name: "Advancing one world through its first year.",
+					name: "Opening Dawnmere…",
 				}),
 			).toBeVisible();
 			await expect(page.locator("main.v1-world")).toHaveCount(0);
@@ -591,13 +606,13 @@ test.describe
 			await page.evaluate(async () => {
 				await new Promise<void>((resolve, reject) => {
 					const deletion = indexedDB.deleteDatabase(
-						"eonfolk-generated-authority-v7",
+						"eonfolk-generated-authority-v8",
 					);
 					deletion.onsuccess = () => resolve();
 					deletion.onerror = () => reject(deletion.error);
 				});
 				await new Promise<void>((resolve, reject) => {
-					const open = indexedDB.open("eonfolk-generated-authority-v7", 1);
+					const open = indexedDB.open("eonfolk-generated-authority-v8", 1);
 					open.onsuccess = () => {
 						open.result.close();
 						resolve();
@@ -630,12 +645,13 @@ test.describe
 			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 				timeout: 30_000,
 			});
+			await pauseWorldTime(page);
 			const canonicalHash = await world.getAttribute("data-state-hash");
 			const canonicalAuthority = await authorityFingerprint(page);
 			await page.evaluate(
 				() =>
 					new Promise<void>((resolve, reject) => {
-						const open = indexedDB.open("eonfolk-generated-authority-v7");
+						const open = indexedDB.open("eonfolk-generated-authority-v8");
 						open.onerror = () => reject(open.error);
 						open.onsuccess = () => {
 							const database = open.result;

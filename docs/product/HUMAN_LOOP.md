@@ -12,7 +12,7 @@
 
 The first-proof loop is **observe → follow Mara → investigate → advise or abstain → Mara interprets → consequence → leave/advance/return → Chronicle explains → choose the next bounded risk**. Advice is scarce by situation, not currency. Gathering and care are citizen behaviors, not player chores.
 
-Executable V1 behavior follows [GAMEPLAY.md](../GAMEPLAY.md) in Dawnmere. Mara may accept, reject, delay, or reinterpret counsel; a public allegation and trust strain occur only when she accepts Accuse. The return “second action” on Release Genesis is the outcome-legal Chronicle focus (`repair-relationship`, `investigate-uncertainty`, or `observe`), not a second first-boundary WorldCommand. The Riverhold timing table and **Advance Riverhold** contract below remain historical Founder Alpha evidence.
+Executable V1 behavior follows [GAMEPLAY.md](../GAMEPLAY.md) in Dawnmere. Mara may accept, reject, delay, or reinterpret counsel; a public allegation and trust strain occur only when she accepts Accuse. The return “second action” on Dawnmere is the outcome-legal Chronicle focus (`repair-relationship`, `investigate-uncertainty`, or `observe`), not a second first-boundary WorldCommand. The Riverhold timing table and **Advance Riverhold** contract below remain historical Founder Alpha evidence.
 
 ## Retained verb contracts
 
@@ -32,23 +32,23 @@ Remove direct movement, job queues, repeated feeding/healing, chat spam, schedul
 
 | Time | Observable outcome |
 |---|---|
-| 0–2 seconds | Useful semantic/static Riverhold shell: Mara, present action, suspicion, and autonomy line. |
-| By 3 seconds | **Follow Mara** is operable even if the lazy PlayCanvas world is still loading. |
-| By 10 seconds | Most fresh participants can state whom they followed and that she acts for herself. |
-| By 30 seconds | Three activities and one interaction are legible; **Check why Mara doubts the count** is visible. |
-| By 45–60 seconds | Mara performs one authoritative state-changing investigation; player knows next action. |
-| By 5 minutes | Advice boundary opens with two materially distinct intents plus abstain; spectator-readable stable pause is allowed. |
-| Before session end | Mara interprets, acts, and a branch-specific consequence changes relationship/resource/institution state; three-beat Chronicle appears. |
-| Exit | Explicit **Leave Riverhold at checkpoint**; show local-device storage and proposed return behavior. |
-| Return | Changed world first. Player chooses **Advance Riverhold** before catch-up, sees three-beat While You Were Away, then receives one branch-legal second decision. |
+| 0–2 seconds | Literary landing: **Follow Mara Vale. She acts for herself.** One Enter control. No Research/Developer, no picture of Mara. |
+| By 3 seconds | **Enter Dawnmere** is operable. |
+| By 10 seconds | Most fresh participants can name Mara and that she acts for herself. |
+| By 30 seconds | Eight named people with one-line intent; **Pause / Play / Faster**; **Follow Mara**; roster not hover-gated. |
+| By 45–60 seconds | Selecting Mara shows recorded water stores, her friendship with Iven, and her day's work. |
+| By 5 minutes | Advice boundary opens with two materially distinct intents plus abstain; spectator-readable pause is allowed. |
+| Before session end | Mara interprets, acts, and a branch-specific consequence changes relationship or resource state; three-beat Chronicle appears. |
+| Exit | Pause writes last-active wall clock outside Reality. No streak, no silent decay. |
+| Return | Changed world first. Player may accept a bounded proposed catch-up (up to seven days) or stay on this day. |
 
 ## Riverhold counterfactual contract
 
 From the same pre-boundary snapshot:
 
-- **Verify privately:** Mara seeks Iven, corrects evidence before speaking; trust can be preserved while the ledger rule is delayed.
-- **Accuse now:** Mara speaks from mismatch belief; audit happens quickly, Toma trust strains, and allegation status remains explicit.
-- **Abstain/protect relationship:** Mara follows her existing plan; immediate trust is preserved, but shortage/ledger uncertainty and later accountability remain.
+- **Verify privately:** Mara checks the stores first; trust with Iven can be preserved while the shortage remains unnamed.
+- **Raise it with Iven:** Mara brings the water worry into the open; friendship can strain, and the claim remains an allegation until verified.
+- **Abstain:** Mara follows her existing day's work; you take no credit for what she does next.
 
 Values, trust, evidence, commitment, and advice are perturbed in tests. Branches must reach at least three different terminal vectors across relationship band, verified-belief state, petition/rule state, and resource allocation. The fixed `RV-*` chain is one oracle, not the only possible history.
 

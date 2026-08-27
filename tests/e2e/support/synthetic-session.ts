@@ -30,7 +30,7 @@ export async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v7",
+					"eonfolk-generated-authority-v8",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -51,11 +51,14 @@ export async function openCanonicalWorld(page: Page) {
 		"true",
 		{ timeout: 30_000 },
 	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 	return world;
 }
 
 export async function selectCanonicalMara(page: Page): Promise<void> {
-	await page.locator(".v1-context-panel").hover();
 	const resident = page.locator(
 		'ul.v1-presence-roster button[data-citizen-id="citizen-01"]',
 	);

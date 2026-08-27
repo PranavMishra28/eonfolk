@@ -33,7 +33,7 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 		() =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.deleteDatabase(
-					"eonfolk-generated-authority-v7",
+					"eonfolk-generated-authority-v8",
 				);
 				request.addEventListener("success", () => resolve(), { once: true });
 				request.addEventListener("error", () => reject(request.error), {
@@ -41,6 +41,13 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 				});
 			}),
 	);
+}
+
+async function pauseWorldTime(page: Page): Promise<void> {
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
 }
 
 async function openCanonicalWorld(page: Page, href = "/world") {
@@ -57,17 +64,17 @@ async function openCanonicalWorld(page: Page, href = "/world") {
 		"true",
 		{ timeout: 30_000 },
 	);
+	await pauseWorldTime(page);
 	return world;
 }
 
 async function selectSponsorCandidate(page: Page): Promise<string> {
-	await page.locator(".v1-context-panel").hover();
 	const residents = page.locator("ul.v1-presence-roster button");
 	for (let index = 0; index < (await residents.count()); index += 1) {
 		const resident = residents.nth(index);
 		await resident.click();
 		const sponsor = page.getByRole("button", {
-			name: /Sponsor this person|Consider an intervention|Review Chronicle/u,
+			name: /Sponsor Mara|Consider an intervention|Review Chronicle/u,
 		});
 		if ((await sponsor.count()) === 1 && (await sponsor.isEnabled())) {
 			const citizenId = await resident.getAttribute("data-citizen-id");
@@ -122,19 +129,7 @@ for (const viewport of [
 			defaultSettlement ?? "",
 		);
 
-		const settlementButtons = page
-			.getByRole("navigation", { name: "Settlements" })
-			.getByRole("button");
-		const destinationButton = settlementButtons.last();
-		await destinationButton.click();
-		const destinationSettlement = await page
-			.getByRole("heading", { level: 1 })
-			.textContent();
-		const destinationCitizen = page
-			.locator("ul.v1-presence-roster button[data-citizen-id]")
-			.first();
-		const citizenId = await destinationCitizen.getAttribute("data-citizen-id");
-		if (citizenId === null) throw new Error("destination citizen lacks an id");
+		const citizenId = "citizen-01";
 
 		await page.goto(focusHref({ kind: "citizen", citizenId }));
 		const focusedWorld = page.locator("main.v1-world");
@@ -145,7 +140,7 @@ for (const viewport of [
 			},
 		);
 		await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-			destinationSettlement ?? "",
+			defaultSettlement ?? "",
 		);
 		await expect(
 			page.locator(
@@ -185,31 +180,24 @@ for (const viewport of [
 			"on-demand",
 		);
 		const citizenId = await selectSponsorCandidate(page);
-		await page.getByRole("button", { name: "Sponsor this person" }).click();
+		await page.getByRole("button", { name: "Sponsor Mara" }).click();
 		await expect(
-			page.getByRole("button", { name: "Consider an intervention" }),
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click();
-		await page
 			.getByRole("button", {
-				name: "Verify the evidence first — delays a conclusion",
+				name: "Check the stores first",
 			})
 			.click();
 		await expect(
 			page.getByRole("button", {
-				name: "Leave Dawnmere at this checkpoint",
+				name: "See Mara's decision",
 			}),
 		).toBeEnabled({ timeout: sponsorTransitionTimeout });
-		await page
-			.getByRole("button", { name: "Leave Dawnmere at this checkpoint" })
-			.click();
-		await page.getByRole("button", { name: "Return to Dawnmere" }).click();
 		const beforeBoundaryHash = await world.getAttribute("data-state-hash");
 		await page
 			.getByRole("button", {
-				name: "Advance one day to Mara's decision boundary",
+				name: "See Mara's decision",
 			})
 			.click();
 		await expect
@@ -291,6 +279,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await expect(world).toHaveAttribute(
 			"data-focused-event-id",
 			eventFocus.eventId,
@@ -312,6 +301,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await page.getByRole("button", { name: "Review Chronicle" }).click();
 		const replay = page.getByRole("region", {
 			name: "Shareable factual replay",
@@ -329,7 +319,7 @@ for (const viewport of [
 		await page.keyboard.press("Enter");
 		await expect(page).toHaveURL(focusHref(locationFocus));
 		await expect(
-			page.getByRole("button", { name: "World in words" }),
+			page.getByRole("button", { name: "In words" }),
 		).toHaveAttribute("aria-pressed", "true");
 		const focusedPlace = page.locator('li[aria-current="location"]');
 		await expect(focusedPlace).toHaveAttribute("aria-current", "location");
@@ -348,6 +338,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await page.getByRole("button", { name: "Review Chronicle" }).click();
 		await replay.getByText("Exact event evidence").click();
 		const objectLink = replay.locator('a[href*="focus-kind=object"]').first();

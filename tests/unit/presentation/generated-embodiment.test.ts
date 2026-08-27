@@ -269,10 +269,11 @@ describe("generated embodiment projection", () => {
 			generatedTraversalPointAtTick(middle.grounding, tick),
 		);
 		expect(
-			new Set(sampled.slice(0, -1).map((value) => JSON.stringify(value))).size,
+			new Set(sampled.slice(0, 5).map((value) => JSON.stringify(value))).size,
 		).toBe(5);
-		expect(sampled.at(-1)).toEqual(sampled.at(-2));
-		expect(sampled.at(-1)).toEqual(middle.positionMm);
+		expect(sampled.at(-1)).toEqual(
+			generatedTraversalPointAtTick(middle.grounding, 47),
+		);
 		expect(generatedTraversalPointAtTick(middle.grounding, 48)).toEqual(
 			middle.positionMm,
 		);
@@ -415,6 +416,24 @@ describe("generated navigation parity", () => {
 		expect(intent.targetMm).toEqual(actor.positionMm);
 		expect(intent.followCitizenId).toBe(actor.citizenId);
 		expect(intent.semanticLabel).toContain("Following");
+		expect(following.distanceMm).toBe(18_000);
+	});
+
+	it("keeps a camera intent when the focused citizen has left", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const intent = cameraIntentForGeneratedNavigation(projection, model, {
+			...INITIAL_GENERATED_NAVIGATION,
+			focus: Object.freeze({
+				kind: "citizen",
+				citizenId: "missing-traveller",
+			}),
+		});
+		expect(intent.semanticLabel).toContain("no longer in this settlement");
+		expect(intent.followCitizenId).toBeNull();
 	});
 
 	it("derives four fidelity classes across region, town and citizen scales", () => {

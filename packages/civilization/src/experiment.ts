@@ -303,7 +303,7 @@ export interface CivilizationScheduledActivity {
 		readonly affordanceSlotIndex: number;
 		readonly targetId: string | null;
 		readonly simulationStart: number;
-		readonly simulationEnd: null;
+		readonly simulationEnd: number | null;
 		readonly resultEventId: null;
 	}>;
 	readonly location:
@@ -1233,6 +1233,8 @@ function scheduleActivities(
 		routines.map((routine) => [routine.citizenId, routine]),
 	);
 	const paired = new Set<string>();
+	const dayNumber = Math.floor(state.simulationTime / SECONDS_PER_DAY);
+	const conversationsToday = dayNumber % 2 === 1;
 	for (const relationship of Object.values(state.relationships).sort(
 		(left, right) => left.relationshipId.localeCompare(right.relationshipId),
 	)) {
@@ -1252,6 +1254,7 @@ function scheduleActivities(
 			secondRoutine?.kind !== "social-maintenance" ||
 			firstRoutine.subjectId !== second.citizenId ||
 			secondRoutine.subjectId !== first.citizenId ||
+			!conversationsToday ||
 			paired.has(first.citizenId) ||
 			paired.has(second.citizenId)
 		)
@@ -2045,6 +2048,466 @@ export interface CivilizationExperimentCognitionOptions {
 	readonly decisionGateway: CivilizationSchedulerDecisionGateway;
 }
 
+interface CivilizationExperimentDayWork {
+	state: CivilizationState;
+	world: GeneratedWorldState;
+	worldStateHash: string;
+	routines: readonly SchedulerRoutineAssignment[];
+	activities: readonly CivilizationScheduledActivity[];
+	cognitionRuntime: CivilizationCognitionRuntime;
+	expansionDeferralRecorded: boolean;
+	projectStallRecorded: boolean;
+	events: CivilizationExperimentEvent[];
+	priorEventHash: string | null;
+	priorStateHash: string;
+	cognitionDecisions: CivilizationSchedulerDecisionEvidence[];
+	eventIndexBase: number;
+}
+
+export interface ContinuedCivilizationDay {
+	readonly world: GeneratedWorldState;
+	readonly state: CivilizationState;
+	readonly activities: readonly CivilizationScheduledActivity[];
+	readonly step: CivilizationExperimentStep;
+	readonly events: readonly CivilizationExperimentEvent[];
+	readonly finalStateHash: string;
+}
+
+async function simulateCivilizationExperimentDay(input: {
+	readonly day: number;
+	readonly work: CivilizationExperimentDayWork;
+	readonly schedulerPolicy: GeneralizedSchedulerPolicy;
+	readonly conditions: CivilizationExperimentSeedConditions;
+	readonly worldIdentityHash: string;
+	readonly skipOpeningDecisions: boolean;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
+}): Promise<CivilizationExperimentStep> {
+	const work = input.work;
+	let { state, world, worldStateHash, routines, activities, cognitionRuntime } =
+		work;
+	let { expansionDeferralRecorded, projectStallRecorded, priorEventHash } =
+		work;
+	const events = work.events;
+	const cognitionDecisions = work.cognitionDecisions;
+	const schedulerPolicy = input.schedulerPolicy;
+	const conditions = input.conditions;
+	const fromSimulationTime = state.simulationTime;
+	const preStateHash = work.priorStateHash;
+	const beforeEventIndex = events.length;
+	const atSimulationTime = input.day * SECONDS_PER_DAY;
+	let departedThisEvaluation = false;
+	const appendEvent = async (
+		kind: CivilizationExperimentEventKind,
+		details: CivilizationExperimentEvent["details"],
+	): Promise<void> => {
+		activities = scheduleActivities(state, world, routines, schedulerPolicy);
+		const postStateHash = await stateHash(state, worldStateHash, activities);
+		const event = await eventRecord({
+			eventIndex: work.eventIndexBase + events.length,
+			priorEventHash,
+			simulationTime: state.simulationTime,
+			kind,
+			details,
+			postStateHash,
+		});
+		events.push(event);
+		priorEventHash = event.eventHash;
+	};
+	const opening =
+		input.skipOpeningDecisions || input.day > 3
+			? null
+			: await decideOpeningRoutines({
+					state,
+					policy: schedulerPolicy,
+					runtime: cognitionRuntime,
+					worldIdentityHash: input.worldIdentityHash,
+					...(input.cognition === undefined
+						? {}
+						: { cognition: input.cognition }),
+				});
+	if (opening !== null) {
+		cognitionRuntime = opening.runtime;
+		cognitionDecisions.push(...opening.evidence);
+	}
+	const scheduled = advanceGeneralizedScheduler(
+		state,
+		schedulerPolicy,
+		opening?.decisions ?? [],
+	);
+	state = scheduled.state;
+	routines = scheduled.routines;
+	if (opening === null || input.day >= 2) {
+		cognitionRuntime = advanceSchedulerMindPlans(
+			cognitionRuntime,
+			state,
+			schedulerPolicy,
+			state.simulationTime,
+		);
+	}
+	for (const [citizenId, schedulerMind] of Object.entries(
+		cognitionRuntime.minds,
+	).sort(([left], [right]) => left.localeCompare(right))) {
+		state = replaceCivilizationMind(state, {
+			schemaVersion: "eonfolk-civilization-mind-v1",
+			citizenId,
+			snapshot: schedulerMind.actorMind,
+			committedAtRevision: state.revision,
+			committedAtSimulationTime: state.simulationTime,
+		});
+	}
+	if (opening !== null) {
+		cognitionRuntime = {
+			...cognitionRuntime,
+			priorOutcomes: Object.fromEntries(
+				opening.decisions.map((decision) => [
+					decision.citizenId,
+					input.day >= 2
+						? null
+						: routineOutcome(decision, scheduled.actions, scheduled.routines),
+				]),
+			),
+		};
+	}
+	const schedulerAction = (
+		kind: SchedulerAction["kind"],
+	): SchedulerAction | undefined =>
+		scheduled.actions.find((action) => action.kind === kind);
+	if (schedulerAction("project-authorized") !== undefined)
+		await appendEvent("project-approved", {
+			projectId: "project-expedition-kit",
+			physicalTimberRequired: PROJECT_TIMBER,
+		});
+	if (schedulerAction("project-completed") !== undefined)
+		await appendEvent("project-completed", {
+			projectId: "project-expedition-kit",
+			consumedTimber: PROJECT_TIMBER,
+		});
+	if (
+		conditions.expansionEligible &&
+		!projectStallRecorded &&
+		state.projects["project-expedition-kit"]?.state === "proposed"
+	) {
+		projectStallRecorded = true;
+		await appendEvent("project-stalled", {
+			projectId: "project-expedition-kit",
+			availableTimber: state.stocks["stock-origin-timber"]?.quantity ?? 0,
+			requiredTimber: PROJECT_TIMBER,
+		});
+	}
+
+	const projectComplete =
+		state.projects["project-expedition-kit"]?.state === "completed";
+	if (
+		conditions.expansionEligible &&
+		projectComplete &&
+		state.migrations["migration-founding-party"] === undefined
+	) {
+		const travelEvaluationCount = Math.ceil(
+			conditions.route.totalTraversalUnits / MIGRATION_DAILY_TRAVERSAL_UNITS,
+		);
+		state = registerMigration(
+			state,
+			{
+				migrationId: "migration-founding-party",
+				citizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+				originSettlementId: conditions.originSettlementId,
+				destinationTerritoryId: conditions.destination.territoryId,
+				destinationSettlementId: null,
+				carriedStockIds: [
+					"stock-migrant-grain",
+					"stock-migrant-water",
+					"stock-migrant-timber",
+				],
+				departureSimulationTime: atSimulationTime,
+				expectedArrivalSimulationTime:
+					atSimulationTime + travelEvaluationCount * SECONDS_PER_DAY,
+				state: "planned",
+				sourceEventIds: [],
+			},
+			[
+				{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+				{ resourceTypeId: "water", quantity: MIGRATION_WATER },
+				{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
+			],
+		);
+		state = registerMigrationJourney(state, "migration-founding-party", {
+			cellIds: conditions.route.cellIds,
+			traversalUnitsByLeg: conditions.route.traversalUnitsByLeg,
+		});
+		state = registerFounding(
+			state,
+			{
+				foundingId: "founding-second-settlement",
+				migrationId: "migration-founding-party",
+				proposedSettlementId: "settlement-second",
+				territoryId: conditions.destination.territoryId,
+				founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+				requiredProjectIds: ["project-expedition-kit"],
+				requiredStockIds: [
+					"stock-migrant-grain",
+					"stock-migrant-water",
+					"stock-migrant-timber",
+				],
+				state: "proposed",
+				viabilityEvidenceEventIds: [],
+			},
+			[
+				{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
+				{ resourceTypeId: "water", quantity: MIGRATION_WATER },
+				{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
+			],
+		);
+		state = advanceFounding(
+			state,
+			"founding-second-settlement",
+			"preparing",
+			atSimulationTime,
+		);
+		await appendEvent("migration-prepared", {
+			destinationTerritoryId: conditions.destination.territoryId,
+			routeCells: conditions.route.cellIds.length,
+			totalTraversalUnits: conditions.route.totalTraversalUnits,
+			carriedGrain: state.stocks["stock-migrant-grain"]?.quantity ?? 0,
+			carriedTimber: state.stocks["stock-migrant-timber"]?.quantity ?? 0,
+		});
+	} else if (!conditions.expansionEligible && !expansionDeferralRecorded) {
+		expansionDeferralRecorded = true;
+		await appendEvent("expansion-deferred", {
+			projectComplete,
+			expansionEligible: false,
+			populationPressureBasisPoints: conditions.populationPressureBasisPoints,
+			reasonCount: conditions.eligibilityReasons.length,
+		});
+	}
+
+	if (state.migrations["migration-founding-party"]?.state === "planned") {
+		state = advanceMigration(
+			state,
+			"migration-founding-party",
+			"travelling",
+			atSimulationTime,
+		);
+		state = advanceFounding(
+			state,
+			"founding-second-settlement",
+			"travelling",
+			atSimulationTime,
+		);
+		departedThisEvaluation = true;
+		await appendEvent("migration-departed", {
+			destinationTerritoryId: conditions.destination.territoryId,
+			physicalStocks: 3,
+		});
+	}
+
+	if (
+		state.migrations["migration-founding-party"]?.state === "travelling" &&
+		!departedThisEvaluation
+	) {
+		const beforeJourney = required(
+			state.migrationJourneys["migration-founding-party"],
+			"active migration journey",
+		);
+		state = advanceMigrationJourney(
+			state,
+			"migration-founding-party",
+			MIGRATION_DAILY_TRAVERSAL_UNITS,
+			atSimulationTime,
+		);
+		const afterJourney = required(
+			state.migrationJourneys["migration-founding-party"],
+			"advanced migration journey",
+		);
+		await appendEvent("migration-traversed", {
+			traversedUnits:
+				afterJourney.completedTraversalUnits -
+				beforeJourney.completedTraversalUnits,
+			completedTraversalUnits: afterJourney.completedTraversalUnits,
+			totalTraversalUnits: afterJourney.totalTraversalUnits,
+			currentCellId:
+				afterJourney.routeCellIds[
+					Math.min(
+						afterJourney.currentLegIndex,
+						afterJourney.routeCellIds.length - 1,
+					)
+				] ?? null,
+		});
+		if (state.migrations["migration-founding-party"]?.state === "arrived") {
+			state = advanceFounding(
+				state,
+				"founding-second-settlement",
+				"establishing",
+				atSimulationTime,
+			);
+			await appendEvent("migration-arrived", {
+				destinationTerritoryId: conditions.destination.territoryId,
+				destinationCellId: conditions.route.destinationCellId,
+				completedTraversalUnits: afterJourney.completedTraversalUnits,
+			});
+		}
+	}
+
+	if (state.foundings["founding-second-settlement"]?.state === "establishing") {
+		state = advanceFounding(
+			state,
+			"founding-second-settlement",
+			"viable",
+			atSimulationTime,
+		);
+		await appendEvent("founding-viable", {
+			proposedSettlementId: "settlement-second",
+			projectComplete:
+				state.projects["project-expedition-kit"]?.state === "completed",
+			migrationArrived:
+				state.migrations["migration-founding-party"]?.state === "arrived",
+		});
+		world = materializeFoundedSettlement(world, {
+			settlementId: "settlement-second",
+			name: "Second Founding",
+			territoryId: conditions.destination.territoryId,
+			anchorCellId: conditions.route.destinationCellId,
+			founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+			residentCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
+			migrationId: "migration-founding-party",
+			foundedAtSimulationTime: atSimulationTime,
+		});
+		worldStateHash = await domainHash(
+			"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
+			world,
+		);
+		state = recordFoundingMaterialization(
+			state,
+			"founding-second-settlement",
+			atSimulationTime,
+			"settlement-second:founding-site",
+		);
+		await appendEvent("settlement-materialized", {
+			settlementId: "settlement-second",
+			territoryId: conditions.destination.territoryId,
+			anchorCellId: conditions.route.destinationCellId,
+		});
+	}
+
+	assertCivilizationInvariants(state);
+	state = checkpointCivilizationAccounting(state);
+	activities = scheduleActivities(state, world, routines, schedulerPolicy);
+	const postStateHash = await stateHash(state, worldStateHash, activities);
+	const eventHashes = events
+		.slice(beforeEventIndex)
+		.map((event) => event.eventHash);
+	const stepBody = {
+		schemaVersion: CIVILIZATION_EXPERIMENT_STEP_VERSION,
+		stepIndex: input.day - 1,
+		fromSimulationTime,
+		toSimulationTime: atSimulationTime,
+		preStateHash,
+		postStateHash,
+		eventHashes,
+	};
+	const step: CivilizationExperimentStep = {
+		...stepBody,
+		stepHash: await domainHash(
+			"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v7",
+			stepBody,
+		),
+	};
+	work.state = state;
+	work.world = world;
+	work.worldStateHash = worldStateHash;
+	work.routines = routines;
+	work.activities = activities;
+	work.cognitionRuntime = cognitionRuntime;
+	work.expansionDeferralRecorded = expansionDeferralRecorded;
+	work.projectStallRecorded = projectStallRecorded;
+	work.priorEventHash = priorEventHash;
+	work.priorStateHash = postStateHash;
+	return step;
+}
+
+/**
+ * One 86400s child of an already-persisted civilization. Sponsorship, counsel,
+ * minds, and provenance stay on this ledger instead of being grafted onto a
+ * genesis replay.
+ */
+export async function continueCivilizationExperimentDay(input: {
+	readonly genesisWorld: GeneratedWorldState;
+	readonly world: GeneratedWorldState;
+	readonly state: CivilizationState;
+	readonly completedDay: number;
+	readonly eventIndexBase?: number;
+	readonly priorEventHash?: string | null;
+	readonly skipOpeningDecisions?: boolean;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
+}): Promise<ContinuedCivilizationDay> {
+	if (
+		!Number.isSafeInteger(input.completedDay) ||
+		input.completedDay < 0 ||
+		input.completedDay >= 365
+	)
+		throw new RangeError("completedDay must be an integer from 0 through 364");
+	const conditions = deriveCivilizationSeedConditions(input.genesisWorld);
+	const schedulerPolicy = deriveCivilizationSchedulerPolicy(input.genesisWorld);
+	const worldStateHash = await domainHash(
+		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
+		input.world,
+	);
+	const routines = initialRoutineAssignments(input.state);
+	const activities = scheduleActivities(
+		input.state,
+		input.world,
+		routines,
+		schedulerPolicy,
+	);
+	let cognitionRuntime = await initializeCognitionRuntime(
+		input.state,
+		schedulerPolicy,
+		input.genesisWorld.identity.identityHash,
+	);
+	const minds: Record<string, CivilizationSchedulerMindState> = {
+		...cognitionRuntime.minds,
+	};
+	for (const [citizenId, registered] of Object.entries(input.state.minds)) {
+		const base = minds[citizenId];
+		if (base === undefined) continue;
+		minds[citizenId] = { ...base, actorMind: registered.snapshot };
+	}
+	cognitionRuntime = { ...cognitionRuntime, minds };
+	const work: CivilizationExperimentDayWork = {
+		state: input.state,
+		world: input.world,
+		worldStateHash,
+		routines,
+		activities,
+		cognitionRuntime,
+		expansionDeferralRecorded:
+			!conditions.expansionEligible && input.completedDay >= 1,
+		projectStallRecorded: input.completedDay >= 1,
+		events: [],
+		priorEventHash: input.priorEventHash ?? null,
+		priorStateHash: await stateHash(input.state, worldStateHash, activities),
+		cognitionDecisions: [],
+		eventIndexBase: input.eventIndexBase ?? 0,
+	};
+	const step = await simulateCivilizationExperimentDay({
+		day: input.completedDay + 1,
+		work,
+		schedulerPolicy,
+		conditions,
+		worldIdentityHash: input.genesisWorld.identity.identityHash,
+		skipOpeningDecisions: input.skipOpeningDecisions ?? true,
+		...(input.cognition === undefined ? {} : { cognition: input.cognition }),
+	});
+	assertCivilizationInvariants(work.state);
+	return Object.freeze({
+		world: work.world,
+		state: work.state,
+		activities: work.activities,
+		step,
+		events: Object.freeze([...work.events]),
+		finalStateHash: work.priorStateHash,
+	});
+}
+
 export async function runCivilizationExperiment(input: {
 	readonly world: GeneratedWorldState;
 	readonly horizonDays: number;
@@ -2065,7 +2528,7 @@ export async function runCivilizationExperiment(input: {
 		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 		world,
 	);
-	let routines = initialRoutineAssignments(state);
+	const routines = initialRoutineAssignments(state);
 	let activities = scheduleActivities(state, world, routines, schedulerPolicy);
 	let cognitionRuntime = await initializeCognitionRuntime(
 		state,
@@ -2090,337 +2553,43 @@ export async function runCivilizationExperiment(input: {
 	const initialStateHash = await stateHash(state, worldStateHash, activities);
 	const events: CivilizationExperimentEvent[] = [];
 	const steps: CivilizationExperimentStep[] = [];
-	let priorEventHash: string | null = null;
-	let expansionDeferralRecorded = false;
-	let projectStallRecorded = false;
-	let priorStateHash = initialStateHash;
-
-	const appendEvent = async (
-		kind: CivilizationExperimentEventKind,
-		details: CivilizationExperimentEvent["details"],
-	): Promise<void> => {
-		activities = scheduleActivities(state, world, routines, schedulerPolicy);
-		const postStateHash = await stateHash(state, worldStateHash, activities);
-		const event = await eventRecord({
-			eventIndex: events.length,
-			priorEventHash,
-			simulationTime: state.simulationTime,
-			kind,
-			details,
-			postStateHash,
-		});
-		events.push(event);
-		priorEventHash = event.eventHash;
+	const work: CivilizationExperimentDayWork = {
+		state,
+		world,
+		worldStateHash,
+		routines,
+		activities,
+		cognitionRuntime,
+		expansionDeferralRecorded: false,
+		projectStallRecorded: false,
+		events,
+		priorEventHash: null,
+		priorStateHash: initialStateHash,
+		cognitionDecisions,
+		eventIndexBase: 0,
 	};
 
 	for (let day = 1; day <= input.horizonDays; day += 1) {
-		const fromSimulationTime = state.simulationTime;
-		const preStateHash = priorStateHash;
-		const beforeEventIndex = events.length;
-		const atSimulationTime = day * SECONDS_PER_DAY;
-		let departedThisEvaluation = false;
-		const opening =
-			day <= 3
-				? await decideOpeningRoutines({
-						state,
-						policy: schedulerPolicy,
-						runtime: cognitionRuntime,
-						worldIdentityHash: input.world.identity.identityHash,
-						...(input.cognition === undefined
-							? {}
-							: { cognition: input.cognition }),
-					})
-				: null;
-		if (opening !== null) {
-			cognitionRuntime = opening.runtime;
-			cognitionDecisions.push(...opening.evidence);
-		}
-		const scheduled = advanceGeneralizedScheduler(
-			state,
-			schedulerPolicy,
-			opening?.decisions ?? [],
-		);
-		state = scheduled.state;
-		routines = scheduled.routines;
-		if (opening === null || day >= 2) {
-			cognitionRuntime = advanceSchedulerMindPlans(
-				cognitionRuntime,
-				state,
+		steps.push(
+			await simulateCivilizationExperimentDay({
+				day,
+				work,
 				schedulerPolicy,
-				state.simulationTime,
-			);
-		}
-		for (const [citizenId, schedulerMind] of Object.entries(
-			cognitionRuntime.minds,
-		).sort(([left], [right]) => left.localeCompare(right))) {
-			state = replaceCivilizationMind(state, {
-				schemaVersion: "eonfolk-civilization-mind-v1",
-				citizenId,
-				snapshot: schedulerMind.actorMind,
-				committedAtRevision: state.revision,
-				committedAtSimulationTime: state.simulationTime,
-			});
-		}
-		if (opening !== null) {
-			cognitionRuntime = {
-				...cognitionRuntime,
-				priorOutcomes: Object.fromEntries(
-					opening.decisions.map((decision) => [
-						decision.citizenId,
-						day >= 2
-							? null
-							: routineOutcome(decision, scheduled.actions, scheduled.routines),
-					]),
-				),
-			};
-		}
-		const schedulerAction = (
-			kind: SchedulerAction["kind"],
-		): SchedulerAction | undefined =>
-			scheduled.actions.find((action) => action.kind === kind);
-		if (schedulerAction("project-authorized") !== undefined)
-			await appendEvent("project-approved", {
-				projectId: "project-expedition-kit",
-				physicalTimberRequired: PROJECT_TIMBER,
-			});
-		if (schedulerAction("project-completed") !== undefined)
-			await appendEvent("project-completed", {
-				projectId: "project-expedition-kit",
-				consumedTimber: PROJECT_TIMBER,
-			});
-		if (
-			conditions.expansionEligible &&
-			!projectStallRecorded &&
-			state.projects["project-expedition-kit"]?.state === "proposed"
-		) {
-			projectStallRecorded = true;
-			await appendEvent("project-stalled", {
-				projectId: "project-expedition-kit",
-				availableTimber: state.stocks["stock-origin-timber"]?.quantity ?? 0,
-				requiredTimber: PROJECT_TIMBER,
-			});
-		}
-
-		const projectComplete =
-			state.projects["project-expedition-kit"]?.state === "completed";
-		if (
-			conditions.expansionEligible &&
-			projectComplete &&
-			state.migrations["migration-founding-party"] === undefined
-		) {
-			const travelEvaluationCount = Math.ceil(
-				conditions.route.totalTraversalUnits / MIGRATION_DAILY_TRAVERSAL_UNITS,
-			);
-			state = registerMigration(
-				state,
-				{
-					migrationId: "migration-founding-party",
-					citizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
-					originSettlementId: conditions.originSettlementId,
-					destinationTerritoryId: conditions.destination.territoryId,
-					destinationSettlementId: null,
-					carriedStockIds: [
-						"stock-migrant-grain",
-						"stock-migrant-water",
-						"stock-migrant-timber",
-					],
-					departureSimulationTime: atSimulationTime,
-					expectedArrivalSimulationTime:
-						atSimulationTime + travelEvaluationCount * SECONDS_PER_DAY,
-					state: "planned",
-					sourceEventIds: [],
-				},
-				[
-					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
-					{ resourceTypeId: "water", quantity: MIGRATION_WATER },
-					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
-				],
-			);
-			state = registerMigrationJourney(state, "migration-founding-party", {
-				cellIds: conditions.route.cellIds,
-				traversalUnitsByLeg: conditions.route.traversalUnitsByLeg,
-			});
-			state = registerFounding(
-				state,
-				{
-					foundingId: "founding-second-settlement",
-					migrationId: "migration-founding-party",
-					proposedSettlementId: "settlement-second",
-					territoryId: conditions.destination.territoryId,
-					founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
-					requiredProjectIds: ["project-expedition-kit"],
-					requiredStockIds: [
-						"stock-migrant-grain",
-						"stock-migrant-water",
-						"stock-migrant-timber",
-					],
-					state: "proposed",
-					viabilityEvidenceEventIds: [],
-				},
-				[
-					{ resourceTypeId: "grain", quantity: MIGRATION_GRAIN },
-					{ resourceTypeId: "water", quantity: MIGRATION_WATER },
-					{ resourceTypeId: "timber", quantity: MIGRATION_TIMBER },
-				],
-			);
-			state = advanceFounding(
-				state,
-				"founding-second-settlement",
-				"preparing",
-				atSimulationTime,
-			);
-			await appendEvent("migration-prepared", {
-				destinationTerritoryId: conditions.destination.territoryId,
-				routeCells: conditions.route.cellIds.length,
-				totalTraversalUnits: conditions.route.totalTraversalUnits,
-				carriedGrain: state.stocks["stock-migrant-grain"]?.quantity ?? 0,
-				carriedTimber: state.stocks["stock-migrant-timber"]?.quantity ?? 0,
-			});
-		} else if (!conditions.expansionEligible && !expansionDeferralRecorded) {
-			expansionDeferralRecorded = true;
-			await appendEvent("expansion-deferred", {
-				projectComplete,
-				expansionEligible: false,
-				populationPressureBasisPoints: conditions.populationPressureBasisPoints,
-				reasonCount: conditions.eligibilityReasons.length,
-			});
-		}
-
-		if (state.migrations["migration-founding-party"]?.state === "planned") {
-			state = advanceMigration(
-				state,
-				"migration-founding-party",
-				"travelling",
-				atSimulationTime,
-			);
-			state = advanceFounding(
-				state,
-				"founding-second-settlement",
-				"travelling",
-				atSimulationTime,
-			);
-			departedThisEvaluation = true;
-			await appendEvent("migration-departed", {
-				destinationTerritoryId: conditions.destination.territoryId,
-				physicalStocks: 3,
-			});
-		}
-
-		if (
-			state.migrations["migration-founding-party"]?.state === "travelling" &&
-			!departedThisEvaluation
-		) {
-			const beforeJourney = required(
-				state.migrationJourneys["migration-founding-party"],
-				"active migration journey",
-			);
-			state = advanceMigrationJourney(
-				state,
-				"migration-founding-party",
-				MIGRATION_DAILY_TRAVERSAL_UNITS,
-				atSimulationTime,
-			);
-			const afterJourney = required(
-				state.migrationJourneys["migration-founding-party"],
-				"advanced migration journey",
-			);
-			await appendEvent("migration-traversed", {
-				traversedUnits:
-					afterJourney.completedTraversalUnits -
-					beforeJourney.completedTraversalUnits,
-				completedTraversalUnits: afterJourney.completedTraversalUnits,
-				totalTraversalUnits: afterJourney.totalTraversalUnits,
-				currentCellId:
-					afterJourney.routeCellIds[
-						Math.min(
-							afterJourney.currentLegIndex,
-							afterJourney.routeCellIds.length - 1,
-						)
-					] ?? null,
-			});
-			if (state.migrations["migration-founding-party"]?.state === "arrived") {
-				state = advanceFounding(
-					state,
-					"founding-second-settlement",
-					"establishing",
-					atSimulationTime,
-				);
-				await appendEvent("migration-arrived", {
-					destinationTerritoryId: conditions.destination.territoryId,
-					destinationCellId: conditions.route.destinationCellId,
-					completedTraversalUnits: afterJourney.completedTraversalUnits,
-				});
-			}
-		}
-
-		if (
-			state.foundings["founding-second-settlement"]?.state === "establishing"
-		) {
-			state = advanceFounding(
-				state,
-				"founding-second-settlement",
-				"viable",
-				atSimulationTime,
-			);
-			await appendEvent("founding-viable", {
-				proposedSettlementId: "settlement-second",
-				projectComplete:
-					state.projects["project-expedition-kit"]?.state === "completed",
-				migrationArrived:
-					state.migrations["migration-founding-party"]?.state === "arrived",
-			});
-			world = materializeFoundedSettlement(world, {
-				settlementId: "settlement-second",
-				name: "Second Founding",
-				territoryId: conditions.destination.territoryId,
-				anchorCellId: conditions.route.destinationCellId,
-				founderCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
-				residentCitizenIds: [RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID],
-				migrationId: "migration-founding-party",
-				foundedAtSimulationTime: atSimulationTime,
-			});
-			worldStateHash = await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
-				world,
-			);
-			state = recordFoundingMaterialization(
-				state,
-				"founding-second-settlement",
-				atSimulationTime,
-				"settlement-second:founding-site",
-			);
-			await appendEvent("settlement-materialized", {
-				settlementId: "settlement-second",
-				territoryId: conditions.destination.territoryId,
-				anchorCellId: conditions.route.destinationCellId,
-			});
-		}
-
-		assertCivilizationInvariants(state);
-		state = checkpointCivilizationAccounting(state);
-		activities = scheduleActivities(state, world, routines, schedulerPolicy);
-		const postStateHash = await stateHash(state, worldStateHash, activities);
-		const eventHashes = events
-			.slice(beforeEventIndex)
-			.map((event) => event.eventHash);
-		const stepBody = {
-			schemaVersion: CIVILIZATION_EXPERIMENT_STEP_VERSION,
-			stepIndex: day - 1,
-			fromSimulationTime,
-			toSimulationTime: atSimulationTime,
-			preStateHash,
-			postStateHash,
-			eventHashes,
-		};
-		steps.push({
-			...stepBody,
-			stepHash: await domainHash(
-				"EONFOLK:CIVILIZATION-EXPERIMENT-STEP:v7",
-				stepBody,
-			),
-		});
-		priorStateHash = postStateHash;
+				conditions,
+				worldIdentityHash: input.world.identity.identityHash,
+				skipOpeningDecisions: false,
+				...(input.cognition === undefined
+					? {}
+					: { cognition: input.cognition }),
+			}),
+		);
 	}
+	state = work.state;
+	world = work.world;
+	worldStateHash = work.worldStateHash;
+	activities = work.activities;
+	cognitionRuntime = work.cognitionRuntime;
+	const priorEventHash = work.priorEventHash;
 
 	assertCivilizationInvariants(state);
 	const finalStateHash = await stateHash(state, worldStateHash, activities);

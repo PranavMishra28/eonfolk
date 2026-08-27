@@ -204,7 +204,7 @@ describe("generated civilization spatial adapter", () => {
 			RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 		);
 		expect(founded.spatial.actors[0]?.name).toBe("Orin Ash");
-		expect(founded.spatial.actors[0]?.role).toBe("forester");
+		expect(founded.spatial.actors[0]?.role).toBe("Forester");
 		const camp =
 			founded.scene.nodes["settlement-second:founding-site:camp-slot"];
 		expect(founded.spatial.actors[0]?.positionMm).toEqual({

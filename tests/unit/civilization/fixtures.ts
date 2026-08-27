@@ -1,3 +1,10 @@
+import {
+	type CivilizationState,
+	createCivilizationState,
+	registerResourceDefinition,
+	registerStock,
+	registerStorage,
+} from "../../../packages/civilization/src/index.js";
 import type {
 	ProductionRecipe,
 	ProjectState,
@@ -6,13 +13,6 @@ import type {
 	StockState,
 	StorageState,
 } from "../../../packages/protocol/src/index.js";
-import {
-	createCivilizationState,
-	registerResourceDefinition,
-	registerStock,
-	registerStorage,
-	type CivilizationState,
-} from "../../../packages/civilization/src/index.js";
 
 export const CITIZEN_A = "citizen-a";
 export const CITIZEN_B = "citizen-b";

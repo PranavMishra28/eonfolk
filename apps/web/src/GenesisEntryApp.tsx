@@ -12,7 +12,7 @@ export function GenesisEntryApp() {
 	);
 	const [error, setError] = useState<Error | null>(null);
 	useEffect(() => {
-		document.title = "EONFOLK — A civilization has begun";
+		document.title = "EONFOLK — Follow Mara Vale";
 		let active = true;
 		void loadGeneratedWorldExperience().then(
 			(value) => {
@@ -23,7 +23,7 @@ export function GenesisEntryApp() {
 				setError(
 					reason instanceof Error
 						? reason
-						: new Error("Canonical world storage failed"),
+						: new Error("The local world could not be opened"),
 				);
 			},
 		);
@@ -34,20 +34,19 @@ export function GenesisEntryApp() {
 	if (error !== null)
 		return (
 			<main className="v1-genesis-shell" role="alert">
-				<h1>The canonical world could not be opened.</h1>
+				<h1>Dawnmere could not be opened.</h1>
 				<p>
-					No substitute or temporary world was created. Check browser storage
-					and reload to try again.
+					Nothing else was created. Check this browser's storage and reload to
+					try again.
 				</p>
 			</main>
 		);
 	if (experience === null)
 		return (
 			<main className="v1-genesis-shell" aria-busy="true">
-				<p>Preparing Release Genesis…</p>
+				<p>Opening Dawnmere…</p>
 			</main>
 		);
-	const origin = experience.projections[0];
 	return (
 		<main
 			className="v1-genesis-entry"
@@ -60,34 +59,17 @@ export function GenesisEntryApp() {
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-entry-copy">
-					<p className="v1-kicker">ONE WORLD · ONE YEAR · NO ACCOUNT</p>
-					<h1>A civilization has already begun.</h1>
+					<p className="v1-kicker">A TOWN THAT CONTINUES WITHOUT YOU</p>
+					<h1>Follow Mara Vale. She acts for herself.</h1>
 					<p>
-						Eight canonical people have gathered, worked, formed relationships,
-						and founded what the world could sustain. Enter their current
-						reality.
+						Watch a small settlement live, offer rare advice she can refuse, and
+						read a Chronicle that separates fact from belief.
 					</p>
 					<a className="v1-primary-link" href="/world">
-						Enter the living world
+						Enter Dawnmere
 					</a>
 				</div>
-				<section className="v1-genesis-proof" aria-labelledby="v1-proof-title">
-					<p className="v1-kicker">THE SETTLEMENT TODAY</p>
-					<h2 id="v1-proof-title">
-						{origin?.local.settlement.name ?? "The first settlement"} endured
-						long enough to send out a second founding.
-					</h2>
-					<p>
-						Enter on day {experience.horizonDays}. Watch what people carry and
-						which shared work survives scarcity.
-					</p>
-				</section>
 			</header>
-			<ul className="v1-entry-ledger" aria-label="Canonical world summary">
-				<li>{experience.population} canonical people</li>
-				<li>{experience.settlementCount} grounded settlements</li>
-				<li>{experience.horizonDays} simulated days</li>
-			</ul>
 		</main>
 	);
 }
