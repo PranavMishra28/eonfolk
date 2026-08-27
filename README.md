@@ -16,7 +16,7 @@ cannot write the world.
 > not a finished or hosted game. It runs locally, requires no account or model,
 > and stores its world in your browser.
 
-![A running EONFOLK sponsor journey: Mara is selected in Dawnmere, receives a consequential intervention, and returns with a Chronicle consequence](docs/media/eonfolk-sponsor-loop.gif)
+![A running EONFOLK first session: enter Dawnmere, follow Mara Vale, offer counsel she can refuse, and read the Chronicle](docs/media/eonfolk-sponsor-loop.gif)
 
 [Watch the 15-second MP4](docs/media/eonfolk-sponsor-loop.mp4) ·
 [Capture provenance](docs/media/README.md)
@@ -57,9 +57,10 @@ corepack pnpm dev
 ```
 
 Open the loopback URL printed by Vite. `/` is the landing page; `/world` is the
-settlement. To complete the product loop locally: enter Dawnmere, choose
-**Follow Mara**, choose **Sponsor Mara**, then either offer counsel or abstain.
-Watch her independent response and read the Chronicle.
+settlement. To complete the product loop locally: choose **Enter Dawnmere**,
+select Mara, choose **Sponsor Mara**, then either offer counsel or abstain.
+**Follow Mara** keeps the camera on her. Watch her independent response and
+read the Chronicle.
 
 No command deploys or publishes the project. For a 10–20 minute session with
 another person, use the [playtest kit](docs/playtesting/README.md). That kit
@@ -91,9 +92,13 @@ The player does not puppeteer a worker. The central tension is whether a person
 with incomplete knowledge will treat the player's intervention as useful,
 premature, self-serving, or irrelevant—and what the world will remember.
 
-![Dawnmere's embodied settlement at desktop scale, with seven residents, visible work, and a social interaction](docs/media/eonfolk-social-preview.png)
+![The Follow Mara Vale landing page, with Enter Dawnmere as the way into the settlement](docs/media/eonfolk-landing.webp)
 
-![The factual Chronicle after a sponsor consequence, with causal roles and links back into the world](docs/media/eonfolk-chronicle-desktop.png)
+![Dawnmere's embodied settlement at desktop scale, with eight people, visible work, and live time controls](docs/media/eonfolk-social-preview.png)
+
+![Counsel at Mara's first boundary: Check the stores, abstain, or keep watching](docs/media/eonfolk-sponsor-01-focus.jpg)
+
+![The factual Chronicle after counsel, with what happened separated from belief](docs/media/eonfolk-chronicle-desktop.png)
 
 ## Architecture at a glance
 

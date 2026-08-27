@@ -3593,10 +3593,18 @@ em {
 	}
 }
 
+.v1-context-panel,
 .v1-context-panel * {
+	box-sizing: border-box;
 	min-width: 0;
 	max-width: 100%;
 	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.v1-context-panel h2,
+.v1-context-panel h3 {
+	text-wrap: wrap;
 }
 
 .v1-context-panel pre {
@@ -3606,13 +3614,17 @@ em {
 
 .v1-world-focus-link {
 	display: inline-flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: center;
-	min-width: 2.75rem;
+	min-width: 0;
+	max-width: 100%;
 	min-height: 2.75rem;
 	padding: 0.5rem 0.65rem;
 	color: inherit;
 	font-weight: 800;
+	white-space: normal;
+	overflow-wrap: anywhere;
 	text-decoration-thickness: 0.12em;
 	text-underline-offset: 0.16em;
 }
@@ -3706,7 +3718,8 @@ em {
 .v1-focus-actions button,
 .v1-focus-actions a {
 	padding: 0.45rem 0.65rem;
-	overflow-wrap: normal;
+	overflow-wrap: anywhere;
+	white-space: normal;
 	font-size: 0.875rem;
 	font-weight: 800;
 	text-decoration: none;

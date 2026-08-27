@@ -828,8 +828,11 @@ function GeneratedContextPanel({
 						if (result.consequenceRecorded) setJourneyStage("advanced");
 						if (!result.idempotent || step === "resolve") {
 							setAuthorityRefreshing(true);
-							await onAuthorityCommitted(result.authorityStateHash);
-							setAuthorityRefreshing(false);
+							try {
+								await onAuthorityCommitted(result.authorityStateHash);
+							} finally {
+								setAuthorityRefreshing(false);
+							}
 						}
 					},
 					(reason: unknown) => {
@@ -1131,7 +1134,6 @@ function GeneratedContextPanel({
 								)}
 								<button
 									type="button"
-									disabled={authorityRefreshing}
 									onClick={() => setSponsorStatus("sponsored")}
 								>
 									Keep watching

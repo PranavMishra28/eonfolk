@@ -136,6 +136,9 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	const time = page.getByRole("navigation", { name: "Time" });
 	await expect(time.getByRole("button", { name: "Play" })).toBeDisabled();
 	await expect(time.getByRole("button", { name: "Faster" })).toBeDisabled();
+	await expect(
+		page.getByRole("button", { name: "Keep watching" }),
+	).toBeEnabled();
 	await page.getByRole("button", { name: "Keep watching" }).click();
 	await expect(world).toHaveAttribute("data-counsel-open", "false");
 	await expect(time.getByRole("button", { name: "Faster" })).toBeEnabled();
