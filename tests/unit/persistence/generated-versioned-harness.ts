@@ -910,7 +910,7 @@ async function run(): Promise<void> {
 		generatedFirstLoadAppendCalls = generatedAppendCalls;
 		generatedFirstLoadPersisted =
 			initial.persistence.kind === "indexeddb" &&
-			initial.persistence.catchUpReceipts === 5;
+			initial.persistence.catchUpReceipts === 1;
 		const sponsored = await sponsorGeneratedCitizen({
 			citizenId: initial.sponsorCitizenId,
 			regionId: initial.authorityRegionId,

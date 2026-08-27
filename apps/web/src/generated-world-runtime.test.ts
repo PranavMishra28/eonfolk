@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
 	buildGeneratedWorldExperience,
@@ -120,5 +121,19 @@ describe("canonical generated-world browser experience", () => {
 				expect(projected?.action.actionId).toBe(actor.actionId);
 				expect(projected?.positionMm).toEqual(actor.positionMm);
 			}
+	});
+
+	it("surfaces counsel as a happening without reviewer-facing roster copy", async () => {
+		const runtime = await readFile(
+			new URL("./generated-world-runtime.ts", import.meta.url),
+			"utf8",
+		);
+		expect(runtime).not.toContain(
+			"This is a named beat, not a silent roster change",
+		);
+		expect(runtime).toContain("checked the stores");
+		expect(runtime).toContain("recorded observation, not a rumor");
+		expect(runtime).toContain("recorded speech, not a proven fact");
+		expect(runtime).toContain("recorded choice");
 	});
 });

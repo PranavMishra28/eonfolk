@@ -182,12 +182,37 @@ function renderedActorPoint(
 		slotId === null || slotId === undefined
 			? undefined
 			: projection.scene.nodes[slotId];
-	if (node === undefined || ordinal < 0) return actor.positionMm;
+	const coincidents = [...projection.spatial.actors]
+		.filter(
+			(candidate) =>
+				candidate.positionMm.x === actor.positionMm.x &&
+				candidate.positionMm.y === actor.positionMm.y &&
+				candidate.positionMm.z === actor.positionMm.z,
+		)
+		.sort((left, right) => left.citizenId.localeCompare(right.citizenId));
+	const occupantIndex =
+		coincidents.length > 1
+			? coincidents.findIndex(
+					(candidate) => candidate.citizenId === actor.citizenId,
+				)
+			: ordinal;
+	const occupantCount =
+		coincidents.length > 1 ? coincidents.length : participantIds.length;
+	if (node === undefined || occupantIndex < 0) {
+		if (coincidents.length <= 1) return actor.positionMm;
+		const offset = (occupantIndex - (coincidents.length - 1) / 2) * 2_200;
+		return {
+			x: Math.round(actor.positionMm.x + offset),
+			y: actor.positionMm.y,
+			z: actor.positionMm.z,
+		};
+	}
 	const offset =
-		(ordinal - (participantIds.length - 1) / 2) *
+		(occupantIndex - (occupantCount - 1) / 2) *
 		Math.max(2_200, node.occupantSpacingMm);
 	const angle = (node.facingDegrees * Math.PI) / 180;
-	const clearance = Math.max(6_000, node.occupantSpacingMm);
+	const clearance =
+		coincidents.length > 1 ? 0 : Math.max(6_000, node.occupantSpacingMm);
 	return {
 		x: Math.round(node.x + Math.cos(angle) * offset),
 		y: node.y,

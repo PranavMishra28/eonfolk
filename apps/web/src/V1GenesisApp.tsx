@@ -634,6 +634,7 @@ function GeneratedContextPanel({
 	persistenceAvailable,
 	onAuthorityCommitted,
 	happenings,
+	onCounselConsiderationChange,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -660,6 +661,7 @@ function GeneratedContextPanel({
 	readonly persistenceAvailable: boolean;
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 	readonly happenings: readonly GeneratedWorldHappening[];
+	readonly onCounselConsiderationChange: (open: boolean) => void;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -689,6 +691,21 @@ function GeneratedContextPanel({
 	const [authorityRefreshing, setAuthorityRefreshing] = useState(false);
 	const authorityStateHashRef = useRef(authorityStateHash);
 	authorityStateHashRef.current = authorityStateHash;
+	useEffect(() => {
+		onCounselConsiderationChange(
+			sponsorStatus === "confirming" || sponsorStatus === "counseling",
+		);
+	}, [onCounselConsiderationChange, sponsorStatus]);
+	useEffect(() => {
+		if (
+			sponsorStatus === "confirming" ||
+			sponsorStatus === "saving" ||
+			sponsorStatus === "counseling" ||
+			sponsorStatus === "returning"
+		)
+			return;
+		setExpectedAuthorityStateHash(authorityStateHash);
+	}, [authorityStateHash, sponsorStatus]);
 	const selectedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
 	const selectedActor =
@@ -783,8 +800,8 @@ function GeneratedContextPanel({
 					? "counseling"
 					: "returning",
 		);
-		void import("./generated-sponsor-runtime")
-			.then(({ sponsorGeneratedCitizen }) =>
+		void import("./generated-sponsor-runtime").then(
+			({ playerFacingSponsorFailure, sponsorGeneratedCitizen }) =>
 				sponsorGeneratedCitizen({
 					citizenId: selectedActor.citizenId,
 					regionId: authorityRegionId,
@@ -794,41 +811,38 @@ function GeneratedContextPanel({
 					...(expectedAuthorityStateHash === null
 						? {}
 						: { expectedAuthorityStateHash }),
-				}),
-			)
-			.then(async (result) => {
-				setChronicleTrace(result.chronicleTrace);
-				setShareArtifact(result.shareArtifact ?? "");
-				setChronicleBeats(result.chronicleBeats);
-				setCounselContext(result.counselContext);
-				setNextAction(result.nextAction);
-				setExpectedAuthorityStateHash(result.authorityStateHash);
-				setSponsorStatus(
-					openCounsel && result.phase === "sponsored"
-						? "confirming"
-						: result.phase,
-				);
-				setActiveIntent(result.activeIntent ?? intent);
-				if (result.consequenceRecorded) setJourneyStage("advanced");
-				if (!result.idempotent || step === "resolve") {
-					setAuthorityRefreshing(true);
-					await onAuthorityCommitted(result.authorityStateHash);
-					setAuthorityRefreshing(false);
-				}
-			})
-			.then(undefined, (reason: unknown) => {
-				setAuthorityRefreshing(false);
-				if (step !== "establish") {
-					setChronicleBeats([]);
-					setShareArtifact("");
-					setChronicleTrace(
-						reason instanceof Error
-							? `${reason.message}; prior state preserved.`
-							: "Action unavailable; prior state preserved.",
-					);
-				}
-				setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
-			});
+				}).then(
+					async (result) => {
+						setChronicleTrace(result.chronicleTrace);
+						setShareArtifact(result.shareArtifact ?? "");
+						setChronicleBeats(result.chronicleBeats);
+						setCounselContext(result.counselContext);
+						setNextAction(result.nextAction);
+						setExpectedAuthorityStateHash(result.authorityStateHash);
+						setSponsorStatus(
+							openCounsel && result.phase === "sponsored"
+								? "confirming"
+								: result.phase,
+						);
+						setActiveIntent(result.activeIntent ?? intent);
+						if (result.consequenceRecorded) setJourneyStage("advanced");
+						if (!result.idempotent || step === "resolve") {
+							setAuthorityRefreshing(true);
+							await onAuthorityCommitted(result.authorityStateHash);
+							setAuthorityRefreshing(false);
+						}
+					},
+					(reason: unknown) => {
+						setAuthorityRefreshing(false);
+						if (step !== "establish") {
+							setChronicleBeats([]);
+							setShareArtifact("");
+							setChronicleTrace(playerFacingSponsorFailure(reason));
+						}
+						setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
+					},
+				),
+		);
 	};
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
@@ -1115,6 +1129,17 @@ function GeneratedContextPanel({
 								{counselContext === null ? null : (
 									<p>{counselContext.abstainStake}</p>
 								)}
+								<button
+									type="button"
+									disabled={authorityRefreshing}
+									onClick={() => setSponsorStatus("sponsored")}
+								>
+									Keep watching
+								</button>
+								<p>
+									Paused while you consider advice. Time resumes after you
+									choose or dismiss.
+								</p>
 							</section>
 						) : null}
 						{sponsorStatus === "counseled" ||
@@ -1318,6 +1343,9 @@ function GeneratedWorld({
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
 	const [playRate, setPlayRate] = useState<PlayRate>(1);
+	const [consideringCounsel, setConsideringCounsel] = useState(false);
+	const resumePlayRate = useRef<PlayRate>(1);
+	const pausedForCounsel = useRef(false);
 	const [presentationTick, setPresentationTick] = useState(0);
 	const presentationPlaying = playRate !== 0;
 	const advancingDay = useRef(false);
@@ -1539,9 +1567,16 @@ function GeneratedWorld({
 
 	useEffect(() => {
 		const interval = authorityDayIntervalMs(playRate);
-		if (interval === null || catchUpProposal > 0 || catchingUp.current) return;
+		if (
+			interval === null ||
+			catchUpProposal > 0 ||
+			catchingUp.current ||
+			consideringCounsel
+		)
+			return;
 		const id = window.setInterval(() => {
-			if (advancingDay.current || catchingUp.current) return;
+			if (advancingDay.current || catchingUp.current || consideringCounsel)
+				return;
 			advancingDay.current = true;
 			void onAdvanceDay()
 				.then(() => {
@@ -1553,7 +1588,7 @@ function GeneratedWorld({
 				});
 		}, interval);
 		return () => window.clearInterval(id);
-	}, [catchUpProposal, onAdvanceDay, playRate]);
+	}, [catchUpProposal, consideringCounsel, onAdvanceDay, playRate]);
 
 	useEffect(() => {
 		setCatchUpProposal(
@@ -1643,6 +1678,23 @@ function GeneratedWorld({
 		});
 	}, [asset]);
 
+	useEffect(() => {
+		if (consideringCounsel) {
+			if (!pausedForCounsel.current) {
+				pausedForCounsel.current = true;
+				setPlayRate((current) => {
+					resumePlayRate.current = current;
+					return 0;
+				});
+			}
+			return;
+		}
+		if (pausedForCounsel.current) {
+			pausedForCounsel.current = false;
+			setPlayRate(resumePlayRate.current);
+		}
+	}, [consideringCounsel]);
+
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
 	const openSettlement = (settlementId: string) => {
@@ -1697,9 +1749,11 @@ function GeneratedWorld({
 		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
 	const clockLocked = experience.persistence.kind !== "indexeddb";
-	const clockLockReason = clockLocked
-		? "Time controls need local storage."
-		: undefined;
+	const clockLockReason = consideringCounsel
+		? "Paused while you consider advice"
+		: clockLocked
+			? "Time controls need local storage."
+			: undefined;
 	const togglePresentation = () =>
 		setPlayRate((rate) => {
 			const next = rate === 0 ? 1 : 0;
@@ -1738,6 +1792,7 @@ function GeneratedWorld({
 			persistenceAvailable={experience.persistence.kind === "indexeddb"}
 			onAuthorityCommitted={onAuthorityRefresh}
 			happenings={experience.happenings}
+			onCounselConsiderationChange={setConsideringCounsel}
 		/>
 	);
 
@@ -1763,6 +1818,7 @@ function GeneratedWorld({
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-play-rate={String(playRate)}
+			data-counsel-open={String(consideringCounsel)}
 			data-horizon-days={String(experience.horizonDays)}
 			data-sponsor-phase={experience.sponsorPhase}
 			data-catch-up-proposal={String(catchUpProposal)}
@@ -1810,7 +1866,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 0}
-						disabled={clockLocked}
+						disabled={clockLocked || consideringCounsel}
 						title={clockLockReason}
 						onClick={() => {
 							writeLastActiveWallMs();
@@ -1822,7 +1878,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 1}
-						disabled={clockLocked}
+						disabled={clockLocked || consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(1)}
 					>
@@ -1831,7 +1887,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 3}
-						disabled={clockLocked}
+						disabled={clockLocked || consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(3)}
 					>
@@ -2130,11 +2186,13 @@ function GeneratedWorld({
 					Watch first. Select a person to learn more.{" "}
 					{clockLocked
 						? "This view is read-only; days cannot pass here."
-						: catchUpProposal > 0
-							? "Days are waiting on your choice before time continues."
-							: playRate === 0
-								? "Time is paused. Play when you want another day to pass."
-								: "Time keeps moving until you pause it."}
+						: consideringCounsel
+							? "Paused while you consider advice"
+							: catchUpProposal > 0
+								? "Days are waiting on your choice before time continues."
+								: playRate === 0
+									? "Time is paused. Play when you want another day to pass."
+									: "Time keeps moving until you pause it."}
 				</p>
 			</footer>
 		</main>

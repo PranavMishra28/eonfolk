@@ -1569,12 +1569,16 @@ export async function reduceCivilizationAuthorityEvent(
 	} catch {
 		fail("INVALID_INPUT", "CIVP");
 	}
+	const nextPhase = current.phase === "active" ? "active" : "checkpoint";
 	const next = validatePersistedState({
 		schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
-		phase: "checkpoint",
+		phase: nextPhase,
 		worldIdentityHash: current.worldIdentityHash,
 		sourceInitialStateHash: current.sourceInitialStateHash,
-		finalExperimentStateHash: resultingExperimentStateHash,
+		finalExperimentStateHash:
+			nextPhase === "active"
+				? current.finalExperimentStateHash
+				: resultingExperimentStateHash,
 		world: checkpointWorld,
 		civilization: checkpointCivilization,
 		scheduler: {
@@ -1590,7 +1594,7 @@ export async function reduceCivilizationAuthorityEvent(
 	});
 	await validateCheckpointSourceState(next);
 	if (
-		next.phase !== "checkpoint" ||
+		next.phase !== nextPhase ||
 		next.worldIdentityHash !== current.worldIdentityHash ||
 		next.sourceInitialStateHash !== current.sourceInitialStateHash ||
 		next.scheduler.completedDay <= current.scheduler.completedDay ||

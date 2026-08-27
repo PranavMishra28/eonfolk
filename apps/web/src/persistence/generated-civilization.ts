@@ -1,5 +1,8 @@
 import {
+	assertCivilizationInvariants,
 	type CivilizationExperimentRun,
+	type CivilizationState,
+	continueCivilizationExperimentDay,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import {
@@ -279,56 +282,127 @@ export async function prepareGeneratedCivilization(input: {
 }
 
 const LIVE_DAY_RUNNER_VERSION = "eonfolk-civilization-runner-v9" as const;
+const LIVE_DAY_MECHANISM_ID = "civilization.live-day-advance.v1" as const;
 const SECONDS_PER_DAY = 86_400;
 
-type PlayerAuthorityMaps = Readonly<{
-	readonly sponsorships?: Readonly<Record<string, JsonValue>>;
-	readonly counsels?: Readonly<Record<string, JsonValue>>;
-	readonly patronAbstentions?: Readonly<Record<string, JsonValue>>;
-}>;
+async function precedingAuthorityEventId(
+	port: VersionedPersistencePort,
+	scope: { readonly runId: string; readonly regionId: string },
+	lastSequence: number,
+): Promise<string | null> {
+	if (lastSequence < 1) return null;
+	const range = await port.getEventRange({
+		...scope,
+		fromSequenceInclusive: lastSequence,
+		toSequenceExclusive: lastSequence + 1,
+	});
+	return range[0]?.eventId ?? null;
+}
 
-export function preservePlayerAuthority(
-	nextCivilization: JsonValue,
-	currentCivilization: JsonValue | null,
-): JsonValue {
-	if (
-		currentCivilization === null ||
-		typeof currentCivilization !== "object" ||
-		Array.isArray(currentCivilization) ||
-		typeof nextCivilization !== "object" ||
-		nextCivilization === null ||
-		Array.isArray(nextCivilization)
-	)
-		return nextCivilization;
-	const current = currentCivilization as PlayerAuthorityMaps;
-	const next = nextCivilization as PlayerAuthorityMaps;
-	const sponsorships = {
-		...(next.sponsorships ?? {}),
-		...(current.sponsorships ?? {}),
-	};
-	const counsels = { ...(next.counsels ?? {}), ...(current.counsels ?? {}) };
-	const patronAbstentions = {
-		...(next.patronAbstentions ?? {}),
-		...(current.patronAbstentions ?? {}),
-	};
-	if (
-		Object.keys(sponsorships).length === 0 &&
-		Object.keys(counsels).length === 0 &&
-		Object.keys(patronAbstentions).length === 0
-	)
-		return nextCivilization;
+async function nextLiveDayFromHead(input: {
+	readonly current: ReleaseGenesisCivilizationState;
+	readonly genesisWorld: GeneratedWorldState;
+	readonly authorityRunner: typeof runCivilizationExperiment;
+}): Promise<{
+	readonly nextState: ReleaseGenesisCivilizationState;
+	readonly stepHash: string;
+	readonly eventHashes: readonly string[];
+	readonly experimentStateHash: string;
+}> {
+	const current = input.current;
+	if (current.civilization === null)
+		throw new Error("live day advance lacks a civilization");
+	const currentDay = current.scheduler.completedDay;
+	const nextDay = currentDay + 1;
+	if (current.phase === "active") {
+		const continued = await continueCivilizationExperimentDay({
+			genesisWorld: input.genesisWorld,
+			world: current.world as unknown as GeneratedWorldState,
+			state: current.civilization as unknown as CivilizationState,
+			completedDay: currentDay,
+			eventIndexBase: current.sourceHistory.eventHashes.length,
+			priorEventHash: current.sourceHistory.eventHashes.at(-1) ?? null,
+			skipOpeningDecisions: true,
+		});
+		assertCivilizationInvariants(continued.state);
+		return {
+			nextState: {
+				schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
+				phase: "active",
+				worldIdentityHash: current.worldIdentityHash,
+				sourceInitialStateHash: current.sourceInitialStateHash,
+				finalExperimentStateHash: current.finalExperimentStateHash,
+				world:
+					continued.world as unknown as ReleaseGenesisCivilizationState["world"],
+				civilization:
+					continued.state as unknown as ReleaseGenesisCivilizationState["civilization"],
+				scheduler: {
+					completedDay: nextDay,
+					simulationTime: nextDay * SECONDS_PER_DAY,
+					modelInvocations: 0,
+					activities: continued.activities as unknown as JsonValue,
+				},
+				sourceHistory: {
+					stepHashes: [
+						...current.sourceHistory.stepHashes,
+						continued.step.stepHash,
+					],
+					eventHashes: [
+						...current.sourceHistory.eventHashes,
+						...continued.step.eventHashes,
+					],
+				},
+			},
+			stepHash: continued.step.stepHash,
+			eventHashes: continued.step.eventHashes,
+			experimentStateHash: current.finalExperimentStateHash,
+		};
+	}
+	const nextRun = await input.authorityRunner({
+		world: input.genesisWorld,
+		horizonDays: nextDay,
+	});
+	if (nextRun.metrics.modelInvocations !== 0)
+		throw new Error("live day advance invoked a model");
+	const step = nextRun.steps[currentDay];
+	if (step === undefined)
+		throw new Error("live day advance is missing the next experiment step");
 	return {
-		...(nextCivilization as Readonly<Record<string, JsonValue>>),
-		sponsorships,
-		counsels,
-		patronAbstentions,
+		nextState: {
+			schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
+			phase: "checkpoint",
+			worldIdentityHash: current.worldIdentityHash,
+			sourceInitialStateHash: current.sourceInitialStateHash,
+			finalExperimentStateHash: nextRun.finalStateHash,
+			world:
+				nextRun.world as unknown as ReleaseGenesisCivilizationState["world"],
+			civilization:
+				nextRun.state as unknown as ReleaseGenesisCivilizationState["civilization"],
+			scheduler: {
+				completedDay: nextDay,
+				simulationTime: nextDay * SECONDS_PER_DAY,
+				modelInvocations: 0,
+				activities: nextRun.activities as unknown as JsonValue,
+			},
+			sourceHistory: {
+				stepHashes: [...current.sourceHistory.stepHashes, step.stepHash],
+				eventHashes: [
+					...current.sourceHistory.eventHashes,
+					...step.eventHashes,
+				],
+			},
+		},
+		stepHash: step.stepHash,
+		eventHashes: step.eventHashes,
+		experimentStateHash: nextRun.finalStateHash,
 	};
 }
 
 /**
  * Player-authorized one-day advance. Wall clock never calls this. Play/faster
  * may request it; the append is the same checkpoint reducer as catch-up.
- * Sponsorship and counsel records are preserved and must not freeze the clock.
+ * The child is one 86400s step of the current authority head. Sponsorship
+ * and counsel already on that head are not rebuilt from genesis.
  */
 export async function appendLiveGeneratedCivilizationDay(input: {
 	readonly port: VersionedPersistencePort;
@@ -366,37 +440,17 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 		});
 	const nextDay = currentDay + 1;
 	const runner = input.authorityRunner ?? runCivilizationExperiment;
-	const nextRun = await runner({
-		world: input.genesisWorld,
-		horizonDays: nextDay,
+	const advanced = await nextLiveDayFromHead({
+		current,
+		genesisWorld: input.genesisWorld,
+		authorityRunner: runner,
 	});
-	if (nextRun.metrics.modelInvocations !== 0)
-		throw new Error("live day advance invoked a model");
-	const step = nextRun.steps[currentDay];
-	if (step === undefined)
-		throw new Error("live day advance is missing the next experiment step");
-	const nextState: ReleaseGenesisCivilizationState = {
-		schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
-		phase: "checkpoint",
-		worldIdentityHash: current.worldIdentityHash,
-		sourceInitialStateHash: current.sourceInitialStateHash,
-		finalExperimentStateHash: nextRun.finalStateHash,
-		world: nextRun.world as unknown as ReleaseGenesisCivilizationState["world"],
-		civilization: preservePlayerAuthority(
-			nextRun.state as unknown as JsonValue,
-			current.civilization as unknown as JsonValue,
-		) as ReleaseGenesisCivilizationState["civilization"],
-		scheduler: {
-			completedDay: nextDay,
-			simulationTime: nextDay * SECONDS_PER_DAY,
-			modelInvocations: 0,
-			activities: nextRun.activities as unknown as JsonValue,
-		},
-		sourceHistory: {
-			stepHashes: [...current.sourceHistory.stepHashes, step.stepHash],
-			eventHashes: [...current.sourceHistory.eventHashes, ...step.eventHashes],
-		},
-	};
+	const nextState = advanced.nextState;
+	const parentEventId = await precedingAuthorityEventId(
+		input.port,
+		scope,
+		head.lastSequence,
+	);
 	const appendId = `civilization-live-day-${String(nextDay)}`;
 	const batchId = `civilization-live-batch-${String(nextDay)}`;
 	const preStateHash = await hashAuthoritativeState(current);
@@ -411,13 +465,13 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 		simulationTime: nextDay * SECONDS_PER_DAY,
 		eventType: "CivilizationCheckpointCommitted",
 		causalParents:
-			currentDay === 0
+			parentEventId === null
 				? []
 				: [
 						{
-							eventId: `civilization-checkpoint-${String(currentDay)}`,
+							eventId: parentEventId,
 							relation: "direct",
-							mechanismId: "civilization.checkpoint-prefix-advance.v1",
+							mechanismId: LIVE_DAY_MECHANISM_ID,
 						},
 					],
 		visibility: { kind: "authority-only" },
@@ -435,16 +489,13 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 			previousCompletedDay: currentDay,
 			resultingCompletedDay: nextDay,
 			resultingSimulationTime: nextDay * SECONDS_PER_DAY,
-			resultingExperimentStateHash: nextRun.finalStateHash,
-			sourceStepHashes: [step.stepHash],
-			sourceEventHashes: [...step.eventHashes],
+			resultingExperimentStateHash: advanced.experimentStateHash,
+			sourceStepHashes: [advanced.stepHash],
+			sourceEventHashes: [...advanced.eventHashes],
 			checkpoint: {
-				world: nextRun.world as unknown as JsonValue,
-				civilization: preservePlayerAuthority(
-					nextRun.state as unknown as JsonValue,
-					current.civilization as unknown as JsonValue,
-				),
-				activities: nextRun.activities as unknown as JsonValue,
+				world: nextState.world,
+				civilization: nextState.civilization as JsonValue,
+				activities: nextState.scheduler.activities,
 			},
 		},
 	});
@@ -634,42 +685,19 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 			},
 		});
 	const chapters: AppendAuthorityBatchRequest[] = [];
+	let parentEventId = await precedingAuthorityEventId(
+		input.port,
+		scope,
+		expectedSequence,
+	);
 	for (let day = fromDay; day < toDay; day += 1) {
 		const nextDay = day + 1;
-		const nextRun = await runner({
-			world: input.genesisWorld,
-			horizonDays: nextDay,
+		const advanced = await nextLiveDayFromHead({
+			current: cursor,
+			genesisWorld: input.genesisWorld,
+			authorityRunner: runner,
 		});
-		if (nextRun.metrics.modelInvocations !== 0)
-			throw new Error("live day advance invoked a model");
-		const step = nextRun.steps[day];
-		if (step === undefined)
-			throw new Error("live day advance is missing the next experiment step");
-		const preserved = preservePlayerAuthority(
-			nextRun.state as unknown as JsonValue,
-			cursor.civilization as unknown as JsonValue,
-		);
-		const nextState: ReleaseGenesisCivilizationState = {
-			schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
-			phase: "checkpoint",
-			worldIdentityHash: cursor.worldIdentityHash,
-			sourceInitialStateHash: cursor.sourceInitialStateHash,
-			finalExperimentStateHash: nextRun.finalStateHash,
-			world:
-				nextRun.world as unknown as ReleaseGenesisCivilizationState["world"],
-			civilization:
-				preserved as ReleaseGenesisCivilizationState["civilization"],
-			scheduler: {
-				completedDay: nextDay,
-				simulationTime: nextDay * SECONDS_PER_DAY,
-				modelInvocations: 0,
-				activities: nextRun.activities as unknown as JsonValue,
-			},
-			sourceHistory: {
-				stepHashes: [...cursor.sourceHistory.stepHashes, step.stepHash],
-				eventHashes: [...cursor.sourceHistory.eventHashes, ...step.eventHashes],
-			},
-		};
+		const nextState = advanced.nextState;
 		const appendId = `civilization-live-day-${String(nextDay)}`;
 		const batchId = `civilization-live-batch-${String(nextDay)}`;
 		const event = await createAuthorityEvent({
@@ -682,13 +710,16 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 			sequence: expectedSequence + (day - fromDay) + 1,
 			simulationTime: nextDay * SECONDS_PER_DAY,
 			eventType: "CivilizationCheckpointCommitted",
-			causalParents: [
-				{
-					eventId: `civilization-checkpoint-${String(day)}`,
-					relation: "direct",
-					mechanismId: "civilization.checkpoint-prefix-advance.v1",
-				},
-			],
+			causalParents:
+				parentEventId === null
+					? []
+					: [
+							{
+								eventId: parentEventId,
+								relation: "direct",
+								mechanismId: LIVE_DAY_MECHANISM_ID,
+							},
+						],
 			visibility: { kind: "authority-only" },
 			provenance: {
 				mechanismId: LIVE_DAY_RUNNER_VERSION,
@@ -704,13 +735,13 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 				previousCompletedDay: day,
 				resultingCompletedDay: nextDay,
 				resultingSimulationTime: nextDay * SECONDS_PER_DAY,
-				resultingExperimentStateHash: nextRun.finalStateHash,
-				sourceStepHashes: [step.stepHash],
-				sourceEventHashes: [...step.eventHashes],
+				resultingExperimentStateHash: advanced.experimentStateHash,
+				sourceStepHashes: [advanced.stepHash],
+				sourceEventHashes: [...advanced.eventHashes],
 				checkpoint: {
-					world: nextRun.world as unknown as JsonValue,
-					civilization: preserved,
-					activities: nextRun.activities as unknown as JsonValue,
+					world: nextState.world,
+					civilization: nextState.civilization as JsonValue,
+					activities: nextState.scheduler.activities,
 				},
 			},
 		});
@@ -729,6 +760,7 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 		cursor = nextState;
 		preStateHash = event.postStateHash;
 		previousEventHash = event.eventHash;
+		parentEventId = event.eventId;
 	}
 	const confirmationId = liveReturnCatchUpConfirmationId({
 		fromDay,

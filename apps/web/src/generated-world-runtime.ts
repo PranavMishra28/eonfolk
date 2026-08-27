@@ -118,6 +118,48 @@ function happeningsFromCivilization(
 	civilization: CivilizationState,
 ): readonly GeneratedWorldHappening[] {
 	const happenings: GeneratedWorldHappening[] = [];
+	const mara = civilization.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
+	const counselOutcome = Object.values(civilization.counselOutcomes)
+		.filter((outcome) => outcome.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID)
+		.sort((left, right) => left.recordedAtRevision - right.recordedAtRevision)
+		.at(-1);
+	if (mara !== undefined && counselOutcome !== undefined) {
+		if (counselOutcome.effect.kind === "reserve-inspection")
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} checked the stores`,
+					summary: `${mara.name} inspected the settlement reserve. That is a recorded observation, not a rumor.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+		else if (counselOutcome.effect.kind === "public-allegation") {
+			const target =
+				civilization.citizens[counselOutcome.effect.targetCitizenId];
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} spoke publicly`,
+					summary:
+						target === undefined
+							? `${mara.name} made a public allegation. That is recorded speech, not a proven fact.`
+							: `${mara.name} made a public allegation about ${target.name}. That is recorded speech, not a proven fact.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+		} else
+			happenings.push(
+				Object.freeze({
+					happeningId: counselOutcome.outcomeId,
+					title: `${mara.name} kept to her plan`,
+					summary: `${mara.name} continued her standing plan after the advice. That is a recorded choice.`,
+					citizenId: mara.citizenId,
+					citizenName: mara.name,
+				}),
+			);
+	}
 	const traveller =
 		civilization.citizens[RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID];
 	const migration = civilization.migrations["migration-founding-party"];
@@ -137,7 +179,7 @@ function happeningsFromCivilization(
 				Object.freeze({
 					happeningId: "orin-left-dawnmere",
 					title: `${traveller.name} left Dawnmere`,
-					summary: `${traveller.name} set out to found another settlement. This is a named beat, not a silent roster change.`,
+					summary: `${traveller.name} set out to found another settlement.`,
 					citizenId: traveller.citizenId,
 					citizenName: traveller.name,
 				}),

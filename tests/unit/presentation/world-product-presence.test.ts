@@ -75,6 +75,8 @@ describe("world-as-product presentation", () => {
 		expect(canvas).toContain("projection.local.buildings.map");
 		expect(canvas).toContain("projection.spatial.interactions.map");
 		expect(canvas).toContain("renderedActorPoint(projection, actor)");
+		expect(canvas).toContain("coincidents");
+		expect(canvas).toContain("occupantSpacingMm");
 		expect(people).toContain("function PhysicalAction");
 		expect(people).not.toContain("ActivityBeacon");
 		expect(people).not.toContain("SocialGesture");
