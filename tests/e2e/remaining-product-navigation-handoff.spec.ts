@@ -43,6 +43,13 @@ async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 	);
 }
 
+async function pauseWorldTime(page: Page): Promise<void> {
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
+}
+
 async function openCanonicalWorld(page: Page, href = "/world") {
 	await page.goto(href);
 	const world = page.locator("main.v1-world");
@@ -57,10 +64,7 @@ async function openCanonicalWorld(page: Page, href = "/world") {
 		"true",
 		{ timeout: 30_000 },
 	);
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
+	await pauseWorldTime(page);
 	return world;
 }
 
@@ -275,6 +279,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await expect(world).toHaveAttribute(
 			"data-focused-event-id",
 			eventFocus.eventId,
@@ -296,6 +301,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await page.getByRole("button", { name: "Review Chronicle" }).click();
 		const replay = page.getByRole("region", {
 			name: "Shareable factual replay",
@@ -332,6 +338,7 @@ for (const viewport of [
 			"true",
 			{ timeout: 30_000 },
 		);
+		await pauseWorldTime(page);
 		await page.getByRole("button", { name: "Review Chronicle" }).click();
 		await replay.getByText("Exact event evidence").click();
 		const objectLink = replay.locator('a[href*="focus-kind=object"]').first();

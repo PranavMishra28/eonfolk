@@ -1169,6 +1169,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
+	await pauseWorldTime(page);
 	const stateHash = await world.getAttribute("data-state-hash");
 	const fingerprint = await generatedAuthorityFingerprint(page);
 	await expect(canvas).toHaveAttribute("data-citizen-height-mm", "1750");
@@ -1244,6 +1245,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		"project",
 		{ timeout: 20_000 },
 	);
+	await pauseWorldTime(page);
 	await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
 
 	for (const viewport of [

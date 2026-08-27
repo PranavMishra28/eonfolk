@@ -3626,6 +3626,13 @@ em {
 	background: rgba(255, 250, 232, 0.5);
 }
 
+.v1-context-panel > section:not(.v1-presence-card) button {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	white-space: normal;
+}
+
 .v1-context-now {
 	display: grid;
 	gap: 0.4rem;

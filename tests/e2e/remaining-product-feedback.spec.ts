@@ -173,6 +173,10 @@ for (const viewport of [
 		await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u, {
 			timeout: 30_000,
 		});
+		await page
+			.getByRole("navigation", { name: "Time" })
+			.getByRole("button", { name: "Pause" })
+			.click();
 		const stateHash = await world.getAttribute("data-state-hash");
 		const authorityBefore = await authorityFingerprint(page);
 		const drawer = page.locator("details.v1-feedback-drawer");
@@ -271,9 +275,16 @@ for (const viewport of [
 		expect(externalRequests).toEqual([]);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "", {
-			timeout: 30_000,
-		});
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 30_000 },
+		);
+		await page
+			.getByRole("navigation", { name: "Time" })
+			.getByRole("button", { name: "Pause" })
+			.click();
+		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "");
 		await page.locator("details.v1-feedback-drawer").locator("summary").click();
 		const restoredPanel = page.getByRole("region", {
 			name: "What broke the spell?",

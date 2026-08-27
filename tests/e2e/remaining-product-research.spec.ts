@@ -362,8 +362,11 @@ test("a first-boundary action fails closed when its displayed context is stale",
 		})
 		.click();
 	await expect(page.getByRole("status")).toContainText(
-		"CURRENT_CONTEXT_MISMATCH",
+		"The town moved while this choice was open",
 		{ timeout: sponsorTransitionTimeout },
+	);
+	await expect(page.getByRole("status")).not.toContainText(
+		/SP:|CURRENT_CONTEXT_MISMATCH/u,
 	);
 	expect(await authorityFingerprint(page)).toBe(beforeStaleAttempt);
 	await other.close();
