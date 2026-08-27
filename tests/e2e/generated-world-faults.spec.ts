@@ -47,6 +47,17 @@ async function openFaultedWorld(
 	return externalRequests;
 }
 
+async function pauseWorldTime(page: Page): Promise<void> {
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
+	await expect(page.locator("main.v1-world")).toHaveAttribute(
+		"data-play-rate",
+		"0",
+	);
+}
+
 async function expectRecoverableWorld(
 	page: Page,
 	kind: FaultKind,
@@ -57,6 +68,7 @@ async function expectRecoverableWorld(
 	});
 	await expect(world).toHaveAttribute("data-state-hash", /^[0-9a-f]{64}$/u);
 	await expect(page.getByTestId("generated-world-fault-status")).toBeVisible();
+	await pauseWorldTime(page);
 	return (await world.getAttribute("data-state-hash")) ?? "";
 }
 
@@ -294,6 +306,7 @@ test.describe
 					/^[0-9a-f]{64}$/u,
 					{ timeout: 30_000 },
 				);
+				await pauseWorldTime(page);
 				const canonicalHash = await canonical.getAttribute("data-state-hash");
 				const before = await authorityFingerprint(page);
 				await page.evaluate(
@@ -311,7 +324,7 @@ test.describe
 				);
 				await expect(page.locator("html")).toHaveAttribute(
 					"data-fault-candidate-checkpoints",
-					"5",
+					"1",
 				);
 				if (kind === "checkpoint")
 					await expect(error).toHaveAttribute(
@@ -353,8 +366,13 @@ test.describe
 					.click();
 				await expect(page.locator("main.v1-world")).toHaveAttribute(
 					"data-state-hash",
-					canonicalHash ?? "",
+					/^[0-9a-f]{64}$/u,
 					{ timeout: 30_000 },
+				);
+				await pauseWorldTime(page);
+				await expect(page.locator("main.v1-world")).toHaveAttribute(
+					"data-state-hash",
+					canonicalHash ?? "",
 				);
 				expect(externalRequests).toEqual([]);
 			});
@@ -368,10 +386,7 @@ test.describe
 			const authority = await authorityFingerprint(page);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
-			await page
-				.locator(".generated-settlement-switcher button")
-				.first()
-				.click();
+			await page.getByRole("button", { name: "Zoom in" }).click();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
@@ -404,13 +419,14 @@ test.describe
 			});
 			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
 			await page
-				.getByRole("button", { name: "Retry embodied renderer" })
+				.getByRole("button", { name: "Retry the watch view" })
 				.click();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 				"data-ready",
 				"true",
 				{ timeout: 30_000 },
 			);
+			await pauseWorldTime(page);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
 				hash,
@@ -630,6 +646,7 @@ test.describe
 			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 				timeout: 30_000,
 			});
+			await pauseWorldTime(page);
 			const canonicalHash = await world.getAttribute("data-state-hash");
 			const canonicalAuthority = await authorityFingerprint(page);
 			await page.evaluate(
