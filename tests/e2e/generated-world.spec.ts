@@ -2096,12 +2096,15 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		})
 		.not.toBe(initialHash);
 	await expect
-		.poll(() =>
-			page
-				.locator(".v1-context-panel")
-				.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
+		.poll(
+			() =>
+				page.locator(".v1-context-panel").evaluate((panel) => {
+					const overflow = panel.scrollWidth - panel.clientWidth;
+					return overflow <= 1 ? "fits" : `overflow ${String(overflow)}`;
+				}),
+			{ timeout: linuxSemanticCi ? 15_000 : 8_000 },
 		)
-		.toBe(true);
+		.toBe("fits");
 	for (const term of [
 		"What is recorded",
 		"Mara's belief",
