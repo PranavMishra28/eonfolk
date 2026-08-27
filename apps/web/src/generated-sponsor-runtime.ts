@@ -235,61 +235,58 @@ function counselContext(
 	const mind = civilization.minds[citizenId]?.snapshot;
 	if (citizen === undefined || mind === undefined)
 		sponsorFail("NO_COUNSEL_CONTEXT");
-	const toma = Object.values(civilization.citizens).find(
-		(candidate) => candidate.name === "Toma Reed",
-	);
-	const maraToma = Object.values(civilization.relationships).find(
+	const relatedMind = mind.relationships[0];
+	const relatedCitizen =
+		relatedMind === undefined
+			? undefined
+			: civilization.citizens[relatedMind.toCitizenId];
+	const relatedKind = Object.values(civilization.relationships).find(
 		(relationship) =>
-			toma !== undefined &&
-			((relationship.fromCitizenId === citizenId &&
-				relationship.toCitizenId === toma.citizenId) ||
-				(relationship.toCitizenId === citizenId &&
-					relationship.fromCitizenId === toma.citizenId)),
-	);
+			relatedCitizen !== undefined &&
+			relationship.fromCitizenId === citizenId &&
+			relationship.toCitizenId === relatedCitizen.citizenId,
+	)?.kind;
 	const evidence = mind.records.filter(
 		(record) => record.kind !== "message-claim",
 	);
 	const allegation = mind.records.find(
 		(record) => record.kind === "message-claim",
 	);
-	const planStep = mind.standingPlan.steps.find(
-		(step) => step.stepId === mind.standingPlan.currentStepId,
-	);
 	const settlementStocks = Object.values(civilization.stocks).filter(
 		(stock) =>
 			stock.owner.kind === "settlement" &&
 			stock.owner.settlementId === citizen.settlementId,
 	);
-	const recordedUnits = settlementStocks.reduce(
-		(total, stock) => total + stock.quantity,
-		0,
-	);
+	const waterUnits = settlementStocks
+		.filter(
+			(stock) =>
+				stock.resourceTypeId === "water" ||
+				stock.resourceTypeId === "spring-water",
+		)
+		.reduce((total, stock) => total + stock.quantity, 0);
+	const relatedName = relatedCitizen?.name ?? "a neighbor";
 	return Object.freeze({
 		authorityStateHash,
 		citizenName: citizen.name,
-		fact: `Reality records ${String(recordedUnits)} resource units across ${String(settlementStocks.length)} settlement-owned stocks; it does not record theft.`,
+		fact: `Dawnmere holds ${String(waterUnits)} units of prepared water. No theft is recorded.`,
 		belief:
 			evidence[0]?.proposition ??
-			`${citizen.name} has no recorded reserve-mismatch observation or belief in the current authoritative Mind.`,
+			"The settlement has only one day of prepared water.",
 		allegation:
 			allegation?.proposition ??
-			`No allegation against ${toma?.name ?? "Toma"} is recorded at this boundary.`,
+			`No one is accused. There is no allegation against ${relatedName}.`,
 		values: mind.values.map(({ valueId }) => readable(valueId)),
 		relationship:
-			maraToma === undefined
-				? `Current Reality records no direct ${citizen.name}–${toma?.name ?? "Toma"} relationship.`
-				: `${citizen.name} and ${toma?.name ?? "Toma"}: trust ${String(maraToma.trustBasisPoints)} / 10,000; strain ${String(maraToma.strainBasisPoints)} / 10,000.`,
-		standingPlan: `${readable(mind.standingPlan.goalType)} — ${readable(planStep?.kind ?? mind.standingPlan.currentStepId)} (${mind.standingPlan.status}).`,
+			relatedCitizen === undefined
+				? `${citizen.name} has no recorded close relationship at this boundary.`
+				: `${citizen.name} and ${relatedName} are ${relatedKind ?? "close"}; they share the water worry.`,
+		standingPlan: `${citizen.name} is continuing her day's work.`,
 		uncertainty:
-			evidence.length === 0
-				? "The current record does not establish a ledger mismatch, a sealed-reserve motive, or wrongdoing."
-				: "The recorded evidence does not establish another citizen's motive or wrongdoing.",
+			"Whether the stores will last is still unknown. The record does not name a culprit.",
 		verifyStake:
-			"A private inspection can add sourced reserve evidence, but it delays a public conclusion.",
-		accuseStake:
-			"A public allegation can prompt scrutiny, but it can strain the relationship and remains an allegation until verified.",
-		abstainStake:
-			"No counsel enters Mara's decision. Her active Standing Plan continues without sponsor causal credit.",
+			"Checking the stores first can add a sourced count, but it delays speaking up.",
+		accuseStake: `Raising this with ${relatedName} can bring the shortage into the open, and it can strain the friendship.`,
+		abstainStake: `${citizen.name} keeps her own plan. You take no credit for what she does next.`,
 	});
 }
 

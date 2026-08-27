@@ -25,6 +25,7 @@ import {
 import type { BrowserPersistenceBoundaryInjector } from "./persistence/browser-versioned";
 import { BrowserVersionedPersistence } from "./persistence/browser-versioned";
 import {
+	appendLiveGeneratedCivilizationDay,
 	GENERATED_CIVILIZATION_RUN_ID,
 	type GeneratedCivilizationCatchUpHorizon,
 	type PreparedGeneratedCivilization,
@@ -45,8 +46,8 @@ import {
 export const GENERATED_WORLD_HORIZON_DAYS = 365;
 export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
-/** Exact v7 namespace: earlier authority bytes remain untouched and cannot be misread. */
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v7";
+/** Exact v8 namespace: first session starts at day 1; earlier 365-day v7 bytes stay unread. */
+export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v8";
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -181,7 +182,7 @@ async function buildGeneratedWorldExperienceInternal(
 			: run;
 	};
 	const targetHorizonDays =
-		options.targetHorizonDays ?? GENERATED_WORLD_HORIZON_DAYS;
+		options.targetHorizonDays ?? GENERATED_WORLD_INITIAL_HORIZON_DAYS;
 	const databaseName = options.databaseName ?? GENERATED_WORLD_STORAGE_KEY;
 	const indexedDbFactory =
 		options.indexedDbFactory === undefined
@@ -497,4 +498,36 @@ export function loadGeneratedWorldExperience(): Promise<GeneratedWorldExperience
 export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
 	pendingExperience = buildGeneratedWorldExperienceInternal({});
 	return pendingExperience;
+}
+
+/**
+ * Player-authorized scheduler step. Wall clock must not call this.
+ * After sponsorship exists the append is a no-op so counsel state is preserved.
+ */
+export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
+	const indexedDbFactory = globalThis.indexedDB;
+	if (indexedDbFactory === undefined)
+		return await refreshGeneratedWorldExperience();
+	const releaseGenesis = await createReleaseGenesis({
+		releaseId: V1_GENESIS_RELEASE_ID,
+		seedHex: V1_GENESIS_SEED,
+	});
+	const generatedWorld = await generateWorld({
+		releaseGenesis,
+		worldId: V1_GENESIS_WORLD_ID,
+		treatmentId: "standard-brain",
+	});
+	const port = await BrowserVersionedPersistence.open({
+		factory: indexedDbFactory,
+		databaseName: GENERATED_WORLD_STORAGE_KEY,
+	});
+	try {
+		await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: generatedWorld,
+		});
+	} finally {
+		port.close();
+	}
+	return await refreshGeneratedWorldExperience();
 }

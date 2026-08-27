@@ -303,7 +303,7 @@ export interface CivilizationScheduledActivity {
 		readonly affordanceSlotIndex: number;
 		readonly targetId: string | null;
 		readonly simulationStart: number;
-		readonly simulationEnd: null;
+		readonly simulationEnd: number | null;
 		readonly resultEventId: null;
 	}>;
 	readonly location:
@@ -1233,6 +1233,8 @@ function scheduleActivities(
 		routines.map((routine) => [routine.citizenId, routine]),
 	);
 	const paired = new Set<string>();
+	const dayNumber = Math.floor(state.simulationTime / SECONDS_PER_DAY);
+	const conversationsToday = dayNumber % 2 === 1;
 	for (const relationship of Object.values(state.relationships).sort(
 		(left, right) => left.relationshipId.localeCompare(right.relationshipId),
 	)) {
@@ -1252,6 +1254,7 @@ function scheduleActivities(
 			secondRoutine?.kind !== "social-maintenance" ||
 			firstRoutine.subjectId !== second.citizenId ||
 			secondRoutine.subjectId !== first.citizenId ||
+			!conversationsToday ||
 			paired.has(first.citizenId) ||
 			paired.has(second.citizenId)
 		)

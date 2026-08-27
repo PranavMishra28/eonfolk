@@ -4,8 +4,7 @@ import type {
 } from "./generated-world-runtime";
 
 export type { GeneratedWorldExperience } from "./generated-world-runtime";
-
-export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v7";
+export { GENERATED_WORLD_STORAGE_KEY } from "./generated-world-runtime";
 
 const generatedFaultHooks =
 	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
@@ -13,7 +12,7 @@ const generatedFaultHooks =
 
 type WorkerRequest = Readonly<{
 	id: number;
-	kind: "load" | "refresh";
+	kind: "load" | "refresh" | "advance-day";
 }>;
 
 type WorkerResponse = Readonly<{
@@ -66,6 +65,8 @@ async function directRequest(
 	const runtime = await import("./generated-world-runtime");
 	if (options !== undefined)
 		return await runtime.buildGeneratedWorldExperience(options);
+	if (kind === "advance-day")
+		return await runtime.advanceGeneratedWorldLiveDay();
 	return kind === "refresh"
 		? await runtime.refreshGeneratedWorldExperience()
 		: await runtime.loadGeneratedWorldExperience();
@@ -84,6 +85,13 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
 	if (generatedFaultHooks || typeof Worker === "undefined")
 		return directRequest("refresh");
 	initialExperience = workerRequest("refresh");
+	return initialExperience;
+}
+
+export function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
+	if (generatedFaultHooks || typeof Worker === "undefined")
+		return directRequest("advance-day");
+	initialExperience = workerRequest("advance-day");
 	return initialExperience;
 }
 

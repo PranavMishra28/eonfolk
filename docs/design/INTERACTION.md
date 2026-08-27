@@ -102,19 +102,19 @@ No consequential action depends on hover, drag, double-click, long press, pinch,
 
 ### First 5 seconds
 
-Mara, current action, suspicion, autonomy line, and usable **Follow Mara** appear in the semantic/static shell while the world streams. No terms wall, model choice, account prompt, dashboard tour, or modal tutorial.
+Landing names Mara and that she acts for herself. **Enter Dawnmere** is the one play action. No terms wall, model choice, account prompt, dashboard tour, or modal tutorial.
 
 ### First 30 seconds
 
-The player follows Mara, reads a plain action, sees one pair interact, and finds **Check why Mara doubts the count**. Other citizens remain inspectable but are not alternative sponsor candidates.
+The player is in Dawnmere. Named people keep acting, a one-line intent is visible, **Pause / Play** control time, and **Follow Mara** is a first-class control. Other citizens remain inspectable but are not alternative sponsor candidates.
 
 ### By 45–60 seconds
 
-Mara performs an authoritative state-changing investigation and identity, one value, current plan, Toma relationship, and tension are legible.
+Mara's recorded water stores, her friendship with Iven, and her current day's work are legible. No theft or ledger story is shown unless Reality records one.
 
 ### By 5 minutes and return
 
-The player reaches advice, then sees interpretation and a branch-specific consequence. **Leave Riverhold at checkpoint** records a deterministic return manifest. On reload, changed world appears before the summary; the player confirms **Advance Riverhold** and receives one branch-dependent next action.
+The player reaches advice, then sees interpretation and a branch-specific consequence. Closing writes last-active wall clock outside Reality. On return, the player may accept a bounded proposed catch-up or stay on this day, then receives one branch-dependent next action.
 
 ## Chronicle evidence behavior
 

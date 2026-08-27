@@ -57,9 +57,9 @@ corepack pnpm dev
 ```
 
 Open the loopback URL printed by Vite. `/` is the landing page; `/world` is the
-settlement. To complete the product loop locally: enter the world, select Mara
-Vale, choose **Sponsor this person**, then either offer counsel or abstain.
-Watch her independent response, leave and return, and read the Chronicle.
+settlement. To complete the product loop locally: enter Dawnmere, choose
+**Follow Mara**, choose **Sponsor Mara**, then either offer counsel or abstain.
+Watch her independent response and read the Chronicle.
 
 No command deploys or publishes the project. For a 10–20 minute session with
 another person, use the [playtest kit](docs/playtesting/README.md). That kit

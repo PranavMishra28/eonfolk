@@ -38,11 +38,12 @@ so every required loop works with all model integrations removed.
 
 ## The first sponsor decision
 
-Mara discovers a mismatch between a public ledger and visible food stores. The
-player may advise private verification, urge immediate accusation, or abstain.
+Mara is acting on a thin water store, and Iven is the friend who shares that worry. The
+player may advise checking the stores first, raising the shortage with Iven, or abstain.
 Mara evaluates that input against her evidence, relationships, values, and
-existing plan. Different choices can preserve or strain trust, change what is
-verified, and alter whether a petition reaches a civic threshold.
+existing plan. Different choices can preserve or strain trust and change what is
+verified. No generated Dawnmere record currently supports a Mara–Toma theft or
+ledger story; that chain remains frozen Riverhold evidence.
 
 The Chronicle is careful about attribution. Advice can contribute to a plan;
 Mara's statement can trigger an audit; an audit can verify a reserve. None of

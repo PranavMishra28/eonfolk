@@ -2,7 +2,7 @@
 
 **Purpose:** define the consumer promise, ultimate product identity, participation roles, selected structure, falsification gates, and first-slice boundary.
 
-**Status:** V1 RELEASE GENESIS IS THE LIVE PRODUCT — Riverhold remains frozen Gate 0 evidence, not current game identity
+**Status:** V1 DAWNMERE IS THE LIVE PRODUCT — Riverhold remains frozen Gate 0 evidence, not current game identity
 
 **Authority boundary:** this file owns what EONFOLK is and is not. [HUMAN_LOOP](HUMAN_LOOP.md) owns timing/verbs; [WORLD_STRUCTURE](WORLD_STRUCTURE.md) owns topology; [001-foundation](../exec-plans/completed/001-foundation.md) owns implementation scope.
 
@@ -20,13 +20,13 @@ EONFOLK's long-term identity has three inseparable parts:
 
 World is the product, Chronicle makes it legible, and Observatory makes bounded reproducible inquiry possible. Observatory is never the onboarding frame or justification for a shallow game. EONFOLK does not claim to simulate or predict human society; its defensible future research object is behavior and institutional emergence among autonomous AI agents inside persistent, grounded, reproducible simulated environments.
 
-The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. Historical Gate 0 used **one Riverhold scenario**. The current V1 product identity is **Release Genesis** (Dawnmere): a generated local civilization with the same sponsor/Chronicle shape, not a shared world, creator platform, or retention claim. Do not edit frozen Gate 0 treatment as live game logic.
+The selected structure remains the bounded-region hybrid: one local settlement, eight simulated citizens, one authored focal citizen, and a factual Chronicle. Historical Gate 0 used **one Riverhold scenario**. The current V1 product identity is **Dawnmere**: a generated local civilization with the same sponsor/Chronicle shape, not a shared world, creator platform, or retention claim. Do not edit frozen Gate 0 treatment as live game logic.
 
 The desired emotion is responsible curiosity: “I care what Mara chooses, I affected her situation, and she is not my unit.” The human is a limited sponsor, not mayor, owner, chatbot operator, or god. Player-facing onboarding uses one action—**Follow Mara**—with the plain promise **She acts for herself**.
 
 ## Sponsor relationship
 
-Mara has asked for an outside witness because her market concern could damage a close relationship. Following her grants access only to facts she observes, beliefs she shares, her stated values/plan, and one bounded advice opportunity at a named boundary. The player owes honest advice and cannot command movement, schedule labor, inspect secrets, undo history, or spend on Mara's behalf. Mara may refuse, delay, or reinterpret counsel for visible reasons.
+Mara has asked for an outside witness because the settlement's water stores are thin, and speaking too soon could strain her friendship with Iven. Following her grants access only to facts she observes, beliefs she shares, her stated values/plan, and one bounded advice opportunity at a named boundary. The player owes honest advice and cannot command movement, schedule labor, inspect secrets, undo history, or spend on Mara's behalf. Mara may refuse, delay, or reinterpret counsel for visible reasons.
 
 This is fictional consent within the scenario, not ownership, employment, finance, or a claim about conscious software.
 
@@ -47,7 +47,7 @@ V1 implements the Stranger/Follower/Patron/Chronicle path around Mara in Dawnmer
 
 ## First-session contract
 
-Within 60 seconds the player recognizes Mara, her suspicion, one relationship, one autonomous investigation, and the next available action. By five minutes they can reach a genuine counsel boundary after inspecting relevant evidence. The session then must show:
+Within 60 seconds the player recognizes Mara, that she acts for herself, the water worry, her friendship with Iven, and pause/play. By five minutes they can reach a genuine counsel boundary after inspecting what is actually recorded. The session then must show:
 
 1. two counsel intents plus abstain with materially different forecast stakes;
 2. Mara's state-grounded interpretation and typed decision receipt;
@@ -55,7 +55,7 @@ Within 60 seconds the player recognizes Mara, her suspicion, one relationship, o
 4. a factual three-beat Chronicle; and
 5. after explicit leave/advance/return, one outcome-legal next action whose options depend on the first outcome.
 
-On Release Genesis that next action is the typed Chronicle `nextAction` (repair-relationship, investigate-uncertainty, or observe) expressed as world focus to the relevant citizen, object, or location, not a second first-boundary WorldCommand. A raw log, fixed cutscene, pretty simulation, green build, or favorable handpicked player cannot substitute.
+On Dawnmere that next action is the typed Chronicle `nextAction` (repair-relationship, investigate-uncertainty, or observe) expressed as world focus to the relevant citizen, object, or location, not a second first-boundary WorldCommand. A raw log, fixed cutscene, pretty simulation, green build, or favorable handpicked player cannot substitute.
 
 ## Evidence gates
 
