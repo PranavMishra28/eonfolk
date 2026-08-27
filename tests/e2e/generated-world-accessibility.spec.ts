@@ -105,12 +105,9 @@ test("the canonical semantic sponsor journey is keyboard-only through Chronicle-
 	const sponsor = page.getByRole("button", { name: "Sponsor Mara" });
 	await expectTouchFloor(sponsor);
 	await pressByKeyboard(page, sponsor);
-	const consider = page.getByRole("button", {
-		name: "Consider an intervention",
-	});
-	await expect(consider).toBeEnabled({ timeout: sponsorTransitionTimeout });
-	await expectTouchFloor(consider);
-	await pressByKeyboard(page, consider);
+	await expect(
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	const abstain = page.getByRole("button", {
 		name: "Abstain — close this boundary without counsel",
 	});

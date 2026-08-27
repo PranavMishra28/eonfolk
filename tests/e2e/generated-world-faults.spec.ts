@@ -418,9 +418,7 @@ test.describe
 				},
 			});
 			expect(JSON.stringify(diagnostic.observer)).not.toContain("stateHash");
-			await page
-				.getByRole("button", { name: "Retry the watch view" })
-				.click();
+			await page.getByRole("button", { name: "Retry the watch view" }).click();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
 				"data-ready",
 				"true",

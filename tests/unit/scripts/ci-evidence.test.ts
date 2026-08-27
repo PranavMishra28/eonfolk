@@ -115,10 +115,10 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(source).toContain('worldId: "eonfolk-genesis-world-v1"');
 		expect(source).toContain("generated-world-canvas");
 		expect(source).toContain("actorCount === 8");
-		expect(source).toContain(
-			"canonicalPopulation === 0 || canonicalPopulation === 8",
-		);
-		expect(source).not.toContain("visibleInteractionCount >= 1");
+		expect(source).toContain("canonicalPopulation === 8");
+		expect(source).not.toContain("canonicalPopulation === 0");
+		expect(source).toContain("switcherPopulation");
+		expect(source).toContain('ul[aria-label="Visible activities"]');
 		expect(source).toContain(
 			'page.locator("ul.v1-presence-roster button").first()',
 		);

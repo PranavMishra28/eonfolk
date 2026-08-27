@@ -178,11 +178,8 @@ for (const viewport of [
 		const citizenId = await selectSponsorCandidate(page);
 		await page.getByRole("button", { name: "Sponsor Mara" }).click();
 		await expect(
-			page.getByRole("button", { name: "Consider an intervention" }),
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
-		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click();
 		await page
 			.getByRole("button", {
 				name: "Check the stores first",

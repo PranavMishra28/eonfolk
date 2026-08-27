@@ -27,7 +27,7 @@ describe("world-as-product presentation", () => {
 		const following = reduceGeneratedNavigation(citizen, {
 			type: "toggle-follow",
 		});
-		expect(following.distanceMm).toBe(8_000);
+		expect(following.distanceMm).toBe(18_000);
 		expect(
 			reduceGeneratedNavigation(following, { type: "toggle-follow" })
 				.distanceMm,

@@ -7,10 +7,14 @@ import {
 import { BrowserVersionedPersistence } from "../../../apps/web/src/persistence/browser-versioned.js";
 import {
 	advanceGeneratedCivilization,
+	appendLiveGeneratedCivilizationDay,
+	catchUpLiveGeneratedCivilizationDays,
 	GENERATED_CIVILIZATION_CATCH_UP_HORIZONS,
 	GENERATED_CIVILIZATION_OPERATION_LIMITS,
 	migrateLegacyGeneratedCheckpoint,
+	persistPreparedGeneratedCivilization,
 	prepareGeneratedCivilization,
+	preservePlayerAuthority,
 	replayGeneratedCivilization,
 } from "../../../apps/web/src/persistence/generated-civilization.js";
 import {
@@ -427,4 +431,107 @@ describe("generated civilization versioned persistence", () => {
 		).rejects.toThrow("outside the reviewed catch-up catalog");
 		expect(authorityRunner).not.toHaveBeenCalled();
 	});
+
+	it("appends a live day instead of freezing after the origin checkpoint", async () => {
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: world,
+			targetHorizonDays: 1,
+		});
+		const port = new MemoryVersionedPersistence();
+		await persistPreparedGeneratedCivilization({ port, prepared });
+		const first = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(first.advanced).toBe(true);
+		expect(first.horizonDays).toBe(2);
+		const second = await appendLiveGeneratedCivilizationDay({
+			port,
+			genesisWorld: world,
+		});
+		expect(second.advanced).toBe(true);
+		expect(second.horizonDays).toBe(3);
+	}, 120_000);
+
+	it("overlays sponsorship maps onto the next live checkpoint without freezing", () => {
+		const next = {
+			citizens: {},
+			sponsorships: {},
+			counsels: {},
+			patronAbstentions: {},
+		};
+		const current = {
+			citizens: {},
+			sponsorships: {
+				"covenant:citizen-01": {
+					covenantId: "covenant:citizen-01",
+					beneficiaryCitizenId: "citizen-01",
+				},
+			},
+			counsels: { "counsel:1": { counselId: "counsel:1" } },
+			patronAbstentions: {},
+		};
+		expect(preservePlayerAuthority(next, current)).toMatchObject({
+			sponsorships: current.sponsorships,
+			counsels: current.counsels,
+		});
+	});
+
+	it("resumes return catch-up without double-advancing after a crash", async () => {
+		const prepared = await prepareGeneratedCivilization({
+			genesisWorld: world,
+			targetHorizonDays: 1,
+		});
+		const durable = new MemoryVersionedPersistence();
+		await persistPreparedGeneratedCivilization({ port: durable, prepared });
+		let liveDayAppends = 0;
+		const crashingClient = new Proxy(durable, {
+			get(target, property) {
+				if (property === "appendEventBatch")
+					return async (
+						...args: Parameters<typeof target.appendEventBatch>
+					) => {
+						const result = await target.appendEventBatch(...args);
+						const appendId = args[0]?.appendId ?? "";
+						if (
+							typeof appendId === "string" &&
+							appendId.startsWith("civilization-live-day-")
+						) {
+							liveDayAppends += 1;
+							if (liveDayAppends === 3)
+								throw new Error("crash after durable live catch-up chapter");
+						}
+						return result;
+					};
+				const value = Reflect.get(target, property, target) as unknown;
+				return typeof value === "function" ? value.bind(target) : value;
+			},
+		}) as VersionedPersistencePort;
+		await expect(
+			catchUpLiveGeneratedCivilizationDays({
+				port: crashingClient,
+				genesisWorld: world,
+				operationId: "rl-test-return",
+				additionalDays: 7,
+			}),
+		).rejects.toThrow("crash after durable live catch-up chapter");
+		const crashed = await replayGeneratedCivilization({
+			port: durable,
+			regionId: world.identity.worldId,
+		});
+		expect(crashed.state.scheduler.completedDay).toBe(4);
+		const resumed = await catchUpLiveGeneratedCivilizationDays({
+			port: durable,
+			genesisWorld: world,
+			operationId: "rl-test-return",
+			additionalDays: 7,
+		});
+		expect(resumed.horizonDays).toBe(8);
+		expect(resumed.catchUpOperation.status).toBe("complete");
+		const replayed = await replayGeneratedCivilization({
+			port: durable,
+			regionId: world.identity.worldId,
+		});
+		expect(replayed.state.scheduler.completedDay).toBe(8);
+	}, 180_000);
 });

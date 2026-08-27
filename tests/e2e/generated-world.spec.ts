@@ -93,6 +93,10 @@ async function injectGeneratedWorkerPersistenceFault(
 
 async function resetGeneratedCheckpoint(page: Page): Promise<void> {
 	await page.goto("/outside-canon");
+	await page.evaluate(() => {
+		window.localStorage.removeItem("eonfolk:play:last-active-wall-ms:v1");
+		window.localStorage.removeItem("eonfolk:play:pending-return-catch-up-v1");
+	});
 	await page.evaluate(
 		() =>
 			new Promise<void>((resolve, reject) => {
@@ -822,10 +826,6 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
 	const worldTruth = await readAttributes(world, [
 		"data-world-id",
 		"data-state-hash",
@@ -870,7 +870,6 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 	expect(canvasTruth).toMatchObject({
 		"data-engine": "playcanvas",
 		"data-actor-count": "8",
-		"data-interaction-count": "0",
 		"data-teleport-count": "0",
 		"data-contradiction-count": "0",
 		"data-citizen-height-mm": "1750",
@@ -878,6 +877,10 @@ test("generated civilization is the identity-bound canonical /world @generated-w
 		"data-road-width-mm": "1800",
 		"data-navigation-mode": "smooth",
 	});
+	expect(
+		Number(canvasTruth["data-interaction-count"] ?? "0") > 0 ||
+			(await page.locator("ul.v1-activity-summary li").count()) > 0,
+	).toBe(true);
 	expect(canvasTruth["data-embodiment-schema"]).toMatch(/v1$/u);
 	expect(canvasTruth["data-canonical-action-ids"]).toMatch(/.+/u);
 	expect(canvasTruth["data-route-segment-count"]).toMatch(/^[1-9]\d*$/u);
@@ -1325,10 +1328,6 @@ test("first session stays in Dawnmere without a empty settlement tab @generated-
 		"true",
 		{ timeout: 20_000 },
 	);
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
 	await expect(
 		page.getByRole("button", { name: "Settlements", exact: true }),
 	).toHaveCount(0);
@@ -1337,6 +1336,10 @@ test("first session stays in Dawnmere without a empty settlement tab @generated-
 		"8",
 	);
 	await expect(page.locator("ul.v1-presence-roster button")).toHaveCount(8);
+	await expect(
+		page.getByRole("list", { name: "Visible activities" }),
+	).toBeVisible();
+	await expect(page.locator("ul.v1-activity-summary li").first()).toBeVisible();
 	await expect(page.getByText("Authority", { exact: true })).toHaveCount(0);
 	await expect(page.getByRole("link", { name: "Research" })).toHaveCount(0);
 	await expect(page.getByRole("link", { name: "Developer" })).toHaveCount(0);
@@ -1449,10 +1452,6 @@ test("semantic people remain keyboard-operable @generated-world", async ({
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
 	await canvas.evaluate((element) => {
 		element.dataset.semanticRoundTripIdentity = "retained";
 	});
@@ -2078,7 +2077,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		});
 	await sponsor.click();
 	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
@@ -2092,10 +2091,6 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 				.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
 		)
 		.toBe(true);
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
-	await expect(
-		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
 	for (const term of [
 		"What is recorded",
 		"Mara's belief",
@@ -2187,7 +2182,8 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	expect(committed.eventAppendReceiptCount).toBe(committed.eventCount);
 	expect(committed.catchUpMarkerReceiptCount).toBeGreaterThanOrEqual(1);
 	expect(committed.snapshotCount).toBeGreaterThan(0);
-	expect(committed.simulationTime).toBe(2 * 86_400);
+	expect(committed.simulationTime % 86_400).toBe(0);
+	expect(committed.simulationTime).toBeGreaterThanOrEqual(86_400);
 	await expect
 		.poll(() => page.locator("main.v1-world").getAttribute("data-state-hash"), {
 			timeout: 30_000,
@@ -2227,7 +2223,7 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	).toBe(committed.stateHash);
 	expect(
 		await page.locator("main.v1-world").getAttribute("data-simulation-time"),
-	).toBe(String(2 * 86_400));
+	).toBe(String(committed.simulationTime));
 	await selectCanonicalMara(page);
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
 		"inspecting the work at Workshop",

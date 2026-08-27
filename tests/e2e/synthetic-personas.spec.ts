@@ -107,12 +107,9 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await openCanonicalWorld(page);
 		await selectCanonicalMara(page);
 		await page.getByRole("button", { name: "Sponsor Mara" }).click();
-		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click({ timeout: sponsorTransitionTimeout });
 		await expect(
-			page.getByText(/Mara may accept, reject, delay, or reinterpret/iu),
-		).toBeVisible();
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", {
 				name: "Abstain — close this boundary without counsel",
@@ -251,12 +248,12 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		await openCanonicalWorld(page);
 		await selectCanonicalMara(page);
 		await page.getByRole("button", { name: "Sponsor Mara" }).click();
-		await page
-			.getByRole("button", { name: "Consider an intervention" })
-			.click({ timeout: sponsorTransitionTimeout });
+		await expect(
+			page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
+		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await page
 			.getByRole("button", {
-				name: "Raise this with Iven",
+				name: "Check the stores first",
 			})
 			.click();
 		await expect(
@@ -279,7 +276,7 @@ test.describe("synthetic product evaluation (not human research) @synthetic", ()
 		).toBeVisible({ timeout: sponsorTransitionTimeout });
 		await expect(
 			page.getByRole("list", { name: "Chronicle beats" }),
-		).toContainText("rejected the advice");
+		).toContainText("inspection recorded");
 		await expect(
 			page.getByRole("list", { name: "Chronicle beats" }),
 		).not.toContainText(/you made Mara|you forced|you caused the rejection/iu);

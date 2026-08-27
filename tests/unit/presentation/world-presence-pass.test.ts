@@ -64,7 +64,8 @@ describe("bounded world-presence pass", () => {
 			),
 		]);
 
-		expect(app).toContain("{model.actors.length} lives are unfolding");
+		expect(app).toContain("countNoun(");
+		expect(app).toContain('"lives are unfolding"');
 		expect(app).toContain("GeneratedSceneTruth");
 		expect(app).toContain("projection.spatial.interactions[0]");
 		expect(app).toContain("PROP_WORDS[actor.prop]");

@@ -220,12 +220,8 @@ test("abstention closes the first boundary and stale counsel cannot stack", asyn
 	await selectMara(page);
 	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
-	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await page
 		.getByRole("button", {
 			name: "Abstain — close this boundary without counsel",
@@ -323,12 +319,8 @@ test("a first-boundary action fails closed when its displayed context is stale",
 	await selectMara(page);
 	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
-	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 
 	const other = await page.context().newPage();
 	await keepLocal(other);
@@ -403,12 +395,11 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	await selectMara(page);
 	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
-		page.getByRole("button", { name: "Consider an intervention" }),
+		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
-	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await page
 		.getByRole("button", {
-			name: "Raise this with Iven",
+			name: "Check the stores first",
 		})
 		.click();
 	await expect(
@@ -445,10 +436,10 @@ test("remaining product research reads one accepted Chronicle beat without autho
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
-	).toContainText("rejected the advice");
+	).toContainText("inspection recorded");
 	await expect(
 		page.getByRole("list", { name: "Chronicle beats" }),
-	).toContainText("Standing Plan continued");
+	).toContainText("accepted the advice");
 	const acceptedStateHash = await authorityStateHash(page);
 	expect(acceptedStateHash).toMatch(/^[0-9a-f]{64}$/u);
 	const before = await authorityFingerprint(page);
@@ -462,7 +453,7 @@ test("remaining product research reads one accepted Chronicle beat without autho
 		}),
 	).toBeVisible();
 	await expect(evidence.getByText("Accepted world record")).toBeVisible();
-	await expect(evidence.getByText("temporal predecessor")).toBeVisible();
+	await expect(evidence.getByText("contributing condition")).toBeVisible();
 	await expect(
 		evidence.getByText("civilization.scheduler.counsel-boundary.v1"),
 	).toBeVisible();
