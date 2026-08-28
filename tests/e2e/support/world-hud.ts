@@ -11,7 +11,7 @@ export async function revealPeopleAndWork(page: Page): Promise<void> {
 				(element) => (element as HTMLDetailsElement).open,
 			))
 		)
-			await summary.evaluate((element) => element.click());
+			await summary.evaluate((element) => (element as HTMLElement).click());
 	}
 	await expect(page.locator("aside.v1-context-panel").first()).toBeVisible();
 }
@@ -22,7 +22,9 @@ export async function revealWorldTools(page: Page): Promise<void> {
 	if (
 		!(await tools.evaluate((element) => (element as HTMLDetailsElement).open))
 	)
-		await tools.locator("summary").evaluate((element) => element.click());
+		await tools
+			.locator("summary")
+			.evaluate((element) => (element as HTMLElement).click());
 	await expect
 		.poll(() =>
 			tools.evaluate((element) => (element as HTMLDetailsElement).open),
