@@ -182,7 +182,7 @@ for (const viewport of [
 		const drawer = page.locator("details.v1-feedback-drawer");
 		await drawer.scrollIntoViewIfNeeded();
 		await expect(
-			drawer.getByText("Notes from this session", { exact: true }),
+			drawer.getByText("Send notes about this session", { exact: true }),
 		).toBeVisible();
 		const drawerBox = await drawer.boundingBox();
 		expect(drawerBox).not.toBeNull();

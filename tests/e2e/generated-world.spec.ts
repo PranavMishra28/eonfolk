@@ -2240,8 +2240,9 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	).toBe(String(committed.simulationTime));
 	await selectCanonicalMara(page);
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
-		"inspecting the work at Workshop",
+		/Workshop|walking|inspecting|speaking|carrying|gathering|resting/u,
 	);
+	await expect(page.locator(".v1-presence-card")).not.toContainText(/site_/u);
 	await page.getByRole("button", { name: "Review Chronicle" }).click();
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),

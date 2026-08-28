@@ -338,9 +338,13 @@ function interpolateInteger(current: number, desired: number): number {
 	return current + Math.round((delta * CAMERA_BLEND_BASIS_POINTS) / 10_000);
 }
 
-function interpolateYaw(current: number, desired: number): number {
+function interpolateYaw(
+	current: number,
+	desired: number,
+	blend = 0.26,
+): number {
 	const delta = ((desired - current + 540) % 360) - 180;
-	const next = current + (Math.abs(delta) <= 0.05 ? delta : delta * 0.26);
+	const next = current + (Math.abs(delta) <= 0.05 ? delta : delta * blend);
 	return ((next % 360) + 360) % 360;
 }
 
@@ -390,7 +394,7 @@ export function advanceGeneratedCameraIntent(
 			z: Math.round(mix(current.targetMm.z, desired.targetMm.z)),
 		}),
 		distanceMm: Math.round(mix(current.distanceMm, desired.distanceMm)),
-		yawDegrees: interpolateYaw(current.yawDegrees, desired.yawDegrees),
+		yawDegrees: interpolateYaw(current.yawDegrees, desired.yawDegrees, blend),
 		pitchDegrees:
 			Math.abs(desired.pitchDegrees - current.pitchDegrees) <= 0.05
 				? desired.pitchDegrees
@@ -399,20 +403,76 @@ export function advanceGeneratedCameraIntent(
 	});
 }
 
-function overviewCenter(model: GeneratedEmbodimentProjection): SpatialPointMm {
-	if (model.actors.length === 0) return Object.freeze({ x: 0, y: 0, z: 0 });
+function overviewCenter(
+	model: GeneratedEmbodimentProjection,
+	projection: GeneratedCivilizationSpatialProjection,
+): SpatialPointMm {
+	if (model.actors.length > 0)
+		return Object.freeze({
+			x: Math.round(
+				model.actors.reduce((total, actor) => total + actor.positionMm.x, 0) /
+					model.actors.length,
+			),
+			y: Math.round(
+				model.actors.reduce((total, actor) => total + actor.positionMm.y, 0) /
+					model.actors.length,
+			),
+			z: Math.round(
+				model.actors.reduce((total, actor) => total + actor.positionMm.z, 0) /
+					model.actors.length,
+			),
+		});
+	if (projection.local.buildings.length > 0) {
+		const buildings = projection.local.buildings;
+		return Object.freeze({
+			x: Math.round(
+				buildings.reduce(
+					(total, building) => total + building.position.xMillimeters,
+					0,
+				) / buildings.length,
+			),
+			y: Math.round(
+				buildings.reduce(
+					(total, building) => total + building.position.elevationMillimeters,
+					0,
+				) / buildings.length,
+			),
+			z: Math.round(
+				buildings.reduce(
+					(total, building) => total + building.position.yMillimeters,
+					0,
+				) / buildings.length,
+			),
+		});
+	}
+	const sites = projection.local.sites;
+	if (sites.length === 0) return Object.freeze({ x: 0, y: 0, z: 0 });
 	return Object.freeze({
 		x: Math.round(
-			model.actors.reduce((total, actor) => total + actor.positionMm.x, 0) /
-				model.actors.length,
+			sites.reduce(
+				(total, site) =>
+					total +
+					(site.bounds.minimum.xMillimeters +
+						site.bounds.maximum.xMillimeters) /
+						2,
+				0,
+			) / sites.length,
 		),
 		y: Math.round(
-			model.actors.reduce((total, actor) => total + actor.positionMm.y, 0) /
-				model.actors.length,
+			sites.reduce(
+				(total, site) => total + site.bounds.minimum.elevationMillimeters,
+				0,
+			) / sites.length,
 		),
 		z: Math.round(
-			model.actors.reduce((total, actor) => total + actor.positionMm.z, 0) /
-				model.actors.length,
+			sites.reduce(
+				(total, site) =>
+					total +
+					(site.bounds.minimum.yMillimeters +
+						site.bounds.maximum.yMillimeters) /
+						2,
+				0,
+			) / sites.length,
 		),
 	});
 }
@@ -423,7 +483,7 @@ export function cameraIntentForGeneratedNavigation(
 	state: GeneratedNavigationState,
 ): GeneratedCameraIntent {
 	assertNavigationState(state);
-	let targetMm = overviewCenter(model);
+	let targetMm = overviewCenter(model, projection);
 	let semanticLabel = `${model.settlementName} overview`;
 	let followCitizenId: string | null = null;
 	if (state.focus.kind === "citizen") {

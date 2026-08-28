@@ -208,19 +208,18 @@ function occupancySlotPoint(
 		const offset = (occupantIndex - (coincidents.length - 1) / 2) * 2_200;
 		return {
 			x: Math.round(actor.positionMm.x + offset),
-			y: actor.positionMm.y,
-			z: actor.positionMm.z,
+			y: 0,
+			z: Math.round(actor.positionMm.z + 2_800),
 		};
 	}
 	const offset =
 		(occupantIndex - (occupantCount - 1) / 2) *
 		Math.max(2_200, node.occupantSpacingMm);
 	const angle = (node.facingDegrees * Math.PI) / 180;
-	const clearance =
-		coincidents.length > 1 ? 0 : Math.max(2_400, node.occupantSpacingMm / 2);
+	const clearance = Math.max(3_600, node.occupantSpacingMm);
 	return {
 		x: Math.round(node.x + Math.cos(angle) * offset),
-		y: node.y,
+		y: 0,
 		z: Math.round(node.z - Math.sin(angle) * offset - clearance),
 	};
 }
@@ -993,7 +992,7 @@ function VernacularBuilding({
 	readonly completeness: number;
 	readonly foundingCamp: boolean;
 }) {
-	const wallHeight = ridgeHeight * 0.62;
+	const wallHeight = ridgeHeight * 0.72;
 	if (foundingCamp)
 		return (
 			<Entity position={position}>
@@ -1080,30 +1079,75 @@ function VernacularBuilding({
 			{isHall ? (
 				<Primitive
 					type="cylinder"
-					position={[0, ridgeHeight + 0.15, 0]}
+					position={[0, wallHeight + 0.55, 0]}
 					scale={[width * 0.35, 0.7, width * 0.35]}
 					color={palette.clay}
 				/>
 			) : isWorkshop ? (
-				<Primitive
-					position={[0, ridgeHeight * 0.7, depth * 0.2]}
-					scale={[width * 1.05, 0.22, depth * 0.7]}
-					color={palette.bark}
-				/>
+				<>
+					<Primitive
+						position={[0, wallHeight + 0.08, -depth * 0.08]}
+						scale={[width * 1.08, 0.18, depth * 0.72]}
+						color={palette.bark}
+					/>
+					<Primitive
+						type="cylinder"
+						position={[width * 0.38, wallHeight + 0.85, -depth * 0.18]}
+						scale={[0.28, 1.15, 0.28]}
+						color={palette.stone}
+					/>
+					<Primitive
+						position={[width * 0.52, 0.55, depth * 0.12]}
+						scale={[0.22, 1.05, 0.22]}
+						color={palette.wood}
+					/>
+					<Primitive
+						position={[width * 0.52, 1.05, depth * 0.12]}
+						scale={[0.55, 0.12, 0.18]}
+						color={palette.bark}
+					/>
+					<Primitive
+						position={[-width * 0.2, 0.42, depth * 0.48]}
+						scale={[0.35, 0.85, 0.18]}
+						color={palette.wood}
+					/>
+				</>
+			) : isStore ? (
+				<>
+					<Primitive
+						position={[0, wallHeight * 0.85 + 0.22, 0]}
+						scale={[width + 0.2, 0.22, depth + 0.2]}
+						color={palette.bark}
+					/>
+					<Primitive
+						position={[width * 0.38, 0.38, depth * 0.42]}
+						scale={[0.7, 0.7, 0.55]}
+						color={palette.wood}
+					/>
+					<Primitive
+						position={[width * 0.52, 0.28, depth * 0.28]}
+						scale={[0.5, 0.5, 0.4]}
+						color={palette.bark}
+					/>
+				</>
 			) : (
 				[-1, 1].map((side) => (
 					<Primitive
 						key={side}
-						position={[side * width * 0.23, ridgeHeight - 0.18, 0]}
-						scale={[width * 0.58, 0.46, depth + 0.9]}
+						position={[side * width * 0.23, wallHeight + 0.12, 0]}
+						scale={[width * 0.58, 0.42, depth + 0.35]}
 						rotation={[0, 0, -side * 27]}
 						color={palette.clay}
 					/>
 				))
 			)}
 			<Primitive
-				position={[0, doorHeight / 2 + 0.25, depth / 2 + 0.04]}
-				scale={[isHall ? 1.4 : 1.05, doorHeight, 0.12]}
+				position={[
+					0,
+					doorHeight / 2 + 0.25,
+					isWorkshop ? depth * 0.22 : depth / 2 + 0.04,
+				]}
+				scale={[isHall ? 1.4 : isWorkshop ? 1.55 : 1.05, doorHeight, 0.12]}
 				color={palette.wood}
 			/>
 		</Entity>
@@ -1619,6 +1663,10 @@ export function GeneratedWorldCanvas({
 				<CitizenNameOverlay
 					host={host}
 					model={model}
+					projection={projection}
+					previousByCitizen={previousByCitizen}
+					progressRef={progressRef}
+					reducedMotion={reducedMotion}
 					selectedCitizenId={
 						navigation.focus.kind === "citizen"
 							? navigation.focus.citizenId
@@ -1647,10 +1695,18 @@ const INTENT_WORDS: Readonly<Record<string, string>> = {
 function CitizenNameOverlay({
 	host,
 	model,
+	projection,
+	previousByCitizen,
+	progressRef,
+	reducedMotion,
 	selectedCitizenId,
 }: {
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly model: GeneratedEmbodimentProjection;
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly previousByCitizen: ReadonlyMap<string, GeneratedEmbodiedActor>;
+	readonly progressRef: { current: number };
+	readonly reducedMotion: boolean;
 	readonly selectedCitizenId: string | null;
 }) {
 	const [targets, setTargets] = useState<
@@ -1750,7 +1806,17 @@ function CitizenNameOverlay({
 							}
 						>
 							<strong>{actor.name}</strong>
-							<span>{INTENT_WORDS[actor.animationClass] ?? "at work"}</span>
+							<span>
+								{INTENT_WORDS[
+									presentedActorSample(
+										projection,
+										actor,
+										previousByCitizen.get(actor.citizenId) ?? null,
+										progressRef.current,
+										reducedMotion,
+									).animationClass
+								] ?? "at work"}
+							</span>
 						</button>
 					</li>
 				);

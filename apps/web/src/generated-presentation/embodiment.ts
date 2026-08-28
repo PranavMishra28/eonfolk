@@ -459,7 +459,9 @@ export function generatedTraversalPointAtTick(
 export function generatedVisualPhase(
 	lifecycle: GeneratedVisualLifecycle | null,
 	progress01: number,
+	arrivalCommitted = true,
 ): GeneratedVisualPhase {
+	if (!arrivalCommitted) return "travel";
 	if (lifecycle === null) {
 		if (progress01 < 0.28) return "travel";
 		if (progress01 < 0.34) return "arrive";
@@ -478,6 +480,13 @@ export function generatedVisualPhase(
 	return "wait";
 }
 
+export function routeArrivalCommitted(actor: GeneratedEmbodiedActor): boolean {
+	return (
+		actor.grounding.kind !== "route" ||
+		actor.grounding.progressBasisPoints === 10_000
+	);
+}
+
 export function animationClassForVisualPhase(
 	actor: GeneratedEmbodiedActor,
 	phase: GeneratedVisualPhase,
@@ -488,6 +497,75 @@ export function animationClassForVisualPhase(
 		return actor.visualLifecycle?.performKind ?? actor.animationClass;
 	if (phase === "wait" || phase === "end") return "idle";
 	return actor.animationClass;
+}
+
+const ACTIVITY_WORDS = Object.freeze({
+	idle: "pausing",
+	walk: "walking",
+	carry: "carrying",
+	gather: "gathering",
+	inspect: "inspecting the work",
+	talk: "speaking",
+	listen: "listening",
+	exchange: "exchanging goods",
+	repair: "making repairs",
+	"eat-rest": "resting",
+	react: "reacting",
+} as const);
+
+const PROP_WORDS = Object.freeze({
+	water: "water",
+	logs: "logs",
+	grain: "grain",
+	trade: "goods",
+	tool: "a tool",
+} as const);
+
+/** HUD copy for the body that is currently on screen, never a raw site id. */
+export function presentedActorActivity(
+	actor: GeneratedEmbodiedActor,
+	placeName: string | undefined,
+	progress01: number,
+): string {
+	const arrivalCommitted = routeArrivalCommitted(actor);
+	const phase = generatedVisualPhase(
+		actor.visualLifecycle,
+		progress01,
+		arrivalCommitted,
+	);
+	const animationClass = animationClassForVisualPhase(actor, phase);
+	const destination = placeName ?? "this place";
+	if (phase === "travel" || phase === "arrive") {
+		const travel =
+			animationClass === "carry"
+				? `carrying toward ${destination}`
+				: `walking toward ${destination}`;
+		return travel;
+	}
+	const prop = actor.prop === null ? null : PROP_WORDS[actor.prop];
+	const activity =
+		prop !== null && ["carry", "gather", "exchange"].includes(animationClass)
+			? `${ACTIVITY_WORDS[animationClass]} ${prop}`
+			: ACTIVITY_WORDS[animationClass];
+	return `${activity} at ${destination}`;
+}
+
+export function conversationVisuallyActive(
+	actor: GeneratedEmbodiedActor,
+	progress01: number,
+): boolean {
+	const phase = generatedVisualPhase(
+		actor.visualLifecycle,
+		progress01,
+		routeArrivalCommitted(actor),
+	);
+	if (phase !== "perform" && phase !== "arrive" && phase !== "result")
+		return false;
+	const kind =
+		phase === "perform" || phase === "result"
+			? (actor.visualLifecycle?.performKind ?? actor.animationClass)
+			: actor.animationClass;
+	return kind === "talk" || kind === "listen" || kind === "exchange";
 }
 
 export function sampleGeneratedActorPresentation(input: {
@@ -503,17 +581,24 @@ export function sampleGeneratedActorPresentation(input: {
 	readonly pose: GeneratedPose;
 	readonly phase: GeneratedVisualPhase;
 }> {
+	const arrivalCommitted = routeArrivalCommitted(input.actor);
 	const phase = generatedVisualPhase(
 		input.actor.visualLifecycle,
 		input.reducedMotion ? 0.55 : input.progress01,
+		arrivalCommitted,
 	);
 	const animationClass = animationClassForVisualPhase(input.actor, phase);
 	let positionMm = input.slotPointMm;
 	if (input.actor.grounding.kind === "route") {
-		const travelProgress =
-			input.reducedMotion || phase !== "travel"
+		const visualTravel = travelProgress01(
+			input.actor.visualLifecycle,
+			input.reducedMotion ? 0.55 : input.progress01,
+		);
+		const travelProgress = arrivalCommitted
+			? input.reducedMotion || phase !== "travel"
 				? 1
-				: travelProgress01(input.actor.visualLifecycle, input.progress01);
+				: visualTravel
+			: Math.min(0.92, visualTravel);
 		positionMm = interpolatePath(
 			input.actor.grounding.traversalPathMm ?? [input.actor.positionMm],
 			travelProgress,
@@ -523,17 +608,22 @@ export function sampleGeneratedActorPresentation(input: {
 		input.previous !== null &&
 		!input.reducedMotion
 	) {
-		const travelProgress = travelProgress01(
-			input.actor.visualLifecycle,
-			input.progress01,
-		);
-		const from = input.previous.positionMm;
-		const to = input.slotPointMm;
-		positionMm = Object.freeze({
-			x: Math.round(from.x + (to.x - from.x) * travelProgress),
-			y: Math.round(from.y + (to.y - from.y) * travelProgress),
-			z: Math.round(from.z + (to.z - from.z) * travelProgress),
-		});
+		try {
+			const transition = planGeneratedActorTransition(input.previous, {
+				...input.actor,
+				positionMm: input.slotPointMm,
+			});
+			const travelProgress = travelProgress01(
+				input.actor.visualLifecycle,
+				input.progress01,
+			);
+			positionMm = sampleGeneratedActorTransition(
+				transition,
+				Math.round(Math.max(0, Math.min(1, travelProgress)) * 10_000),
+			);
+		} catch {
+			positionMm = input.previous.positionMm;
+		}
 	}
 	const facingDegrees =
 		input.previous === null ||
@@ -819,8 +909,6 @@ export function projectGeneratedEmbodiment(
 			actor.grounding.progressBasisPoints! >
 				prior.travelState.progressBasisPoints!
 		)
-			return false;
-		if (metricDistance(prior.positionMm, actor.positionMm) <= 80_000)
 			return false;
 		return true;
 	}).length;

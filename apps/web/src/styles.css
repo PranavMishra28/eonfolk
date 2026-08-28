@@ -3280,9 +3280,33 @@ em {
 	}
 
 	.v1-entry-hero {
-		gap: 2rem;
+		grid-template-areas:
+			"world"
+			"copy";
+		gap: 1.5rem;
 		min-height: auto;
-		padding-top: 7rem;
+		padding-top: 6rem;
+	}
+
+	.v1-entry-hero > .v1-brand {
+		grid-area: auto;
+	}
+
+	.v1-entry-copy {
+		grid-area: copy;
+	}
+
+	.v1-entry-hero-world {
+		grid-area: world;
+		min-height: 16rem;
+		width: 100%;
+	}
+
+	.generated-world-hero,
+	.generated-world-hero.generated-world-canvas {
+		height: min(20rem, 42vh);
+		min-height: 16rem;
+		width: 100%;
 	}
 
 	.v1-entry-copy h1 {
@@ -3421,6 +3445,43 @@ em {
 		radial-gradient(circle at 48% 48%, transparent 38%, rgba(9, 16, 10, 0.22)),
 		linear-gradient(180deg, rgba(255, 244, 204, 0.13), transparent 35%);
 	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.v1-world-chronicle {
+	position: absolute;
+	left: 1rem;
+	top: 4.2rem;
+	z-index: 3;
+	max-width: min(22rem, 42vw);
+	padding: 0.55rem 0.7rem;
+	color: #f4eccf;
+	background: rgba(17, 24, 18, 0.72);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	pointer-events: none;
+}
+
+.v1-world-chronicle .v1-kicker {
+	margin: 0 0 0.25rem;
+	color: #e1ac64;
+}
+
+.v1-world-chronicle ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.v1-world-chronicle li {
+	font-size: 0.875rem;
+	line-height: 1.35;
+}
+
+.v1-inspector-sheet {
+	display: contents;
+}
+
+.v1-inspector-sheet > summary {
+	display: none;
 }
 
 .generated-scene-truth {
@@ -3569,7 +3630,7 @@ em {
 	top: 1rem;
 	right: 1rem;
 	z-index: 4;
-	width: min(20rem, 24vw);
+	width: min(16.5rem, 20vw);
 	max-height: calc(100% - 2rem);
 	min-width: 0;
 	overflow-x: hidden;
@@ -3640,6 +3701,11 @@ em {
 		margin: 0.2rem 0;
 		font-size: 0.875rem;
 		line-height: 1.3;
+	}
+
+	.v1-context-panel:not(:hover, :focus-within) .v1-happening-list,
+	.v1-context-panel:not(:hover, :focus-within) .v1-activity-summary {
+		display: none;
 	}
 }
 
@@ -3976,30 +4042,52 @@ em {
 
 	.v1-world-canvas-frame {
 		height: 100svh;
-		min-height: 26rem;
+		min-height: 100svh;
 	}
 
-	.v1-context-panel {
+	.v1-world-chronicle {
+		left: 0.55rem;
+		right: auto;
+		top: 0.55rem;
+		max-width: min(16rem, 58vw);
+	}
+
+	.v1-inspector-sheet {
+		display: block;
 		position: absolute;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		width: auto;
-		max-height: 42svh;
-		overflow: auto;
-		padding: 0.75rem;
-		box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
+		z-index: 5;
 	}
 
-	.v1-context-panel:not(:hover, :focus-within) {
+	.v1-inspector-sheet > summary {
+		display: block;
+		padding: 0.85rem 1rem;
+		color: #efe7d0;
+		background: rgba(17, 24, 18, 0.92);
+		border-top: 1px solid rgba(255, 255, 255, 0.18);
+		font-weight: 750;
+		cursor: pointer;
+	}
+
+	.v1-inspector-sheet .v1-context-panel {
+		position: relative;
+		inset: auto;
 		width: auto;
+		max-height: 42svh;
 		padding: 0.75rem;
+		box-shadow: none;
+	}
+
+	.v1-inspector-sheet:not([open]) .v1-context-panel {
+		display: none;
 	}
 
 	.generated-scene-truth {
 		left: 0.55rem;
 		right: 0.55rem;
-		bottom: 0.55rem;
+		bottom: 3.6rem;
 		max-width: none;
 		overflow: hidden;
 	}
@@ -4041,8 +4129,8 @@ em {
 	}
 
 	.v1-world-canvas-frame {
-		height: 55svh;
-		min-height: 22rem;
+		height: 100svh;
+		min-height: 100svh;
 	}
 
 	.v1-camera-rail {

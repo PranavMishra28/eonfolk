@@ -68,7 +68,8 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain('"lives are unfolding"');
 		expect(app).toContain("GeneratedSceneTruth");
 		expect(app).toContain("projection.spatial.interactions[0]");
-		expect(app).toContain("PROP_WORDS[actor.prop]");
+		expect(app).toContain("presentedActorActivity");
+		expect(app).toContain("conversationVisuallyActive");
 		expect(app).not.toContain("Seven lives");
 		expect(app).not.toContain("progress basis points");
 		expect(app).toContain("generatedWorldCanvasModule ??=");
@@ -92,7 +93,7 @@ describe("bounded world-presence pass", () => {
 		);
 		expect(canvas).toContain("GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000");
 		expect(styles).toMatch(
-			/\.v1-world-canvas-frame\s*\{[^}]*height:\s*55svh/su,
+			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100svh/su,
 		);
 		expect(styles).toContain(".v1-world-tools .generated-camera-status");
 	});

@@ -85,12 +85,19 @@ describe("world-as-product presentation", () => {
 	it("keeps the world dominant and offers mobile visual degradation", async () => {
 		const styles = await source("styles.css");
 		expect(styles).toMatch(
-			/\.v1-context-panel\s*\{[^}]*width:\s*min\(20rem, 24vw\)/su,
+			/\.v1-context-panel\s*\{[^}]*width:\s*min\(16\.5rem, 20vw\)/su,
 		);
 		expect(styles).toContain("overflow-wrap: anywhere");
 		expect(styles).toContain(':not([data-focus-kind="overview"])');
 		expect(styles).toMatch(
 			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100svh/su,
+		);
+		expect(styles).toContain(".v1-inspector-sheet");
+		expect(styles).toContain(
+			".v1-inspector-sheet:not([open]) .v1-context-panel",
+		);
+		expect(styles).toMatch(
+			/@media \(max-width: 820px\), \(max-height: 600px\)[\s\S]*?\.generated-world-hero[\s\S]*?min-height:\s*16rem/su,
 		);
 		expect(styles).toContain("touch-action: none");
 	});

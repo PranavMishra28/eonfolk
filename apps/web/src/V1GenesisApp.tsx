@@ -1,6 +1,8 @@
 import {
 	countNoun,
 	type GeneratedCivilizationSpatialProjection,
+	playerFacingCopy,
+	playerFacingPlaceName,
 } from "@eonfolk/world-presentation";
 import {
 	lazy,
@@ -16,11 +18,13 @@ import { EonfolkMark } from "./components/EonfolkMark";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
+	conversationVisuallyActive,
 	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	INITIAL_GENERATED_NAVIGATION,
+	presentedActorActivity,
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
@@ -44,6 +48,8 @@ import type {
 import {
 	authorityDayIntervalMs,
 	clearPendingReturnCatchUp,
+	FASTER_DAY_INTERVAL_MS,
+	PLAY_DAY_INTERVAL_MS,
 	type PlayRate,
 	presentationIntervalMs,
 	proposedReturnCatchUpDays,
@@ -473,52 +479,28 @@ function SettlementOverview({
 	);
 }
 
-const ACTIVITY_WORDS = Object.freeze({
-	idle: "pausing",
-	walk: "walking",
-	carry: "carrying",
-	gather: "gathering",
-	inspect: "inspecting the work",
-	talk: "speaking",
-	listen: "listening",
-	exchange: "exchanging goods",
-	repair: "making repairs",
-	"eat-rest": "resting",
-	react: "reacting",
-});
-
-const PROP_WORDS = Object.freeze({
-	water: "water",
-	logs: "logs",
-	grain: "grain",
-	trade: "goods",
-	tool: "a tool",
-});
-
 function actorActivity(
 	actor: GeneratedEmbodiedActor,
 	projection: GeneratedCivilizationSpatialProjection,
+	progress01 = 0.55,
 ): string {
-	const place = projection.local.sites.find(
-		({ siteId }) => siteId === actor.placeId,
-	)?.name;
-	const prop = actor.prop === null ? null : PROP_WORDS[actor.prop];
-	const activity =
-		prop !== null &&
-		["carry", "gather", "exchange"].includes(actor.animationClass)
-			? `${ACTIVITY_WORDS[actor.animationClass]} ${prop}`
-			: ACTIVITY_WORDS[actor.animationClass];
-	return place === undefined ? activity : `${activity} at ${place}`;
+	return presentedActorActivity(
+		actor,
+		playerFacingPlaceName(actor.placeId, projection.local.sites),
+		progress01,
+	);
 }
 
 function GeneratedSceneTruth({
 	projection,
 	model,
 	selectedCitizenId,
+	visualProgress01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
 	readonly selectedCitizenId: string | null;
+	readonly visualProgress01: number;
 }) {
 	const interaction = projection.spatial.interactions[0];
 	if (interaction === undefined) return null;
@@ -575,7 +557,11 @@ function GeneratedSceneTruth({
 						</span>
 					))}
 					<small>
-						{interaction.status === "in-progress" ? "In" : "Completed"}{" "}
+						{participants.every((actor) =>
+							conversationVisuallyActive(actor, visualProgress01),
+						)
+							? "In"
+							: "Completed"}{" "}
 						{interaction.kind}
 						{place === undefined ? "" : ` · ${place}`}
 					</small>
@@ -602,7 +588,13 @@ function GeneratedSceneTruth({
 							}
 						>
 							<strong>{actor.name.split(" ")[0]}</strong>
-							<span>{actorActivity(actor, projection).split(" at ")[0]}</span>
+							<span>
+								{
+									actorActivity(actor, projection, visualProgress01).split(
+										" at ",
+									)[0]
+								}
+							</span>
 						</button>
 					</li>
 				))}
@@ -631,6 +623,7 @@ function GeneratedContextPanel({
 	onAuthorityCommitted,
 	happenings,
 	onCounselConsiderationChange,
+	visualProgress01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -658,6 +651,7 @@ function GeneratedContextPanel({
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 	readonly happenings: readonly GeneratedWorldHappening[];
 	readonly onCounselConsiderationChange: (open: boolean) => void;
+	readonly visualProgress01: number;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -845,7 +839,9 @@ function GeneratedContextPanel({
 	};
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
-		const activity = ACTIVITY_WORDS[actor.animationClass];
+		const activity = actorActivity(actor, projection, visualProgress01).split(
+			" at ",
+		)[0]!;
 		activityCounts.set(activity, (activityCounts.get(activity) ?? 0) + 1);
 	}
 	const activeInteraction = projection.spatial.interactions[0];
@@ -862,14 +858,18 @@ function GeneratedContextPanel({
 				(site) => site.siteId === interactionParticipants[0]?.placeId,
 			)?.name
 		: undefined;
-	const interactionPhrase =
-		activeInteraction?.status === "in-progress"
-			? activeInteraction.kind === "conversation"
-				? "are talking"
-				: "are making an exchange"
-			: activeInteraction?.kind === "conversation"
-				? "finished talking"
-				: "completed an exchange";
+	const talkingNow =
+		interactionParticipants.length >= 2 &&
+		interactionParticipants.every((actor) =>
+			conversationVisuallyActive(actor, visualProgress01),
+		);
+	const interactionPhrase = talkingNow
+		? activeInteraction?.kind === "conversation"
+			? "are talking"
+			: "are making an exchange"
+		: activeInteraction?.kind === "conversation"
+			? "finished talking"
+			: "completed an exchange";
 	return (
 		<aside
 			className="v1-context-panel"
@@ -973,10 +973,16 @@ function GeneratedContextPanel({
 				) : (
 					<>
 						<p className="v1-context-role">{selectedActor.role}</p>
-						<p>{actorActivity(selectedActor, projection)}.</p>
+						<p>{actorActivity(selectedActor, projection, visualProgress01)}.</p>
 						<p>
 							<strong>Want:</strong>{" "}
-							{happenings[0]?.summary ?? selectedActor.semanticLabel}
+							{playerFacingCopy(
+								happenings.find(
+									(happening) =>
+										happening.citizenId === selectedActor.citizenId,
+								)?.summary ??
+									actorActivity(selectedActor, projection, visualProgress01),
+							)}
 						</p>
 						<p>
 							<strong>Immediate relationship:</strong>{" "}
@@ -1267,7 +1273,7 @@ function GeneratedContextPanel({
 									? " · sponsored"
 									: ""}
 							</strong>
-							<span>{actorActivity(actor, projection)}</span>
+							<span>{actorActivity(actor, projection, visualProgress01)}</span>
 						</button>
 					</li>
 				))}
@@ -1316,12 +1322,22 @@ function GeneratedWorld({
 	const pausedForCounsel = useRef(false);
 	const [presentationTick, setPresentationTick] = useState(0);
 	const presentationPlaying = playRate !== 0;
+	const visualDayClock = useRef({
+		hash: "",
+		startedAt: 0,
+		held: 0,
+	});
 	const advancingDay = useRef(false);
 	const catchingUp = useRef(false);
 	const experienceRef = useRef(experience);
 	experienceRef.current = experience;
 	const [catchUpProposal, setCatchUpProposal] = useState(0);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
+	const [inspectorSheetOpen, setInspectorSheetOpen] = useState(
+		() =>
+			typeof window === "undefined" ||
+			window.matchMedia("(min-width: 721px)").matches,
+	);
 	const [rebuildState, setRebuildState] = useState<
 		"idle" | "deleting" | "blocked" | "error"
 	>("idle");
@@ -1534,6 +1550,13 @@ function GeneratedWorld({
 	}, [playRate]);
 
 	useEffect(() => {
+		const mq = window.matchMedia("(min-width: 721px)");
+		const sync = () => setInspectorSheetOpen(mq.matches);
+		mq.addEventListener("change", sync);
+		return () => mq.removeEventListener("change", sync);
+	}, []);
+
+	useEffect(() => {
 		const interval = authorityDayIntervalMs(playRate);
 		if (
 			interval === null ||
@@ -1672,9 +1695,47 @@ function GeneratedWorld({
 
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
+	if (visualDayClock.current.hash !== experience.stateHash) {
+		visualDayClock.current = {
+			hash: experience.stateHash,
+			startedAt: performance.now(),
+			held: reduceMotion ? 0.55 : 0,
+		};
+	}
+	const visualProgress01 = reduceMotion
+		? 0.55
+		: playRate === 0
+			? visualDayClock.current.held
+			: Math.min(
+					1,
+					(performance.now() - visualDayClock.current.startedAt) /
+						(playRate === 3 ? FASTER_DAY_INTERVAL_MS : PLAY_DAY_INTERVAL_MS),
+				);
+	if (playRate !== 0) visualDayClock.current.held = visualProgress01;
+	const focusedCitizenId =
+		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const followActor =
+		(focusedCitizenId === null
+			? model.actors.find(
+					(actor) => actor.citizenId === experience.sponsorCitizenId,
+				)
+			: model.actors.find((actor) => actor.citizenId === focusedCitizenId)) ??
+		model.actors[0];
 	const openSettlement = (settlementId: string) => {
 		setSelectedSettlementId(settlementId);
-		dispatch({ type: "overview" });
+		const nextProjection = experience.projections.find(
+			(candidate) => candidate.local.settlement.settlementId === settlementId,
+		);
+		const notable =
+			nextProjection?.spatial.actors.find((actor) =>
+				actor.name.startsWith("Orin"),
+			) ?? nextProjection?.spatial.actors[0];
+		if (
+			notable !== undefined &&
+			nextProjection?.local.settlement.name === "Second Founding"
+		)
+			dispatch({ type: "select-citizen", citizenId: notable.citizenId });
+		else dispatch({ type: "overview" });
 		setPresentationTick(0);
 		setView(rendererFailed ? "semantic" : "embodied");
 	};
@@ -1768,6 +1829,7 @@ function GeneratedWorld({
 			onAuthorityCommitted={onAuthorityRefresh}
 			happenings={experience.happenings}
 			onCounselConsiderationChange={setConsideringCounsel}
+			visualProgress01={visualProgress01}
 		/>
 	);
 
@@ -1871,15 +1933,23 @@ function GeneratedWorld({
 					<button
 						type="button"
 						data-testid="follow-mara"
+						disabled={followActor === undefined}
 						onClick={() => {
+							if (followActor === undefined) return;
 							dispatch({
 								type: "select-citizen",
-								citizenId: experience.sponsorCitizenId,
+								citizenId: followActor.citizenId,
 							});
 							dispatch({ type: "toggle-follow" });
 						}}
 					>
-						Follow Mara
+						{followActor === undefined
+							? "Follow"
+							: navigation.followCitizen &&
+									navigation.focus.kind === "citizen" &&
+									navigation.focus.citizenId === followActor.citizenId
+								? `Stop following ${followActor.name.split(" ")[0]}`
+								: `Follow ${followActor.name.split(" ")[0]}`}
 					</button>
 				</nav>
 				<nav className="v1-view-controls" aria-label="World view">
@@ -2016,8 +2086,8 @@ function GeneratedWorld({
 			)}
 			{experience.persistence.kind === "quarantined" ? (
 				<p className="renderer-note" role="status">
-					The stored authority was rejected. This separately admitted
-					deterministic view does not derive facts from that checkpoint.{" "}
+					This saved town no longer matches the current world. Rebuild the local
+					copy to keep watching. Time is paused until then.{" "}
 					<button
 						type="button"
 						onClick={rebuildPersistence}
@@ -2028,7 +2098,7 @@ function GeneratedWorld({
 							: "Rebuilding local checkpoint"}
 					</button>
 					{rebuildState === "blocked"
-						? " Close other EONFOLK tabs; recovery will continue automatically."
+						? " Close other EONFOLK tabs, then try again."
 						: rebuildState === "error"
 							? " Recovery could not start. Retry after checking browser storage access."
 							: null}
@@ -2036,7 +2106,8 @@ function GeneratedWorld({
 			) : null}
 			{experience.persistence.kind === "unavailable" ? (
 				<p className="renderer-note" role="status">
-					Local persistence unavailable; this deterministic view is read-only.
+					This browser cannot save the town. You can still watch, but days will
+					not continue after you leave.
 				</p>
 			) : null}
 
@@ -2133,9 +2204,20 @@ function GeneratedWorld({
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
+						{experience.happenings.length === 0 ? null : (
+							<aside className="v1-world-chronicle" aria-label="What happened">
+								<p className="v1-kicker">What happened</p>
+								<ul>
+									{experience.happenings.map((happening) => (
+										<li key={happening.happeningId}>{happening.title}</li>
+									))}
+								</ul>
+							</aside>
+						)}
 						<GeneratedSceneTruth
 							projection={projection}
 							model={model}
+							visualProgress01={visualProgress01}
 							selectedCitizenId={
 								navigation.focus.kind === "citizen"
 									? navigation.focus.citizenId
@@ -2143,14 +2225,25 @@ function GeneratedWorld({
 							}
 						/>
 					</div>
-					{embodiedVisible ? contextPanel() : null}
+					{embodiedVisible ? (
+						<details
+							className="v1-inspector-sheet"
+							open={inspectorSheetOpen}
+							onToggle={(event) =>
+								setInspectorSheetOpen(event.currentTarget.open)
+							}
+						>
+							<summary>People and work</summary>
+							{contextPanel()}
+						</details>
+					) : null}
 				</section>
 			) : null}
 			<details
 				className="v1-feedback-drawer"
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
-				<summary>Notes from this session</summary>
+				<summary>Send notes about this session</summary>
 				{feedbackOpen ? (
 					<Suspense fallback={<p>Opening the local feedback form…</p>}>
 						<FeedbackPanel />

@@ -83,6 +83,7 @@ export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
 	"eonfolk-civilization-experiment-step-v9" as const;
 
 const SECONDS_PER_DAY = 86_400;
+const SOCIAL_CONTACT_COOLDOWN_SECONDS = 3 * SECONDS_PER_DAY;
 const POPULATION = 8;
 /** Stable Reality identity for the Release Genesis focal citizen. */
 export const RELEASE_GENESIS_MARA_CITIZEN_ID = "citizen-01" as const;
@@ -1235,6 +1236,19 @@ function visualLifecycleFor(
 	});
 }
 
+function recentlyInConversation(
+	state: CivilizationState,
+	citizenId: string,
+): boolean {
+	const citizen = state.citizens[citizenId];
+	if (citizen === undefined || citizen.lastSocialSimulationTime <= 0)
+		return false;
+	return (
+		state.simulationTime - citizen.lastSocialSimulationTime <
+		SOCIAL_CONTACT_COOLDOWN_SECONDS
+	);
+}
+
 function applyConversationRecency(
 	state: CivilizationState,
 	activities: readonly CivilizationScheduledActivity[],
@@ -1256,7 +1270,7 @@ function applyConversationRecency(
 		next = recordSocialContact(next, {
 			fromCitizenId: activity.citizenId,
 			toCitizenId: activity.canonicalAction.targetId,
-			atSimulationTime: activity.visualLifecycle.performEnd,
+			atSimulationTime: state.simulationTime,
 		});
 	}
 	return next;
@@ -1349,6 +1363,8 @@ function scheduleActivities(
 			firstRoutine.subjectId !== second.citizenId ||
 			secondRoutine.subjectId !== first.citizenId ||
 			!conversationsToday ||
+			recentlyInConversation(state, first.citizenId) ||
+			recentlyInConversation(state, second.citizenId) ||
 			paired.has(first.citizenId) ||
 			paired.has(second.citizenId)
 		)
@@ -1492,13 +1508,19 @@ function scheduleActivities(
 			const preferred = preferredActivityKinds(routine);
 			const available = (candidate: (typeof siteSlots)[number]) =>
 				(occupancy.get(candidate.interactionSlotId) ?? 0) < candidate.capacity;
-			const slot =
-				siteSlots.find(
-					(candidate) =>
-						available(candidate) &&
-						candidate.activityKinds.some((kind) => preferred.includes(kind)),
-				) ?? siteSlots.find((candidate) => available(candidate));
-			if (slot === undefined) return [];
+			const matchingPreferred = siteSlots.filter(
+				(candidate) =>
+					available(candidate) &&
+					candidate.activityKinds.some((kind) => preferred.includes(kind)),
+			);
+			const matchingAvailable = siteSlots.filter(available);
+			const pool =
+				matchingPreferred.length > 0 ? matchingPreferred : matchingAvailable;
+			if (pool.length === 0) return [];
+			const slot = required(
+				pool[(dayNumber + index) % pool.length],
+				`activity slot for ${citizen.citizenId}`,
+			);
 			const affordanceSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
 			occupancy.set(slot.interactionSlotId, affordanceSlotIndex + 1);
 			const slotActivity = activityKind(slot.activityKinds);

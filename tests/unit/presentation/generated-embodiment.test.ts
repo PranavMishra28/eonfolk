@@ -6,6 +6,7 @@ import {
 	advanceGeneratedCameraIntent,
 	assertGeneratedAssetBudget,
 	cameraIntentForGeneratedNavigation,
+	conversationVisuallyActive,
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
@@ -16,9 +17,11 @@ import {
 	planGeneratedActorTransition,
 	poseAtGeneratedPresentationTick,
 	poseForGeneratedActor,
+	presentedActorActivity,
 	projectGeneratedEmbodiment,
 	projectGeneratedWorldEmbodiment,
 	reduceGeneratedNavigation,
+	routeArrivalCommitted,
 	sampleGeneratedActorPresentation,
 	sampleGeneratedActorTransition,
 	verifyGeneratedFolkAsset,
@@ -411,10 +414,20 @@ describe("generated embodiment projection", () => {
 		if (walker.grounding.kind === "route") {
 			const origin = walker.grounding.traversalPathMm?.[0];
 			const destination = walker.grounding.traversalPathMm?.at(-1);
+			const uncommitted = walker.grounding.progressBasisPoints !== 10_000;
 			expect(start.positionMm).toEqual(origin);
-			expect(end.positionMm).toEqual(destination);
 			expect(mid.positionMm).not.toEqual(origin);
 			expect(mid.positionMm).not.toEqual(destination);
+			if (uncommitted) {
+				expect(generatedVisualPhase(walker.visualLifecycle, 1, false)).toBe(
+					"travel",
+				);
+				expect(end.phase).toBe("travel");
+				expect(end.positionMm).not.toEqual(destination);
+				expect(end.animationClass).not.toBe("idle");
+			} else {
+				expect(end.positionMm).toEqual(destination);
+			}
 		}
 		const approached = sampleGeneratedActorPresentation({
 			actor: walker,
@@ -438,11 +451,68 @@ describe("generated embodiment projection", () => {
 			progress01: 0,
 			reducedMotion: true,
 		});
-		if (walker.grounding.kind === "route")
-			expect(reduced.positionMm).toEqual(
-				walker.grounding.traversalPathMm?.at(-1),
+		if (walker.grounding.kind === "route") {
+			const destination = walker.grounding.traversalPathMm?.at(-1);
+			if (walker.grounding.progressBasisPoints === 10_000)
+				expect(reduced.positionMm).toEqual(destination);
+			else expect(reduced.positionMm).not.toEqual(destination);
+		} else expect(reduced.positionMm).toEqual(walker.positionMm);
+	});
+
+	it("keeps HUD copy on the body and does not claim arrival while the route is uncommitted", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const walker = model.actors.find(
+			(actor) => actor.grounding.kind === "route",
+		);
+		if (walker !== undefined && walker.grounding.kind === "route") {
+			expect(routeArrivalCommitted(walker)).toBe(
+				walker.grounding.progressBasisPoints === 10_000,
 			);
-		else expect(reduced.positionMm).toEqual(walker.positionMm);
+			if (walker.grounding.progressBasisPoints !== 10_000) {
+				expect(presentedActorActivity(walker, "Workshop", 1)).toMatch(
+					/^(?:walking|carrying) toward Workshop$/u,
+				);
+				const arrived = sampleGeneratedActorPresentation({
+					actor: walker,
+					previous: null,
+					slotPointMm: walker.positionMm,
+					progress01: 1,
+					reducedMotion: false,
+				});
+				expect(arrived.phase).toBe("travel");
+				expect(arrived.animationClass).not.toBe("idle");
+				expect(arrived.positionMm).not.toEqual(
+					walker.grounding.traversalPathMm?.at(-1),
+				);
+			}
+		}
+		const inspector = model.actors.find(
+			(actor) =>
+				actor.grounding.kind !== "route" &&
+				(actor.visualLifecycle?.performKind ?? actor.animationClass) ===
+					"inspect",
+		);
+		if (inspector !== undefined) {
+			expect(presentedActorActivity(inspector, "Workshop", 0.55)).toContain(
+				"inspecting the work at Workshop",
+			);
+			expect(presentedActorActivity(inspector, "Workshop", 0.55)).not.toContain(
+				"walking",
+			);
+		}
+		const speaker = model.actors.find(
+			(actor) =>
+				actor.visualLifecycle?.performKind === "talk" ||
+				actor.visualLifecycle?.performKind === "listen",
+		);
+		if (speaker?.visualLifecycle !== undefined) {
+			expect(conversationVisuallyActive(speaker, 0.3)).toBe(true);
+			expect(conversationVisuallyActive(speaker, 1)).toBe(false);
+		}
 	});
 
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
@@ -617,6 +687,15 @@ describe("generated navigation parity", () => {
 		expect(first.distanceMm).toBe(59_520);
 		expect(first.yawDegrees).toBeCloseTo(355.2);
 		expect(advanceGeneratedCameraIntent(current, desired, true)).toBe(desired);
+		const dtFrame = advanceGeneratedCameraIntent(
+			current,
+			desired,
+			false,
+			1 / 60,
+		);
+		expect(dtFrame.yawDegrees).toBeCloseTo(350.4);
+		expect(dtFrame.yawDegrees).not.toBeCloseTo(355.2);
+		expect(dtFrame.distanceMm).not.toBe(first.distanceMm);
 	});
 
 	it("fails closed on malformed DOM actions and corrupt navigation state", () => {
