@@ -4164,9 +4164,9 @@ em {
 
 	main.v1-world[data-view="embodied"] .v1-view-controls button,
 	main.v1-world[data-view="embodied"] .v1-world-settings summary {
-		min-height: 2.5rem;
+		min-height: 2.75rem;
 		padding: 0.28rem 0.45rem;
-		font-size: 0.78rem;
+		font-size: 0.875rem;
 	}
 
 	main.v1-world[data-view="embodied"] .generated-settlement-switcher {
@@ -4182,7 +4182,7 @@ em {
 	main.v1-world[data-view="embodied"] .generated-settlement-switcher button {
 		flex: 1 1 0;
 		min-width: 0;
-		min-height: 2.5rem;
+		min-height: 2.75rem;
 		padding: 0.28rem 0.45rem;
 	}
 

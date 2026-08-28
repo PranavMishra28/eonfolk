@@ -27,8 +27,15 @@ test("Release Genesis owns the product root and keeps evidence deliberate", asyn
 	await expect(
 		page.getByRole("link", { name: "Enter Dawnmere" }),
 	).toHaveAttribute("href", "/world");
-	await expect(page.getByRole("link", { name: "Research" })).toHaveCount(0);
-	await expect(page.getByRole("link", { name: "Developer" })).toHaveCount(0);
+	const footer = page.locator("footer.v1-entry-footer");
+	await expect(footer.getByRole("link", { name: "Research" })).toHaveAttribute(
+		"href",
+		"/research",
+	);
+	await expect(footer.getByRole("link", { name: "Developer" })).toHaveAttribute(
+		"href",
+		"/developer",
+	);
 	await expect(
 		page.getByText(/canonical hash|reducer|persistence fence/iu),
 	).toHaveCount(0);

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "./support/eonfolk-fixture";
+import { revealPeopleAndWork } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -132,6 +133,7 @@ async function authorityStateHash(page: Page): Promise<string> {
 }
 
 async function selectMara(page: Page): Promise<void> {
+	await revealPeopleAndWork(page);
 	const mara = page.locator(
 		'ul.v1-presence-roster button[data-citizen-id="citizen-01"]',
 	);

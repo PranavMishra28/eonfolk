@@ -6,6 +6,7 @@ import {
 	test,
 } from "./support/eonfolk-fixture";
 import { expectFollowShowsPerson } from "./support/follow-body";
+import { revealPeopleAndWork, revealWorldTools } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -789,6 +790,7 @@ async function selectCanonicalResidentFromCanvas(
 
 async function selectCanonicalMara(page: Page): Promise<string> {
 	const citizenId = "citizen-01";
+	await revealPeopleAndWork(page);
 	const resident = page.locator(
 		`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,
 	);
@@ -1192,7 +1194,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
 	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	const tools = page.locator("details.v1-world-tools");
-	await tools.locator("summary").click();
+	await revealWorldTools(page);
 	await expect(tools.locator("button[data-building-id]")).toHaveCount(4);
 	const desktopBuilding = tools.locator("button[data-building-id]").first();
 	await desktopBuilding.focus();
@@ -1265,10 +1267,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await page.setViewportSize(viewport);
 		const back = page.getByRole("button", { name: "Back to settlement" });
 		if (await back.isVisible()) await back.click();
-		if (
-			!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
-		)
-			await tools.locator("summary").click();
+		await revealWorldTools(page);
 		const buildingButton = tools.locator("button[data-building-id]").first();
 		await buildingButton.focus();
 		await expect(buildingButton).toBeFocused();
@@ -1279,12 +1278,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
 		if (viewport.width === 390) {
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (
-				!(await tools.evaluate(
-					(details) => (details as HTMLDetailsElement).open,
-				))
-			)
-				await tools.locator("summary").click();
+			await revealWorldTools(page);
 			const mobileCitizen = tools.locator("button[data-citizen-id]").first();
 			await mobileCitizen.focus();
 			await expect(mobileCitizen).toBeFocused();
@@ -1292,12 +1286,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await expect(mobileCitizen).toHaveAttribute("aria-pressed", "true");
 			await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (
-				!(await tools.evaluate(
-					(details) => (details as HTMLDetailsElement).open,
-				))
-			)
-				await tools.locator("summary").click();
+			await revealWorldTools(page);
 			const mobileProject = tools.locator("button[data-project-id]").first();
 			await mobileProject.focus();
 			await expect(mobileProject).toBeFocused();
@@ -1348,6 +1337,9 @@ test("first session stays in Dawnmere without a empty settlement tab @generated-
 		"8",
 	);
 	await expect(page.locator("ul.v1-presence-roster button")).toHaveCount(8);
+	await expect(page.getByText("HAPPENING NOW")).toBeVisible();
+	await expect(page.getByText(/lives are unfolding/u)).toBeVisible();
+	await page.locator("aside.v1-context-panel h2").click();
 	await expect(
 		page.getByRole("list", { name: "Visible activities" }),
 	).toBeVisible();
@@ -1591,7 +1583,7 @@ test("production degrades an IndexedDB SecurityError without leaking detail @gen
 		"data-persistence-failure-code",
 		"SecurityError",
 	);
-	await expect(page.getByText(/Local persistence unavailable/u)).toBeVisible();
+	await expect(page.getByText(/cannot save the town/u)).toBeVisible();
 	await expect(page.getByText("private open detail")).toHaveCount(0);
 });
 
@@ -1616,9 +1608,7 @@ for (const boundary of [
 			"data-persistence-failure-code",
 			boundary.name,
 		);
-		await expect(
-			page.getByText(/Local persistence unavailable/u),
-		).toBeVisible();
+		await expect(page.getByText(/cannot save the town/u)).toBeVisible();
 		await expect(page.locator("body")).not.toContainText(
 			`private ${boundary.name} detail`,
 		);
@@ -1985,7 +1975,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	});
 	await page.getByRole("button", { name: "Start a fresh local town" }).click();
 	await expect(
-		page.getByText(/Close other EONFOLK tabs; recovery will continue/u),
+		page.getByText(/Close other EONFOLK tabs, then try again/u),
 	).toBeVisible();
 	await blocker.evaluate(() => {
 		(
@@ -2065,24 +2055,20 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		)
 		.toBe("fits");
 	for (const term of [
-		"What is recorded",
-		"Mara's belief",
-		"Allegation status",
-		"Values",
-		"Mara and Iven",
-		"What she is doing",
-		"Still uncertain",
+		"Checking the stores first",
+		"Abstain — close this boundary without counsel",
+		"Keep watching",
 	])
-		await expect(page.locator("dt").filter({ hasText: term })).toBeVisible();
+		await expect(page.getByRole("button", { name: term })).toBeVisible();
+	await expect(
+		page.getByText(/sourced count before any other move/u),
+	).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toBeDisabled();
 	await expect(page.getByRole("button", { name: "Sponsor Mara" })).toHaveCount(
 		0,
 	);
-	await expect(
-		page.getByText("There is no account, cloud backup, or recovery copy."),
-	).toBeVisible();
 	await page
 		.getByRole("button", {
 			name: "Check the stores first",
