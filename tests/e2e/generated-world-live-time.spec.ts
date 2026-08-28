@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "./support/eonfolk-fixture";
-import { waitForEnabledCounsel } from "./support/world-hud";
+import { pressTimeControl, waitForEnabledCounsel } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -209,7 +209,7 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await expect(canvas).toHaveAttribute("data-camera-target", /Mara/u);
 	await expect(time.getByRole("button", { name: "Faster" })).toBeEnabled();
 	const dayAfterCounsel = Number(await world.getAttribute("data-horizon-days"));
-	await time.getByRole("button", { name: "Faster" }).click();
+	await pressTimeControl(page, "Faster");
 	await expect(world).toHaveAttribute(
 		"data-horizon-days",
 		String(dayAfterCounsel + 1),

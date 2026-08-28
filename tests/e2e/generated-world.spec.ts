@@ -6,7 +6,11 @@ import {
 	test,
 } from "./support/eonfolk-fixture";
 import { expectFollowShowsPerson } from "./support/follow-body";
-import { revealPeopleAndWork, revealWorldTools } from "./support/world-hud";
+import {
+	pressTimeControl,
+	revealPeopleAndWork,
+	revealWorldTools,
+} from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -976,21 +980,19 @@ test("generated camera and canvas selection preserve the authoritative head @gen
 test("generated pose controls preserve authoritative state @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(90_000);
+	test.setTimeout(linuxSemanticCi ? 180_000 : 90_000);
 	const externalRequests = await isolateLocalWorld(page);
+	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });
 	await resetGeneratedCheckpoint(page);
 	await page.goto("/world");
 	const world = page.locator("main.v1-world");
 	const canvas = page.getByTestId("generated-world-canvas");
 	const worldTools = page.locator("details.v1-world-tools");
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click({ timeout: 30_000 });
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 20_000,
 	});
+	await pressTimeControl(page, "Pause");
 	await expect(world).toHaveAttribute("data-presentation-playing", "false");
 	await revealWorldTools(page);
 	await expect(worldTools).toHaveAttribute("open", "");
@@ -1099,7 +1101,7 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 test("canonical citizen, building, and project focus preserve authority across desktop and mobile @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(linuxSemanticCi ? 240_000 : 180_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });

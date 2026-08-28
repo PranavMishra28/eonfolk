@@ -1,43 +1,25 @@
 import { expect, type Locator, type Page } from "./eonfolk-fixture";
 
-async function detailsSnapshot(
-	page: Page,
-	selector: string,
-): Promise<{ count: number; open: boolean }> {
-	return page.evaluate((detailsSelector) => {
-		const nodes = [
-			...document.querySelectorAll<HTMLDetailsElement>(detailsSelector),
-		];
-		return {
-			count: nodes.length,
-			open: nodes.some((node) => node.open),
-		};
-	}, selector);
-}
-
-/** Open a details element through its summary so React `onToggle` sees the click. */
 async function openDetails(page: Page, selector: string): Promise<void> {
-	const snapshot = await detailsSnapshot(page, selector);
-	if (snapshot.count === 0 || snapshot.open) return;
-	const summary = page.locator(`${selector} > summary`);
+	const details = page.locator(selector).first();
+	try {
+		await details.waitFor({ state: "attached", timeout: 8_000 });
+	} catch {
+		return;
+	}
+	if ((await details.getAttribute("open")) !== null) return;
+	const summary = details.locator(":scope > summary");
 	if (await summary.isVisible()) {
 		await summary.evaluate((element) => {
 			(element as HTMLElement).click();
 		});
 	} else {
-		await page.evaluate((detailsSelector) => {
-			const details =
-				document.querySelector<HTMLDetailsElement>(detailsSelector);
-			if (details === null || details.open) return;
-			details.open = true;
-			details.dispatchEvent(new Event("toggle", { bubbles: true }));
-		}, selector);
+		await details.evaluate((element) => {
+			(element as HTMLDetailsElement).open = true;
+			element.dispatchEvent(new Event("toggle", { bubbles: true }));
+		});
 	}
-	await expect
-		.poll(() => detailsSnapshot(page, selector).then((state) => state.open), {
-			timeout: 15_000,
-		})
-		.toBe(true);
+	await expect(details).toHaveAttribute("open", "", { timeout: 15_000 });
 }
 
 /** Open the mobile People-and-work sheet when that quieter HUD is in effect. */
@@ -83,6 +65,19 @@ export async function openChronicleReplay(page: Page): Promise<void> {
 		(element as HTMLElement).click();
 	});
 	await expect(replay).toBeVisible({ timeout: restoreTimeout });
+}
+
+export async function pressTimeControl(
+	page: Page,
+	name: string,
+): Promise<void> {
+	const button = page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name });
+	await expect(button).toBeVisible({ timeout: 30_000 });
+	await button.evaluate((element) => {
+		(element as HTMLElement).click();
+	});
 }
 
 export async function waitForEnabledCounsel(
