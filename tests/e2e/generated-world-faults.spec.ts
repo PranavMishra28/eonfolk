@@ -47,6 +47,11 @@ async function openFaultedWorld(
 	return externalRequests;
 }
 
+async function zoomInFromCameraTools(page: Page): Promise<void> {
+	await page.locator("details.v1-world-tools > summary").click();
+	await page.getByRole("button", { name: "Zoom in" }).click();
+}
+
 async function pauseWorldTime(page: Page): Promise<void> {
 	const pause = page
 		.getByRole("navigation", { name: "Time" })
@@ -387,7 +392,7 @@ test.describe
 			const authority = await authorityFingerprint(page);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
-			await page.getByRole("button", { name: "Zoom in" }).click();
+			await zoomInFromCameraTools(page);
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
@@ -445,7 +450,7 @@ test.describe
 				"failed",
 			);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
-			await page.getByRole("button", { name: "Zoom in" }).click();
+			await zoomInFromCameraTools(page);
 			await expect(
 				page
 					.getByTestId("generated-semantic-world")
