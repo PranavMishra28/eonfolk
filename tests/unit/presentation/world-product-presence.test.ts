@@ -27,17 +27,17 @@ describe("world-as-product presentation", () => {
 		const following = reduceGeneratedNavigation(citizen, {
 			type: "toggle-follow",
 		});
-		expect(following.distanceMm).toBe(18_000);
+		expect(following.distanceMm).toBe(9_500);
 		expect(
 			reduceGeneratedNavigation(following, { type: "toggle-follow" })
 				.distanceMm,
-		).toBe(9_000);
+		).toBe(12_000);
 		expect(
 			reduceGeneratedNavigation(
 				{ ...INITIAL_GENERATED_NAVIGATION, distanceMm: 140_000 },
 				{ type: "overview" },
 			).distanceMm,
-		).toBe(38_000);
+		).toBe(32_000);
 	});
 
 	it("keeps human and building dimensions on the authoritative metric scale", async () => {
@@ -74,7 +74,7 @@ describe("world-as-product presentation", () => {
 		expect(canvas).toContain("projection.scene.edges");
 		expect(canvas).toContain("projection.local.buildings.map");
 		expect(canvas).toContain("projection.spatial.interactions.map");
-		expect(canvas).toContain("renderedActorPoint(projection, actor)");
+		expect(canvas).toContain("renderedActorPoint(");
 		expect(canvas).toContain("coincidents");
 		expect(canvas).toContain("occupantSpacingMm");
 		expect(people).toContain("function PhysicalAction");
@@ -90,7 +90,7 @@ describe("world-as-product presentation", () => {
 		expect(styles).toContain("overflow-wrap: anywhere");
 		expect(styles).toContain(':not([data-focus-kind="overview"])');
 		expect(styles).toMatch(
-			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*58svh/su,
+			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100svh/su,
 		);
 		expect(styles).toContain("touch-action: none");
 	});

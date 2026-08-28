@@ -91,25 +91,6 @@ function citizenName(
 	return names[citizenId] ?? citizenId;
 }
 
-function humanizeIdentifier(value: string): string {
-	return value.replaceAll("-", " ");
-}
-
-function stockLocation(stockId: string): string {
-	if (stockId.startsWith("stock-origin-")) return "in the settlement reserve";
-	if (stockId.startsWith("stock-source-")) return "at its source";
-	if (stockId.startsWith("stock-work-")) return "at active worksites";
-	return "in the recorded reserve";
-}
-
-function stockObservationText(observation: {
-	readonly stockId: string;
-	readonly resourceTypeId: string;
-	readonly quantity: number;
-}): string {
-	return `${humanizeIdentifier(observation.resourceTypeId)} ${stockLocation(observation.stockId)}: ${String(observation.quantity)} units`;
-}
-
 function relationFor(
 	event: WorldEventEnvelope,
 	visibleEventIds: ReadonlySet<string>,
@@ -207,13 +188,13 @@ export function projectCivilizationChronicle(input: {
 		const interpreted = fact.interpretationAction.replaceAll("-", " ");
 		const consequence =
 			fact.effect.kind === "reserve-inspection"
-				? `At the next daily boundary, the inspection recorded ${fact.effect.stockObservations.map(stockObservationText).join("; ")}.`
+				? "At the next daily boundary, the inspection recorded the settlement's stores."
 				: fact.effect.kind === "public-allegation"
-					? `At the next daily boundary, a public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust by ${String(-fact.effect.trustDeltaBasisPoints)} and increased strain by ${String(fact.effect.strainDeltaBasisPoints)} basis points. The allegation was not proof.`
+					? `At the next daily boundary, a public allegation about ${citizenName(fact.effect.targetCitizenId, input.citizenNames)} reduced recorded trust. The allegation was not proof.`
 					: "At the next daily boundary, the existing Standing Plan continued; the earlier advice was only a temporal predecessor.";
 		beats.push({
 			beat: beats.length + 1,
-			text: `${citizenName(fact.citizenId, input.citizenNames)} chose to ${interpreted}. ${consequence} Daily needs: ${String(fact.consumedNeedUnits)} of ${String(fact.requiredNeedUnits)} units met; ${String(fact.unmetNeedUnits)} unmet.`,
+			text: `${citizenName(fact.citizenId, input.citizenNames)} chose to ${interpreted}. ${consequence}`,
 			evidenceEventIds: [
 				boundary.eventId,
 				...boundary.parentEventIds.filter((eventId) =>
@@ -246,7 +227,7 @@ export function projectCivilizationChronicle(input: {
 		const name = citizenName(fact.citizenId, input.citizenNames);
 		beats.push({
 			beat: beats.length + 1,
-			text: `${name} received no advice and independently continued the active Standing Plan. At the next daily boundary, the recorded routine was ${humanizeIdentifier(fact.routineKind)} toward ${humanizeIdentifier(fact.routineSubjectId)}. Daily needs: ${String(fact.consumedNeedUnits)} of ${String(fact.requiredNeedUnits)} units met; ${String(fact.unmetNeedUnits)} unmet. Abstention preceded this outcome but is not recorded as its cause.`,
+			text: `${name} received no advice and independently continued the active Standing Plan. At the next daily boundary, the recorded routine continued. Abstention preceded this outcome but is not recorded as its cause.`,
 			evidenceEventIds: [
 				boundary.eventId,
 				...boundary.relatedEventIds.filter((eventId) =>

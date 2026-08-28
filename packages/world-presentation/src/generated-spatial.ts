@@ -125,6 +125,16 @@ export type GeneratedSpatialActivityLocation =
 			readonly progressBasisPoints: number;
 	  }>;
 
+export interface GeneratedVisualLifecycle {
+	readonly dayStart: number;
+	readonly travelEnd: number;
+	readonly performEnd: number;
+	readonly simulationEnd: number;
+	readonly travelKind: "walk" | "carry" | null;
+	readonly performKind: AnimationClass;
+	readonly routineKind: string;
+}
+
 /**
  * Minimal scheduler-owned projection boundary. The renderer never guesses a
  * person's current action or physical location from residence/project records.
@@ -137,6 +147,7 @@ export interface GeneratedSpatialActivityInput {
 	readonly projectId: string | null;
 	readonly carriedProp: PropKind | null;
 	readonly focal: boolean;
+	readonly visualLifecycle?: GeneratedVisualLifecycle;
 }
 
 export interface GeneratedProjectProjection {

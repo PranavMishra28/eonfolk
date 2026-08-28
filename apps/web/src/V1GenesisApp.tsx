@@ -388,6 +388,7 @@ function SemanticSettlement({
 				onTogglePresentation={onTogglePresentation}
 				onStepPresentation={onStepPresentation}
 				onNavigationRejected={onNavigationRejected}
+				showLookAround={false}
 			/>
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Places</h3>
@@ -425,38 +426,33 @@ function SettlementOverview({
 			data-testid="generated-world-overview"
 		>
 			<header>
-				<p className="v1-kicker">CIVILIZATION OVERVIEW</p>
+				<p className="v1-kicker">THE LAND</p>
 				<h2>
-					One world,{" "}
+					{experience.projections[0]?.local.settlement.name ?? "Dawnmere"}
+				</h2>
+				<p>
 					{countNoun(
 						experience.settlementCount,
-						"inhabited place",
-						"inhabited places",
-					)}
-					.
-				</h2>
+						"inhabited place continues",
+						"inhabited places continue",
+					)}{" "}
+					whether you are watching or not.
+				</p>
 			</header>
 			<div className="generated-settlement-cards">
 				{experience.projections.map((projection) => (
 					<article key={projection.local.settlement.settlementId}>
 						<p className="v1-kicker">
 							{projection.local.settlement.foundedAtSimulationTime === 0
-								? "ORIGIN SETTLEMENT"
-								: "FOUNDED SETTLEMENT"}
+								? "ORIGIN"
+								: "SECOND FOUNDING"}
 						</p>
 						<h3>{projection.local.settlement.name}</h3>
 						<p>{projection.local.settlement.semanticLabel}</p>
 						<ul>
-							<li>
-								{countNoun(
-									projection.spatial.actors.length,
-									"person",
-									"people",
-								)}{" "}
-								at work
-							</li>
-							<li>{projection.local.semanticCounts.sites} places</li>
-							<li>{projection.projects.length} works in progress</li>
+							{projection.local.sites.slice(0, 6).map((site) => (
+								<li key={site.siteId}>{site.name}</li>
+							))}
 						</ul>
 						<button
 							type="button"
@@ -967,7 +963,7 @@ function GeneratedContextPanel({
 							</ul>
 						)}
 						<ul className="v1-activity-summary" aria-label="Visible activities">
-							{[...activityCounts].map(([activity, count]) => (
+							{[...activityCounts].slice(0, 3).map(([activity, count]) => (
 								<li key={activity}>
 									<strong>{count}</strong> {activity}
 								</li>
@@ -978,6 +974,10 @@ function GeneratedContextPanel({
 					<>
 						<p className="v1-context-role">{selectedActor.role}</p>
 						<p>{actorActivity(selectedActor, projection)}.</p>
+						<p>
+							<strong>Want:</strong>{" "}
+							{happenings[0]?.summary ?? selectedActor.semanticLabel}
+						</p>
 						<p>
 							<strong>Immediate relationship:</strong>{" "}
 							{activeInteraction !== undefined &&
@@ -994,22 +994,6 @@ function GeneratedContextPanel({
 											" and ",
 										)}${interactionPlace === undefined ? "" : ` at ${interactionPlace}`}.`
 								: "No one is currently beside them."}
-						</p>
-						{canSponsor ? (
-							<p>
-								<strong>Current tension:</strong>{" "}
-								{happenings[0]?.summary ??
-									"Mara can be sponsored. Counsel is a visible next step, not a silent label."}
-							</p>
-						) : (
-							<p>
-								{selectedActor.name} is at work. Sponsorship is Mara's
-								relationship, not a button on every person.
-							</p>
-						)}
-						<p className="v1-local-disclosure">
-							This world is stored only in this browser. There is no account,
-							cloud backup, or recovery copy.
 						</p>
 						<div className="v1-focus-actions">
 							<button
@@ -1073,24 +1057,6 @@ function GeneratedContextPanel({
 									Mara may accept, reject, delay, or reinterpret advice. This
 									boundary closes after one choice.
 								</p>
-								{counselContext === null ? null : (
-									<dl>
-										<dt>What is recorded</dt>
-										<dd>{counselContext.fact}</dd>
-										<dt>Mara's belief</dt>
-										<dd>{counselContext.belief}</dd>
-										<dt>Allegation status</dt>
-										<dd>{counselContext.allegation}</dd>
-										<dt>Values</dt>
-										<dd>{counselContext.values.join(", ")}</dd>
-										<dt>Mara and Iven</dt>
-										<dd>{counselContext.relationship}</dd>
-										<dt>What she is doing</dt>
-										<dd>{counselContext.standingPlan}</dd>
-										<dt>Still uncertain</dt>
-										<dd>{counselContext.uncertainty}</dd>
-									</dl>
-								)}
 								<button
 									type="button"
 									disabled={authorityRefreshing}
@@ -2162,6 +2128,7 @@ function GeneratedWorld({
 								navigation={navigation}
 								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
+								playRate={playRate}
 								onFailure={reportRendererFailure}
 							/>
 						</Suspense>

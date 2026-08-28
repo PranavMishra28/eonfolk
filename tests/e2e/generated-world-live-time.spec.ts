@@ -85,6 +85,7 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await expect(canvas).toHaveAttribute("data-ready", "true", {
 		timeout: 30_000,
 	});
+	await expect(page.locator(".generated-citizen-labels button")).toHaveCount(1);
 	await expect(world).toHaveAttribute("data-play-rate", "1");
 	await page.getByTestId("follow-mara").click();
 	await expect(canvas).toHaveAttribute("data-following", "true");

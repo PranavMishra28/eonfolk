@@ -2,6 +2,7 @@ import {
 	type AnimationClass,
 	type GeneratedCivilizationSpatialProjection,
 	type GeneratedSpatialActivityInput,
+	type GeneratedVisualLifecycle,
 	type PropKind,
 	projectDisplayName,
 	projectStateDisplayName,
@@ -12,13 +13,28 @@ import {
 export const GENERATED_EMBODIMENT_SCHEMA_VERSION =
 	"eonfolk-generated-embodiment-v1" as const;
 
+export const GENERATED_TRAVEL_DURATION_TICKS = 48;
+
 export type GeneratedPoseFamily =
 	| "locomotion"
 	| "carry"
-	| "work"
+	| "inspect"
+	| "harvest"
+	| "repair"
+	| "construct"
 	| "social"
 	| "life"
+	| "wait"
 	| "reaction";
+
+export type GeneratedVisualPhase =
+	| "plan"
+	| "travel"
+	| "arrive"
+	| "perform"
+	| "result"
+	| "end"
+	| "wait";
 
 export interface GeneratedPose {
 	readonly family: GeneratedPoseFamily;
@@ -60,6 +76,7 @@ export interface GeneratedEmbodiedActor {
 	readonly focal: boolean;
 	readonly identityVariant: number;
 	readonly semanticLabel: string;
+	readonly visualLifecycle: GeneratedVisualLifecycle | null;
 }
 
 export interface GeneratedProjectDelta {
@@ -94,6 +111,7 @@ export interface GeneratedEmbodimentProjection {
 	readonly actors: readonly GeneratedEmbodiedActor[];
 	readonly projects: readonly GeneratedProjectDelta[];
 	readonly growth: GeneratedGrowthDelta;
+	readonly teleportCount: number;
 	readonly limitations: readonly string[];
 }
 
@@ -110,6 +128,7 @@ export interface GeneratedEmbodimentWorldProjection {
 	readonly actors: readonly GeneratedEmbodiedActor[];
 	readonly projects: readonly GeneratedProjectDelta[];
 	readonly visibleCitizenCount: number;
+	readonly teleportCount: number;
 	readonly limitations: readonly string[];
 }
 
@@ -164,21 +183,27 @@ function identityVariant(citizenId: string): number {
 	return hash >>> 0;
 }
 
-function poseFamily(animationClass: AnimationClass): GeneratedPoseFamily {
+function poseFamily(
+	animationClass: AnimationClass,
+	routineKind?: string,
+): GeneratedPoseFamily {
 	switch (animationClass) {
 		case "walk":
 			return "locomotion";
 		case "carry":
 			return "carry";
 		case "gather":
+			return "harvest";
 		case "inspect":
+			return "inspect";
 		case "repair":
-			return "work";
+			return routineKind === "construct" ? "construct" : "repair";
 		case "talk":
 		case "listen":
 		case "exchange":
 			return "social";
 		case "idle":
+			return "wait";
 		case "eat-rest":
 			return "life";
 		case "react":
@@ -191,9 +216,11 @@ function poseFamily(animationClass: AnimationClass): GeneratedPoseFamily {
  * phase uses canonical metric position, never wall-clock time or randomness.
  */
 export function poseForGeneratedActor(
-	actor: Pick<SpatialActorProjection, "animationClass" | "positionMm">,
+	actor: Pick<SpatialActorProjection, "animationClass" | "positionMm"> & {
+		readonly routineKind?: string | undefined;
+	},
 ): GeneratedPose {
-	const family = poseFamily(actor.animationClass);
+	const family = poseFamily(actor.animationClass, actor.routineKind);
 	const stepPhase =
 		(Math.abs(actor.positionMm.x) + Math.abs(actor.positionMm.z)) % 1_800 < 900
 			? 1
@@ -211,19 +238,46 @@ export function poseForGeneratedActor(
 		case "carry":
 			return Object.freeze({
 				family,
-				torsoPitchDegrees: 4,
-				leftArmPitchDegrees: -58,
+				torsoPitchDegrees: 8,
+				leftArmPitchDegrees: -62,
 				rightArmPitchDegrees: -58,
-				leftLegPitchDegrees: 8 * stepPhase,
-				rightLegPitchDegrees: -8 * stepPhase,
+				leftLegPitchDegrees: 14 * stepPhase,
+				rightLegPitchDegrees: -14 * stepPhase,
 			});
-		case "work":
+		case "inspect":
+			return Object.freeze({
+				family,
+				torsoPitchDegrees: 12,
+				leftArmPitchDegrees: -8,
+				rightArmPitchDegrees: -52,
+				leftLegPitchDegrees: 2,
+				rightLegPitchDegrees: -6,
+			});
+		case "harvest":
+			return Object.freeze({
+				family,
+				torsoPitchDegrees: 22,
+				leftArmPitchDegrees: -28,
+				rightArmPitchDegrees: -88,
+				leftLegPitchDegrees: 10,
+				rightLegPitchDegrees: -12,
+			});
+		case "repair":
 			return Object.freeze({
 				family,
 				torsoPitchDegrees: 16,
-				leftArmPitchDegrees: -34,
-				rightArmPitchDegrees: -72,
-				leftLegPitchDegrees: 4,
+				leftArmPitchDegrees: -18,
+				rightArmPitchDegrees: -78,
+				leftLegPitchDegrees: 6,
+				rightLegPitchDegrees: -8,
+			});
+		case "construct":
+			return Object.freeze({
+				family,
+				torsoPitchDegrees: 10,
+				leftArmPitchDegrees: -42,
+				rightArmPitchDegrees: -70,
+				leftLegPitchDegrees: 8,
 				rightLegPitchDegrees: -4,
 			});
 		case "social":
@@ -238,11 +292,20 @@ export function poseForGeneratedActor(
 		case "life":
 			return Object.freeze({
 				family,
-				torsoPitchDegrees: actor.animationClass === "eat-rest" ? 10 : 0,
-				leftArmPitchDegrees: actor.animationClass === "eat-rest" ? -42 : 3,
-				rightArmPitchDegrees: actor.animationClass === "eat-rest" ? -42 : -3,
-				leftLegPitchDegrees: 0,
-				rightLegPitchDegrees: 0,
+				torsoPitchDegrees: 14,
+				leftArmPitchDegrees: -36,
+				rightArmPitchDegrees: -58,
+				leftLegPitchDegrees: 18,
+				rightLegPitchDegrees: -6,
+			});
+		case "wait":
+			return Object.freeze({
+				family,
+				torsoPitchDegrees: 0,
+				leftArmPitchDegrees: 4,
+				rightArmPitchDegrees: -6,
+				leftLegPitchDegrees: 2,
+				rightLegPitchDegrees: -2,
 			});
 		case "reaction":
 			return Object.freeze({
@@ -288,10 +351,23 @@ export function poseAtGeneratedPresentationTick(
 				leftLegPitchDegrees: Math.abs(pose.leftLegPitchDegrees) * phase,
 				rightLegPitchDegrees: -Math.abs(pose.rightLegPitchDegrees) * phase,
 			});
-		case "work":
+		case "inspect":
 			return Object.freeze({
 				...pose,
-				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 10,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 6,
+				torsoPitchDegrees: pose.torsoPitchDegrees + phase * 2,
+			});
+		case "harvest":
+			return Object.freeze({
+				...pose,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 16,
+				torsoPitchDegrees: pose.torsoPitchDegrees + phase * 4,
+			});
+		case "repair":
+		case "construct":
+			return Object.freeze({
+				...pose,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 14,
 			});
 		case "social":
 			return Object.freeze({
@@ -299,6 +375,15 @@ export function poseAtGeneratedPresentationTick(
 				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 8,
 			});
 		case "life":
+			return Object.freeze({
+				...pose,
+				rightArmPitchDegrees: pose.rightArmPitchDegrees + phase * 5,
+			});
+		case "wait":
+			return Object.freeze({
+				...pose,
+				torsoPitchDegrees: pose.torsoPitchDegrees + phase,
+			});
 		case "reaction":
 			return pose;
 	}
@@ -336,10 +421,29 @@ function routeTopology(
 	]);
 }
 
+function interpolatePath(
+	points: readonly SpatialPointMm[],
+	progress01: number,
+): SpatialPointMm {
+	if (points.length === 0) fail("traversal path is empty");
+	const clamped = Math.max(0, Math.min(1, progress01));
+	const last = points[points.length - 1]!;
+	if (points.length === 1 || clamped >= 1) return Object.freeze({ ...last });
+	const scaled = clamped * (points.length - 1);
+	const index = Math.min(Math.floor(scaled), points.length - 2);
+	const progress = scaled - index;
+	const from = points[index]!;
+	const to = points[index + 1]!;
+	return Object.freeze({
+		x: Math.round(from.x + (to.x - from.x) * progress),
+		y: Math.round(from.y + (to.y - from.y) * progress),
+		z: Math.round(from.z + (to.z - from.z) * progress),
+	});
+}
+
 /**
- * Replays the proven route continuously while the player is watching.
- * Tick 48 remains the authoritative end of the current day's path; later ticks
- * reverse along the same points so presentation never freezes.
+ * Walks the full proven route once, then holds at the destination.
+ * Presentation never reverses along the path.
  */
 export function generatedTraversalPointAtTick(
 	grounding: GeneratedGrounding,
@@ -348,19 +452,127 @@ export function generatedTraversalPointAtTick(
 	const points = grounding.traversalPathMm!;
 	if (!Number.isSafeInteger(presentationTick) || presentationTick < 0)
 		throw new Error("presentationTick must be a non-negative safe integer");
-	const cycle = 96;
-	const phase = presentationTick % cycle;
-	const forwardTick = phase <= 48 ? phase : cycle - phase;
-	const scaled = forwardTick * (points.length - 1);
-	const index = Math.min(Math.floor(scaled / 48), points.length - 2);
-	const progress = scaled / 48 - index;
-	const from = points[index]!;
-	const to = points[index + 1]!;
-	return Object.freeze({
-		x: Math.round(from.x + (to.x - from.x) * progress),
-		y: Math.round(from.y + (to.y - from.y) * progress),
-		z: Math.round(from.z + (to.z - from.z) * progress),
+	const duration = GENERATED_TRAVEL_DURATION_TICKS;
+	return interpolatePath(points, Math.min(1, presentationTick / duration));
+}
+
+export function generatedVisualPhase(
+	lifecycle: GeneratedVisualLifecycle | null,
+	progress01: number,
+): GeneratedVisualPhase {
+	if (lifecycle === null) {
+		if (progress01 < 0.28) return "travel";
+		if (progress01 < 0.34) return "arrive";
+		if (progress01 < 0.78) return "perform";
+		if (progress01 < 0.86) return "result";
+		if (progress01 < 0.94) return "end";
+		return "wait";
+	}
+	const span = Math.max(1, lifecycle.simulationEnd - lifecycle.dayStart);
+	const elapsed = lifecycle.dayStart + progress01 * span;
+	if (elapsed < lifecycle.travelEnd) return "travel";
+	if (elapsed < lifecycle.travelEnd + span * 0.04) return "arrive";
+	if (elapsed < lifecycle.performEnd) return "perform";
+	if (elapsed < lifecycle.simulationEnd) return "result";
+	if (progress01 < 0.96) return "end";
+	return "wait";
+}
+
+export function animationClassForVisualPhase(
+	actor: GeneratedEmbodiedActor,
+	phase: GeneratedVisualPhase,
+): AnimationClass {
+	if (phase === "travel" || phase === "arrive")
+		return actor.visualLifecycle?.travelKind ?? "walk";
+	if (phase === "perform" || phase === "result")
+		return actor.visualLifecycle?.performKind ?? actor.animationClass;
+	if (phase === "wait" || phase === "end") return "idle";
+	return actor.animationClass;
+}
+
+export function sampleGeneratedActorPresentation(input: {
+	readonly actor: GeneratedEmbodiedActor;
+	readonly previous: GeneratedEmbodiedActor | null;
+	readonly slotPointMm: SpatialPointMm;
+	readonly progress01: number;
+	readonly reducedMotion: boolean;
+}): Readonly<{
+	readonly positionMm: SpatialPointMm;
+	readonly facingDegrees: number;
+	readonly animationClass: AnimationClass;
+	readonly pose: GeneratedPose;
+	readonly phase: GeneratedVisualPhase;
+}> {
+	const phase = generatedVisualPhase(
+		input.actor.visualLifecycle,
+		input.reducedMotion ? 0.55 : input.progress01,
+	);
+	const animationClass = animationClassForVisualPhase(input.actor, phase);
+	let positionMm = input.slotPointMm;
+	if (input.actor.grounding.kind === "route") {
+		const travelProgress =
+			input.reducedMotion || phase !== "travel"
+				? 1
+				: travelProgress01(input.actor.visualLifecycle, input.progress01);
+		positionMm = interpolatePath(
+			input.actor.grounding.traversalPathMm ?? [input.actor.positionMm],
+			travelProgress,
+		);
+	} else if (
+		(phase === "travel" || phase === "arrive") &&
+		input.previous !== null &&
+		!input.reducedMotion
+	) {
+		const travelProgress = travelProgress01(
+			input.actor.visualLifecycle,
+			input.progress01,
+		);
+		const from = input.previous.positionMm;
+		const to = input.slotPointMm;
+		positionMm = Object.freeze({
+			x: Math.round(from.x + (to.x - from.x) * travelProgress),
+			y: Math.round(from.y + (to.y - from.y) * travelProgress),
+			z: Math.round(from.z + (to.z - from.z) * travelProgress),
+		});
+	}
+	const facingDegrees =
+		input.previous === null ||
+		(positionMm.x === input.previous.positionMm.x &&
+			positionMm.z === input.previous.positionMm.z)
+			? input.actor.facingDegrees
+			: Math.round(
+					(Math.atan2(
+						positionMm.x - input.previous.positionMm.x,
+						positionMm.z - input.previous.positionMm.z,
+					) *
+						180) /
+						Math.PI,
+				);
+	const pose = poseForGeneratedActor({
+		animationClass,
+		positionMm,
+		routineKind: input.actor.visualLifecycle?.routineKind,
 	});
+	return Object.freeze({
+		positionMm,
+		facingDegrees:
+			phase === "travel" ? facingDegrees : input.actor.facingDegrees,
+		animationClass,
+		pose,
+		phase,
+	});
+}
+
+function travelProgress01(
+	lifecycle: GeneratedVisualLifecycle | null,
+	progress01: number,
+): number {
+	if (lifecycle === null) return Math.min(1, progress01 / 0.28);
+	const span = Math.max(1, lifecycle.travelEnd - lifecycle.dayStart);
+	const elapsed =
+		lifecycle.dayStart +
+		progress01 * Math.max(1, lifecycle.simulationEnd - lifecycle.dayStart);
+	return Math.max(0, Math.min(1, (elapsed - lifecycle.dayStart) / span));
 }
 
 function groundingFor(
@@ -408,12 +620,9 @@ function groundingFor(
 		actor.routeNodeIds.join() !== topologyInterior.join()
 	)
 		fail(`${actor.citizenId} route lacks registered entrance connectors`);
-	const prefixEnd = authoritativePoints[actorSegment]!;
-	const traversalPathMm = Object.freeze([
-		nodePoint(projection, entrances[0]!),
-		...authoritativePoints.slice(0, actorSegment + 1),
-		...(pointEqual(prefixEnd, actor.positionMm) ? [] : [actor.positionMm]),
-	]);
+	const traversalPathMm = Object.freeze(
+		topology.map((nodeId) => nodePoint(projection, nodeId)),
+	);
 	return Object.freeze({
 		kind: "route",
 		authoritativeNodeIds: Object.freeze([...actor.routeNodeIds]),
@@ -573,7 +782,11 @@ export function projectGeneratedEmbodiment(
 				placeId: actor.placeId,
 				actionId: actor.action.actionId,
 				animationClass: actor.animationClass,
-				pose: poseForGeneratedActor(actor),
+				pose: poseForGeneratedActor({
+					animationClass: actor.animationClass,
+					positionMm: actor.positionMm,
+					routineKind: activity.visualLifecycle?.routineKind,
+				}),
 				prop: actor.prop,
 				positionMm: Object.freeze({ ...actor.positionMm }),
 				facingDegrees: actor.facingDegrees,
@@ -582,9 +795,35 @@ export function projectGeneratedEmbodiment(
 				focal: actor.focal,
 				identityVariant: identityVariant(actor.citizenId),
 				semanticLabel: actor.semanticLabel,
+				visualLifecycle: activity.visualLifecycle ?? null,
 			});
 		}),
 	);
+	const previousByCitizen = new Map(
+		(input.previous?.spatial.actors ?? []).map((actor) => [
+			actor.citizenId,
+			actor,
+		]),
+	);
+	const teleportCount = actors.filter((actor) => {
+		const prior = previousByCitizen.get(actor.citizenId);
+		if (prior === undefined) return false;
+		if (pointEqual(prior.positionMm, actor.positionMm)) return false;
+		const sameRoute =
+			actor.grounding.kind === "route" &&
+			prior.travelState.routeId === actor.grounding.routeId &&
+			prior.travelState.progressBasisPoints !== null &&
+			actor.grounding.progressBasisPoints !== null;
+		if (
+			sameRoute &&
+			actor.grounding.progressBasisPoints! >
+				prior.travelState.progressBasisPoints!
+		)
+			return false;
+		if (metricDistance(prior.positionMm, actor.positionMm) <= 80_000)
+			return false;
+		return true;
+	}).length;
 	return Object.freeze({
 		schemaVersion: GENERATED_EMBODIMENT_SCHEMA_VERSION,
 		source: input.current.spatial.source,
@@ -593,6 +832,7 @@ export function projectGeneratedEmbodiment(
 		actors,
 		projects: projectDeltas(input.current, input.previous ?? null),
 		growth: growthDelta(input.current, input.previous ?? null),
+		teleportCount,
 		limitations: Object.freeze([]),
 	});
 }
@@ -664,6 +904,10 @@ export function projectGeneratedWorldEmbodiment(input: {
 		actors,
 		projects,
 		visibleCitizenCount: actors.length,
+		teleportCount: settlements.reduce(
+			(total, settlement) => total + settlement.teleportCount,
+			0,
+		),
 		limitations: Object.freeze(
 			settlements.flatMap((settlement) => settlement.limitations),
 		),
@@ -672,7 +916,7 @@ export function projectGeneratedWorldEmbodiment(input: {
 
 export interface GeneratedActorTransition {
 	readonly citizenId: string;
-	readonly kind: "stationary" | "grounded-route";
+	readonly kind: "stationary" | "grounded-route" | "approach";
 	readonly fromMm: SpatialPointMm;
 	readonly toMm: SpatialPointMm;
 	readonly routeId: string | null;
@@ -680,8 +924,9 @@ export interface GeneratedActorTransition {
 }
 
 /**
- * Allows interpolation only when two authoritative snapshots name the same
- * route and monotonic progress. Cross-action jumps fail closed as teleports.
+ * Same-route monotonic progress interpolates on the path. Slot or activity
+ * changes become a timed approach rather than a snap. Reverse progress still
+ * fails closed.
  */
 export function planGeneratedActorTransition(
 	previous: GeneratedEmbodiedActor,
@@ -699,24 +944,35 @@ export function planGeneratedActorTransition(
 			progressDeltaBasisPoints: 0,
 		});
 	if (
-		previous.grounding.kind !== "route" ||
-		current.grounding.kind !== "route" ||
-		previous.grounding.routeId !== current.grounding.routeId ||
-		previous.grounding.progressBasisPoints === null ||
-		current.grounding.progressBasisPoints === null ||
-		current.grounding.progressBasisPoints <=
+		previous.grounding.kind === "route" &&
+		current.grounding.kind === "route" &&
+		previous.grounding.routeId === current.grounding.routeId &&
+		previous.grounding.progressBasisPoints !== null &&
+		current.grounding.progressBasisPoints !== null
+	) {
+		if (
+			current.grounding.progressBasisPoints <=
 			previous.grounding.progressBasisPoints
-	)
-		fail(`unproven movement for ${current.citizenId}; refusing teleport`);
+		)
+			fail(`unproven movement for ${current.citizenId}; refusing teleport`);
+		return Object.freeze({
+			citizenId: current.citizenId,
+			kind: "grounded-route",
+			fromMm: previous.positionMm,
+			toMm: current.positionMm,
+			routeId: current.grounding.routeId,
+			progressDeltaBasisPoints:
+				current.grounding.progressBasisPoints -
+				previous.grounding.progressBasisPoints,
+		});
+	}
 	return Object.freeze({
 		citizenId: current.citizenId,
-		kind: "grounded-route",
+		kind: "approach",
 		fromMm: previous.positionMm,
 		toMm: current.positionMm,
 		routeId: current.grounding.routeId,
-		progressDeltaBasisPoints:
-			current.grounding.progressBasisPoints -
-			previous.grounding.progressBasisPoints,
+		progressDeltaBasisPoints: 10_000,
 	});
 }
 

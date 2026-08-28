@@ -149,19 +149,23 @@ export function generatedNavigationReferencesExist(
 	return true;
 }
 
-const FOLLOW_CAMERA_DISTANCE_MM = 18_000;
-const MIN_CAMERA_DISTANCE_MM = 8_000;
+export const FOLLOW_CAMERA_DISTANCE_MM = 9_500;
+const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
+export const FOLLOW_CAMERA_PITCH_DEGREES = -21;
+export const FOLLOW_SHOULDER_OFFSET_MM = 1_800;
+/** Three-quarter from behind so Follow sees the person, not a wall fill. */
+export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 148;
 
 export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 	Object.freeze({
 		focus: Object.freeze({ kind: "overview" }),
 		followCitizen: false,
-		distanceMm: 38_000,
-		yawDegrees: 42,
-		pitchDegrees: -38,
+		distanceMm: 32_000,
+		yawDegrees: 28,
+		pitchDegrees: -32,
 		panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 	});
 
@@ -223,9 +227,9 @@ export function reduceGeneratedNavigation(
 				...state,
 				focus: Object.freeze({ kind: "overview" }),
 				followCitizen: false,
-				distanceMm: 38_000,
-				yawDegrees: 42,
-				pitchDegrees: -38,
+				distanceMm: 32_000,
+				yawDegrees: 28,
+				pitchDegrees: -32,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-citizen":
@@ -236,8 +240,13 @@ export function reduceGeneratedNavigation(
 					kind: "citizen",
 					citizenId: action.citizenId,
 				}),
-				followCitizen: false,
-				distanceMm: Math.min(state.distanceMm, 9_000),
+				followCitizen: state.followCitizen,
+				distanceMm: state.followCitizen
+					? FOLLOW_CAMERA_DISTANCE_MM
+					: Math.min(state.distanceMm, 9_000),
+				pitchDegrees: state.followCitizen
+					? FOLLOW_CAMERA_PITCH_DEGREES
+					: state.pitchDegrees,
 				panOffsetMm: Object.freeze({ x: 0, z: 0 }),
 			});
 		case "select-building":
@@ -269,7 +278,10 @@ export function reduceGeneratedNavigation(
 			return Object.freeze({
 				...state,
 				followCitizen: !state.followCitizen,
-				distanceMm: state.followCitizen ? 9_000 : FOLLOW_CAMERA_DISTANCE_MM,
+				distanceMm: state.followCitizen ? 12_000 : FOLLOW_CAMERA_DISTANCE_MM,
+				pitchDegrees: state.followCitizen
+					? state.pitchDegrees
+					: FOLLOW_CAMERA_PITCH_DEGREES,
 			});
 		case "zoom":
 			return Object.freeze({
@@ -337,6 +349,7 @@ export function advanceGeneratedCameraIntent(
 	current: GeneratedCameraIntent,
 	desired: GeneratedCameraIntent,
 	reducedMotion: boolean,
+	dtSeconds?: number,
 ): GeneratedCameraIntent {
 	for (const [label, value] of [
 		["current distance", current.distanceMm],
@@ -350,20 +363,39 @@ export function advanceGeneratedCameraIntent(
 	] as const)
 		finite(value, label);
 	if (reducedMotion) return desired;
+	if (dtSeconds === undefined)
+		return Object.freeze({
+			...desired,
+			targetMm: Object.freeze({
+				x: interpolateInteger(current.targetMm.x, desired.targetMm.x),
+				y: interpolateInteger(current.targetMm.y, desired.targetMm.y),
+				z: interpolateInteger(current.targetMm.z, desired.targetMm.z),
+			}),
+			distanceMm: interpolateInteger(current.distanceMm, desired.distanceMm),
+			yawDegrees: interpolateYaw(current.yawDegrees, desired.yawDegrees),
+			pitchDegrees:
+				Math.abs(desired.pitchDegrees - current.pitchDegrees) <= 0.05
+					? desired.pitchDegrees
+					: current.pitchDegrees +
+						(desired.pitchDegrees - current.pitchDegrees) * 0.26,
+		});
+	const blend = 1 - 0.98 ** Math.max(0, dtSeconds * 60);
+	const mix = (from: number, to: number) =>
+		Math.abs(to - from) <= 1 ? to : from + (to - from) * blend;
 	return Object.freeze({
 		...desired,
 		targetMm: Object.freeze({
-			x: interpolateInteger(current.targetMm.x, desired.targetMm.x),
-			y: interpolateInteger(current.targetMm.y, desired.targetMm.y),
-			z: interpolateInteger(current.targetMm.z, desired.targetMm.z),
+			x: Math.round(mix(current.targetMm.x, desired.targetMm.x)),
+			y: Math.round(mix(current.targetMm.y, desired.targetMm.y)),
+			z: Math.round(mix(current.targetMm.z, desired.targetMm.z)),
 		}),
-		distanceMm: interpolateInteger(current.distanceMm, desired.distanceMm),
+		distanceMm: Math.round(mix(current.distanceMm, desired.distanceMm)),
 		yawDegrees: interpolateYaw(current.yawDegrees, desired.yawDegrees),
 		pitchDegrees:
 			Math.abs(desired.pitchDegrees - current.pitchDegrees) <= 0.05
 				? desired.pitchDegrees
 				: current.pitchDegrees +
-					(desired.pitchDegrees - current.pitchDegrees) * 0.26,
+					(desired.pitchDegrees - current.pitchDegrees) * blend,
 	});
 }
 

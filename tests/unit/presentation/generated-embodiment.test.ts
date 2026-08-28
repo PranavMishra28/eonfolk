@@ -10,6 +10,7 @@ import {
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
 	generatedTraversalPointAtTick,
+	generatedVisualPhase,
 	INITIAL_GENERATED_NAVIGATION,
 	parseGeneratedNavigationAction,
 	planGeneratedActorTransition,
@@ -18,6 +19,7 @@ import {
 	projectGeneratedEmbodiment,
 	projectGeneratedWorldEmbodiment,
 	reduceGeneratedNavigation,
+	sampleGeneratedActorPresentation,
 	sampleGeneratedActorTransition,
 	verifyGeneratedFolkAsset,
 } from "../../../apps/web/src/generated-presentation/index.js";
@@ -264,7 +266,8 @@ describe("generated embodiment projection", () => {
 			[...distancesFromOrigin].sort((left, right) => left - right),
 		);
 		const middle = actors[2]!;
-		const ticks = [0, 12, 24, 36, 48, 49];
+		const destination = middle.grounding.traversalPathMm?.at(-1);
+		const ticks = [0, 12, 24, 36, 48, 64];
 		const sampled = ticks.map((tick) =>
 			generatedTraversalPointAtTick(middle.grounding, tick),
 		);
@@ -272,10 +275,13 @@ describe("generated embodiment projection", () => {
 			new Set(sampled.slice(0, 5).map((value) => JSON.stringify(value))).size,
 		).toBe(5);
 		expect(sampled.at(-1)).toEqual(
-			generatedTraversalPointAtTick(middle.grounding, 47),
+			generatedTraversalPointAtTick(middle.grounding, 48),
 		);
 		expect(generatedTraversalPointAtTick(middle.grounding, 48)).toEqual(
-			middle.positionMm,
+			destination,
+		);
+		expect(generatedTraversalPointAtTick(middle.grounding, 96)).toEqual(
+			destination,
 		);
 		expect(models.every((model) => model.limitations.length === 0)).toBe(true);
 	});
@@ -332,8 +338,111 @@ describe("generated embodiment projection", () => {
 			),
 		);
 		expect(families).toEqual(
-			new Set(["locomotion", "carry", "work", "social", "life", "reaction"]),
+			new Set([
+				"wait",
+				"locomotion",
+				"carry",
+				"harvest",
+				"inspect",
+				"social",
+				"repair",
+				"life",
+				"reaction",
+			]),
 		);
+		expect(
+			poseForGeneratedActor({
+				animationClass: "repair",
+				routineKind: "construct",
+				positionMm: { x: 0, y: 0, z: 0 },
+			}).family,
+		).toBe("construct");
+	});
+
+	it("replays a visual lifecycle without reversing route travel", async () => {
+		const { projection, activities } = await fixture();
+		expect(
+			activities.every(
+				(activity) => activity.canonicalAction.simulationEnd !== null,
+			),
+		).toBe(true);
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const conversations = activities.filter(
+			(activity) =>
+				activity.canonicalAction.kind === "talk" ||
+				activity.canonicalAction.kind === "listen",
+		);
+		for (const activity of conversations) {
+			expect(activity.visualLifecycle.simulationEnd).toBeLessThanOrEqual(
+				activity.visualLifecycle.performEnd + 86_400,
+			);
+			expect(activity.canonicalAction.simulationEnd).not.toBeNull();
+		}
+		const walker =
+			model.actors.find((actor) => actor.grounding.kind === "route") ??
+			model.actors[0];
+		if (walker === undefined) throw new Error("fixture lacks an actor");
+		const start = sampleGeneratedActorPresentation({
+			actor: walker,
+			previous: null,
+			slotPointMm: walker.positionMm,
+			progress01: 0,
+			reducedMotion: false,
+		});
+		const mid = sampleGeneratedActorPresentation({
+			actor: walker,
+			previous: null,
+			slotPointMm: walker.positionMm,
+			progress01: 0.2,
+			reducedMotion: false,
+		});
+		const end = sampleGeneratedActorPresentation({
+			actor: walker,
+			previous: null,
+			slotPointMm: walker.positionMm,
+			progress01: 1,
+			reducedMotion: false,
+		});
+		expect(generatedVisualPhase(walker.visualLifecycle, 0)).toBe("travel");
+		expect(generatedVisualPhase(walker.visualLifecycle, 1)).not.toBe("travel");
+		if (walker.grounding.kind === "route") {
+			const origin = walker.grounding.traversalPathMm?.[0];
+			const destination = walker.grounding.traversalPathMm?.at(-1);
+			expect(start.positionMm).toEqual(origin);
+			expect(end.positionMm).toEqual(destination);
+			expect(mid.positionMm).not.toEqual(origin);
+			expect(mid.positionMm).not.toEqual(destination);
+		}
+		const approached = sampleGeneratedActorPresentation({
+			actor: walker,
+			previous: {
+				...walker,
+				positionMm: {
+					x: walker.positionMm.x - 12_000,
+					y: 0,
+					z: walker.positionMm.z,
+				},
+			},
+			slotPointMm: walker.positionMm,
+			progress01: 0.1,
+			reducedMotion: false,
+		});
+		expect(approached.positionMm).not.toEqual(walker.positionMm);
+		const reduced = sampleGeneratedActorPresentation({
+			actor: walker,
+			previous: null,
+			slotPointMm: walker.positionMm,
+			progress01: 0,
+			reducedMotion: true,
+		});
+		if (walker.grounding.kind === "route")
+			expect(reduced.positionMm).toEqual(
+				walker.grounding.traversalPathMm?.at(-1),
+			);
+		else expect(reduced.positionMm).toEqual(walker.positionMm);
 	});
 
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
@@ -416,7 +525,7 @@ describe("generated navigation parity", () => {
 		expect(intent.targetMm).toEqual(actor.positionMm);
 		expect(intent.followCitizenId).toBe(actor.citizenId);
 		expect(intent.semanticLabel).toContain("Following");
-		expect(following.distanceMm).toBe(18_000);
+		expect(following.distanceMm).toBe(9_500);
 	});
 
 	it("keeps a camera intent when the focused citizen has left", async () => {
@@ -479,7 +588,7 @@ describe("generated navigation parity", () => {
 		);
 
 		expect(orbited.panOffsetMm).toEqual({ x: 8_000, z: -4_000 });
-		expect(intent.yawDegrees).toBe(62);
+		expect(intent.yawDegrees).toBe(48);
 		expect(model).toEqual(before);
 	});
 

@@ -16,7 +16,7 @@ const ACTIVITY_LABELS: Readonly<Record<string, string>> = {
 	gather: "gathering resources",
 	"eat-rest": "resting and eating",
 	repair: "repairing a structure",
-	inspect: "checking stores",
+	inspect: "inspecting the work",
 };
 
 /**
@@ -34,6 +34,7 @@ export function GeneratedEmbodimentControls({
 	onTogglePresentation: _onTogglePresentation,
 	onStepPresentation,
 	onNavigationRejected,
+	showLookAround = true,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -46,6 +47,7 @@ export function GeneratedEmbodimentControls({
 	readonly onNavigationRejected?: (
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
+	readonly showLookAround?: boolean;
 }) {
 	useEffect(() => {
 		const onCanvasNavigation = (event: Event) => {
@@ -131,75 +133,77 @@ export function GeneratedEmbodimentControls({
 			className="generated-embodiment-controls"
 			aria-label="World navigation"
 		>
-			<fieldset className="generated-camera-controls">
-				<legend>Look around</legend>
-				<button type="button" onClick={() => dispatch({ type: "overview" })}>
-					Settlement overview
-				</button>
-				<button
-					type="button"
-					onClick={() => dispatch({ type: "zoom", deltaMm: -8_000 })}
-				>
-					Zoom in
-				</button>
-				<button
-					type="button"
-					onClick={() => dispatch({ type: "zoom", deltaMm: 8_000 })}
-				>
-					Zoom out
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({
-							type: "orbit",
-							yawDeltaDegrees: -12,
-							pitchDeltaDegrees: 0,
-						})
-					}
-				>
-					Orbit left
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({
-							type: "orbit",
-							yawDeltaDegrees: 12,
-							pitchDeltaDegrees: 0,
-						})
-					}
-				>
-					Orbit right
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 })
-					}
-				>
-					Pan west
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 })
-					}
-				>
-					Pan east
-				</button>
-				<button
-					type="button"
-					disabled={selectedCitizenId === null}
-					aria-pressed={navigation.followCitizen}
-					onClick={() => dispatch({ type: "toggle-follow" })}
-				>
-					{navigation.followCitizen ? "Stop following" : "Follow this person"}
-				</button>
-				<button type="button" onClick={onStepPresentation}>
-					Step one beat
-				</button>
-			</fieldset>
+			{showLookAround ? (
+				<fieldset className="generated-camera-controls">
+					<legend>Look around</legend>
+					<button type="button" onClick={() => dispatch({ type: "overview" })}>
+						Settlement overview
+					</button>
+					<button
+						type="button"
+						onClick={() => dispatch({ type: "zoom", deltaMm: -8_000 })}
+					>
+						Zoom in
+					</button>
+					<button
+						type="button"
+						onClick={() => dispatch({ type: "zoom", deltaMm: 8_000 })}
+					>
+						Zoom out
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({
+								type: "orbit",
+								yawDeltaDegrees: -12,
+								pitchDeltaDegrees: 0,
+							})
+						}
+					>
+						Orbit left
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({
+								type: "orbit",
+								yawDeltaDegrees: 12,
+								pitchDeltaDegrees: 0,
+							})
+						}
+					>
+						Orbit right
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 })
+						}
+					>
+						Pan west
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 })
+						}
+					>
+						Pan east
+					</button>
+					<button
+						type="button"
+						disabled={selectedCitizenId === null}
+						aria-pressed={navigation.followCitizen}
+						onClick={() => dispatch({ type: "toggle-follow" })}
+					>
+						{navigation.followCitizen ? "Stop following" : "Follow this person"}
+					</button>
+					<button type="button" onClick={onStepPresentation}>
+						Step one beat
+					</button>
+				</fieldset>
+			) : null}
 			<p
 				className="generated-camera-status"
 				data-testid="generated-camera-status"

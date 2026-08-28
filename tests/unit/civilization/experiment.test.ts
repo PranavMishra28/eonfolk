@@ -274,7 +274,11 @@ describe("deterministic civilization experiment", () => {
 				(activity) =>
 					activity.canonicalAction.sourceKind === "current-behavior" &&
 					activity.canonicalAction.eventId === null &&
-					activity.routine.schemaVersion === "eonfolk-civilization-routine-v1",
+					activity.routine.schemaVersion ===
+						"eonfolk-civilization-routine-v1" &&
+					activity.canonicalAction.simulationEnd !== null &&
+					activity.visualLifecycle.simulationEnd <=
+						activity.canonicalAction.simulationEnd,
 			),
 		).toBe(true);
 		const routedCarrier = first.activities.find(

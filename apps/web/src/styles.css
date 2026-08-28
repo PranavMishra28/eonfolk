@@ -2730,6 +2730,33 @@ em {
 	gap: 1.3rem;
 }
 
+.v1-entry-hero-world {
+	min-height: 22rem;
+	overflow: hidden;
+	border: 1px solid rgba(226, 223, 199, 0.28);
+	background: #5f7358;
+	box-shadow: 18px 22px 0 rgba(0, 0, 0, 0.22);
+}
+
+.generated-world-hero,
+.generated-world-hero.generated-world-canvas {
+	pointer-events: none;
+	height: min(32rem, 68vh);
+	min-height: 22rem;
+}
+
+.v1-entry-footer {
+	display: flex;
+	gap: 1.75rem;
+	padding: 1.25rem clamp(1.2rem, 6vw, 6rem) 2.5rem;
+	color: #c6c9ba;
+	background: #111711;
+}
+
+.v1-entry-footer a {
+	color: #e7d7ae;
+}
+
 .v1-entry-copy h1 {
 	max-width: 12ch;
 	margin: 0;
@@ -3231,6 +3258,11 @@ em {
 		transition-duration: 0.001ms !important;
 		animation-duration: 0.001ms !important;
 		animation-iteration-count: 1 !important;
+	}
+
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none !important;
 	}
 
 	.v1-region-grid,
@@ -3939,20 +3971,22 @@ em {
 @media (max-width: 720px) {
 	.v1-living-stage {
 		display: block;
-		height: auto;
+		height: 100svh;
 	}
 
 	.v1-world-canvas-frame {
-		height: 58svh;
+		height: 100svh;
 		min-height: 26rem;
 	}
 
 	.v1-context-panel {
-		position: relative;
-		inset: auto;
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
 		width: auto;
-		max-height: none;
-		overflow: visible;
+		max-height: 42svh;
+		overflow: auto;
 		padding: 0.75rem;
 		box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
 	}
@@ -4084,13 +4118,14 @@ em {
 	display: grid;
 	gap: 0.05rem;
 	min-width: 2.75rem;
-	padding: 0.2rem 0.45rem;
+	max-width: 9.5rem;
+	padding: 0.18rem 0.4rem;
 	border: 1px solid rgba(35, 38, 31, 0.35);
 	border-radius: 0.35rem;
 	color: #23180c;
 	background: rgba(255, 248, 230, 0.92);
 	font: inherit;
-	font-size: 0.75rem;
+	font-size: 0.72rem;
 	line-height: 1.2;
 	text-align: left;
 	cursor: pointer;
@@ -4216,8 +4251,16 @@ em {
 	gap: clamp(1rem, 3vw, 2rem);
 	min-height: 65vh;
 	padding: clamp(1rem, 4vw, 4rem);
+}
+
+.generated-semantic {
 	color: #242820;
 	background: #e8dcc0;
+}
+
+.generated-overview {
+	color: #eee7d3;
+	background: #19231b;
 }
 
 .generated-semantic {
@@ -4237,6 +4280,7 @@ em {
 .generated-semantic h3,
 .generated-settlement-cards h3 {
 	margin: 0 0 0.75rem;
+	color: inherit;
 	font-family: Georgia, "Times New Roman", serif;
 	font-size: 1.45rem;
 	font-weight: 500;

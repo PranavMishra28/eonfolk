@@ -53,6 +53,7 @@ function routeActor(input: {
 		focal: false,
 		identityVariant: 1,
 		semanticLabel: "Property citizen is walking",
+		visualLifecycle: null,
 	};
 }
 
@@ -114,7 +115,7 @@ describe("generated embodiment properties", () => {
 						yawDeltaDegrees: yawDelta,
 						pitchDeltaDegrees: pitchDelta,
 					});
-					expect(orbited.distanceMm).toBeGreaterThanOrEqual(8_000);
+					expect(orbited.distanceMm).toBeGreaterThanOrEqual(4_500);
 					expect(orbited.distanceMm).toBeLessThanOrEqual(180_000);
 					expect(orbited.yawDegrees).toBeGreaterThanOrEqual(0);
 					expect(orbited.yawDegrees).toBeLessThan(360);
