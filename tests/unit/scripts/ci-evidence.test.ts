@@ -18,7 +18,10 @@ import {
 	verificationContractSha256,
 	verificationStepsForTier,
 } from "../../../scripts/run-verification-tier.mjs";
-import { inspectNetlogEgress } from "../../../scripts/validate-web-network.mjs";
+import {
+	inspectNetlogEgress,
+	validateWebNetworkOutput,
+} from "../../../scripts/validate-web-network.mjs";
 
 describe("Founder Alpha CI evidence controls", () => {
 	it("derives browser coverage from the exact Playwright roster", () => {
@@ -154,6 +157,24 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(ctaQualification).not.toContain("canvas");
 	});
 
+	it("runs Linux CI production Playwright on four isolated workers", () => {
+		const config = readFileSync(
+			resolve("apps/web/playwright.config.ts"),
+			"utf8",
+		);
+		expect(config).toContain("fullyParallel: linuxCi");
+		expect(config).toContain("workers: linuxCi ? 4 : 1");
+		expect(config).toContain("netlog-w");
+		expect(config).toContain("TEST_WORKER_INDEX");
+		expect(config).not.toContain("workers: 1,");
+		const fixture = readFileSync(
+			resolve("tests/e2e/support/eonfolk-fixture.ts"),
+			"utf8",
+		);
+		expect(fixture).toContain("route-log-w");
+		expect(fixture).not.toContain('route-log.json"');
+	});
+
 	it("runs the strongest generated-world journey in Linux CI with fail-closed WebGL", () => {
 		const config = readFileSync(
 			resolve("apps/web/playwright.config.ts"),
@@ -216,6 +237,72 @@ describe("Founder Alpha CI evidence controls", () => {
 			],
 		});
 		expect(evidence).toEqual({ externalAttempts: [], localEvidence: 1 });
+	});
+
+	it("accepts isolated per-worker netlogs and route logs", () => {
+		const directory = mkdtempSync(join(tmpdir(), "eonfolk-netlog-workers-"));
+		try {
+			const routeEntry = {
+				action: "allow",
+				method: "GET",
+				resourceType: "document",
+				url: "http://127.0.0.1:4174/world",
+			};
+			const localEvent = {
+				type: 1,
+				params: { url: "http://127.0.0.1:4174/index.html" },
+			};
+			writeFileSync(
+				join(directory, "route-log-w0.json"),
+				JSON.stringify([routeEntry]),
+			);
+			writeFileSync(
+				join(directory, "route-log-w1.json"),
+				JSON.stringify([routeEntry, routeEntry]),
+			);
+			writeFileSync(
+				join(directory, "netlog-w0.json"),
+				JSON.stringify({ events: [localEvent, localEvent] }),
+			);
+			writeFileSync(
+				join(directory, "netlog-w1.json"),
+				JSON.stringify({ events: [localEvent] }),
+			);
+			expect(validateWebNetworkOutput(directory)).toEqual({
+				routeRequestCount: 3,
+				netlogEventCount: 3,
+				routeLogFiles: 2,
+				netlogFiles: 2,
+			});
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects interleaved worker netlog JSON", () => {
+		const directory = mkdtempSync(join(tmpdir(), "eonfolk-netlog-corrupt-"));
+		try {
+			writeFileSync(
+				join(directory, "route-log-w0.json"),
+				JSON.stringify([
+					{
+						action: "allow",
+						method: "GET",
+						resourceType: "document",
+						url: "http://127.0.0.1:4174/world",
+					},
+				]),
+			);
+			writeFileSync(
+				join(directory, "netlog-w0.json"),
+				'{"events":[{"type":1,"params":{"url":"http://127.0.0.1:4174/"}}]}\n{"events":[]}',
+			);
+			expect(() => validateWebNetworkOutput(directory)).toThrow(
+				/invalid Chromium netlog: netlog-w0\.json/u,
+			);
+		} finally {
+			rmSync(directory, { recursive: true, force: true });
+		}
 	});
 
 	it("still rejects a real external connection field after interface filtering", () => {

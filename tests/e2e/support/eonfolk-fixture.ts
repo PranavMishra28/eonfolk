@@ -15,10 +15,18 @@ import {
 } from "@playwright/test";
 
 const allowedOrigin = "http://127.0.0.1:4174";
-const routeLogPath = resolve(
+const routeLogDirectory = resolve(
 	import.meta.dirname,
-	"../../../tmp/dawnmere-playwright/route-log.json",
+	"../../../tmp/dawnmere-playwright",
 );
+
+function workerRouteLogPath(): string {
+	const workerIndexEnv = process.env.TEST_WORKER_INDEX ?? "";
+	const workerIndex = /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv)
+		? workerIndexEnv
+		: "0";
+	return resolve(routeLogDirectory, `route-log-w${workerIndex}.json`);
+}
 
 type RouteLogEntry = Readonly<{
 	action: "allow" | "deny";
@@ -29,6 +37,7 @@ type RouteLogEntry = Readonly<{
 
 function appendRouteLog(entries: readonly RouteLogEntry[]): void {
 	if (entries.length === 0) return;
+	const routeLogPath = workerRouteLogPath();
 	mkdirSync(dirname(routeLogPath), { recursive: true });
 	const previous = existsSync(routeLogPath)
 		? (JSON.parse(readFileSync(routeLogPath, "utf8")) as RouteLogEntry[])

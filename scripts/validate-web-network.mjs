@@ -1,6 +1,9 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const localHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+const NETLOG_NAME = /^(?:netlog|netlog-w\d+)\.json$/u;
+const ROUTE_LOG_NAME = /^(?:route-log|route-log-w\d+)\.json$/u;
 
 export function inspectNetlogEgress(netlog) {
 	if (!Array.isArray(netlog.events) || netlog.events.length === 0)
@@ -57,13 +60,40 @@ export function inspectNetlogEgress(netlog) {
 	});
 }
 
+function listArtifactFiles(output, pattern) {
+	let names;
+	try {
+		names = readdirSync(output);
+	} catch (error) {
+		if (error?.code === "ENOENT")
+			throw new Error(`missing Playwright output directory: ${output}`);
+		throw error;
+	}
+	return names.filter((name) => pattern.test(name)).sort();
+}
+
+function readJsonArtifact(output, name, label) {
+	const path = join(output, name);
+	try {
+		return JSON.parse(readFileSync(path, "utf8"));
+	} catch {
+		throw new Error(`invalid ${label}: ${name}`);
+	}
+}
+
 export function validateWebNetworkOutput(
 	output = "tmp/dawnmere-playwright",
 	allowedOrigin = "http://127.0.0.1:4174",
 ) {
-	const routeLog = JSON.parse(readFileSync(`${output}/route-log.json`, "utf8"));
-	if (!Array.isArray(routeLog) || routeLog.length === 0)
-		throw new Error("empty Dawnmere route log");
+	const routeLogNames = listArtifactFiles(output, ROUTE_LOG_NAME);
+	if (routeLogNames.length === 0) throw new Error("empty Dawnmere route log");
+	const routeLog = [];
+	for (const name of routeLogNames) {
+		const entries = readJsonArtifact(output, name, "Dawnmere route log");
+		if (!Array.isArray(entries) || entries.length === 0)
+			throw new Error(`empty Dawnmere route log: ${name}`);
+		routeLog.push(...entries);
+	}
 	for (const entry of routeLog) {
 		if (
 			entry.action !== "allow" ||
@@ -73,17 +103,25 @@ export function validateWebNetworkOutput(
 			throw new Error(`external route attempt: ${JSON.stringify(entry)}`);
 	}
 
-	const netlog = JSON.parse(readFileSync(`${output}/netlog.json`, "utf8"));
-	const evidence = inspectNetlogEgress(netlog);
-	if (evidence.externalAttempts.length > 0)
-		throw new Error(
-			`external netlog attempt: ${evidence.externalAttempts.join(", ")}`,
-		);
-	if (evidence.localEvidence === 0)
-		throw new Error("netlog lacks local preview evidence");
+	const netlogNames = listArtifactFiles(output, NETLOG_NAME);
+	if (netlogNames.length === 0) throw new Error("empty Chromium netlog");
+	let netlogEventCount = 0;
+	for (const name of netlogNames) {
+		const netlog = readJsonArtifact(output, name, "Chromium netlog");
+		const evidence = inspectNetlogEgress(netlog);
+		if (evidence.externalAttempts.length > 0)
+			throw new Error(
+				`external netlog attempt: ${evidence.externalAttempts.join(", ")}`,
+			);
+		if (evidence.localEvidence === 0)
+			throw new Error(`netlog lacks local preview evidence: ${name}`);
+		netlogEventCount += netlog.events.length;
+	}
 	return Object.freeze({
 		routeRequestCount: routeLog.length,
-		netlogEventCount: netlog.events.length,
+		netlogEventCount,
+		routeLogFiles: routeLogNames.length,
+		netlogFiles: netlogNames.length,
 	});
 }
 
@@ -110,6 +148,6 @@ if (import.meta.url === new URL(process.argv[1], "file:").href) {
 		? validateViewportEvidence()
 		: null;
 	process.stdout.write(
-		`Dawnmere network oracles pass: ${result.routeRequestCount} routed requests, ${result.netlogEventCount} netlog events, zero external attempts${viewportEvidence === null ? "" : "; three required viewport captures present"}\n`,
+		`Dawnmere network oracles pass: ${result.routeRequestCount} routed requests, ${result.netlogEventCount} netlog events, ${result.netlogFiles} worker netlogs, zero external attempts${viewportEvidence === null ? "" : "; three required viewport captures present"}\n`,
 	);
 }

@@ -3,17 +3,27 @@ import { defineConfig } from "@playwright/test";
 
 const linuxCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const captureMedia = process.env.EONFOLK_CAPTURE_MEDIA === "1";
+const playwrightOutputDir = resolve(
+	import.meta.dirname,
+	"../../tmp/dawnmere-playwright",
+);
+const workerIndexEnv = process.env.TEST_WORKER_INDEX ?? "";
+const workerIndex = /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv)
+	? workerIndexEnv
+	: "0";
 
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
-	outputDir: resolve(import.meta.dirname, "../../tmp/dawnmere-playwright"),
+	outputDir: playwrightOutputDir,
 	grepInvert: linuxCi
 		? /@fault|@illustrated-target|@synthetic/u
 		: /@fault|@synthetic/u,
-	fullyParallel: false,
-	// Chromium netlog is a single release-evidence artifact. Multiple browser
-	// workers would interleave writes and can leave syntactically invalid JSON.
-	workers: 1,
+	// Linux CI production e2e is independent per Playwright context (IndexedDB /
+	// localStorage) and per worker browser profile. The preview server is static,
+	// so workers share 127.0.0.1:4174. Chromium --log-net-log is browser-scoped
+	// and must stay on a unique file or workers interleave invalid JSON.
+	fullyParallel: linuxCi,
+	workers: linuxCi ? 4 : 1,
 	retries: 0,
 	reporter: "line",
 	use: {
@@ -51,7 +61,7 @@ export default defineConfig({
 				"--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1",
 				"--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
 				"--gaia-url=http://127.0.0.1:4174",
-				`--log-net-log=${resolve(import.meta.dirname, "../../tmp/dawnmere-playwright/netlog.json")}`,
+				`--log-net-log=${resolve(playwrightOutputDir, `netlog-w${workerIndex}.json`)}`,
 				"--metrics-recording-only",
 				"--no-default-browser-check",
 				"--no-first-run",
