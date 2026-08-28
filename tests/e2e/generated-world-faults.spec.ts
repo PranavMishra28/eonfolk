@@ -603,7 +603,7 @@ test.describe
 			expect(externalRequests).toEqual([]);
 		});
 
-		test("stale IndexedDB is rebuilt silently for a returning stranger @fault", async ({
+		test("stale IndexedDB is quarantined under crash hooks and rebuilt after explicit recovery @fault", async ({
 			page,
 		}) => {
 			const externalRequests = await isolateGeneratedWorld(page);
@@ -625,19 +625,24 @@ test.describe
 					open.onerror = () => reject(open.error);
 				});
 			});
+			const staleAuthority = await authorityFingerprint(page);
 			await page.goto("/world", { waitUntil: "domcontentloaded" });
 			const world = page.locator("main.v1-world");
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+				timeout: 30_000,
+			});
+			expect(await authorityFingerprint(page)).toEqual(staleAuthority);
+			await page
+				.getByRole("button", { name: "Start a fresh local town" })
+				.click();
 			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 				timeout: 30_000,
 			});
-			await expect(
-				page.getByRole("button", { name: "Start a fresh local town" }),
-			).toHaveCount(0);
 			await expect(world).toHaveAttribute("data-play-rate", "1");
 			expect(externalRequests).toEqual([]);
 		});
 
-		test("corrupt IndexedDB ledger is rebuilt silently without presenting its facts @fault", async ({
+		test("corrupt IndexedDB ledger is quarantined without presenting its facts @fault", async ({
 			page,
 		}) => {
 			const externalRequests = await isolateGeneratedWorld(page);
@@ -688,16 +693,20 @@ test.describe
 			const corruptedAuthority = await authorityFingerprint(page);
 			expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 			await page.reload({ waitUntil: "domcontentloaded" });
-			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 				timeout: 30_000,
 			});
 			await expect(world).toHaveAttribute(
 				"data-state-hash",
 				canonicalHash ?? "",
 			);
-			await expect(
-				page.getByRole("button", { name: "Start a fresh local town" }),
-			).toHaveCount(0);
+			expect(await authorityFingerprint(page)).toEqual(corruptedAuthority);
+			await page
+				.getByRole("button", { name: "Start a fresh local town" })
+				.click();
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
 			expect(externalRequests).toEqual([]);
 		});
 	});
