@@ -604,6 +604,22 @@ describe("generated civilization spatial adapter", () => {
 			presentationTick: 61,
 		});
 		expect(unlinked.spatial.interactions).toEqual([]);
+		const ended = projectGeneratedCivilizationSpatial({
+			world: run.world,
+			civilization: socialState,
+			checkpoint: run,
+			settlementId: run.seedConditions.originSettlementId,
+			activities: activities.map((activity) => ({
+				...activity,
+				canonicalAction: {
+					...activity.canonicalAction,
+					simulationEnd: socialState.simulationTime,
+				},
+			})),
+			presentationTick: 62,
+		});
+		expect(ended.spatial.interactions[0]?.status).toBe("committed");
+		expect(ended.spatial.interactions[0]?.semanticLabel).not.toMatch(/site_/u);
 	});
 
 	it("is deterministic across seeds and never mutates world or civilization Reality", async () => {

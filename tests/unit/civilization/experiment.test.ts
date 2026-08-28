@@ -274,7 +274,11 @@ describe("deterministic civilization experiment", () => {
 				(activity) =>
 					activity.canonicalAction.sourceKind === "current-behavior" &&
 					activity.canonicalAction.eventId === null &&
-					activity.routine.schemaVersion === "eonfolk-civilization-routine-v1",
+					activity.routine.schemaVersion ===
+						"eonfolk-civilization-routine-v1" &&
+					activity.canonicalAction.simulationEnd !== null &&
+					activity.visualLifecycle.simulationEnd <=
+						activity.canonicalAction.simulationEnd,
 			),
 		).toBe(true);
 		const routedCarrier = first.activities.find(
@@ -515,6 +519,18 @@ describe("deterministic civilization experiment", () => {
 				second.canonicalAction.affordanceSlotIndex,
 			]),
 		).toHaveLength(2);
+		expect(firstCitizen?.lastSocialSimulationTime).toBe(
+			run.state.simulationTime,
+		);
+		expect(secondCitizen?.lastSocialSimulationTime).toBe(
+			run.state.simulationTime,
+		);
+		expect(firstCitizen?.lastSocialSimulationTime).not.toBe(
+			first.visualLifecycle.performEnd,
+		);
+		expect(first.visualLifecycle.performEnd).toBeLessThan(
+			run.state.simulationTime,
+		);
 
 		const input = {
 			world: run.world,
@@ -560,6 +576,32 @@ describe("deterministic civilization experiment", () => {
 				}).spatial.interactions,
 			).toEqual([]);
 		}
+	});
+
+	it("does not immediately re-pair a conversation the next odd day", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-canonical-social-cooldown",
+		);
+		const firstDay = await runCivilizationExperiment({ world, horizonDays: 1 });
+		const talking = firstDay.activities.filter((activity) =>
+			["talk", "listen"].includes(activity.canonicalAction.kind),
+		);
+		expect(talking.length === 0 || talking.length === 2).toBe(true);
+		if (talking.length === 2) {
+			const speaker = firstDay.state.citizens[talking[0]?.citizenId ?? ""];
+			expect(speaker?.lastSocialSimulationTime).toBe(
+				firstDay.state.simulationTime,
+			);
+			expect(speaker?.lastSocialSimulationTime).not.toBe(
+				talking[0]?.visualLifecycle.performEnd,
+			);
+		}
+		const thirdDay = await runCivilizationExperiment({ world, horizonDays: 3 });
+		const thirdDayTalk = thirdDay.activities.filter((activity) =>
+			["talk", "listen"].includes(activity.canonicalAction.kind),
+		);
+		if (talking.length === 2) expect(thirdDayTalk).toEqual([]);
 	});
 
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {

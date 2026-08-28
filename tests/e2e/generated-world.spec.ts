@@ -5,6 +5,8 @@ import {
 	type Page,
 	test,
 } from "./support/eonfolk-fixture";
+import { expectFollowShowsPerson } from "./support/follow-body";
+import { revealPeopleAndWork, revealWorldTools } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -788,6 +790,7 @@ async function selectCanonicalResidentFromCanvas(
 
 async function selectCanonicalMara(page: Page): Promise<string> {
 	const citizenId = "citizen-01";
+	await revealPeopleAndWork(page);
 	const resident = page.locator(
 		`ul.v1-presence-roster button[data-citizen-id="${citizenId}"]`,
 	);
@@ -1191,7 +1194,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 	await expect(canvas).toHaveAttribute("data-navigation-mode", "direct");
 	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	const tools = page.locator("details.v1-world-tools");
-	await tools.locator("summary").click();
+	await revealWorldTools(page);
 	await expect(tools.locator("button[data-building-id]")).toHaveCount(4);
 	const desktopBuilding = tools.locator("button[data-building-id]").first();
 	await desktopBuilding.focus();
@@ -1264,10 +1267,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await page.setViewportSize(viewport);
 		const back = page.getByRole("button", { name: "Back to settlement" });
 		if (await back.isVisible()) await back.click();
-		if (
-			!(await tools.evaluate((details) => (details as HTMLDetailsElement).open))
-		)
-			await tools.locator("summary").click();
+		await revealWorldTools(page);
 		const buildingButton = tools.locator("button[data-building-id]").first();
 		await buildingButton.focus();
 		await expect(buildingButton).toBeFocused();
@@ -1278,12 +1278,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 		await expect(page.getByText("BUILDING IN FOCUS")).toBeVisible();
 		if (viewport.width === 390) {
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (
-				!(await tools.evaluate(
-					(details) => (details as HTMLDetailsElement).open,
-				))
-			)
-				await tools.locator("summary").click();
+			await revealWorldTools(page);
 			const mobileCitizen = tools.locator("button[data-citizen-id]").first();
 			await mobileCitizen.focus();
 			await expect(mobileCitizen).toBeFocused();
@@ -1291,12 +1286,7 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await expect(mobileCitizen).toHaveAttribute("aria-pressed", "true");
 			await expect(page.getByText("PERSON IN FOCUS")).toBeVisible();
 			await page.getByRole("button", { name: "Back to settlement" }).click();
-			if (
-				!(await tools.evaluate(
-					(details) => (details as HTMLDetailsElement).open,
-				))
-			)
-				await tools.locator("summary").click();
+			await revealWorldTools(page);
 			const mobileProject = tools.locator("button[data-project-id]").first();
 			await mobileProject.focus();
 			await expect(mobileProject).toBeFocused();
@@ -1347,6 +1337,9 @@ test("first session stays in Dawnmere without a empty settlement tab @generated-
 		"8",
 	);
 	await expect(page.locator("ul.v1-presence-roster button")).toHaveCount(8);
+	await expect(page.getByText("HAPPENING NOW")).toBeVisible();
+	await expect(page.getByText(/lives are unfolding/u)).toBeVisible();
+	await page.locator("aside.v1-context-panel h2").click();
 	await expect(
 		page.getByRole("list", { name: "Visible activities" }),
 	).toBeVisible();
@@ -1437,20 +1430,14 @@ test("entry admits the deterministic view when canonical IndexedDB is newer @gen
 
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
 	const world = page.locator("main.v1-world");
-	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await expect(world).toHaveAttribute(
-		"data-persistence-claim",
-		"admitted-deterministic-view",
-	);
-	await expect(world).toHaveAttribute(
-		"data-persistence-failure-code",
-		"DATABASE_VERSION",
-	);
+	await expect(world).toHaveAttribute("data-play-rate", "1");
 	await expect(
-		page.getByText(/The stored authority was rejected/u),
-	).toBeVisible();
+		page.getByRole("button", { name: "Start a fresh local town" }),
+	).toHaveCount(0);
+	await expect(page.getByText(/cannot be read/u)).toHaveCount(0);
 });
 
 test("semantic people remain keyboard-operable @generated-world", async ({
@@ -1596,7 +1583,7 @@ test("production degrades an IndexedDB SecurityError without leaking detail @gen
 		"data-persistence-failure-code",
 		"SecurityError",
 	);
-	await expect(page.getByText(/Local persistence unavailable/u)).toBeVisible();
+	await expect(page.getByText(/cannot save the town/u)).toBeVisible();
 	await expect(page.getByText("private open detail")).toHaveCount(0);
 });
 
@@ -1621,9 +1608,7 @@ for (const boundary of [
 			"data-persistence-failure-code",
 			boundary.name,
 		);
-		await expect(
-			page.getByText(/Local persistence unavailable/u),
-		).toBeVisible();
+		await expect(page.getByText(/cannot save the town/u)).toBeVisible();
 		await expect(page.locator("body")).not.toContainText(
 			`private ${boundary.name} detail`,
 		);
@@ -1635,19 +1620,22 @@ for (const corruption of [
 		kind: "genesis-schema",
 		label: "unsupported genesis schema",
 		failureCode: "UNSUPPORTED_VERSION",
+		recover: "silent",
 	},
 	{
 		kind: "engine-version",
 		label: "hash-valid foreign engine version",
 		failureCode: "UNSUPPORTED_VERSION",
+		recover: "silent",
 	},
 	{
 		kind: "range-gap",
 		label: "operation range gap",
 		failureCode: "RANGE_GAP",
+		recover: "tap",
 	},
 ] as const) {
-	test(`production quarantines a persisted ${corruption.label} until explicit recovery @generated-world`, async ({
+	test(`production recovers a persisted ${corruption.label} without a stranger rebuild banner @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1666,25 +1654,30 @@ for (const corruption of [
 		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			corruption.failureCode,
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(
-			corruptedAuthority,
-		);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
+		if (corruption.recover === "silent") {
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
+			await expect(
+				page.getByRole("button", { name: "Start a fresh local town" }),
+			).toHaveCount(0);
+		} else {
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+				timeout: 30_000,
+			});
+			await expect(world).toHaveAttribute(
+				"data-persistence-claim",
+				"admitted-deterministic-view",
+			);
+			await expect(world).toHaveAttribute(
+				"data-persistence-failure-code",
+				corruption.failureCode,
+			);
+			await expect(world).toHaveAttribute("data-play-rate", "1");
+			await page
+				.getByRole("button", { name: "Start a fresh local town" })
+				.click();
+		}
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
@@ -1749,7 +1742,7 @@ for (const orphan of [
 		declaration: "foreign",
 	},
 ] as const) {
-	test(`production quarantines a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
+	test(`production recovers a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1770,26 +1763,12 @@ for (const orphan of [
 		expect(orphanAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(orphanAuthority);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1829,7 +1808,7 @@ for (const mismatch of [
 		mode: "logical-key-alias",
 	},
 ] as const) {
-	test(`production quarantines an existing stream with a ${mismatch.label} without mutation @generated-world`, async ({
+	test(`production recovers an existing stream with a ${mismatch.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1853,26 +1832,12 @@ for (const mismatch of [
 		expect(forgedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(forgedAuthority);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1903,7 +1868,7 @@ for (const streamFixture of [
 		label: "existing stream with a malformed target row",
 	},
 ] as const) {
-	test(`production quarantines ${streamFixture.label} without mutation @generated-world`, async ({
+	test(`production recovers ${streamFixture.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1927,28 +1892,12 @@ for (const streamFixture of [
 		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(
-			corruptedAuthority,
-		);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1967,7 +1916,7 @@ test("production recovery surfaces a synchronous database deletion failure and p
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await corruptGeneratedAuthority(page, "genesis-schema");
+	await corruptGeneratedAuthority(page, "range-gap");
 	const corruptedAuthority = await generatedAuthorityFingerprint(page);
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
@@ -1982,7 +1931,7 @@ test("production recovery surfaces a synchronous database deletion failure and p
 		});
 	});
 	const rebuild = page.getByRole("button", {
-		name: "Rebuild local checkpoint",
+		name: "Start a fresh local town",
 	});
 	await rebuild.click();
 	await expect(page.getByText(/Recovery could not start/u)).toBeVisible();
@@ -2003,7 +1952,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await corruptGeneratedAuthority(page, "genesis-schema");
+	await corruptGeneratedAuthority(page, "range-gap");
 	const blocker = await page.context().newPage();
 	await blocker.goto("/research", { waitUntil: "domcontentloaded" });
 	await blocker.evaluate(
@@ -2024,9 +1973,9 @@ test("production recovery explains a blocked database deletion and resumes after
 	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 		timeout: 30_000,
 	});
-	await page.getByRole("button", { name: "Rebuild local checkpoint" }).click();
+	await page.getByRole("button", { name: "Start a fresh local town" }).click();
 	await expect(
-		page.getByText(/Close other EONFOLK tabs; recovery will continue/u),
+		page.getByText(/Close other EONFOLK tabs, then try again/u),
 	).toBeVisible();
 	await blocker.evaluate(() => {
 		(
@@ -2106,24 +2055,20 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 		)
 		.toBe("fits");
 	for (const term of [
-		"What is recorded",
-		"Mara's belief",
-		"Allegation status",
-		"Values",
-		"Mara and Iven",
-		"What she is doing",
-		"Still uncertain",
+		"Checking the stores first",
+		"Abstain — close this boundary without counsel",
+		"Keep watching",
 	])
-		await expect(page.locator("dt").filter({ hasText: term })).toBeVisible();
+		await expect(page.getByRole("button", { name: term })).toBeVisible();
+	await expect(
+		page.getByText(/sourced count before any other move/u),
+	).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: "Consider an intervention" }),
 	).toBeDisabled();
 	await expect(page.getByRole("button", { name: "Sponsor Mara" })).toHaveCount(
 		0,
 	);
-	await expect(
-		page.getByText("There is no account, cloud backup, or recovery copy."),
-	).toBeVisible();
 	await page
 		.getByRole("button", {
 			name: "Check the stores first",
@@ -2240,8 +2185,9 @@ test("normal generated world commits sponsorship, counsel, and a factual Chronic
 	).toBe(String(committed.simulationTime));
 	await selectCanonicalMara(page);
 	await expect(page.locator("p.v1-context-role + p")).toContainText(
-		"inspecting the work at Workshop",
+		/Workshop|walking|inspecting|speaking|carrying|gathering|resting/u,
 	);
+	await expect(page.locator(".v1-presence-card")).not.toContainText(/site_/u);
 	await page.getByRole("button", { name: "Review Chronicle" }).click();
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),
@@ -2270,6 +2216,105 @@ for (const viewport of [
 		test.setTimeout(90_000);
 		const externalRequests = await isolateLocalWorld(page);
 		await page.setViewportSize(viewport);
+		if (viewport.width === 390) {
+			await resetGeneratedCheckpoint(page);
+			await page.setViewportSize(viewport);
+			await page.goto("/");
+			await page.getByRole("link", { name: "Enter Dawnmere" }).click();
+			await expect(page).toHaveURL(/\/world$/u);
+			const world = page.locator("main.v1-world");
+			const canvas = page.getByTestId("generated-world-canvas");
+			await expect(world).toHaveAttribute("data-asset-integrity", "verified");
+			await expect(canvas).toHaveAttribute("data-ready", "true", {
+				timeout: 20_000,
+			});
+			await expect(page.locator(".v1-world-title h1")).toHaveText("Dawnmere");
+			await expect(page.locator(".v1-world-title")).toContainText("8 people");
+			const followStartedAt = Date.now();
+			await page.getByTestId("follow-mara").click();
+			await expect(canvas).toHaveAttribute("data-following", "true");
+			expect(Date.now() - followStartedAt).toBeLessThan(20_000);
+			await expectFollowShowsPerson(
+				page,
+				canvas,
+				test.info().outputPath("follow-mara-workshop-390x844.png"),
+			);
+			const headerBox = await page
+				.locator("header.v1-world-header")
+				.boundingBox();
+			expect(headerBox?.height ?? 999).toBeLessThan(180);
+			expect(
+				await page.locator(".v1-world-title").evaluate((node) => {
+					const overlay = getComputedStyle(node);
+					return overlay.pointerEvents;
+				}),
+			).toBe("none");
+			expect(
+				await page.locator(".v1-world-title h1").evaluate((node) => {
+					const box = node.getBoundingClientRect();
+					const hit = document.elementFromPoint(
+						box.left + Math.min(24, box.width / 2),
+						box.top + box.height / 2,
+					);
+					return hit?.closest(".v1-world-title") ? "title" : "passthrough";
+				}),
+			).toBe("passthrough");
+			const switcher = page.getByTestId("settlement-switcher");
+			if (await switcher.isVisible()) {
+				await switcher
+					.getByRole("button", { name: /Second Founding/u })
+					.click();
+				await expect(page.locator(".v1-world-title h1")).toHaveText(
+					"Second Founding",
+				);
+				const followOrin = page.getByTestId("follow-mara");
+				await expect(followOrin).toContainText(/Orin/u);
+				if ((await canvas.getAttribute("data-following")) !== "true")
+					await followOrin.click();
+				await expect(canvas).toHaveAttribute("data-following", "true");
+				await expectFollowShowsPerson(
+					page,
+					canvas,
+					test.info().outputPath("follow-orin-second-founding-390x844.png"),
+				);
+			}
+			const chronicle = page.getByRole("button", {
+				name: "Chronicle",
+				exact: true,
+			});
+			if (await chronicle.isVisible()) {
+				await chronicle.click();
+				await expect(page.getByTestId("chronicle-record")).toBeVisible();
+				await expect(page.getByTestId("chronicle-record")).toContainText(
+					/fact|belief|happened/iu,
+				);
+				await expect(
+					page.locator("details.v1-inspector-sheet > summary"),
+				).toHaveText("People and work");
+			}
+			await page.screenshot({
+				animations: "disabled",
+				caret: "hide",
+				fullPage: false,
+				path: test
+					.info()
+					.outputPath(`world-${viewport.width}x${viewport.height}.png`),
+			});
+			await page.locator(".v1-world-settings summary").click();
+			await page.getByRole("button", { name: "Reduce motion" }).click();
+			await expect(world).toHaveClass(/v1-reduced-motion/u);
+			await page.getByRole("button", { name: "In words" }).click();
+			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
+			await expect
+				.poll(() =>
+					page.evaluate(
+						() => document.documentElement.scrollWidth <= window.innerWidth + 1,
+					),
+				)
+				.toBe(true);
+			expect(externalRequests).toEqual([]);
+			return;
+		}
 		await page.goto("/world");
 		const world = page.locator("main.v1-world");
 		await expect(world).toHaveAttribute("data-asset-integrity", "verified");

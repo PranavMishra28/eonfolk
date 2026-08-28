@@ -53,7 +53,7 @@ describe("bounded world-presence pass", () => {
 	});
 
 	it("keeps human copy, world dominance, and mobile access explicit", async () => {
-		const [app, main, canvas, styles, vite] = await Promise.all([
+		const [app, main, canvas, styles, vite, entry] = await Promise.all([
 			webSource("V1GenesisApp.tsx"),
 			webSource("main.tsx"),
 			webSource("generated-world-canvas.tsx"),
@@ -62,14 +62,29 @@ describe("bounded world-presence pass", () => {
 				new URL("../../../apps/web/vite.config.ts", import.meta.url),
 				"utf8",
 			),
+			webSource("GenesisEntryApp.tsx"),
 		]);
 
 		expect(app).toContain("countNoun(");
 		expect(app).toContain('"lives are unfolding"');
 		expect(app).toContain("GeneratedSceneTruth");
 		expect(app).toContain("projection.spatial.interactions[0]");
-		expect(app).toContain("PROP_WORDS[actor.prop]");
+		expect(app).toContain("presentedActorCopy");
+		expect(app).toContain("visualDayProgress01");
+		expect(app).toContain("conversationVisuallyActive");
+		expect(app).toContain("Start a fresh local town");
+		expect(app).toContain("Feedback form — not the Chronicle");
+		expect(app).toContain("Fact, belief, and what happened");
+		expect(app).toContain("openChronicleRecord");
+		expect(app).toContain('data-testid="chronicle-record"');
+		expect(app).toContain('data-testid="settlement-switcher"');
+		expect(app).not.toContain("openInspectorForChronicle");
+		expect(app).not.toContain("This saved town no longer matches");
 		expect(app).not.toContain("Seven lives");
+		expect(app).not.toContain("Eight lives");
+		expect(entry).toContain("countNoun(");
+		expect(entry).not.toContain("Eight lives");
+		expect(entry).not.toContain("Eight people");
 		expect(app).not.toContain("progress basis points");
 		expect(app).toContain("generatedWorldCanvasModule ??=");
 		expect(main).toContain('normalizedPath === "/world"');
@@ -90,9 +105,20 @@ describe("bounded world-presence pass", () => {
 		expect(canvas).toContain(
 			'data-environment-context="presentation-only-ground-apron"',
 		);
-		expect(canvas).toContain("GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000");
+		expect(canvas).toContain("followSubjectYRatio");
+		expect(canvas).toContain("followSubjectVisible");
+		expect(canvas).toContain("resolveFollowCamera");
+		expect(canvas).toContain("generatedFollowViewportIsCompact");
+		expect(canvas).toContain("generatedFollowFovDegrees");
+		expect(canvas).toContain("followOccluderVolumes");
+		expect(canvas).toContain("GhostBuildings");
+		expect(canvas).toContain("presentedActorCopy");
+		expect(canvas).not.toContain("INTENT_WORDS");
+		expect(styles).toContain(
+			'main.v1-world[data-view="embodied"] .v1-world-title',
+		);
 		expect(styles).toMatch(
-			/\.v1-world-canvas-frame\s*\{[^}]*height:\s*55svh/su,
+			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);
 		expect(styles).toContain(".v1-world-tools .generated-camera-status");
 	});

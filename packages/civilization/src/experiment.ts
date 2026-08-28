@@ -53,6 +53,7 @@ import {
 } from "./kernel.js";
 import {
 	formHousehold,
+	recordSocialContact,
 	registerCitizen,
 	registerRelationship,
 } from "./population.js";
@@ -82,6 +83,7 @@ export const CIVILIZATION_EXPERIMENT_STEP_VERSION =
 	"eonfolk-civilization-experiment-step-v9" as const;
 
 const SECONDS_PER_DAY = 86_400;
+const SOCIAL_CONTACT_COOLDOWN_SECONDS = 3 * SECONDS_PER_DAY;
 const POPULATION = 8;
 /** Stable Reality identity for the Release Genesis focal citizen. */
 export const RELEASE_GENESIS_MARA_CITIZEN_ID = "citizen-01" as const;
@@ -275,6 +277,27 @@ export interface CivilizationExperimentMetrics {
 	readonly modelInvocations: 0;
 }
 
+export interface CivilizationVisualLifecycle {
+	readonly dayStart: number;
+	readonly travelEnd: number;
+	readonly performEnd: number;
+	readonly simulationEnd: number;
+	readonly travelKind: "walk" | "carry" | null;
+	readonly performKind:
+		| "idle"
+		| "walk"
+		| "carry"
+		| "gather"
+		| "inspect"
+		| "talk"
+		| "listen"
+		| "exchange"
+		| "repair"
+		| "eat-rest"
+		| "react";
+	readonly routineKind: SchedulerRoutineAssignment["kind"];
+}
+
 export interface CivilizationScheduledActivity {
 	readonly schemaVersion: "eonfolk-generated-spatial-activity-v1";
 	readonly citizenId: string;
@@ -319,6 +342,7 @@ export interface CivilizationScheduledActivity {
 	readonly projectId: string | null;
 	readonly carriedProp: "grain" | "logs" | "trade" | "tool" | "water" | null;
 	readonly focal: boolean;
+	readonly visualLifecycle: CivilizationVisualLifecycle;
 }
 
 export interface CivilizationExperimentRun {
@@ -1168,6 +1192,90 @@ function initialRoutineAssignments(
 		}));
 }
 
+function visualLifecycleFor(
+	state: CivilizationState,
+	index: number,
+	kind: "route" | "work" | "social" | "rest",
+	travelKind: "walk" | "carry" | null,
+	performKind: CivilizationVisualLifecycle["performKind"],
+	routineKind: SchedulerRoutineAssignment["kind"],
+): CivilizationVisualLifecycle {
+	const dayEnd = state.simulationTime;
+	const dayStart = Math.max(0, dayEnd - SECONDS_PER_DAY);
+	const span = Math.max(1, dayEnd - dayStart);
+	const stagger = Math.trunc((span * (index % 8)) / 96);
+	const start = Math.min(dayEnd, dayStart + stagger);
+	const fractions =
+		kind === "route"
+			? { travel: 0.58, perform: 0.08 }
+			: kind === "social"
+				? { travel: 0.14, perform: 0.22 }
+				: kind === "rest"
+					? { travel: 0.16, perform: 0.34 }
+					: { travel: 0.22, perform: 0.46 };
+	const travelEnd = Math.min(
+		dayEnd,
+		start + Math.max(1, Math.round(span * fractions.travel)),
+	);
+	const performEnd = Math.min(
+		dayEnd,
+		travelEnd + Math.max(1, Math.round(span * fractions.perform)),
+	);
+	const simulationEnd = Math.min(
+		dayEnd,
+		performEnd + Math.max(1, Math.round(span * 0.08)),
+	);
+	return Object.freeze({
+		dayStart: start,
+		travelEnd,
+		performEnd,
+		simulationEnd,
+		travelKind,
+		performKind,
+		routineKind,
+	});
+}
+
+function recentlyInConversation(
+	state: CivilizationState,
+	citizenId: string,
+): boolean {
+	const citizen = state.citizens[citizenId];
+	if (citizen === undefined || citizen.lastSocialSimulationTime <= 0)
+		return false;
+	return (
+		state.simulationTime - citizen.lastSocialSimulationTime <
+		SOCIAL_CONTACT_COOLDOWN_SECONDS
+	);
+}
+
+function applyConversationRecency(
+	state: CivilizationState,
+	activities: readonly CivilizationScheduledActivity[],
+): CivilizationState {
+	const seen = new Set<string>();
+	let next = state;
+	for (const activity of activities) {
+		if (
+			(activity.canonicalAction.kind !== "talk" &&
+				activity.canonicalAction.kind !== "listen") ||
+			activity.canonicalAction.targetId === null
+		)
+			continue;
+		const pair = [activity.citizenId, activity.canonicalAction.targetId]
+			.sort()
+			.join("+");
+		if (seen.has(pair)) continue;
+		seen.add(pair);
+		next = recordSocialContact(next, {
+			fromCitizenId: activity.citizenId,
+			toCitizenId: activity.canonicalAction.targetId,
+			atSimulationTime: state.simulationTime,
+		});
+	}
+	return next;
+}
+
 function preferredActivityKinds(
 	routine: SchedulerRoutineAssignment,
 ): readonly string[] {
@@ -1255,6 +1363,8 @@ function scheduleActivities(
 			firstRoutine.subjectId !== second.citizenId ||
 			secondRoutine.subjectId !== first.citizenId ||
 			!conversationsToday ||
+			recentlyInConversation(state, first.citizenId) ||
+			recentlyInConversation(state, second.citizenId) ||
 			paired.has(first.citizenId) ||
 			paired.has(second.citizenId)
 		)
@@ -1296,7 +1406,15 @@ function scheduleActivities(
 				`routine for ${citizen.citizenId}`,
 			);
 			const social = mutualSocial.get(citizen.citizenId);
-			if (social !== undefined)
+			if (social !== undefined) {
+				const lifecycle = visualLifecycleFor(
+					state,
+					index,
+					"social",
+					"walk",
+					social.kind,
+					routine.kind,
+				);
 				return [
 					{
 						schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
@@ -1314,8 +1432,8 @@ function scheduleActivities(
 							affordanceId: social.interactionSlotId,
 							affordanceSlotIndex: social.affordanceSlotIndex,
 							targetId: social.partnerCitizenId,
-							simulationStart: state.simulationTime,
-							simulationEnd: null,
+							simulationStart: lifecycle.dayStart,
+							simulationEnd: lifecycle.simulationEnd,
 							resultEventId: null,
 						},
 						location: {
@@ -1325,8 +1443,10 @@ function scheduleActivities(
 						projectId: null,
 						carriedProp: null,
 						focal: index === 0,
+						visualLifecycle: lifecycle,
 					},
 				];
+			}
 			const route =
 				routine.route === null
 					? undefined
@@ -1339,6 +1459,15 @@ function scheduleActivities(
 				routine.route.toSiteId === route.toSiteId;
 			if (isGroundedRoute && routine.route !== null && route !== undefined) {
 				const isTransport = routine.kind === "transport";
+				const travelKind = isTransport ? ("carry" as const) : ("walk" as const);
+				const lifecycle = visualLifecycleFor(
+					state,
+					index,
+					"route",
+					travelKind,
+					travelKind,
+					routine.kind,
+				);
 				return [
 					{
 						schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
@@ -1350,14 +1479,14 @@ function scheduleActivities(
 							eventId: null,
 							eventSequence: null,
 							status: "in-progress" as const,
-							kind: isTransport ? ("carry" as const) : ("walk" as const),
+							kind: travelKind,
 							originPlaceId: route.fromSiteId,
 							destinationPlaceId: route.toSiteId,
 							affordanceId: route.routeId,
 							affordanceSlotIndex: 0,
 							targetId: routine.subjectId,
-							simulationStart: state.simulationTime,
-							simulationEnd: null,
+							simulationStart: lifecycle.dayStart,
+							simulationEnd: lifecycle.simulationEnd,
 							resultEventId: null,
 						},
 						location: {
@@ -1371,6 +1500,7 @@ function scheduleActivities(
 						projectId: null,
 						carriedProp: carriedPropForRoutine(state, policy, routine),
 						focal: index === 0,
+						visualLifecycle: lifecycle,
 					},
 				];
 			}
@@ -1378,13 +1508,19 @@ function scheduleActivities(
 			const preferred = preferredActivityKinds(routine);
 			const available = (candidate: (typeof siteSlots)[number]) =>
 				(occupancy.get(candidate.interactionSlotId) ?? 0) < candidate.capacity;
-			const slot =
-				siteSlots.find(
-					(candidate) =>
-						available(candidate) &&
-						candidate.activityKinds.some((kind) => preferred.includes(kind)),
-				) ?? siteSlots.find((candidate) => available(candidate));
-			if (slot === undefined) return [];
+			const matchingPreferred = siteSlots.filter(
+				(candidate) =>
+					available(candidate) &&
+					candidate.activityKinds.some((kind) => preferred.includes(kind)),
+			);
+			const matchingAvailable = siteSlots.filter(available);
+			const pool =
+				matchingPreferred.length > 0 ? matchingPreferred : matchingAvailable;
+			if (pool.length === 0) return [];
+			const slot = required(
+				pool[(dayNumber + index) % pool.length],
+				`activity slot for ${citizen.citizenId}`,
+			);
 			const affordanceSlotIndex = occupancy.get(slot.interactionSlotId) ?? 0;
 			occupancy.set(slot.interactionSlotId, affordanceSlotIndex + 1);
 			const slotActivity = activityKind(slot.activityKinds);
@@ -1402,6 +1538,14 @@ function scheduleActivities(
 				.sort((left, right) =>
 					left.projectId.localeCompare(right.projectId),
 				)[0];
+			const lifecycle = visualLifecycleFor(
+				state,
+				index,
+				readable.kind === "eat-rest" ? "rest" : "work",
+				"walk",
+				readable.kind,
+				routine.kind,
+			);
 			return [
 				{
 					schemaVersion: "eonfolk-generated-spatial-activity-v1" as const,
@@ -1419,8 +1563,8 @@ function scheduleActivities(
 						affordanceId: slot.interactionSlotId,
 						affordanceSlotIndex,
 						targetId: project?.projectId ?? null,
-						simulationStart: state.simulationTime,
-						simulationEnd: null,
+						simulationStart: lifecycle.dayStart,
+						simulationEnd: lifecycle.simulationEnd,
 						resultEventId: null,
 					},
 					location: {
@@ -1430,6 +1574,7 @@ function scheduleActivities(
 					projectId: project?.projectId ?? null,
 					carriedProp: readable.prop,
 					focal: index === 0,
+					visualLifecycle: lifecycle,
 				},
 			];
 		});
@@ -2391,6 +2536,7 @@ async function simulateCivilizationExperimentDay(input: {
 	assertCivilizationInvariants(state);
 	state = checkpointCivilizationAccounting(state);
 	activities = scheduleActivities(state, world, routines, schedulerPolicy);
+	state = applyConversationRecency(state, activities);
 	const postStateHash = await stateHash(state, worldStateHash, activities);
 	const eventHashes = events
 		.slice(beforeEventIndex)

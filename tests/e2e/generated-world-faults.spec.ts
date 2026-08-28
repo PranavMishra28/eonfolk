@@ -47,6 +47,11 @@ async function openFaultedWorld(
 	return externalRequests;
 }
 
+async function zoomInFromCameraTools(page: Page): Promise<void> {
+	await page.locator("details.v1-world-tools > summary").click();
+	await page.getByRole("button", { name: "Zoom in" }).click();
+}
+
 async function pauseWorldTime(page: Page): Promise<void> {
 	const pause = page
 		.getByRole("navigation", { name: "Time" })
@@ -387,7 +392,7 @@ test.describe
 			const authority = await authorityFingerprint(page);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
-			await page.getByRole("button", { name: "Zoom in" }).click();
+			await zoomInFromCameraTools(page);
 			await expect(page.getByTestId("generated-world-canvas")).toHaveCount(0);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
@@ -445,7 +450,7 @@ test.describe
 				"failed",
 			);
 			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
-			await page.getByRole("button", { name: "Zoom in" }).click();
+			await zoomInFromCameraTools(page);
 			await expect(
 				page
 					.getByTestId("generated-semantic-world")
@@ -598,7 +603,7 @@ test.describe
 			expect(externalRequests).toEqual([]);
 		});
 
-		test("stale IndexedDB is quarantined and rebuilt only after explicit recovery @fault", async ({
+		test("stale IndexedDB is quarantined under crash hooks and rebuilt after explicit recovery @fault", async ({
 			page,
 		}) => {
 			const externalRequests = await isolateGeneratedWorld(page);
@@ -628,11 +633,12 @@ test.describe
 			});
 			expect(await authorityFingerprint(page)).toEqual(staleAuthority);
 			await page
-				.getByRole("button", { name: "Rebuild local checkpoint" })
+				.getByRole("button", { name: "Start a fresh local town" })
 				.click();
 			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 				timeout: 30_000,
 			});
+			await expect(world).toHaveAttribute("data-play-rate", "1");
 			expect(externalRequests).toEqual([]);
 		});
 
@@ -696,7 +702,7 @@ test.describe
 			);
 			expect(await authorityFingerprint(page)).toEqual(corruptedAuthority);
 			await page
-				.getByRole("button", { name: "Rebuild local checkpoint" })
+				.getByRole("button", { name: "Start a fresh local town" })
 				.click();
 			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 				timeout: 30_000,

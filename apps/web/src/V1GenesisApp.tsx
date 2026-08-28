@@ -1,6 +1,7 @@
 import {
 	countNoun,
 	type GeneratedCivilizationSpatialProjection,
+	playerFacingCopy,
 } from "@eonfolk/world-presentation";
 import {
 	lazy,
@@ -16,11 +17,13 @@ import { EonfolkMark } from "./components/EonfolkMark";
 import { GeneratedEmbodimentControls } from "./components/generated/GeneratedEmbodimentControls";
 import { browserDiagnostics } from "./diagnostics";
 import {
+	conversationVisuallyActive,
 	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	INITIAL_GENERATED_NAVIGATION,
+	presentedActorCopy,
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
@@ -44,12 +47,16 @@ import type {
 import {
 	authorityDayIntervalMs,
 	clearPendingReturnCatchUp,
+	dayAdvanceDue,
+	FASTER_DAY_INTERVAL_MS,
+	PLAY_DAY_INTERVAL_MS,
 	type PlayRate,
 	presentationIntervalMs,
 	proposedReturnCatchUpDays,
 	readLastActiveWallMs,
 	readPendingReturnCatchUp,
 	returnCatchUpOperationId,
+	visualDayProgress01,
 	writeLastActiveWallMs,
 	writePendingReturnCatchUp,
 } from "./play-clock";
@@ -349,6 +356,7 @@ function SemanticSettlement({
 	onStepPresentation,
 	onNavigationRejected,
 	focusedLocationId,
+	visualProgress01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -362,6 +370,7 @@ function SemanticSettlement({
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
 	readonly focusedLocationId: string | null;
+	readonly visualProgress01: number;
 }) {
 	return (
 		<section
@@ -388,6 +397,8 @@ function SemanticSettlement({
 				onTogglePresentation={onTogglePresentation}
 				onStepPresentation={onStepPresentation}
 				onNavigationRejected={onNavigationRejected}
+				showLookAround={false}
+				visualProgress01={visualProgress01}
 			/>
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Places</h3>
@@ -425,38 +436,33 @@ function SettlementOverview({
 			data-testid="generated-world-overview"
 		>
 			<header>
-				<p className="v1-kicker">CIVILIZATION OVERVIEW</p>
+				<p className="v1-kicker">THE LAND</p>
 				<h2>
-					One world,{" "}
+					{experience.projections[0]?.local.settlement.name ?? "Dawnmere"}
+				</h2>
+				<p>
 					{countNoun(
 						experience.settlementCount,
-						"inhabited place",
-						"inhabited places",
-					)}
-					.
-				</h2>
+						"inhabited place continues",
+						"inhabited places continue",
+					)}{" "}
+					whether you are watching or not.
+				</p>
 			</header>
 			<div className="generated-settlement-cards">
 				{experience.projections.map((projection) => (
 					<article key={projection.local.settlement.settlementId}>
 						<p className="v1-kicker">
 							{projection.local.settlement.foundedAtSimulationTime === 0
-								? "ORIGIN SETTLEMENT"
-								: "FOUNDED SETTLEMENT"}
+								? "ORIGIN"
+								: "SECOND FOUNDING"}
 						</p>
 						<h3>{projection.local.settlement.name}</h3>
 						<p>{projection.local.settlement.semanticLabel}</p>
 						<ul>
-							<li>
-								{countNoun(
-									projection.spatial.actors.length,
-									"person",
-									"people",
-								)}{" "}
-								at work
-							</li>
-							<li>{projection.local.semanticCounts.sites} places</li>
-							<li>{projection.projects.length} works in progress</li>
+							{projection.local.sites.slice(0, 6).map((site) => (
+								<li key={site.siteId}>{site.name}</li>
+							))}
 						</ul>
 						<button
 							type="button"
@@ -477,52 +483,24 @@ function SettlementOverview({
 	);
 }
 
-const ACTIVITY_WORDS = Object.freeze({
-	idle: "pausing",
-	walk: "walking",
-	carry: "carrying",
-	gather: "gathering",
-	inspect: "inspecting the work",
-	talk: "speaking",
-	listen: "listening",
-	exchange: "exchanging goods",
-	repair: "making repairs",
-	"eat-rest": "resting",
-	react: "reacting",
-});
-
-const PROP_WORDS = Object.freeze({
-	water: "water",
-	logs: "logs",
-	grain: "grain",
-	trade: "goods",
-	tool: "a tool",
-});
-
 function actorActivity(
 	actor: GeneratedEmbodiedActor,
 	projection: GeneratedCivilizationSpatialProjection,
+	progress01 = 0.55,
 ): string {
-	const place = projection.local.sites.find(
-		({ siteId }) => siteId === actor.placeId,
-	)?.name;
-	const prop = actor.prop === null ? null : PROP_WORDS[actor.prop];
-	const activity =
-		prop !== null &&
-		["carry", "gather", "exchange"].includes(actor.animationClass)
-			? `${ACTIVITY_WORDS[actor.animationClass]} ${prop}`
-			: ACTIVITY_WORDS[actor.animationClass];
-	return place === undefined ? activity : `${activity} at ${place}`;
+	return presentedActorCopy(actor, projection, progress01);
 }
 
 function GeneratedSceneTruth({
 	projection,
 	model,
 	selectedCitizenId,
+	visualProgress01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
 	readonly selectedCitizenId: string | null;
+	readonly visualProgress01: number;
 }) {
 	const interaction = projection.spatial.interactions[0];
 	if (interaction === undefined) return null;
@@ -579,7 +557,11 @@ function GeneratedSceneTruth({
 						</span>
 					))}
 					<small>
-						{interaction.status === "in-progress" ? "In" : "Completed"}{" "}
+						{participants.every((actor) =>
+							conversationVisuallyActive(actor, visualProgress01),
+						)
+							? "In"
+							: "Completed"}{" "}
 						{interaction.kind}
 						{place === undefined ? "" : ` · ${place}`}
 					</small>
@@ -606,7 +588,13 @@ function GeneratedSceneTruth({
 							}
 						>
 							<strong>{actor.name.split(" ")[0]}</strong>
-							<span>{actorActivity(actor, projection).split(" at ")[0]}</span>
+							<span>
+								{
+									actorActivity(actor, projection, visualProgress01).split(
+										" at ",
+									)[0]
+								}
+							</span>
 						</button>
 					</li>
 				))}
@@ -635,6 +623,8 @@ function GeneratedContextPanel({
 	onAuthorityCommitted,
 	happenings,
 	onCounselConsiderationChange,
+	visualProgress01,
+	onChronicleAvailable,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -662,6 +652,8 @@ function GeneratedContextPanel({
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 	readonly happenings: readonly GeneratedWorldHappening[];
 	readonly onCounselConsiderationChange: (open: boolean) => void;
+	readonly visualProgress01: number;
+	readonly onChronicleAvailable?: () => void;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -696,6 +688,10 @@ function GeneratedContextPanel({
 			sponsorStatus === "confirming" || sponsorStatus === "counseling",
 		);
 	}, [onCounselConsiderationChange, sponsorStatus]);
+	useEffect(() => {
+		if (chronicleBeats.length === 0) return;
+		onChronicleAvailable?.();
+	}, [chronicleBeats, onChronicleAvailable]);
 	useEffect(() => {
 		if (
 			sponsorStatus === "confirming" ||
@@ -849,7 +845,9 @@ function GeneratedContextPanel({
 	};
 	const activityCounts = new Map<string, number>();
 	for (const actor of model.actors) {
-		const activity = ACTIVITY_WORDS[actor.animationClass];
+		const activity = actorActivity(actor, projection, visualProgress01).split(
+			" at ",
+		)[0]!;
 		activityCounts.set(activity, (activityCounts.get(activity) ?? 0) + 1);
 	}
 	const activeInteraction = projection.spatial.interactions[0];
@@ -866,14 +864,18 @@ function GeneratedContextPanel({
 				(site) => site.siteId === interactionParticipants[0]?.placeId,
 			)?.name
 		: undefined;
-	const interactionPhrase =
-		activeInteraction?.status === "in-progress"
-			? activeInteraction.kind === "conversation"
-				? "are talking"
-				: "are making an exchange"
-			: activeInteraction?.kind === "conversation"
-				? "finished talking"
-				: "completed an exchange";
+	const talkingNow =
+		interactionParticipants.length >= 2 &&
+		interactionParticipants.every((actor) =>
+			conversationVisuallyActive(actor, visualProgress01),
+		);
+	const interactionPhrase = talkingNow
+		? activeInteraction?.kind === "conversation"
+			? "are talking"
+			: "are making an exchange"
+		: activeInteraction?.kind === "conversation"
+			? "finished talking"
+			: "completed an exchange";
 	return (
 		<aside
 			className="v1-context-panel"
@@ -938,36 +940,8 @@ function GeneratedContextPanel({
 							at once. Select someone to move from the settlement view into
 							their immediate work.
 						</p>
-						{happenings.length === 0 ? null : (
-							<ul className="v1-happening-list" aria-label="Named happenings">
-								{happenings.map((happening) => (
-									<li
-										key={happening.happeningId}
-										data-happening-id={happening.happeningId}
-									>
-										<strong>{happening.title}.</strong> {happening.summary}
-										{happening.citizenId === null ||
-										!model.actors.some(
-											(actor) => actor.citizenId === happening.citizenId,
-										) ? null : (
-											<button
-												type="button"
-												onClick={() =>
-													dispatch({
-														type: "select-citizen",
-														citizenId: happening.citizenId as string,
-													})
-												}
-											>
-												Find {happening.citizenName}
-											</button>
-										)}
-									</li>
-								))}
-							</ul>
-						)}
 						<ul className="v1-activity-summary" aria-label="Visible activities">
-							{[...activityCounts].map(([activity, count]) => (
+							{[...activityCounts].slice(0, 3).map(([activity, count]) => (
 								<li key={activity}>
 									<strong>{count}</strong> {activity}
 								</li>
@@ -977,7 +951,17 @@ function GeneratedContextPanel({
 				) : (
 					<>
 						<p className="v1-context-role">{selectedActor.role}</p>
-						<p>{actorActivity(selectedActor, projection)}.</p>
+						<p>{actorActivity(selectedActor, projection, visualProgress01)}.</p>
+						<p>
+							<strong>Want:</strong>{" "}
+							{playerFacingCopy(
+								happenings.find(
+									(happening) =>
+										happening.citizenId === selectedActor.citizenId,
+								)?.summary ??
+									actorActivity(selectedActor, projection, visualProgress01),
+							)}
+						</p>
 						<p>
 							<strong>Immediate relationship:</strong>{" "}
 							{activeInteraction !== undefined &&
@@ -994,22 +978,6 @@ function GeneratedContextPanel({
 											" and ",
 										)}${interactionPlace === undefined ? "" : ` at ${interactionPlace}`}.`
 								: "No one is currently beside them."}
-						</p>
-						{canSponsor ? (
-							<p>
-								<strong>Current tension:</strong>{" "}
-								{happenings[0]?.summary ??
-									"Mara can be sponsored. Counsel is a visible next step, not a silent label."}
-							</p>
-						) : (
-							<p>
-								{selectedActor.name} is at work. Sponsorship is Mara's
-								relationship, not a button on every person.
-							</p>
-						)}
-						<p className="v1-local-disclosure">
-							This world is stored only in this browser. There is no account,
-							cloud backup, or recovery copy.
 						</p>
 						<div className="v1-focus-actions">
 							<button
@@ -1073,24 +1041,6 @@ function GeneratedContextPanel({
 									Mara may accept, reject, delay, or reinterpret advice. This
 									boundary closes after one choice.
 								</p>
-								{counselContext === null ? null : (
-									<dl>
-										<dt>What is recorded</dt>
-										<dd>{counselContext.fact}</dd>
-										<dt>Mara's belief</dt>
-										<dd>{counselContext.belief}</dd>
-										<dt>Allegation status</dt>
-										<dd>{counselContext.allegation}</dd>
-										<dt>Values</dt>
-										<dd>{counselContext.values.join(", ")}</dd>
-										<dt>Mara and Iven</dt>
-										<dd>{counselContext.relationship}</dd>
-										<dt>What she is doing</dt>
-										<dd>{counselContext.standingPlan}</dd>
-										<dt>Still uncertain</dt>
-										<dd>{counselContext.uncertainty}</dd>
-									</dl>
-								)}
 								<button
 									type="button"
 									disabled={authorityRefreshing}
@@ -1301,7 +1251,15 @@ function GeneratedContextPanel({
 									? " · sponsored"
 									: ""}
 							</strong>
-							<span>{actorActivity(actor, projection)}</span>
+							<span
+								data-presented-activity={actorActivity(
+									actor,
+									projection,
+									visualProgress01,
+								)}
+							>
+								{actorActivity(actor, projection, visualProgress01)}
+							</span>
 						</button>
 					</li>
 				))}
@@ -1318,6 +1276,7 @@ function GeneratedContextPanel({
 					onTogglePresentation={onTogglePresentation}
 					onStepPresentation={onStepPresentation}
 					onNavigationRejected={onNavigationRejected}
+					visualProgress01={visualProgress01}
 				/>
 			</details>
 		</aside>
@@ -1350,12 +1309,33 @@ function GeneratedWorld({
 	const pausedForCounsel = useRef(false);
 	const [presentationTick, setPresentationTick] = useState(0);
 	const presentationPlaying = playRate !== 0;
+	const visualDayClock = useRef({
+		hash: "",
+		startedAt: 0,
+		held: 0,
+	});
 	const advancingDay = useRef(false);
 	const catchingUp = useRef(false);
+	const dayAnchor = useRef({
+		day: experience.horizonDays,
+		displayedAt: performance.now(),
+	});
 	const experienceRef = useRef(experience);
 	experienceRef.current = experience;
 	const [catchUpProposal, setCatchUpProposal] = useState(0);
+	const [, setVisualCopyBeat] = useState(0);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
+	const [inspectorSheetOpen, setInspectorSheetOpen] = useState(
+		() =>
+			typeof window === "undefined" ||
+			window.matchMedia("(min-width: 721px)").matches,
+	);
+	const [chronicleSheetOpen, setChronicleSheetOpen] = useState(false);
+	const openChronicleRecord = useCallback(() => {
+		setChronicleSheetOpen(true);
+		if (window.matchMedia("(max-width: 720px)").matches)
+			setInspectorSheetOpen(false);
+	}, []);
 	const [rebuildState, setRebuildState] = useState<
 		"idle" | "deleting" | "blocked" | "error"
 	>("idle");
@@ -1568,6 +1548,29 @@ function GeneratedWorld({
 	}, [playRate]);
 
 	useEffect(() => {
+		const mq = window.matchMedia("(min-width: 721px)");
+		const sync = () => setInspectorSheetOpen(mq.matches);
+		mq.addEventListener("change", sync);
+		return () => mq.removeEventListener("change", sync);
+	}, []);
+
+	useEffect(() => {
+		dayAnchor.current = {
+			day: experience.horizonDays,
+			displayedAt: performance.now(),
+		};
+	}, [experience.horizonDays, playRate]);
+
+	useEffect(() => {
+		if (playRate === 0 || reduceMotion) return;
+		const id = window.setInterval(
+			() => setVisualCopyBeat((beat) => beat + 1),
+			250,
+		);
+		return () => window.clearInterval(id);
+	}, [playRate, reduceMotion]);
+
+	useEffect(() => {
 		const interval = authorityDayIntervalMs(playRate);
 		if (
 			interval === null ||
@@ -1580,16 +1583,33 @@ function GeneratedWorld({
 		const id = window.setInterval(() => {
 			if (advancingDay.current || catchingUp.current || consideringCounsel)
 				return;
+			if (
+				!dayAdvanceDue(
+					dayAnchor.current.displayedAt,
+					interval,
+					performance.now(),
+				)
+			)
+				return;
 			advancingDay.current = true;
 			void onAdvanceDay()
 				.then(() => {
 					writeLastActiveWallMs();
+					dayAnchor.current = {
+						...dayAnchor.current,
+						displayedAt: performance.now(),
+					};
 				})
-				.catch(() => undefined)
+				.catch(() => {
+					dayAnchor.current = {
+						...dayAnchor.current,
+						displayedAt: performance.now(),
+					};
+				})
 				.finally(() => {
 					advancingDay.current = false;
 				});
-		}, interval);
+		}, 250);
 		return () => window.clearInterval(id);
 	}, [
 		catchUpProposal,
@@ -1706,9 +1726,46 @@ function GeneratedWorld({
 
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
+	if (visualDayClock.current.hash !== experience.stateHash) {
+		visualDayClock.current = {
+			hash: experience.stateHash,
+			startedAt: performance.now(),
+			held: reduceMotion ? 0.55 : 0,
+		};
+	}
+	const visualProgress01 = visualDayProgress01({
+		displayedAtMs: visualDayClock.current.startedAt,
+		nowMs: performance.now(),
+		intervalMs: playRate === 3 ? FASTER_DAY_INTERVAL_MS : PLAY_DAY_INTERVAL_MS,
+		playing: playRate !== 0,
+		reducedMotion: reduceMotion,
+		held01: visualDayClock.current.held,
+	});
+	if (playRate !== 0) visualDayClock.current.held = visualProgress01;
+	const focusedCitizenId =
+		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const followActor =
+		(focusedCitizenId === null
+			? model.actors.find(
+					(actor) => actor.citizenId === experience.sponsorCitizenId,
+				)
+			: model.actors.find((actor) => actor.citizenId === focusedCitizenId)) ??
+		model.actors[0];
 	const openSettlement = (settlementId: string) => {
 		setSelectedSettlementId(settlementId);
-		dispatch({ type: "overview" });
+		const nextProjection = experience.projections.find(
+			(candidate) => candidate.local.settlement.settlementId === settlementId,
+		);
+		const notable =
+			nextProjection?.spatial.actors.find((actor) =>
+				actor.name.startsWith("Orin"),
+			) ?? nextProjection?.spatial.actors[0];
+		if (
+			notable !== undefined &&
+			nextProjection?.local.settlement.name === "Second Founding"
+		)
+			dispatch({ type: "select-citizen", citizenId: notable.citizenId });
+		else dispatch({ type: "overview" });
 		setPresentationTick(0);
 		setView(rendererFailed ? "semantic" : "embodied");
 	};
@@ -1757,12 +1814,10 @@ function GeneratedWorld({
 		!rendererFailed &&
 		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
-	const clockLocked = experience.persistence.kind !== "indexeddb";
+	const authorityDaysLocked = experience.persistence.kind !== "indexeddb";
 	const clockLockReason = consideringCounsel
 		? "Paused while you consider advice"
-		: clockLocked
-			? "Time controls need local storage."
-			: undefined;
+		: undefined;
 	const togglePresentation = () =>
 		setPlayRate((rate) => {
 			const next = rate === 0 ? 1 : 0;
@@ -1802,6 +1857,7 @@ function GeneratedWorld({
 			onAuthorityCommitted={onAuthorityRefresh}
 			happenings={experience.happenings}
 			onCounselConsiderationChange={setConsideringCounsel}
+			visualProgress01={visualProgress01}
 		/>
 	);
 
@@ -1827,6 +1883,11 @@ function GeneratedWorld({
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-play-rate={String(playRate)}
+			data-day-interval-ms={String(authorityDayIntervalMs(playRate) ?? 0)}
+			data-visual-progress={visualProgress01.toFixed(3)}
+			data-view={effectiveView}
+			data-inspector-open={String(inspectorSheetOpen)}
+			data-chronicle-open={String(chronicleSheetOpen)}
 			data-counsel-open={String(consideringCounsel)}
 			data-horizon-days={String(experience.horizonDays)}
 			data-sponsor-phase={experience.sponsorPhase}
@@ -1862,20 +1923,12 @@ function GeneratedWorld({
 						Day {experience.horizonDays} ·{" "}
 						{countNoun(projection.spatial.actors.length, "person", "people")}
 					</p>
-					{experience.happenings.length === 0 ? null : (
-						<p
-							className="v1-world-happening"
-							data-happening-id={experience.happenings[0]?.happeningId}
-						>
-							{experience.happenings[0]?.title}
-						</p>
-					)}
 				</div>
 				<nav className="v1-view-controls" aria-label="Time">
 					<button
 						type="button"
 						aria-pressed={playRate === 0}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => {
 							writeLastActiveWallMs();
@@ -1887,7 +1940,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 1}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(1)}
 					>
@@ -1896,7 +1949,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 3}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(3)}
 					>
@@ -1905,15 +1958,23 @@ function GeneratedWorld({
 					<button
 						type="button"
 						data-testid="follow-mara"
+						disabled={followActor === undefined}
 						onClick={() => {
+							if (followActor === undefined) return;
 							dispatch({
 								type: "select-citizen",
-								citizenId: experience.sponsorCitizenId,
+								citizenId: followActor.citizenId,
 							});
 							dispatch({ type: "toggle-follow" });
 						}}
 					>
-						Follow Mara
+						{followActor === undefined
+							? "Follow"
+							: navigation.followCitizen &&
+									navigation.focus.kind === "citizen" &&
+									navigation.focus.citizenId === followActor.citizenId
+								? `Stop following ${followActor.name.split(" ")[0]}`
+								: `Follow ${followActor.name.split(" ")[0]}`}
 					</button>
 				</nav>
 				<nav className="v1-view-controls" aria-label="World view">
@@ -1932,6 +1993,19 @@ function GeneratedWorld({
 					>
 						In words
 					</button>
+					{experience.happenings.length === 0 ? null : (
+						<button
+							type="button"
+							aria-pressed={chronicleSheetOpen}
+							onClick={() =>
+								chronicleSheetOpen
+									? setChronicleSheetOpen(false)
+									: openChronicleRecord()
+							}
+						>
+							Chronicle
+						</button>
+					)}
 					{experience.settlementCount < 2 ? null : (
 						<button
 							type="button"
@@ -1952,6 +2026,33 @@ function GeneratedWorld({
 						</button>
 					</details>
 				</nav>
+				{experience.settlementCount < 2 ? null : (
+					<nav
+						className="generated-settlement-switcher"
+						aria-label="Settlements"
+						data-testid="settlement-switcher"
+					>
+						{experience.projections.map((candidate) => (
+							<button
+								key={candidate.local.settlement.settlementId}
+								type="button"
+								aria-pressed={
+									candidate.local.settlement.settlementId ===
+									projection.local.settlement.settlementId
+								}
+								onClick={() =>
+									openSettlement(candidate.local.settlement.settlementId)
+								}
+							>
+								{candidate.local.settlement.name}
+								<small>
+									{candidate.spatial.actors.length} resident
+									{candidate.spatial.actors.length === 1 ? "" : "s"}
+								</small>
+							</button>
+						))}
+					</nav>
+				)}
 			</header>
 			{catchUpProposal > 0 ? (
 				<p className="renderer-note" role="status">
@@ -1959,7 +2060,7 @@ function GeneratedWorld({
 					{catchUpProposal === 1 ? "" : "s"} can pass if you choose.{" "}
 					<button
 						type="button"
-						disabled={clockLocked}
+						disabled={authorityDaysLocked}
 						onClick={() => {
 							const pending = readPendingReturnCatchUp();
 							const currentDay = experience.horizonDays;
@@ -2050,19 +2151,19 @@ function GeneratedWorld({
 			)}
 			{experience.persistence.kind === "quarantined" ? (
 				<p className="renderer-note" role="status">
-					The stored authority was rejected. This separately admitted
-					deterministic view does not derive facts from that checkpoint.{" "}
+					This browser copy of Dawnmere cannot be read. Start a fresh local town
+					to keep watching.{" "}
 					<button
 						type="button"
 						onClick={rebuildPersistence}
 						disabled={rebuildState === "deleting" || rebuildState === "blocked"}
 					>
 						{rebuildState === "idle" || rebuildState === "error"
-							? "Rebuild local checkpoint"
-							: "Rebuilding local checkpoint"}
+							? "Start a fresh local town"
+							: "Starting a fresh local town"}
 					</button>
 					{rebuildState === "blocked"
-						? " Close other EONFOLK tabs; recovery will continue automatically."
+						? " Close other EONFOLK tabs, then try again."
 						: rebuildState === "error"
 							? " Recovery could not start. Retry after checking browser storage access."
 							: null}
@@ -2070,33 +2171,10 @@ function GeneratedWorld({
 			) : null}
 			{experience.persistence.kind === "unavailable" ? (
 				<p className="renderer-note" role="status">
-					Local persistence unavailable; this deterministic view is read-only.
+					This browser cannot save the town. You can still watch, but days will
+					not continue after you leave.
 				</p>
 			) : null}
-
-			{experience.settlementCount < 2 ? null : (
-				<nav className="generated-settlement-switcher" aria-label="Settlements">
-					{experience.projections.map((candidate) => (
-						<button
-							key={candidate.local.settlement.settlementId}
-							type="button"
-							aria-pressed={
-								candidate.local.settlement.settlementId ===
-								projection.local.settlement.settlementId
-							}
-							onClick={() =>
-								openSettlement(candidate.local.settlement.settlementId)
-							}
-						>
-							{candidate.local.settlement.name}
-							<small>
-								{candidate.spatial.actors.length} resident
-								{candidate.spatial.actors.length === 1 ? "" : "s"}
-							</small>
-						</button>
-					))}
-				</nav>
-			)}
 			{effectiveView === "overview" ? (
 				<SettlementOverview
 					experience={experience}
@@ -2134,6 +2212,7 @@ function GeneratedWorld({
 						onStepPresentation={stepPresentation}
 						onNavigationRejected={reportNavigationRejection}
 						focusedLocationId={focusedLocationId}
+						visualProgress01={visualProgress01}
 					/>
 					{contextPanel()}
 				</section>
@@ -2162,13 +2241,69 @@ function GeneratedWorld({
 								navigation={navigation}
 								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
+								playRate={playRate}
+								visualDayOriginMs={visualDayClock.current.startedAt}
+								visualDayHeld01={visualDayClock.current.held}
 								onFailure={reportRendererFailure}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
+						{experience.happenings.length === 0 || chronicleSheetOpen ? null : (
+							<button
+								type="button"
+								className="v1-world-chronicle"
+								aria-label="What happened"
+								onClick={openChronicleRecord}
+							>
+								<p className="v1-kicker">What happened</p>
+								<ul>
+									{experience.happenings.map((happening) => (
+										<li
+											key={happening.happeningId}
+											data-happening-id={happening.happeningId}
+										>
+											{happening.title}
+										</li>
+									))}
+								</ul>
+							</button>
+						)}
+						{chronicleSheetOpen && experience.happenings.length > 0 ? (
+							<section
+								className="v1-chronicle-record"
+								aria-label="Chronicle"
+								data-testid="chronicle-record"
+							>
+								<div className="v1-chronicle-record-head">
+									<p className="v1-kicker">CHRONICLE</p>
+									<button
+										type="button"
+										onClick={() => setChronicleSheetOpen(false)}
+									>
+										Close
+									</button>
+								</div>
+								<h2>Fact, belief, and what happened</h2>
+								<p>
+									This is the settlement record. Feedback stays a separate note,
+									not this Chronicle.
+								</p>
+								<ul aria-label="Chronicle record">
+									{experience.happenings.map((happening) => (
+										<li
+											key={happening.happeningId}
+											data-happening-id={happening.happeningId}
+										>
+											<strong>{happening.title}.</strong> {happening.summary}
+										</li>
+									))}
+								</ul>
+							</section>
+						) : null}
 						<GeneratedSceneTruth
 							projection={projection}
 							model={model}
+							visualProgress01={visualProgress01}
 							selectedCitizenId={
 								navigation.focus.kind === "citizen"
 									? navigation.focus.citizenId
@@ -2176,14 +2311,25 @@ function GeneratedWorld({
 							}
 						/>
 					</div>
-					{embodiedVisible ? contextPanel() : null}
+					{embodiedVisible ? (
+						<details
+							className="v1-inspector-sheet"
+							open={inspectorSheetOpen}
+							onToggle={(event) =>
+								setInspectorSheetOpen(event.currentTarget.open)
+							}
+						>
+							<summary>People and work</summary>
+							{contextPanel()}
+						</details>
+					) : null}
 				</section>
 			) : null}
 			<details
 				className="v1-feedback-drawer"
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
-				<summary>Notes from this session</summary>
+				<summary>Feedback form — not the Chronicle</summary>
 				{feedbackOpen ? (
 					<Suspense fallback={<p>Opening the local feedback form…</p>}>
 						<FeedbackPanel />
@@ -2193,15 +2339,13 @@ function GeneratedWorld({
 			<footer className="v1-world-footer">
 				<p>
 					Watch first. Select a person to learn more.{" "}
-					{clockLocked
-						? "This view is read-only; days cannot pass here."
-						: consideringCounsel
-							? "Paused while you consider advice"
-							: catchUpProposal > 0
-								? "Days are waiting on your choice before time continues."
-								: playRate === 0
-									? "Time is paused. Play when you want another day to pass."
-									: "Time keeps moving until you pause it."}
+					{consideringCounsel
+						? "Paused while you consider advice"
+						: catchUpProposal > 0
+							? "Days are waiting on your choice before time continues."
+							: playRate === 0
+								? "Time is paused. Play when you want another day to pass."
+								: "Time keeps moving until you pause it."}
 				</p>
 			</footer>
 		</main>

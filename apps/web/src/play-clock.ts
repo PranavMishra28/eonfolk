@@ -26,6 +26,49 @@ export function authorityDayIntervalMs(rate: PlayRate): number | null {
 	return rate === 1 ? PLAY_DAY_INTERVAL_MS : FASTER_DAY_INTERVAL_MS;
 }
 
+/** True when Play/Faster has shown the current day for its full wall interval. */
+export function dayAdvanceDue(
+	displayedAtMs: number,
+	intervalMs: number,
+	nowMs: number,
+): boolean {
+	if (
+		!Number.isFinite(displayedAtMs) ||
+		!Number.isFinite(intervalMs) ||
+		!Number.isFinite(nowMs) ||
+		intervalMs <= 0
+	)
+		return false;
+	return nowMs - displayedAtMs >= intervalMs;
+}
+
+/** Shared 0–1 interpolant for the watched body and In words / HUD copy. */
+export function visualDayProgress01(input: {
+	readonly displayedAtMs: number;
+	readonly nowMs: number;
+	readonly intervalMs: number;
+	readonly playing: boolean;
+	readonly reducedMotion: boolean;
+	readonly held01: number;
+}): number {
+	if (input.reducedMotion) return 0.55;
+	if (!input.playing) {
+		if (!Number.isFinite(input.held01)) return 0;
+		return Math.min(1, Math.max(0, input.held01));
+	}
+	if (
+		!Number.isFinite(input.displayedAtMs) ||
+		!Number.isFinite(input.nowMs) ||
+		!Number.isFinite(input.intervalMs) ||
+		input.intervalMs <= 0
+	)
+		return 0;
+	return Math.min(
+		1,
+		Math.max(0, (input.nowMs - input.displayedAtMs) / input.intervalMs),
+	);
+}
+
 export function returnCatchUpOperationId(lastActiveMs: number): string {
 	return `rl-${String(lastActiveMs)}`;
 }

@@ -148,3 +148,33 @@ export function countNoun(
 ): string {
 	return `${String(count)} ${count === 1 ? singular : plural}`;
 }
+
+const OPAQUE_IDENTITY = /\b[a-z]+_[a-z0-9]{8,}\b/giu;
+
+/** True when copy still contains a typed stable id such as `site_…`. */
+export function containsOpaqueIdentity(value: string): boolean {
+	OPAQUE_IDENTITY.lastIndex = 0;
+	return OPAQUE_IDENTITY.test(value);
+}
+
+/**
+ * Player-facing place name. Falls back to a generic phrase, never a raw id.
+ */
+export function playerFacingPlaceName(
+	siteId: string,
+	sites: readonly Readonly<{
+		readonly siteId: string;
+		readonly name: string;
+	}>[],
+): string {
+	const named = sites.find((site) => site.siteId === siteId)?.name.trim();
+	if (named !== undefined && named.length > 0) return named;
+	if (siteId.includes("founding-site")) return "the founding camp";
+	return "this place";
+}
+
+/** Strips typed stable ids so Want/HUD copy cannot leak `site_…`. */
+export function playerFacingCopy(value: string): string {
+	const stripped = value.replaceAll(OPAQUE_IDENTITY, "this place").trim();
+	return stripped.length === 0 ? "this place" : stripped;
+}

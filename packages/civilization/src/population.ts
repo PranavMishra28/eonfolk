@@ -377,3 +377,55 @@ export function registerRelationship(
 		},
 	});
 }
+
+/**
+ * Records a finished conversation on both people and any directed
+ * relationship between them. Presentation never calls this.
+ */
+export function recordSocialContact(
+	state: CivilizationState,
+	input: {
+		readonly fromCitizenId: string;
+		readonly toCitizenId: string;
+		readonly atSimulationTime: number;
+	},
+): CivilizationState {
+	simulationTime(input.atSimulationTime, "social contact time");
+	if (input.fromCitizenId === input.toCitizenId)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"social contact requires two citizens",
+		);
+	if (input.atSimulationTime > state.simulationTime)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"social contact is from the future",
+		);
+	const from = citizen(state, input.fromCitizenId);
+	const to = citizen(state, input.toCitizenId);
+	const citizens = {
+		...state.citizens,
+		[from.citizenId]: {
+			...from,
+			lastSocialSimulationTime: input.atSimulationTime,
+		},
+		[to.citizenId]: {
+			...to,
+			lastSocialSimulationTime: input.atSimulationTime,
+		},
+	};
+	const relationships = { ...state.relationships };
+	for (const relationship of Object.values(state.relationships)) {
+		if (
+			(relationship.fromCitizenId === from.citizenId &&
+				relationship.toCitizenId === to.citizenId) ||
+			(relationship.fromCitizenId === to.citizenId &&
+				relationship.toCitizenId === from.citizenId)
+		)
+			relationships[relationship.relationshipId] = {
+				...relationship,
+				lastInteractionSimulationTime: input.atSimulationTime,
+			};
+	}
+	return evolve(state, { citizens, relationships });
+}

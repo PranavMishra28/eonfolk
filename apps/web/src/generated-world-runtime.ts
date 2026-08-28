@@ -103,6 +103,25 @@ export interface GeneratedWorldBuildOptions {
 	readonly checkpointTransform?: (
 		checkpoint: CivilizationExperimentRun,
 	) => CivilizationExperimentRun;
+	readonly checkpointRecovery?: "already-attempted";
+}
+
+const SILENT_CHECKPOINT_RECOVERY_CODES = new Set([
+	"UNSUPPORTED_VERSION",
+	"DATABASE_VERSION",
+	"STALE_STATE",
+]);
+
+function deleteGeneratedAuthorityDatabase(name: string): Promise<void> {
+	if (typeof indexedDB === "undefined")
+		return Promise.reject(new Error("INDEXEDDB_UNAVAILABLE"));
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.deleteDatabase(name);
+		request.onsuccess = () => resolve();
+		request.onerror = () =>
+			reject(request.error ?? new Error("INDEXEDDB_DELETE_FAILED"));
+		request.onblocked = () => resolve();
+	});
 }
 
 let pendingExperience: Promise<GeneratedWorldExperience> | undefined;
@@ -323,7 +342,9 @@ async function buildGeneratedWorldExperienceInternal(
 		return Object.freeze({ generatedWorld, prepared });
 	};
 	const usesDefaultAuthority =
-		!generatedFaultHooks && Object.keys(options).length === 0;
+		!generatedFaultHooks &&
+		Object.keys(options).filter((key) => key !== "checkpointRecovery")
+			.length === 0;
 	let preparedBase: Promise<PreparedGeneratedWorldBase>;
 	if (usesDefaultAuthority) {
 		pendingDefaultPreparedBase ??= prepareBase();
@@ -418,7 +439,26 @@ async function buildGeneratedWorldExperienceInternal(
 		} catch (error) {
 			const failure = classifyDurableFailure(error);
 			if (failure === null) throw error;
-			selectAdmittedView(failure.kind, failure.code);
+			const silentRebuild =
+				failure.kind === "quarantined" &&
+				SILENT_CHECKPOINT_RECOVERY_CODES.has(failure.code) &&
+				options.checkpointRecovery !== "already-attempted" &&
+				!generatedFaultHooks &&
+				options.checkpointTransform === undefined &&
+				options.persistenceBoundaryInjector === undefined;
+			if (silentRebuild) {
+				port?.close();
+				port = null;
+				try {
+					await deleteGeneratedAuthorityDatabase(databaseName);
+					return await buildGeneratedWorldExperienceInternal({
+						...options,
+						checkpointRecovery: "already-attempted",
+					});
+				} catch {
+					selectAdmittedView(failure.kind, failure.code);
+				}
+			} else selectAdmittedView(failure.kind, failure.code);
 		} finally {
 			port?.close();
 		}

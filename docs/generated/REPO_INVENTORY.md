@@ -6,14 +6,14 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../exec-plans/completed/GOAL.md) owns required-state decisions as a historical V1 ledger.
 
-**File-set identity:** 540 files excluding this generated file; SHA-256 `caf55fa5a8187dccac50a02d2b494b896b33d6abcae7785afbc4b0a7f9dacb78`.
+**File-set identity:** 553 files excluding this generated file; SHA-256 `54838acbf5ab10cb0ab576bd1ac3011e10874e3156aa6f3c11fe8c24f3d8a69c`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
 | Application code | 56 |
-| Documentation | 92 |
+| Documentation | 103 |
 | Frozen execution evidence | 67 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
@@ -21,7 +21,7 @@
 | Repository tooling | 32 |
 | Research and reviews | 55 |
 | Root controls and configuration | 24 |
-| Tests and fixtures | 100 |
+| Tests and fixtures | 102 |
 
 ## Workspaces
 
@@ -41,7 +41,7 @@
 
 | Cohort | Files |
 |---|---:|
-| `tests/e2e` | 13 |
+| `tests/e2e` | 15 |
 | `tests/fixtures` | 2 |
 | `tests/manual` | 2 |
 | `tests/property` | 18 |

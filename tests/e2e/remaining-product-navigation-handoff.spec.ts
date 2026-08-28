@@ -4,6 +4,7 @@ import {
 	type WorldFocus,
 } from "../../apps/web/src/research-navigation";
 import { expect, type Page, test } from "./support/eonfolk-fixture";
+import { revealPeopleAndWork } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -69,6 +70,7 @@ async function openCanonicalWorld(page: Page, href = "/world") {
 }
 
 async function selectSponsorCandidate(page: Page): Promise<string> {
+	await revealPeopleAndWork(page);
 	const residents = page.locator("ul.v1-presence-roster button");
 	for (let index = 0; index < (await residents.count()); index += 1) {
 		const resident = residents.nth(index);

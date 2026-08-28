@@ -4,6 +4,7 @@ import {
 	type Page,
 	test,
 } from "./support/eonfolk-fixture";
+import { revealPeopleAndWork } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -196,10 +197,10 @@ test("mobile citizen focus keeps keyboard camera and playback tools available @g
 	await isolateLocalWorld(page);
 	await page.setViewportSize({ width: 390, height: 844 });
 	await openCanonicalWorld(page);
-	const mara = page
-		.getByRole("list", { name: "People here" })
-		.getByRole("button")
-		.filter({ hasText: "Mara Vale" });
+	await revealPeopleAndWork(page);
+	const mara = page.locator(
+		'ul.v1-presence-roster button[data-citizen-id="citizen-01"]',
+	);
 	await mara.click();
 	await expect(page.locator("aside.v1-context-panel")).toHaveAttribute(
 		"data-focus-kind",
@@ -278,20 +279,26 @@ test("mobile arrival is world-dominant with an opening action in the first viewp
 			.find((button) => button.textContent?.trim() === "Follow Mara")
 			?.getBoundingClientRect();
 		return {
+			stageTop: stage?.top ?? Number.POSITIVE_INFINITY,
 			stageHeight: stage?.height ?? 0,
 			actionTop: action?.top ?? Number.POSITIVE_INFINITY,
 			actionBottom: action?.bottom ?? Number.POSITIVE_INFINITY,
 			viewportHeight: window.innerHeight,
 			clientWidth: document.documentElement.clientWidth,
 			scrollWidth: document.documentElement.scrollWidth,
+			scrollHeight: document.documentElement.scrollHeight,
 		};
 	});
+	expect(geometry.stageTop).toBeLessThanOrEqual(8);
 	expect(geometry.stageHeight / geometry.viewportHeight).toBeGreaterThanOrEqual(
-		0.5,
+		0.85,
 	);
 	expect(geometry.actionTop).toBeGreaterThanOrEqual(0);
 	expect(geometry.actionBottom).toBeLessThanOrEqual(geometry.viewportHeight);
 	expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+	expect(geometry.scrollHeight).toBeLessThanOrEqual(
+		geometry.viewportHeight + 8,
+	);
 	expect(externalRequests).toEqual([]);
 });
 

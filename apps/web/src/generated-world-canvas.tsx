@@ -6,6 +6,7 @@ import { Application, Entity } from "@playcanvas/react";
 import { Camera, Light, Render } from "@playcanvas/react/components";
 import { useApp, useAppEvent } from "@playcanvas/react/hooks";
 import {
+	BLEND_NORMAL,
 	Color,
 	DEVICETYPE_WEBGL2,
 	type Entity as PlayCanvasEntity,
@@ -14,9 +15,11 @@ import {
 } from "playcanvas";
 import {
 	Component,
+	createContext,
 	type ErrorInfo,
 	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -29,19 +32,35 @@ import {
 } from "./components/generated/GeneratedFolkProxy";
 import {
 	advanceGeneratedCameraIntent,
+	cameraEyeMm,
 	cameraIntentForGeneratedNavigation,
+	followOccluderIds,
+	followOccluderVolumes,
 	GENERATED_FOLK_ASSET,
 	GENERATED_NAVIGATION_EVENT,
+	GENERATED_TRAVEL_DURATION_TICKS,
 	type GeneratedCameraIntent,
 	type GeneratedEmbodiedActor,
 	type GeneratedEmbodimentProjection,
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	generatedCameraFidelity,
+	generatedFollowFovDegrees,
+	generatedFollowViewportIsCompact,
 	generatedTraversalPointAtTick,
+	planGeneratedActorTransition,
+	presentedActorCopy,
+	resolveFollowCamera,
+	sampleGeneratedActorPresentation,
 } from "./generated-presentation";
+import {
+	authorityDayIntervalMs,
+	PLAY_DAY_INTERVAL_MS,
+	type PlayRate,
+	visualDayProgress01,
+} from "./play-clock";
 
-function material(hex: string): StandardMaterial {
+function material(hex: string, ghost = false): StandardMaterial {
 	const value = Number.parseInt(hex.slice(1), 16);
 	const result = new StandardMaterial();
 	result.diffuse = new Color(
@@ -51,7 +70,9 @@ function material(hex: string): StandardMaterial {
 	);
 	result.metalness = 0;
 	result.gloss = 0.22;
-	result.opacity = 1;
+	result.opacity = ghost ? 0.16 : 1;
+	result.blendType = ghost ? BLEND_NORMAL : result.blendType;
+	result.depthWrite = !ghost;
 	result.update();
 	return result;
 }
@@ -73,7 +94,48 @@ const palette = Object.freeze({
 	social: material("#e7cc77"),
 });
 
+const ghostPalette = Object.freeze({
+	ground: material("#718158", true),
+	soil: material("#7c6848", true),
+	path: material("#a8895d", true),
+	water: material("#5d9aaa", true),
+	wood: material("#755137", true),
+	bark: material("#5c402d", true),
+	leaf: material("#426249", true),
+	leafLight: material("#607a4f", true),
+	stone: material("#8c8c80", true),
+	civic: material("#d7bd86", true),
+	field: material("#b7a75f", true),
+	clay: material("#a96045", true),
+	changed: material("#d99a45", true),
+	social: material("#e7cc77", true),
+});
+
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
+
+function surfaceOf(color: StandardMaterial, ghost: boolean): StandardMaterial {
+	if (!ghost) return color;
+	for (const key of Object.keys(palette) as readonly (keyof typeof palette)[]) {
+		if (palette[key] === color) return ghostPalette[key];
+	}
+	return color;
+}
+
+const GhostBuildingsContext = createContext(false);
+
+function GhostBuildings({
+	active,
+	children,
+}: {
+	readonly active: boolean;
+	readonly children: ReactNode;
+}) {
+	return (
+		<GhostBuildingsContext.Provider value={active}>
+			{children}
+		</GhostBuildingsContext.Provider>
+	);
+}
 
 function Primitive({
 	type = "box",
@@ -90,13 +152,14 @@ function Primitive({
 	readonly color: StandardMaterial;
 	readonly castShadows?: boolean;
 }) {
+	const ghost = useContext(GhostBuildingsContext);
 	return (
 		<Entity position={position} scale={scale} rotation={rotation}>
 			<Render
 				type={type}
-				material={color}
-				castShadows={castShadows}
-				receiveShadows
+				material={surfaceOf(color, ghost)}
+				castShadows={castShadows && !ghost}
+				receiveShadows={!ghost}
 			/>
 		</Entity>
 	);
@@ -109,9 +172,7 @@ interface Frame {
 	readonly depth: number;
 }
 
-const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.3;
-const OVERVIEW_YAW_OFFSET_DEGREES = 138;
-const OVERVIEW_PITCH_OFFSET_DEGREES = 8;
+const OVERVIEW_FRAME_DISTANCE_FACTOR = 0.22;
 
 function sceneFrame(projection: GeneratedCivilizationSpatialProjection): Frame {
 	const xs = projection.local.sites.flatMap((site) => [
@@ -126,18 +187,17 @@ function sceneFrame(projection: GeneratedCivilizationSpatialProjection): Frame {
 		xs.push(actor.positionMm.x);
 		zs.push(actor.positionMm.z);
 	}
-	for (const route of projection.local.routes)
-		for (const waypoint of route.waypoints) {
-			xs.push(waypoint.xMillimeters);
-			zs.push(waypoint.yMillimeters);
-		}
+	for (const building of projection.local.buildings) {
+		xs.push(building.position.xMillimeters);
+		zs.push(building.position.yMillimeters);
+	}
 	const minX = Math.min(...xs);
 	const maxX = Math.max(...xs);
 	const minZ = Math.min(...zs);
 	const maxZ = Math.max(...zs);
 	if (![minX, maxX, minZ, maxZ].every(Number.isFinite))
 		throw new Error("Generated settlement has no finite visual bounds");
-	const padding = 12;
+	const padding = 4;
 	return Object.freeze({
 		centerX: (minX + maxX) / 2_000,
 		centerZ: (minZ + maxZ) / 2_000,
@@ -161,10 +221,9 @@ function localPoint(
 	];
 }
 
-function renderedActorPoint(
+function occupancySlotPoint(
 	projection: GeneratedCivilizationSpatialProjection,
 	actor: GeneratedEmbodiedActor,
-	presentationTick = 48,
 ): SpatialPointMm {
 	const interaction = projection.spatial.interactions.find((candidate) =>
 		candidate.participantIds.includes(actor.citizenId),
@@ -172,8 +231,6 @@ function renderedActorPoint(
 	const canonicalActor = projection.spatial.actors.find(
 		(candidate) => candidate.citizenId === actor.citizenId,
 	);
-	if (actor.grounding.kind === "route")
-		return generatedTraversalPointAtTick(actor.grounding, presentationTick);
 	const slotId =
 		actor.grounding.interactionSlotId ?? canonicalActor?.action.affordanceId;
 	const participantIds = interaction?.participantIds ?? [actor.citizenId];
@@ -203,37 +260,209 @@ function renderedActorPoint(
 		const offset = (occupantIndex - (coincidents.length - 1) / 2) * 2_200;
 		return {
 			x: Math.round(actor.positionMm.x + offset),
-			y: actor.positionMm.y,
-			z: actor.positionMm.z,
+			y: 0,
+			z: Math.round(actor.positionMm.z + 2_800),
 		};
 	}
 	const offset =
 		(occupantIndex - (occupantCount - 1) / 2) *
 		Math.max(2_200, node.occupantSpacingMm);
 	const angle = (node.facingDegrees * Math.PI) / 180;
-	const clearance =
-		coincidents.length > 1 ? 0 : Math.max(6_000, node.occupantSpacingMm);
+	const clearance = Math.max(3_600, node.occupantSpacingMm);
 	return {
 		x: Math.round(node.x + Math.cos(angle) * offset),
-		y: node.y,
+		y: 0,
 		z: Math.round(node.z - Math.sin(angle) * offset - clearance),
 	};
 }
 
-function renderedActorFacing(
+function presentedActorSample(
 	projection: GeneratedCivilizationSpatialProjection,
-	model: GeneratedEmbodimentProjection,
 	actor: GeneratedEmbodiedActor,
-): number {
-	if (actor.interactionTarget === null) return actor.facingDegrees;
-	const target = model.actors.find(
-		(candidate) => candidate.citizenId === actor.interactionTarget,
+	previous: GeneratedEmbodiedActor | null,
+	progress01: number,
+	reducedMotion: boolean,
+) {
+	return sampleGeneratedActorPresentation({
+		actor,
+		previous,
+		slotPointMm: occupancySlotPoint(projection, actor),
+		progress01,
+		reducedMotion,
+	});
+}
+
+function followVolumes(projection: GeneratedCivilizationSpatialProjection) {
+	return followOccluderVolumes(projection);
+}
+
+function followViewportCompact(host: HTMLElement | null): boolean {
+	const width = host?.clientWidth ?? window.innerWidth;
+	const height = host?.clientHeight ?? window.innerHeight;
+	return generatedFollowViewportIsCompact(width, height);
+}
+
+function followFramingForActor(
+	projection: GeneratedCivilizationSpatialProjection,
+	actor: GeneratedEmbodiedActor,
+	previous: GeneratedEmbodiedActor | null,
+	progress01: number,
+	reducedMotion: boolean,
+	compact: boolean,
+) {
+	const bodyLookMm = Math.round(
+		projection.scene.physicalScale.citizen.heightMm * 0.86,
 	);
-	if (target === undefined) return actor.facingDegrees;
-	const from = renderedActorPoint(projection, actor);
-	const to = renderedActorPoint(projection, target);
-	if (from.x === to.x && from.z === to.z) return actor.facingDegrees;
-	return Math.round((Math.atan2(to.x - from.x, to.z - from.z) * 180) / Math.PI);
+	return resolveFollowCamera(
+		presentedActorSample(
+			projection,
+			actor,
+			previous,
+			progress01,
+			reducedMotion,
+		),
+		followVolumes(projection),
+		bodyLookMm,
+		compact,
+	);
+}
+
+function renderedActorPoint(
+	projection: GeneratedCivilizationSpatialProjection,
+	actor: GeneratedEmbodiedActor,
+	presentationTick = 48,
+	previous: GeneratedEmbodiedActor | null = null,
+	progress01?: number,
+	reducedMotion = false,
+): SpatialPointMm {
+	const progress =
+		progress01 ??
+		Math.min(
+			1,
+			presentationTick / Math.max(1, GENERATED_TRAVEL_DURATION_TICKS),
+		);
+	if (actor.grounding.kind === "route" && progress01 === undefined)
+		return generatedTraversalPointAtTick(actor.grounding, presentationTick);
+	return presentedActorSample(
+		projection,
+		actor,
+		previous,
+		progress,
+		reducedMotion,
+	).positionMm;
+}
+
+function WorldMotionClock({
+	stateHash,
+	playRate,
+	reducedMotion,
+	progressRef,
+	originMs,
+	held01,
+}: {
+	readonly stateHash: string;
+	readonly playRate: PlayRate;
+	readonly reducedMotion: boolean;
+	readonly progressRef: { current: number };
+	readonly originMs?: number;
+	readonly held01?: number;
+}) {
+	const elapsedRef = useRef(0);
+	const hashRef = useRef(stateHash);
+	useAppEvent("update", (dt: number) => {
+		const intervalMs = authorityDayIntervalMs(playRate) ?? PLAY_DAY_INTERVAL_MS;
+		if (originMs !== undefined) {
+			progressRef.current = visualDayProgress01({
+				displayedAtMs: originMs,
+				nowMs: performance.now(),
+				intervalMs,
+				playing: playRate !== 0,
+				reducedMotion,
+				held01: held01 ?? 0,
+			});
+			return;
+		}
+		if (hashRef.current !== stateHash) {
+			hashRef.current = stateHash;
+			elapsedRef.current = 0;
+		}
+		const daySeconds = intervalMs / 1_000;
+		if (playRate !== 0 && !reducedMotion) elapsedRef.current += Math.max(0, dt);
+		progressRef.current = reducedMotion
+			? 0.55
+			: Math.min(1, elapsedRef.current / Math.max(0.001, daySeconds));
+	});
+	return null;
+}
+
+function MovingCitizen({
+	actor,
+	previous,
+	projection,
+	frame,
+	progressRef,
+	presentationTick,
+	reducedMotion,
+	selected,
+}: {
+	readonly actor: GeneratedEmbodiedActor;
+	readonly previous: GeneratedEmbodiedActor | null;
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly frame: Frame;
+	readonly progressRef: { current: number };
+	readonly presentationTick: number;
+	readonly reducedMotion: boolean;
+	readonly selected: boolean;
+}) {
+	const entity = useRef<PlayCanvasEntity>(null);
+	const scale = projection.scene.physicalScale;
+	const actorScale =
+		scale.citizen.heightMm / (GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000);
+	useAppEvent("update", () => {
+		const node = entity.current;
+		if (node === null) return;
+		const sample = presentedActorSample(
+			projection,
+			actor,
+			previous,
+			progressRef.current,
+			reducedMotion,
+		);
+		const point = localPoint(sample.positionMm, frame);
+		node.setPosition(point[0], point[1], point[2]);
+	});
+	const sample = presentedActorSample(
+		projection,
+		actor,
+		previous,
+		progressRef.current,
+		reducedMotion,
+	);
+	const facingDegrees =
+		actor.interactionTarget === null || sample.phase === "travel"
+			? sample.facingDegrees
+			: actor.facingDegrees;
+	return (
+		<Entity
+			ref={entity}
+			position={localPoint(sample.positionMm, frame)}
+			scale={[actorScale, actorScale, actorScale]}
+		>
+			<GeneratedFolkProxy
+				actor={{
+					...actor,
+					animationClass: sample.animationClass,
+					pose: sample.pose,
+					facingDegrees,
+					positionMm: sample.positionMm,
+				}}
+				position={[0, 0, 0]}
+				presentationTick={presentationTick}
+				reducedMotion={reducedMotion}
+				selected={selected}
+			/>
+		</Entity>
+	);
 }
 
 function SceneProbe({
@@ -282,10 +511,24 @@ function SceneProbe({
 		};
 	}, [app, host, onFailure]);
 	useAppEvent("postrender", () => {
-		if (ready.current || host.current === null) return;
-		ready.current = true;
-		host.current.dataset.ready = "true";
-		host.current.dataset.deviceType = app.graphicsDevice.deviceType;
+		if (host.current === null) return;
+		if (!ready.current) {
+			ready.current = true;
+			host.current.dataset.ready = "true";
+			host.current.dataset.deviceType = app.graphicsDevice.deviceType;
+		}
+		const stats = (
+			app as unknown as {
+				stats?: {
+					drawCalls?: { total?: number };
+					frame?: { ms?: number };
+				};
+			}
+		).stats;
+		if (stats?.frame?.ms !== undefined)
+			host.current.dataset.frameTimeMs = String(Math.round(stats.frame.ms));
+		if (stats?.drawCalls?.total !== undefined)
+			host.current.dataset.drawCalls = String(stats.drawCalls.total);
 	});
 	return null;
 }
@@ -298,6 +541,8 @@ function GeneratedCamera({
 	presentationTick,
 	reducedMotion,
 	host,
+	progressRef,
+	previousByCitizen,
 }: {
 	readonly frame: Frame;
 	readonly projection: GeneratedCivilizationSpatialProjection;
@@ -306,6 +551,8 @@ function GeneratedCamera({
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly host: RefObject<HTMLDivElement | null>;
+	readonly progressRef: { current: number };
+	readonly previousByCitizen: ReadonlyMap<string, GeneratedEmbodiedActor>;
 }) {
 	const camera = useRef<PlayCanvasEntity>(null);
 	const pointer = useRef<{
@@ -325,7 +572,7 @@ function GeneratedCamera({
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
 		const focus = navigation.focus;
-		const compact = (host.current?.clientWidth ?? window.innerWidth) < 600;
+		const compact = followViewportCompact(host.current);
 		const actor =
 			focus.kind === "citizen"
 				? model.actors.find(({ citizenId }) => citizenId === focus.citizenId)
@@ -336,42 +583,23 @@ function GeneratedCamera({
 				: renderedActorPoint(
 						projection,
 						actor,
-						reducedMotion ? 48 : presentationTick,
+						presentationTick,
+						previousByCitizen.get(actor.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
 					);
-		const following = Boolean(navigation.followCitizen && actorPoint);
-		const socialInteraction = compact
-			? projection.spatial.interactions[0]
-			: undefined;
-		const socialActor = model.actors.find(
-			({ citizenId }) => citizenId === socialInteraction?.participantIds[0],
-		);
-		const socialPartner = model.actors.find(
-			({ citizenId }) => citizenId === socialInteraction?.participantIds[1],
-		);
-		const socialFrom =
-			socialActor === undefined
-				? undefined
-				: renderedActorPoint(
+		const following = Boolean(navigation.followCitizen && actor !== undefined);
+		const followFraming =
+			following && actor !== undefined
+				? followFramingForActor(
 						projection,
-						socialActor,
-						reducedMotion ? 48 : presentationTick,
-					);
-		const socialTo =
-			socialPartner === undefined
-				? undefined
-				: renderedActorPoint(
-						projection,
-						socialPartner,
-						reducedMotion ? 48 : presentationTick,
-					);
-		const socialPoint =
-			socialFrom === undefined || socialTo === undefined
-				? undefined
-				: {
-						x: Math.round((socialFrom.x + socialTo.x) / 2),
-						y: 1_000,
-						z: Math.round((socialFrom.z + socialTo.z) / 2),
-					};
+						actor,
+						previousByCitizen.get(actor.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
+						compact,
+					)
+				: null;
 		const overviewMinimumMm = Math.round(
 			Math.max(frame.width, frame.depth) *
 				OVERVIEW_FRAME_DISTANCE_FACTOR *
@@ -380,42 +608,30 @@ function GeneratedCamera({
 		return Object.freeze({
 			...requested,
 			targetMm:
-				actorPoint === undefined
-					? focus.kind === "overview"
-						? (socialPoint ?? {
-								...requested.targetMm,
-								z: requested.targetMm.z + 4_000,
-							})
-						: requested.targetMm
-					: {
-							...actorPoint,
-							y: actorPoint.y + 1_000,
-							z: following
-								? actorPoint.z
-								: actorPoint.z - (compact ? 800 : 2_400),
-						},
+				followFraming !== null
+					? followFraming.targetMm
+					: actorPoint === undefined
+						? requested.targetMm
+						: {
+								...actorPoint,
+								y: actorPoint.y + 1_000,
+								x: actorPoint.x,
+								z: actorPoint.z - (compact ? 800 : 2_400),
+							},
 			yawDegrees:
-				focus.kind === "overview"
-					? requested.yawDegrees + OVERVIEW_YAW_OFFSET_DEGREES
-					: following
-						? requested.yawDegrees
-						: focus.kind === "citizen"
-							? requested.yawDegrees + 48
-							: requested.yawDegrees,
+				followFraming !== null
+					? followFraming.yawDegrees
+					: requested.yawDegrees,
 			pitchDegrees:
-				focus.kind === "overview"
-					? requested.pitchDegrees + OVERVIEW_PITCH_OFFSET_DEGREES
-					: following
-						? requested.pitchDegrees
-						: focus.kind === "citizen"
-							? requested.pitchDegrees + 14
-							: requested.pitchDegrees,
+				followFraming !== null
+					? followFraming.pitchDegrees
+					: requested.pitchDegrees,
 			distanceMm:
-				focus.kind === "overview"
-					? socialPoint === undefined
+				followFraming !== null
+					? followFraming.distanceMm
+					: focus.kind === "overview"
 						? Math.max(requested.distanceMm, overviewMinimumMm)
-						: 30_000
-					: requested.distanceMm,
+						: requested.distanceMm,
 		});
 	}, [
 		frame,
@@ -423,6 +639,8 @@ function GeneratedCamera({
 		navigation.focus,
 		navigation.followCitizen,
 		presentationTick,
+		previousByCitizen,
+		progressRef,
 		projection,
 		reducedMotion,
 		requested,
@@ -474,11 +692,7 @@ function GeneratedCamera({
 			pointer.current = { ...prior, x: event.clientX, y: event.clientY };
 			const state = navigationRef.current;
 			const unitsPerPixelMm = state.distanceMm * 0.0018;
-			const yaw =
-				((state.yawDegrees +
-					(state.focus.kind === "overview" ? OVERVIEW_YAW_OFFSET_DEGREES : 0)) *
-					Math.PI) /
-				180;
+			const yaw = (state.yawDegrees * Math.PI) / 180;
 			emit({
 				type: "pan",
 				xDeltaMm: (-dx * Math.cos(yaw) + dy * Math.sin(yaw)) * unitsPerPixelMm,
@@ -532,13 +746,39 @@ function GeneratedCamera({
 		};
 	}, [frame, host, model, projection]);
 
-	useAppEvent("update", () => {
+	useAppEvent("update", (dt: number) => {
 		const entity = camera.current;
 		if (entity === null) return;
+		const focus = navigationRef.current.focus;
+		const following = Boolean(navigationRef.current.followCitizen);
+		let nextDesired = desiredRef.current;
+		if (following && focus.kind === "citizen") {
+			const followed = model.actors.find(
+				({ citizenId }) => citizenId === focus.citizenId,
+			);
+			if (followed !== undefined) {
+				const framing = followFramingForActor(
+					projection,
+					followed,
+					previousByCitizen.get(followed.citizenId) ?? null,
+					progressRef.current,
+					reducedMotion,
+					followViewportCompact(host.current),
+				);
+				nextDesired = Object.freeze({
+					...nextDesired,
+					targetMm: framing.targetMm,
+					yawDegrees: framing.yawDegrees,
+					pitchDegrees: framing.pitchDegrees,
+					distanceMm: framing.distanceMm,
+				});
+			}
+		}
 		const intent = advanceGeneratedCameraIntent(
 			current.current,
-			desiredRef.current,
+			nextDesired,
 			reducedMotion,
+			dt,
 		);
 		current.current = intent;
 		const target = localPoint(intent.targetMm, frame);
@@ -561,28 +801,87 @@ function GeneratedCamera({
 			host.current.dataset.fidelityClass = fidelity.fidelityClass;
 			host.current.dataset.navigationMode = reducedMotion ? "direct" : "smooth";
 			const cameraComponent = entity.camera;
-			if (cameraComponent !== undefined)
-				host.current.dataset.citizenPickTargets = JSON.stringify(
-					model.actors.map((actor) => {
-						const point = localPoint(
-							renderedActorPoint(
-								projection,
-								actor,
-								reducedMotion ? 48 : presentationTickRef.current,
-							),
-							frame,
-						);
-						const screen = cameraComponent.worldToScreen(
-							new Vec3(point[0], point[1] + 0.9, point[2]),
-						);
-						return { id: actor.citizenId, x: screen.x, y: screen.y };
-					}),
-				);
+			if (cameraComponent !== undefined) {
+				const picks = model.actors.map((actor) => {
+					const point = localPoint(
+						renderedActorPoint(
+							projection,
+							actor,
+							presentationTickRef.current,
+							previousByCitizen.get(actor.citizenId) ?? null,
+							progressRef.current,
+							reducedMotion,
+						),
+						frame,
+					);
+					const screen = cameraComponent.worldToScreen(
+						new Vec3(point[0], point[1] + 0.9, point[2]),
+					);
+					return { id: actor.citizenId, x: screen.x, y: screen.y };
+				});
+				host.current.dataset.citizenPickTargets = JSON.stringify(picks);
+				const followedId =
+					following && focus.kind === "citizen" ? focus.citizenId : null;
+				const followedActor =
+					followedId === null
+						? undefined
+						: model.actors.find((actor) => actor.citizenId === followedId);
+				const followedPick =
+					followedId === null
+						? undefined
+						: picks.find((pick) => pick.id === followedId);
+				const height = Math.max(1, host.current.clientHeight);
+				const width = Math.max(1, host.current.clientWidth);
+				host.current.dataset.followSubjectYRatio =
+					followedPick === undefined
+						? ""
+						: (followedPick.y / height).toFixed(3);
+				let subjectVisible = false;
+				if (followedActor !== undefined) {
+					const body = localPoint(
+						renderedActorPoint(
+							projection,
+							followedActor,
+							presentationTickRef.current,
+							previousByCitizen.get(followedActor.citizenId) ?? null,
+							progressRef.current,
+							reducedMotion,
+						),
+						frame,
+					);
+					const chest = cameraComponent.worldToScreen(
+						new Vec3(body[0], body[1] + 1.08, body[2]),
+					);
+					const head = cameraComponent.worldToScreen(
+						new Vec3(body[0], body[1] + 1.82, body[2]),
+					);
+					const inFrame = (x: number, y: number) =>
+						x >= width * 0.06 &&
+						x <= width * 0.94 &&
+						y >= height * 0.12 &&
+						y <= height * 0.88;
+					subjectVisible = inFrame(chest.x, chest.y) && inFrame(head.x, head.y);
+				}
+				host.current.dataset.followSubjectVisible = subjectVisible
+					? "true"
+					: "";
+			}
 		}
 	});
 	return (
 		<Entity ref={camera} position={initialPosition}>
-			<Camera clearColor="#a9b9a8" fov={46} farClip={720} nearClip={0.2} />
+			<Camera
+				clearColor="#8aa3b0"
+				fov={generatedFollowFovDegrees(
+					Boolean(navigation.followCitizen),
+					generatedFollowViewportIsCompact(
+						window.innerWidth,
+						window.innerHeight,
+					),
+				)}
+				farClip={720}
+				nearClip={0.2}
+			/>
 		</Entity>
 	);
 }
@@ -649,9 +948,19 @@ function Tree({
 
 /** Non-authoritative landscape context keeps the settlement inside a world. */
 function WorldContext({ frame }: { readonly frame: Frame }) {
-	const fields = [-0.18, 0.22] as const;
+	const fields = [-0.28, 0.3] as const;
 	return (
 		<Entity name="cosmetic-landscape">
+			{[-1.1, 1.15].map((side) => (
+				<Primitive
+					key={side}
+					type="sphere"
+					position={[side * frame.width * 0.9, 1.4, -frame.depth * 0.85]}
+					scale={[18, 6.5, 14]}
+					color={palette.soil}
+					castShadows={false}
+				/>
+			))}
 			{fields.map((x) => (
 				<Entity key={x}>
 					<Primitive
@@ -806,14 +1115,87 @@ function VernacularBuilding({
 	depth,
 	ridgeHeight,
 	doorHeight,
+	buildingKind,
+	completeness,
+	foundingCamp,
 }: {
 	readonly position: [number, number, number];
 	readonly width: number;
 	readonly depth: number;
 	readonly ridgeHeight: number;
 	readonly doorHeight: number;
+	readonly buildingKind: string;
+	readonly completeness: number;
+	readonly foundingCamp: boolean;
 }) {
-	const wallHeight = ridgeHeight * 0.62;
+	const wallHeight = ridgeHeight * 0.72;
+	if (foundingCamp)
+		return (
+			<Entity position={position}>
+				<Primitive
+					position={[0, 0.85, 0]}
+					scale={[2.4, 1.7, 2.1]}
+					color={palette.wood}
+				/>
+				<Primitive
+					type="cone"
+					position={[0, 2.05, 0]}
+					scale={[3.2, 1.4, 2.9]}
+					color={palette.bark}
+				/>
+				<Primitive
+					type="cylinder"
+					position={[2.2, 0.18, 1.1]}
+					scale={[0.85, 0.14, 0.85]}
+					color={palette.stone}
+				/>
+				<Primitive
+					type="sphere"
+					position={[2.2, 0.72, 1.1]}
+					scale={[0.38, 0.62, 0.38]}
+					color={palette.changed}
+				/>
+				<Primitive
+					position={[2.05, 0.08, 1.85]}
+					scale={[0.55, 0.35, 0.4]}
+					color={palette.wood}
+				/>
+			</Entity>
+		);
+	if (completeness < 0.55)
+		return (
+			<Entity position={position}>
+				<Primitive
+					position={[0, 0.12, 0]}
+					scale={[width + 0.4, 0.22, depth + 0.4]}
+					color={palette.stone}
+				/>
+				{[-1, 1].map((side) => (
+					<Primitive
+						key={side}
+						position={[side * width * 0.42, wallHeight * completeness, 0]}
+						scale={[0.16, wallHeight * Math.max(0.4, completeness), 0.16]}
+						color={palette.wood}
+					/>
+				))}
+				<Primitive
+					position={[0, 0.35, 0]}
+					scale={[width * 0.7, 0.18, depth * 0.55]}
+					color={palette.bark}
+				/>
+			</Entity>
+		);
+	const isHall = buildingKind.includes("meeting");
+	const isStore =
+		buildingKind.includes("store") || buildingKind.includes("cache");
+	const isWorkshop = buildingKind.includes("workshop");
+	const bodyColor = isHall
+		? palette.civic
+		: isWorkshop
+			? palette.clay
+			: isStore
+				? palette.wood
+				: palette.civic;
 	return (
 		<Entity position={position}>
 			<Primitive
@@ -823,21 +1205,85 @@ function VernacularBuilding({
 			/>
 			<Primitive
 				position={[0, wallHeight / 2 + 0.26, 0]}
-				scale={[width, wallHeight, depth]}
-				color={palette.civic}
+				scale={[
+					isHall ? width * 1.15 : width,
+					wallHeight * (isStore ? 0.85 : 1),
+					isWorkshop ? depth * 1.2 : depth,
+				]}
+				color={bodyColor}
 			/>
-			{[-1, 1].map((side) => (
+			{isHall ? (
 				<Primitive
-					key={side}
-					position={[side * width * 0.23, ridgeHeight - 0.18, 0]}
-					scale={[width * 0.58, 0.46, depth + 0.9]}
-					rotation={[0, 0, -side * 27]}
+					type="cylinder"
+					position={[0, wallHeight + 0.55, 0]}
+					scale={[width * 0.35, 0.7, width * 0.35]}
 					color={palette.clay}
 				/>
-			))}
+			) : isWorkshop ? (
+				<>
+					<Primitive
+						position={[0, wallHeight + 0.08, -depth * 0.08]}
+						scale={[width * 1.08, 0.18, depth * 0.72]}
+						color={palette.bark}
+					/>
+					<Primitive
+						type="cylinder"
+						position={[width * 0.38, wallHeight + 0.85, -depth * 0.18]}
+						scale={[0.28, 1.15, 0.28]}
+						color={palette.stone}
+					/>
+					<Primitive
+						position={[width * 0.52, 0.55, depth * 0.12]}
+						scale={[0.22, 1.05, 0.22]}
+						color={palette.wood}
+					/>
+					<Primitive
+						position={[width * 0.52, 1.05, depth * 0.12]}
+						scale={[0.55, 0.12, 0.18]}
+						color={palette.bark}
+					/>
+					<Primitive
+						position={[-width * 0.2, 0.42, depth * 0.48]}
+						scale={[0.35, 0.85, 0.18]}
+						color={palette.wood}
+					/>
+				</>
+			) : isStore ? (
+				<>
+					<Primitive
+						position={[0, wallHeight * 0.85 + 0.22, 0]}
+						scale={[width + 0.2, 0.22, depth + 0.2]}
+						color={palette.bark}
+					/>
+					<Primitive
+						position={[width * 0.38, 0.38, depth * 0.42]}
+						scale={[0.7, 0.7, 0.55]}
+						color={palette.wood}
+					/>
+					<Primitive
+						position={[width * 0.52, 0.28, depth * 0.28]}
+						scale={[0.5, 0.5, 0.4]}
+						color={palette.bark}
+					/>
+				</>
+			) : (
+				[-1, 1].map((side) => (
+					<Primitive
+						key={side}
+						position={[side * width * 0.23, wallHeight + 0.12, 0]}
+						scale={[width * 0.58, 0.42, depth + 0.35]}
+						rotation={[0, 0, -side * 27]}
+						color={palette.clay}
+					/>
+				))
+			)}
 			<Primitive
-				position={[0, doorHeight / 2 + 0.25, depth / 2 + 0.04]}
-				scale={[1.05, doorHeight, 0.12]}
+				position={[
+					0,
+					doorHeight / 2 + 0.25,
+					isWorkshop ? depth * 0.22 : depth / 2 + 0.04,
+				]}
+				scale={[isHall ? 1.4 : isWorkshop ? 1.55 : 1.05, doorHeight, 0.12]}
 				color={palette.wood}
 			/>
 		</Entity>
@@ -852,8 +1298,13 @@ function GroundedSettlement({
 	navigation,
 	presentationTick,
 	reducedMotion,
+	playRate,
 	host,
 	onFailure,
+	progressRef,
+	previousByCitizen,
+	visualDayOriginMs,
+	visualDayHeld01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -862,12 +1313,44 @@ function GroundedSettlement({
 	readonly navigation: GeneratedNavigationState;
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
+	readonly playRate: PlayRate;
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly onFailure: () => void;
+	readonly progressRef: { current: number };
+	readonly previousByCitizen: ReadonlyMap<string, GeneratedEmbodiedActor>;
+	readonly visualDayOriginMs?: number;
+	readonly visualDayHeld01?: number;
 }) {
 	const scale = projection.scene.physicalScale;
 	const selectedActorId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const followedActor =
+		navigation.followCitizen && selectedActorId !== null
+			? model.actors.find((actor) => actor.citizenId === selectedActorId)
+			: undefined;
+	const followGhostIds = (() => {
+		if (followedActor === undefined) return new Set<string>();
+		const framing = followFramingForActor(
+			projection,
+			followedActor,
+			previousByCitizen.get(followedActor.citizenId) ?? null,
+			progressRef.current,
+			reducedMotion,
+			followViewportCompact(host.current),
+		);
+		return new Set(
+			followOccluderIds(
+				cameraEyeMm(
+					framing.targetMm,
+					framing.yawDegrees,
+					framing.pitchDegrees,
+					framing.distanceMm,
+				),
+				framing.targetMm,
+				followVolumes(projection),
+			),
+		);
+	})();
 	const focusRevision =
 		navigation.focus.kind === "overview"
 			? "overview"
@@ -885,12 +1368,21 @@ function GroundedSettlement({
 		navigation.pitchDegrees,
 		navigation.panOffsetMm.x,
 		navigation.panOffsetMm.z,
+		playRate,
 	].join("|");
 	return (
 		<Application
 			deviceTypes={[DEVICETYPE_WEBGL2]}
 			className="generated-playcanvas"
 		>
+			<WorldMotionClock
+				stateHash={projection.spatial.source.stateHash}
+				playRate={playRate}
+				reducedMotion={reducedMotion}
+				progressRef={progressRef}
+				originMs={visualDayOriginMs}
+				held01={visualDayHeld01}
+			/>
 			<SceneProbe
 				host={host}
 				onFailure={onFailure}
@@ -905,21 +1397,23 @@ function GroundedSettlement({
 				presentationTick={presentationTick}
 				reducedMotion={reducedMotion}
 				host={host}
+				progressRef={progressRef}
+				previousByCitizen={previousByCitizen}
 			/>
-			<Entity rotation={[48, -28, 0]}>
+			<Entity rotation={[54, -18, 0]}>
 				<Light
 					type="directional"
-					color="#ffedcb"
-					intensity={1.05}
+					color="#fff1d4"
+					intensity={0.92}
 					castShadows
 				/>
 			</Entity>
-			<Entity rotation={[48, 152, 0]}>
-				<Light type="directional" color="#dce6c4" intensity={0.95} />
+			<Entity rotation={[32, 140, 0]}>
+				<Light type="directional" color="#c5d4e4" intensity={0.42} />
 			</Entity>
 			<Primitive
-				position={[0, -0.2, 0]}
-				scale={[frame.width + 14, 0.4, frame.depth + 14]}
+				position={[0, -0.35, 0]}
+				scale={[Math.max(frame.width, 96), 0.5, Math.max(frame.depth, 96)]}
 				color={palette.ground}
 			/>
 			<Primitive
@@ -975,36 +1469,67 @@ function GroundedSettlement({
 					},
 					frame,
 				);
-				const color = model.growth.addedSiteIds.includes(site.siteId)
-					? palette.changed
-					: site.kind === "resource"
-						? palette.leaf
-						: site.kind === "civic"
-							? palette.path
-							: site.kind === "storage"
-								? palette.soil
-								: palette.field;
+				const foundingCamp =
+					model.growth.addedSiteIds.includes(site.siteId) ||
+					(projection.local.settlement.foundedAtSimulationTime > 0 &&
+						!projection.local.buildings.some(
+							(building) => building.siteId === site.siteId,
+						));
 				return (
 					<Entity key={site.siteId}>
-						<Primitive
-							type="sphere"
-							position={[position[0], -0.32, position[2]]}
-							scale={[
-								Math.max(2, width * 0.64),
-								0.68,
-								Math.max(2, depth * 0.64),
-							]}
-							color={color}
-							castShadows={false}
-						/>
-						<SiteLife
-							kind={site.kind}
-							position={[position[0], 0.08, position[2]]}
-							width={width}
-							depth={depth}
-							physicalScale={scale}
-							fidelityClass={fidelity.fidelityClass}
-						/>
+						{foundingCamp ? (
+							<GhostBuildings
+								active={followGhostIds.has(`camp:${site.siteId}`)}
+							>
+								<Primitive
+									type="cylinder"
+									position={[position[0], 0.04, position[2]]}
+									scale={[3.4, 0.1, 3.4]}
+									color={palette.soil}
+									castShadows={false}
+								/>
+								<VernacularBuilding
+									position={[position[0], 0.08, position[2]]}
+									width={2.4}
+									depth={2.2}
+									ridgeHeight={2.1}
+									doorHeight={1.2}
+									buildingKind="founding-camp"
+									completeness={0.2}
+									foundingCamp
+								/>
+							</GhostBuildings>
+						) : (
+							<>
+								<Primitive
+									type="sphere"
+									position={[position[0], -0.32, position[2]]}
+									scale={[
+										Math.max(2, width * 0.64),
+										0.68,
+										Math.max(2, depth * 0.64),
+									]}
+									color={
+										site.kind === "resource"
+											? palette.leaf
+											: site.kind === "civic"
+												? palette.path
+												: site.kind === "storage"
+													? palette.soil
+													: palette.field
+									}
+									castShadows={false}
+								/>
+								<SiteLife
+									kind={site.kind}
+									position={[position[0], 0.08, position[2]]}
+									width={width}
+									depth={depth}
+									physicalScale={scale}
+									fidelityClass={fidelity.fidelityClass}
+								/>
+							</>
+						)}
 					</Entity>
 				);
 			})}
@@ -1025,49 +1550,50 @@ function GroundedSettlement({
 				const ridgeHeight =
 					(isMill ? scale.mill.ridgeHeightMm : scale.house.ridgeHeightMm) /
 					1_000;
+				const siteProject = model.projects.find(
+					(project) => project.siteId === building.siteId,
+				);
+				const completeness =
+					siteProject === undefined
+						? Math.max(0.4, building.conditionBasisPoints / 10_000)
+						: siteProject.progressBasisPoints / 10_000;
 				return (
-					<VernacularBuilding
+					<GhostBuildings
 						key={building.buildingId}
-						position={point}
-						width={width}
-						depth={depth}
-						ridgeHeight={ridgeHeight}
-						doorHeight={scale.door.heightMm / 1_000}
-					/>
-				);
-			})}
-			{model.actors.map((actor) => {
-				const facingDegrees = renderedActorFacing(projection, model, actor);
-				const actorScale =
-					scale.citizen.heightMm / (GENERATED_FOLK_SOURCE_HEIGHT_UNITS * 1_000);
-				const actorPoint = localPoint(
-					renderedActorPoint(
-						projection,
-						actor,
-						reducedMotion ? 48 : presentationTick,
-					),
-					frame,
-				);
-				return (
-					<Entity
-						key={actor.citizenId}
-						position={actorPoint}
-						scale={[actorScale, actorScale, actorScale]}
+						active={
+							followGhostIds.has(building.buildingId) ||
+							followGhostIds.has(`camp:${building.siteId}`)
+						}
 					>
-						<GeneratedFolkProxy
-							actor={
-								facingDegrees === actor.facingDegrees
-									? actor
-									: { ...actor, facingDegrees }
+						<VernacularBuilding
+							position={point}
+							width={width}
+							depth={depth}
+							ridgeHeight={ridgeHeight}
+							doorHeight={scale.door.heightMm / 1_000}
+							buildingKind={building.buildingKind}
+							completeness={completeness}
+							foundingCamp={
+								projection.local.settlement.foundedAtSimulationTime > 0 &&
+								completeness < 0.35
 							}
-							position={[0, 0, 0]}
-							presentationTick={presentationTick}
-							reducedMotion={reducedMotion}
-							selected={selectedActorId === actor.citizenId}
 						/>
-					</Entity>
+					</GhostBuildings>
 				);
 			})}
+			{model.actors.map((actor) => (
+				<MovingCitizen
+					key={actor.citizenId}
+					actor={actor}
+					previous={previousByCitizen.get(actor.citizenId) ?? null}
+					projection={projection}
+					frame={frame}
+					progressRef={progressRef}
+					presentationTick={presentationTick}
+					reducedMotion={reducedMotion}
+					selected={selectedActorId === actor.citizenId}
+				/>
+			))}
 			{projection.spatial.interactions.map((interaction) => {
 				const participants = interaction.participantIds
 					.map((citizenId) =>
@@ -1077,8 +1603,28 @@ function GroundedSettlement({
 				const first = participants[0];
 				const second = participants[1];
 				if (first === undefined || second === undefined) return null;
-				const from = localPoint(renderedActorPoint(projection, first), frame);
-				const to = localPoint(renderedActorPoint(projection, second), frame);
+				const from = localPoint(
+					renderedActorPoint(
+						projection,
+						first,
+						presentationTick,
+						previousByCitizen.get(first.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
+					),
+					frame,
+				);
+				const to = localPoint(
+					renderedActorPoint(
+						projection,
+						second,
+						presentationTick,
+						previousByCitizen.get(second.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
+					),
+					frame,
+				);
 				return (
 					<Primitive
 						key={interaction.interactionId}
@@ -1117,6 +1663,10 @@ export function GeneratedWorldCanvas({
 	presentationTick,
 	reducedMotion,
 	onFailure,
+	playRate = 1,
+	variant = "world",
+	visualDayOriginMs,
+	visualDayHeld01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -1124,6 +1674,10 @@ export function GeneratedWorldCanvas({
 	readonly presentationTick: number;
 	readonly reducedMotion: boolean;
 	readonly onFailure: () => void;
+	readonly playRate?: PlayRate;
+	readonly variant?: "world" | "hero";
+	readonly visualDayOriginMs?: number;
+	readonly visualDayHeld01?: number;
 }) {
 	const cameraIntent = cameraIntentForGeneratedNavigation(
 		projection,
@@ -1144,13 +1698,45 @@ export function GeneratedWorldCanvas({
 			: cameraIntent.distanceMm;
 	const fidelity = generatedCameraFidelity(effectiveDistanceMm);
 	const host = useRef<HTMLDivElement>(null);
+	const progressRef = useRef(reducedMotion ? 0.55 : 0);
+	const lastModelRef = useRef(model);
+	const previousModelRef = useRef<GeneratedEmbodimentProjection | null>(null);
+	if (lastModelRef.current.source.stateHash !== model.source.stateHash) {
+		previousModelRef.current = lastModelRef.current;
+		lastModelRef.current = model;
+	}
+	const previousByCitizen = useMemo(() => {
+		return new Map(
+			(previousModelRef.current?.actors ?? []).map((actor) => [
+				actor.citizenId,
+				actor,
+			]),
+		);
+	}, [model.source.stateHash]);
+	const transitionKinds = model.actors
+		.map((actor) => {
+			const previous = previousByCitizen.get(actor.citizenId);
+			if (previous === undefined) return `${actor.citizenId}:enter`;
+			try {
+				return `${actor.citizenId}:${planGeneratedActorTransition(previous, actor).kind}`;
+			} catch {
+				return `${actor.citizenId}:blocked`;
+			}
+		})
+		.join(",");
 	return (
 		<div
 			ref={host}
-			className="generated-world-canvas"
+			className={
+				variant === "hero"
+					? "generated-world-canvas generated-world-hero"
+					: "generated-world-canvas"
+			}
 			role="img"
 			aria-label={`${projection.local.settlement.name}, settlement with ${projection.spatial.actors.length} residents. Drag to pan, scroll to zoom, or use semantic camera controls.`}
-			data-testid="generated-world-canvas"
+			data-testid={
+				variant === "hero" ? "generated-world-hero" : "generated-world-canvas"
+			}
 			data-ready="false"
 			data-engine="playcanvas"
 			data-folk-renderer="procedural-typed-proxy"
@@ -1197,7 +1783,10 @@ export function GeneratedWorldCanvas({
 					const position = renderedActorPoint(
 						projection,
 						actor,
-						reducedMotion ? 48 : presentationTick,
+						presentationTick,
+						previousByCitizen.get(actor.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
 					);
 					return `${actor.citizenId}:${position.x}:${position.y}:${position.z}`;
 				})
@@ -1208,7 +1797,8 @@ export function GeneratedWorldCanvas({
 						`${actor.citizenId}|${actor.action.actionId}|${actor.action.destinationPlaceId}|${actor.animationClass}|${actor.interactionTarget ?? "none"}|${actor.prop ?? "none"}|${actor.positionMm.x}:${actor.positionMm.y}:${actor.positionMm.z}`,
 				)
 				.join(";")}
-			data-teleport-count={projection.spatial.teleportCount}
+			data-teleport-count={String(model.teleportCount)}
+			data-transition-kinds={transitionKinds}
 			data-contradiction-count={projection.spatial.contradictionCount}
 			data-embodiment-schema={model.schemaVersion}
 			data-presentation-tick={presentationTick}
@@ -1221,16 +1811,8 @@ export function GeneratedWorldCanvas({
 			data-following={String(navigation.followCitizen)}
 			data-camera-target={cameraIntent.semanticLabel}
 			data-camera-distance-mm={effectiveDistanceMm}
-			data-camera-yaw-degrees={
-				navigation.yawDegrees +
-				(navigation.focus.kind === "overview" ? OVERVIEW_YAW_OFFSET_DEGREES : 0)
-			}
-			data-camera-pitch-degrees={
-				navigation.pitchDegrees +
-				(navigation.focus.kind === "overview"
-					? OVERVIEW_PITCH_OFFSET_DEGREES
-					: 0)
-			}
+			data-camera-yaw-degrees={navigation.yawDegrees}
+			data-camera-pitch-degrees={navigation.pitchDegrees}
 			data-camera-target-mm={`${cameraIntent.targetMm.x}:${cameraIntent.targetMm.y}:${cameraIntent.targetMm.z}`}
 			data-semantic-scale={fidelity.semanticScale}
 			data-fidelity-class={fidelity.fidelityClass}
@@ -1252,49 +1834,53 @@ export function GeneratedWorldCanvas({
 					navigation={navigation}
 					presentationTick={presentationTick}
 					reducedMotion={reducedMotion}
+					playRate={playRate}
 					host={host}
 					onFailure={onFailure}
+					progressRef={progressRef}
+					previousByCitizen={previousByCitizen}
+					visualDayOriginMs={visualDayOriginMs}
+					visualDayHeld01={visualDayHeld01}
 				/>
 			</RendererBoundary>
-			<CitizenNameOverlay
-				host={host}
-				model={model}
-				selectedCitizenId={
-					navigation.focus.kind === "citizen"
-						? navigation.focus.citizenId
-						: null
-				}
-			/>
+			{variant === "hero" ? null : (
+				<CitizenNameOverlay
+					host={host}
+					model={model}
+					projection={projection}
+					previousByCitizen={previousByCitizen}
+					progressRef={progressRef}
+					reducedMotion={reducedMotion}
+					selectedCitizenId={
+						navigation.focus.kind === "citizen"
+							? navigation.focus.citizenId
+							: null
+					}
+				/>
+			)}
 		</div>
 	);
 }
 
-const INTENT_WORDS: Readonly<Record<string, string>> = {
-	idle: "pausing",
-	walk: "walking",
-	carry: "carrying",
-	gather: "gathering",
-	inspect: "checking stores",
-	talk: "speaking",
-	listen: "listening",
-	exchange: "trading",
-	repair: "repairing",
-	"eat-rest": "resting",
-	react: "reacting",
-};
-
 function CitizenNameOverlay({
 	host,
 	model,
+	projection,
+	progressRef,
 	selectedCitizenId,
 }: {
 	readonly host: RefObject<HTMLDivElement | null>;
 	readonly model: GeneratedEmbodimentProjection;
+	readonly projection: GeneratedCivilizationSpatialProjection;
+	readonly previousByCitizen: ReadonlyMap<string, GeneratedEmbodiedActor>;
+	readonly progressRef: { current: number };
+	readonly reducedMotion: boolean;
 	readonly selectedCitizenId: string | null;
 }) {
 	const [targets, setTargets] = useState<
 		readonly { readonly id: string; readonly x: number; readonly y: number }[]
 	>([]);
+	const [hoveredId, setHoveredId] = useState<string | null>(null);
 	useEffect(() => {
 		let frame = 0;
 		let previous = "";
@@ -1319,9 +1905,38 @@ function CitizenNameOverlay({
 		frame = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(frame);
 	}, [host]);
+	useEffect(() => {
+		const surface = host.current;
+		if (surface === null) return;
+		const onMove = (event: PointerEvent) => {
+			const bounds = surface.getBoundingClientRect();
+			const x = event.clientX - bounds.left;
+			const y = event.clientY - bounds.top;
+			const nearest = targets
+				.map((target) => ({
+					id: target.id,
+					distance: Math.hypot(target.x - x, target.y - y),
+				}))
+				.sort((left, right) => left.distance - right.distance)[0];
+			setHoveredId(
+				nearest !== undefined && nearest.distance <= 56 ? nearest.id : null,
+			);
+		};
+		surface.addEventListener("pointermove", onMove);
+		return () => surface.removeEventListener("pointermove", onMove);
+	}, [host, targets]);
+	const visible = targets.filter((target) => {
+		const actor = model.actors.find(({ citizenId }) => citizenId === target.id);
+		if (actor === undefined) return false;
+		return (
+			actor.name === "Mara Vale" ||
+			actor.citizenId === selectedCitizenId ||
+			actor.citizenId === hoveredId
+		);
+	});
 	return (
 		<ul className="generated-citizen-labels" aria-label="People in view">
-			{targets.map((target) => {
+			{visible.map((target) => {
 				const actor = model.actors.find(
 					({ citizenId }) => citizenId === target.id,
 				);
@@ -1359,7 +1974,15 @@ function CitizenNameOverlay({
 							}
 						>
 							<strong>{actor.name}</strong>
-							<span>{INTENT_WORDS[actor.animationClass] ?? "at work"}</span>
+							<span>
+								{
+									presentedActorCopy(
+										actor,
+										projection,
+										progressRef.current,
+									).split(" at ")[0]
+								}
+							</span>
 						</button>
 					</li>
 				);

@@ -27,17 +27,17 @@ describe("world-as-product presentation", () => {
 		const following = reduceGeneratedNavigation(citizen, {
 			type: "toggle-follow",
 		});
-		expect(following.distanceMm).toBe(18_000);
+		expect(following.distanceMm).toBe(6_200);
 		expect(
 			reduceGeneratedNavigation(following, { type: "toggle-follow" })
 				.distanceMm,
-		).toBe(9_000);
+		).toBe(12_000);
 		expect(
 			reduceGeneratedNavigation(
 				{ ...INITIAL_GENERATED_NAVIGATION, distanceMm: 140_000 },
 				{ type: "overview" },
 			).distanceMm,
-		).toBe(38_000);
+		).toBe(32_000);
 	});
 
 	it("keeps human and building dimensions on the authoritative metric scale", async () => {
@@ -74,7 +74,7 @@ describe("world-as-product presentation", () => {
 		expect(canvas).toContain("projection.scene.edges");
 		expect(canvas).toContain("projection.local.buildings.map");
 		expect(canvas).toContain("projection.spatial.interactions.map");
-		expect(canvas).toContain("renderedActorPoint(projection, actor)");
+		expect(canvas).toContain("renderedActorPoint(");
 		expect(canvas).toContain("coincidents");
 		expect(canvas).toContain("occupantSpacingMm");
 		expect(people).toContain("function PhysicalAction");
@@ -85,13 +85,21 @@ describe("world-as-product presentation", () => {
 	it("keeps the world dominant and offers mobile visual degradation", async () => {
 		const styles = await source("styles.css");
 		expect(styles).toMatch(
-			/\.v1-context-panel\s*\{[^}]*width:\s*min\(20rem, 24vw\)/su,
+			/\.v1-context-panel\s*\{[^}]*width:\s*min\(16\.5rem, 20vw\)/su,
 		);
 		expect(styles).toContain("overflow-wrap: anywhere");
 		expect(styles).toContain(':not([data-focus-kind="overview"])');
 		expect(styles).toMatch(
-			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*58svh/su,
+			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);
+		expect(styles).toContain(".v1-inspector-sheet");
+		expect(styles).toContain(
+			".v1-inspector-sheet:not([open]) .v1-context-panel",
+		);
+		expect(styles).toMatch(
+			/@media \(max-width: 820px\), \(max-height: 600px\)[\s\S]*?\.generated-world-hero[\s\S]*?min-height:\s*22rem/su,
+		);
+		expect(styles).toContain('main.v1-world[data-view="embodied"]');
 		expect(styles).toContain("touch-action: none");
 	});
 });

@@ -9,15 +9,8 @@ import {
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
 	parseGeneratedNavigationAction,
+	presentedActorCopy,
 } from "../../generated-presentation";
-
-const ACTIVITY_LABELS: Readonly<Record<string, string>> = {
-	carry: "carrying supplies",
-	gather: "gathering resources",
-	"eat-rest": "resting and eating",
-	repair: "repairing a structure",
-	inspect: "checking stores",
-};
 
 /**
  * Keyboard/semantic parity for canvas selection, semantic zoom and follow.
@@ -34,6 +27,8 @@ export function GeneratedEmbodimentControls({
 	onTogglePresentation: _onTogglePresentation,
 	onStepPresentation,
 	onNavigationRejected,
+	showLookAround = true,
+	visualProgress01 = 0.55,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -46,6 +41,8 @@ export function GeneratedEmbodimentControls({
 	readonly onNavigationRejected?: (
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
+	readonly showLookAround?: boolean;
+	readonly visualProgress01?: number;
 }) {
 	useEffect(() => {
 		const onCanvasNavigation = (event: Event) => {
@@ -131,75 +128,77 @@ export function GeneratedEmbodimentControls({
 			className="generated-embodiment-controls"
 			aria-label="World navigation"
 		>
-			<fieldset className="generated-camera-controls">
-				<legend>Look around</legend>
-				<button type="button" onClick={() => dispatch({ type: "overview" })}>
-					Settlement overview
-				</button>
-				<button
-					type="button"
-					onClick={() => dispatch({ type: "zoom", deltaMm: -8_000 })}
-				>
-					Zoom in
-				</button>
-				<button
-					type="button"
-					onClick={() => dispatch({ type: "zoom", deltaMm: 8_000 })}
-				>
-					Zoom out
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({
-							type: "orbit",
-							yawDeltaDegrees: -12,
-							pitchDeltaDegrees: 0,
-						})
-					}
-				>
-					Orbit left
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({
-							type: "orbit",
-							yawDeltaDegrees: 12,
-							pitchDeltaDegrees: 0,
-						})
-					}
-				>
-					Orbit right
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 })
-					}
-				>
-					Pan west
-				</button>
-				<button
-					type="button"
-					onClick={() =>
-						dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 })
-					}
-				>
-					Pan east
-				</button>
-				<button
-					type="button"
-					disabled={selectedCitizenId === null}
-					aria-pressed={navigation.followCitizen}
-					onClick={() => dispatch({ type: "toggle-follow" })}
-				>
-					{navigation.followCitizen ? "Stop following" : "Follow this person"}
-				</button>
-				<button type="button" onClick={onStepPresentation}>
-					Step one beat
-				</button>
-			</fieldset>
+			{showLookAround ? (
+				<fieldset className="generated-camera-controls">
+					<legend>Look around</legend>
+					<button type="button" onClick={() => dispatch({ type: "overview" })}>
+						Settlement overview
+					</button>
+					<button
+						type="button"
+						onClick={() => dispatch({ type: "zoom", deltaMm: -8_000 })}
+					>
+						Zoom in
+					</button>
+					<button
+						type="button"
+						onClick={() => dispatch({ type: "zoom", deltaMm: 8_000 })}
+					>
+						Zoom out
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({
+								type: "orbit",
+								yawDeltaDegrees: -12,
+								pitchDeltaDegrees: 0,
+							})
+						}
+					>
+						Orbit left
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({
+								type: "orbit",
+								yawDeltaDegrees: 12,
+								pitchDeltaDegrees: 0,
+							})
+						}
+					>
+						Orbit right
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 })
+						}
+					>
+						Pan west
+					</button>
+					<button
+						type="button"
+						onClick={() =>
+							dispatch({ type: "pan", xDeltaMm: 8_000, zDeltaMm: 0 })
+						}
+					>
+						Pan east
+					</button>
+					<button
+						type="button"
+						disabled={selectedCitizenId === null}
+						aria-pressed={navigation.followCitizen}
+						onClick={() => dispatch({ type: "toggle-follow" })}
+					>
+						{navigation.followCitizen ? "Stop following" : "Follow this person"}
+					</button>
+					<button type="button" onClick={onStepPresentation}>
+						Step one beat
+					</button>
+				</fieldset>
+			) : null}
 			<p
 				className="generated-camera-status"
 				data-testid="generated-camera-status"
@@ -211,27 +210,33 @@ export function GeneratedEmbodimentControls({
 			<fieldset className="generated-residents">
 				<legend>People here</legend>
 				<ul>
-					{model.actors.map((actor) => (
-						<li key={actor.citizenId}>
-							<button
-								type="button"
-								data-citizen-id={actor.citizenId}
-								data-action-id={actor.actionId}
-								data-animation-class={actor.animationClass}
-								aria-pressed={selectedCitizenId === actor.citizenId}
-								onClick={() =>
-									dispatch({
-										type: "select-citizen",
-										citizenId: actor.citizenId,
-									})
-								}
-							>
-								{actor.name} · {actor.role} ·{" "}
-								{ACTIVITY_LABELS[actor.animationClass] ??
-									"moving through the settlement"}
-							</button>
-						</li>
-					))}
+					{model.actors.map((actor) => {
+						const activity = presentedActorCopy(
+							actor,
+							projection,
+							visualProgress01,
+						);
+						return (
+							<li key={actor.citizenId}>
+								<button
+									type="button"
+									data-citizen-id={actor.citizenId}
+									data-action-id={actor.actionId}
+									data-animation-class={actor.animationClass}
+									data-presented-activity={activity}
+									aria-pressed={selectedCitizenId === actor.citizenId}
+									onClick={() =>
+										dispatch({
+											type: "select-citizen",
+											citizenId: actor.citizenId,
+										})
+									}
+								>
+									{actor.name} · {actor.role} · {activity}
+								</button>
+							</li>
+						);
+					})}
 				</ul>
 			</fieldset>
 			{projection.local.buildings.length === 0 ? null : (

@@ -1,4 +1,5 @@
 import {
+	playerFacingPlaceName,
 	projectDisplayName,
 	projectStateDisplayName,
 	roleDisplayName,
@@ -125,6 +126,16 @@ export type GeneratedSpatialActivityLocation =
 			readonly progressBasisPoints: number;
 	  }>;
 
+export interface GeneratedVisualLifecycle {
+	readonly dayStart: number;
+	readonly travelEnd: number;
+	readonly performEnd: number;
+	readonly simulationEnd: number;
+	readonly travelKind: "walk" | "carry" | null;
+	readonly performKind: AnimationClass;
+	readonly routineKind: string;
+}
+
 /**
  * Minimal scheduler-owned projection boundary. The renderer never guesses a
  * person's current action or physical location from residence/project records.
@@ -137,6 +148,7 @@ export interface GeneratedSpatialActivityInput {
 	readonly projectId: string | null;
 	readonly carriedProp: PropKind | null;
 	readonly focal: boolean;
+	readonly visualLifecycle?: GeneratedVisualLifecycle;
 }
 
 export interface GeneratedProjectProjection {
@@ -689,7 +701,7 @@ function projectProjects(
 					sourceEventIds: Object.freeze(
 						[...project.sourceEventIds].sort(compareIds),
 					),
-					semanticLabel: `${projectDisplayName(project.name)} is ${projectStateDisplayName(project.state)} at ${project.siteId}`,
+					semanticLabel: `${projectDisplayName(project.name)} is ${projectStateDisplayName(project.state)}`,
 				});
 			}),
 	);
@@ -904,6 +916,10 @@ function activityActor(input: {
 		routeId = route.routeId;
 	}
 	const canonicalAction = Object.freeze({ ...activity.canonicalAction });
+	const placeName = playerFacingPlaceName(
+		activity.canonicalAction.destinationPlaceId,
+		local.sites,
+	);
 	return Object.freeze({
 		citizenId: citizen.citizenId,
 		slug: citizen.citizenId,
@@ -938,7 +954,7 @@ function activityActor(input: {
 		}),
 		interactionTarget: activity.canonicalAction.targetId,
 		action: canonicalAction,
-		semanticLabel: `${citizen.name} is ${activity.canonicalAction.kind} at ${activity.canonicalAction.destinationPlaceId}`,
+		semanticLabel: `${citizen.name} is ${activity.canonicalAction.kind} at ${placeName}`,
 		focal: activity.focal,
 	});
 }
@@ -987,6 +1003,7 @@ function resolveSlotOccupancy(input: {
 
 function deriveInteractions(input: {
 	readonly actors: readonly SpatialActorProjection[];
+	readonly simulationTime: number;
 }): Readonly<{
 	readonly actors: readonly SpatialActorProjection[];
 	readonly interactions: readonly SpatialInteractionProjection[];
@@ -1055,8 +1072,13 @@ function deriveInteractions(input: {
 		const linkedSequence =
 			linkedEventId === null ? null : ([...eventSequences][0] ?? null);
 		const committed =
-			linkedEventId !== null &&
-			participants.every((actor) => actor.action.status === "committed");
+			(linkedEventId !== null &&
+				participants.every((actor) => actor.action.status === "committed")) ||
+			participants.every(
+				(actor) =>
+					actor.action.simulationEnd !== null &&
+					actor.action.simulationEnd <= input.simulationTime,
+			);
 		const names = participants.map((actor) => actor.name);
 		interactions.push(
 			Object.freeze({
@@ -1074,7 +1096,7 @@ function deriveInteractions(input: {
 				sourceEventId: linkedEventId,
 				sourceSequence: linkedSequence,
 				status: committed ? "committed" : "in-progress",
-				semanticLabel: `${names.join(", ")} share a canonical ${participants.every((actor) => actor.action.kind === "exchange") ? "exchange" : "conversation"} slot at ${participants[0]?.placeId ?? slotId}`,
+				semanticLabel: `${names.join(", ")} share a canonical ${participants.every((actor) => actor.action.kind === "exchange") ? "exchange" : "conversation"} slot`,
 			}),
 		);
 	}
@@ -1110,12 +1132,16 @@ function spatialProjection(input: {
 	readonly scene: SpatialSceneDefinition;
 	readonly presentationTick: number;
 	readonly actors: readonly SpatialActorProjection[];
+	readonly simulationTime: number;
 }): SpatialProjection {
 	const occupiedActors = resolveSlotOccupancy({
 		scene: input.scene,
 		actors: input.actors,
 	});
-	const linked = deriveInteractions({ actors: occupiedActors });
+	const linked = deriveInteractions({
+		actors: occupiedActors,
+		simulationTime: input.simulationTime,
+	});
 	const animationClasses = Object.freeze(
 		[...new Set(linked.actors.map((actor) => actor.animationClass))].sort(),
 	) as readonly AnimationClass[];
@@ -1227,6 +1253,7 @@ export function projectGeneratedCivilizationSpatial(
 			scene,
 			presentationTick: input.presentationTick,
 			actors,
+			simulationTime: input.civilization.simulationTime,
 		}),
 		omitted: Object.freeze({
 			citizens: Math.max(0, localCitizens.length - MAX_PROJECTED_ENTITIES),

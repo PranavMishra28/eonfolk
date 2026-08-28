@@ -23,6 +23,8 @@ import { CivilizationError } from "./types.js";
 export const CIVILIZATION_SCHEDULER_SCHEMA_VERSION =
 	"eonfolk-civilization-scheduler-v1" as const;
 const DAY_SECONDS = 86_400;
+/** Skip at least one odd-day conversation cycle after a recorded contact. */
+const SOCIAL_CONTACT_COOLDOWN_SECONDS = 3 * DAY_SECONDS;
 
 export interface SchedulerTransportLane {
 	readonly laneId: string;
@@ -453,6 +455,20 @@ function legalSocialPartner(
 	);
 }
 
+function recentlyInConversation(
+	state: CivilizationState,
+	citizenId: string,
+	atSimulationTime: number,
+): boolean {
+	const citizen = state.citizens[citizenId];
+	if (citizen === undefined || citizen.lastSocialSimulationTime <= 0)
+		return false;
+	return (
+		atSimulationTime - citizen.lastSocialSimulationTime <
+		SOCIAL_CONTACT_COOLDOWN_SECONDS
+	);
+}
+
 function permitsRoutine(
 	decisions: readonly SchedulerRoutineDecision[],
 	citizenId: string,
@@ -481,9 +497,10 @@ function routineAssignments(
 				candidate.kind === kind &&
 				(subjectId === undefined || candidate.subjectId === subjectId),
 		);
+	const dayNumber = Math.floor(atSimulationTime / DAY_SECONDS);
 	const assignments = Object.values(state.citizens)
 		.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
-		.map((citizen) => {
+		.map((citizen, index) => {
 			let kind: SchedulerRoutineAssignment["kind"] = "social-maintenance";
 			let subjectId = citizen.citizenId;
 			let route: SchedulerRoutineAssignment["route"] = null;
@@ -564,7 +581,11 @@ function routineAssignments(
 						toSiteId: state.storages[to?.storageId ?? ""]?.siteId ?? "",
 						traversalUnits: lane.traversalUnits,
 					};
-				} else if (action("need-evaluated", citizen.citizenId) !== undefined) {
+				} else if (
+					action("need-evaluated", citizen.citizenId) !== undefined &&
+					dayNumber > 0 &&
+					dayNumber % 4 === index % 4
+				) {
 					kind = "consume";
 					subjectId = `need:${citizen.citizenId}:${atSimulationTime}`;
 				}
@@ -591,7 +612,9 @@ function routineAssignments(
 		if (
 			paired.has(firstId) ||
 			paired.has(secondId) ||
-			!legalSocialPartner(state, firstId, secondId)
+			!legalSocialPartner(state, firstId, secondId) ||
+			recentlyInConversation(state, firstId, atSimulationTime) ||
+			recentlyInConversation(state, secondId, atSimulationTime)
 		)
 			continue;
 		const first = byCitizen.get(firstId);
