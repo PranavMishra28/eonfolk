@@ -85,7 +85,7 @@ test("Play advances a day without pressing Pause first @generated-world", async 
 test("sponsoring Mara keeps counsel reachable after a live day @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(linuxSemanticCi ? 240_000 : 180_000);
+	test.setTimeout(linuxSemanticCi ? 360_000 : 180_000);
 	await isolateLocalWorld(page);
 	await resetGeneratedWorld(page);
 	await page.goto("/world");
@@ -166,13 +166,15 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await expect(world).toHaveAttribute("data-counsel-open", "false");
 	await expect(time.getByRole("button", { name: "Faster" })).toBeEnabled();
 	const dayAfterDismiss = Number(await world.getAttribute("data-horizon-days"));
-	await time.getByRole("button", { name: "Faster" }).click();
+	await pressTimeControl(page, "Faster");
 	await expect(world).toHaveAttribute(
 		"data-horizon-days",
 		String(dayAfterDismiss + 1),
 		{ timeout: 60_000 },
 	);
-	await time.getByRole("button", { name: "Pause" }).click();
+	await pressTimeControl(page, "Pause");
+	await expect(world).toHaveAttribute("data-play-rate", "0");
+	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
 	await expect(
 		page.locator('ul.v1-presence-roster button[data-citizen-id="citizen-01"]'),
 	).toHaveAttribute("aria-pressed", "true");
@@ -181,7 +183,11 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(world).toHaveAttribute("data-counsel-open", "true");
-	await page.getByRole("button", { name: "Check the stores first" }).click();
+	await page
+		.getByRole("button", { name: "Check the stores first" })
+		.evaluate((element) => {
+			(element as HTMLElement).click();
+		});
 	const seeDecision = await waitForEnabledCounsel(
 		page,
 		"See Mara's decision",

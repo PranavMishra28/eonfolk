@@ -7,6 +7,7 @@ import {
 } from "./support/eonfolk-fixture";
 import { expectFollowShowsPerson } from "./support/follow-body";
 import {
+	concealWorldTools,
 	pressTimeControl,
 	revealPeopleAndWork,
 	revealWorldTools,
@@ -42,10 +43,12 @@ async function isolateLocalWorld(page: Page): Promise<string[]> {
 }
 
 async function pauseWorldTime(page: Page): Promise<void> {
-	await page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name: "Pause" })
-		.click();
+	await pressTimeControl(page, "Pause");
+	await expect(page.locator("main.v1-world")).toHaveAttribute(
+		"data-play-rate",
+		"0",
+		{ timeout: 15_000 },
+	);
 }
 
 type GeneratedWorkerPersistenceFault =
@@ -1229,28 +1232,26 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await expect(mobileProject).toHaveAttribute("aria-current", "true");
 			await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
 		}
-		if (await tools.evaluate((details) => (details as HTMLDetailsElement).open))
-			await tools.locator("summary").evaluate((element) => {
-				(element as HTMLElement).click();
-			});
-		await expect
-			.poll(
-				() =>
-					page.evaluate(
-						() => document.documentElement.scrollWidth <= window.innerWidth + 1,
-					),
-				{ timeout: 15_000 },
-			)
-			.toBe(true);
-		await expect
-			.poll(
-				() =>
-					page
-						.locator(".v1-context-panel")
-						.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
-				{ timeout: 15_000 },
-			)
-			.toBe(true);
+		await concealWorldTools(page);
+		await pauseWorldTime(page);
+		expect(
+			await page
+				.locator("html")
+				.evaluate(
+					(root, _probe) => root.scrollWidth <= window.innerWidth + 1,
+					null,
+					{ timeout: 8_000 },
+				),
+		).toBe(true);
+		expect(
+			await page
+				.locator(".v1-context-panel")
+				.evaluate(
+					(panel, _probe) => panel.scrollWidth <= panel.clientWidth + 1,
+					null,
+					{ timeout: 8_000 },
+				),
+		).toBe(true);
 	}
 
 	expect(await world.getAttribute("data-state-hash")).toBe(stateHash);
