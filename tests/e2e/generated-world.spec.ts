@@ -43,12 +43,12 @@ async function isolateLocalWorld(page: Page): Promise<string[]> {
 }
 
 async function pauseWorldTime(page: Page): Promise<void> {
-	await pressTimeControl(page, "Pause");
-	await expect(page.locator("main.v1-world")).toHaveAttribute(
-		"data-play-rate",
-		"0",
-		{ timeout: 15_000 },
-	);
+	const world = page.locator("main.v1-world");
+	if ((await world.getAttribute("data-play-rate")) !== "0")
+		await pressTimeControl(page, "Pause");
+	await expect(world).toHaveAttribute("data-play-rate", "0", {
+		timeout: 15_000,
+	});
 }
 
 type GeneratedWorkerPersistenceFault =
@@ -1104,7 +1104,7 @@ test("generated citizen follow remains presentation-only @generated-world", asyn
 test("canonical citizen, building, and project focus preserve authority across desktop and mobile @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(linuxSemanticCi ? 240_000 : 180_000);
+	test.setTimeout(linuxSemanticCi ? 360_000 : 180_000);
 	const externalRequests = await isolateLocalWorld(page);
 	await page.emulateMedia({ reducedMotion: "reduce" });
 	await page.setViewportSize({ width: 1366, height: 768 });

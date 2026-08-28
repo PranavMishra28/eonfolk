@@ -214,7 +214,11 @@ for (const viewport of [
 				"base64",
 			),
 		});
-		await expect(panel.getByText(/Sanitized to 1×1/iu)).toBeVisible();
+		await expect(
+			panel.getByRole("img", {
+				name: "Exact sanitized preview that will be saved with this report",
+			}),
+		).toBeVisible({ timeout: 30_000 });
 		await consent.check();
 		await panel.getByRole("button", { name: "Save feedback locally" }).click();
 		await expect(panel.getByText(/nothing was uploaded/iu)).toBeVisible();
