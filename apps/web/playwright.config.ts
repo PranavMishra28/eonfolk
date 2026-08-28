@@ -19,8 +19,10 @@ export default defineConfig({
 	// so workers share 127.0.0.1:4174. Chromium --log-net-log is browser-scoped
 	// and is attached in the eonfolk fixture from TEST_WORKER_INDEX so the parent
 	// config process cannot bake netlog-w0.json into every worker.
+	// Four hosted Chromium+PlayCanvas workers timed out 24/68 production journeys
+	// on ubuntu-24.04; two workers stay parallel without starving the world.
 	fullyParallel: linuxCi,
-	workers: linuxCi ? 4 : 1,
+	workers: linuxCi ? 2 : 1,
 	retries: 0,
 	reporter: "line",
 	use: {

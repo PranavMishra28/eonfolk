@@ -157,13 +157,14 @@ describe("Founder Alpha CI evidence controls", () => {
 		expect(ctaQualification).not.toContain("canvas");
 	});
 
-	it("runs Linux CI production Playwright on four isolated workers", () => {
+	it("runs Linux CI production Playwright on two isolated workers", () => {
 		const config = readFileSync(
 			resolve("apps/web/playwright.config.ts"),
 			"utf8",
 		);
 		expect(config).toContain("fullyParallel: linuxCi");
-		expect(config).toContain("workers: linuxCi ? 4 : 1");
+		expect(config).toContain("workers: linuxCi ? 2 : 1");
+		expect(config).not.toContain("workers: linuxCi ? 4 : 1");
 		expect(config).not.toContain("workers: 1,");
 		const fixture = readFileSync(
 			resolve("tests/e2e/support/eonfolk-fixture.ts"),
