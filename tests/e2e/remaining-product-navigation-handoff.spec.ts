@@ -4,7 +4,7 @@ import {
 	type WorldFocus,
 } from "../../apps/web/src/research-navigation";
 import { expect, type Page, test } from "./support/eonfolk-fixture";
-import { revealPeopleAndWork } from "./support/world-hud";
+import { openChronicleReplay, revealPeopleAndWork } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -304,7 +304,7 @@ for (const viewport of [
 			{ timeout: 30_000 },
 		);
 		await pauseWorldTime(page);
-		await page.getByRole("button", { name: "Review Chronicle" }).click();
+		await openChronicleReplay(page);
 		const replay = page.getByRole("region", {
 			name: "Shareable factual replay",
 		});
@@ -341,7 +341,7 @@ for (const viewport of [
 			{ timeout: 30_000 },
 		);
 		await pauseWorldTime(page);
-		await page.getByRole("button", { name: "Review Chronicle" }).click();
+		await openChronicleReplay(page);
 		await replay.getByText("Exact event evidence").click();
 		const objectLink = replay.locator('a[href*="focus-kind=object"]').first();
 		const objectNavigationCount = await page.evaluate(

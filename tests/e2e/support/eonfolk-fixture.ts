@@ -15,10 +15,23 @@ import {
 } from "@playwright/test";
 
 const allowedOrigin = "http://127.0.0.1:4174";
-const routeLogPath = resolve(
+const routeLogDirectory = resolve(
 	import.meta.dirname,
-	"../../../tmp/dawnmere-playwright/route-log.json",
+	"../../../tmp/dawnmere-playwright",
 );
+
+function workerIndex(): string {
+	const workerIndexEnv = process.env.TEST_WORKER_INDEX ?? "";
+	return /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv) ? workerIndexEnv : "0";
+}
+
+function workerRouteLogPath(): string {
+	return resolve(routeLogDirectory, `route-log-w${workerIndex()}.json`);
+}
+
+function workerNetlogPath(): string {
+	return resolve(routeLogDirectory, `netlog-w${workerIndex()}.json`);
+}
 
 type RouteLogEntry = Readonly<{
 	action: "allow" | "deny";
@@ -29,6 +42,7 @@ type RouteLogEntry = Readonly<{
 
 function appendRouteLog(entries: readonly RouteLogEntry[]): void {
 	if (entries.length === 0) return;
+	const routeLogPath = workerRouteLogPath();
 	mkdirSync(dirname(routeLogPath), { recursive: true });
 	const previous = existsSync(routeLogPath)
 		? (JSON.parse(readFileSync(routeLogPath, "utf8")) as RouteLogEntry[])
@@ -43,6 +57,17 @@ function appendRouteLog(entries: readonly RouteLogEntry[]): void {
 }
 
 export const test = base.extend<{ routeAudit: undefined }>({
+	launchOptions: async ({ launchOptions }, use) => {
+		const netlogPath = workerNetlogPath();
+		mkdirSync(dirname(netlogPath), { recursive: true });
+		const args = (launchOptions.args ?? []).filter(
+			(argument) => !argument.startsWith("--log-net-log="),
+		);
+		await use({
+			...launchOptions,
+			args: [...args, `--log-net-log=${netlogPath}`],
+		});
+	},
 	routeAudit: [
 		async ({ context, page }, use) => {
 			const entries: RouteLogEntry[] = [];

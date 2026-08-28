@@ -93,7 +93,7 @@ unless a row explicitly names a network fetch; generated evidence stays under
 | `check-doc-links.mjs`, `check-bibliography.mjs` | Reader-link and bibliography validation; `docs:check` | no network; console only |
 | `validate-generated-assets.mjs`, `measure-bundle.mjs` | Generated-asset provenance and gzip payload gates; FAST/PR | no network; manifest or `tmp/eonfolk-bundle-measurement.json` |
 | `check-licenses.mjs` | Production dependency license allowlist; FAST/PR | no network; console only |
-| `validate-web-network.mjs` | Reject external browser requests from Playwright; PR | reads `tmp/dawnmere-playwright/netlog.json` |
+| `validate-web-network.mjs` | Reject external browser requests from Playwright; PR | reads per-worker `tmp/dawnmere-playwright/netlog-w*.json` and `route-log-w*.json` |
 | `check-formal.mjs`, `formal-toolchain.mjs` | Run and identify the pinned TLA+ persistence model; PR/deep | caller fetches the hash-pinned TLC JAR; console only |
 | `check-targeted-mutations.mjs` | Kill the bounded pure-logic mutant set; manual deep | no network; console only |
 | `validate-browser-cohort.mjs`, `validate-browser-cohort.rb` | Cross-check the pinned Playwright browser identity; manual deep | no network; console only |
