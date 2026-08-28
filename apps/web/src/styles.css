@@ -2950,6 +2950,7 @@ em {
 
 .v1-view-controls button,
 .v1-world-stage-tools button {
+	min-width: 2.75rem;
 	min-height: 2.75rem;
 	padding: 0.55rem 0.8rem;
 	border: 1px solid rgba(232, 225, 198, 0.3);
@@ -4164,6 +4165,7 @@ em {
 
 	main.v1-world[data-view="embodied"] .v1-view-controls button,
 	main.v1-world[data-view="embodied"] .v1-world-settings summary {
+		min-width: 2.75rem;
 		min-height: 2.75rem;
 		padding: 0.28rem 0.45rem;
 		font-size: 0.875rem;
@@ -4276,6 +4278,8 @@ em {
 
 	.v1-inspector-sheet > summary {
 		display: block;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
 		padding: 0.55rem min(13rem, 54%) 0.55rem 1rem;
 		color: #efe7d0;
 		background: rgba(17, 24, 18, 0.92);
@@ -4346,7 +4350,7 @@ em {
 	}
 
 	.v1-view-controls button {
-		min-width: 0;
+		min-width: 2.75rem;
 		padding-inline: 0.35rem;
 		font-size: 0.875rem;
 	}

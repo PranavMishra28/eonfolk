@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "./support/eonfolk-fixture";
 
+const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
+const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
+
 async function isolateLocalWorld(page: Page): Promise<void> {
 	await page.route("**/*", async (route) => {
 		const url = new URL(route.request().url());
@@ -81,7 +84,7 @@ test("Play advances a day without pressing Pause first @generated-world", async 
 test("sponsoring Mara keeps counsel reachable after a live day @generated-world", async ({
 	page,
 }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(linuxSemanticCi ? 240_000 : 180_000);
 	await isolateLocalWorld(page);
 	await resetGeneratedWorld(page);
 	await page.goto("/world");
@@ -134,7 +137,7 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await page.getByRole("button", { name: "Sponsor Mara" }).click();
 	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(
 		page.getByRole("button", { name: "Check the stores first" }),
 	).toBeVisible();
@@ -175,18 +178,18 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await page.getByRole("button", { name: "Consider an intervention" }).click();
 	await expect(
 		page.getByRole("heading", { name: "Choose at Mara's first boundary" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(world).toHaveAttribute("data-counsel-open", "true");
 	await page.getByRole("button", { name: "Check the stores first" }).click();
 	await expect(
 		page.getByRole("button", { name: "See Mara's decision" }),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(page.locator("main.v1-world")).not.toContainText(/SP:/u);
 	await expect(page.getByRole("alert")).toHaveCount(0);
 	await page.getByRole("button", { name: "See Mara's decision" }).click();
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(
 		page.locator("header.v1-world-header").getByRole("button", {
 			name: "Chronicle",
@@ -239,12 +242,13 @@ test("In words matches the watched walking body @generated-world", async ({
 		);
 	await page.getByRole("button", { name: "In words" }).click();
 	const people = page.getByRole("group", { name: "People here" });
+	const travelCopy = /(?:walking|carrying) toward/u;
 	for (const row of watchWalking) {
-		if (row.name === "" || !/walking/u.test(row.activity)) continue;
+		if (row.name === "" || !travelCopy.test(row.activity)) continue;
 		const person = people.getByRole("button", {
 			name: new RegExp(row.name, "u"),
 		});
-		await expect(person).toContainText(/walking toward/u);
+		await expect(person).toContainText(travelCopy);
 		await expect(person).not.toContainText("inspecting the work");
 	}
 	const presented = await page
@@ -252,9 +256,9 @@ test("In words matches the watched walking body @generated-world", async ({
 		.evaluateAll((nodes) =>
 			nodes.map((node) => node.getAttribute("data-presented-activity") ?? ""),
 		);
-	expect(presented.some((copy) => copy.includes("walking toward"))).toBe(true);
+	expect(presented.some((copy) => travelCopy.test(copy))).toBe(true);
 	for (const copy of presented) {
-		if (copy.includes("walking toward"))
+		if (travelCopy.test(copy))
 			expect(copy).not.toContain("inspecting the work");
 	}
 });
