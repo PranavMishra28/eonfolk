@@ -20,12 +20,17 @@ const routeLogDirectory = resolve(
 	"../../../tmp/dawnmere-playwright",
 );
 
-function workerRouteLogPath(): string {
+function workerIndex(): string {
 	const workerIndexEnv = process.env.TEST_WORKER_INDEX ?? "";
-	const workerIndex = /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv)
-		? workerIndexEnv
-		: "0";
-	return resolve(routeLogDirectory, `route-log-w${workerIndex}.json`);
+	return /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv) ? workerIndexEnv : "0";
+}
+
+function workerRouteLogPath(): string {
+	return resolve(routeLogDirectory, `route-log-w${workerIndex()}.json`);
+}
+
+function workerNetlogPath(): string {
+	return resolve(routeLogDirectory, `netlog-w${workerIndex()}.json`);
 }
 
 type RouteLogEntry = Readonly<{
@@ -52,6 +57,17 @@ function appendRouteLog(entries: readonly RouteLogEntry[]): void {
 }
 
 export const test = base.extend<{ routeAudit: undefined }>({
+	launchOptions: async ({ launchOptions }, use) => {
+		const netlogPath = workerNetlogPath();
+		mkdirSync(dirname(netlogPath), { recursive: true });
+		const args = (launchOptions.args ?? []).filter(
+			(argument) => !argument.startsWith("--log-net-log="),
+		);
+		await use({
+			...launchOptions,
+			args: [...args, `--log-net-log=${netlogPath}`],
+		});
+	},
 	routeAudit: [
 		async ({ context, page }, use) => {
 			const entries: RouteLogEntry[] = [];

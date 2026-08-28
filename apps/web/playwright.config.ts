@@ -7,10 +7,6 @@ const playwrightOutputDir = resolve(
 	import.meta.dirname,
 	"../../tmp/dawnmere-playwright",
 );
-const workerIndexEnv = process.env.TEST_WORKER_INDEX ?? "";
-const workerIndex = /^(?:0|[1-9]\d*)$/u.test(workerIndexEnv)
-	? workerIndexEnv
-	: "0";
 
 export default defineConfig({
 	testDir: resolve(import.meta.dirname, "../../tests/e2e"),
@@ -21,7 +17,8 @@ export default defineConfig({
 	// Linux CI production e2e is independent per Playwright context (IndexedDB /
 	// localStorage) and per worker browser profile. The preview server is static,
 	// so workers share 127.0.0.1:4174. Chromium --log-net-log is browser-scoped
-	// and must stay on a unique file or workers interleave invalid JSON.
+	// and is attached in the eonfolk fixture from TEST_WORKER_INDEX so the parent
+	// config process cannot bake netlog-w0.json into every worker.
 	fullyParallel: linuxCi,
 	workers: linuxCi ? 4 : 1,
 	retries: 0,
@@ -61,7 +58,6 @@ export default defineConfig({
 				"--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1",
 				"--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
 				"--gaia-url=http://127.0.0.1:4174",
-				`--log-net-log=${resolve(playwrightOutputDir, `netlog-w${workerIndex}.json`)}`,
 				"--metrics-recording-only",
 				"--no-default-browser-check",
 				"--no-first-run",

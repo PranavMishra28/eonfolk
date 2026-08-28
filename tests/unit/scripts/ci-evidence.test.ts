@@ -164,14 +164,15 @@ describe("Founder Alpha CI evidence controls", () => {
 		);
 		expect(config).toContain("fullyParallel: linuxCi");
 		expect(config).toContain("workers: linuxCi ? 4 : 1");
-		expect(config).toContain("netlog-w");
-		expect(config).toContain("TEST_WORKER_INDEX");
 		expect(config).not.toContain("workers: 1,");
 		const fixture = readFileSync(
 			resolve("tests/e2e/support/eonfolk-fixture.ts"),
 			"utf8",
 		);
 		expect(fixture).toContain("route-log-w");
+		expect(fixture).toContain("netlog-w");
+		expect(fixture).toContain("TEST_WORKER_INDEX");
+		expect(fixture).toContain("launchOptions");
 		expect(fixture).not.toContain('route-log.json"');
 	});
 
