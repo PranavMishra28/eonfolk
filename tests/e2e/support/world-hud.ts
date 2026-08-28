@@ -89,8 +89,8 @@ export async function pressTimeControl(
 	name: string,
 ): Promise<void> {
 	const button = page
-		.getByRole("navigation", { name: "Time" })
-		.getByRole("button", { name });
+		.locator("header.v1-world-header")
+		.getByRole("button", { name, exact: true });
 	await expect(button).toBeVisible({ timeout: 30_000 });
 	await button.evaluate((element) => {
 		(element as HTMLElement).click();

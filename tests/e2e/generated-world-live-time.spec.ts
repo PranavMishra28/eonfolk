@@ -174,7 +174,7 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	);
 	await pressTimeControl(page, "Pause");
 	await expect(world).toHaveAttribute("data-play-rate", "0");
-	await expect(canvas).toHaveAttribute("data-render-policy", "on-demand");
+	await expect(canvas).toHaveAttribute("data-render-policy", "continuous");
 	await expect(
 		page.locator('ul.v1-presence-roster button[data-citizen-id="citizen-01"]'),
 	).toHaveAttribute("aria-pressed", "true");
