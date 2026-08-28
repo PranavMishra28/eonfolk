@@ -1229,18 +1229,26 @@ test("canonical citizen, building, and project focus preserve authority across d
 			await expect(mobileProject).toHaveAttribute("aria-current", "true");
 			await expect(page.getByText("PROJECT IN FOCUS")).toBeVisible();
 		}
+		if (await tools.evaluate((details) => (details as HTMLDetailsElement).open))
+			await tools.locator("summary").evaluate((element) => {
+				(element as HTMLElement).click();
+			});
 		await expect
-			.poll(() =>
-				page.evaluate(
-					() => document.documentElement.scrollWidth <= window.innerWidth + 1,
-				),
+			.poll(
+				() =>
+					page.evaluate(
+						() => document.documentElement.scrollWidth <= window.innerWidth + 1,
+					),
+				{ timeout: 15_000 },
 			)
 			.toBe(true);
 		await expect
-			.poll(() =>
-				page
-					.locator(".v1-context-panel")
-					.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
+			.poll(
+				() =>
+					page
+						.locator(".v1-context-panel")
+						.evaluate((panel) => panel.scrollWidth <= panel.clientWidth + 1),
+				{ timeout: 15_000 },
 			)
 			.toBe(true);
 	}

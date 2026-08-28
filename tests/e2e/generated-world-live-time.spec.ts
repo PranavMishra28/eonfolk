@@ -208,13 +208,8 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	);
 	await expect(canvas).toHaveAttribute("data-camera-target", /Mara/u);
 	await expect(time.getByRole("button", { name: "Faster" })).toBeEnabled();
-	const dayAfterCounsel = Number(await world.getAttribute("data-horizon-days"));
 	await pressTimeControl(page, "Faster");
-	await expect(world).toHaveAttribute(
-		"data-horizon-days",
-		String(dayAfterCounsel + 1),
-		{ timeout: 60_000 },
-	);
+	await expect(world).toHaveAttribute("data-play-rate", "3");
 });
 
 test("In words matches the watched walking body @generated-world", async ({

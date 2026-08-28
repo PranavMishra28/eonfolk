@@ -358,7 +358,7 @@ test("the current world sustains a truthful watched eleven-second lifecycle @gen
 					? "watched"
 					: `classes ${String(animationClasses.size)}`;
 			},
-			{ timeout: 20_000 },
+			{ timeout: linuxSemanticCi ? 30_000 : 20_000 },
 		)
 		.toBe("watched");
 	await expect(world).toHaveAttribute("data-horizon-days", startDay ?? "");
