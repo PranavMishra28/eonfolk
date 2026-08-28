@@ -2237,6 +2237,67 @@ for (const viewport of [
 			"true",
 			{ timeout: 20_000 },
 		);
+		if (viewport.width === 390) {
+			const canvas = page.getByTestId("generated-world-canvas");
+			await page.getByTestId("follow-mara").click();
+			await expect(canvas).toHaveAttribute("data-following", "true");
+			await expect
+				.poll(async () => {
+					const ratio = Number(
+						await canvas.getAttribute("data-follow-subject-y-ratio"),
+					);
+					return Number.isFinite(ratio) ? ratio : Number.NaN;
+				})
+				.toBeGreaterThanOrEqual(0.32);
+			await expect
+				.poll(async () =>
+					Number(await canvas.getAttribute("data-follow-subject-y-ratio")),
+				)
+				.toBeLessThanOrEqual(0.78);
+			const headerBox = await page
+				.locator("header.v1-world-header")
+				.boundingBox();
+			expect(headerBox?.height ?? 999).toBeLessThan(180);
+			expect(
+				await page.locator(".v1-world-title").evaluate((node) => {
+					const overlay = getComputedStyle(node);
+					return overlay.pointerEvents;
+				}),
+			).toBe("none");
+			expect(
+				await page.locator(".v1-world-title h1").evaluate((node) => {
+					const box = node.getBoundingClientRect();
+					const hit = document.elementFromPoint(
+						box.left + Math.min(24, box.width / 2),
+						box.top + box.height / 2,
+					);
+					return hit?.closest(".v1-world-title") ? "title" : "passthrough";
+				}),
+			).toBe("passthrough");
+			const switcher = page.getByTestId("settlement-switcher");
+			if (await switcher.isVisible()) {
+				await switcher
+					.getByRole("button", { name: /Second Founding/u })
+					.click();
+				await expect(page.locator(".v1-world-title h1")).toHaveText(
+					"Second Founding",
+				);
+			}
+			const chronicle = page.getByRole("button", {
+				name: "Chronicle",
+				exact: true,
+			});
+			if (await chronicle.isVisible()) {
+				await chronicle.click();
+				await expect(page.getByTestId("chronicle-record")).toBeVisible();
+				await expect(page.getByTestId("chronicle-record")).toContainText(
+					/fact|belief|happened/iu,
+				);
+				await expect(
+					page.locator("details.v1-inspector-sheet > summary"),
+				).toHaveText("People and work");
+			}
+		}
 		await page.screenshot({
 			animations: "disabled",
 			caret: "hide",

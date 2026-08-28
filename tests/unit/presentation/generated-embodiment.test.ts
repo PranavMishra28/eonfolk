@@ -9,6 +9,7 @@ import {
 	conversationVisuallyActive,
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
+	generatedFollowViewportIsCompact,
 	generatedNavigationReferencesExist,
 	generatedTraversalPointAtTick,
 	generatedVisualPhase,
@@ -553,6 +554,20 @@ describe("generated embodiment projection", () => {
 			}),
 		]);
 		expect(blocked.distanceMm).toBeGreaterThan(open.distanceMm);
+	});
+
+	it("frames compact Follow on the chest, farther and less downward than desktop", () => {
+		const sample = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			facingDegrees: 0,
+		});
+		const desktop = resolveFollowCamera(sample);
+		const phone = resolveFollowCamera(sample, [], 1_520, true);
+		expect(generatedFollowViewportIsCompact(390, 844)).toBe(true);
+		expect(generatedFollowViewportIsCompact(1_280, 800)).toBe(false);
+		expect(phone.targetMm.y).toBeLessThan(desktop.targetMm.y);
+		expect(phone.pitchDegrees).toBeGreaterThan(desktop.pitchDegrees);
+		expect(phone.distanceMm).toBeGreaterThan(desktop.distanceMm);
 	});
 
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {

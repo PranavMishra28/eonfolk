@@ -40,8 +40,10 @@ import {
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	generatedCameraFidelity,
+	generatedFollowViewportIsCompact,
 	generatedTraversalPointAtTick,
 	planGeneratedActorTransition,
+	presentedActorCopy,
 	resolveFollowCamera,
 	sampleGeneratedActorPresentation,
 } from "./generated-presentation";
@@ -269,13 +271,23 @@ function followVolumes(
 	);
 }
 
+function followViewportCompact(host: HTMLElement | null): boolean {
+	const width = host?.clientWidth ?? window.innerWidth;
+	const height = host?.clientHeight ?? window.innerHeight;
+	return generatedFollowViewportIsCompact(width, height);
+}
+
 function followFramingForActor(
 	projection: GeneratedCivilizationSpatialProjection,
 	actor: GeneratedEmbodiedActor,
 	previous: GeneratedEmbodiedActor | null,
 	progress01: number,
 	reducedMotion: boolean,
+	compact: boolean,
 ) {
+	const bodyLookMm = Math.round(
+		projection.scene.physicalScale.citizen.heightMm * 0.86,
+	);
 	return resolveFollowCamera(
 		presentedActorSample(
 			projection,
@@ -285,7 +297,8 @@ function followFramingForActor(
 			reducedMotion,
 		),
 		followVolumes(projection),
-		projection.scene.physicalScale.citizen.heightMm * 0.86,
+		bodyLookMm,
+		compact,
 	);
 }
 
@@ -534,7 +547,7 @@ function GeneratedCamera({
 	);
 	const desired = useMemo<GeneratedCameraIntent>(() => {
 		const focus = navigation.focus;
-		const compact = (host.current?.clientWidth ?? window.innerWidth) < 600;
+		const compact = followViewportCompact(host.current);
 		const actor =
 			focus.kind === "citizen"
 				? model.actors.find(({ citizenId }) => citizenId === focus.citizenId)
@@ -559,6 +572,7 @@ function GeneratedCamera({
 						previousByCitizen.get(actor.citizenId) ?? null,
 						progressRef.current,
 						reducedMotion,
+						compact,
 					)
 				: null;
 		const overviewMinimumMm = Math.round(
@@ -724,6 +738,7 @@ function GeneratedCamera({
 					previousByCitizen.get(followed.citizenId) ?? null,
 					progressRef.current,
 					reducedMotion,
+					followViewportCompact(host.current),
 				);
 				nextDesired = Object.freeze({
 					...nextDesired,
@@ -798,7 +813,16 @@ function GeneratedCamera({
 		<Entity ref={camera} position={initialPosition}>
 			<Camera
 				clearColor="#8aa3b0"
-				fov={navigation.followCitizen ? 34 : 46}
+				fov={
+					navigation.followCitizen
+						? generatedFollowViewportIsCompact(
+								window.innerWidth,
+								window.innerHeight,
+							)
+							? 38
+							: 34
+						: 46
+				}
 				farClip={720}
 				nearClip={0.2}
 			/>
@@ -1746,27 +1770,11 @@ export function GeneratedWorldCanvas({
 	);
 }
 
-const INTENT_WORDS: Readonly<Record<string, string>> = {
-	idle: "pausing",
-	walk: "walking",
-	carry: "carrying",
-	gather: "gathering",
-	inspect: "inspecting the work",
-	talk: "speaking",
-	listen: "listening",
-	exchange: "trading",
-	repair: "repairing",
-	"eat-rest": "resting",
-	react: "reacting",
-};
-
 function CitizenNameOverlay({
 	host,
 	model,
 	projection,
-	previousByCitizen,
 	progressRef,
-	reducedMotion,
 	selectedCitizenId,
 }: {
 	readonly host: RefObject<HTMLDivElement | null>;
@@ -1875,15 +1883,13 @@ function CitizenNameOverlay({
 						>
 							<strong>{actor.name}</strong>
 							<span>
-								{INTENT_WORDS[
-									presentedActorSample(
-										projection,
+								{
+									presentedActorCopy(
 										actor,
-										previousByCitizen.get(actor.citizenId) ?? null,
+										projection,
 										progressRef.current,
-										reducedMotion,
-									).animationClass
-								] ?? "at work"}
+									).split(" at ")[0]
+								}
 							</span>
 						</button>
 					</li>

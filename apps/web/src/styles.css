@@ -2921,6 +2921,12 @@ em {
 	background: rgba(14, 20, 15, 0.94);
 }
 
+.v1-world-header .generated-settlement-switcher {
+	grid-column: 1 / -1;
+	padding: 0;
+	background: transparent;
+}
+
 .v1-world-title h1 {
 	margin: 0.1rem 0;
 	font-family: Georgia, "Times New Roman", serif;
@@ -3477,6 +3483,59 @@ em {
 .v1-world-chronicle li {
 	font-size: 0.875rem;
 	line-height: 1.35;
+}
+
+.v1-chronicle-record {
+	position: absolute;
+	z-index: 8;
+	left: 1rem;
+	top: 4.2rem;
+	width: min(26rem, calc(100% - 2rem));
+	max-height: min(42vh, 24rem);
+	overflow: auto;
+	padding: 0.75rem 0.85rem;
+	color: #25281f;
+	background: rgba(247, 239, 217, 0.96);
+	border: 1px solid rgba(35, 38, 31, 0.28);
+	box-shadow: 0 1.1rem 2.6rem rgba(0, 0, 0, 0.28);
+}
+
+.v1-chronicle-record-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.v1-chronicle-record-head button {
+	min-height: 2.5rem;
+	padding: 0.3rem 0.55rem;
+	border: 1px solid rgba(35, 38, 31, 0.28);
+	background: rgba(255, 250, 232, 0.7);
+	font: inherit;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.v1-chronicle-record h2 {
+	margin: 0.15rem 0 0.4rem;
+	font-size: 1.2rem;
+	font-weight: 500;
+}
+
+.v1-chronicle-record > p {
+	margin: 0;
+	color: #5f6256;
+	font-size: 0.875rem;
+	line-height: 1.4;
+}
+
+.v1-chronicle-record ul {
+	display: grid;
+	gap: 0.55rem;
+	margin: 0.55rem 0 0;
+	padding: 0;
+	list-style: none;
 }
 
 .v1-inspector-sheet {
@@ -4053,17 +4112,31 @@ em {
 		left: 0;
 		right: 0;
 		z-index: 6;
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 0.35rem;
-		padding: 0.4rem 0.55rem 0.7rem;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.22rem 0.35rem;
+		padding: 0.28rem 0.45rem 0.35rem;
 		border-bottom: 0;
+		pointer-events: none;
 		background: linear-gradient(
 			180deg,
-			rgba(14, 20, 15, 0.92) 0%,
-			rgba(14, 20, 15, 0.55) 72%,
+			rgba(14, 20, 15, 0.9) 0%,
+			rgba(14, 20, 15, 0.42) 78%,
 			transparent 100%
 		);
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-header > a,
+	main.v1-world[data-view="embodied"] .v1-world-header > nav,
+	main.v1-world[data-view="embodied"] .v1-world-header details {
+		pointer-events: auto;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-title {
+		flex: 1 1 auto;
+		min-width: 0;
+		pointer-events: none;
 	}
 
 	main.v1-world[data-view="embodied"] .v1-world-title .v1-kicker {
@@ -4071,7 +4144,46 @@ em {
 	}
 
 	main.v1-world[data-view="embodied"] .v1-world-title h1 {
-		font-size: 1.2rem;
+		display: inline;
+		margin: 0 0.4rem 0 0;
+		font-size: 0.95rem;
+		line-height: 1.15;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-title > p:last-child {
+		display: inline;
+		font-size: 0.72rem;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-view-controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.2rem;
+		max-width: none;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-view-controls button,
+	main.v1-world[data-view="embodied"] .v1-world-settings summary {
+		min-height: 2.5rem;
+		padding: 0.28rem 0.45rem;
+		font-size: 0.78rem;
+	}
+
+	main.v1-world[data-view="embodied"] .generated-settlement-switcher {
+		flex: 1 1 100%;
+		position: relative;
+		z-index: 7;
+		gap: 0.25rem;
+		padding: 0;
+		background: transparent;
+		pointer-events: auto;
+	}
+
+	main.v1-world[data-view="embodied"] .generated-settlement-switcher button {
+		flex: 1 1 0;
+		min-width: 0;
+		min-height: 2.5rem;
+		padding: 0.28rem 0.45rem;
 	}
 
 	main.v1-world[data-view="embodied"] .v1-world-footer {
@@ -4080,13 +4192,42 @@ em {
 
 	main.v1-world[data-view="embodied"] .v1-feedback-drawer {
 		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 3.5rem;
 		z-index: 6;
 		margin: 0;
-		padding: 0 0.55rem;
 		background: transparent;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-feedback-drawer:not([open]) {
+		left: auto;
+		right: 0;
+		bottom: 0;
+		width: min(12.5rem, 52%);
+		padding: 0;
+	}
+
+	main.v1-world[data-view="embodied"]
+		.v1-feedback-drawer:not([open])
+		> summary {
+		min-height: 2.5rem;
+		padding: 0.4rem 0.7rem;
+		border: 0;
+		color: #d9d1b8;
+		background: transparent;
+		font-size: 0.68rem;
+		font-weight: 650;
+		line-height: 1.2;
+		text-align: right;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-feedback-drawer[open] {
+		left: 0.45rem;
+		right: 0.45rem;
+		bottom: 2.8rem;
+		max-height: min(62dvh, 28rem);
+		overflow: auto;
+		padding: 0.55rem;
+		background: rgba(17, 24, 18, 0.96);
+		border: 1px solid rgba(255, 255, 255, 0.16);
 	}
 
 	.v1-living-stage {
@@ -4102,8 +4243,26 @@ em {
 	.v1-world-chronicle {
 		left: 0.55rem;
 		right: auto;
-		top: 6.2rem;
-		max-width: min(16rem, 58vw);
+		top: 6.6rem;
+		max-width: min(14.5rem, 54vw);
+		padding: 0.32rem 0.48rem;
+	}
+
+	.v1-world-chronicle li {
+		font-size: 0.78rem;
+		line-height: 1.25;
+	}
+
+	.v1-chronicle-record {
+		left: 0.45rem;
+		right: 0.45rem;
+		width: auto;
+		top: 6.6rem;
+		max-height: min(38svh, 20rem);
+	}
+
+	.generated-scene-truth {
+		display: none;
 	}
 
 	.v1-inspector-sheet {
@@ -4117,7 +4276,7 @@ em {
 
 	.v1-inspector-sheet > summary {
 		display: block;
-		padding: 0.85rem 1rem;
+		padding: 0.55rem min(13rem, 54%) 0.55rem 1rem;
 		color: #efe7d0;
 		background: rgba(17, 24, 18, 0.92);
 		border-top: 1px solid rgba(255, 255, 255, 0.18);
@@ -4169,11 +4328,21 @@ em {
 		min-width: 0;
 	}
 
+	main.v1-world[data-view="embodied"] .v1-world-header {
+		padding: 0.28rem 0.4rem 0.32rem;
+	}
+
 	.v1-view-controls {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		max-width: 100%;
 		min-width: 0;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-view-controls {
+		display: flex;
+		flex-wrap: wrap;
+		grid-template-columns: none;
 	}
 
 	.v1-view-controls button {

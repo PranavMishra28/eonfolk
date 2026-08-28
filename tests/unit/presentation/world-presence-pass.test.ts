@@ -74,6 +74,11 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("conversationVisuallyActive");
 		expect(app).toContain("Start a fresh local town");
 		expect(app).toContain("Feedback form — not the Chronicle");
+		expect(app).toContain("Fact, belief, and what happened");
+		expect(app).toContain("openChronicleRecord");
+		expect(app).toContain('data-testid="chronicle-record"');
+		expect(app).toContain('data-testid="settlement-switcher"');
+		expect(app).not.toContain("openInspectorForChronicle");
 		expect(app).not.toContain("This saved town no longer matches");
 		expect(app).not.toContain("Seven lives");
 		expect(app).not.toContain("Eight lives");
@@ -102,6 +107,12 @@ describe("bounded world-presence pass", () => {
 		);
 		expect(canvas).toContain("followSubjectYRatio");
 		expect(canvas).toContain("resolveFollowCamera");
+		expect(canvas).toContain("generatedFollowViewportIsCompact");
+		expect(canvas).toContain("presentedActorCopy");
+		expect(canvas).not.toContain("INTENT_WORDS");
+		expect(styles).toContain(
+			'main.v1-world[data-view="embodied"] .v1-world-title',
+		);
 		expect(styles).toMatch(
 			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);

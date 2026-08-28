@@ -940,34 +940,6 @@ function GeneratedContextPanel({
 							at once. Select someone to move from the settlement view into
 							their immediate work.
 						</p>
-						{happenings.length === 0 ? null : (
-							<ul className="v1-happening-list" aria-label="Named happenings">
-								{happenings.map((happening) => (
-									<li
-										key={happening.happeningId}
-										data-happening-id={happening.happeningId}
-									>
-										<strong>{happening.title}.</strong> {happening.summary}
-										{happening.citizenId === null ||
-										!model.actors.some(
-											(actor) => actor.citizenId === happening.citizenId,
-										) ? null : (
-											<button
-												type="button"
-												onClick={() =>
-													dispatch({
-														type: "select-citizen",
-														citizenId: happening.citizenId as string,
-													})
-												}
-											>
-												Find {happening.citizenName}
-											</button>
-										)}
-									</li>
-								))}
-							</ul>
-						)}
 						<ul className="v1-activity-summary" aria-label="Visible activities">
 							{[...activityCounts].slice(0, 3).map(([activity, count]) => (
 								<li key={activity}>
@@ -1358,8 +1330,11 @@ function GeneratedWorld({
 			typeof window === "undefined" ||
 			window.matchMedia("(min-width: 721px)").matches,
 	);
-	const openInspectorForChronicle = useCallback(() => {
-		setInspectorSheetOpen(true);
+	const [chronicleSheetOpen, setChronicleSheetOpen] = useState(false);
+	const openChronicleRecord = useCallback(() => {
+		setChronicleSheetOpen(true);
+		if (window.matchMedia("(max-width: 720px)").matches)
+			setInspectorSheetOpen(false);
 	}, []);
 	const [rebuildState, setRebuildState] = useState<
 		"idle" | "deleting" | "blocked" | "error"
@@ -1883,7 +1858,6 @@ function GeneratedWorld({
 			happenings={experience.happenings}
 			onCounselConsiderationChange={setConsideringCounsel}
 			visualProgress01={visualProgress01}
-			onChronicleAvailable={openInspectorForChronicle}
 		/>
 	);
 
@@ -1913,6 +1887,7 @@ function GeneratedWorld({
 			data-visual-progress={visualProgress01.toFixed(3)}
 			data-view={effectiveView}
 			data-inspector-open={String(inspectorSheetOpen)}
+			data-chronicle-open={String(chronicleSheetOpen)}
 			data-counsel-open={String(consideringCounsel)}
 			data-horizon-days={String(experience.horizonDays)}
 			data-sponsor-phase={experience.sponsorPhase}
@@ -1948,14 +1923,6 @@ function GeneratedWorld({
 						Day {experience.horizonDays} ·{" "}
 						{countNoun(projection.spatial.actors.length, "person", "people")}
 					</p>
-					{experience.happenings.length === 0 ? null : (
-						<p
-							className="v1-world-happening"
-							data-happening-id={experience.happenings[0]?.happeningId}
-						>
-							{experience.happenings[0]?.title}
-						</p>
-					)}
 				</div>
 				<nav className="v1-view-controls" aria-label="Time">
 					<button
@@ -2027,7 +1994,15 @@ function GeneratedWorld({
 						In words
 					</button>
 					{experience.happenings.length === 0 ? null : (
-						<button type="button" onClick={() => setInspectorSheetOpen(true)}>
+						<button
+							type="button"
+							aria-pressed={chronicleSheetOpen}
+							onClick={() =>
+								chronicleSheetOpen
+									? setChronicleSheetOpen(false)
+									: openChronicleRecord()
+							}
+						>
 							Chronicle
 						</button>
 					)}
@@ -2051,6 +2026,33 @@ function GeneratedWorld({
 						</button>
 					</details>
 				</nav>
+				{experience.settlementCount < 2 ? null : (
+					<nav
+						className="generated-settlement-switcher"
+						aria-label="Settlements"
+						data-testid="settlement-switcher"
+					>
+						{experience.projections.map((candidate) => (
+							<button
+								key={candidate.local.settlement.settlementId}
+								type="button"
+								aria-pressed={
+									candidate.local.settlement.settlementId ===
+									projection.local.settlement.settlementId
+								}
+								onClick={() =>
+									openSettlement(candidate.local.settlement.settlementId)
+								}
+							>
+								{candidate.local.settlement.name}
+								<small>
+									{candidate.spatial.actors.length} resident
+									{candidate.spatial.actors.length === 1 ? "" : "s"}
+								</small>
+							</button>
+						))}
+					</nav>
+				)}
 			</header>
 			{catchUpProposal > 0 ? (
 				<p className="renderer-note" role="status">
@@ -2173,30 +2175,6 @@ function GeneratedWorld({
 					not continue after you leave.
 				</p>
 			) : null}
-
-			{experience.settlementCount < 2 ? null : (
-				<nav className="generated-settlement-switcher" aria-label="Settlements">
-					{experience.projections.map((candidate) => (
-						<button
-							key={candidate.local.settlement.settlementId}
-							type="button"
-							aria-pressed={
-								candidate.local.settlement.settlementId ===
-								projection.local.settlement.settlementId
-							}
-							onClick={() =>
-								openSettlement(candidate.local.settlement.settlementId)
-							}
-						>
-							{candidate.local.settlement.name}
-							<small>
-								{candidate.spatial.actors.length} resident
-								{candidate.spatial.actors.length === 1 ? "" : "s"}
-							</small>
-						</button>
-					))}
-				</nav>
-			)}
 			{effectiveView === "overview" ? (
 				<SettlementOverview
 					experience={experience}
@@ -2270,21 +2248,58 @@ function GeneratedWorld({
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
-						{experience.happenings.length === 0 ? null : (
+						{experience.happenings.length === 0 || chronicleSheetOpen ? null : (
 							<button
 								type="button"
 								className="v1-world-chronicle"
 								aria-label="What happened"
-								onClick={() => setInspectorSheetOpen(true)}
+								onClick={openChronicleRecord}
 							>
 								<p className="v1-kicker">What happened</p>
 								<ul>
 									{experience.happenings.map((happening) => (
-										<li key={happening.happeningId}>{happening.title}</li>
+										<li
+											key={happening.happeningId}
+											data-happening-id={happening.happeningId}
+										>
+											{happening.title}
+										</li>
 									))}
 								</ul>
 							</button>
 						)}
+						{chronicleSheetOpen && experience.happenings.length > 0 ? (
+							<section
+								className="v1-chronicle-record"
+								aria-label="Chronicle"
+								data-testid="chronicle-record"
+							>
+								<div className="v1-chronicle-record-head">
+									<p className="v1-kicker">CHRONICLE</p>
+									<button
+										type="button"
+										onClick={() => setChronicleSheetOpen(false)}
+									>
+										Close
+									</button>
+								</div>
+								<h2>Fact, belief, and what happened</h2>
+								<p>
+									This is the settlement record. Feedback stays a separate note,
+									not this Chronicle.
+								</p>
+								<ul aria-label="Chronicle record">
+									{experience.happenings.map((happening) => (
+										<li
+											key={happening.happeningId}
+											data-happening-id={happening.happeningId}
+										>
+											<strong>{happening.title}.</strong> {happening.summary}
+										</li>
+									))}
+								</ul>
+							</section>
+						) : null}
 						<GeneratedSceneTruth
 							projection={projection}
 							model={model}

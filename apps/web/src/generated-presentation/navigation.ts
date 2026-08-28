@@ -150,18 +150,26 @@ export function generatedNavigationReferencesExist(
 }
 
 export const FOLLOW_CAMERA_DISTANCE_MM = 6_200;
+/** Longer lens on a phone so the whole body fits between header and inspector. */
+export const FOLLOW_COMPACT_CAMERA_DISTANCE_MM = 8_200;
 const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
 /** Shallow enough that Follow is a person, not a ground/wall fill. */
 export const FOLLOW_CAMERA_PITCH_DEGREES = -12;
+/** Less downward than desktop so a 390×844 frame is body, not a tan fill. */
+export const FOLLOW_COMPACT_CAMERA_PITCH_DEGREES = -8;
 export const FOLLOW_LOOK_HEIGHT_MM = 1_520;
+/** Chest, not above the head — looking higher dumps the body under the inspector. */
+export const FOLLOW_COMPACT_LOOK_HEIGHT_MM = 1_380;
 export const FOLLOW_SHOULDER_OFFSET_MM = 480;
 /** Three-quarter from behind so Follow sees the person, not a wall fill. */
 export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 154;
 const MIN_CAMERA_PITCH_DEGREES = -75;
 const MAX_CAMERA_PITCH_DEGREES = -8;
+const COMPACT_FOLLOW_MAX_WIDTH_PX = 520;
+const COMPACT_FOLLOW_MAX_ASPECT = 0.62;
 
 export interface AxisAlignedVolumeMm {
 	readonly minX: number;
@@ -209,6 +217,18 @@ function volumeContains(
 	);
 }
 
+/** Portrait phone or a short overlay viewport needs Follow framed into the visible band. */
+export function generatedFollowViewportIsCompact(
+	widthPx: number,
+	heightPx: number,
+): boolean {
+	if (!Number.isFinite(widthPx) || !Number.isFinite(heightPx)) return false;
+	return (
+		widthPx <= COMPACT_FOLLOW_MAX_WIDTH_PX ||
+		(heightPx > 0 && widthPx / heightPx <= COMPACT_FOLLOW_MAX_ASPECT)
+	);
+}
+
 /** Shoulder/height framing that backs out of walls so the followed body stays readable. */
 export function resolveFollowCamera(
 	sample: {
@@ -217,19 +237,25 @@ export function resolveFollowCamera(
 	},
 	volumes: readonly AxisAlignedVolumeMm[] = [],
 	lookHeightMm = FOLLOW_LOOK_HEIGHT_MM,
+	compact = false,
 ): FollowCameraFraming {
 	const facing = (sample.facingDegrees * Math.PI) / 180;
+	const liftedLookMm = compact ? FOLLOW_COMPACT_LOOK_HEIGHT_MM : lookHeightMm;
 	const targetMm = Object.freeze({
 		x: Math.round(
 			sample.positionMm.x + Math.cos(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
-		y: sample.positionMm.y + lookHeightMm,
+		y: sample.positionMm.y + liftedLookMm,
 		z: Math.round(
 			sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
 	});
-	let pitchDegrees = FOLLOW_CAMERA_PITCH_DEGREES;
-	let distanceMm = FOLLOW_CAMERA_DISTANCE_MM;
+	let pitchDegrees = compact
+		? FOLLOW_COMPACT_CAMERA_PITCH_DEGREES
+		: FOLLOW_CAMERA_PITCH_DEGREES;
+	let distanceMm = compact
+		? FOLLOW_COMPACT_CAMERA_DISTANCE_MM
+		: FOLLOW_CAMERA_DISTANCE_MM;
 	const yawDegrees = sample.facingDegrees + FOLLOW_CAMERA_YAW_OFFSET_DEGREES;
 	for (let step = 0; step < 8; step += 1) {
 		const eye = cameraEyeMm(targetMm, yawDegrees, pitchDegrees, distanceMm);
