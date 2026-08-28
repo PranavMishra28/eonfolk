@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "./support/eonfolk-fixture";
+import { waitForEnabledCounsel } from "./support/world-hud";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -181,12 +182,14 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
 	await expect(world).toHaveAttribute("data-counsel-open", "true");
 	await page.getByRole("button", { name: "Check the stores first" }).click();
-	await expect(
-		page.getByRole("button", { name: "See Mara's decision" }),
-	).toBeVisible({ timeout: sponsorTransitionTimeout });
+	const seeDecision = await waitForEnabledCounsel(
+		page,
+		"See Mara's decision",
+		sponsorTransitionTimeout,
+	);
 	await expect(page.locator("main.v1-world")).not.toContainText(/SP:/u);
 	await expect(page.getByRole("alert")).toHaveCount(0);
-	await page.getByRole("button", { name: "See Mara's decision" }).click();
+	await seeDecision.click();
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),
 	).toBeVisible({ timeout: sponsorTransitionTimeout });
