@@ -5,6 +5,7 @@ import {
 	type Page,
 	test,
 } from "./support/eonfolk-fixture";
+import { expectFollowShowsPerson } from "./support/follow-body";
 
 const linuxSemanticCi = process.env.EONFOLK_ALLOW_LINUX_CI === "1";
 const sponsorTransitionTimeout = linuxSemanticCi ? 120_000 : 30_000;
@@ -2229,31 +2230,29 @@ for (const viewport of [
 		test.setTimeout(90_000);
 		const externalRequests = await isolateLocalWorld(page);
 		await page.setViewportSize(viewport);
-		await page.goto("/world");
-		const world = page.locator("main.v1-world");
-		await expect(world).toHaveAttribute("data-asset-integrity", "verified");
-		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
-			"data-ready",
-			"true",
-			{ timeout: 20_000 },
-		);
 		if (viewport.width === 390) {
+			await resetGeneratedCheckpoint(page);
+			await page.setViewportSize(viewport);
+			await page.goto("/");
+			await page.getByRole("link", { name: "Enter Dawnmere" }).click();
+			await expect(page).toHaveURL(/\/world$/u);
+			const world = page.locator("main.v1-world");
 			const canvas = page.getByTestId("generated-world-canvas");
+			await expect(world).toHaveAttribute("data-asset-integrity", "verified");
+			await expect(canvas).toHaveAttribute("data-ready", "true", {
+				timeout: 20_000,
+			});
+			await expect(page.locator(".v1-world-title h1")).toHaveText("Dawnmere");
+			await expect(page.locator(".v1-world-title")).toContainText("8 people");
+			const followStartedAt = Date.now();
 			await page.getByTestId("follow-mara").click();
 			await expect(canvas).toHaveAttribute("data-following", "true");
-			await expect
-				.poll(async () => {
-					const ratio = Number(
-						await canvas.getAttribute("data-follow-subject-y-ratio"),
-					);
-					return Number.isFinite(ratio) ? ratio : Number.NaN;
-				})
-				.toBeGreaterThanOrEqual(0.32);
-			await expect
-				.poll(async () =>
-					Number(await canvas.getAttribute("data-follow-subject-y-ratio")),
-				)
-				.toBeLessThanOrEqual(0.78);
+			expect(Date.now() - followStartedAt).toBeLessThan(20_000);
+			await expectFollowShowsPerson(
+				page,
+				canvas,
+				test.info().outputPath("follow-mara-workshop-390x844.png"),
+			);
 			const headerBox = await page
 				.locator("header.v1-world-header")
 				.boundingBox();
@@ -2282,6 +2281,16 @@ for (const viewport of [
 				await expect(page.locator(".v1-world-title h1")).toHaveText(
 					"Second Founding",
 				);
+				const followOrin = page.getByTestId("follow-mara");
+				await expect(followOrin).toContainText(/Orin/u);
+				if ((await canvas.getAttribute("data-following")) !== "true")
+					await followOrin.click();
+				await expect(canvas).toHaveAttribute("data-following", "true");
+				await expectFollowShowsPerson(
+					page,
+					canvas,
+					test.info().outputPath("follow-orin-second-founding-390x844.png"),
+				);
 			}
 			const chronicle = page.getByRole("button", {
 				name: "Chronicle",
@@ -2297,7 +2306,37 @@ for (const viewport of [
 					page.locator("details.v1-inspector-sheet > summary"),
 				).toHaveText("People and work");
 			}
+			await page.screenshot({
+				animations: "disabled",
+				caret: "hide",
+				fullPage: false,
+				path: test
+					.info()
+					.outputPath(`world-${viewport.width}x${viewport.height}.png`),
+			});
+			await page.locator(".v1-world-settings summary").click();
+			await page.getByRole("button", { name: "Reduce motion" }).click();
+			await expect(world).toHaveClass(/v1-reduced-motion/u);
+			await page.getByRole("button", { name: "In words" }).click();
+			await expect(page.getByTestId("generated-semantic-world")).toBeVisible();
+			await expect
+				.poll(() =>
+					page.evaluate(
+						() => document.documentElement.scrollWidth <= window.innerWidth + 1,
+					),
+				)
+				.toBe(true);
+			expect(externalRequests).toEqual([]);
+			return;
 		}
+		await page.goto("/world");
+		const world = page.locator("main.v1-world");
+		await expect(world).toHaveAttribute("data-asset-integrity", "verified");
+		await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+			"data-ready",
+			"true",
+			{ timeout: 20_000 },
+		);
 		await page.screenshot({
 			animations: "disabled",
 			caret: "hide",

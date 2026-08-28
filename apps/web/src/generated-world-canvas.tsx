@@ -6,6 +6,7 @@ import { Application, Entity } from "@playcanvas/react";
 import { Camera, Light, Render } from "@playcanvas/react/components";
 import { useApp, useAppEvent } from "@playcanvas/react/hooks";
 import {
+	BLEND_NORMAL,
 	Color,
 	DEVICETYPE_WEBGL2,
 	type Entity as PlayCanvasEntity,
@@ -14,9 +15,11 @@ import {
 } from "playcanvas";
 import {
 	Component,
+	createContext,
 	type ErrorInfo,
 	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -28,9 +31,11 @@ import {
 	GeneratedFolkProxy,
 } from "./components/generated/GeneratedFolkProxy";
 import {
-	type AxisAlignedVolumeMm,
 	advanceGeneratedCameraIntent,
+	cameraEyeMm,
 	cameraIntentForGeneratedNavigation,
+	followOccluderIds,
+	followOccluderVolumes,
 	GENERATED_FOLK_ASSET,
 	GENERATED_NAVIGATION_EVENT,
 	GENERATED_TRAVEL_DURATION_TICKS,
@@ -40,6 +45,7 @@ import {
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	generatedCameraFidelity,
+	generatedFollowFovDegrees,
 	generatedFollowViewportIsCompact,
 	generatedTraversalPointAtTick,
 	planGeneratedActorTransition,
@@ -54,7 +60,7 @@ import {
 	visualDayProgress01,
 } from "./play-clock";
 
-function material(hex: string): StandardMaterial {
+function material(hex: string, ghost = false): StandardMaterial {
 	const value = Number.parseInt(hex.slice(1), 16);
 	const result = new StandardMaterial();
 	result.diffuse = new Color(
@@ -64,7 +70,9 @@ function material(hex: string): StandardMaterial {
 	);
 	result.metalness = 0;
 	result.gloss = 0.22;
-	result.opacity = 1;
+	result.opacity = ghost ? 0.16 : 1;
+	result.blendType = ghost ? BLEND_NORMAL : result.blendType;
+	result.depthWrite = !ghost;
 	result.update();
 	return result;
 }
@@ -86,7 +94,48 @@ const palette = Object.freeze({
 	social: material("#e7cc77"),
 });
 
+const ghostPalette = Object.freeze({
+	ground: material("#718158", true),
+	soil: material("#7c6848", true),
+	path: material("#a8895d", true),
+	water: material("#5d9aaa", true),
+	wood: material("#755137", true),
+	bark: material("#5c402d", true),
+	leaf: material("#426249", true),
+	leafLight: material("#607a4f", true),
+	stone: material("#8c8c80", true),
+	civic: material("#d7bd86", true),
+	field: material("#b7a75f", true),
+	clay: material("#a96045", true),
+	changed: material("#d99a45", true),
+	social: material("#e7cc77", true),
+});
+
 type PrimitiveKind = "box" | "cone" | "cylinder" | "plane" | "sphere";
+
+function surfaceOf(color: StandardMaterial, ghost: boolean): StandardMaterial {
+	if (!ghost) return color;
+	for (const key of Object.keys(palette) as readonly (keyof typeof palette)[]) {
+		if (palette[key] === color) return ghostPalette[key];
+	}
+	return color;
+}
+
+const GhostBuildingsContext = createContext(false);
+
+function GhostBuildings({
+	active,
+	children,
+}: {
+	readonly active: boolean;
+	readonly children: ReactNode;
+}) {
+	return (
+		<GhostBuildingsContext.Provider value={active}>
+			{children}
+		</GhostBuildingsContext.Provider>
+	);
+}
 
 function Primitive({
 	type = "box",
@@ -103,13 +152,14 @@ function Primitive({
 	readonly color: StandardMaterial;
 	readonly castShadows?: boolean;
 }) {
+	const ghost = useContext(GhostBuildingsContext);
 	return (
 		<Entity position={position} scale={scale} rotation={rotation}>
 			<Render
 				type={type}
-				material={color}
-				castShadows={castShadows}
-				receiveShadows
+				material={surfaceOf(color, ghost)}
+				castShadows={castShadows && !ghost}
+				receiveShadows={!ghost}
 			/>
 		</Entity>
 	);
@@ -242,33 +292,8 @@ function presentedActorSample(
 	});
 }
 
-function followVolumes(
-	projection: GeneratedCivilizationSpatialProjection,
-): readonly AxisAlignedVolumeMm[] {
-	return Object.freeze(
-		projection.local.buildings.map((building) => {
-			const site = projection.local.sites.find(
-				(candidate) => candidate.siteId === building.siteId,
-			);
-			if (site === undefined)
-				return Object.freeze({
-					minX: building.position.xMillimeters - 1_800,
-					maxX: building.position.xMillimeters + 1_800,
-					minY: 0,
-					maxY: 2_800,
-					minZ: building.position.yMillimeters - 1_800,
-					maxZ: building.position.yMillimeters + 1_800,
-				});
-			return Object.freeze({
-				minX: site.bounds.minimum.xMillimeters,
-				maxX: site.bounds.maximum.xMillimeters,
-				minY: 0,
-				maxY: 2_800,
-				minZ: site.bounds.minimum.yMillimeters,
-				maxZ: site.bounds.maximum.yMillimeters,
-			});
-		}),
-	);
+function followVolumes(projection: GeneratedCivilizationSpatialProjection) {
+	return followOccluderVolumes(projection);
 }
 
 function followViewportCompact(host: HTMLElement | null): boolean {
@@ -797,15 +822,49 @@ function GeneratedCamera({
 				host.current.dataset.citizenPickTargets = JSON.stringify(picks);
 				const followedId =
 					following && focus.kind === "citizen" ? focus.citizenId : null;
+				const followedActor =
+					followedId === null
+						? undefined
+						: model.actors.find((actor) => actor.citizenId === followedId);
 				const followedPick =
 					followedId === null
 						? undefined
 						: picks.find((pick) => pick.id === followedId);
 				const height = Math.max(1, host.current.clientHeight);
+				const width = Math.max(1, host.current.clientWidth);
 				host.current.dataset.followSubjectYRatio =
 					followedPick === undefined
 						? ""
 						: (followedPick.y / height).toFixed(3);
+				let subjectVisible = false;
+				if (followedActor !== undefined) {
+					const body = localPoint(
+						renderedActorPoint(
+							projection,
+							followedActor,
+							presentationTickRef.current,
+							previousByCitizen.get(followedActor.citizenId) ?? null,
+							progressRef.current,
+							reducedMotion,
+						),
+						frame,
+					);
+					const chest = cameraComponent.worldToScreen(
+						new Vec3(body[0], body[1] + 1.08, body[2]),
+					);
+					const head = cameraComponent.worldToScreen(
+						new Vec3(body[0], body[1] + 1.82, body[2]),
+					);
+					const inFrame = (x: number, y: number) =>
+						x >= width * 0.06 &&
+						x <= width * 0.94 &&
+						y >= height * 0.12 &&
+						y <= height * 0.88;
+					subjectVisible = inFrame(chest.x, chest.y) && inFrame(head.x, head.y);
+				}
+				host.current.dataset.followSubjectVisible = subjectVisible
+					? "true"
+					: "";
 			}
 		}
 	});
@@ -813,16 +872,13 @@ function GeneratedCamera({
 		<Entity ref={camera} position={initialPosition}>
 			<Camera
 				clearColor="#8aa3b0"
-				fov={
-					navigation.followCitizen
-						? generatedFollowViewportIsCompact(
-								window.innerWidth,
-								window.innerHeight,
-							)
-							? 38
-							: 34
-						: 46
-				}
+				fov={generatedFollowFovDegrees(
+					Boolean(navigation.followCitizen),
+					generatedFollowViewportIsCompact(
+						window.innerWidth,
+						window.innerHeight,
+					),
+				)}
 				farClip={720}
 				nearClip={0.2}
 			/>
@@ -1268,6 +1324,33 @@ function GroundedSettlement({
 	const scale = projection.scene.physicalScale;
 	const selectedActorId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
+	const followedActor =
+		navigation.followCitizen && selectedActorId !== null
+			? model.actors.find((actor) => actor.citizenId === selectedActorId)
+			: undefined;
+	const followGhostIds = (() => {
+		if (followedActor === undefined) return new Set<string>();
+		const framing = followFramingForActor(
+			projection,
+			followedActor,
+			previousByCitizen.get(followedActor.citizenId) ?? null,
+			progressRef.current,
+			reducedMotion,
+			followViewportCompact(host.current),
+		);
+		return new Set(
+			followOccluderIds(
+				cameraEyeMm(
+					framing.targetMm,
+					framing.yawDegrees,
+					framing.pitchDegrees,
+					framing.distanceMm,
+				),
+				framing.targetMm,
+				followVolumes(projection),
+			),
+		);
+	})();
 	const focusRevision =
 		navigation.focus.kind === "overview"
 			? "overview"
@@ -1395,7 +1478,9 @@ function GroundedSettlement({
 				return (
 					<Entity key={site.siteId}>
 						{foundingCamp ? (
-							<>
+							<GhostBuildings
+								active={followGhostIds.has(`camp:${site.siteId}`)}
+							>
 								<Primitive
 									type="cylinder"
 									position={[position[0], 0.04, position[2]]}
@@ -1413,7 +1498,7 @@ function GroundedSettlement({
 									completeness={0.2}
 									foundingCamp
 								/>
-							</>
+							</GhostBuildings>
 						) : (
 							<>
 								<Primitive
@@ -1473,20 +1558,27 @@ function GroundedSettlement({
 						? Math.max(0.4, building.conditionBasisPoints / 10_000)
 						: siteProject.progressBasisPoints / 10_000;
 				return (
-					<VernacularBuilding
+					<GhostBuildings
 						key={building.buildingId}
-						position={point}
-						width={width}
-						depth={depth}
-						ridgeHeight={ridgeHeight}
-						doorHeight={scale.door.heightMm / 1_000}
-						buildingKind={building.buildingKind}
-						completeness={completeness}
-						foundingCamp={
-							projection.local.settlement.foundedAtSimulationTime > 0 &&
-							completeness < 0.35
+						active={
+							followGhostIds.has(building.buildingId) ||
+							followGhostIds.has(`camp:${building.siteId}`)
 						}
-					/>
+					>
+						<VernacularBuilding
+							position={point}
+							width={width}
+							depth={depth}
+							ridgeHeight={ridgeHeight}
+							doorHeight={scale.door.heightMm / 1_000}
+							buildingKind={building.buildingKind}
+							completeness={completeness}
+							foundingCamp={
+								projection.local.settlement.foundedAtSimulationTime > 0 &&
+								completeness < 0.35
+							}
+						/>
+					</GhostBuildings>
 				);
 			})}
 			{model.actors.map((actor) => (

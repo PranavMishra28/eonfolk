@@ -106,8 +106,12 @@ describe("bounded world-presence pass", () => {
 			'data-environment-context="presentation-only-ground-apron"',
 		);
 		expect(canvas).toContain("followSubjectYRatio");
+		expect(canvas).toContain("followSubjectVisible");
 		expect(canvas).toContain("resolveFollowCamera");
 		expect(canvas).toContain("generatedFollowViewportIsCompact");
+		expect(canvas).toContain("generatedFollowFovDegrees");
+		expect(canvas).toContain("followOccluderVolumes");
+		expect(canvas).toContain("GhostBuildings");
 		expect(canvas).toContain("presentedActorCopy");
 		expect(canvas).not.toContain("INTENT_WORDS");
 		expect(styles).toContain(

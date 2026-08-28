@@ -5,8 +5,10 @@ import { describe, expect, it } from "vitest";
 import {
 	advanceGeneratedCameraIntent,
 	assertGeneratedAssetBudget,
+	cameraEyeMm,
 	cameraIntentForGeneratedNavigation,
 	conversationVisuallyActive,
+	FOLLOW_COMPACT_CAMERA_PITCH_DEGREES,
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
 	generatedFollowViewportIsCompact,
@@ -554,9 +556,10 @@ describe("generated embodiment projection", () => {
 			}),
 		]);
 		expect(blocked.distanceMm).toBeGreaterThan(open.distanceMm);
+		expect(blocked.pitchDegrees).toBe(open.pitchDegrees);
 	});
 
-	it("frames compact Follow on the chest, farther and less downward than desktop", () => {
+	it("frames compact Follow on the chest, farther and higher than desktop", () => {
 		const sample = Object.freeze({
 			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
 			facingDegrees: 0,
@@ -566,8 +569,49 @@ describe("generated embodiment projection", () => {
 		expect(generatedFollowViewportIsCompact(390, 844)).toBe(true);
 		expect(generatedFollowViewportIsCompact(1_280, 800)).toBe(false);
 		expect(phone.targetMm.y).toBeLessThan(desktop.targetMm.y);
-		expect(phone.pitchDegrees).toBeGreaterThan(desktop.pitchDegrees);
+		expect(phone.targetMm.y).toBeGreaterThanOrEqual(1_000);
+		expect(phone.targetMm.y).toBeLessThanOrEqual(1_400);
+		expect(phone.pitchDegrees).toBeLessThan(desktop.pitchDegrees);
 		expect(phone.distanceMm).toBeGreaterThan(desktop.distanceMm);
+		const eye = cameraEyeMm(
+			phone.targetMm,
+			phone.yawDegrees,
+			phone.pitchDegrees,
+			phone.distanceMm,
+		);
+		expect(eye.y).toBeGreaterThan(desktop.targetMm.y + 2_400);
+	});
+
+	it("keeps compact Follow outside a workshop envelope instead of looking at dirt", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: -3_600 }),
+			facingDegrees: 0,
+		});
+		const workshop = Object.freeze({
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 6_300,
+			minZ: -4_100,
+			maxZ: 4_100,
+		});
+		const phone = resolveFollowCamera(person, [workshop], 1_520, true);
+		const eye = cameraEyeMm(
+			phone.targetMm,
+			phone.yawDegrees,
+			phone.pitchDegrees,
+			phone.distanceMm,
+		);
+		expect(phone.targetMm.y).toBeGreaterThanOrEqual(1_000);
+		expect(phone.targetMm.y).toBeLessThanOrEqual(1_400);
+		expect(
+			eye.x < workshop.minX ||
+				eye.x > workshop.maxX ||
+				eye.y > workshop.maxY ||
+				eye.z < workshop.minZ ||
+				eye.z > workshop.maxZ,
+		).toBe(true);
+		expect(phone.pitchDegrees).toBe(FOLLOW_COMPACT_CAMERA_PITCH_DEGREES);
 	});
 
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
@@ -647,7 +691,11 @@ describe("generated navigation parity", () => {
 			following,
 		);
 
-		expect(intent.targetMm).toEqual(actor.positionMm);
+		expect(intent.targetMm).toEqual({
+			x: actor.positionMm.x,
+			y: actor.positionMm.y + 1_520,
+			z: actor.positionMm.z,
+		});
 		expect(intent.followCitizenId).toBe(actor.citizenId);
 		expect(intent.semanticLabel).toContain("Following");
 		expect(following.distanceMm).toBe(6_200);

@@ -150,26 +150,41 @@ export function generatedNavigationReferencesExist(
 }
 
 export const FOLLOW_CAMERA_DISTANCE_MM = 6_200;
-/** Longer lens on a phone so the whole body fits between header and inspector. */
-export const FOLLOW_COMPACT_CAMERA_DISTANCE_MM = 8_200;
+/** Far enough that compact Follow looks at a person, not a workshop near-plane fill. */
+export const FOLLOW_COMPACT_CAMERA_DISTANCE_MM = 13_600;
 const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
+const FOLLOW_MAX_BACKUP_MM = 28_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
 /** Shallow enough that Follow is a person, not a ground/wall fill. */
 export const FOLLOW_CAMERA_PITCH_DEGREES = -12;
-/** Less downward than desktop so a 390×844 frame is body, not a tan fill. */
-export const FOLLOW_COMPACT_CAMERA_PITCH_DEGREES = -8;
+/** Elevated three-quarter: camera is back and up, looking at the chest. */
+export const FOLLOW_COMPACT_CAMERA_PITCH_DEGREES = -18;
 export const FOLLOW_LOOK_HEIGHT_MM = 1_520;
-/** Chest, not above the head — looking higher dumps the body under the inspector. */
-export const FOLLOW_COMPACT_LOOK_HEIGHT_MM = 1_380;
+/** Chest. Looking at the head dumps the torso under the inspector. */
+export const FOLLOW_COMPACT_LOOK_HEIGHT_MM = 1_050;
 export const FOLLOW_SHOULDER_OFFSET_MM = 480;
 /** Three-quarter from behind so Follow sees the person, not a wall fill. */
 export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 154;
+export const FOLLOW_FOV_DEGREES = 40;
+export const FOLLOW_COMPACT_FOV_DEGREES = 58;
+export const OVERVIEW_FOV_DEGREES = 46;
 const MIN_CAMERA_PITCH_DEGREES = -75;
 const MAX_CAMERA_PITCH_DEGREES = -8;
 const COMPACT_FOLLOW_MAX_WIDTH_PX = 520;
 const COMPACT_FOLLOW_MAX_ASPECT = 0.62;
+const FOLLOW_YAW_CANDIDATES_DEGREES = Object.freeze([
+	FOLLOW_CAMERA_YAW_OFFSET_DEGREES,
+	206,
+	128,
+	232,
+	40,
+	320,
+]);
+const TENT_HALF_WIDTH_MM = 1_900;
+const TENT_HALF_DEPTH_MM = 1_800;
+const TENT_HEIGHT_MM = 3_400;
 
 export interface AxisAlignedVolumeMm {
 	readonly minX: number;
@@ -178,6 +193,10 @@ export interface AxisAlignedVolumeMm {
 	readonly maxY: number;
 	readonly minZ: number;
 	readonly maxZ: number;
+}
+
+export interface FollowOccluderVolume extends AxisAlignedVolumeMm {
+	readonly occluderId: string;
 }
 
 export interface FollowCameraFraming {
@@ -217,6 +236,145 @@ function volumeContains(
 	);
 }
 
+function envelopeVolume(
+	occluderId: string,
+	cx: number,
+	cz: number,
+	halfX: number,
+	halfZ: number,
+	heightMm: number,
+): FollowOccluderVolume {
+	return Object.freeze({
+		occluderId,
+		minX: cx - halfX,
+		maxX: cx + halfX,
+		minY: 0,
+		maxY: heightMm,
+		minZ: cz - halfZ,
+		maxZ: cz + halfZ,
+	});
+}
+
+function tentEnvelope(
+	occluderId: string,
+	cx: number,
+	cz: number,
+): FollowOccluderVolume {
+	return envelopeVolume(
+		occluderId,
+		cx,
+		cz,
+		TENT_HALF_WIDTH_MM,
+		TENT_HALF_DEPTH_MM,
+		TENT_HEIGHT_MM,
+	);
+}
+
+/** Mesh-sized occluders. Site AABBs understate workshop height and tent cones. */
+export function followOccluderVolumes(
+	projection: GeneratedCivilizationSpatialProjection,
+): readonly FollowOccluderVolume[] {
+	const scale = projection.scene.physicalScale;
+	const founded = projection.local.settlement.foundedAtSimulationTime;
+	const volumes: FollowOccluderVolume[] = [];
+	const buildingSiteIds = new Set<string>();
+	for (const building of projection.local.buildings) {
+		buildingSiteIds.add(building.siteId);
+		const kind = building.buildingKind.toLowerCase();
+		const tent = founded > 0 && building.conditionBasisPoints < 3_500;
+		const cx = building.position.xMillimeters;
+		const cz = building.position.yMillimeters;
+		if (tent) {
+			volumes.push(tentEnvelope(building.buildingId, cx, cz));
+			continue;
+		}
+		const isMill = kind.includes("mill");
+		const isWorkshop = kind.includes("workshop");
+		const widthMm = isMill ? scale.mill.widthMm : scale.house.widthMm;
+		const depthMm =
+			(isMill ? scale.mill.depthMm : scale.house.depthMm) *
+			(isWorkshop ? 1.2 : 1);
+		const heightMm =
+			(isMill ? scale.mill.ridgeHeightMm : scale.house.ridgeHeightMm) + 900;
+		volumes.push(
+			envelopeVolume(
+				building.buildingId,
+				cx,
+				cz,
+				widthMm / 2 + 500,
+				depthMm / 2 + 500,
+				heightMm,
+			),
+		);
+	}
+	for (const site of projection.local.sites) {
+		if (buildingSiteIds.has(site.siteId)) continue;
+		if (founded <= 0) continue;
+		const cx =
+			(site.bounds.minimum.xMillimeters + site.bounds.maximum.xMillimeters) / 2;
+		const cz =
+			(site.bounds.minimum.yMillimeters + site.bounds.maximum.yMillimeters) / 2;
+		volumes.push(tentEnvelope(`camp:${site.siteId}`, cx, cz));
+	}
+	return Object.freeze(volumes);
+}
+
+/**
+ * True when the camera is in the mesh or the chest look ray hits a wall before
+ * the person. Hits at the far end are the person standing at a doorway.
+ */
+export function followLookOccluded(
+	volume: AxisAlignedVolumeMm,
+	eye: SpatialPointMm,
+	target: SpatialPointMm,
+): boolean {
+	if (volumeContains(volume, eye)) return true;
+	let tMin = 0;
+	let tMax = 1;
+	for (const [start, dest, min, max] of [
+		[eye.x, target.x, volume.minX, volume.maxX],
+		[eye.y, target.y, volume.minY, volume.maxY],
+		[eye.z, target.z, volume.minZ, volume.maxZ],
+	] as const) {
+		const delta = dest - start;
+		if (Math.abs(delta) < 1e-4) {
+			if (start < min || start > max) return false;
+			continue;
+		}
+		let t0 = (min - start) / delta;
+		let t1 = (max - start) / delta;
+		if (t0 > t1) {
+			const swap = t0;
+			t0 = t1;
+			t1 = swap;
+		}
+		tMin = Math.max(tMin, t0);
+		tMax = Math.min(tMax, t1);
+		if (tMin > tMax) return false;
+	}
+	return tMin < 0.82 && tMax > 0.04;
+}
+
+export function followOccluderIds(
+	eye: SpatialPointMm,
+	target: SpatialPointMm,
+	volumes: readonly FollowOccluderVolume[],
+): readonly string[] {
+	return Object.freeze(
+		volumes
+			.filter((volume) => followLookOccluded(volume, eye, target))
+			.map((volume) => volume.occluderId),
+	);
+}
+
+export function generatedFollowFovDegrees(
+	following: boolean,
+	compact: boolean,
+): number {
+	if (!following) return OVERVIEW_FOV_DEGREES;
+	return compact ? FOLLOW_COMPACT_FOV_DEGREES : FOLLOW_FOV_DEGREES;
+}
+
 /** Portrait phone or a short overlay viewport needs Follow framed into the visible band. */
 export function generatedFollowViewportIsCompact(
 	widthPx: number,
@@ -227,6 +385,21 @@ export function generatedFollowViewportIsCompact(
 		widthPx <= COMPACT_FOLLOW_MAX_WIDTH_PX ||
 		(heightPx > 0 && widthPx / heightPx <= COMPACT_FOLLOW_MAX_ASPECT)
 	);
+}
+
+function scoreFollowCandidate(
+	eye: SpatialPointMm,
+	target: SpatialPointMm,
+	volumes: readonly AxisAlignedVolumeMm[],
+	distanceMm: number,
+): number {
+	const inside = volumes.some((volume) => volumeContains(volume, eye));
+	const occluded = volumes.some((volume) =>
+		followLookOccluded(volume, eye, target),
+	);
+	if (!inside && !occluded) return 1_000_000 + distanceMm;
+	if (!inside) return 100_000 + distanceMm;
+	return distanceMm;
 }
 
 /** Shoulder/height framing that backs out of walls so the followed body stays readable. */
@@ -250,25 +423,51 @@ export function resolveFollowCamera(
 			sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
 	});
-	let pitchDegrees = compact
+	const basePitch = compact
 		? FOLLOW_COMPACT_CAMERA_PITCH_DEGREES
 		: FOLLOW_CAMERA_PITCH_DEGREES;
-	let distanceMm = compact
+	const baseDistance = compact
 		? FOLLOW_COMPACT_CAMERA_DISTANCE_MM
 		: FOLLOW_CAMERA_DISTANCE_MM;
-	const yawDegrees = sample.facingDegrees + FOLLOW_CAMERA_YAW_OFFSET_DEGREES;
-	for (let step = 0; step < 8; step += 1) {
-		const eye = cameraEyeMm(targetMm, yawDegrees, pitchDegrees, distanceMm);
-		if (!volumes.some((volume) => volumeContains(volume, eye))) break;
-		distanceMm = Math.min(MAX_CAMERA_DISTANCE_MM, distanceMm + 1_200);
-		pitchDegrees = Math.max(MIN_CAMERA_PITCH_DEGREES, pitchDegrees - 2);
+	const yawOffsets =
+		volumes.length === 0
+			? [FOLLOW_CAMERA_YAW_OFFSET_DEGREES]
+			: FOLLOW_YAW_CANDIDATES_DEGREES;
+	let best: FollowCameraFraming | null = null;
+	let bestScore = Number.NEGATIVE_INFINITY;
+	for (const yawOffset of yawOffsets) {
+		const yawDegrees = sample.facingDegrees + yawOffset;
+		let distanceMm = baseDistance;
+		for (let step = 0; step < 10; step += 1) {
+			const eye = cameraEyeMm(targetMm, yawDegrees, basePitch, distanceMm);
+			const score = scoreFollowCandidate(eye, targetMm, volumes, distanceMm);
+			if (score > bestScore) {
+				bestScore = score;
+				best = Object.freeze({
+					targetMm,
+					yawDegrees,
+					pitchDegrees: basePitch,
+					distanceMm,
+				});
+			}
+			if (score >= 1_000_000 && best !== null) return best;
+			const inside = volumes.some((volume) => volumeContains(volume, eye));
+			if (!inside) break;
+			distanceMm = Math.min(
+				FOLLOW_MAX_BACKUP_MM,
+				distanceMm + (compact ? 2_400 : 1_600),
+			);
+		}
 	}
-	return Object.freeze({
-		targetMm,
-		yawDegrees,
-		pitchDegrees,
-		distanceMm,
-	});
+	return (
+		best ??
+		Object.freeze({
+			targetMm,
+			yawDegrees: sample.facingDegrees + FOLLOW_CAMERA_YAW_OFFSET_DEGREES,
+			pitchDegrees: basePitch,
+			distanceMm: baseDistance,
+		})
+	);
 }
 
 export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
@@ -606,9 +805,15 @@ export function cameraIntentForGeneratedNavigation(
 		if (actor === undefined) {
 			semanticLabel = "This person is no longer in this settlement";
 		} else {
-			targetMm = actor.positionMm;
 			followCitizenId = state.followCitizen ? actor.citizenId : null;
 			semanticLabel = `${state.followCitizen ? "Following" : "Viewing"} ${actor.name}: ${actor.semanticLabel}`;
+			targetMm = Object.freeze({
+				x: actor.positionMm.x,
+				y: state.followCitizen
+					? actor.positionMm.y + FOLLOW_LOOK_HEIGHT_MM
+					: actor.positionMm.y,
+				z: actor.positionMm.z,
+			});
 		}
 	} else if (state.focus.kind === "building") {
 		const buildingId = state.focus.buildingId;
