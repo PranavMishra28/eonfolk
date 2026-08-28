@@ -278,20 +278,26 @@ test("mobile arrival is world-dominant with an opening action in the first viewp
 			.find((button) => button.textContent?.trim() === "Follow Mara")
 			?.getBoundingClientRect();
 		return {
+			stageTop: stage?.top ?? Number.POSITIVE_INFINITY,
 			stageHeight: stage?.height ?? 0,
 			actionTop: action?.top ?? Number.POSITIVE_INFINITY,
 			actionBottom: action?.bottom ?? Number.POSITIVE_INFINITY,
 			viewportHeight: window.innerHeight,
 			clientWidth: document.documentElement.clientWidth,
 			scrollWidth: document.documentElement.scrollWidth,
+			scrollHeight: document.documentElement.scrollHeight,
 		};
 	});
+	expect(geometry.stageTop).toBeLessThanOrEqual(8);
 	expect(geometry.stageHeight / geometry.viewportHeight).toBeGreaterThanOrEqual(
-		0.5,
+		0.85,
 	);
 	expect(geometry.actionTop).toBeGreaterThanOrEqual(0);
 	expect(geometry.actionBottom).toBeLessThanOrEqual(geometry.viewportHeight);
 	expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+	expect(geometry.scrollHeight).toBeLessThanOrEqual(
+		geometry.viewportHeight + 8,
+	);
 	expect(externalRequests).toEqual([]);
 });
 

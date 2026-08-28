@@ -18,9 +18,11 @@ import {
 	poseAtGeneratedPresentationTick,
 	poseForGeneratedActor,
 	presentedActorActivity,
+	presentedActorCopy,
 	projectGeneratedEmbodiment,
 	projectGeneratedWorldEmbodiment,
 	reduceGeneratedNavigation,
+	resolveFollowCamera,
 	routeArrivalCommitted,
 	sampleGeneratedActorPresentation,
 	sampleGeneratedActorTransition,
@@ -515,6 +517,44 @@ describe("generated embodiment projection", () => {
 		}
 	});
 
+	it("uses one interpolant vocabulary so In words matches a walking body", async () => {
+		const { projection, activities } = await fixture();
+		const model = projectGeneratedEmbodiment({
+			current: projection,
+			activities,
+		});
+		const walker = model.actors.find(
+			(actor) =>
+				actor.grounding.kind === "route" &&
+				actor.grounding.progressBasisPoints !== 10_000,
+		);
+		if (walker === undefined) return;
+		const copy = presentedActorCopy(walker, projection, 0.2);
+		expect(copy).toMatch(/^(?:walking|carrying) toward /u);
+		expect(copy).not.toContain("inspecting the work");
+	});
+
+	it("keeps Follow framing on the body and backs the camera out of walls", () => {
+		const sample = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			facingDegrees: 0,
+		});
+		const open = resolveFollowCamera(sample);
+		expect(open.targetMm.y).toBeGreaterThanOrEqual(1_200);
+		expect(open.distanceMm).toBe(6_200);
+		const blocked = resolveFollowCamera(sample, [
+			Object.freeze({
+				minX: -20_000,
+				maxX: 20_000,
+				minY: 0,
+				maxY: 8_000,
+				minZ: -20_000,
+				maxZ: 20_000,
+			}),
+		]);
+		expect(blocked.distanceMm).toBeGreaterThan(open.distanceMm);
+	});
+
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
 		const positionMm = Object.freeze({ x: 1_200, y: 0, z: -900 });
 		const base = poseForGeneratedActor({
@@ -595,7 +635,7 @@ describe("generated navigation parity", () => {
 		expect(intent.targetMm).toEqual(actor.positionMm);
 		expect(intent.followCitizenId).toBe(actor.citizenId);
 		expect(intent.semanticLabel).toContain("Following");
-		expect(following.distanceMm).toBe(9_500);
+		expect(following.distanceMm).toBe(6_200);
 	});
 
 	it("keeps a camera intent when the focused citizen has left", async () => {

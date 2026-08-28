@@ -52,8 +52,10 @@ test("Play advances a day without pressing Pause first @generated-world", async 
 		{ timeout: 30_000 },
 	);
 	await expect(world).toHaveAttribute("data-play-rate", "1");
+	expect(Number(await world.getAttribute("data-day-interval-ms"))).toBe(28_000);
 	const startDay = Number(await world.getAttribute("data-horizon-days"));
 	expect(startDay).toBeGreaterThanOrEqual(1);
+	const dayStartedAt = Date.now();
 	await expect(world).toHaveAttribute(
 		"data-horizon-days",
 		String(startDay + 1),
@@ -61,6 +63,9 @@ test("Play advances a day without pressing Pause first @generated-world", async 
 			timeout: 90_000,
 		},
 	);
+	const dayElapsedMs = Date.now() - dayStartedAt;
+	expect(dayElapsedMs).toBeGreaterThanOrEqual(22_000);
+	expect(dayElapsedMs).toBeLessThan(40_000);
 	const peopleOrHappening = await page.evaluate(() => {
 		const header = document.querySelector(".v1-world-title")?.textContent ?? "";
 		const happening = document.querySelector("[data-happening-id]");
@@ -93,6 +98,19 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 		"data-last-world-pick",
 		"citizen:citizen-01",
 	);
+	await expect
+		.poll(async () => {
+			const ratio = Number(
+				await canvas.getAttribute("data-follow-subject-y-ratio"),
+			);
+			return Number.isFinite(ratio) ? ratio : Number.NaN;
+		})
+		.toBeGreaterThanOrEqual(0.22);
+	await expect
+		.poll(async () =>
+			Number(await canvas.getAttribute("data-follow-subject-y-ratio")),
+		)
+		.toBeLessThanOrEqual(0.78);
 	await expect(canvas).toHaveAttribute("data-camera-target", /Mara/u);
 	await expect(canvas).not.toHaveAttribute("data-camera-target", /Iven/u);
 	const canonical = await canvas.getAttribute("data-actor-positions");
@@ -169,6 +187,15 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 	await expect(
 		page.getByRole("heading", { name: "What happened" }),
 	).toBeVisible({ timeout: 30_000 });
+	await expect(
+		page.locator("header.v1-world-header").getByRole("button", {
+			name: "Chronicle",
+			exact: true,
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "What happened" }),
+	).toBeVisible();
 	await expect(page.locator("main.v1-world")).not.toContainText(/SP:/u);
 	await expect(page.locator(".v1-context-panel")).toContainText(
 		/stores|inspection|recorded/iu,
@@ -182,4 +209,52 @@ test("sponsoring Mara keeps counsel reachable after a live day @generated-world"
 		String(dayAfterCounsel + 1),
 		{ timeout: 60_000 },
 	);
+});
+
+test("In words matches the watched walking body @generated-world", async ({
+	page,
+}) => {
+	test.setTimeout(90_000);
+	await isolateLocalWorld(page);
+	await resetGeneratedWorld(page);
+	await page.goto("/world");
+	const world = page.locator("main.v1-world");
+	await expect(page.getByTestId("generated-world-canvas")).toHaveAttribute(
+		"data-ready",
+		"true",
+		{ timeout: 30_000 },
+	);
+	await page
+		.getByRole("navigation", { name: "Time" })
+		.getByRole("button", { name: "Pause" })
+		.click();
+	await expect(world).toHaveAttribute("data-play-rate", "0");
+	const watchWalking = await page
+		.locator(".generated-scene-activity")
+		.evaluateAll((nodes) =>
+			nodes.map((node) => ({
+				name: node.querySelector("strong")?.textContent?.trim() ?? "",
+				activity: node.querySelector("span")?.textContent?.trim() ?? "",
+			})),
+		);
+	await page.getByRole("button", { name: "In words" }).click();
+	const people = page.getByRole("group", { name: "People here" });
+	for (const row of watchWalking) {
+		if (row.name === "" || !/walking/u.test(row.activity)) continue;
+		const person = people.getByRole("button", {
+			name: new RegExp(row.name, "u"),
+		});
+		await expect(person).toContainText(/walking toward/u);
+		await expect(person).not.toContainText("inspecting the work");
+	}
+	const presented = await page
+		.locator("[data-presented-activity]")
+		.evaluateAll((nodes) =>
+			nodes.map((node) => node.getAttribute("data-presented-activity") ?? ""),
+		);
+	expect(presented.some((copy) => copy.includes("walking toward"))).toBe(true);
+	for (const copy of presented) {
+		if (copy.includes("walking toward"))
+			expect(copy).not.toContain("inspecting the work");
+	}
 });

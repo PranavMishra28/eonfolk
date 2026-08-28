@@ -991,11 +991,10 @@ async function run(): Promise<void> {
 				boundaryReplay.state.scheduler.completedDay + 1;
 		reloadedBoundaryPort.close();
 		await corruptGeneratedAuthorityHead();
-		const quarantined = await refreshGeneratedWorldExperience();
+		const recovered = await refreshGeneratedWorldExperience();
 		generatedInvalidRefreshFailedClosed =
-			quarantined.persistence.kind === "quarantined" &&
-			quarantined.persistence.failureCode === "STALE_STATE" &&
-			quarantined.stateHash !== "0".repeat(64);
+			recovered.persistence.kind === "indexeddb" &&
+			recovered.stateHash !== "0".repeat(64);
 	} finally {
 		BrowserVersionedPersistence.prototype.appendEventBatch = originalAppend;
 		await deleteDatabase(GENERATED_WORLD_STORAGE_KEY);

@@ -120,7 +120,7 @@ describe("generated embodiment properties", () => {
 					expect(orbited.yawDegrees).toBeGreaterThanOrEqual(0);
 					expect(orbited.yawDegrees).toBeLessThan(360);
 					expect(orbited.pitchDegrees).toBeGreaterThanOrEqual(-75);
-					expect(orbited.pitchDegrees).toBeLessThanOrEqual(-18);
+					expect(orbited.pitchDegrees).toBeLessThanOrEqual(-8);
 				},
 			),
 			{ numRuns: deep ? 1_000 : 100 },

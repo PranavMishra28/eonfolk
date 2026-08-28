@@ -149,15 +149,101 @@ export function generatedNavigationReferencesExist(
 	return true;
 }
 
-export const FOLLOW_CAMERA_DISTANCE_MM = 9_500;
+export const FOLLOW_CAMERA_DISTANCE_MM = 6_200;
 const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
-export const FOLLOW_CAMERA_PITCH_DEGREES = -21;
-export const FOLLOW_SHOULDER_OFFSET_MM = 1_800;
+/** Shallow enough that Follow is a person, not a ground/wall fill. */
+export const FOLLOW_CAMERA_PITCH_DEGREES = -12;
+export const FOLLOW_LOOK_HEIGHT_MM = 1_520;
+export const FOLLOW_SHOULDER_OFFSET_MM = 480;
 /** Three-quarter from behind so Follow sees the person, not a wall fill. */
-export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 148;
+export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 154;
+const MIN_CAMERA_PITCH_DEGREES = -75;
+const MAX_CAMERA_PITCH_DEGREES = -8;
+
+export interface AxisAlignedVolumeMm {
+	readonly minX: number;
+	readonly maxX: number;
+	readonly minY: number;
+	readonly maxY: number;
+	readonly minZ: number;
+	readonly maxZ: number;
+}
+
+export interface FollowCameraFraming {
+	readonly targetMm: SpatialPointMm;
+	readonly yawDegrees: number;
+	readonly pitchDegrees: number;
+	readonly distanceMm: number;
+}
+
+export function cameraEyeMm(
+	targetMm: SpatialPointMm,
+	yawDegrees: number,
+	pitchDegrees: number,
+	distanceMm: number,
+): SpatialPointMm {
+	const yaw = (yawDegrees * Math.PI) / 180;
+	const pitch = (pitchDegrees * Math.PI) / 180;
+	const horizontal = Math.cos(pitch) * distanceMm;
+	return Object.freeze({
+		x: targetMm.x + Math.sin(yaw) * horizontal,
+		y: targetMm.y - Math.sin(pitch) * distanceMm,
+		z: targetMm.z + Math.cos(yaw) * horizontal,
+	});
+}
+
+function volumeContains(
+	volume: AxisAlignedVolumeMm,
+	point: SpatialPointMm,
+): boolean {
+	return (
+		point.x >= volume.minX &&
+		point.x <= volume.maxX &&
+		point.y >= volume.minY &&
+		point.y <= volume.maxY &&
+		point.z >= volume.minZ &&
+		point.z <= volume.maxZ
+	);
+}
+
+/** Shoulder/height framing that backs out of walls so the followed body stays readable. */
+export function resolveFollowCamera(
+	sample: {
+		readonly positionMm: SpatialPointMm;
+		readonly facingDegrees: number;
+	},
+	volumes: readonly AxisAlignedVolumeMm[] = [],
+	lookHeightMm = FOLLOW_LOOK_HEIGHT_MM,
+): FollowCameraFraming {
+	const facing = (sample.facingDegrees * Math.PI) / 180;
+	const targetMm = Object.freeze({
+		x: Math.round(
+			sample.positionMm.x + Math.cos(facing) * FOLLOW_SHOULDER_OFFSET_MM,
+		),
+		y: sample.positionMm.y + lookHeightMm,
+		z: Math.round(
+			sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
+		),
+	});
+	let pitchDegrees = FOLLOW_CAMERA_PITCH_DEGREES;
+	let distanceMm = FOLLOW_CAMERA_DISTANCE_MM;
+	const yawDegrees = sample.facingDegrees + FOLLOW_CAMERA_YAW_OFFSET_DEGREES;
+	for (let step = 0; step < 8; step += 1) {
+		const eye = cameraEyeMm(targetMm, yawDegrees, pitchDegrees, distanceMm);
+		if (!volumes.some((volume) => volumeContains(volume, eye))) break;
+		distanceMm = Math.min(MAX_CAMERA_DISTANCE_MM, distanceMm + 1_200);
+		pitchDegrees = Math.max(MIN_CAMERA_PITCH_DEGREES, pitchDegrees - 2);
+	}
+	return Object.freeze({
+		targetMm,
+		yawDegrees,
+		pitchDegrees,
+		distanceMm,
+	});
+}
 
 export const INITIAL_GENERATED_NAVIGATION: GeneratedNavigationState =
 	Object.freeze({
@@ -187,8 +273,8 @@ function assertNavigationState(state: GeneratedNavigationState): void {
 	if (
 		state.distanceMm < MIN_CAMERA_DISTANCE_MM ||
 		state.distanceMm > MAX_CAMERA_DISTANCE_MM ||
-		state.pitchDegrees < -75 ||
-		state.pitchDegrees > -18
+		state.pitchDegrees < MIN_CAMERA_PITCH_DEGREES ||
+		state.pitchDegrees > MAX_CAMERA_PITCH_DEGREES
 	)
 		throw new Error("Camera bounds exceeded");
 	if (
@@ -324,8 +410,8 @@ export function reduceGeneratedNavigation(
 				yawDegrees: yawRemainder < 0 ? yawRemainder + 360 : yawRemainder,
 				pitchDegrees: clamp(
 					state.pitchDegrees + finite(action.pitchDeltaDegrees, "pitch delta"),
-					-75,
-					-18,
+					MIN_CAMERA_PITCH_DEGREES,
+					MAX_CAMERA_PITCH_DEGREES,
 				),
 			});
 		}

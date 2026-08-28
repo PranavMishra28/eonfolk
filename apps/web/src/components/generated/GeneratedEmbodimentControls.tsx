@@ -9,15 +9,8 @@ import {
 	generatedCameraFidelity,
 	generatedNavigationReferencesExist,
 	parseGeneratedNavigationAction,
+	presentedActorCopy,
 } from "../../generated-presentation";
-
-const ACTIVITY_LABELS: Readonly<Record<string, string>> = {
-	carry: "carrying supplies",
-	gather: "gathering resources",
-	"eat-rest": "resting and eating",
-	repair: "repairing a structure",
-	inspect: "inspecting the work",
-};
 
 /**
  * Keyboard/semantic parity for canvas selection, semantic zoom and follow.
@@ -35,6 +28,7 @@ export function GeneratedEmbodimentControls({
 	onStepPresentation,
 	onNavigationRejected,
 	showLookAround = true,
+	visualProgress01 = 0.55,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -48,6 +42,7 @@ export function GeneratedEmbodimentControls({
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
 	readonly showLookAround?: boolean;
+	readonly visualProgress01?: number;
 }) {
 	useEffect(() => {
 		const onCanvasNavigation = (event: Event) => {
@@ -215,27 +210,33 @@ export function GeneratedEmbodimentControls({
 			<fieldset className="generated-residents">
 				<legend>People here</legend>
 				<ul>
-					{model.actors.map((actor) => (
-						<li key={actor.citizenId}>
-							<button
-								type="button"
-								data-citizen-id={actor.citizenId}
-								data-action-id={actor.actionId}
-								data-animation-class={actor.animationClass}
-								aria-pressed={selectedCitizenId === actor.citizenId}
-								onClick={() =>
-									dispatch({
-										type: "select-citizen",
-										citizenId: actor.citizenId,
-									})
-								}
-							>
-								{actor.name} · {actor.role} ·{" "}
-								{ACTIVITY_LABELS[actor.animationClass] ??
-									"moving through the settlement"}
-							</button>
-						</li>
-					))}
+					{model.actors.map((actor) => {
+						const activity = presentedActorCopy(
+							actor,
+							projection,
+							visualProgress01,
+						);
+						return (
+							<li key={actor.citizenId}>
+								<button
+									type="button"
+									data-citizen-id={actor.citizenId}
+									data-action-id={actor.actionId}
+									data-animation-class={actor.animationClass}
+									data-presented-activity={activity}
+									aria-pressed={selectedCitizenId === actor.citizenId}
+									onClick={() =>
+										dispatch({
+											type: "select-citizen",
+											citizenId: actor.citizenId,
+										})
+									}
+								>
+									{actor.name} · {actor.role} · {activity}
+								</button>
+							</li>
+						);
+					})}
 				</ul>
 			</fieldset>
 			{projection.local.buildings.length === 0 ? null : (

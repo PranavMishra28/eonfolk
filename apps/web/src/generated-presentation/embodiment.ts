@@ -4,6 +4,7 @@ import {
 	type GeneratedSpatialActivityInput,
 	type GeneratedVisualLifecycle,
 	type PropKind,
+	playerFacingPlaceName,
 	projectDisplayName,
 	projectStateDisplayName,
 	type SpatialActorProjection,
@@ -548,6 +549,27 @@ export function presentedActorActivity(
 			? `${ACTIVITY_WORDS[animationClass]} ${prop}`
 			: ACTIVITY_WORDS[animationClass];
 	return `${activity} at ${destination}`;
+}
+
+/** One interpolant vocabulary for Watch, In words, and PEOPLE HERE. */
+export function presentedActorCopy(
+	actor: GeneratedEmbodiedActor,
+	projection: GeneratedCivilizationSpatialProjection,
+	progress01: number,
+): string {
+	const spatial = projection.spatial.actors.find(
+		(candidate) => candidate.citizenId === actor.citizenId,
+	);
+	const travelling =
+		actor.grounding.kind === "route" && !routeArrivalCommitted(actor);
+	const placeId = travelling
+		? (spatial?.action.destinationPlaceId ?? actor.placeId)
+		: actor.placeId;
+	return presentedActorActivity(
+		actor,
+		playerFacingPlaceName(placeId, projection.local.sites),
+		progress01,
+	);
 }
 
 export function conversationVisuallyActive(

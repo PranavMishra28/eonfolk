@@ -1437,20 +1437,14 @@ test("entry admits the deterministic view when canonical IndexedDB is newer @gen
 
 	await page.goto("/world", { waitUntil: "domcontentloaded" });
 	const world = page.locator("main.v1-world");
-	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await expect(world).toHaveAttribute(
-		"data-persistence-claim",
-		"admitted-deterministic-view",
-	);
-	await expect(world).toHaveAttribute(
-		"data-persistence-failure-code",
-		"DATABASE_VERSION",
-	);
+	await expect(world).toHaveAttribute("data-play-rate", "1");
 	await expect(
-		page.getByText(/The stored authority was rejected/u),
-	).toBeVisible();
+		page.getByRole("button", { name: "Start a fresh local town" }),
+	).toHaveCount(0);
+	await expect(page.getByText(/cannot be read/u)).toHaveCount(0);
 });
 
 test("semantic people remain keyboard-operable @generated-world", async ({
@@ -1635,19 +1629,22 @@ for (const corruption of [
 		kind: "genesis-schema",
 		label: "unsupported genesis schema",
 		failureCode: "UNSUPPORTED_VERSION",
+		recover: "silent",
 	},
 	{
 		kind: "engine-version",
 		label: "hash-valid foreign engine version",
 		failureCode: "UNSUPPORTED_VERSION",
+		recover: "silent",
 	},
 	{
 		kind: "range-gap",
 		label: "operation range gap",
 		failureCode: "RANGE_GAP",
+		recover: "tap",
 	},
 ] as const) {
-	test(`production quarantines a persisted ${corruption.label} until explicit recovery @generated-world`, async ({
+	test(`production recovers a persisted ${corruption.label} without a stranger rebuild banner @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1666,25 +1663,30 @@ for (const corruption of [
 		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			corruption.failureCode,
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(
-			corruptedAuthority,
-		);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
+		if (corruption.recover === "silent") {
+			await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
+				timeout: 30_000,
+			});
+			await expect(
+				page.getByRole("button", { name: "Start a fresh local town" }),
+			).toHaveCount(0);
+		} else {
+			await expect(world).toHaveAttribute("data-persistence", "quarantined", {
+				timeout: 30_000,
+			});
+			await expect(world).toHaveAttribute(
+				"data-persistence-claim",
+				"admitted-deterministic-view",
+			);
+			await expect(world).toHaveAttribute(
+				"data-persistence-failure-code",
+				corruption.failureCode,
+			);
+			await expect(world).toHaveAttribute("data-play-rate", "1");
+			await page
+				.getByRole("button", { name: "Start a fresh local town" })
+				.click();
+		}
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
@@ -1749,7 +1751,7 @@ for (const orphan of [
 		declaration: "foreign",
 	},
 ] as const) {
-	test(`production quarantines a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
+	test(`production recovers a missing stream with an orphan ${orphan.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1770,26 +1772,12 @@ for (const orphan of [
 		expect(orphanAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(orphanAuthority);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1829,7 +1817,7 @@ for (const mismatch of [
 		mode: "logical-key-alias",
 	},
 ] as const) {
-	test(`production quarantines an existing stream with a ${mismatch.label} without mutation @generated-world`, async ({
+	test(`production recovers an existing stream with a ${mismatch.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1853,26 +1841,12 @@ for (const mismatch of [
 		expect(forgedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(forgedAuthority);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1903,7 +1877,7 @@ for (const streamFixture of [
 		label: "existing stream with a malformed target row",
 	},
 ] as const) {
-	test(`production quarantines ${streamFixture.label} without mutation @generated-world`, async ({
+	test(`production recovers ${streamFixture.label} without mutation @generated-world`, async ({
 		page,
 	}) => {
 		test.setTimeout(90_000);
@@ -1927,28 +1901,12 @@ for (const streamFixture of [
 		expect(corruptedAuthority).not.toEqual(canonicalAuthority);
 
 		await page.reload({ waitUntil: "domcontentloaded" });
-		await expect(world).toHaveAttribute("data-persistence", "quarantined", {
-			timeout: 30_000,
-		});
-		await expect(world).toHaveAttribute(
-			"data-persistence-claim",
-			"admitted-deterministic-view",
-		);
-		await expect(world).toHaveAttribute(
-			"data-persistence-failure-code",
-			"STALE_STATE",
-		);
-		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
-		expect(await generatedAuthorityFingerprint(page)).toEqual(
-			corruptedAuthority,
-		);
-
-		await page
-			.getByRole("button", { name: "Rebuild local checkpoint" })
-			.click();
 		await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 			timeout: 30_000,
 		});
+		await expect(
+			page.getByRole("button", { name: "Start a fresh local town" }),
+		).toHaveCount(0);
 		await expect(world).toHaveAttribute("data-state-hash", canonicalHash ?? "");
 		expect(await generatedAuthorityFingerprint(page)).toEqual(
 			canonicalAuthority,
@@ -1967,7 +1925,7 @@ test("production recovery surfaces a synchronous database deletion failure and p
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await corruptGeneratedAuthority(page, "genesis-schema");
+	await corruptGeneratedAuthority(page, "range-gap");
 	const corruptedAuthority = await generatedAuthorityFingerprint(page);
 	await page.reload({ waitUntil: "domcontentloaded" });
 	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
@@ -1982,7 +1940,7 @@ test("production recovery surfaces a synchronous database deletion failure and p
 		});
 	});
 	const rebuild = page.getByRole("button", {
-		name: "Rebuild local checkpoint",
+		name: "Start a fresh local town",
 	});
 	await rebuild.click();
 	await expect(page.getByText(/Recovery could not start/u)).toBeVisible();
@@ -2003,7 +1961,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await expect(world).toHaveAttribute("data-persistence", "indexeddb", {
 		timeout: 30_000,
 	});
-	await corruptGeneratedAuthority(page, "genesis-schema");
+	await corruptGeneratedAuthority(page, "range-gap");
 	const blocker = await page.context().newPage();
 	await blocker.goto("/research", { waitUntil: "domcontentloaded" });
 	await blocker.evaluate(
@@ -2024,7 +1982,7 @@ test("production recovery explains a blocked database deletion and resumes after
 	await expect(world).toHaveAttribute("data-persistence", "quarantined", {
 		timeout: 30_000,
 	});
-	await page.getByRole("button", { name: "Rebuild local checkpoint" }).click();
+	await page.getByRole("button", { name: "Start a fresh local town" }).click();
 	await expect(
 		page.getByText(/Close other EONFOLK tabs; recovery will continue/u),
 	).toBeVisible();

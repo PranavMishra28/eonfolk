@@ -2,7 +2,6 @@ import {
 	countNoun,
 	type GeneratedCivilizationSpatialProjection,
 	playerFacingCopy,
-	playerFacingPlaceName,
 } from "@eonfolk/world-presentation";
 import {
 	lazy,
@@ -24,7 +23,7 @@ import {
 	type GeneratedNavigationAction,
 	type GeneratedNavigationState,
 	INITIAL_GENERATED_NAVIGATION,
-	presentedActorActivity,
+	presentedActorCopy,
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
@@ -48,6 +47,7 @@ import type {
 import {
 	authorityDayIntervalMs,
 	clearPendingReturnCatchUp,
+	dayAdvanceDue,
 	FASTER_DAY_INTERVAL_MS,
 	PLAY_DAY_INTERVAL_MS,
 	type PlayRate,
@@ -56,6 +56,7 @@ import {
 	readLastActiveWallMs,
 	readPendingReturnCatchUp,
 	returnCatchUpOperationId,
+	visualDayProgress01,
 	writeLastActiveWallMs,
 	writePendingReturnCatchUp,
 } from "./play-clock";
@@ -355,6 +356,7 @@ function SemanticSettlement({
 	onStepPresentation,
 	onNavigationRejected,
 	focusedLocationId,
+	visualProgress01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -368,6 +370,7 @@ function SemanticSettlement({
 		reason: "invalid-envelope" | "foreign-reference",
 	) => void;
 	readonly focusedLocationId: string | null;
+	readonly visualProgress01: number;
 }) {
 	return (
 		<section
@@ -395,6 +398,7 @@ function SemanticSettlement({
 				onStepPresentation={onStepPresentation}
 				onNavigationRejected={onNavigationRejected}
 				showLookAround={false}
+				visualProgress01={visualProgress01}
 			/>
 			<section aria-labelledby="semantic-places-title">
 				<h3 id="semantic-places-title">Places</h3>
@@ -484,11 +488,7 @@ function actorActivity(
 	projection: GeneratedCivilizationSpatialProjection,
 	progress01 = 0.55,
 ): string {
-	return presentedActorActivity(
-		actor,
-		playerFacingPlaceName(actor.placeId, projection.local.sites),
-		progress01,
-	);
+	return presentedActorCopy(actor, projection, progress01);
 }
 
 function GeneratedSceneTruth({
@@ -624,6 +624,7 @@ function GeneratedContextPanel({
 	happenings,
 	onCounselConsiderationChange,
 	visualProgress01,
+	onChronicleAvailable,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -652,6 +653,7 @@ function GeneratedContextPanel({
 	readonly happenings: readonly GeneratedWorldHappening[];
 	readonly onCounselConsiderationChange: (open: boolean) => void;
 	readonly visualProgress01: number;
+	readonly onChronicleAvailable?: () => void;
 }) {
 	const [sponsorStatus, setSponsorStatus] = useState("idle");
 	const [chronicleTrace, setChronicleTrace] = useState("");
@@ -686,6 +688,10 @@ function GeneratedContextPanel({
 			sponsorStatus === "confirming" || sponsorStatus === "counseling",
 		);
 	}, [onCounselConsiderationChange, sponsorStatus]);
+	useEffect(() => {
+		if (chronicleBeats.length === 0) return;
+		onChronicleAvailable?.();
+	}, [chronicleBeats, onChronicleAvailable]);
 	useEffect(() => {
 		if (
 			sponsorStatus === "confirming" ||
@@ -1273,7 +1279,15 @@ function GeneratedContextPanel({
 									? " · sponsored"
 									: ""}
 							</strong>
-							<span>{actorActivity(actor, projection, visualProgress01)}</span>
+							<span
+								data-presented-activity={actorActivity(
+									actor,
+									projection,
+									visualProgress01,
+								)}
+							>
+								{actorActivity(actor, projection, visualProgress01)}
+							</span>
 						</button>
 					</li>
 				))}
@@ -1290,6 +1304,7 @@ function GeneratedContextPanel({
 					onTogglePresentation={onTogglePresentation}
 					onStepPresentation={onStepPresentation}
 					onNavigationRejected={onNavigationRejected}
+					visualProgress01={visualProgress01}
 				/>
 			</details>
 		</aside>
@@ -1329,15 +1344,23 @@ function GeneratedWorld({
 	});
 	const advancingDay = useRef(false);
 	const catchingUp = useRef(false);
+	const dayAnchor = useRef({
+		day: experience.horizonDays,
+		displayedAt: performance.now(),
+	});
 	const experienceRef = useRef(experience);
 	experienceRef.current = experience;
 	const [catchUpProposal, setCatchUpProposal] = useState(0);
+	const [, setVisualCopyBeat] = useState(0);
 	const [feedbackOpen, setFeedbackOpen] = useState(false);
 	const [inspectorSheetOpen, setInspectorSheetOpen] = useState(
 		() =>
 			typeof window === "undefined" ||
 			window.matchMedia("(min-width: 721px)").matches,
 	);
+	const openInspectorForChronicle = useCallback(() => {
+		setInspectorSheetOpen(true);
+	}, []);
 	const [rebuildState, setRebuildState] = useState<
 		"idle" | "deleting" | "blocked" | "error"
 	>("idle");
@@ -1557,6 +1580,22 @@ function GeneratedWorld({
 	}, []);
 
 	useEffect(() => {
+		dayAnchor.current = {
+			day: experience.horizonDays,
+			displayedAt: performance.now(),
+		};
+	}, [experience.horizonDays, playRate]);
+
+	useEffect(() => {
+		if (playRate === 0 || reduceMotion) return;
+		const id = window.setInterval(
+			() => setVisualCopyBeat((beat) => beat + 1),
+			250,
+		);
+		return () => window.clearInterval(id);
+	}, [playRate, reduceMotion]);
+
+	useEffect(() => {
 		const interval = authorityDayIntervalMs(playRate);
 		if (
 			interval === null ||
@@ -1569,16 +1608,33 @@ function GeneratedWorld({
 		const id = window.setInterval(() => {
 			if (advancingDay.current || catchingUp.current || consideringCounsel)
 				return;
+			if (
+				!dayAdvanceDue(
+					dayAnchor.current.displayedAt,
+					interval,
+					performance.now(),
+				)
+			)
+				return;
 			advancingDay.current = true;
 			void onAdvanceDay()
 				.then(() => {
 					writeLastActiveWallMs();
+					dayAnchor.current = {
+						...dayAnchor.current,
+						displayedAt: performance.now(),
+					};
 				})
-				.catch(() => undefined)
+				.catch(() => {
+					dayAnchor.current = {
+						...dayAnchor.current,
+						displayedAt: performance.now(),
+					};
+				})
 				.finally(() => {
 					advancingDay.current = false;
 				});
-		}, interval);
+		}, 250);
 		return () => window.clearInterval(id);
 	}, [
 		catchUpProposal,
@@ -1702,15 +1758,14 @@ function GeneratedWorld({
 			held: reduceMotion ? 0.55 : 0,
 		};
 	}
-	const visualProgress01 = reduceMotion
-		? 0.55
-		: playRate === 0
-			? visualDayClock.current.held
-			: Math.min(
-					1,
-					(performance.now() - visualDayClock.current.startedAt) /
-						(playRate === 3 ? FASTER_DAY_INTERVAL_MS : PLAY_DAY_INTERVAL_MS),
-				);
+	const visualProgress01 = visualDayProgress01({
+		displayedAtMs: visualDayClock.current.startedAt,
+		nowMs: performance.now(),
+		intervalMs: playRate === 3 ? FASTER_DAY_INTERVAL_MS : PLAY_DAY_INTERVAL_MS,
+		playing: playRate !== 0,
+		reducedMotion: reduceMotion,
+		held01: visualDayClock.current.held,
+	});
 	if (playRate !== 0) visualDayClock.current.held = visualProgress01;
 	const focusedCitizenId =
 		navigation.focus.kind === "citizen" ? navigation.focus.citizenId : null;
@@ -1784,12 +1839,10 @@ function GeneratedWorld({
 		!rendererFailed &&
 		projection.availability.status !== "unavailable";
 	const embodiedVisible = effectiveView === "embodied" && embodiedAvailable;
-	const clockLocked = experience.persistence.kind !== "indexeddb";
+	const authorityDaysLocked = experience.persistence.kind !== "indexeddb";
 	const clockLockReason = consideringCounsel
 		? "Paused while you consider advice"
-		: clockLocked
-			? "Time controls need local storage."
-			: undefined;
+		: undefined;
 	const togglePresentation = () =>
 		setPlayRate((rate) => {
 			const next = rate === 0 ? 1 : 0;
@@ -1830,6 +1883,7 @@ function GeneratedWorld({
 			happenings={experience.happenings}
 			onCounselConsiderationChange={setConsideringCounsel}
 			visualProgress01={visualProgress01}
+			onChronicleAvailable={openInspectorForChronicle}
 		/>
 	);
 
@@ -1855,6 +1909,10 @@ function GeneratedWorld({
 			data-presentation-tick={presentationTick}
 			data-presentation-playing={String(presentationPlaying)}
 			data-play-rate={String(playRate)}
+			data-day-interval-ms={String(authorityDayIntervalMs(playRate) ?? 0)}
+			data-visual-progress={visualProgress01.toFixed(3)}
+			data-view={effectiveView}
+			data-inspector-open={String(inspectorSheetOpen)}
 			data-counsel-open={String(consideringCounsel)}
 			data-horizon-days={String(experience.horizonDays)}
 			data-sponsor-phase={experience.sponsorPhase}
@@ -1903,7 +1961,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 0}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => {
 							writeLastActiveWallMs();
@@ -1915,7 +1973,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 1}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(1)}
 					>
@@ -1924,7 +1982,7 @@ function GeneratedWorld({
 					<button
 						type="button"
 						aria-pressed={playRate === 3}
-						disabled={clockLocked || consideringCounsel}
+						disabled={consideringCounsel}
 						title={clockLockReason}
 						onClick={() => setPlayRate(3)}
 					>
@@ -1968,6 +2026,11 @@ function GeneratedWorld({
 					>
 						In words
 					</button>
+					{experience.happenings.length === 0 ? null : (
+						<button type="button" onClick={() => setInspectorSheetOpen(true)}>
+							Chronicle
+						</button>
+					)}
 					{experience.settlementCount < 2 ? null : (
 						<button
 							type="button"
@@ -1995,7 +2058,7 @@ function GeneratedWorld({
 					{catchUpProposal === 1 ? "" : "s"} can pass if you choose.{" "}
 					<button
 						type="button"
-						disabled={clockLocked}
+						disabled={authorityDaysLocked}
 						onClick={() => {
 							const pending = readPendingReturnCatchUp();
 							const currentDay = experience.horizonDays;
@@ -2086,16 +2149,16 @@ function GeneratedWorld({
 			)}
 			{experience.persistence.kind === "quarantined" ? (
 				<p className="renderer-note" role="status">
-					This saved town no longer matches the current world. Rebuild the local
-					copy to keep watching. Time is paused until then.{" "}
+					This browser copy of Dawnmere cannot be read. Start a fresh local town
+					to keep watching.{" "}
 					<button
 						type="button"
 						onClick={rebuildPersistence}
 						disabled={rebuildState === "deleting" || rebuildState === "blocked"}
 					>
 						{rebuildState === "idle" || rebuildState === "error"
-							? "Rebuild local checkpoint"
-							: "Rebuilding local checkpoint"}
+							? "Start a fresh local town"
+							: "Starting a fresh local town"}
 					</button>
 					{rebuildState === "blocked"
 						? " Close other EONFOLK tabs, then try again."
@@ -2171,6 +2234,7 @@ function GeneratedWorld({
 						onStepPresentation={stepPresentation}
 						onNavigationRejected={reportNavigationRejection}
 						focusedLocationId={focusedLocationId}
+						visualProgress01={visualProgress01}
 					/>
 					{contextPanel()}
 				</section>
@@ -2200,19 +2264,26 @@ function GeneratedWorld({
 								presentationTick={presentationTick}
 								reducedMotion={reduceMotion}
 								playRate={playRate}
+								visualDayOriginMs={visualDayClock.current.startedAt}
+								visualDayHeld01={visualDayClock.current.held}
 								onFailure={reportRendererFailure}
 							/>
 						</Suspense>
 						<div className="v1-world-vignette" aria-hidden="true" />
 						{experience.happenings.length === 0 ? null : (
-							<aside className="v1-world-chronicle" aria-label="What happened">
+							<button
+								type="button"
+								className="v1-world-chronicle"
+								aria-label="What happened"
+								onClick={() => setInspectorSheetOpen(true)}
+							>
 								<p className="v1-kicker">What happened</p>
 								<ul>
 									{experience.happenings.map((happening) => (
 										<li key={happening.happeningId}>{happening.title}</li>
 									))}
 								</ul>
-							</aside>
+							</button>
 						)}
 						<GeneratedSceneTruth
 							projection={projection}
@@ -2243,7 +2314,7 @@ function GeneratedWorld({
 				className="v1-feedback-drawer"
 				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
 			>
-				<summary>Send notes about this session</summary>
+				<summary>Feedback form — not the Chronicle</summary>
 				{feedbackOpen ? (
 					<Suspense fallback={<p>Opening the local feedback form…</p>}>
 						<FeedbackPanel />
@@ -2253,15 +2324,13 @@ function GeneratedWorld({
 			<footer className="v1-world-footer">
 				<p>
 					Watch first. Select a person to learn more.{" "}
-					{clockLocked
-						? "This view is read-only; days cannot pass here."
-						: consideringCounsel
-							? "Paused while you consider advice"
-							: catchUpProposal > 0
-								? "Days are waiting on your choice before time continues."
-								: playRate === 0
-									? "Time is paused. Play when you want another day to pass."
-									: "Time keeps moving until you pause it."}
+					{consideringCounsel
+						? "Paused while you consider advice"
+						: catchUpProposal > 0
+							? "Days are waiting on your choice before time continues."
+							: playRate === 0
+								? "Time is paused. Play when you want another day to pass."
+								: "Time keeps moving until you pause it."}
 				</p>
 			</footer>
 		</main>

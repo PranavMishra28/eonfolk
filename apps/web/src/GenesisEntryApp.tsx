@@ -1,3 +1,4 @@
+import { countNoun } from "@eonfolk/world-presentation";
 import {
 	lazy,
 	type MouseEvent,
@@ -85,6 +86,7 @@ export function GenesisEntryApp() {
 		);
 	const projection = experience.projections[0];
 	const model = experience.embodiments[0];
+	const residentCount = projection?.spatial.actors.length ?? 0;
 	return (
 		<main
 			className="v1-genesis-entry"
@@ -110,7 +112,13 @@ export function GenesisEntryApp() {
 				{projection === undefined || model === undefined || heroFailed ? (
 					<aside className="v1-genesis-proof" aria-label="Dawnmere">
 						<p className="v1-kicker">DAWNMERE</p>
-						<h2>Eight people keep a living town.</h2>
+						<h2>
+							{countNoun(
+								residentCount,
+								"person keeps a living town.",
+								"people keep a living town.",
+							)}
+						</h2>
 					</aside>
 				) : (
 					<aside
@@ -135,7 +143,9 @@ export function GenesisEntryApp() {
 			<section className="v1-entry-ledger" aria-labelledby="meet-the-town">
 				<div>
 					<p className="v1-kicker">MEET THE TOWN</p>
-					<h2 id="meet-the-town">Eight lives, one shared place.</h2>
+					<h2 id="meet-the-town">
+						{countNoun(residentCount, "life", "lives")}, one shared place.
+					</h2>
 				</div>
 				<p>
 					Dawnmere is already at work when you arrive. Homes, a workshop,

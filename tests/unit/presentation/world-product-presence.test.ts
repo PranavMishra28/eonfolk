@@ -27,7 +27,7 @@ describe("world-as-product presentation", () => {
 		const following = reduceGeneratedNavigation(citizen, {
 			type: "toggle-follow",
 		});
-		expect(following.distanceMm).toBe(9_500);
+		expect(following.distanceMm).toBe(6_200);
 		expect(
 			reduceGeneratedNavigation(following, { type: "toggle-follow" })
 				.distanceMm,
@@ -90,15 +90,16 @@ describe("world-as-product presentation", () => {
 		expect(styles).toContain("overflow-wrap: anywhere");
 		expect(styles).toContain(':not([data-focus-kind="overview"])');
 		expect(styles).toMatch(
-			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100svh/su,
+			/@media \(max-width: 720px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);
 		expect(styles).toContain(".v1-inspector-sheet");
 		expect(styles).toContain(
 			".v1-inspector-sheet:not([open]) .v1-context-panel",
 		);
 		expect(styles).toMatch(
-			/@media \(max-width: 820px\), \(max-height: 600px\)[\s\S]*?\.generated-world-hero[\s\S]*?min-height:\s*16rem/su,
+			/@media \(max-width: 820px\), \(max-height: 600px\)[\s\S]*?\.generated-world-hero[\s\S]*?min-height:\s*22rem/su,
 		);
+		expect(styles).toContain('main.v1-world[data-view="embodied"]');
 		expect(styles).toContain("touch-action: none");
 	});
 });

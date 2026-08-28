@@ -28,11 +28,9 @@ import {
 	GeneratedFolkProxy,
 } from "./components/generated/GeneratedFolkProxy";
 import {
+	type AxisAlignedVolumeMm,
 	advanceGeneratedCameraIntent,
 	cameraIntentForGeneratedNavigation,
-	FOLLOW_CAMERA_PITCH_DEGREES,
-	FOLLOW_CAMERA_YAW_OFFSET_DEGREES,
-	FOLLOW_SHOULDER_OFFSET_MM,
 	GENERATED_FOLK_ASSET,
 	GENERATED_NAVIGATION_EVENT,
 	GENERATED_TRAVEL_DURATION_TICKS,
@@ -44,12 +42,14 @@ import {
 	generatedCameraFidelity,
 	generatedTraversalPointAtTick,
 	planGeneratedActorTransition,
+	resolveFollowCamera,
 	sampleGeneratedActorPresentation,
 } from "./generated-presentation";
 import {
-	FASTER_DAY_INTERVAL_MS,
+	authorityDayIntervalMs,
 	PLAY_DAY_INTERVAL_MS,
 	type PlayRate,
+	visualDayProgress01,
 } from "./play-clock";
 
 function material(hex: string): StandardMaterial {
@@ -240,28 +240,53 @@ function presentedActorSample(
 	});
 }
 
-function followCameraFromSample(sample: {
-	readonly positionMm: SpatialPointMm;
-	readonly facingDegrees: number;
-}): {
-	readonly targetMm: SpatialPointMm;
-	readonly yawDegrees: number;
-	readonly pitchDegrees: number;
-} {
-	const facing = (sample.facingDegrees * Math.PI) / 180;
-	return Object.freeze({
-		targetMm: Object.freeze({
-			x: Math.round(
-				sample.positionMm.x + Math.cos(facing) * FOLLOW_SHOULDER_OFFSET_MM,
-			),
-			y: sample.positionMm.y + 1_400,
-			z: Math.round(
-				sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
-			),
+function followVolumes(
+	projection: GeneratedCivilizationSpatialProjection,
+): readonly AxisAlignedVolumeMm[] {
+	return Object.freeze(
+		projection.local.buildings.map((building) => {
+			const site = projection.local.sites.find(
+				(candidate) => candidate.siteId === building.siteId,
+			);
+			if (site === undefined)
+				return Object.freeze({
+					minX: building.position.xMillimeters - 1_800,
+					maxX: building.position.xMillimeters + 1_800,
+					minY: 0,
+					maxY: 2_800,
+					minZ: building.position.yMillimeters - 1_800,
+					maxZ: building.position.yMillimeters + 1_800,
+				});
+			return Object.freeze({
+				minX: site.bounds.minimum.xMillimeters,
+				maxX: site.bounds.maximum.xMillimeters,
+				minY: 0,
+				maxY: 2_800,
+				minZ: site.bounds.minimum.yMillimeters,
+				maxZ: site.bounds.maximum.yMillimeters,
+			});
 		}),
-		yawDegrees: sample.facingDegrees + FOLLOW_CAMERA_YAW_OFFSET_DEGREES,
-		pitchDegrees: FOLLOW_CAMERA_PITCH_DEGREES,
-	});
+	);
+}
+
+function followFramingForActor(
+	projection: GeneratedCivilizationSpatialProjection,
+	actor: GeneratedEmbodiedActor,
+	previous: GeneratedEmbodiedActor | null,
+	progress01: number,
+	reducedMotion: boolean,
+) {
+	return resolveFollowCamera(
+		presentedActorSample(
+			projection,
+			actor,
+			previous,
+			progress01,
+			reducedMotion,
+		),
+		followVolumes(projection),
+		projection.scene.physicalScale.citizen.heightMm * 0.86,
+	);
 }
 
 function renderedActorPoint(
@@ -294,21 +319,36 @@ function WorldMotionClock({
 	playRate,
 	reducedMotion,
 	progressRef,
+	originMs,
+	held01,
 }: {
 	readonly stateHash: string;
 	readonly playRate: PlayRate;
 	readonly reducedMotion: boolean;
 	readonly progressRef: { current: number };
+	readonly originMs?: number;
+	readonly held01?: number;
 }) {
 	const elapsedRef = useRef(0);
 	const hashRef = useRef(stateHash);
 	useAppEvent("update", (dt: number) => {
+		const intervalMs = authorityDayIntervalMs(playRate) ?? PLAY_DAY_INTERVAL_MS;
+		if (originMs !== undefined) {
+			progressRef.current = visualDayProgress01({
+				displayedAtMs: originMs,
+				nowMs: performance.now(),
+				intervalMs,
+				playing: playRate !== 0,
+				reducedMotion,
+				held01: held01 ?? 0,
+			});
+			return;
+		}
 		if (hashRef.current !== stateHash) {
 			hashRef.current = stateHash;
 			elapsedRef.current = 0;
 		}
-		const daySeconds =
-			(playRate === 3 ? FASTER_DAY_INTERVAL_MS : PLAY_DAY_INTERVAL_MS) / 1_000;
+		const daySeconds = intervalMs / 1_000;
 		if (playRate !== 0 && !reducedMotion) elapsedRef.current += Math.max(0, dt);
 		progressRef.current = reducedMotion
 			? 0.55
@@ -513,14 +553,12 @@ function GeneratedCamera({
 		const following = Boolean(navigation.followCitizen && actor !== undefined);
 		const followFraming =
 			following && actor !== undefined
-				? followCameraFromSample(
-						presentedActorSample(
-							projection,
-							actor,
-							previousByCitizen.get(actor.citizenId) ?? null,
-							progressRef.current,
-							reducedMotion,
-						),
+				? followFramingForActor(
+						projection,
+						actor,
+						previousByCitizen.get(actor.citizenId) ?? null,
+						progressRef.current,
+						reducedMotion,
 					)
 				: null;
 		const overviewMinimumMm = Math.round(
@@ -545,13 +583,16 @@ function GeneratedCamera({
 				followFraming !== null
 					? followFraming.yawDegrees
 					: requested.yawDegrees,
-			pitchDegrees: following
-				? FOLLOW_CAMERA_PITCH_DEGREES
-				: requested.pitchDegrees,
+			pitchDegrees:
+				followFraming !== null
+					? followFraming.pitchDegrees
+					: requested.pitchDegrees,
 			distanceMm:
-				focus.kind === "overview"
-					? Math.max(requested.distanceMm, overviewMinimumMm)
-					: requested.distanceMm,
+				followFraming !== null
+					? followFraming.distanceMm
+					: focus.kind === "overview"
+						? Math.max(requested.distanceMm, overviewMinimumMm)
+						: requested.distanceMm,
 		});
 	}, [
 		frame,
@@ -677,20 +718,19 @@ function GeneratedCamera({
 				({ citizenId }) => citizenId === focus.citizenId,
 			);
 			if (followed !== undefined) {
-				const framing = followCameraFromSample(
-					presentedActorSample(
-						projection,
-						followed,
-						previousByCitizen.get(followed.citizenId) ?? null,
-						progressRef.current,
-						reducedMotion,
-					),
+				const framing = followFramingForActor(
+					projection,
+					followed,
+					previousByCitizen.get(followed.citizenId) ?? null,
+					progressRef.current,
+					reducedMotion,
 				);
 				nextDesired = Object.freeze({
 					...nextDesired,
 					targetMm: framing.targetMm,
 					yawDegrees: framing.yawDegrees,
 					pitchDegrees: framing.pitchDegrees,
+					distanceMm: framing.distanceMm,
 				});
 			}
 		}
@@ -721,31 +761,47 @@ function GeneratedCamera({
 			host.current.dataset.fidelityClass = fidelity.fidelityClass;
 			host.current.dataset.navigationMode = reducedMotion ? "direct" : "smooth";
 			const cameraComponent = entity.camera;
-			if (cameraComponent !== undefined)
-				host.current.dataset.citizenPickTargets = JSON.stringify(
-					model.actors.map((actor) => {
-						const point = localPoint(
-							renderedActorPoint(
-								projection,
-								actor,
-								presentationTickRef.current,
-								previousByCitizen.get(actor.citizenId) ?? null,
-								progressRef.current,
-								reducedMotion,
-							),
-							frame,
-						);
-						const screen = cameraComponent.worldToScreen(
-							new Vec3(point[0], point[1] + 0.9, point[2]),
-						);
-						return { id: actor.citizenId, x: screen.x, y: screen.y };
-					}),
-				);
+			if (cameraComponent !== undefined) {
+				const picks = model.actors.map((actor) => {
+					const point = localPoint(
+						renderedActorPoint(
+							projection,
+							actor,
+							presentationTickRef.current,
+							previousByCitizen.get(actor.citizenId) ?? null,
+							progressRef.current,
+							reducedMotion,
+						),
+						frame,
+					);
+					const screen = cameraComponent.worldToScreen(
+						new Vec3(point[0], point[1] + 0.9, point[2]),
+					);
+					return { id: actor.citizenId, x: screen.x, y: screen.y };
+				});
+				host.current.dataset.citizenPickTargets = JSON.stringify(picks);
+				const followedId =
+					following && focus.kind === "citizen" ? focus.citizenId : null;
+				const followedPick =
+					followedId === null
+						? undefined
+						: picks.find((pick) => pick.id === followedId);
+				const height = Math.max(1, host.current.clientHeight);
+				host.current.dataset.followSubjectYRatio =
+					followedPick === undefined
+						? ""
+						: (followedPick.y / height).toFixed(3);
+			}
 		}
 	});
 	return (
 		<Entity ref={camera} position={initialPosition}>
-			<Camera clearColor="#8aa3b0" fov={46} farClip={720} nearClip={0.2} />
+			<Camera
+				clearColor="#8aa3b0"
+				fov={navigation.followCitizen ? 34 : 46}
+				farClip={720}
+				nearClip={0.2}
+			/>
 		</Entity>
 	);
 }
@@ -1167,6 +1223,8 @@ function GroundedSettlement({
 	onFailure,
 	progressRef,
 	previousByCitizen,
+	visualDayOriginMs,
+	visualDayHeld01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -1180,6 +1238,8 @@ function GroundedSettlement({
 	readonly onFailure: () => void;
 	readonly progressRef: { current: number };
 	readonly previousByCitizen: ReadonlyMap<string, GeneratedEmbodiedActor>;
+	readonly visualDayOriginMs?: number;
+	readonly visualDayHeld01?: number;
 }) {
 	const scale = projection.scene.physicalScale;
 	const selectedActorId =
@@ -1213,6 +1273,8 @@ function GroundedSettlement({
 				playRate={playRate}
 				reducedMotion={reducedMotion}
 				progressRef={progressRef}
+				originMs={visualDayOriginMs}
+				held01={visualDayHeld01}
 			/>
 			<SceneProbe
 				host={host}
@@ -1487,6 +1549,8 @@ export function GeneratedWorldCanvas({
 	onFailure,
 	playRate = 1,
 	variant = "world",
+	visualDayOriginMs,
+	visualDayHeld01,
 }: {
 	readonly projection: GeneratedCivilizationSpatialProjection;
 	readonly model: GeneratedEmbodimentProjection;
@@ -1496,6 +1560,8 @@ export function GeneratedWorldCanvas({
 	readonly onFailure: () => void;
 	readonly playRate?: PlayRate;
 	readonly variant?: "world" | "hero";
+	readonly visualDayOriginMs?: number;
+	readonly visualDayHeld01?: number;
 }) {
 	const cameraIntent = cameraIntentForGeneratedNavigation(
 		projection,
@@ -1657,6 +1723,8 @@ export function GeneratedWorldCanvas({
 					onFailure={onFailure}
 					progressRef={progressRef}
 					previousByCitizen={previousByCitizen}
+					visualDayOriginMs={visualDayOriginMs}
+					visualDayHeld01={visualDayHeld01}
 				/>
 			</RendererBoundary>
 			{variant === "hero" ? null : (

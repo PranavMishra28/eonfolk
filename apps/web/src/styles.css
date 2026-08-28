@@ -3298,14 +3298,14 @@ em {
 
 	.v1-entry-hero-world {
 		grid-area: world;
-		min-height: 16rem;
+		min-height: 22rem;
 		width: 100%;
 	}
 
 	.generated-world-hero,
 	.generated-world-hero.generated-world-canvas {
-		height: min(20rem, 42vh);
-		min-height: 16rem;
+		height: min(28rem, 48vh);
+		min-height: 22rem;
 		width: 100%;
 	}
 
@@ -3457,7 +3457,10 @@ em {
 	color: #f4eccf;
 	background: rgba(17, 24, 18, 0.72);
 	border: 1px solid rgba(255, 255, 255, 0.16);
-	pointer-events: none;
+	text-align: left;
+	font: inherit;
+	cursor: pointer;
+	pointer-events: auto;
 }
 
 .v1-world-chronicle .v1-kicker {
@@ -4035,20 +4038,71 @@ em {
 }
 
 @media (max-width: 720px) {
+	main.v1-world[data-view="embodied"] {
+		position: relative;
+		height: 100dvh;
+		min-height: 100dvh;
+		max-height: 100dvh;
+		overflow: hidden;
+		grid-template-rows: 1fr;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-header {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 6;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.35rem;
+		padding: 0.4rem 0.55rem 0.7rem;
+		border-bottom: 0;
+		background: linear-gradient(
+			180deg,
+			rgba(14, 20, 15, 0.92) 0%,
+			rgba(14, 20, 15, 0.55) 72%,
+			transparent 100%
+		);
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-title .v1-kicker {
+		display: none;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-title h1 {
+		font-size: 1.2rem;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-world-footer {
+		display: none;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-feedback-drawer {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 3.5rem;
+		z-index: 6;
+		margin: 0;
+		padding: 0 0.55rem;
+		background: transparent;
+	}
+
 	.v1-living-stage {
 		display: block;
-		height: 100svh;
+		height: 100dvh;
 	}
 
 	.v1-world-canvas-frame {
-		height: 100svh;
-		min-height: 100svh;
+		height: 100dvh;
+		min-height: 100dvh;
 	}
 
 	.v1-world-chronicle {
 		left: 0.55rem;
 		right: auto;
-		top: 0.55rem;
+		top: 6.2rem;
 		max-width: min(16rem, 58vw);
 	}
 
@@ -4129,8 +4183,8 @@ em {
 	}
 
 	.v1-world-canvas-frame {
-		height: 100svh;
-		min-height: 100svh;
+		height: 100dvh;
+		min-height: 100dvh;
 	}
 
 	.v1-camera-rail {
