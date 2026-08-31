@@ -23,6 +23,7 @@ const BUILDING_KIND_DISPLAY_NAMES = Object.freeze({
 	"expedition-cache": "Expedition cache",
 	"water-reserve": "Water reserve",
 	"grain-reserve": "Grain reserve",
+	"path-upkeep": "Path upkeep",
 });
 
 const PROJECT_DISPLAY_NAMES = Object.freeze({
@@ -32,6 +33,8 @@ const PROJECT_DISPLAY_NAMES = Object.freeze({
 	"assemble-water-reserve": "Assemble water reserve",
 	"grain-reserve": "Grain reserve",
 	"assemble-grain-reserve": "Assemble grain reserve",
+	"path-upkeep": "Path upkeep",
+	"assemble-path-upkeep": "Assemble path upkeep",
 });
 
 const PROJECT_STATE_DISPLAY_NAMES = Object.freeze({
@@ -79,7 +82,7 @@ const STANDING_PLAN_STEP_DISPLAY_NAMES = Object.freeze({
 	Exchange: "talking with a neighbour",
 	SocialMaintenance: "talking with a neighbour",
 	JoinMigration: "travelling with the founding party",
-	ProposeProject: "starting a reserve from a standing need",
+	ProposeProject: "starting work from a standing need",
 	FollowStandingPlan: "continuing today's work",
 	Move: "moving through town",
 	Away: "away from town",

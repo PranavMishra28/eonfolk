@@ -8,6 +8,7 @@ import {
 	createMemoryStore,
 	decideCivilizationSchedulerRoutine,
 	MEMORY_SCHEMA_VERSION,
+	CITIZEN_ORIGINATED_PROJECT_KINDS,
 	originateProjectFromStandingPlan,
 	type PlanningAffordance,
 	planRoutine,
@@ -97,7 +98,7 @@ export const RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID = "citizen-04" as const;
 const PROJECT_TIMBER = 6;
 const PROJECT_WATER = 8;
 const PROJECT_GRAIN = 8;
-const CITIZEN_RESERVE_NEEDS = Object.freeze([
+const CITIZEN_ORIGINATED_NEEDS = Object.freeze([
 	{
 		resourceTypeId: "spring-water",
 		kind: "water-reserve" as const,
@@ -108,9 +109,15 @@ const CITIZEN_RESERVE_NEEDS = Object.freeze([
 		kind: "grain-reserve" as const,
 		proposition: "The settlement has only one day of prepared grain.",
 	},
+	{
+		resourceTypeId: "standing-timber",
+		kind: "path-upkeep" as const,
+		proposition:
+			"The haul path is worn and needs packing before the next load.",
+	},
 ]);
 
-function citizenReserveMaterial(
+function citizenProjectMaterial(
 	kind: CitizenProjectOrigination["projectKind"],
 ): {
 	readonly resourceTypeId: string;
@@ -118,6 +125,8 @@ function citizenReserveMaterial(
 } {
 	if (kind === "grain-reserve")
 		return { resourceTypeId: "grain", quantity: PROJECT_GRAIN };
+	if (kind === "path-upkeep")
+		return { resourceTypeId: "standing-timber", quantity: PROJECT_TIMBER };
 	return { resourceTypeId: "water", quantity: PROJECT_WATER };
 }
 const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
@@ -709,7 +718,7 @@ function citizenProjectOrigination(
 		return null;
 	const citizen = state.citizens[mind.actorMind.citizenId];
 	if (citizen === undefined) return null;
-	for (const reserve of CITIZEN_RESERVE_NEEDS) {
+	for (const reserve of CITIZEN_ORIGINATED_NEEDS) {
 		const lane = policy.transportLanes.find(
 			(candidate) =>
 				candidate.carrierCitizenId === mind.actorMind.citizenId &&
@@ -750,7 +759,7 @@ function registerCitizenOriginatedProject(
 		kind: "project" as const,
 		projectId: origination.projectId,
 	};
-	const material = citizenReserveMaterial(origination.projectKind);
+	const material = citizenProjectMaterial(origination.projectKind);
 	const next = registerProject(
 		state,
 		{
@@ -893,6 +902,22 @@ function bootstrapCivilization(
 				),
 		),
 	);
+	const storeyard = required(
+		originSites.find((site) => site.kind === "storage"),
+		"an origin storeyard",
+	);
+	const storeRoute = required(
+		values(world.routes)
+			.filter(
+				(route) =>
+					(route.fromSiteId === sourceSiteId &&
+						route.toSiteId === storeyard.siteId) ||
+					(route.fromSiteId === storeyard.siteId &&
+						route.toSiteId === sourceSiteId),
+			)
+			.sort((left, right) => left.routeId.localeCompare(right.routeId))[0],
+		"a storeyard haul route",
+	);
 	const dwelling = values(world.buildings)
 		.filter((building) =>
 			originSites.some((site) => site.siteId === building.siteId),
@@ -904,14 +929,19 @@ function bootstrapCivilization(
 		const site =
 			id === RELEASE_GENESIS_MARA_CITIZEN_ID || id === citizenId(1)
 				? workSite
-				: id === citizenId(4)
-					? required(world.sites[sourceSiteId]?.value, "the supply source site")
-					: index >= POPULATION - 2 && communalSite !== undefined
-						? communalSite
-						: required(
-								originSites[index % originSites.length],
-								"an origin citizen site",
-							);
+				: id === citizenId(3)
+					? storeyard
+					: id === citizenId(4)
+						? required(
+								world.sites[sourceSiteId]?.value,
+								"the supply source site",
+							)
+						: index >= POPULATION - 2 && communalSite !== undefined
+							? communalSite
+							: required(
+									originSites[index % originSites.length],
+									"an origin citizen site",
+								);
 		state = registerCitizen(state, {
 			schemaVersion: "eonfolk-civilization-social-v1",
 			citizenId: id,
@@ -1066,6 +1096,12 @@ function bootstrapCivilization(
 	);
 	state = registerStorage(
 		state,
+		storage("storage-origin-store", storeyard.siteId, settlementOwner, [
+			"standing-timber",
+		]),
+	);
+	state = registerStorage(
+		state,
 		storage(
 			"storage-origin-council",
 			workSite.siteId,
@@ -1111,8 +1147,8 @@ function bootstrapCivilization(
 			0,
 		),
 		stock(
-			"stock-work-standing-timber",
-			"storage-origin-work",
+			"stock-store-standing-timber",
+			"storage-origin-store",
 			settlementOwner,
 			"standing-timber",
 			0,
@@ -1264,8 +1300,13 @@ function bootstrapCivilization(
 			{
 				...commonLane,
 				laneId: "lane-building-timber",
+				routeId: storeRoute.routeId,
+				traversalUnits: Math.max(
+					1,
+					Math.ceil(storeRoute.distanceMillimeters / 1_000),
+				),
 				fromStockId: "stock-source-standing-timber",
-				toStockId: "stock-work-standing-timber",
+				toStockId: "stock-store-standing-timber",
 				carrierCitizenId: citizenId(6),
 				capacityUnitsPerStep: 8,
 				requiredCapabilityId: "haul",
@@ -1305,7 +1346,7 @@ function bootstrapCivilization(
 				participantCitizenIds: [citizenId(3)],
 				binding: {
 					inputStockIds: {
-						"standing-timber": "stock-work-standing-timber",
+						"standing-timber": "stock-store-standing-timber",
 					},
 					outputStockIds: { timber: "stock-origin-timber" },
 				},
@@ -1815,8 +1856,9 @@ function withCitizenOriginatedCollectiveProjects(
 		.filter(
 			(project) =>
 				project.sponsor.kind === "citizen" &&
-				(project.kind === "water-reserve" ||
-					project.kind === "grain-reserve") &&
+				(CITIZEN_ORIGINATED_PROJECT_KINDS as readonly string[]).includes(
+					project.kind,
+				) &&
 				projectIsOpenCollectiveWork(state, project.projectId) &&
 				!known.has(project.projectId),
 		)
@@ -2039,7 +2081,7 @@ async function initializeCognitionRuntime(
 	)) {
 		const routine = plannedRoutine(state, policy, citizen.citizenId);
 		let memoryStore = createMemoryStore(citizen.citizenId);
-		for (const reserve of CITIZEN_RESERVE_NEEDS) {
+		for (const reserve of CITIZEN_ORIGINATED_NEEDS) {
 			const lane = policy.transportLanes.find(
 				(candidate) =>
 					candidate.carrierCitizenId === citizen.citizenId &&
@@ -2261,7 +2303,7 @@ function cognitionOptions(
 					siteId: origination.siteId,
 				},
 				publicPreconditions: [
-					"their standing plan and a recorded reserve need are still visible",
+					"their standing plan and a recorded need are still visible",
 				],
 				publicStakes: [
 					`starts a ${origination.projectKind} project from that plan, not a random title`,

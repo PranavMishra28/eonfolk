@@ -1079,6 +1079,11 @@ describe("generated embodiment projection", () => {
 					z <= volume.maxZ
 				);
 			});
+			if (kind === "storehouse") {
+				expect(actorInside).toBeDefined();
+				if (actorInside === undefined)
+					throw new Error("storehouse occupancy is missing");
+			}
 			if (actorInside !== undefined) {
 				const live = resolveFollowCamera(
 					{
@@ -1093,6 +1098,7 @@ describe("generated embodiment projection", () => {
 					live.pitchDegrees,
 					live.distanceMm,
 				);
+				expect(live.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
 				expect(
 					liveEye.x < volume.minX ||
 						liveEye.x > volume.maxX ||

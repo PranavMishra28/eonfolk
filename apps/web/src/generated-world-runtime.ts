@@ -500,7 +500,7 @@ function happeningsFromCivilization(
 			Object.freeze({
 				happeningId: `project-originated:${project.projectId}`,
 				title: `${sponsor.name} started ${projectDisplayName(project.name)}`,
-				summary: `${sponsor.name} proposed ${projectDisplayName(project.name)} from their standing plan and a recorded water need. That is a recorded project, not a rumor.`,
+				summary: `${sponsor.name} proposed ${projectDisplayName(project.name)} from their standing plan and a recorded need. That is a recorded project, not a rumor.`,
 				relation: "direct",
 				citizenId: sponsor.citizenId,
 				citizenName: sponsor.name,

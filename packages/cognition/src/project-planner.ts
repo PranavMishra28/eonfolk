@@ -18,6 +18,7 @@ export interface VisibleProjectPlanningContext {
 export const CITIZEN_ORIGINATED_PROJECT_KINDS = Object.freeze([
 	"water-reserve",
 	"grain-reserve",
+	"path-upkeep",
 ] as const);
 
 export type CitizenOriginatedProjectKind =
@@ -43,9 +44,8 @@ function projectKindFromNeedRecord(
 }
 
 /**
- * Maps an inspectable standing-plan goal plus a recorded reserve need onto one
- * typed project. Returns null when the pair is absent so titles cannot be
- * invented.
+ * Maps an inspectable standing-plan goal plus a recorded need onto one typed
+ * project. Returns null when the pair is absent so titles cannot be invented.
  */
 export function originateProjectFromStandingPlan(input: {
 	readonly citizenId: string;

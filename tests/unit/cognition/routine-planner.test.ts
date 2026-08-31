@@ -358,6 +358,25 @@ describe("citizen project origination from standing plan", () => {
 		});
 	});
 
+	it("names a path-upkeep project from a timber transport plan and path need", () => {
+		const originated = originateProjectFromStandingPlan({
+			citizenId: "citizen-07",
+			goalType: "routine:transport",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-storeyard",
+			visibleNeedRecordId: "memory:citizen-07:path-upkeep",
+		});
+		expect(originated).toEqual({
+			projectId: "project-citizen-07-path-upkeep",
+			projectKind: "path-upkeep",
+			projectName: "path-upkeep",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-storeyard",
+			evidenceRecordIds: ["memory:citizen-07:path-upkeep"],
+			sourceGoalType: "routine:transport",
+		});
+	});
+
 	it("refuses a title when the standing plan or water need is missing", () => {
 		expect(
 			originateProjectFromStandingPlan({

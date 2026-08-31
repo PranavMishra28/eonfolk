@@ -20,14 +20,16 @@ describe("player-facing display names", () => {
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
 		expect(buildingKindDisplayName("water-reserve")).toBe("Water reserve");
 		expect(buildingKindDisplayName("grain-reserve")).toBe("Grain reserve");
+		expect(buildingKindDisplayName("path-upkeep")).toBe("Path upkeep");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
 		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
 		expect(projectDisplayName("grain-reserve")).toBe("Grain reserve");
+		expect(projectDisplayName("path-upkeep")).toBe("Path upkeep");
 		expect(standingPlanStepDisplayName("WorkProject")).toBe(
 			"working the settlement project",
 		);
 		expect(standingPlanStepDisplayName("ProposeProject")).toBe(
-			"starting a reserve from a standing need",
+			"starting work from a standing need",
 		);
 		expect(standingPlanStepDisplayName("TransportResource")).toBe(
 			"moving stores",

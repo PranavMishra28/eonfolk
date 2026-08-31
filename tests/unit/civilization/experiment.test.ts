@@ -184,6 +184,9 @@ describe("deterministic civilization experiment", () => {
 			"settlement-materialized",
 			"project-originated",
 			"project-originated",
+			"project-originated",
+			"project-approved",
+			"project-completed",
 			"project-approved",
 			"project-completed",
 			"project-approved",
@@ -268,7 +271,10 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			first.state.projects["project-citizen-05-grain-reserve"]?.state,
 		).toBe("completed");
-		expect(first.metrics.completedProjects).toBe(3);
+		expect(first.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
+		expect(first.metrics.completedProjects).toBe(4);
 		expect(first.state.migrations["migration-founding-party"]?.state).toBe(
 			"arrived",
 		);
@@ -427,16 +433,19 @@ describe("deterministic civilization experiment", () => {
 		).toBe(true);
 		expect(
 			run.events.filter((event) => event.kind === "project-originated").length,
-		).toBeGreaterThanOrEqual(2);
+		).toBeGreaterThanOrEqual(3);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
 			"destination-suitability-below-threshold",
 		);
-		expect(run.metrics.completedProjects).toBe(2);
+		expect(run.metrics.completedProjects).toBe(3);
 		expect(run.state.projects["project-citizen-06-water-reserve"]?.state).toBe(
 			"completed",
 		);
 		expect(run.state.projects["project-citizen-05-grain-reserve"]?.state).toBe(
+			"completed",
+		);
+		expect(run.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
 			"completed",
 		);
 		expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
@@ -668,8 +677,14 @@ describe("deterministic civilization experiment", () => {
 			continued.state.projects["project-citizen-06-water-reserve"];
 		const grainReserve =
 			continued.state.projects["project-citizen-05-grain-reserve"];
-		if (waterReserve === undefined || grainReserve === undefined)
-			throw new Error("later day lacks citizen-originated reserves");
+		const pathUpkeep =
+			continued.state.projects["project-citizen-07-path-upkeep"];
+		if (
+			waterReserve === undefined ||
+			grainReserve === undefined ||
+			pathUpkeep === undefined
+		)
+			throw new Error("later day lacks citizen-originated projects");
 		expect(waterReserve).toMatchObject({
 			projectId: "project-citizen-06-water-reserve",
 			kind: "water-reserve",
@@ -682,13 +697,23 @@ describe("deterministic civilization experiment", () => {
 			name: "grain-reserve",
 			sponsor: { kind: "citizen", citizenId: "citizen-05" },
 		});
+		expect(pathUpkeep).toMatchObject({
+			projectId: "project-citizen-07-path-upkeep",
+			kind: "path-upkeep",
+			name: "path-upkeep",
+			sponsor: { kind: "citizen", citizenId: "citizen-07" },
+		});
 		expect(waterReserve?.projectId).not.toBe("project-expedition-kit");
 		expect(grainReserve?.projectId).not.toBe("project-expedition-kit");
+		expect(pathUpkeep?.projectId).not.toBe("project-expedition-kit");
 		expect(
 			continued.state.minds["citizen-06"]?.snapshot.standingPlan.goalType,
 		).toBe("routine:transport");
 		expect(
 			continued.state.minds["citizen-05"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.state.minds["citizen-07"]?.snapshot.standingPlan.goalType,
 		).toBe("routine:transport");
 		expect(
 			continued.cognitionDecisions.some(
@@ -711,6 +736,14 @@ describe("deterministic civilization experiment", () => {
 			),
 		).toBe(true);
 		expect(
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-07-path-upkeep" &&
+					decision.retrievedMemoryIds.includes("memory:citizen-07:path-upkeep"),
+			),
+		).toBe(true);
+		expect(
 			continued.events.some(
 				(event) =>
 					event.kind === "project-originated" &&
@@ -722,6 +755,13 @@ describe("deterministic civilization experiment", () => {
 				(event) =>
 					event.kind === "project-originated" &&
 					event.details.projectId === grainReserve?.projectId,
+			),
+		).toBe(true);
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === pathUpkeep?.projectId,
 			),
 		).toBe(true);
 		const play = projectGeneratedCivilizationSpatial({
@@ -755,6 +795,13 @@ describe("deterministic civilization experiment", () => {
 				(project) =>
 					project.projectId === grainReserve?.projectId &&
 					project.name === "Grain reserve",
+			),
+		).toBe(true);
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === pathUpkeep?.projectId &&
+					project.name === "Path upkeep",
 			),
 		).toBe(true);
 	});
@@ -807,6 +854,15 @@ describe("deterministic civilization experiment", () => {
 			state: "completed",
 		});
 		expect(
+			thirty.state.projects["project-citizen-07-path-upkeep"],
+		).toMatchObject({
+			projectId: "project-citizen-07-path-upkeep",
+			kind: "path-upkeep",
+			name: "path-upkeep",
+			sponsor: { kind: "citizen", citizenId: "citizen-07" },
+			state: "completed",
+		});
+		expect(
 			thirty.cognitionDecisions.some(
 				(decision) =>
 					decision.selectedActionId ===
@@ -827,6 +883,14 @@ describe("deterministic civilization experiment", () => {
 			),
 		).toBe(true);
 		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-07-path-upkeep" &&
+					decision.retrievedMemoryIds.includes("memory:citizen-07:path-upkeep"),
+			),
+		).toBe(true);
+		expect(
 			thirty.events.some(
 				(event) =>
 					event.kind === "project-originated" &&
@@ -852,6 +916,20 @@ describe("deterministic civilization experiment", () => {
 				(event) =>
 					event.kind === "project-completed" &&
 					event.details.projectId === "project-citizen-05-grain-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === "project-citizen-07-path-upkeep",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === "project-citizen-07-path-upkeep",
 			),
 		).toBe(true);
 		const ninety = await runCivilizationExperiment({
@@ -926,6 +1004,9 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			ninety.state.projects["project-citizen-05-grain-reserve"]?.state,
 		).toBe("completed");
+		expect(ninety.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
 		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
 	});
 
@@ -975,6 +1056,9 @@ describe("deterministic civilization experiment", () => {
 			expect(
 				run.state.projects["project-citizen-05-grain-reserve"]?.state,
 			).toBe("completed");
+			expect(run.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+				"completed",
+			);
 		}
 		expect(thirty.finalStateHash).toBe(ninety.steps[29]?.postStateHash);
 		expect(thirty.steps.map((step) => step.stepHash)).toEqual(
@@ -987,6 +1071,90 @@ describe("deterministic civilization experiment", () => {
 		);
 		expect(ninety.metrics.standardBrainDecisionCount).toBe(
 			FAST_OPENING_DECISION_COUNT,
+		);
+	});
+
+	it("puts the forester in the storehouse on a thinking day", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-storehouse-occupancy",
+		);
+		const thinking = await runCivilizationExperiment({
+			world,
+			horizonDays: 1,
+		});
+		const storeyard = Object.values(thinking.world.sites)
+			.map((record) => record.value)
+			.find((site) => site.kind === "storage");
+		if (storeyard === undefined)
+			throw new Error("Dawnmere lacks a storeyard site");
+		expect(thinking.state.citizens["citizen-04"]?.siteId).toBe(
+			storeyard.siteId,
+		);
+		expect(
+			thinking.state.stocks["stock-store-standing-timber"]?.storageId,
+		).toBe("storage-origin-store");
+		expect(thinking.state.storages["storage-origin-store"]?.siteId).toBe(
+			storeyard.siteId,
+		);
+		const storeSlots = new Set(
+			Object.values(thinking.world.interactionSlots)
+				.map((record) => record.value)
+				.filter((slot) => slot.siteId === storeyard.siteId)
+				.map((slot) => slot.interactionSlotId),
+		);
+		const forester = thinking.activities.find(
+			(activity) =>
+				activity.citizenId === "citizen-04" &&
+				activity.location.kind === "interaction-slot" &&
+				storeSlots.has(activity.location.interactionSlotId),
+		);
+		expect(forester).toBeDefined();
+		expect(forester?.routine.kind).toBe("produce");
+		const play = projectGeneratedCivilizationSpatial({
+			world: thinking.world,
+			civilization: thinking.state,
+			checkpoint: {
+				schemaVersion: "eonfolk-civilization-experiment-v9",
+				runnerVersion: "eonfolk-civilization-runner-v9",
+				worldIdentityHash: thinking.world.identity.identityHash,
+				horizonDays: 1,
+				finalStateHash: thinking.finalStateHash,
+				events: thinking.events,
+				metrics: {
+					simulationTime: thinking.state.simulationTime,
+					modelInvocations: 0,
+				},
+			},
+			settlementId: thinking.seedConditions.originSettlementId,
+			activities: thinking.activities,
+			presentationTick: thinking.metrics.simulationTime * 30,
+		});
+		const storehouse = play.local.buildings.find((building) =>
+			building.buildingKind.toLowerCase().includes("storehouse"),
+		);
+		const storeSite = play.local.sites.find(
+			(site) => site.siteId === storeyard.siteId,
+		);
+		if (storehouse === undefined || storeSite === undefined)
+			throw new Error("Dawnmere lacks a storehouse site");
+		expect(storehouse.siteId).toBe(storeyard.siteId);
+		const occupant = play.spatial.actors.find(
+			(actor) => actor.citizenId === "citizen-04",
+		);
+		expect(occupant).toBeDefined();
+		if (occupant === undefined) throw new Error("forester actor is missing");
+		expect(occupant.positionMm.x).toBeGreaterThanOrEqual(
+			storeSite.bounds.minimum.xMillimeters,
+		);
+		expect(occupant.positionMm.x).toBeLessThanOrEqual(
+			storeSite.bounds.maximum.xMillimeters,
+		);
+		expect(occupant.positionMm.z).toBeGreaterThanOrEqual(
+			storeSite.bounds.minimum.yMillimeters,
+		);
+		expect(occupant.positionMm.z).toBeLessThanOrEqual(
+			storeSite.bounds.maximum.yMillimeters,
 		);
 	});
 

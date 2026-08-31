@@ -63,6 +63,9 @@ describe("year-horizon Standard Brain lock", () => {
 		expect(year.state.projects["project-citizen-05-grain-reserve"]?.state).toBe(
 			"completed",
 		);
+		expect(year.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
 		expect(jcs(replay)).toBe(jcs(year));
 		const routedCarrier = year.activities.find(
 			(activity) => activity.location.kind === "route",
@@ -108,6 +111,9 @@ describe("year-horizon Standard Brain lock", () => {
 			"completed",
 		);
 		expect(year.state.projects["project-citizen-05-grain-reserve"]?.state).toBe(
+			"completed",
+		);
+		expect(year.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
 			"completed",
 		);
 	}, 180_000);
