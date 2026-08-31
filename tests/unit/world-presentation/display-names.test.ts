@@ -11,13 +11,29 @@ import {
 	relationshipKindDisplayName,
 	roleDisplayName,
 	siteKindPhrase,
+	standingPlanStepDisplayName,
 } from "../../../packages/world-presentation/src/index.js";
 
 describe("player-facing display names", () => {
 	it("maps roles, buildings, projects, and relationships without exposing slugs", () => {
 		expect(roleDisplayName("expedition-steward")).toBe("Expedition steward");
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
+		expect(buildingKindDisplayName("water-reserve")).toBe("Water reserve");
+		expect(buildingKindDisplayName("grain-reserve")).toBe("Grain reserve");
+		expect(buildingKindDisplayName("path-upkeep")).toBe("Path upkeep");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
+		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
+		expect(projectDisplayName("grain-reserve")).toBe("Grain reserve");
+		expect(projectDisplayName("path-upkeep")).toBe("Path upkeep");
+		expect(standingPlanStepDisplayName("WorkProject")).toBe(
+			"working the settlement project",
+		);
+		expect(standingPlanStepDisplayName("ProposeProject")).toBe(
+			"starting work from a standing need",
+		);
+		expect(standingPlanStepDisplayName("TransportResource")).toBe(
+			"moving stores",
+		);
 		expect(projectStateDisplayName("completed")).toBe("completed");
 		expect(relationshipKindDisplayName("friend")).toBe("friends");
 		expect(siteKindPhrase("undeveloped")).toBe("an undeveloped");

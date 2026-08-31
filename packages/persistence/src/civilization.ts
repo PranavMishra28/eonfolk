@@ -234,7 +234,7 @@ function counselOutcomeEffect(
 function standingPlanRoutineKind(
 	stepKind: string,
 ): SchedulerRoutineDecision["kind"] {
-	return stepKind === "Produce"
+	return stepKind === "Produce" || stepKind === "Gather"
 		? "produce"
 		: stepKind === "TransportResource"
 			? "transport"
@@ -244,7 +244,7 @@ function standingPlanRoutineKind(
 					? "consume"
 					: stepKind === "JoinMigration"
 						? "travel"
-						: stepKind === "Away"
+						: stepKind === "Away" || stepKind === "Move"
 							? "away"
 							: "social-maintenance";
 }

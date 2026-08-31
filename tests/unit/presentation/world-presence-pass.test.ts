@@ -53,7 +53,7 @@ describe("bounded world-presence pass", () => {
 	});
 
 	it("keeps human copy, world dominance, and mobile access explicit", async () => {
-		const [app, main, canvas, styles, vite, entry] = await Promise.all([
+		const [app, main, canvas, styles, vite, entry, about] = await Promise.all([
 			webSource("V1GenesisApp.tsx"),
 			webSource("main.tsx"),
 			webSource("generated-world-canvas.tsx"),
@@ -63,6 +63,7 @@ describe("bounded world-presence pass", () => {
 				"utf8",
 			),
 			webSource("GenesisEntryApp.tsx"),
+			webSource("InformationSurface.tsx"),
 		]);
 
 		expect(app).toContain("countNoun(");
@@ -73,7 +74,16 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("visualDayProgress01");
 		expect(app).toContain("conversationVisuallyActive");
 		expect(app).toContain("Start a fresh local town");
-		expect(app).toContain("Feedback form — not the Chronicle");
+		expect(app).toContain("skip-link");
+		expect(app).toContain("Skip to world");
+		expect(app).toContain("Standing plan:");
+		expect(app).toContain("Standard Brain");
+		expect(app).toContain("Local model (optional)");
+		expect(app).toContain('href="/about"');
+		expect(app).toContain('href="/license"');
+		expect(app).toContain("v1-feedback-bug");
+		expect(app).toContain("Report an issue — saved only in this browser");
+		expect(app).not.toContain("Feedback form — not the Chronicle");
 		expect(app).toContain("Fact, belief, and what happened");
 		expect(app).toContain("openChronicleRecord");
 		expect(app).toContain('data-testid="chronicle-record"');
@@ -98,6 +108,8 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
 		expect(app).toContain("WorldAuthorityShell");
 		expect(app).toContain('data-world-id="eonfolk-genesis-world-v1"');
+		expect(app).toContain("data-advancing-day");
+		expect(app).toContain("The day is turning. Dawnmere stays in view.");
 		expect(app).toContain('data-authority-pending="true"');
 		expect(vite).toContain("webglOnlyPlayCanvasReact()");
 		expect(vite).toContain("WebglGraphicsDevice");
@@ -107,6 +119,10 @@ describe("bounded world-presence pass", () => {
 		);
 		expect(canvas).toContain("followSubjectYRatio");
 		expect(canvas).toContain("followSubjectVisible");
+		expect(canvas).toContain("followOccluderIds");
+		expect(canvas).toContain("followPitchDegrees");
+		expect(canvas).toContain("followDesiredPitchDegrees");
+		expect(canvas).toContain("data-follow-volumes");
 		expect(canvas).toContain("resolveFollowCamera");
 		expect(canvas).toContain("generatedFollowViewportIsCompact");
 		expect(canvas).toContain("generatedFollowFovDegrees");
@@ -117,9 +133,35 @@ describe("bounded world-presence pass", () => {
 		expect(styles).toContain(
 			'main.v1-world[data-view="embodied"] .v1-world-title',
 		);
+		expect(styles).toContain(
+			'main.v1-world[data-view="embodied"] .v1-event-focus',
+		);
 		expect(styles).toMatch(
 			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);
 		expect(styles).toContain(".v1-world-tools .generated-camera-status");
+		expect(styles).toMatch(
+			/\.v1-entry-hero-world\s*\{[^}]*position:\s*relative/su,
+		);
+		expect(styles).toContain(".v1-information .v1-primary-link");
+		expect(entry).toContain("A TOWN THAT REMEMBERS YOU");
+		expect(entry).not.toContain("A TOWN THAT CONTINUES WITHOUT YOU");
+		expect(entry).toContain("Time in town");
+		expect(entry).toContain("moves while Play is on in an open tab");
+		expect(entry).toMatch(/you choose\s+whether up to 7 waited days pass/u);
+		expect(app).toContain("of up to");
+		expect(app).toContain("MAX_RETURN_CATCH_UP_DAYS");
+		expect(app).toContain("can pass if you choose");
+		expect(about).toContain("Closing the tab stops");
+		expect(about).toContain("pnpm world:authority");
+		expect(about).toContain("still choose whether up to 7 waited days pass");
+		expect(entry).toContain('href="/about"');
+		expect(entry).toContain('href="/license"');
+		expect(main).toContain('normalizedPath === "/about"');
+		expect(styles).toContain(".generated-citizen-labels button strong");
+		expect(styles).toContain("white-space: nowrap");
+		expect(app).toContain("Standing ties");
+		expect(app).toContain("Water stores");
+		expect(app).toContain("CHRONICLE_RELATION_LABEL");
 	});
 });

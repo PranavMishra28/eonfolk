@@ -104,7 +104,10 @@ reactRoot.render(
 			>
 				{genesisRoute === "entry" ? <GenesisEntryApp /> : <V1GenesisApp />}
 			</Suspense>
-		) : normalizedPath === "/research" || normalizedPath === "/developer" ? (
+		) : normalizedPath === "/research" ||
+			normalizedPath === "/developer" ||
+			normalizedPath === "/about" ||
+			normalizedPath === "/license" ? (
 			<Suspense
 				fallback={
 					<main className="v1-information" aria-busy="true">
@@ -113,7 +116,15 @@ reactRoot.render(
 				}
 			>
 				<InformationSurface
-					route={normalizedPath === "/research" ? "research" : "developer"}
+					route={
+						normalizedPath === "/research"
+							? "research"
+							: normalizedPath === "/developer"
+								? "developer"
+								: normalizedPath === "/about"
+									? "about"
+									: "license"
+					}
 				/>
 			</Suspense>
 		) : (

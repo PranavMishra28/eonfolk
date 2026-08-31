@@ -170,8 +170,9 @@ export function auditCivilizationState(
 					targetId !== citizenId &&
 					state.citizens[targetId] === undefined &&
 					!state.references.siteIds.includes(targetId) &&
-					(mind.snapshot.standingPlan.sourceId !==
-						"eonfolk-civilization-scheduler-brain-v1" ||
+					((mind.snapshot.standingPlan.sourceId !==
+						"eonfolk-civilization-scheduler-brain-v1" &&
+						mind.snapshot.standingPlan.sourceId !== "routine-planner-v1") ||
 						!/^[a-z0-9][a-z0-9._:-]*$/u.test(targetId)),
 			)
 		)

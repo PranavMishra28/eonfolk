@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 class FakeWorker {
 	static instances: FakeWorker[] = [];
-	readonly requests: Array<{ id: number; kind: "load" | "refresh" }> = [];
+	readonly requests: Array<{
+		id: number;
+		kind: "load" | "refresh";
+		skipAuthorityProbe?: true;
+	}> = [];
 	onmessage: ((message: MessageEvent) => void) | null = null;
 	onerror: (() => void) | null = null;
 
@@ -10,7 +14,11 @@ class FakeWorker {
 		FakeWorker.instances.push(this);
 	}
 
-	postMessage(request: { id: number; kind: "load" | "refresh" }) {
+	postMessage(request: {
+		id: number;
+		kind: "load" | "refresh";
+		skipAuthorityProbe?: true;
+	}) {
 		this.requests.push(request);
 	}
 }
@@ -43,6 +51,15 @@ describe("generated world worker client", () => {
 		await expect(refreshed).resolves.toMatchObject({
 			worldId: "world-refreshed",
 		});
+	});
+
+	it("tells the Worker not to probe when the page is WebDriver", async () => {
+		vi.stubGlobal("Worker", FakeWorker);
+		vi.stubGlobal("navigator", { webdriver: true });
+		await import("./generated-world-client");
+		expect(FakeWorker.instances[0]?.requests).toEqual([
+			{ id: 1, kind: "load", skipAuthorityProbe: true },
+		]);
 	});
 
 	it("rejects pending authority requests if the worker fails", async () => {

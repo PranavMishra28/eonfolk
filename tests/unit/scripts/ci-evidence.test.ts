@@ -398,6 +398,7 @@ describe("Founder Alpha CI evidence controls", () => {
 			deep.findIndex((entry) => entry.id === "local-model-benchmark"),
 		).toBe(pr.findIndex((entry) => entry.id === "timing"));
 		expect(deep.slice(pr.length + 1).map((entry) => entry.id)).toEqual([
+			"year-cognition",
 			"targeted-mutation",
 			"property-deep",
 			"browser-cohort",

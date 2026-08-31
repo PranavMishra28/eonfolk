@@ -99,7 +99,7 @@ export function GenesisEntryApp() {
 					<span>EONFOLK</span>
 				</a>
 				<div className="v1-entry-copy">
-					<p className="v1-kicker">A TOWN THAT CONTINUES WITHOUT YOU</p>
+					<p className="v1-kicker">A TOWN THAT REMEMBERS YOU</p>
 					<h1>Follow Mara Vale. She acts for herself.</h1>
 					<p>
 						Watch a small settlement live, offer rare advice she can refuse, and
@@ -180,13 +180,16 @@ export function GenesisEntryApp() {
 					<h2 id="leave-and-return">The settlement keeps its own time.</h2>
 				</div>
 				<p>
-					Close the page. Dawnmere remains in this browser. When you come back,
-					days may have waited, and you choose whether they pass.
+					Close the page. Dawnmere stays saved in this browser. Time in town
+					moves while Play is on in an open tab. When you come back, you choose
+					whether up to 7 waited days pass.
 				</p>
 			</section>
 			<footer className="v1-entry-footer">
 				<a href="/research">Research</a>
 				<a href="/developer">Developer</a>
+				<a href="/about">About</a>
+				<a href="/license">License</a>
 			</footer>
 		</main>
 	);

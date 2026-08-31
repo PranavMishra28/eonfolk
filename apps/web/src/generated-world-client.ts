@@ -2,7 +2,9 @@ import { withAuthorityWriter } from "./authority-writer";
 import type {
 	GeneratedWorldBuildOptions,
 	GeneratedWorldExperience,
+	LocalWorldAuthorityFenceChoice,
 } from "./generated-world-runtime";
+import { AUTHORITY_FENCE_CHOICE_STORAGE_KEY } from "./generated-world-runtime";
 
 export type { GeneratedWorldExperience } from "./generated-world-runtime";
 export { GENERATED_WORLD_STORAGE_KEY } from "./generated-world-runtime";
@@ -15,12 +17,22 @@ type WorkerRequest =
 	| Readonly<{
 			readonly id: number;
 			readonly kind: "load" | "refresh" | "advance-day";
+			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>
 	| Readonly<{
 			readonly id: number;
 			readonly kind: "catch-up";
 			readonly operationId: string;
 			readonly additionalDays: number;
+			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
+	  }>
+	| Readonly<{
+			readonly id: number;
+			readonly kind: "choose-fence";
+			readonly choice: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>;
 
 type WorkerResponse = Readonly<{
@@ -28,6 +40,37 @@ type WorkerResponse = Readonly<{
 	ok: boolean;
 	experience?: GeneratedWorldExperience;
 }>;
+
+function readStoredFenceChoice(): LocalWorldAuthorityFenceChoice | null {
+	if (typeof localStorage === "undefined") return null;
+	try {
+		const stored = localStorage.getItem(AUTHORITY_FENCE_CHOICE_STORAGE_KEY);
+		if (stored === "adopt-process" || stored === "stay-local") return stored;
+	} catch {
+		return null;
+	}
+	return null;
+}
+
+function writeStoredFenceChoice(choice: LocalWorldAuthorityFenceChoice): void {
+	if (typeof localStorage === "undefined") return;
+	const stored = choice === "fresh-local" ? "stay-local" : choice;
+	try {
+		localStorage.setItem(AUTHORITY_FENCE_CHOICE_STORAGE_KEY, stored);
+	} catch {
+		/* Choice still applies in this Worker session. */
+	}
+}
+
+function withStoredFenceChoice<T extends WorkerRequest>(payload: T): T {
+	const fenceChoice = readStoredFenceChoice();
+	return fenceChoice === null ? payload : { ...payload, fenceChoice };
+}
+
+function withWebdriverProbeSkip<T extends WorkerRequest>(payload: T): T {
+	if (typeof navigator === "undefined" || !navigator.webdriver) return payload;
+	return { ...payload, skipAuthorityProbe: true };
+}
 
 let worker: Worker | undefined;
 let nextRequestId = 1;
@@ -46,6 +89,7 @@ function workerRequest(
 		readonly operationId: string;
 		readonly additionalDays: number;
 	}>,
+	fenceChoice?: LocalWorldAuthorityFenceChoice,
 ) {
 	worker ??= new Worker(
 		new URL("./generated-world-runtime.worker.ts", import.meta.url),
@@ -65,15 +109,22 @@ function workerRequest(
 		pending.clear();
 	};
 	const id = nextRequestId++;
-	const payload: WorkerRequest =
-		kind === "catch-up" && catchUp !== undefined
-			? {
-					id,
-					kind: "catch-up",
-					operationId: catchUp.operationId,
-					additionalDays: catchUp.additionalDays,
-				}
-			: { id, kind: kind === "catch-up" ? "load" : kind };
+	const payload: WorkerRequest = withWebdriverProbeSkip(
+		kind === "choose-fence" && fenceChoice !== undefined
+			? { id, kind: "choose-fence", choice: fenceChoice }
+			: kind === "catch-up" && catchUp !== undefined
+				? withStoredFenceChoice({
+						id,
+						kind: "catch-up",
+						operationId: catchUp.operationId,
+						additionalDays: catchUp.additionalDays,
+					})
+				: withStoredFenceChoice({
+						id,
+						kind:
+							kind === "catch-up" || kind === "choose-fence" ? "load" : kind,
+					}),
+	);
 	return new Promise<GeneratedWorldExperience>((resolve, reject) => {
 		pending.set(id, { resolve, reject });
 		worker!.postMessage(payload);
@@ -90,6 +141,12 @@ async function directRequest(
 	}>,
 ) {
 	const runtime = await import("./generated-world-runtime");
+	if (kind === "choose-fence") {
+		const choice = options?.authorityFenceChoice;
+		if (choice === undefined || choice === null)
+			return await runtime.refreshGeneratedWorldExperience();
+		return await runtime.applyLocalWorldAuthorityFenceChoice(choice, options);
+	}
 	if (options !== undefined)
 		return await runtime.buildGeneratedWorldExperience(options);
 	if (kind === "advance-day")
@@ -136,6 +193,16 @@ export function catchUpGeneratedWorldReturnDays(input: {
 		initialExperience = workerRequest("catch-up", input);
 		return await initialExperience;
 	});
+}
+
+export function applyLocalWorldAuthorityFenceChoice(
+	choice: LocalWorldAuthorityFenceChoice,
+): Promise<GeneratedWorldExperience> {
+	writeStoredFenceChoice(choice);
+	if (generatedFaultHooks || typeof Worker === "undefined")
+		return directRequest("choose-fence", { authorityFenceChoice: choice });
+	initialExperience = workerRequest("choose-fence", undefined, choice);
+	return initialExperience;
 }
 
 if (!generatedFaultHooks && typeof Worker !== "undefined")

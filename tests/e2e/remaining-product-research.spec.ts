@@ -364,7 +364,7 @@ test("a first-boundary action fails closed when its displayed context is stale",
 		})
 		.click();
 	await expect(page.getByRole("status")).toContainText(
-		"The town moved while this choice was open",
+		"This choice is still open. Confirm it against the current town record",
 		{ timeout: sponsorTransitionTimeout },
 	);
 	await expect(page.getByRole("status")).not.toContainText(

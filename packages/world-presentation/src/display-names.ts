@@ -21,11 +21,20 @@ const BUILDING_KIND_DISPLAY_NAMES = Object.freeze({
 	storehouse: "Storehouse",
 	"open-workshop": "Open workshop",
 	"expedition-cache": "Expedition cache",
+	"water-reserve": "Water reserve",
+	"grain-reserve": "Grain reserve",
+	"path-upkeep": "Path upkeep",
 });
 
 const PROJECT_DISPLAY_NAMES = Object.freeze({
 	"expedition-kit": "Expedition kit",
 	"assemble-expedition-kit": "Assemble expedition kit",
+	"water-reserve": "Water reserve",
+	"assemble-water-reserve": "Assemble water reserve",
+	"grain-reserve": "Grain reserve",
+	"assemble-grain-reserve": "Assemble grain reserve",
+	"path-upkeep": "Path upkeep",
+	"assemble-path-upkeep": "Assemble path upkeep",
 });
 
 const PROJECT_STATE_DISPLAY_NAMES = Object.freeze({
@@ -62,6 +71,25 @@ const PLACE_KIND_DISPLAY_NAMES = Object.freeze({
 	storage: "storage",
 	work: "work",
 	resource: "resource",
+});
+
+const STANDING_PLAN_STEP_DISPLAY_NAMES = Object.freeze({
+	WorkProject: "working the settlement project",
+	TransportResource: "moving stores",
+	Gather: "producing at their site",
+	Produce: "producing at their site",
+	Consume: "meeting a daily need",
+	Exchange: "talking with a neighbour",
+	SocialMaintenance: "talking with a neighbour",
+	JoinMigration: "travelling with the founding party",
+	ProposeProject: "starting work from a standing need",
+	FollowStandingPlan: "continuing today's work",
+	Move: "moving through town",
+	Away: "away from town",
+	VerifyReserve: "checking the water stores",
+	AccusePublicly: "speaking in public",
+	RepairMill: "repairing the mill",
+	waiting: "waiting",
 });
 
 const VALUE_DISPLAY_NAMES = Object.freeze({
@@ -102,6 +130,14 @@ export function roleDisplayName(roleId: string | null | undefined): string {
 
 export function buildingKindDisplayName(buildingKind: string): string {
 	return lookup(BUILDING_KIND_DISPLAY_NAMES, buildingKind);
+}
+
+export function standingPlanStepDisplayName(stepKind: string): string {
+	return lookup(
+		STANDING_PLAN_STEP_DISPLAY_NAMES,
+		stepKind,
+		(_value) => "today's work",
+	);
 }
 
 export function projectDisplayName(projectNameOrId: string): string {

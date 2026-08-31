@@ -513,31 +513,63 @@ main {
 	line-height: 1.45;
 }
 
-.v1-feedback-drawer {
-	margin: 1px 0 0;
-	padding: 0.8rem clamp(1rem, 3vw, 2.5rem);
-	color: #ede6d1;
-	background: #151d16;
-}
-
-.v1-feedback-drawer > summary {
-	width: fit-content;
-	min-height: 2.5rem;
-	padding: 0.65rem 0.8rem;
-	border: 1px solid rgba(232, 225, 198, 0.28);
-	font-size: 0.72rem;
-	font-weight: 900;
-	letter-spacing: 0.06em;
+.v1-feedback-bug {
+	position: absolute;
+	z-index: 8;
+	right: 0.7rem;
+	bottom: 0.7rem;
+	display: inline-grid;
+	place-items: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	margin: 0;
+	padding: 0;
+	border: 1px solid rgba(232, 225, 198, 0.35);
+	border-radius: 999px;
+	color: #171b17;
+	background: #e7af62;
 	cursor: pointer;
+	box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.28);
 }
 
-.v1-feedback-drawer > div {
-	max-width: 50rem;
-	margin-top: 0.8rem;
+.v1-feedback-bug[aria-expanded="true"] {
+	background: #f3ca89;
 }
 
-.v1-feedback-drawer .feedback-panel .eyebrow {
+.v1-feedback-bug svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.v1-feedback-popover {
+	position: absolute;
+	z-index: 9;
+	right: 0.7rem;
+	bottom: 3.7rem;
+	width: min(28rem, calc(100% - 1.4rem));
+	max-height: min(70vh, 32rem);
+	overflow: auto;
+	padding: 0;
+	color: var(--ink);
+	background: transparent;
+}
+
+.v1-feedback-popover .feedback-panel {
+	width: 100%;
+	margin: 0;
+	grid-template-columns: 1fr;
+}
+
+.v1-feedback-popover .feedback-panel .eyebrow {
 	display: none;
+}
+
+.v1-commit-busy:disabled,
+button.v1-commit-busy:disabled {
+	opacity: 0.72;
+	cursor: wait;
+	outline: 2px dashed rgba(231, 175, 98, 0.85);
+	outline-offset: 2px;
 }
 
 .v1-world.v1-reduced-motion .generated-playcanvas canvas {
@@ -2592,6 +2624,11 @@ em {
 	color: inherit;
 }
 
+.v1-information .v1-primary-link {
+	color: #171b17;
+	background: #e7af62;
+}
+
 .v1-information > nav a:not(.v1-brand) {
 	padding: 0.55rem 0;
 	color: #c6c9ba;
@@ -2688,6 +2725,8 @@ em {
 	align-items: center;
 	gap: 0.7rem;
 	width: fit-content;
+	min-width: 2.75rem;
+	min-height: 2.75rem;
 	color: inherit;
 	font-size: 0.78rem;
 	font-weight: 900;
@@ -2719,6 +2758,7 @@ em {
 
 .v1-entry-hero > .v1-brand {
 	position: absolute;
+	z-index: 2;
 	top: clamp(1.2rem, 4vw, 3.5rem);
 	left: clamp(1.2rem, 6vw, 6rem);
 }
@@ -2731,6 +2771,7 @@ em {
 }
 
 .v1-entry-hero-world {
+	position: relative;
 	min-height: 22rem;
 	overflow: hidden;
 	border: 1px solid rgba(226, 223, 199, 0.28);
@@ -3364,7 +3405,12 @@ em {
 	}
 
 	.v1-world-header > .v1-brand {
-		display: none;
+		position: relative;
+		z-index: 2;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
+		padding: 0.2rem 0.35rem;
+		letter-spacing: 0.08em;
 	}
 
 	.v1-world-stage-tools {
@@ -3499,6 +3545,14 @@ em {
 	background: rgba(247, 239, 217, 0.96);
 	border: 1px solid rgba(35, 38, 31, 0.28);
 	box-shadow: 0 1.1rem 2.6rem rgba(0, 0, 0, 0.28);
+}
+
+.v1-chronicle-relation {
+	font-size: 0.78em;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #874429;
 }
 
 .v1-chronicle-record-head {
@@ -3724,6 +3778,8 @@ em {
 @media (min-width: 721px) {
 	main.v1-world[data-counsel-open="true"] .v1-context-panel {
 		width: min(24rem, 34vw);
+		overflow-x: clip;
+		scrollbar-gutter: auto;
 	}
 
 	main.v1-world[data-counsel-open="true"] .v1-context-panel h2 {
@@ -3731,6 +3787,10 @@ em {
 	}
 
 	main.v1-world[data-counsel-open="true"] .v1-presence-roster {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	main.v1-world[data-counsel-open="true"] .v1-people-list {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
@@ -3876,6 +3936,20 @@ em {
 	border: 1px solid rgba(35, 38, 31, 0.18);
 	background: rgba(246, 239, 216, 0.68);
 	font-size: 0.875rem;
+}
+
+.v1-activity-summary button {
+	display: block;
+	width: 100%;
+	min-height: 2.75rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
 }
 
 .v1-focus-actions {
@@ -4192,44 +4266,21 @@ em {
 		display: none;
 	}
 
-	main.v1-world[data-view="embodied"] .v1-feedback-drawer {
-		position: absolute;
-		z-index: 6;
-		margin: 0;
-		background: transparent;
+	main.v1-world[data-view="embodied"] .v1-world-settings {
+		position: relative;
+		z-index: 8;
 	}
 
-	main.v1-world[data-view="embodied"] .v1-feedback-drawer:not([open]) {
-		left: auto;
-		right: 0;
-		bottom: 0;
-		width: min(12.5rem, 52%);
-		padding: 0;
-	}
-
-	main.v1-world[data-view="embodied"]
-		.v1-feedback-drawer:not([open])
-		> summary {
-		min-height: 2.5rem;
-		padding: 0.4rem 0.7rem;
-		border: 0;
-		color: #d9d1b8;
-		background: transparent;
-		font-size: 0.68rem;
-		font-weight: 650;
-		line-height: 1.2;
-		text-align: right;
-	}
-
-	main.v1-world[data-view="embodied"] .v1-feedback-drawer[open] {
-		left: 0.45rem;
+	main.v1-world[data-view="embodied"] .v1-feedback-bug {
 		right: 0.45rem;
-		bottom: 2.8rem;
-		max-height: min(62dvh, 28rem);
-		overflow: auto;
-		padding: 0.55rem;
-		background: rgba(17, 24, 18, 0.96);
-		border: 1px solid rgba(255, 255, 255, 0.16);
+		bottom: 3.4rem;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-feedback-popover {
+		right: 0.45rem;
+		bottom: 6.4rem;
+		width: min(26rem, calc(100% - 0.9rem));
+		max-height: min(48svh, 22rem);
 	}
 
 	.v1-living-stage {
@@ -4245,9 +4296,27 @@ em {
 	.v1-world-chronicle {
 		left: 0.55rem;
 		right: auto;
-		top: 6.6rem;
-		max-width: min(14.5rem, 54vw);
+		top: 7.4rem;
+		max-width: min(14.5rem, 48vw);
 		padding: 0.32rem 0.48rem;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-event-focus {
+		position: absolute;
+		left: 0.45rem;
+		right: 0.45rem;
+		top: 6.8rem;
+		z-index: 7;
+		width: auto;
+		max-height: min(36svh, 16rem);
+		overflow: auto;
+		scroll-margin-top: 7.2rem;
+		pointer-events: auto;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-event-focus summary {
+		min-height: 2.75rem;
+		scroll-margin-top: 7.2rem;
 	}
 
 	.v1-world-chronicle li {
@@ -4432,8 +4501,9 @@ em {
 .generated-citizen-labels button {
 	display: grid;
 	gap: 0.05rem;
-	min-width: 2.75rem;
-	max-width: 9.5rem;
+	min-width: 7rem;
+	max-width: 12rem;
+	width: max-content;
 	padding: 0.18rem 0.4rem;
 	border: 1px solid rgba(35, 38, 31, 0.35);
 	border-radius: 0.35rem;
@@ -4444,6 +4514,13 @@ em {
 	line-height: 1.2;
 	text-align: left;
 	cursor: pointer;
+}
+
+.generated-citizen-labels button strong,
+.generated-citizen-labels button span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .generated-citizen-labels button[aria-pressed="true"],

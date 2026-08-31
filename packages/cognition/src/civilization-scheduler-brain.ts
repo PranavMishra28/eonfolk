@@ -21,6 +21,8 @@ import {
 
 export const CIVILIZATION_SCHEDULER_BRAIN_VERSION =
 	"eonfolk-civilization-scheduler-brain-v1" as const;
+/** Matches the year bulk opening horizon so later thinking days can still retrieve prefix memories. */
+export const CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS = 365 * 86_400;
 export const CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION =
 	"eonfolk-civilization-scheduler-decision-evidence-v2" as const;
 
@@ -268,7 +270,7 @@ export async function decideCivilizationSchedulerRoutine(input: {
 				settled.plan.commitmentId === null ? [] : [settled.plan.commitmentId],
 			maximumRecords: 8,
 			maximumBytes: 8_192,
-			recencyHorizonSeconds: 30 * 86_400,
+			recencyHorizonSeconds: CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS,
 		},
 		runId: input.runId,
 		regionId: input.regionId,

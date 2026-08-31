@@ -29,10 +29,12 @@ timing checks, fault-injected and production Playwright journeys, zero-egress
 network validation, production dependency audit, and the bounded persistence
 model.
 
-The deep tier adds long-horizon properties, targeted mutation testing, local
-model/fallback evaluation when the explicitly configured loopback treatment is
-available, extended fault and persistence drills, and repeated performance
-measurements.
+The deep tier adds long-horizon properties, the 365-day Standard Brain
+cognition lock, targeted mutation testing, local model/fallback evaluation
+when the explicitly configured loopback treatment is available, extended
+fault and persistence drills, and repeated performance measurements.
+FAST unit tests prove 90-day openings; the engine still thinks for the
+full generated year.
 
 ## Blocking behaviors
 

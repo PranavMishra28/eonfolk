@@ -1,5 +1,6 @@
 import {
 	assertCivilizationInvariants,
+	type CivilizationExperimentCognitionOptions,
 	type CivilizationExperimentRun,
 	type CivilizationState,
 	continueCivilizationExperimentDay,
@@ -302,7 +303,8 @@ async function precedingAuthorityEventId(
 async function nextLiveDayFromHead(input: {
 	readonly current: ReleaseGenesisCivilizationState;
 	readonly genesisWorld: GeneratedWorldState;
-	readonly authorityRunner: typeof runCivilizationExperiment;
+	readonly skipOpeningDecisions?: boolean;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<{
 	readonly nextState: ReleaseGenesisCivilizationState;
 	readonly stepHash: string;
@@ -314,87 +316,52 @@ async function nextLiveDayFromHead(input: {
 		throw new Error("live day advance lacks a civilization");
 	const currentDay = current.scheduler.completedDay;
 	const nextDay = currentDay + 1;
-	if (current.phase === "active") {
-		const continued = await continueCivilizationExperimentDay({
-			genesisWorld: input.genesisWorld,
-			world: current.world as unknown as GeneratedWorldState,
-			state: current.civilization as unknown as CivilizationState,
-			completedDay: currentDay,
-			eventIndexBase: current.sourceHistory.eventHashes.length,
-			priorEventHash: current.sourceHistory.eventHashes.at(-1) ?? null,
-			skipOpeningDecisions: true,
-		});
-		assertCivilizationInvariants(continued.state);
-		return {
-			nextState: {
-				schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
-				phase: "active",
-				worldIdentityHash: current.worldIdentityHash,
-				sourceInitialStateHash: current.sourceInitialStateHash,
-				finalExperimentStateHash: current.finalExperimentStateHash,
-				world:
-					continued.world as unknown as ReleaseGenesisCivilizationState["world"],
-				civilization:
-					continued.state as unknown as ReleaseGenesisCivilizationState["civilization"],
-				scheduler: {
-					completedDay: nextDay,
-					simulationTime: nextDay * SECONDS_PER_DAY,
-					modelInvocations: 0,
-					activities: continued.activities as unknown as JsonValue,
-				},
-				sourceHistory: {
-					stepHashes: [
-						...current.sourceHistory.stepHashes,
-						continued.step.stepHash,
-					],
-					eventHashes: [
-						...current.sourceHistory.eventHashes,
-						...continued.step.eventHashes,
-					],
-				},
-			},
-			stepHash: continued.step.stepHash,
-			eventHashes: continued.step.eventHashes,
-			experimentStateHash: current.finalExperimentStateHash,
-		};
-	}
-	const nextRun = await input.authorityRunner({
-		world: input.genesisWorld,
-		horizonDays: nextDay,
+	const continued = await continueCivilizationExperimentDay({
+		genesisWorld: input.genesisWorld,
+		world: current.world as unknown as GeneratedWorldState,
+		state: current.civilization as unknown as CivilizationState,
+		completedDay: currentDay,
+		eventIndexBase: current.sourceHistory.eventHashes.length,
+		priorEventHash: current.sourceHistory.eventHashes.at(-1) ?? null,
+		skipOpeningDecisions: input.skipOpeningDecisions ?? false,
+		...(input.cognition === undefined ? {} : { cognition: input.cognition }),
 	});
-	if (nextRun.metrics.modelInvocations !== 0)
-		throw new Error("live day advance invoked a model");
-	const step = nextRun.steps[currentDay];
-	if (step === undefined)
-		throw new Error("live day advance is missing the next experiment step");
+	assertCivilizationInvariants(continued.state);
+	const keepActive = current.phase === "active";
+	const experimentStateHash = keepActive
+		? current.finalExperimentStateHash
+		: continued.finalStateHash;
 	return {
 		nextState: {
 			schemaVersion: RELEASE_GENESIS_CIVILIZATION_STATE_VERSION,
-			phase: "checkpoint",
+			phase: keepActive ? "active" : "checkpoint",
 			worldIdentityHash: current.worldIdentityHash,
 			sourceInitialStateHash: current.sourceInitialStateHash,
-			finalExperimentStateHash: nextRun.finalStateHash,
+			finalExperimentStateHash: experimentStateHash,
 			world:
-				nextRun.world as unknown as ReleaseGenesisCivilizationState["world"],
+				continued.world as unknown as ReleaseGenesisCivilizationState["world"],
 			civilization:
-				nextRun.state as unknown as ReleaseGenesisCivilizationState["civilization"],
+				continued.state as unknown as ReleaseGenesisCivilizationState["civilization"],
 			scheduler: {
 				completedDay: nextDay,
 				simulationTime: nextDay * SECONDS_PER_DAY,
 				modelInvocations: 0,
-				activities: nextRun.activities as unknown as JsonValue,
+				activities: continued.activities as unknown as JsonValue,
 			},
 			sourceHistory: {
-				stepHashes: [...current.sourceHistory.stepHashes, step.stepHash],
+				stepHashes: [
+					...current.sourceHistory.stepHashes,
+					continued.step.stepHash,
+				],
 				eventHashes: [
 					...current.sourceHistory.eventHashes,
-					...step.eventHashes,
+					...continued.step.eventHashes,
 				],
 			},
 		},
-		stepHash: step.stepHash,
-		eventHashes: step.eventHashes,
-		experimentStateHash: nextRun.finalStateHash,
+		stepHash: continued.step.stepHash,
+		eventHashes: continued.step.eventHashes,
+		experimentStateHash,
 	};
 }
 
@@ -407,7 +374,7 @@ async function nextLiveDayFromHead(input: {
 export async function appendLiveGeneratedCivilizationDay(input: {
 	readonly port: VersionedPersistencePort;
 	readonly genesisWorld: GeneratedWorldState;
-	readonly authorityRunner?: typeof runCivilizationExperiment;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<{
 	readonly horizonDays: number;
 	readonly head: AuthorityHead;
@@ -439,11 +406,10 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 			advanced: false,
 		});
 	const nextDay = currentDay + 1;
-	const runner = input.authorityRunner ?? runCivilizationExperiment;
 	const advanced = await nextLiveDayFromHead({
 		current,
 		genesisWorld: input.genesisWorld,
-		authorityRunner: runner,
+		...(input.cognition === undefined ? {} : { cognition: input.cognition }),
 	});
 	const nextState = advanced.nextState;
 	const parentEventId = await precedingAuthorityEventId(
@@ -577,7 +543,6 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 	readonly genesisWorld: GeneratedWorldState;
 	readonly operationId: string;
 	readonly additionalDays: number;
-	readonly authorityRunner?: typeof runCivilizationExperiment;
 }): Promise<{
 	readonly horizonDays: number;
 	readonly head: AuthorityHead;
@@ -610,7 +575,6 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 		snapshotId: latest.snapshotId,
 		toSequenceExclusive: head.lastSequence + 1,
 	});
-	const runner = input.authorityRunner ?? runCivilizationExperiment;
 	let fromDay = liveReplay.state.scheduler.completedDay;
 	let toDay = Math.min(
 		fromDay + input.additionalDays,
@@ -695,7 +659,10 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 		const advanced = await nextLiveDayFromHead({
 			current: cursor,
 			genesisWorld: input.genesisWorld,
-			authorityRunner: runner,
+			// Player-authorized return catch-up (1–7 days) is a thinking day: the
+			// same Standard Brain openings as live Play, not empty ticks. Reality
+			// remains the sole writer. 7×8 openings is an accepted FAST cost.
+			skipOpeningDecisions: false,
 		});
 		const nextState = advanced.nextState;
 		const appendId = `civilization-live-day-${String(nextDay)}`;

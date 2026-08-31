@@ -295,6 +295,54 @@
 
 **Reopen trigger.** Reopen only when one frozen actor-authorized case supplies typed and calibrated transition/observation distributions, materially different information value, and a predeclared benchmark where Standard Brain plus bounded planning both fail. A candidate must then beat both baselines without hidden-fact access, replay drift, or an unexplained player-facing choice.
 
+### D-017 — Pause the play clock while a decision boundary is open
+
+**Decision.** While sponsor/counsel/abstain consideration is open, the Play clock (presentation and live-day authority) pauses. A commit that sees a changed head re-validates and keeps the choice open. Influence is never silently discarded. Engine strings never reach the HUD.
+
+**Evidence.** Phase 0 on `4f03d71`: `expectedAuthorityStateHash` races the ~28s day; failures show “The town moved while this choice was open,” then sponsorship resets; raw `authority changed during validated session` leaked past `playerFacingSponsorFailure`.
+
+**Rejected alternatives.** Let the town advance under an open choice; silent reset to `sponsorPhase`; showing disabled commit with no busy state.
+
+**Remaining uncertainty.** Pause may read as a dead town; reopen if humans cannot tell time is waiting for them.
+
+**Resulting behavior.** Confirming/counseling/saving/returning pauses Play. Mismatch copy asks the player to confirm again. Commit buttons expose `aria-busy` and a visible wait state.
+
+**Constraint fit.** No server; clock is local. Fits D-003 (influence must be consequential).
+
+**Reopen trigger.** If pausing the clock makes counsel feel unearned, or if a dual-writer still advances the head under an open boundary.
+
+### D-018 — Closed-tab continuity requires a local process
+
+**Decision.** The tab Worker is not an OS daemon. “The town continues after you close the browser” is allowed only when a user-started local Node process holds the writer fence. Until then, landing and catch-up say the save lives in this browser and days wait for Play.
+
+**Evidence.** Phase 0: town evolves only while Play is on in an open tab. [ARCHITECTURE.md](../engineering/ARCHITECTURE.md) rejected *cloud* continuous simulation, not a local process.
+
+**Rejected alternatives.** Claiming Worker-in-tab continuity; inventing cloud; export/import as a substitute ([PERSISTENCE.md](../engineering/PERSISTENCE.md)).
+
+**Remaining uncertainty.** File vs IndexedDB sharing and dual-writer fencing (R-018).
+
+**Resulting behavior.** Copy is honest before the process exists. The process, when built, is local-only, $0, no deploy.
+
+**Constraint fit.** A process the player starts on their machine is not a hosted service.
+
+**Reopen trigger.** Dual-writer forks, or a product decision that closed-tab continuity is not worth a local process.
+
+### D-019 — Inner life and causal Chronicle belong in Play
+
+**Decision.** First-session Play HUD must show Mara's recorded water stores, friendship with Iven, day's work, and Want as a standing-plan goal—not locomotion. Standing ties are not only spatial co-presence. Chronicle-in-play uses the same five causal labels as Research.
+
+**Evidence.** [HUMAN_LOOP.md](../product/HUMAN_LOOP.md) 45–60s contract. Phase 0: Want copied the walk cycle; “no one beside them” while co-located; Iven not visible as friend; causal grammar lived on `/research`.
+
+**Rejected alternatives.** Leaving inner life on Research only; disabled “Sponsor Mara” during counseled as the only counsel cue.
+
+**Remaining uncertainty.** Whether this HUD is enough for Gate B without Observatory onboarding.
+
+**Resulting behavior.** Experience projects inner lives from Reality/Mind. Play Chronicle labels beats. Sponsor control is hidden once counsel is in flight.
+
+**Constraint fit.** Projection-only; no new network or model.
+
+**Reopen trigger.** Players still cannot name water, Iven, or Want after 60 seconds.
+
 ## Founder Alpha frozen-review reconciliation
 
 Six independent reviewers inspected frozen candidate `7319d59260555ffbe4eb2f4d58beb61d3f8a11ee`. The candidate was correctly rejected. Every P0/P1 is accepted below; “closed by removal/deferral” means the unsafe claim or executable surface no longer exists, not that an active release blocker is tolerated. Human comprehension, attachment, screen-reader, physical-device, live-provider, deployment, and model evidence remain `NOT_RUN` and are not converted into technical passes.

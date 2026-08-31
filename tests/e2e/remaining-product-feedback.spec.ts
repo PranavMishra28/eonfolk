@@ -179,23 +179,20 @@ for (const viewport of [
 			.click();
 		const stateHash = await world.getAttribute("data-state-hash");
 		const authorityBefore = await authorityFingerprint(page);
-		const drawer = page.locator("details.v1-feedback-drawer");
-		await drawer.scrollIntoViewIfNeeded();
-		await expect(
-			drawer.getByText("Feedback form — not the Chronicle", { exact: true }),
-		).toBeVisible();
-		const drawerBox = await drawer.boundingBox();
-		expect(drawerBox).not.toBeNull();
-		expect(drawerBox?.x ?? -1).toBeGreaterThanOrEqual(0);
-		expect((drawerBox?.x ?? 0) + (drawerBox?.width ?? 0)).toBeLessThanOrEqual(
+		const reportControl = page.getByRole("button", {
+			name: /Report an issue — saved only in this browser/iu,
+		});
+		await reportControl.scrollIntoViewIfNeeded();
+		await expect(reportControl).toBeVisible();
+		const reportBox = await reportControl.boundingBox();
+		expect(reportBox).not.toBeNull();
+		expect(reportBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+		expect((reportBox?.x ?? 0) + (reportBox?.width ?? 0)).toBeLessThanOrEqual(
 			viewport.width + 1,
 		);
 
-		await drawer.locator("summary").click();
-		const panel = drawer.getByRole("region", { name: "What broke the spell?" });
-		await panel
-			.getByRole("button", { name: "Report issue / Save feedback locally" })
-			.click();
+		await reportControl.click();
+		const panel = page.getByRole("region", { name: "What broke the spell?" });
 		const consent = panel.getByLabel(/Include bounded structured diagnostics/i);
 		await expect(consent).not.toBeChecked();
 		await panel
@@ -289,13 +286,15 @@ for (const viewport of [
 			.getByRole("button", { name: "Pause" })
 			.click();
 		await expect(world).toHaveAttribute("data-state-hash", stateHash ?? "");
-		await page.locator("details.v1-feedback-drawer").locator("summary").click();
-		const restoredPanel = page.getByRole("region", {
-			name: "What broke the spell?",
-		});
-		await restoredPanel
-			.getByRole("button", { name: "Report issue / Save feedback locally" })
+		await page
+			.getByRole("button", {
+				name: /Report an issue — saved only in this browser/iu,
+			})
 			.click();
+		const restoredPanel = page.getByRole("dialog");
+		await expect(
+			restoredPanel.getByRole("heading", { name: "What broke the spell?" }),
+		).toBeVisible();
 		await expect(
 			restoredPanel.getByRole("button", {
 				name: /Delete queued feedback \(1\)/iu,

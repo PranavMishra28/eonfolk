@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	type BrainPort,
+	CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS,
 	type CivilizationRoutineOption,
 	type CivilizationSchedulerMindState,
 	createMemoryStore,
@@ -13,6 +14,7 @@ import {
 	replayCivilizationSchedulerDecisions,
 	runDecisionGateway,
 	standardBrain,
+	standardFallbackModelGateway,
 	validateIntentProposal,
 } from "../../../packages/cognition/src/index.js";
 import type { DecisionContext } from "../../../packages/protocol/src/index.js";
@@ -145,6 +147,10 @@ async function decide(
 }
 
 describe("civilization scheduler Standard Brain", () => {
+	it("keeps year-horizon memories inside retrieval recency", () => {
+		expect(CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS).toBe(365 * 86_400);
+	});
+
 	it("lets actor-visible retrieval change one legal routine and replans after validation", async () => {
 		const withoutMemory = await decide(await mindState({ withMemory: false }));
 		const withMemory = await decide(await mindState({ withMemory: true }));
@@ -296,6 +302,32 @@ describe("civilization scheduler Standard Brain", () => {
 		expect(result.state.actorMind.standingPlan.goalType).toBe(
 			"routine:consume",
 		);
+		expect(replayCivilizationSchedulerDecisions([result.evidence])).toEqual([
+			{ kind: "consume", subjectId: "water" },
+		]);
+	});
+
+	it("falls back to Standard Brain when the optional Model Brain host is absent", async () => {
+		const input = await mindState({ withMemory: true });
+		const result = await decideCivilizationSchedulerRoutine({
+			state: input.state,
+			runId: input.fixture.context.runId,
+			regionId: input.fixture.context.regionId,
+			revision: input.fixture.context.revision,
+			simulationTime: input.fixture.context.simulationTime,
+			visibilityContext: input.fixture.visibilityContext,
+			options: options(input.fixture.mind.standingPlan.planId, input.memoryId),
+			fallbackRoutine: {
+				kind: "social-maintenance",
+				subjectId: input.fixture.mind.citizenId,
+			},
+			priorOutcome: null,
+			decisionGateway: standardFallbackModelGateway(),
+		});
+		expect(result.evidence.selectedSource).toBe("deterministic-fallback");
+		expect(result.evidence.primaryDisposition).toBe("provider-unavailable");
+		expect(result.evidence.modelInvocations).toBe(0);
+		expect(result.evidence.selectedActionId).toBe("drink-water");
 		expect(replayCivilizationSchedulerDecisions([result.evidence])).toEqual([
 			{ kind: "consume", subjectId: "water" },
 		]);

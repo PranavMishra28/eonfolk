@@ -154,13 +154,17 @@ export const FOLLOW_CAMERA_DISTANCE_MM = 6_200;
 export const FOLLOW_COMPACT_CAMERA_DISTANCE_MM = 13_600;
 const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
-const FOLLOW_MAX_BACKUP_MM = 28_000;
+const FOLLOW_MAX_BACKUP_MM = 36_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
 /** Shallow enough that Follow is a person, not a ground/wall fill. */
 export const FOLLOW_CAMERA_PITCH_DEGREES = -12;
 /** Elevated three-quarter: camera is back and up, looking at the chest. */
 export const FOLLOW_COMPACT_CAMERA_PITCH_DEGREES = -18;
+/** Steep enough that indoor Follow looks over a workshop ridge instead of a wall fill. */
+export const FOLLOW_INDOOR_PEEK_PITCH_DEGREES = -36;
+const FOLLOW_INDOOR_DISTANCE_MM = 12_400;
+const FOLLOW_INDOOR_COMPACT_DISTANCE_MM = 16_200;
 export const FOLLOW_LOOK_HEIGHT_MM = 1_520;
 /** Chest. Looking at the head dumps the torso under the inspector. */
 export const FOLLOW_COMPACT_LOOK_HEIGHT_MM = 1_050;
@@ -170,6 +174,9 @@ export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 154;
 export const FOLLOW_FOV_DEGREES = 40;
 export const FOLLOW_COMPACT_FOV_DEGREES = 58;
 export const OVERVIEW_FOV_DEGREES = 46;
+/** Portrait Watch has to see more than the settlement midpoint. */
+export const OVERVIEW_COMPACT_FOV_DEGREES = 58;
+export const OVERVIEW_COMPACT_DISTANCE_MM = 52_000;
 const MIN_CAMERA_PITCH_DEGREES = -75;
 const MAX_CAMERA_PITCH_DEGREES = -8;
 const COMPACT_FOLLOW_MAX_WIDTH_PX = 520;
@@ -289,13 +296,19 @@ export function followOccluderVolumes(
 			continue;
 		}
 		const isMill = kind.includes("mill");
+		const isHall = kind.includes("meeting");
 		const isWorkshop = kind.includes("workshop");
-		const widthMm = isMill ? scale.mill.widthMm : scale.house.widthMm;
+		const isStore = kind.includes("store") || kind.includes("cache");
+		const isDwelling = kind.includes("dwelling");
+		const widthMm =
+			(isMill ? scale.mill.widthMm : scale.house.widthMm) * (isHall ? 1.15 : 1);
 		const depthMm =
 			(isMill ? scale.mill.depthMm : scale.house.depthMm) *
-			(isWorkshop ? 1.2 : 1);
-		const heightMm =
-			(isMill ? scale.mill.ridgeHeightMm : scale.house.ridgeHeightMm) + 900;
+			(isWorkshop ? 1.2 : isDwelling ? 1 + 350 / scale.house.depthMm : 1);
+		const ridgeMm = isMill
+			? scale.mill.ridgeHeightMm
+			: scale.house.ridgeHeightMm;
+		const heightMm = (isStore ? ridgeMm * 0.72 * 0.85 : ridgeMm) + 900;
 		volumes.push(
 			envelopeVolume(
 				building.buildingId,
@@ -371,7 +384,8 @@ export function generatedFollowFovDegrees(
 	following: boolean,
 	compact: boolean,
 ): number {
-	if (!following) return OVERVIEW_FOV_DEGREES;
+	if (!following)
+		return compact ? OVERVIEW_COMPACT_FOV_DEGREES : OVERVIEW_FOV_DEGREES;
 	return compact ? FOLLOW_COMPACT_FOV_DEGREES : FOLLOW_FOV_DEGREES;
 }
 
@@ -387,6 +401,17 @@ export function generatedFollowViewportIsCompact(
 	);
 }
 
+function indoorRoofHeightMm(
+	target: SpatialPointMm,
+	volumes: readonly AxisAlignedVolumeMm[],
+): number {
+	let roofMm = 0;
+	for (const volume of volumes) {
+		if (volumeContains(volume, target)) roofMm = Math.max(roofMm, volume.maxY);
+	}
+	return roofMm;
+}
+
 function scoreFollowCandidate(
 	eye: SpatialPointMm,
 	target: SpatialPointMm,
@@ -397,9 +422,12 @@ function scoreFollowCandidate(
 	const occluded = volumes.some((volume) =>
 		followLookOccluded(volume, eye, target),
 	);
-	if (!inside && !occluded) return 1_000_000 + distanceMm;
-	if (!inside) return 100_000 + distanceMm;
-	return distanceMm;
+	const roofMm = indoorRoofHeightMm(target, volumes);
+	const highEnough = roofMm > 0 && eye.y > roofMm;
+	if (!inside && !occluded) return 2_000_000 - distanceMm;
+	if (!inside && highEnough) return 1_000_000 - distanceMm;
+	if (!inside) return 100_000 - distanceMm;
+	return -1_000_000 + distanceMm;
 }
 
 /** Shoulder/height framing that backs out of walls so the followed body stays readable. */
@@ -414,7 +442,12 @@ export function resolveFollowCamera(
 ): FollowCameraFraming {
 	const facing = (sample.facingDegrees * Math.PI) / 180;
 	const liftedLookMm = compact ? FOLLOW_COMPACT_LOOK_HEIGHT_MM : lookHeightMm;
-	const targetMm = Object.freeze({
+	const bodyMm = Object.freeze({
+		x: sample.positionMm.x,
+		y: sample.positionMm.y + liftedLookMm,
+		z: sample.positionMm.z,
+	});
+	const shoulderMm = Object.freeze({
 		x: Math.round(
 			sample.positionMm.x + Math.cos(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
@@ -423,40 +456,54 @@ export function resolveFollowCamera(
 			sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
 	});
+	const indoorVolume = volumes.find((volume) => volumeContains(volume, bodyMm));
+	const targetMm =
+		indoorVolume !== undefined && !volumeContains(indoorVolume, shoulderMm)
+			? bodyMm
+			: shoulderMm;
 	const basePitch = compact
 		? FOLLOW_COMPACT_CAMERA_PITCH_DEGREES
 		: FOLLOW_CAMERA_PITCH_DEGREES;
 	const baseDistance = compact
 		? FOLLOW_COMPACT_CAMERA_DISTANCE_MM
 		: FOLLOW_CAMERA_DISTANCE_MM;
+	const indoors = volumes.some((volume) => volumeContains(volume, targetMm));
 	const yawOffsets =
 		volumes.length === 0
 			? [FOLLOW_CAMERA_YAW_OFFSET_DEGREES]
 			: FOLLOW_YAW_CANDIDATES_DEGREES;
+	const pitches = indoors ? [FOLLOW_INDOOR_PEEK_PITCH_DEGREES] : [basePitch];
 	let best: FollowCameraFraming | null = null;
 	let bestScore = Number.NEGATIVE_INFINITY;
 	for (const yawOffset of yawOffsets) {
 		const yawDegrees = sample.facingDegrees + yawOffset;
-		let distanceMm = baseDistance;
-		for (let step = 0; step < 10; step += 1) {
-			const eye = cameraEyeMm(targetMm, yawDegrees, basePitch, distanceMm);
-			const score = scoreFollowCandidate(eye, targetMm, volumes, distanceMm);
-			if (score > bestScore) {
-				bestScore = score;
-				best = Object.freeze({
-					targetMm,
-					yawDegrees,
-					pitchDegrees: basePitch,
-					distanceMm,
-				});
+		for (const pitchDegrees of pitches) {
+			let distanceMm =
+				pitchDegrees === FOLLOW_INDOOR_PEEK_PITCH_DEGREES
+					? compact
+						? FOLLOW_INDOOR_COMPACT_DISTANCE_MM
+						: FOLLOW_INDOOR_DISTANCE_MM
+					: baseDistance;
+			for (let step = 0; step < 12; step += 1) {
+				const eye = cameraEyeMm(targetMm, yawDegrees, pitchDegrees, distanceMm);
+				const score = scoreFollowCandidate(eye, targetMm, volumes, distanceMm);
+				if (score > bestScore) {
+					bestScore = score;
+					best = Object.freeze({
+						targetMm,
+						yawDegrees,
+						pitchDegrees,
+						distanceMm,
+					});
+				}
+				if (score >= 1_000_000 && best !== null) return best;
+				const inside = volumes.some((volume) => volumeContains(volume, eye));
+				if (!inside) break;
+				distanceMm = Math.min(
+					FOLLOW_MAX_BACKUP_MM,
+					distanceMm + (compact ? 2_400 : 1_600),
+				);
 			}
-			if (score >= 1_000_000 && best !== null) return best;
-			const inside = volumes.some((volume) => volumeContains(volume, eye));
-			if (!inside) break;
-			distanceMm = Math.min(
-				FOLLOW_MAX_BACKUP_MM,
-				distanceMm + (compact ? 2_400 : 1_600),
-			);
 		}
 	}
 	return (

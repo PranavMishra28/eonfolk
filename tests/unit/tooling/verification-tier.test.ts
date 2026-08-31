@@ -35,6 +35,12 @@ describe("V1 CI hardening", () => {
 		expect(packageManifest.scripts["test:property:focused"]).toContain(
 			"tests/property/persistence/generated-civilization.property.test.ts",
 		);
+		expect(packageManifest.scripts["test:unit"]).toContain(
+			"--exclude **/*.deep.test.ts",
+		);
+		expect(packageManifest.scripts["test:year-cognition"]).toContain(
+			"year-horizon.deep.test.ts",
+		);
 		expect(packageManifest.scripts["verify:fast"]).toContain(
 			"pnpm test:property:focused",
 		);
@@ -154,7 +160,7 @@ describe("V1 CI hardening", () => {
 
 	it("keeps manual evidence lanes in CI and the DEEP roster exact", () => {
 		const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
-		expect(verificationStepsForTier("deep")).toHaveLength(32);
+		expect(verificationStepsForTier("deep")).toHaveLength(33);
 		expect(workflow).toContain("workflow_dispatch:");
 		expect(workflow).toContain("evidence_purpose:");
 		expect(workflow).toContain("target-mac-intermediate");

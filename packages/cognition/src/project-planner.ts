@@ -1,7 +1,7 @@
 import type { ProjectState, StandingPlan } from "../../protocol/src/index.js";
 import {
-	planRoutine,
 	type PlanningAffordance,
+	planRoutine,
 	type VisiblePlanningRecord,
 } from "./routine-planner.js";
 
@@ -13,6 +13,65 @@ export interface VisibleProjectPlanningContext {
 	readonly visibleRecords: readonly VisiblePlanningRecord[];
 	readonly legalAffordances: readonly PlanningAffordance[];
 	readonly commitmentId: string | null;
+}
+
+export const CITIZEN_ORIGINATED_PROJECT_KINDS = Object.freeze([
+	"water-reserve",
+	"grain-reserve",
+	"path-upkeep",
+] as const);
+
+export type CitizenOriginatedProjectKind =
+	(typeof CITIZEN_ORIGINATED_PROJECT_KINDS)[number];
+
+export interface CitizenProjectOrigination {
+	readonly projectId: string;
+	readonly projectKind: CitizenOriginatedProjectKind;
+	readonly projectName: CitizenOriginatedProjectKind;
+	readonly settlementId: string;
+	readonly siteId: string;
+	readonly evidenceRecordIds: readonly string[];
+	readonly sourceGoalType: string;
+}
+
+function projectKindFromNeedRecord(
+	recordId: string,
+): CitizenOriginatedProjectKind | null {
+	return (
+		CITIZEN_ORIGINATED_PROJECT_KINDS.find((kind) => recordId.includes(kind)) ??
+		null
+	);
+}
+
+/**
+ * Maps an inspectable standing-plan goal plus a recorded need onto one typed
+ * project. Returns null when the pair is absent so titles cannot be invented.
+ */
+export function originateProjectFromStandingPlan(input: {
+	readonly citizenId: string;
+	readonly goalType: string;
+	readonly settlementId: string;
+	readonly siteId: string;
+	readonly visibleNeedRecordId: string | null;
+}): CitizenProjectOrigination | null {
+	if (
+		input.goalType !== "routine:transport" ||
+		input.visibleNeedRecordId === null ||
+		input.settlementId.length === 0 ||
+		input.siteId.length === 0
+	)
+		return null;
+	const projectKind = projectKindFromNeedRecord(input.visibleNeedRecordId);
+	if (projectKind === null) return null;
+	return {
+		projectId: `project-${input.citizenId}-${projectKind}`,
+		projectKind,
+		projectName: projectKind,
+		settlementId: input.settlementId,
+		siteId: input.siteId,
+		evidenceRecordIds: [input.visibleNeedRecordId],
+		sourceGoalType: input.goalType,
+	};
 }
 
 function activeMilestone(project: ProjectState) {

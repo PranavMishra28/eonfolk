@@ -4,7 +4,7 @@ import { EonfolkMark } from "./components/EonfolkMark";
 import informationSurfaceStylesheet from "./information-surface.css?url";
 import type { ResearchEvidenceStatus } from "./research-evidence";
 
-type InformationRoute = "research" | "developer";
+type InformationRoute = "research" | "developer" | "about" | "license";
 
 const developerContent = {
 	eyebrow: "DEVELOPER SURFACE",
@@ -36,7 +36,11 @@ export function InformationSurface({
 		document.title =
 			route === "research"
 				? "EONFOLK — Research evidence"
-				: "EONFOLK — Developer surface";
+				: route === "developer"
+					? "EONFOLK — Developer surface"
+					: route === "about"
+						? "EONFOLK — About"
+						: "EONFOLK — License";
 	}, [route]);
 	return (
 		<main className="v1-information" data-information-route={route}>
@@ -60,10 +64,75 @@ export function InformationSurface({
 					>
 						Developer
 					</a>
+					<a
+						aria-current={route === "about" ? "page" : undefined}
+						href="/about"
+					>
+						About
+					</a>
+					<a
+						aria-current={route === "license" ? "page" : undefined}
+						href="/license"
+					>
+						License
+					</a>
 				</div>
 			</nav>
 			{route === "research" ? (
 				<ResearchEvidence />
+			) : route === "about" ? (
+				<>
+					<header>
+						<p className="v1-kicker">ABOUT</p>
+						<h1>A local town that remembers you.</h1>
+						<p>
+							EONFOLK is a free, local-only settlement. Dawnmere lives in this
+							browser. There is no account and no cloud. Closing the tab stops
+							the clock unless you start a local world authority with{" "}
+							<code>pnpm world:authority</code> and this browser can reach it.
+							If both this browser and that process have a town, they are not
+							merged until you choose. If that process was not running, you
+							still choose whether up to 7 waited days pass.
+						</p>
+					</header>
+					<section className="v1-information-grid" aria-label="About EONFOLK">
+						<article>
+							<h2>What you do</h2>
+							<p>
+								Follow Mara Vale, offer rare counsel she can refuse, and read a
+								Chronicle that separates fact from belief.
+							</p>
+						</article>
+						<article>
+							<h2>What stays local</h2>
+							<p>
+								Saves, feedback, and optional local-model choice never leave
+								this machine. Apache-2.0. See License.
+							</p>
+						</article>
+					</section>
+				</>
+			) : route === "license" ? (
+				<>
+					<header>
+						<p className="v1-kicker">LICENSE</p>
+						<h1>Apache License 2.0</h1>
+						<p>
+							EONFOLK is licensed under the Apache License, Version 2.0. The
+							full text lives in the repository LICENSE file.
+						</p>
+					</header>
+					<section className="v1-information-grid" aria-label="License">
+						<article>
+							<h2>Use</h2>
+							<p>
+								You may use, reproduce, and distribute the work under the
+								Apache-2.0 terms. No trademark or deployment claim is granted by
+								this page.
+							</p>
+						</article>
+					</section>
+				</>
 			) : (
 				<>
 					<header>

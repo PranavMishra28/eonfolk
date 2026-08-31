@@ -4,6 +4,7 @@ import {
 	advanceStandingPlan,
 	assertStandingPlan,
 	interruptStandingPlan,
+	originateProjectFromStandingPlan,
 	type PlanningAffordance,
 	planProjectWork,
 	planRoutine,
@@ -315,5 +316,94 @@ describe("bounded routine and project planning", () => {
 		expect(() => assertStandingPlan(invalid)).toThrow(
 			/active plan requires exactly one active step/u,
 		);
+	});
+});
+
+describe("citizen project origination from standing plan", () => {
+	it("names a water-reserve project from a transport plan and water need", () => {
+		const originated = originateProjectFromStandingPlan({
+			citizenId: "citizen-06",
+			goalType: "routine:transport",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			visibleNeedRecordId: "memory:citizen-06:water-reserve",
+		});
+		expect(originated).toEqual({
+			projectId: "project-citizen-06-water-reserve",
+			projectKind: "water-reserve",
+			projectName: "water-reserve",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			evidenceRecordIds: ["memory:citizen-06:water-reserve"],
+			sourceGoalType: "routine:transport",
+		});
+	});
+
+	it("names a grain-reserve project from a transport plan and grain need", () => {
+		const originated = originateProjectFromStandingPlan({
+			citizenId: "citizen-05",
+			goalType: "routine:transport",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			visibleNeedRecordId: "memory:citizen-05:grain-reserve",
+		});
+		expect(originated).toEqual({
+			projectId: "project-citizen-05-grain-reserve",
+			projectKind: "grain-reserve",
+			projectName: "grain-reserve",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			evidenceRecordIds: ["memory:citizen-05:grain-reserve"],
+			sourceGoalType: "routine:transport",
+		});
+	});
+
+	it("names a path-upkeep project from a timber transport plan and path need", () => {
+		const originated = originateProjectFromStandingPlan({
+			citizenId: "citizen-07",
+			goalType: "routine:transport",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-storeyard",
+			visibleNeedRecordId: "memory:citizen-07:path-upkeep",
+		});
+		expect(originated).toEqual({
+			projectId: "project-citizen-07-path-upkeep",
+			projectKind: "path-upkeep",
+			projectName: "path-upkeep",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-storeyard",
+			evidenceRecordIds: ["memory:citizen-07:path-upkeep"],
+			sourceGoalType: "routine:transport",
+		});
+	});
+
+	it("refuses a title when the standing plan or water need is missing", () => {
+		expect(
+			originateProjectFromStandingPlan({
+				citizenId: "citizen-06",
+				goalType: "routine:produce",
+				settlementId: "settlement-dawnmere",
+				siteId: "site-work",
+				visibleNeedRecordId: "memory:citizen-06:water-reserve",
+			}),
+		).toBeNull();
+		expect(
+			originateProjectFromStandingPlan({
+				citizenId: "citizen-06",
+				goalType: "routine:transport",
+				settlementId: "settlement-dawnmere",
+				siteId: "site-work",
+				visibleNeedRecordId: null,
+			}),
+		).toBeNull();
+		expect(
+			originateProjectFromStandingPlan({
+				citizenId: "citizen-06",
+				goalType: "routine:transport",
+				settlementId: "settlement-dawnmere",
+				siteId: "site-work",
+				visibleNeedRecordId: "memory:citizen-06:random-title",
+			}),
+		).toBeNull();
 	});
 });

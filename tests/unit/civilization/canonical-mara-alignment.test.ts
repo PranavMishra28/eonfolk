@@ -30,8 +30,8 @@ async function releaseGenesisWorld() {
 describe("canonical Mara alignment", () => {
 	it("keeps Mara counsel-capable in the primary settlement while another citizen founds the second", async () => {
 		const world = await releaseGenesisWorld();
-		const first = await runCivilizationExperiment({ world, horizonDays: 365 });
-		const replay = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const first = await runCivilizationExperiment({ world, horizonDays: 90 });
+		const replay = await runCivilizationExperiment({ world, horizonDays: 90 });
 		const originSettlementId = first.seedConditions.originSettlementId;
 		const mara = first.state.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
 		const founding = first.state.foundings["founding-second-settlement"];

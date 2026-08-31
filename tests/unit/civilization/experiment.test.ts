@@ -6,11 +6,14 @@ import {
 } from "../../../apps/web/src/v1-genesis-runtime.js";
 import {
 	assertCivilizationInvariants,
+	BULK_OPENING_DECISION_HORIZON_DAYS,
+	bulkOpeningDecisionCount,
+	continueCivilizationExperimentDay,
 	deriveCivilizationSeedConditions,
+	FAST_OPENING_DECISION_HORIZON_DAYS,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
-	runCivilizationExperimentMatrix,
 } from "../../../packages/civilization/src/index.js";
 import { replayCivilizationSchedulerDecisions } from "../../../packages/cognition/src/index.js";
 import {
@@ -28,6 +31,12 @@ import {
 const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 const STAGNATION_SEED = "0e".padStart(64, "0");
+const FAST_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(
+	FAST_OPENING_DECISION_HORIZON_DAYS,
+);
+const THIRTY_DAY_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(30);
+/** Odd day inside the Standard Brain prefix where idle related residents pair. */
+const THINKING_CONVERSATION_DAY = 5;
 
 async function generatedWorld(seedHex: string, releaseId: string) {
 	return generateWorld({
@@ -46,7 +55,7 @@ describe("deterministic civilization experiment", () => {
 			worldId: V1_GENESIS_WORLD_ID,
 			treatmentId: "standard-brain",
 		});
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({ world, horizonDays: 30 });
 		const carrier = run.activities.find(
 			(activity) => activity.location.kind === "route",
 		);
@@ -129,10 +138,16 @@ describe("deterministic civilization experiment", () => {
 		expect(Object.isFrozen(evolved.settlements)).toBe(true);
 	});
 
-	it("replays a 365-day physical founding byte-for-byte with versioned hash chains", async () => {
+	it("replays a 90-day physical founding byte-for-byte with versioned hash chains", async () => {
 		const world = await generatedWorld(PROGRESSION_SEED, "civilization-replay");
-		const first = await runCivilizationExperiment({ world, horizonDays: 365 });
-		const second = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const first = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
+		const second = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
 
 		expect(jcs(second)).toBe(jcs(first));
 		expect({
@@ -148,10 +163,14 @@ describe("deterministic civilization experiment", () => {
 			schemaVersion: "eonfolk-civilization-experiment-v9",
 			stepVersions: ["eonfolk-civilization-experiment-step-v9"],
 		});
-		expect(first.steps).toHaveLength(365);
+		expect(first.steps).toHaveLength(FAST_OPENING_DECISION_HORIZON_DAYS);
 		expect(first.steps[0]?.fromSimulationTime).toBe(0);
-		expect(first.steps.at(-1)?.toSimulationTime).toBe(365 * 86_400);
-		expect(new Set(first.steps.map((step) => step.stepHash))).toHaveLength(365);
+		expect(first.steps.at(-1)?.toSimulationTime).toBe(
+			FAST_OPENING_DECISION_HORIZON_DAYS * 86_400,
+		);
+		expect(new Set(first.steps.map((step) => step.stepHash))).toHaveLength(
+			FAST_OPENING_DECISION_HORIZON_DAYS,
+		);
 		expect(first.finalStateHash).toBe(first.steps.at(-1)?.postStateHash);
 		expect(first.events.map((event) => event.kind)).toEqual([
 			"project-stalled",
@@ -163,6 +182,15 @@ describe("deterministic civilization experiment", () => {
 			"migration-arrived",
 			"founding-viable",
 			"settlement-materialized",
+			"project-originated",
+			"project-originated",
+			"project-originated",
+			"project-approved",
+			"project-completed",
+			"project-approved",
+			"project-completed",
+			"project-approved",
+			"project-completed",
 		]);
 		for (const [index, event] of first.events.entries()) {
 			expect(event.eventIndex).toBe(index);
@@ -189,7 +217,7 @@ describe("deterministic civilization experiment", () => {
 				expect(step.preStateHash).toBe(first.steps[index - 1]?.postStateHash);
 		}
 		expect(first.finalEventHash).toBe(first.events.at(-1)?.eventHash);
-		expect(first.cognitionDecisions).toHaveLength(24);
+		expect(first.cognitionDecisions).toHaveLength(FAST_OPENING_DECISION_COUNT);
 		expect(
 			new Set(first.cognitionDecisions.map(({ actorId }) => actorId)),
 		).toHaveLength(8);
@@ -224,15 +252,29 @@ describe("deterministic civilization experiment", () => {
 			replayCivilizationSchedulerDecisions(first.cognitionDecisions),
 		).toEqual(first.cognitionDecisions.map(({ routine }) => routine));
 		expect(first.metrics.modelInvocations).toBe(0);
-		expect(first.metrics.standardBrainDecisionCount).toBe(24);
+		expect(first.metrics.standardBrainDecisionCount).toBe(
+			FAST_OPENING_DECISION_COUNT,
+		);
 		expect(first.metrics.standingPlanTransitionCount).toBeGreaterThan(8);
-		expect(first.metrics.memoryRetrievedDecisionCount).toBe(3);
+		expect(first.metrics.memoryRetrievedDecisionCount).toBeGreaterThanOrEqual(
+			3,
+		);
 		expect(first.metrics.outcome).toBe("progression");
 		expect(first.metrics.viableFoundings).toBe(1);
 		expect(first.metrics.materializedSettlements).toBe(1);
 		expect(first.state.projects["project-expedition-kit"]?.state).toBe(
 			"completed",
 		);
+		expect(
+			first.state.projects["project-citizen-06-water-reserve"]?.state,
+		).toBe("completed");
+		expect(
+			first.state.projects["project-citizen-05-grain-reserve"]?.state,
+		).toBe("completed");
+		expect(first.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
+		expect(first.metrics.completedProjects).toBe(4);
 		expect(first.state.migrations["migration-founding-party"]?.state).toBe(
 			"arrived",
 		);
@@ -255,7 +297,7 @@ describe("deterministic civilization experiment", () => {
 		expect(first.metrics.completedProductionRuns).toBeGreaterThan(0);
 		expect(first.metrics.consumedNeedUnits).toBeGreaterThan(0);
 		expect(first.metrics.transportedResourceUnits).toBeGreaterThan(0);
-		expect(first.metrics.groundedNeedOutcomes).toBeGreaterThanOrEqual(8 * 364);
+		expect(first.metrics.groundedNeedOutcomes).toBeGreaterThanOrEqual(8 * 89);
 		expect(first.metrics.agreementGatedInstitutionProjects).toBe(1);
 		expect(first.metrics.averagePressureBasisPointsByKind).toEqual({
 			food: expect.any(Number),
@@ -281,60 +323,7 @@ describe("deterministic civilization experiment", () => {
 						activity.canonicalAction.simulationEnd,
 			),
 		).toBe(true);
-		const routedCarrier = first.activities.find(
-			(activity) => activity.location.kind === "route",
-		);
-		expect(routedCarrier).toBeDefined();
-		if (
-			routedCarrier === undefined ||
-			routedCarrier.location.kind !== "route" ||
-			routedCarrier.routine.route === null
-		)
-			throw new Error("the release genesis lacks a grounded route carrier");
-		const route = first.world.routes[routedCarrier.location.routeId]?.value;
-		expect(route).toBeDefined();
-		expect(routedCarrier.routine.kind).toBe("transport");
-		expect(routedCarrier.canonicalAction).toMatchObject({
-			kind: "carry",
-			status: "in-progress",
-			originPlaceId: route?.fromSiteId,
-			destinationPlaceId: route?.toSiteId,
-		});
-		expect(routedCarrier.carriedProp).toBe("grain");
-		expect(routedCarrier.routine.route).toMatchObject({
-			routeId: route?.routeId,
-			fromSiteId: route?.fromSiteId,
-			toSiteId: route?.toSiteId,
-		});
-		expect(first.state.citizens[routedCarrier.citizenId]?.siteId).toBe(
-			route?.fromSiteId,
-		);
-		expect(routedCarrier.location.progressBasisPoints).toBeGreaterThanOrEqual(
-			1,
-		);
-		expect(routedCarrier.location.progressBasisPoints).toBeLessThanOrEqual(
-			9_999,
-		);
-		expect(
-			second.activities.find(
-				(activity) => activity.citizenId === routedCarrier.citizenId,
-			)?.location,
-		).toEqual(routedCarrier.location);
-
-		const mismatchedCarrier = first.activities.find(
-			(activity) =>
-				activity.routine.route !== null &&
-				first.state.citizens[activity.citizenId]?.siteId !==
-					activity.routine.route.fromSiteId,
-		);
-		expect(mismatchedCarrier).toBeDefined();
-		expect(mismatchedCarrier?.location.kind).toBe("interaction-slot");
-		expect(mismatchedCarrier?.canonicalAction.originPlaceId).toBe(
-			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
-		);
-		expect(mismatchedCarrier?.canonicalAction.destinationPlaceId).toBe(
-			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
-		);
+		expect(jcs(second.activities)).toBe(jcs(first.activities));
 		expect(first.state.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID]).toMatchObject(
 			{
 				name: "Mara Vale",
@@ -436,17 +425,29 @@ describe("deterministic civilization experiment", () => {
 			STAGNATION_SEED,
 			"civilization-stagnation",
 		);
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({ world, horizonDays: 90 });
 
 		expect(run.seedConditions.expansionEligible).toBe(false);
-		expect(run.events.map((event) => event.kind)).toEqual([
-			"expansion-deferred",
-		]);
+		expect(
+			run.events.some((event) => event.kind === "expansion-deferred"),
+		).toBe(true);
+		expect(
+			run.events.filter((event) => event.kind === "project-originated").length,
+		).toBeGreaterThanOrEqual(3);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
 			"destination-suitability-below-threshold",
 		);
-		expect(run.metrics.completedProjects).toBe(0);
+		expect(run.metrics.completedProjects).toBe(3);
+		expect(run.state.projects["project-citizen-06-water-reserve"]?.state).toBe(
+			"completed",
+		);
+		expect(run.state.projects["project-citizen-05-grain-reserve"]?.state).toBe(
+			"completed",
+		);
+		expect(run.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
 		expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
 		expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
 		expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
@@ -461,12 +462,20 @@ describe("deterministic civilization experiment", () => {
 		expect(run.metrics.invariantIssues).toEqual([]);
 	});
 
-	it("schedules one relationship-grounded mutual conversation that presentation cannot invent", async () => {
+	it("schedules one relationship-grounded mutual conversation on a thinking day", async () => {
+		expect(THINKING_CONVERSATION_DAY).toBeLessThanOrEqual(
+			BULK_OPENING_DECISION_HORIZON_DAYS,
+		);
+		expect(THINKING_CONVERSATION_DAY % 2).toBe(1);
 		const world = await generatedWorld(
 			PROGRESSION_SEED,
 			"civilization-canonical-social-interaction",
 		);
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({
+			world,
+			horizonDays: THINKING_CONVERSATION_DAY,
+		});
+		expect(run.cognitionDecisions).toHaveLength(THINKING_CONVERSATION_DAY * 8);
 		const social = run.activities.filter((activity) =>
 			["talk", "listen", "exchange"].includes(activity.canonicalAction.kind),
 		);
@@ -604,68 +613,548 @@ describe("deterministic civilization experiment", () => {
 		if (talking.length === 2) expect(thirdDayTalk).toEqual([]);
 	});
 
-	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {
-		const worlds = [
-			await generatedWorld(PROGRESSION_SEED, "civilization-matrix-progress"),
-			await generatedWorld(STAGNATION_SEED, "civilization-matrix-stagnant"),
-		];
-		const first = await runCivilizationExperimentMatrix({ worlds });
-		const reversed = await runCivilizationExperimentMatrix({
-			worlds: [...worlds].reverse(),
+	it("copies conversation testimony and lets a later opening decision cite it", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-conversation-epistemics",
+		);
+		const prelude = await runCivilizationExperiment({
+			world,
+			horizonDays: THINKING_CONVERSATION_DAY,
 		});
-		expect(first.matrixHash).toBe(reversed.matrixHash);
-		expect(first.runs).toHaveLength(6);
-		expect(new Set(first.runs.map((run) => run.horizonDays))).toEqual(
-			new Set([30, 90, 365]),
+		expect(prelude.cognitionDecisions).toHaveLength(
+			THINKING_CONVERSATION_DAY * 8,
 		);
+		expect(
+			prelude.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		const heard = Object.values(prelude.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter((record) => record.kind === "message-claim"),
+		);
+		expect(heard.length).toBeGreaterThan(0);
+		expect(heard.some((record) => /told/u.test(record.proposition))).toBe(true);
+		const continued = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: prelude.world,
+			state: prelude.state,
+			completedDay: THINKING_CONVERSATION_DAY,
+			skipOpeningDecisions: false,
+		});
+		const laterCitation = continued.cognitionDecisions.find(
+			(decision) =>
+				decision.selectedActionId.startsWith("heed:") &&
+				decision.retrievedMemoryIds.some((id) => id.includes(":heard:")),
+		);
+		expect(laterCitation).toBeDefined();
+		expect(
+			laterCitation?.readVisibleRecordIds.some((id) => id.includes("heard")),
+		).toBe(true);
+		expect(laterCitation?.planTransition).toBe("choice-replanned");
+	});
 
-		const progressionRuns = first.runs
-			.filter((run) => run.seedConditions.expansionEligible)
-			.sort((left, right) => left.horizonDays - right.horizonDays);
-		const stagnationRuns = first.runs.filter(
-			(run) => !run.seedConditions.expansionEligible,
+	it("lets a later live day contain a citizen-originated project distinct from the seeded expedition", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-citizen-originated-project",
 		);
-		expect(progressionRuns.map((run) => run.metrics.outcome)).toEqual([
-			"progression",
-			"progression",
-			"progression",
-		]);
-		expect(progressionRuns[0]?.metrics.plannedMigrations).toBe(0);
-		expect(progressionRuns[0]?.metrics.viableFoundings).toBe(1);
-		expect(progressionRuns[0]?.metrics.materializedSettlements).toBe(1);
-		expect(progressionRuns[1]?.metrics.viableFoundings).toBe(1);
-		expect(progressionRuns[2]?.metrics.viableFoundings).toBe(1);
+		const prelude = await runCivilizationExperiment({ world, horizonDays: 5 });
+		expect(prelude.state.projects["project-expedition-kit"]).toBeDefined();
 		expect(
-			stagnationRuns.every((run) => run.metrics.outcome === "stagnation"),
+			Object.values(prelude.state.projects).some(
+				(project) => project.sponsor.kind === "citizen",
+			),
+		).toBe(false);
+		const continued = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: prelude.world,
+			state: prelude.state,
+			completedDay: 5,
+			skipOpeningDecisions: false,
+		});
+		const waterReserve =
+			continued.state.projects["project-citizen-06-water-reserve"];
+		const grainReserve =
+			continued.state.projects["project-citizen-05-grain-reserve"];
+		const pathUpkeep =
+			continued.state.projects["project-citizen-07-path-upkeep"];
+		if (
+			waterReserve === undefined ||
+			grainReserve === undefined ||
+			pathUpkeep === undefined
+		)
+			throw new Error("later day lacks citizen-originated projects");
+		expect(waterReserve).toMatchObject({
+			projectId: "project-citizen-06-water-reserve",
+			kind: "water-reserve",
+			name: "water-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+		});
+		expect(grainReserve).toMatchObject({
+			projectId: "project-citizen-05-grain-reserve",
+			kind: "grain-reserve",
+			name: "grain-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-05" },
+		});
+		expect(pathUpkeep).toMatchObject({
+			projectId: "project-citizen-07-path-upkeep",
+			kind: "path-upkeep",
+			name: "path-upkeep",
+			sponsor: { kind: "citizen", citizenId: "citizen-07" },
+		});
+		expect(waterReserve?.projectId).not.toBe("project-expedition-kit");
+		expect(grainReserve?.projectId).not.toBe("project-expedition-kit");
+		expect(pathUpkeep?.projectId).not.toBe("project-expedition-kit");
+		expect(
+			continued.state.minds["citizen-06"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.state.minds["citizen-05"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.state.minds["citizen-07"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-06-water-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-06:water-reserve",
+					),
+			),
 		).toBe(true);
 		expect(
-			stagnationRuns.every((run) => run.metrics.viableFoundings === 0),
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-05-grain-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-05:grain-reserve",
+					),
+			),
 		).toBe(true);
 		expect(
-			stagnationRuns.every((run) => run.metrics.materializedSettlements === 0),
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-07-path-upkeep" &&
+					decision.retrievedMemoryIds.includes("memory:citizen-07:path-upkeep"),
+			),
 		).toBe(true);
-		for (const run of first.runs) {
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === waterReserve?.projectId,
+			),
+		).toBe(true);
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === grainReserve?.projectId,
+			),
+		).toBe(true);
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === pathUpkeep?.projectId,
+			),
+		).toBe(true);
+		const play = projectGeneratedCivilizationSpatial({
+			world: continued.world,
+			civilization: continued.state,
+			checkpoint: {
+				schemaVersion: "eonfolk-civilization-experiment-v9",
+				runnerVersion: "eonfolk-civilization-runner-v9",
+				worldIdentityHash: continued.world.identity.identityHash,
+				horizonDays: 6,
+				finalStateHash: continued.finalStateHash,
+				events: continued.events,
+				metrics: {
+					simulationTime: continued.state.simulationTime,
+					modelInvocations: 0,
+				},
+			},
+			settlementId: waterReserve.settlementId,
+			activities: continued.activities,
+			presentationTick: 0,
+		});
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === waterReserve?.projectId &&
+					project.name === "Water reserve",
+			),
+		).toBe(true);
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === grainReserve?.projectId &&
+					project.name === "Grain reserve",
+			),
+		).toBe(true);
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === pathUpkeep?.projectId &&
+					project.name === "Path upkeep",
+			),
+		).toBe(true);
+	});
+
+	it("originates the water-reserve during a 30-day bulk run that actually opened cognition", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-bulk-opening-horizon",
+		);
+		const thirty = await runCivilizationExperiment({
+			world,
+			horizonDays: 30,
+		});
+		expect(thirty.metrics.standardBrainDecisionCount).toBe(
+			THIRTY_DAY_OPENING_DECISION_COUNT,
+		);
+		expect(thirty.cognitionDecisions).toHaveLength(
+			THIRTY_DAY_OPENING_DECISION_COUNT,
+		);
+		expect(
+			thirty.cognitionDecisions.every(
+				({ modelInvocations }) => modelInvocations === 0,
+			),
+		).toBe(true);
+		expect(
+			thirty.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		const heard = Object.values(thirty.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter((record) => record.kind === "message-claim"),
+		);
+		expect(heard.length).toBeGreaterThan(0);
+		expect(
+			thirty.state.projects["project-citizen-06-water-reserve"],
+		).toMatchObject({
+			projectId: "project-citizen-06-water-reserve",
+			kind: "water-reserve",
+			name: "water-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+			state: "completed",
+		});
+		expect(
+			thirty.state.projects["project-citizen-05-grain-reserve"],
+		).toMatchObject({
+			projectId: "project-citizen-05-grain-reserve",
+			kind: "grain-reserve",
+			name: "grain-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-05" },
+			state: "completed",
+		});
+		expect(
+			thirty.state.projects["project-citizen-07-path-upkeep"],
+		).toMatchObject({
+			projectId: "project-citizen-07-path-upkeep",
+			kind: "path-upkeep",
+			name: "path-upkeep",
+			sponsor: { kind: "citizen", citizenId: "citizen-07" },
+			state: "completed",
+		});
+		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-06-water-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-06:water-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-05-grain-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-05:grain-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-07-path-upkeep" &&
+					decision.retrievedMemoryIds.includes("memory:citizen-07:path-upkeep"),
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === "project-citizen-06-water-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === "project-citizen-06-water-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === "project-citizen-05-grain-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === "project-citizen-05-grain-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === "project-citizen-07-path-upkeep",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === "project-citizen-07-path-upkeep",
+			),
+		).toBe(true);
+		const ninety = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
+		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+	});
+
+	it("runs real Standard Brain openings every day through day 90 with a later social consequence", async () => {
+		expect(BULK_OPENING_DECISION_HORIZON_DAYS).toBe(365);
+		expect(FAST_OPENING_DECISION_HORIZON_DAYS).toBe(90);
+		expect(bulkOpeningDecisionCount(365)).toBe(365 * 8);
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-ninety-day-opening-horizon",
+		);
+		const thirty = await runCivilizationExperiment({
+			world,
+			horizonDays: 30,
+		});
+		const ninety = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
+		expect(ninety.metrics.standardBrainDecisionCount).toBe(
+			FAST_OPENING_DECISION_COUNT,
+		);
+		expect(ninety.cognitionDecisions).toHaveLength(FAST_OPENING_DECISION_COUNT);
+		expect(
+			ninety.cognitionDecisions.every(
+				({ modelInvocations }) => modelInvocations === 0,
+			),
+		).toBe(true);
+		const laterOpenings = ninety.cognitionDecisions.slice(
+			thirty.cognitionDecisions.length,
+		);
+		expect(laterOpenings).toHaveLength(
+			FAST_OPENING_DECISION_COUNT - THIRTY_DAY_OPENING_DECISION_COUNT,
+		);
+		expect(
+			laterOpenings.some(
+				(decision) =>
+					decision.retrievedMemoryIds.some(
+						(id) => id.includes(":heard:") || id.includes(":water-reserve"),
+					) || decision.selectedActionId.startsWith("heed:"),
+			),
+		).toBe(true);
+		expect(
+			laterOpenings.some(
+				(decision) =>
+					decision.planTransition === "choice-replanned" ||
+					decision.selectedActionId.startsWith("heed:"),
+			),
+		).toBe(true);
+		const lateHeard = Object.values(ninety.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter(
+				(record) =>
+					record.kind === "message-claim" &&
+					record.createdRevision > (thirty.state.revision ?? 0),
+			),
+		);
+		expect(lateHeard.length).toBeGreaterThan(0);
+		expect(
+			ninety.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		expect(
+			ninety.state.projects["project-citizen-06-water-reserve"]?.state,
+		).toBe("completed");
+		expect(
+			ninety.state.projects["project-citizen-05-grain-reserve"]?.state,
+		).toBe("completed");
+		expect(ninety.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+			"completed",
+		);
+		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+	});
+
+	it("reports deterministic 30/90-day multi-seed metrics and prefix identity", async () => {
+		const progressing = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-matrix-progress",
+		);
+		const stagnant = await generatedWorld(
+			STAGNATION_SEED,
+			"civilization-matrix-stagnant",
+		);
+		const thirty = await runCivilizationExperiment({
+			world: progressing,
+			horizonDays: 30,
+		});
+		const ninety = await runCivilizationExperiment({
+			world: progressing,
+			horizonDays: 90,
+		});
+		const stagnantNinety = await runCivilizationExperiment({
+			world: stagnant,
+			horizonDays: 90,
+		});
+		expect(thirty.metrics.outcome).toBe("progression");
+		expect(ninety.metrics.outcome).toBe("progression");
+		expect(stagnantNinety.metrics.outcome).toBe("stagnation");
+		expect(thirty.metrics.plannedMigrations).toBe(0);
+		expect(thirty.metrics.viableFoundings).toBe(1);
+		expect(ninety.metrics.viableFoundings).toBe(1);
+		expect(stagnantNinety.metrics.viableFoundings).toBe(0);
+		expect(stagnantNinety.metrics.materializedSettlements).toBe(0);
+		for (const run of [thirty, ninety, stagnantNinety]) {
 			expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
 			expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
 			expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
 			expect(run.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
 			expect(run.metrics.modelInvocations).toBe(0);
+			expect(run.metrics.standardBrainDecisionCount).toBe(
+				bulkOpeningDecisionCount(run.horizonDays),
+			);
 			expect(run.metrics.population).toBeLessThanOrEqual(8);
 			expect(run.metrics.invariantIssues).toEqual([]);
+			expect(
+				run.state.projects["project-citizen-06-water-reserve"]?.state,
+			).toBe("completed");
+			expect(
+				run.state.projects["project-citizen-05-grain-reserve"]?.state,
+			).toBe("completed");
+			expect(run.state.projects["project-citizen-07-path-upkeep"]?.state).toBe(
+				"completed",
+			);
 		}
-
-		const thirty = progressionRuns[0];
-		const year = progressionRuns[2];
-		if (thirty === undefined || year === undefined)
-			throw new Error("progression horizons are incomplete");
-		expect(thirty.finalStateHash).toBe(year.steps[29]?.postStateHash);
+		expect(thirty.finalStateHash).toBe(ninety.steps[29]?.postStateHash);
 		expect(thirty.steps.map((step) => step.stepHash)).toEqual(
-			year.steps.slice(0, 30).map((step) => step.stepHash),
+			ninety.steps.slice(0, 30).map((step) => step.stepHash),
 		);
 		expect(thirty.events.map((event) => event.eventHash)).toEqual(
-			year.events
+			ninety.events
 				.slice(0, thirty.events.length)
 				.map((event) => event.eventHash),
+		);
+		expect(ninety.metrics.standardBrainDecisionCount).toBe(
+			FAST_OPENING_DECISION_COUNT,
+		);
+	});
+
+	it("puts the forester in the storehouse on a thinking day", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-storehouse-occupancy",
+		);
+		const thinking = await runCivilizationExperiment({
+			world,
+			horizonDays: 1,
+		});
+		const storeyard = Object.values(thinking.world.sites)
+			.map((record) => record.value)
+			.find((site) => site.kind === "storage");
+		if (storeyard === undefined)
+			throw new Error("Dawnmere lacks a storeyard site");
+		expect(thinking.state.citizens["citizen-04"]?.siteId).toBe(
+			storeyard.siteId,
+		);
+		expect(
+			thinking.state.stocks["stock-store-standing-timber"]?.storageId,
+		).toBe("storage-origin-store");
+		expect(thinking.state.storages["storage-origin-store"]?.siteId).toBe(
+			storeyard.siteId,
+		);
+		const storeSlots = new Set(
+			Object.values(thinking.world.interactionSlots)
+				.map((record) => record.value)
+				.filter((slot) => slot.siteId === storeyard.siteId)
+				.map((slot) => slot.interactionSlotId),
+		);
+		const forester = thinking.activities.find(
+			(activity) =>
+				activity.citizenId === "citizen-04" &&
+				activity.location.kind === "interaction-slot" &&
+				storeSlots.has(activity.location.interactionSlotId),
+		);
+		expect(forester).toBeDefined();
+		expect(forester?.routine.kind).toBe("produce");
+		const play = projectGeneratedCivilizationSpatial({
+			world: thinking.world,
+			civilization: thinking.state,
+			checkpoint: {
+				schemaVersion: "eonfolk-civilization-experiment-v9",
+				runnerVersion: "eonfolk-civilization-runner-v9",
+				worldIdentityHash: thinking.world.identity.identityHash,
+				horizonDays: 1,
+				finalStateHash: thinking.finalStateHash,
+				events: thinking.events,
+				metrics: {
+					simulationTime: thinking.state.simulationTime,
+					modelInvocations: 0,
+				},
+			},
+			settlementId: thinking.seedConditions.originSettlementId,
+			activities: thinking.activities,
+			presentationTick: thinking.metrics.simulationTime * 30,
+		});
+		const storehouse = play.local.buildings.find((building) =>
+			building.buildingKind.toLowerCase().includes("storehouse"),
+		);
+		const storeSite = play.local.sites.find(
+			(site) => site.siteId === storeyard.siteId,
+		);
+		if (storehouse === undefined || storeSite === undefined)
+			throw new Error("Dawnmere lacks a storehouse site");
+		expect(storehouse.siteId).toBe(storeyard.siteId);
+		const occupant = play.spatial.actors.find(
+			(actor) => actor.citizenId === "citizen-04",
+		);
+		expect(occupant).toBeDefined();
+		if (occupant === undefined) throw new Error("forester actor is missing");
+		expect(occupant.positionMm.x).toBeGreaterThanOrEqual(
+			storeSite.bounds.minimum.xMillimeters,
+		);
+		expect(occupant.positionMm.x).toBeLessThanOrEqual(
+			storeSite.bounds.maximum.xMillimeters,
+		);
+		expect(occupant.positionMm.z).toBeGreaterThanOrEqual(
+			storeSite.bounds.minimum.yMillimeters,
+		);
+		expect(occupant.positionMm.z).toBeLessThanOrEqual(
+			storeSite.bounds.maximum.yMillimeters,
 		);
 	});
 

@@ -380,6 +380,34 @@ function activeAuthority(
 		.sort((left, right) => left.roleId.localeCompare(right.roleId))[0];
 }
 
+function readyMilestone(project: CivilizationState["projects"][string]) {
+	if (project === undefined) return undefined;
+	return project.milestones
+		.filter(
+			(candidate) =>
+				candidate.state === "ready" || candidate.state === "active",
+		)
+		.sort((left, right) =>
+			left.milestoneId.localeCompare(right.milestoneId),
+		)[0];
+}
+
+function stocksCoverMilestone(
+	stocks: readonly StockState[],
+	milestone: NonNullable<ReturnType<typeof readyMilestone>>,
+): boolean {
+	return milestone.resources.every(
+		(requirement) =>
+			stocks
+				.filter((stock) => stock.resourceTypeId === requirement.resourceTypeId)
+				.reduce(
+					(sum, stock) => sum + stock.quantity - stock.reservedQuantity,
+					0,
+				) >=
+			requirement.quantity - requirement.deliveredQuantity,
+	);
+}
+
 /** Legal collective work exists only when membership, authority, policy, and resources agree. */
 export function legalCollectiveProjectAffordances(
 	state: CivilizationState,
@@ -393,11 +421,45 @@ export function legalCollectiveProjectAffordances(
 		left.projectId.localeCompare(right.projectId),
 	)) {
 		if (
-			project.sponsor.kind !== "institution" ||
 			project.siteId === null ||
 			["completed", "failed", "abandoned"].includes(project.state)
 		)
 			continue;
+		const milestone = readyMilestone(project);
+		if (milestone === undefined) continue;
+		if (project.sponsor.kind === "citizen") {
+			if (
+				project.sponsor.citizenId !== actorCitizenId &&
+				!project.participantCitizenIds.includes(actorCitizenId)
+			)
+				continue;
+			const owned = Object.values(state.stocks).filter(
+				(stock) =>
+					stock.owner.kind === "settlement" &&
+					stock.owner.settlementId === project.settlementId,
+			);
+			if (!stocksCoverMilestone(owned, milestone)) continue;
+			const council = Object.values(state.institutions)
+				.filter(
+					(institution) => institution.settlementId === project.settlementId,
+				)
+				.sort((left, right) =>
+					left.institutionId.localeCompare(right.institutionId),
+				)[0];
+			affordances.push({
+				actionId: `collective-work:${project.projectId}:${milestone.milestoneId}`,
+				actorCitizenId,
+				institutionId: council?.institutionId ?? project.sponsor.citizenId,
+				projectId: project.projectId,
+				milestoneId: milestone.milestoneId,
+				siteId: project.siteId,
+				authorityRoleId: "sponsor",
+				policyAgreementId: project.projectId,
+				evidenceSourceEventIds: [...project.sourceEventIds].sort(),
+			});
+			continue;
+		}
+		if (project.sponsor.kind !== "institution") continue;
 		const institution = state.institutions[project.sponsor.institutionId];
 		if (institution === undefined) continue;
 		const role = activeAuthority(institution, actorCitizenId);
@@ -415,33 +477,12 @@ export function legalCollectiveProjectAffordances(
 				left.agreementId.localeCompare(right.agreementId),
 			)[0];
 		if (policy === undefined) continue;
-		const milestone = project.milestones
-			.filter(
-				(candidate) =>
-					candidate.state === "ready" || candidate.state === "active",
-			)
-			.sort((left, right) =>
-				left.milestoneId.localeCompare(right.milestoneId),
-			)[0];
-		if (milestone === undefined) continue;
 		const owned = Object.values(state.stocks).filter(
 			(stock) =>
 				stock.owner.kind === "institution" &&
 				stock.owner.institutionId === institution.institutionId,
 		);
-		const resourcesAvailable = milestone.resources.every(
-			(requirement) =>
-				owned
-					.filter(
-						(stock) => stock.resourceTypeId === requirement.resourceTypeId,
-					)
-					.reduce(
-						(sum, stock) => sum + stock.quantity - stock.reservedQuantity,
-						0,
-					) >=
-				requirement.quantity - requirement.deliveredQuantity,
-		);
-		if (!resourcesAvailable) continue;
+		if (!stocksCoverMilestone(owned, milestone)) continue;
 		affordances.push({
 			actionId: `collective-work:${project.projectId}:${milestone.milestoneId}`,
 			actorCitizenId,
