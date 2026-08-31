@@ -1,4 +1,5 @@
 import {
+	type CitizenProjectOrigination,
 	type CivilizationRoutineOption,
 	type CivilizationRoutineResolution,
 	type CivilizationSchedulerDecisionEvidence,
@@ -7,6 +8,7 @@ import {
 	createMemoryStore,
 	decideCivilizationSchedulerRoutine,
 	MEMORY_SCHEMA_VERSION,
+	originateProjectFromStandingPlan,
 	type PlanningAffordance,
 	planRoutine,
 	remember,
@@ -92,6 +94,8 @@ const POPULATION = 8;
 export const RELEASE_GENESIS_MARA_CITIZEN_ID = "citizen-01" as const;
 export const RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID = "citizen-04" as const;
 const PROJECT_TIMBER = 6;
+const PROJECT_WATER = 8;
+const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
 const MIGRATION_GRAIN = 18;
 const MIGRATION_WATER = 18;
 const MIGRATION_TIMBER = 8;
@@ -182,6 +186,7 @@ const CITIZEN_IDENTITIES = Object.freeze([
 export type CivilizationExperimentEventKind =
 	| "project-approved"
 	| "project-completed"
+	| "project-originated"
 	| "project-stalled"
 	| "expansion-deferred"
 	| "migration-prepared"
@@ -636,6 +641,122 @@ function projectRecord(
 		failureReason: null,
 		sourceEventIds: [],
 	};
+}
+
+function citizenAlreadySponsorsProject(
+	state: CivilizationState,
+	citizenId: string,
+): boolean {
+	return Object.values(state.projects).some(
+		(project) =>
+			project.sponsor.kind === "citizen" &&
+			project.sponsor.citizenId === citizenId,
+	);
+}
+
+function citizenProjectOrigination(
+	state: CivilizationState,
+	policy: GeneralizedSchedulerPolicy,
+	mind: CivilizationSchedulerMindState,
+): CitizenProjectOrigination | null {
+	if (
+		state.simulationTime < CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME ||
+		citizenAlreadySponsorsProject(state, mind.actorMind.citizenId)
+	)
+		return null;
+	const citizen = state.citizens[mind.actorMind.citizenId];
+	const waterLane = policy.transportLanes.find(
+		(lane) =>
+			lane.carrierCitizenId === mind.actorMind.citizenId &&
+			state.stocks[lane.toStockId]?.resourceTypeId === "spring-water",
+	);
+	const waterNeedRecordId = `memory:${mind.actorMind.citizenId}:water-reserve`;
+	if (
+		citizen === undefined ||
+		waterLane === undefined ||
+		mind.memoryStore.records[waterNeedRecordId] === undefined
+	)
+		return null;
+	const destination = state.stocks[waterLane.toStockId];
+	const destinationStorage =
+		destination === undefined
+			? undefined
+			: state.storages[destination.storageId];
+	return originateProjectFromStandingPlan({
+		citizenId: mind.actorMind.citizenId,
+		goalType: mind.actorMind.standingPlan.goalType,
+		settlementId: citizen.settlementId,
+		siteId: destinationStorage?.siteId ?? citizen.siteId,
+		visibleNeedRecordId: waterNeedRecordId,
+	});
+}
+
+function registerCitizenOriginatedProject(
+	state: CivilizationState,
+	origination: CitizenProjectOrigination,
+	citizenId: string,
+): CivilizationState {
+	if (state.projects[origination.projectId] !== undefined) return state;
+	const storageId = `storage-${origination.projectId}`;
+	const owner = {
+		kind: "project" as const,
+		projectId: origination.projectId,
+	};
+	const next = registerProject(
+		state,
+		{
+			projectId: origination.projectId,
+			kind: origination.projectKind,
+			name: origination.projectName,
+			settlementId: origination.settlementId,
+			siteId: origination.siteId,
+			sponsor: { kind: "citizen", citizenId },
+			state: "proposed",
+			dependencyProjectIds: [],
+			milestones: [
+				{
+					milestoneId: `milestone-${origination.projectId}`,
+					name: `assemble-${origination.projectName}`,
+					dependencyMilestoneIds: [],
+					resources: [
+						{
+							resourceTypeId: "water",
+							quantity: PROJECT_WATER,
+							deliveredQuantity: 0,
+							consumedQuantity: 0,
+						},
+					],
+					labor: [
+						{
+							capabilityId: "haul",
+							requiredLaborSeconds: 3_600,
+							completedLaborSeconds: 0,
+						},
+					],
+					progressBasisPoints: 0,
+					state: "ready",
+				},
+			],
+			participantCitizenIds: [citizenId],
+			storageId,
+			startedAtSimulationTime: null,
+			endedAtSimulationTime: null,
+			failureReason: null,
+			sourceEventIds: [],
+		},
+		storage(storageId, origination.siteId, owner, ["water"]),
+	);
+	return registerStock(
+		next,
+		stock(
+			`stock-${origination.projectId}-water`,
+			storageId,
+			owner,
+			"water",
+			0,
+			next.simulationTime,
+		),
+	);
 }
 
 interface CivilizationBootstrap {
@@ -2030,6 +2151,38 @@ function cognitionOptions(
 			routine: { kind: "transport", subjectId: waterLane.laneId },
 		});
 	}
+	const origination = citizenProjectOrigination(state, policy, mind);
+	if (
+		origination !== null &&
+		state.projects[origination.projectId] === undefined
+	) {
+		options.push({
+			entry: {
+				actionId: `propose-project:${origination.projectId}`,
+				action: {
+					kind: "ProposeProject",
+					projectKind: origination.projectKind,
+					settlementId: origination.settlementId,
+					siteId: origination.siteId,
+				},
+				publicPreconditions: [
+					"their standing plan and a recorded water need are still visible",
+				],
+				publicStakes: [
+					"starts a water-reserve project from that plan, not a random title",
+				],
+				tags: ["need", "evidence"],
+				evidenceRecordIds: [...origination.evidenceRecordIds],
+				relationshipId: null,
+				risk: 0,
+				counselAffinity: "neutral",
+			},
+			routine:
+				waterLane === undefined
+					? standingRoutine
+					: { kind: "transport", subjectId: waterLane.laneId },
+		});
+	}
 	const heardClaim = mind.actorMind.records.find(
 		(record) => record.kind === "message-claim",
 	);
@@ -2437,6 +2590,30 @@ async function simulateCivilizationExperimentDay(input: {
 	if (opening !== null) {
 		cognitionRuntime = opening.runtime;
 		cognitionDecisions.push(...opening.evidence);
+		for (const evidence of opening.evidence) {
+			if (!evidence.selectedActionId.startsWith("propose-project:")) continue;
+			const mind = required(
+				cognitionRuntime.minds[evidence.actorId],
+				`scheduler mind ${evidence.actorId}`,
+			);
+			const origination = citizenProjectOrigination(
+				state,
+				schedulerPolicy,
+				mind,
+			);
+			if (origination === null) continue;
+			state = registerCitizenOriginatedProject(
+				state,
+				origination,
+				evidence.actorId,
+			);
+			await appendEvent("project-originated", {
+				projectId: origination.projectId,
+				sponsorCitizenId: evidence.actorId,
+				projectKind: origination.projectKind,
+				sourceGoalType: origination.sourceGoalType,
+			});
+		}
 	}
 	const scheduled = advanceGeneralizedScheduler(
 		state,

@@ -1,7 +1,7 @@
 import type { ProjectState, StandingPlan } from "../../protocol/src/index.js";
 import {
-	planRoutine,
 	type PlanningAffordance,
+	planRoutine,
 	type VisiblePlanningRecord,
 } from "./routine-planner.js";
 
@@ -13,6 +13,47 @@ export interface VisibleProjectPlanningContext {
 	readonly visibleRecords: readonly VisiblePlanningRecord[];
 	readonly legalAffordances: readonly PlanningAffordance[];
 	readonly commitmentId: string | null;
+}
+
+export interface CitizenProjectOrigination {
+	readonly projectId: string;
+	readonly projectKind: "water-reserve";
+	readonly projectName: "water-reserve";
+	readonly settlementId: string;
+	readonly siteId: string;
+	readonly evidenceRecordIds: readonly string[];
+	readonly sourceGoalType: string;
+}
+
+/**
+ * Maps an inspectable standing-plan goal plus a recorded water need onto one
+ * typed project. Returns null when the pair is absent so titles cannot be
+ * invented.
+ */
+export function originateProjectFromStandingPlan(input: {
+	readonly citizenId: string;
+	readonly goalType: string;
+	readonly settlementId: string;
+	readonly siteId: string;
+	readonly visibleNeedRecordId: string | null;
+}): CitizenProjectOrigination | null {
+	if (
+		input.goalType !== "routine:transport" ||
+		input.visibleNeedRecordId === null ||
+		!input.visibleNeedRecordId.includes("water-reserve") ||
+		input.settlementId.length === 0 ||
+		input.siteId.length === 0
+	)
+		return null;
+	return {
+		projectId: `project-${input.citizenId}-water-reserve`,
+		projectKind: "water-reserve",
+		projectName: "water-reserve",
+		settlementId: input.settlementId,
+		siteId: input.siteId,
+		evidenceRecordIds: [input.visibleNeedRecordId],
+		sourceGoalType: input.goalType,
+	};
 }
 
 function activeMilestone(project: ProjectState) {

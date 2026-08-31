@@ -3932,6 +3932,20 @@ em {
 	font-size: 0.875rem;
 }
 
+.v1-activity-summary button {
+	display: block;
+	width: 100%;
+	min-height: 2.75rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
 .v1-focus-actions {
 	display: flex;
 	flex-wrap: wrap;

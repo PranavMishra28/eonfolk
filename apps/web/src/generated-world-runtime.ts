@@ -23,6 +23,7 @@ import type { GeneratedWorldState } from "@eonfolk/protocol";
 import { createReleaseGenesis } from "@eonfolk/protocol";
 import {
 	type GeneratedCivilizationSpatialProjection,
+	projectDisplayName,
 	projectGeneratedCivilizationSpatial,
 	relationshipKindDisplayName,
 } from "@eonfolk/world-presentation";
@@ -484,6 +485,27 @@ function happeningsFromCivilization(
 			}),
 		);
 	}
+	for (const project of Object.values(civilization.projects).sort(
+		(left, right) => left.projectId.localeCompare(right.projectId),
+	)) {
+		if (
+			project.sponsor.kind !== "citizen" ||
+			project.projectId === "project-expedition-kit"
+		)
+			continue;
+		const sponsor = civilization.citizens[project.sponsor.citizenId];
+		if (sponsor === undefined) continue;
+		happenings.push(
+			Object.freeze({
+				happeningId: `project-originated:${project.projectId}`,
+				title: `${sponsor.name} started ${projectDisplayName(project.name)}`,
+				summary: `${sponsor.name} proposed ${projectDisplayName(project.name)} from their standing plan and a recorded water need. That is a recorded project, not a rumor.`,
+				relation: "direct",
+				citizenId: sponsor.citizenId,
+				citizenName: sponsor.name,
+			}),
+		);
+	}
 	return Object.freeze(happenings);
 }
 
@@ -569,13 +591,24 @@ function innerLivesFromCivilization(
 						return `${other.name} (${relationshipKindDisplayName(relation.kind)})`;
 					})
 					.filter((tie): tie is string => tie !== null);
+				const originated = Object.values(civilization.projects).find(
+					(project) =>
+						project.sponsor.kind === "citizen" &&
+						project.sponsor.citizenId === citizen.citizenId,
+				);
+				const daysWork = standingPlanWork(goalType);
 				return Object.freeze({
 					citizenId: citizen.citizenId,
 					want:
 						citizen.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID
 							? "Keep Dawnmere's water stores from failing, without straining her friendship."
-							: standingPlanWant(goalType),
-					daysWork: standingPlanWork(goalType),
+							: originated === undefined
+								? standingPlanWant(goalType)
+								: `Keep water moving, including ${projectDisplayName(originated.name)} they originated.`,
+					daysWork:
+						originated === undefined
+							? daysWork
+							: `${daysWork} They originated ${projectDisplayName(originated.name)}.`,
 					standingPlan,
 					standingTies: Object.freeze(ties),
 					waterStores:

@@ -1006,6 +1006,30 @@ function GeneratedContextPanel({
 								</li>
 							))}
 						</ul>
+						{model.projects.length === 0 ? null : (
+							<ul
+								className="v1-activity-summary"
+								aria-label="Works in progress"
+							>
+								{model.projects.map((project) => (
+									<li key={project.projectId}>
+										<button
+											type="button"
+											data-project-id={project.projectId}
+											aria-pressed={selectedProjectId === project.projectId}
+											onClick={() =>
+												dispatch({
+													type: "select-project",
+													projectId: project.projectId,
+												})
+											}
+										>
+											{project.semanticLabel}
+										</button>
+									</li>
+								))}
+							</ul>
+						)}
 					</>
 				) : (
 					<>

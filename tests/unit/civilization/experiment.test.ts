@@ -640,6 +640,87 @@ describe("deterministic civilization experiment", () => {
 		expect(laterCitation?.planTransition).toBe("choice-replanned");
 	});
 
+	it("lets a later live day contain a citizen-originated project distinct from the seeded expedition", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-citizen-originated-project",
+		);
+		const prelude = await runCivilizationExperiment({ world, horizonDays: 5 });
+		expect(prelude.state.projects["project-expedition-kit"]).toBeDefined();
+		expect(
+			Object.values(prelude.state.projects).some(
+				(project) => project.sponsor.kind === "citizen",
+			),
+		).toBe(false);
+		const continued = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: prelude.world,
+			state: prelude.state,
+			completedDay: 5,
+			skipOpeningDecisions: false,
+		});
+		const originated = Object.values(continued.state.projects).find(
+			(project) =>
+				project.projectId !== "project-expedition-kit" &&
+				project.sponsor.kind === "citizen",
+		);
+		expect(originated).toMatchObject({
+			projectId: "project-citizen-06-water-reserve",
+			kind: "water-reserve",
+			name: "water-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+		});
+		if (originated === undefined)
+			throw new Error("later day lacks a citizen-originated project");
+		expect(originated.projectId).not.toBe("project-expedition-kit");
+		expect(
+			continued.state.minds["citizen-06"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-06-water-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-06:water-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === originated?.projectId,
+			),
+		).toBe(true);
+		const play = projectGeneratedCivilizationSpatial({
+			world: continued.world,
+			civilization: continued.state,
+			checkpoint: {
+				schemaVersion: "eonfolk-civilization-experiment-v9",
+				runnerVersion: "eonfolk-civilization-runner-v9",
+				worldIdentityHash: continued.world.identity.identityHash,
+				horizonDays: 6,
+				finalStateHash: continued.finalStateHash,
+				events: continued.events,
+				metrics: {
+					simulationTime: continued.state.simulationTime,
+					modelInvocations: 0,
+				},
+			},
+			settlementId: originated.settlementId,
+			activities: continued.activities,
+			presentationTick: 0,
+		});
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === originated?.projectId &&
+					project.name === "Water reserve",
+			),
+		).toBe(true);
+	});
+
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {
 		const worlds = [
 			await generatedWorld(PROGRESSION_SEED, "civilization-matrix-progress"),

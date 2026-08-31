@@ -18,6 +18,7 @@ describe("player-facing display names", () => {
 		expect(roleDisplayName("expedition-steward")).toBe("Expedition steward");
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
+		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
 		expect(projectStateDisplayName("completed")).toBe("completed");
 		expect(relationshipKindDisplayName("friend")).toBe("friends");
 		expect(siteKindPhrase("undeveloped")).toBe("an undeveloped");

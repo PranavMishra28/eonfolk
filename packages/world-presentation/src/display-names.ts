@@ -26,6 +26,8 @@ const BUILDING_KIND_DISPLAY_NAMES = Object.freeze({
 const PROJECT_DISPLAY_NAMES = Object.freeze({
 	"expedition-kit": "Expedition kit",
 	"assemble-expedition-kit": "Assemble expedition kit",
+	"water-reserve": "Water reserve",
+	"assemble-water-reserve": "Assemble water reserve",
 });
 
 const PROJECT_STATE_DISPLAY_NAMES = Object.freeze({
