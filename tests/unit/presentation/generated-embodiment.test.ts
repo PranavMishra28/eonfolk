@@ -728,6 +728,116 @@ describe("generated embodiment projection", () => {
 		]);
 	});
 
+	it("peeks over a storehouse ridge with the same indoor Follow as Workshop", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			facingDegrees: 90,
+		});
+		const storehouse = Object.freeze({
+			occluderId: "building-dawnmere-storehouse",
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 4_205,
+			minZ: -3_500,
+			maxZ: 3_500,
+		});
+		const framed = resolveFollowCamera(person, [storehouse]);
+		const eye = cameraEyeMm(
+			framed.targetMm,
+			framed.yawDegrees,
+			framed.pitchDegrees,
+			framed.distanceMm,
+		);
+		expect(framed.targetMm.y).toBeGreaterThanOrEqual(1_200);
+		expect(
+			eye.x < storehouse.minX ||
+				eye.x > storehouse.maxX ||
+				eye.y > storehouse.maxY ||
+				eye.z < storehouse.minZ ||
+				eye.z > storehouse.maxZ,
+		).toBe(true);
+		expect(eye.y).toBeGreaterThan(storehouse.maxY);
+		expect(framed.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+		expect(followLookOccluded(storehouse, eye, framed.targetMm)).toBe(true);
+		expect(followOccluderIds(eye, framed.targetMm, [storehouse])).toEqual([
+			"building-dawnmere-storehouse",
+		]);
+	});
+
+	it("peeks over a shared-dwelling ridge when the body is inside and the shoulder is not", () => {
+		const dwelling = Object.freeze({
+			occluderId: "building-dawnmere-shared-dwelling",
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 6_300,
+			minZ: -3_675,
+			maxZ: 3_675,
+		});
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 4_000, y: 0, z: 0 }),
+			facingDegrees: 0,
+		});
+		const framed = resolveFollowCamera(person, [dwelling]);
+		const compact = resolveFollowCamera(person, [dwelling], 1_520, true);
+		const eye = cameraEyeMm(
+			framed.targetMm,
+			framed.yawDegrees,
+			framed.pitchDegrees,
+			framed.distanceMm,
+		);
+		const compactEye = cameraEyeMm(
+			compact.targetMm,
+			compact.yawDegrees,
+			compact.pitchDegrees,
+			compact.distanceMm,
+		);
+		expect(framed.targetMm.x).toBe(person.positionMm.x);
+		expect(framed.targetMm.x).toBeLessThanOrEqual(dwelling.maxX);
+		expect(framed.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+		expect(eye.y).toBeGreaterThan(dwelling.maxY);
+		expect(compact.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+		expect(compactEye.y).toBeGreaterThan(dwelling.maxY);
+	});
+
+	it("peeks over a shared-dwelling ridge with the same indoor Follow as Workshop", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			facingDegrees: 90,
+		});
+		const dwelling = Object.freeze({
+			occluderId: "building-dawnmere-shared-dwelling",
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 6_300,
+			minZ: -3_675,
+			maxZ: 3_675,
+		});
+		const framed = resolveFollowCamera(person, [dwelling]);
+		const eye = cameraEyeMm(
+			framed.targetMm,
+			framed.yawDegrees,
+			framed.pitchDegrees,
+			framed.distanceMm,
+		);
+		expect(framed.targetMm.y).toBeGreaterThanOrEqual(1_200);
+		expect(
+			eye.x < dwelling.minX ||
+				eye.x > dwelling.maxX ||
+				eye.y > dwelling.maxY ||
+				eye.z < dwelling.minZ ||
+				eye.z > dwelling.maxZ,
+		).toBe(true);
+		expect(eye.y).toBeGreaterThan(dwelling.maxY);
+		expect(framed.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+		expect(followLookOccluded(dwelling, eye, framed.targetMm)).toBe(true);
+		expect(followOccluderIds(eye, framed.targetMm, [dwelling])).toEqual([
+			"building-dawnmere-shared-dwelling",
+		]);
+	});
+
 	it("keeps compact Follow outside a mill envelope instead of looking at dirt", () => {
 		const person = Object.freeze({
 			positionMm: Object.freeze({ x: 0, y: 0, z: -3_600 }),
@@ -756,6 +866,70 @@ describe("generated embodiment projection", () => {
 				eye.y > mill.maxY ||
 				eye.z < mill.minZ ||
 				eye.z > mill.maxZ,
+		).toBe(true);
+		expect(eye.y).toBeGreaterThan(2_400);
+	});
+
+	it("keeps compact Follow outside a storehouse envelope instead of looking at dirt", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: -3_200 }),
+			facingDegrees: 0,
+		});
+		const storehouse = Object.freeze({
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 4_205,
+			minZ: -3_500,
+			maxZ: 3_500,
+		});
+		const phone = resolveFollowCamera(person, [storehouse], 1_520, true);
+		const eye = cameraEyeMm(
+			phone.targetMm,
+			phone.yawDegrees,
+			phone.pitchDegrees,
+			phone.distanceMm,
+		);
+		expect(phone.targetMm.y).toBeGreaterThanOrEqual(1_000);
+		expect(phone.targetMm.y).toBeLessThanOrEqual(1_400);
+		expect(
+			eye.x < storehouse.minX ||
+				eye.x > storehouse.maxX ||
+				eye.y > storehouse.maxY ||
+				eye.z < storehouse.minZ ||
+				eye.z > storehouse.maxZ,
+		).toBe(true);
+		expect(eye.y).toBeGreaterThan(2_400);
+	});
+
+	it("keeps compact Follow outside a shared-dwelling envelope instead of looking at dirt", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: -3_200 }),
+			facingDegrees: 0,
+		});
+		const dwelling = Object.freeze({
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 6_300,
+			minZ: -3_675,
+			maxZ: 3_675,
+		});
+		const phone = resolveFollowCamera(person, [dwelling], 1_520, true);
+		const eye = cameraEyeMm(
+			phone.targetMm,
+			phone.yawDegrees,
+			phone.pitchDegrees,
+			phone.distanceMm,
+		);
+		expect(phone.targetMm.y).toBeGreaterThanOrEqual(1_000);
+		expect(phone.targetMm.y).toBeLessThanOrEqual(1_400);
+		expect(
+			eye.x < dwelling.minX ||
+				eye.x > dwelling.maxX ||
+				eye.y > dwelling.maxY ||
+				eye.z < dwelling.minZ ||
+				eye.z > dwelling.maxZ,
 		).toBe(true);
 		expect(eye.y).toBeGreaterThan(2_400);
 	});
@@ -840,6 +1014,93 @@ describe("generated embodiment projection", () => {
 					liveEye.z < hall.minZ ||
 					liveEye.z > hall.maxZ,
 			).toBe(true);
+		}
+	});
+
+	it("frames Dawnmere storehouse and shared-dwelling indoor Follow from those occluders", async () => {
+		const { projection } = await fixture();
+		const volumes = followOccluderVolumes(projection);
+		const millBuilding = projection.local.buildings.find((building) =>
+			building.buildingKind.toLowerCase().includes("mill"),
+		);
+		expect(millBuilding).toBeUndefined();
+		const kinds = ["storehouse", "shared-dwelling"] as const;
+		for (const kind of kinds) {
+			const building = projection.local.buildings.find((entry) =>
+				entry.buildingKind.toLowerCase().includes(kind),
+			);
+			expect(building).toBeDefined();
+			if (building === undefined)
+				throw new Error(`Dawnmere fixture lacks ${kind}`);
+			const volume = volumes.find(
+				(entry) => entry.occluderId === building.buildingId,
+			);
+			expect(volume).toBeDefined();
+			if (volume === undefined) throw new Error(`${kind} occluder is missing`);
+			if (kind === "storehouse") expect(volume.maxY).toBeLessThan(5_400);
+			else expect(volume.maxZ - volume.minZ).toBeGreaterThan(7_000);
+			const person = Object.freeze({
+				positionMm: Object.freeze({
+					x: Math.round((volume.minX + volume.maxX) / 2),
+					y: 0,
+					z: Math.round((volume.minZ + volume.maxZ) / 2),
+				}),
+				facingDegrees: 90,
+			});
+			const framed = resolveFollowCamera(person, volumes);
+			const eye = cameraEyeMm(
+				framed.targetMm,
+				framed.yawDegrees,
+				framed.pitchDegrees,
+				framed.distanceMm,
+			);
+			expect(framed.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+			expect(eye.y).toBeGreaterThan(volume.maxY);
+			expect(
+				eye.x < volume.minX ||
+					eye.x > volume.maxX ||
+					eye.y > volume.maxY ||
+					eye.z < volume.minZ ||
+					eye.z > volume.maxZ,
+			).toBe(true);
+			expect(followOccluderIds(eye, framed.targetMm, volumes)).toContain(
+				building.buildingId,
+			);
+			const actorInside = projection.spatial.actors.find((actor) => {
+				const x = actor.positionMm.x;
+				const y = actor.positionMm.y;
+				const z = actor.positionMm.z;
+				return (
+					x >= volume.minX &&
+					x <= volume.maxX &&
+					y >= volume.minY &&
+					y <= volume.maxY &&
+					z >= volume.minZ &&
+					z <= volume.maxZ
+				);
+			});
+			if (actorInside !== undefined) {
+				const live = resolveFollowCamera(
+					{
+						positionMm: actorInside.positionMm,
+						facingDegrees: 90,
+					},
+					volumes,
+				);
+				const liveEye = cameraEyeMm(
+					live.targetMm,
+					live.yawDegrees,
+					live.pitchDegrees,
+					live.distanceMm,
+				);
+				expect(
+					liveEye.x < volume.minX ||
+						liveEye.x > volume.maxX ||
+						liveEye.y > volume.maxY ||
+						liveEye.z < volume.minZ ||
+						liveEye.z > volume.maxZ,
+				).toBe(true);
+			}
 		}
 	});
 

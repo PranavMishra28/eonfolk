@@ -295,13 +295,17 @@ export function followOccluderVolumes(
 		const isMill = kind.includes("mill");
 		const isHall = kind.includes("meeting");
 		const isWorkshop = kind.includes("workshop");
+		const isStore = kind.includes("store") || kind.includes("cache");
+		const isDwelling = kind.includes("dwelling");
 		const widthMm =
 			(isMill ? scale.mill.widthMm : scale.house.widthMm) * (isHall ? 1.15 : 1);
 		const depthMm =
 			(isMill ? scale.mill.depthMm : scale.house.depthMm) *
-			(isWorkshop ? 1.2 : 1);
-		const heightMm =
-			(isMill ? scale.mill.ridgeHeightMm : scale.house.ridgeHeightMm) + 900;
+			(isWorkshop ? 1.2 : isDwelling ? 1 + 350 / scale.house.depthMm : 1);
+		const ridgeMm = isMill
+			? scale.mill.ridgeHeightMm
+			: scale.house.ridgeHeightMm;
+		const heightMm = (isStore ? ridgeMm * 0.72 * 0.85 : ridgeMm) + 900;
 		volumes.push(
 			envelopeVolume(
 				building.buildingId,
@@ -434,7 +438,12 @@ export function resolveFollowCamera(
 ): FollowCameraFraming {
 	const facing = (sample.facingDegrees * Math.PI) / 180;
 	const liftedLookMm = compact ? FOLLOW_COMPACT_LOOK_HEIGHT_MM : lookHeightMm;
-	const targetMm = Object.freeze({
+	const bodyMm = Object.freeze({
+		x: sample.positionMm.x,
+		y: sample.positionMm.y + liftedLookMm,
+		z: sample.positionMm.z,
+	});
+	const shoulderMm = Object.freeze({
 		x: Math.round(
 			sample.positionMm.x + Math.cos(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
@@ -443,6 +452,11 @@ export function resolveFollowCamera(
 			sample.positionMm.z - Math.sin(facing) * FOLLOW_SHOULDER_OFFSET_MM,
 		),
 	});
+	const indoorVolume = volumes.find((volume) => volumeContains(volume, bodyMm));
+	const targetMm =
+		indoorVolume !== undefined && !volumeContains(indoorVolume, shoulderMm)
+			? bodyMm
+			: shoulderMm;
 	const basePitch = compact
 		? FOLLOW_COMPACT_CAMERA_PITCH_DEGREES
 		: FOLLOW_CAMERA_PITCH_DEGREES;
@@ -454,9 +468,7 @@ export function resolveFollowCamera(
 		volumes.length === 0
 			? [FOLLOW_CAMERA_YAW_OFFSET_DEGREES]
 			: FOLLOW_YAW_CANDIDATES_DEGREES;
-	const pitches = indoors
-		? [basePitch, FOLLOW_INDOOR_PEEK_PITCH_DEGREES]
-		: [basePitch];
+	const pitches = indoors ? [FOLLOW_INDOOR_PEEK_PITCH_DEGREES] : [basePitch];
 	let best: FollowCameraFraming | null = null;
 	let bestScore = Number.NEGATIVE_INFINITY;
 	for (const yawOffset of yawOffsets) {
