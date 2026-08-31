@@ -19,10 +19,15 @@ describe("player-facing display names", () => {
 		expect(roleDisplayName("expedition-steward")).toBe("Expedition steward");
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
 		expect(buildingKindDisplayName("water-reserve")).toBe("Water reserve");
+		expect(buildingKindDisplayName("grain-reserve")).toBe("Grain reserve");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
 		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
+		expect(projectDisplayName("grain-reserve")).toBe("Grain reserve");
 		expect(standingPlanStepDisplayName("WorkProject")).toBe(
 			"working the settlement project",
+		);
+		expect(standingPlanStepDisplayName("ProposeProject")).toBe(
+			"starting a reserve from a standing need",
 		);
 		expect(standingPlanStepDisplayName("TransportResource")).toBe(
 			"moving stores",

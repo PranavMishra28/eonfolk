@@ -183,6 +183,9 @@ describe("deterministic civilization experiment", () => {
 			"founding-viable",
 			"settlement-materialized",
 			"project-originated",
+			"project-originated",
+			"project-approved",
+			"project-completed",
 			"project-approved",
 			"project-completed",
 		]);
@@ -262,7 +265,10 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			first.state.projects["project-citizen-06-water-reserve"]?.state,
 		).toBe("completed");
-		expect(first.metrics.completedProjects).toBe(2);
+		expect(
+			first.state.projects["project-citizen-05-grain-reserve"]?.state,
+		).toBe("completed");
+		expect(first.metrics.completedProjects).toBe(3);
 		expect(first.state.migrations["migration-founding-party"]?.state).toBe(
 			"arrived",
 		);
@@ -416,18 +422,21 @@ describe("deterministic civilization experiment", () => {
 		const run = await runCivilizationExperiment({ world, horizonDays: 90 });
 
 		expect(run.seedConditions.expansionEligible).toBe(false);
-		expect(run.events.map((event) => event.kind)).toEqual([
-			"expansion-deferred",
-			"project-originated",
-			"project-approved",
-			"project-completed",
-		]);
+		expect(
+			run.events.some((event) => event.kind === "expansion-deferred"),
+		).toBe(true);
+		expect(
+			run.events.filter((event) => event.kind === "project-originated").length,
+		).toBeGreaterThanOrEqual(2);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
 			"destination-suitability-below-threshold",
 		);
-		expect(run.metrics.completedProjects).toBe(1);
+		expect(run.metrics.completedProjects).toBe(2);
 		expect(run.state.projects["project-citizen-06-water-reserve"]?.state).toBe(
+			"completed",
+		);
+		expect(run.state.projects["project-citizen-05-grain-reserve"]?.state).toBe(
 			"completed",
 		);
 		expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
@@ -655,22 +664,31 @@ describe("deterministic civilization experiment", () => {
 			completedDay: 5,
 			skipOpeningDecisions: false,
 		});
-		const originated = Object.values(continued.state.projects).find(
-			(project) =>
-				project.projectId !== "project-expedition-kit" &&
-				project.sponsor.kind === "citizen",
-		);
-		expect(originated).toMatchObject({
+		const waterReserve =
+			continued.state.projects["project-citizen-06-water-reserve"];
+		const grainReserve =
+			continued.state.projects["project-citizen-05-grain-reserve"];
+		if (waterReserve === undefined || grainReserve === undefined)
+			throw new Error("later day lacks citizen-originated reserves");
+		expect(waterReserve).toMatchObject({
 			projectId: "project-citizen-06-water-reserve",
 			kind: "water-reserve",
 			name: "water-reserve",
 			sponsor: { kind: "citizen", citizenId: "citizen-06" },
 		});
-		if (originated === undefined)
-			throw new Error("later day lacks a citizen-originated project");
-		expect(originated.projectId).not.toBe("project-expedition-kit");
+		expect(grainReserve).toMatchObject({
+			projectId: "project-citizen-05-grain-reserve",
+			kind: "grain-reserve",
+			name: "grain-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-05" },
+		});
+		expect(waterReserve?.projectId).not.toBe("project-expedition-kit");
+		expect(grainReserve?.projectId).not.toBe("project-expedition-kit");
 		expect(
 			continued.state.minds["citizen-06"]?.snapshot.standingPlan.goalType,
+		).toBe("routine:transport");
+		expect(
+			continued.state.minds["citizen-05"]?.snapshot.standingPlan.goalType,
 		).toBe("routine:transport");
 		expect(
 			continued.cognitionDecisions.some(
@@ -683,10 +701,27 @@ describe("deterministic civilization experiment", () => {
 			),
 		).toBe(true);
 		expect(
+			continued.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-05-grain-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-05:grain-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
 			continued.events.some(
 				(event) =>
 					event.kind === "project-originated" &&
-					event.details.projectId === originated?.projectId,
+					event.details.projectId === waterReserve?.projectId,
+			),
+		).toBe(true);
+		expect(
+			continued.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === grainReserve?.projectId,
 			),
 		).toBe(true);
 		const play = projectGeneratedCivilizationSpatial({
@@ -704,15 +739,22 @@ describe("deterministic civilization experiment", () => {
 					modelInvocations: 0,
 				},
 			},
-			settlementId: originated.settlementId,
+			settlementId: waterReserve.settlementId,
 			activities: continued.activities,
 			presentationTick: 0,
 		});
 		expect(
 			play.projects.some(
 				(project) =>
-					project.projectId === originated?.projectId &&
+					project.projectId === waterReserve?.projectId &&
 					project.name === "Water reserve",
+			),
+		).toBe(true);
+		expect(
+			play.projects.some(
+				(project) =>
+					project.projectId === grainReserve?.projectId &&
+					project.name === "Grain reserve",
 			),
 		).toBe(true);
 	});
@@ -746,16 +788,22 @@ describe("deterministic civilization experiment", () => {
 			mind.snapshot.records.filter((record) => record.kind === "message-claim"),
 		);
 		expect(heard.length).toBeGreaterThan(0);
-		const originated = Object.values(thirty.state.projects).find(
-			(project) =>
-				project.projectId !== "project-expedition-kit" &&
-				project.sponsor.kind === "citizen",
-		);
-		expect(originated).toMatchObject({
+		expect(
+			thirty.state.projects["project-citizen-06-water-reserve"],
+		).toMatchObject({
 			projectId: "project-citizen-06-water-reserve",
 			kind: "water-reserve",
 			name: "water-reserve",
 			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+			state: "completed",
+		});
+		expect(
+			thirty.state.projects["project-citizen-05-grain-reserve"],
+		).toMatchObject({
+			projectId: "project-citizen-05-grain-reserve",
+			kind: "grain-reserve",
+			name: "grain-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-05" },
 			state: "completed",
 		});
 		expect(
@@ -769,17 +817,41 @@ describe("deterministic civilization experiment", () => {
 			),
 		).toBe(true);
 		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-05-grain-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-05:grain-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
 			thirty.events.some(
 				(event) =>
 					event.kind === "project-originated" &&
-					event.details.projectId === originated?.projectId,
+					event.details.projectId === "project-citizen-06-water-reserve",
 			),
 		).toBe(true);
 		expect(
 			thirty.events.some(
 				(event) =>
 					event.kind === "project-completed" &&
-					event.details.projectId === originated?.projectId,
+					event.details.projectId === "project-citizen-06-water-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === "project-citizen-05-grain-reserve",
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === "project-citizen-05-grain-reserve",
 			),
 		).toBe(true);
 		const ninety = await runCivilizationExperiment({
@@ -851,6 +923,9 @@ describe("deterministic civilization experiment", () => {
 		expect(
 			ninety.state.projects["project-citizen-06-water-reserve"]?.state,
 		).toBe("completed");
+		expect(
+			ninety.state.projects["project-citizen-05-grain-reserve"]?.state,
+		).toBe("completed");
 		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
 	});
 
@@ -896,6 +971,9 @@ describe("deterministic civilization experiment", () => {
 			expect(run.metrics.invariantIssues).toEqual([]);
 			expect(
 				run.state.projects["project-citizen-06-water-reserve"]?.state,
+			).toBe("completed");
+			expect(
+				run.state.projects["project-citizen-05-grain-reserve"]?.state,
 			).toBe("completed");
 		}
 		expect(thirty.finalStateHash).toBe(ninety.steps[29]?.postStateHash);

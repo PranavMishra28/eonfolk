@@ -605,7 +605,7 @@ function innerLivesFromCivilization(
 							? "Keep Dawnmere's water stores from failing, without straining her friendship."
 							: originated === undefined
 								? standingPlanWant(goalType)
-								: `Keep water moving, including ${projectDisplayName(originated.name)} they originated.`,
+								: `${standingPlanWant(goalType)} They originated ${projectDisplayName(originated.name)}.`,
 					daysWork:
 						originated === undefined
 							? daysWork

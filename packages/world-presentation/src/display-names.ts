@@ -22,6 +22,7 @@ const BUILDING_KIND_DISPLAY_NAMES = Object.freeze({
 	"open-workshop": "Open workshop",
 	"expedition-cache": "Expedition cache",
 	"water-reserve": "Water reserve",
+	"grain-reserve": "Grain reserve",
 });
 
 const PROJECT_DISPLAY_NAMES = Object.freeze({
@@ -29,6 +30,8 @@ const PROJECT_DISPLAY_NAMES = Object.freeze({
 	"assemble-expedition-kit": "Assemble expedition kit",
 	"water-reserve": "Water reserve",
 	"assemble-water-reserve": "Assemble water reserve",
+	"grain-reserve": "Grain reserve",
+	"assemble-grain-reserve": "Assemble grain reserve",
 });
 
 const PROJECT_STATE_DISPLAY_NAMES = Object.freeze({
@@ -76,7 +79,7 @@ const STANDING_PLAN_STEP_DISPLAY_NAMES = Object.freeze({
 	Exchange: "talking with a neighbour",
 	SocialMaintenance: "talking with a neighbour",
 	JoinMigration: "travelling with the founding party",
-	ProposeProject: "starting a water reserve",
+	ProposeProject: "starting a reserve from a standing need",
 	FollowStandingPlan: "continuing today's work",
 	Move: "moving through town",
 	Away: "away from town",

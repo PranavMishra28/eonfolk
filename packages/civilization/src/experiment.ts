@@ -96,6 +96,30 @@ export const RELEASE_GENESIS_MARA_CITIZEN_ID = "citizen-01" as const;
 export const RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID = "citizen-04" as const;
 const PROJECT_TIMBER = 6;
 const PROJECT_WATER = 8;
+const PROJECT_GRAIN = 8;
+const CITIZEN_RESERVE_NEEDS = Object.freeze([
+	{
+		resourceTypeId: "spring-water",
+		kind: "water-reserve" as const,
+		proposition: "The settlement has only one day of prepared water.",
+	},
+	{
+		resourceTypeId: "grain",
+		kind: "grain-reserve" as const,
+		proposition: "The settlement has only one day of prepared grain.",
+	},
+]);
+
+function citizenReserveMaterial(
+	kind: CitizenProjectOrigination["projectKind"],
+): {
+	readonly resourceTypeId: string;
+	readonly quantity: number;
+} {
+	if (kind === "grain-reserve")
+		return { resourceTypeId: "grain", quantity: PROJECT_GRAIN };
+	return { resourceTypeId: "water", quantity: PROJECT_WATER };
+}
 const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
 /**
  * Bulk/prefix genesis and the product year run Standard Brain openings through
@@ -684,30 +708,35 @@ function citizenProjectOrigination(
 	)
 		return null;
 	const citizen = state.citizens[mind.actorMind.citizenId];
-	const waterLane = policy.transportLanes.find(
-		(lane) =>
-			lane.carrierCitizenId === mind.actorMind.citizenId &&
-			state.stocks[lane.toStockId]?.resourceTypeId === "spring-water",
-	);
-	const waterNeedRecordId = `memory:${mind.actorMind.citizenId}:water-reserve`;
-	if (
-		citizen === undefined ||
-		waterLane === undefined ||
-		mind.memoryStore.records[waterNeedRecordId] === undefined
-	)
-		return null;
-	const destination = state.stocks[waterLane.toStockId];
-	const destinationStorage =
-		destination === undefined
-			? undefined
-			: state.storages[destination.storageId];
-	return originateProjectFromStandingPlan({
-		citizenId: mind.actorMind.citizenId,
-		goalType: mind.actorMind.standingPlan.goalType,
-		settlementId: citizen.settlementId,
-		siteId: destinationStorage?.siteId ?? citizen.siteId,
-		visibleNeedRecordId: waterNeedRecordId,
-	});
+	if (citizen === undefined) return null;
+	for (const reserve of CITIZEN_RESERVE_NEEDS) {
+		const lane = policy.transportLanes.find(
+			(candidate) =>
+				candidate.carrierCitizenId === mind.actorMind.citizenId &&
+				state.stocks[candidate.toStockId]?.resourceTypeId ===
+					reserve.resourceTypeId,
+		);
+		const needRecordId = `memory:${mind.actorMind.citizenId}:${reserve.kind}`;
+		if (
+			lane === undefined ||
+			mind.memoryStore.records[needRecordId] === undefined
+		)
+			continue;
+		const destination = state.stocks[lane.toStockId];
+		const destinationStorage =
+			destination === undefined
+				? undefined
+				: state.storages[destination.storageId];
+		const originated = originateProjectFromStandingPlan({
+			citizenId: mind.actorMind.citizenId,
+			goalType: mind.actorMind.standingPlan.goalType,
+			settlementId: citizen.settlementId,
+			siteId: destinationStorage?.siteId ?? citizen.siteId,
+			visibleNeedRecordId: needRecordId,
+		});
+		if (originated !== null) return originated;
+	}
+	return null;
 }
 
 function registerCitizenOriginatedProject(
@@ -721,6 +750,7 @@ function registerCitizenOriginatedProject(
 		kind: "project" as const,
 		projectId: origination.projectId,
 	};
+	const material = citizenReserveMaterial(origination.projectKind);
 	const next = registerProject(
 		state,
 		{
@@ -739,8 +769,8 @@ function registerCitizenOriginatedProject(
 					dependencyMilestoneIds: [],
 					resources: [
 						{
-							resourceTypeId: "water",
-							quantity: PROJECT_WATER,
+							resourceTypeId: material.resourceTypeId,
+							quantity: material.quantity,
 							deliveredQuantity: 0,
 							consumedQuantity: 0,
 						},
@@ -765,15 +795,15 @@ function registerCitizenOriginatedProject(
 			failureReason: null,
 			sourceEventIds: [],
 		},
-		storage(storageId, origination.siteId, owner, ["water"]),
+		storage(storageId, origination.siteId, owner, [material.resourceTypeId]),
 	);
 	return registerStock(
 		next,
 		stock(
-			`stock-${origination.projectId}-water`,
+			`stock-${origination.projectId}-${material.resourceTypeId}`,
 			storageId,
 			owner,
-			"water",
+			material.resourceTypeId,
 			0,
 			next.simulationTime,
 		),
@@ -1785,7 +1815,8 @@ function withCitizenOriginatedCollectiveProjects(
 		.filter(
 			(project) =>
 				project.sponsor.kind === "citizen" &&
-				project.kind === "water-reserve" &&
+				(project.kind === "water-reserve" ||
+					project.kind === "grain-reserve") &&
 				projectIsOpenCollectiveWork(state, project.projectId) &&
 				!known.has(project.projectId),
 		)
@@ -1793,7 +1824,7 @@ function withCitizenOriginatedCollectiveProjects(
 		.map((project) => ({
 			projectId: project.projectId,
 			actorCitizenId: RELEASE_GENESIS_MARA_CITIZEN_ID,
-			buildingKind: "water-reserve",
+			buildingKind: project.kind,
 		}));
 	if (extra.length === 0) return policy;
 	return {
@@ -2008,19 +2039,21 @@ async function initializeCognitionRuntime(
 	)) {
 		const routine = plannedRoutine(state, policy, citizen.citizenId);
 		let memoryStore = createMemoryStore(citizen.citizenId);
-		const waterLane = policy.transportLanes.find(
-			(lane) =>
-				lane.carrierCitizenId === citizen.citizenId &&
-				state.stocks[lane.toStockId]?.resourceTypeId === "spring-water",
-		);
-		if (waterLane !== undefined) {
+		for (const reserve of CITIZEN_RESERVE_NEEDS) {
+			const lane = policy.transportLanes.find(
+				(candidate) =>
+					candidate.carrierCitizenId === citizen.citizenId &&
+					state.stocks[candidate.toStockId]?.resourceTypeId ===
+						reserve.resourceTypeId,
+			);
+			if (lane === undefined) continue;
 			memoryStore = remember(memoryStore, {
 				schemaVersion: MEMORY_SCHEMA_VERSION,
-				memoryId: `memory:${citizen.citizenId}:water-reserve`,
+				memoryId: `memory:${citizen.citizenId}:${reserve.kind}`,
 				ownerCitizenId: citizen.citizenId,
 				kind: "semantic",
-				proposition: "The settlement has only one day of prepared water.",
-				cueIds: ["need", `transport:${waterLane.laneId}`],
+				proposition: reserve.proposition,
+				cueIds: ["need", `transport:${lane.laneId}`],
 				relatedCitizenIds: [],
 				goalId: null,
 				commitmentId: null,
@@ -2029,7 +2062,7 @@ async function initializeCognitionRuntime(
 				createdAtSimulationTime: 0,
 				reinforcedAtSimulationTime: 0,
 				createdRevision: 0,
-				sourceIds: [waterLane.toStockId],
+				sourceIds: [lane.toStockId],
 				visibility: {
 					kind: "citizen-private",
 					subjectCitizenId: citizen.citizenId,
@@ -2228,10 +2261,10 @@ function cognitionOptions(
 					siteId: origination.siteId,
 				},
 				publicPreconditions: [
-					"their standing plan and a recorded water need are still visible",
+					"their standing plan and a recorded reserve need are still visible",
 				],
 				publicStakes: [
-					"starts a water-reserve project from that plan, not a random title",
+					`starts a ${origination.projectKind} project from that plan, not a random title`,
 				],
 				tags: ["need", "evidence"],
 				evidenceRecordIds: [...origination.evidenceRecordIds],
@@ -2732,7 +2765,9 @@ async function simulateCivilizationExperimentDay(input: {
 			projectId: action.subjectId,
 			...(project?.kind === "water-reserve"
 				? { physicalWaterRequired: PROJECT_WATER }
-				: { physicalTimberRequired: PROJECT_TIMBER }),
+				: project?.kind === "grain-reserve"
+					? { physicalGrainRequired: PROJECT_GRAIN }
+					: { physicalTimberRequired: PROJECT_TIMBER }),
 		});
 	}
 	for (const action of scheduled.actions.filter(
@@ -2743,7 +2778,9 @@ async function simulateCivilizationExperimentDay(input: {
 			projectId: action.subjectId,
 			...(project?.kind === "water-reserve"
 				? { consumedWater: PROJECT_WATER }
-				: { consumedTimber: PROJECT_TIMBER }),
+				: project?.kind === "grain-reserve"
+					? { consumedGrain: PROJECT_GRAIN }
+					: { consumedTimber: PROJECT_TIMBER }),
 		});
 	}
 	if (

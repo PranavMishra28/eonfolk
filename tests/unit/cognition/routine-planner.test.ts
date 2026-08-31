@@ -339,6 +339,25 @@ describe("citizen project origination from standing plan", () => {
 		});
 	});
 
+	it("names a grain-reserve project from a transport plan and grain need", () => {
+		const originated = originateProjectFromStandingPlan({
+			citizenId: "citizen-05",
+			goalType: "routine:transport",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			visibleNeedRecordId: "memory:citizen-05:grain-reserve",
+		});
+		expect(originated).toEqual({
+			projectId: "project-citizen-05-grain-reserve",
+			projectKind: "grain-reserve",
+			projectName: "grain-reserve",
+			settlementId: "settlement-dawnmere",
+			siteId: "site-work",
+			evidenceRecordIds: ["memory:citizen-05:grain-reserve"],
+			sourceGoalType: "routine:transport",
+		});
+	});
+
 	it("refuses a title when the standing plan or water need is missing", () => {
 		expect(
 			originateProjectFromStandingPlan({

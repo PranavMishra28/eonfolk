@@ -15,18 +15,35 @@ export interface VisibleProjectPlanningContext {
 	readonly commitmentId: string | null;
 }
 
+export const CITIZEN_ORIGINATED_PROJECT_KINDS = Object.freeze([
+	"water-reserve",
+	"grain-reserve",
+] as const);
+
+export type CitizenOriginatedProjectKind =
+	(typeof CITIZEN_ORIGINATED_PROJECT_KINDS)[number];
+
 export interface CitizenProjectOrigination {
 	readonly projectId: string;
-	readonly projectKind: "water-reserve";
-	readonly projectName: "water-reserve";
+	readonly projectKind: CitizenOriginatedProjectKind;
+	readonly projectName: CitizenOriginatedProjectKind;
 	readonly settlementId: string;
 	readonly siteId: string;
 	readonly evidenceRecordIds: readonly string[];
 	readonly sourceGoalType: string;
 }
 
+function projectKindFromNeedRecord(
+	recordId: string,
+): CitizenOriginatedProjectKind | null {
+	return (
+		CITIZEN_ORIGINATED_PROJECT_KINDS.find((kind) => recordId.includes(kind)) ??
+		null
+	);
+}
+
 /**
- * Maps an inspectable standing-plan goal plus a recorded water need onto one
+ * Maps an inspectable standing-plan goal plus a recorded reserve need onto one
  * typed project. Returns null when the pair is absent so titles cannot be
  * invented.
  */
@@ -40,15 +57,16 @@ export function originateProjectFromStandingPlan(input: {
 	if (
 		input.goalType !== "routine:transport" ||
 		input.visibleNeedRecordId === null ||
-		!input.visibleNeedRecordId.includes("water-reserve") ||
 		input.settlementId.length === 0 ||
 		input.siteId.length === 0
 	)
 		return null;
+	const projectKind = projectKindFromNeedRecord(input.visibleNeedRecordId);
+	if (projectKind === null) return null;
 	return {
-		projectId: `project-${input.citizenId}-water-reserve`,
-		projectKind: "water-reserve",
-		projectName: "water-reserve",
+		projectId: `project-${input.citizenId}-${projectKind}`,
+		projectKind,
+		projectName: projectKind,
 		settlementId: input.settlementId,
 		siteId: input.siteId,
 		evidenceRecordIds: [input.visibleNeedRecordId],
