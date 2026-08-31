@@ -26,6 +26,7 @@ import {
 	projectDisplayName,
 	projectGeneratedCivilizationSpatial,
 	relationshipKindDisplayName,
+	standingPlanStepDisplayName,
 } from "@eonfolk/world-presentation";
 import { generateWorld } from "@eonfolk/worldgen";
 import {
@@ -582,7 +583,7 @@ function innerLivesFromCivilization(
 				const standingPlan =
 					plan === undefined
 						? "No standing plan is recorded."
-						: `${goalType.replaceAll(":", " · ")} · ${currentStep?.kind ?? "waiting"}`;
+						: `${standingPlanWant(goalType)} Current step: ${standingPlanStepDisplayName(currentStep?.kind ?? "waiting")}.`;
 				const ties = Object.values(civilization.relationships)
 					.filter((relation) => relation.fromCitizenId === citizen.citizenId)
 					.map((relation) => {

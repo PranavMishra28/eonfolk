@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	type BrainPort,
+	CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS,
 	type CivilizationRoutineOption,
 	type CivilizationSchedulerMindState,
 	createMemoryStore,
@@ -146,6 +147,10 @@ async function decide(
 }
 
 describe("civilization scheduler Standard Brain", () => {
+	it("keeps 90-day thinking-prefix memories inside retrieval recency", () => {
+		expect(CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS).toBe(90 * 86_400);
+	});
+
 	it("lets actor-visible retrieval change one legal routine and replans after validation", async () => {
 		const withoutMemory = await decide(await mindState({ withMemory: false }));
 		const withMemory = await decide(await mindState({ withMemory: true }));

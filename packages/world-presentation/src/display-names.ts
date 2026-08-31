@@ -66,6 +66,25 @@ const PLACE_KIND_DISPLAY_NAMES = Object.freeze({
 	resource: "resource",
 });
 
+const STANDING_PLAN_STEP_DISPLAY_NAMES = Object.freeze({
+	WorkProject: "working the settlement project",
+	TransportResource: "moving stores",
+	Gather: "producing at their site",
+	Produce: "producing at their site",
+	Consume: "meeting a daily need",
+	Exchange: "talking with a neighbour",
+	SocialMaintenance: "talking with a neighbour",
+	JoinMigration: "travelling with the founding party",
+	ProposeProject: "starting a water reserve",
+	FollowStandingPlan: "continuing today's work",
+	Move: "moving through town",
+	Away: "away from town",
+	VerifyReserve: "checking the water stores",
+	AccusePublicly: "speaking in public",
+	RepairMill: "repairing the mill",
+	waiting: "waiting",
+});
+
 const VALUE_DISPLAY_NAMES = Object.freeze({
 	stewardship: "stewardship",
 	curiosity: "curiosity",
@@ -104,6 +123,14 @@ export function roleDisplayName(roleId: string | null | undefined): string {
 
 export function buildingKindDisplayName(buildingKind: string): string {
 	return lookup(BUILDING_KIND_DISPLAY_NAMES, buildingKind);
+}
+
+export function standingPlanStepDisplayName(stepKind: string): string {
+	return lookup(
+		STANDING_PLAN_STEP_DISPLAY_NAMES,
+		stepKind,
+		(_value) => "today's work",
+	);
 }
 
 export function projectDisplayName(projectNameOrId: string): string {

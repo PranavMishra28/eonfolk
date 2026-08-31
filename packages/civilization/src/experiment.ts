@@ -98,10 +98,19 @@ const PROJECT_WATER = 8;
 const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
 /**
  * Bulk/prefix genesis runs real Standard Brain openings through this day.
- * Later prefix days may skip for 365 identity and horizon cost; that skip is
- * not a cognition proof.
+ * Days 91–365 of a year run may skip for 365 identity and horizon cost; that
+ * skip is not a 365-day cognition proof. Day 90 is the cognition gate.
  */
-export const BULK_OPENING_DECISION_HORIZON_DAYS = 30;
+export const BULK_OPENING_DECISION_HORIZON_DAYS = 90;
+
+/** Standard Brain openings in a bulk run of `horizonDays` (8 citizens / thinking day). */
+export function bulkOpeningDecisionCount(horizonDays: number): number {
+	const thinkingDays = Math.min(
+		Math.max(0, horizonDays),
+		BULK_OPENING_DECISION_HORIZON_DAYS,
+	);
+	return thinkingDays * POPULATION;
+}
 const MIGRATION_GRAIN = 18;
 const MIGRATION_WATER = 18;
 const MIGRATION_TIMBER = 8;

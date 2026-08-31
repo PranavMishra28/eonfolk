@@ -139,11 +139,13 @@ describe("bounded world-presence pass", () => {
 		expect(entry).not.toContain("A TOWN THAT CONTINUES WITHOUT YOU");
 		expect(entry).toContain("Time in town");
 		expect(entry).toContain("moves while Play is on in an open tab");
-		expect(entry).toMatch(/you choose\s+whether waited days pass/u);
+		expect(entry).toMatch(/you choose\s+whether up to 7 waited days pass/u);
+		expect(app).toContain("of up to");
+		expect(app).toContain("MAX_RETURN_CATCH_UP_DAYS");
 		expect(app).toContain("can pass if you choose");
 		expect(about).toContain("Closing the tab stops");
 		expect(about).toContain("pnpm world:authority");
-		expect(about).toContain("still choose whether waited days pass");
+		expect(about).toContain("still choose whether up to 7 waited days pass");
 		expect(entry).toContain('href="/about"');
 		expect(entry).toContain('href="/license"');
 		expect(main).toContain('normalizedPath === "/about"');

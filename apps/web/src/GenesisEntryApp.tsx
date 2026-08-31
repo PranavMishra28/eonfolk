@@ -182,7 +182,7 @@ export function GenesisEntryApp() {
 				<p>
 					Close the page. Dawnmere stays saved in this browser. Time in town
 					moves while Play is on in an open tab. When you come back, you choose
-					whether waited days pass.
+					whether up to 7 waited days pass.
 				</p>
 			</section>
 			<footer className="v1-entry-footer">

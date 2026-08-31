@@ -98,4 +98,104 @@ describe("local world authority host continuity", () => {
 			});
 		}
 	}, 60_000);
+
+	it("reconnects to the same persisted day after the process restarts", async () => {
+		const statePath = join(
+			await mkdtemp(join(tmpdir(), "eonfolk-local-authority-reconnect-")),
+			"authority.json",
+		);
+		const registerPath = fileURLToPath(
+			new URL("../../../scripts/ts-source-register.mjs", import.meta.url),
+		);
+		const spawnHost = () =>
+			spawn(
+				process.execPath,
+				[
+					"--experimental-strip-types",
+					"--no-warnings",
+					"--import",
+					registerPath,
+					hostPath,
+				],
+				{
+					env: {
+						...process.env,
+						EONFOLK_LOCAL_AUTHORITY_STATE: statePath,
+						EONFOLK_LOCAL_AUTHORITY_PORT: "0",
+						EONFOLK_LOCAL_AUTHORITY_DAY_MS: "86400000",
+					},
+					stdio: ["ignore", "pipe", "pipe"],
+				},
+			);
+		const waitForOrigin = (child: ReturnType<typeof spawn>) =>
+			new Promise<string>((resolve, reject) => {
+				const timer = setTimeout(() => {
+					reject(new Error("local world authority host did not bind"));
+				}, 45_000);
+				let stdout = "";
+				child.stdout?.on("data", (chunk: Buffer) => {
+					stdout += chunk.toString("utf8");
+					const match = /writing on (http:\/\/127\.0\.0\.1:\d+)/u.exec(stdout);
+					if (match?.[1] !== undefined) {
+						clearTimeout(timer);
+						resolve(match[1]);
+					}
+				});
+				child.stderr?.on("data", (chunk: Buffer) => {
+					stdout += chunk.toString("utf8");
+				});
+				child.on("error", (error) => {
+					clearTimeout(timer);
+					reject(error);
+				});
+				child.on("exit", (code) => {
+					clearTimeout(timer);
+					reject(
+						new Error(
+							`local world authority host exited before bind (${String(code)}): ${stdout}`,
+						),
+					);
+				});
+			});
+		const stop = async (child: ReturnType<typeof spawn>) => {
+			child.kill("SIGTERM");
+			await new Promise<void>((resolve) => {
+				child.once("exit", () => resolve());
+				setTimeout(resolve, 2_000);
+			});
+		};
+		const first = spawnHost();
+		let completedDay = 0;
+		let stateHash = "";
+		try {
+			const origin = await waitForOrigin(first);
+			const ticked = await fetch(`${origin}/tick`, { method: "POST" });
+			expect(ticked.ok).toBe(true);
+			const snapshot = decodeLocalWorldAuthoritySnapshot(
+				await (await fetch(`${origin}/authority`)).text(),
+			);
+			completedDay = snapshot.completedDay;
+			stateHash = snapshot.stateHash;
+			expect(completedDay).toBeGreaterThanOrEqual(2);
+		} finally {
+			await stop(first);
+		}
+		const second = spawnHost();
+		try {
+			const origin = await waitForOrigin(second);
+			const snapshot = decodeLocalWorldAuthoritySnapshot(
+				await (await fetch(`${origin}/authority`)).text(),
+			);
+			expect(snapshot.completedDay).toBe(completedDay);
+			expect(snapshot.stateHash).toBe(stateHash);
+			expect(
+				localWorldAuthorityStatus({
+					snapshot,
+					processReachable: true,
+				}).catchUpRequired,
+			).toBe(false);
+		} finally {
+			await stop(second);
+		}
+	}, 90_000);
 });

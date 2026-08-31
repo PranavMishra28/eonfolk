@@ -57,6 +57,7 @@ import {
 	clearPendingReturnCatchUp,
 	dayAdvanceDue,
 	FASTER_DAY_INTERVAL_MS,
+	MAX_RETURN_CATCH_UP_DAYS,
 	PLAY_DAY_INTERVAL_MS,
 	type PlayRate,
 	presentationIntervalMs,
@@ -2252,8 +2253,8 @@ function GeneratedWorld({
 			</header>
 			{catchUpProposal > 0 ? (
 				<p className="renderer-note" role="status">
-					You were away. {catchUpProposal} day
-					{catchUpProposal === 1 ? "" : "s"} can pass if you choose.{" "}
+					You were away. {catchUpProposal} of up to {MAX_RETURN_CATCH_UP_DAYS}{" "}
+					days can pass if you choose.{" "}
 					<button
 						type="button"
 						disabled={authorityDaysLocked}

@@ -11,6 +11,7 @@ import {
 	relationshipKindDisplayName,
 	roleDisplayName,
 	siteKindPhrase,
+	standingPlanStepDisplayName,
 } from "../../../packages/world-presentation/src/index.js";
 
 describe("player-facing display names", () => {
@@ -19,6 +20,12 @@ describe("player-facing display names", () => {
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
 		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
+		expect(standingPlanStepDisplayName("WorkProject")).toBe(
+			"working the settlement project",
+		);
+		expect(standingPlanStepDisplayName("TransportResource")).toBe(
+			"moving stores",
+		);
 		expect(projectStateDisplayName("completed")).toBe("completed");
 		expect(relationshipKindDisplayName("friend")).toBe("friends");
 		expect(siteKindPhrase("undeveloped")).toBe("an undeveloped");

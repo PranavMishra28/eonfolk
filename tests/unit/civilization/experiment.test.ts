@@ -7,6 +7,7 @@ import {
 import {
 	assertCivilizationInvariants,
 	BULK_OPENING_DECISION_HORIZON_DAYS,
+	bulkOpeningDecisionCount,
 	continueCivilizationExperimentDay,
 	deriveCivilizationSeedConditions,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
@@ -30,7 +31,10 @@ import {
 const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 const STAGNATION_SEED = "0e".padStart(64, "0");
-const BULK_OPENING_DECISION_COUNT = BULK_OPENING_DECISION_HORIZON_DAYS * 8;
+const BULK_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(
+	BULK_OPENING_DECISION_HORIZON_DAYS,
+);
+const THIRTY_DAY_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(30);
 /** Odd day inside the Standard Brain prefix where idle related residents pair. */
 const THINKING_CONVERSATION_DAY = 5;
 
@@ -752,12 +756,14 @@ describe("deterministic civilization experiment", () => {
 		);
 		const thirty = await runCivilizationExperiment({
 			world,
-			horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
+			horizonDays: 30,
 		});
 		expect(thirty.metrics.standardBrainDecisionCount).toBe(
-			BULK_OPENING_DECISION_COUNT,
+			THIRTY_DAY_OPENING_DECISION_COUNT,
 		);
-		expect(thirty.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
+		expect(thirty.cognitionDecisions).toHaveLength(
+			THIRTY_DAY_OPENING_DECISION_COUNT,
+		);
 		expect(
 			thirty.cognitionDecisions.every(
 				({ modelInvocations }) => modelInvocations === 0,
@@ -801,10 +807,73 @@ describe("deterministic civilization experiment", () => {
 			),
 		).toBe(true);
 		const year = await runCivilizationExperiment({ world, horizonDays: 365 });
-		expect(year.metrics.standardBrainDecisionCount).toBe(
-			thirty.metrics.standardBrainDecisionCount,
-		);
 		expect(year.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+	});
+
+	it("runs real Standard Brain openings every day through day 90 with a later social consequence", async () => {
+		expect(BULK_OPENING_DECISION_HORIZON_DAYS).toBe(90);
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-ninety-day-opening-horizon",
+		);
+		const thirty = await runCivilizationExperiment({
+			world,
+			horizonDays: 30,
+		});
+		const ninety = await runCivilizationExperiment({
+			world,
+			horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
+		});
+		expect(ninety.metrics.standardBrainDecisionCount).toBe(
+			BULK_OPENING_DECISION_COUNT,
+		);
+		expect(ninety.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
+		expect(
+			ninety.cognitionDecisions.every(
+				({ modelInvocations }) => modelInvocations === 0,
+			),
+		).toBe(true);
+		const laterOpenings = ninety.cognitionDecisions.slice(
+			thirty.cognitionDecisions.length,
+		);
+		expect(laterOpenings).toHaveLength(
+			BULK_OPENING_DECISION_COUNT - THIRTY_DAY_OPENING_DECISION_COUNT,
+		);
+		expect(
+			laterOpenings.some(
+				(decision) =>
+					decision.retrievedMemoryIds.some(
+						(id) => id.includes(":heard:") || id.includes(":water-reserve"),
+					) || decision.selectedActionId.startsWith("heed:"),
+			),
+		).toBe(true);
+		expect(
+			laterOpenings.some(
+				(decision) =>
+					decision.planTransition === "choice-replanned" ||
+					decision.selectedActionId.startsWith("heed:"),
+			),
+		).toBe(true);
+		const lateHeard = Object.values(ninety.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter(
+				(record) =>
+					record.kind === "message-claim" &&
+					record.createdRevision > (thirty.state.revision ?? 0),
+			),
+		);
+		expect(lateHeard.length).toBeGreaterThan(0);
+		expect(
+			ninety.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		const year = await runCivilizationExperiment({ world, horizonDays: 365 });
+		expect(year.metrics.standardBrainDecisionCount).toBe(
+			ninety.metrics.standardBrainDecisionCount,
+		);
+		expect(year.metrics.standardBrainDecisionCount).not.toBe(365 * 8);
+		expect(year.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+		expect(year.steps[89]?.postStateHash).toBe(ninety.finalStateHash);
 	});
 
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {
@@ -854,24 +923,36 @@ describe("deterministic civilization experiment", () => {
 			expect(run.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
 			expect(run.metrics.modelInvocations).toBe(0);
 			expect(run.metrics.standardBrainDecisionCount).toBe(
-				BULK_OPENING_DECISION_COUNT,
+				bulkOpeningDecisionCount(run.horizonDays),
 			);
 			expect(run.metrics.population).toBeLessThanOrEqual(8);
 			expect(run.metrics.invariantIssues).toEqual([]);
 		}
 
 		const thirty = progressionRuns[0];
+		const ninety = progressionRuns[1];
 		const year = progressionRuns[2];
-		if (thirty === undefined || year === undefined)
+		if (thirty === undefined || ninety === undefined || year === undefined)
 			throw new Error("progression horizons are incomplete");
+		expect(thirty.finalStateHash).toBe(ninety.steps[29]?.postStateHash);
 		expect(thirty.finalStateHash).toBe(year.steps[29]?.postStateHash);
+		expect(ninety.finalStateHash).toBe(year.steps[89]?.postStateHash);
 		expect(thirty.steps.map((step) => step.stepHash)).toEqual(
 			year.steps.slice(0, 30).map((step) => step.stepHash),
+		);
+		expect(ninety.steps.map((step) => step.stepHash)).toEqual(
+			year.steps.slice(0, 90).map((step) => step.stepHash),
 		);
 		expect(thirty.events.map((event) => event.eventHash)).toEqual(
 			year.events
 				.slice(0, thirty.events.length)
 				.map((event) => event.eventHash),
+		);
+		expect(ninety.metrics.standardBrainDecisionCount).toBe(
+			BULK_OPENING_DECISION_COUNT,
+		);
+		expect(year.metrics.standardBrainDecisionCount).toBe(
+			ninety.metrics.standardBrainDecisionCount,
 		);
 	});
 

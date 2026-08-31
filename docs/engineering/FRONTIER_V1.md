@@ -43,11 +43,11 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 | Area | Phase 0 | Frontier target |
 |---|---|---|
 | Reality, worldgen, scheduler, needs, resources, production, transport, persistence, replay, catch-up | STRONG | Keep |
-| Cognition on live days | SHALLOW (days 1–3, then skip) | Live days and player-authorized return catch-up (1–7) run Standard Brain; bulk/prefix openings through day 30; skip after day 30 for 365 identity/perf, not a cognition proof |
+| Cognition on live days | SHALLOW (days 1–3, then skip) | Live days and player-authorized return catch-up (1–7) run Standard Brain; bulk/prefix openings through day 90; skip after day 90 for 365 identity/perf, **not** a 365 cognition proof |
 | `planRoutine` | UNUSED IN PLAY | Wired as the standing-plan constructor; inspectable in Play |
 | Memory / beliefs / relationships / skills | SHALLOW (seeded water replan) | Heard testimony can change a later opening choice |
 | Projects / institutions / migration | SHALLOW (seeded expedition, fixed chain) | Citizen-originated water-reserve from standing plan + need; institutions/migration still the seeded chain |
-| Citizen-to-citizen information | SCAFFOLD | Conversations write listener message-claims on thinking days; later acts can cite them. Not a 90/365 social-propagation proof. |
+| Citizen-to-citizen information | SCAFFOLD | Conversations write listener message-claims on thinking days; a later opening after day 30 can cite them. Not a 365 social-propagation proof. |
 | Model Brain in product | Hardcoded `standard-brain` | Local Settings treatment; Standard fallback; replay never re-infers |
 | Browser Worker as authority | Hosts Reality while tab is open | Client of local process when process is running and the fence attaches; IndexedDB writer if the process is absent |
 | Closed-tab continuity | FALSE | Only with local process |
@@ -55,7 +55,7 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 | Chronicle causal grammar | Research only | Play + Research |
 | P0 UX (hero, contrast, counsel race, mobile, feedback drawer) | Blockers | Fixed first |
 | Export/import | Absent by decision | Still absent |
-| Catch-up UI | 7 days vs persistence 365 | Honest copy; no overclaim |
+| Catch-up UI | 7 days vs persistence 365 | Player-facing cap is **up to 7 days**; persistence still 365; copy does not imply 365 lived days |
 
 ## Target architecture
 
@@ -79,7 +79,7 @@ Browser Play
 
 ### 2. Recurring cognition
 
-Stop `skipOpeningDecisions` on **live** days and on **player-authorized return catch-up** (1–7 days). Those catch-up days use the same Standard Brain openings as live Play; they are not empty ticks and not a closed-tab clock. Bulk/prefix genesis runs real Standard Brain openings through day 30 (`BULK_OPENING_DECISION_HORIZON_DAYS`). After that window, later prefix days may skip for 365 identity and horizon cost; that skip is **not** a 90/365 cognition proof. Standing plans persist and are inspectable in Play. `planRoutine` is the standing-plan constructor. Idle related residents can talk/listen on thinking days when planned work did not execute; openings do not invent omniscient social.
+Stop `skipOpeningDecisions` on **live** days and on **player-authorized return catch-up** (1–7 days). Those catch-up days use the same Standard Brain openings as live Play; they are not empty ticks and not a closed-tab clock. Bulk/prefix genesis runs real Standard Brain openings through day 90 (`BULK_OPENING_DECISION_HORIZON_DAYS`). After that window, days 91–365 of a year run may skip for 365 identity and horizon cost; that skip is **not** a 365-day cognition proof. Standing plans persist and are inspectable in Play without leaking engine step kinds. `planRoutine` is the standing-plan constructor. Idle related residents can talk/listen on thinking days when planned work did not execute; openings do not invent omniscient social.
 
 ### 3. Inner life in Play
 
@@ -91,7 +91,7 @@ A later live day **or a 30-day bulk genesis run** can contain a **citizen-sponso
 
 ### 5. A→B information travel
 
-Conversations copy a typed message-claim onto the listener's Mind on days that run Standard Brain openings: live days, player-authorized return catch-up (1–7), and the 30-day thinking prefix. Pairing is scheduler-owned from idle related residents (executed work stays work; openings do not paint ghost standing-plan labor). A later opening decision can retrieve that heard record. Reality stays Application-written. This is not a 90/365 social-propagation proof.
+Conversations copy a typed message-claim onto the listener's Mind on days that run Standard Brain openings: live days, player-authorized return catch-up (1–7), and the 90-day thinking prefix. Pairing is scheduler-owned from idle related residents (executed work stays work; openings do not paint ghost standing-plan labor). A later opening decision — including after day 30 — can retrieve that heard record. Reality stays Application-written. This is not a 365-day social-propagation proof.
 
 ### 6. Optional Model Brain
 
@@ -103,11 +103,11 @@ P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/Lice
 
 ### 8. Persistence honesty
 
-Export/import remain forbidden. Catch-up copy must not overclaim. Landing still describes Worker-in-tab time. About describes the optional local process and that divergent stores are not merged. Do not claim default closed-tab continuity.
+Export/import remain forbidden. Catch-up copy names the **up to 7 day** player-facing cap and does not imply 365 lived days. Persistence still stores 365. Landing still describes Worker-in-tab time. About describes the optional local process and that divergent stores are not merged. Do not claim default closed-tab continuity.
 
 ### 9. Proofs
 
-Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down), shared writer fence (process-up does not write a browser fork; process-down keeps IndexedDB catch-up; divergent snapshots are not silently merged), citizen-originated water-reserve project from a standing transport plan and recorded water need (distinct from the seeded expedition; visible in Play HUD/projects), **30-day bulk Standard Brain** (`runCivilizationExperiment(30)` runs openings every day; citizen-06 originates `water-reserve` from those openings; 240 Standard Brain decisions; 30-day prefix matches 365), **thinking-day conversation** (paired talk/listen and listener message-claims occur on days where `skipOpeningDecisions` is false, not only on skipped odd days), **return catch-up thinking** (player-authorized 1–7 days set `skipOpeningDecisions` false and leave at least one real opening consequence; not a closed-tab clock unless `pnpm world:authority` was running). **90/365 social remains UNRESOLVED:** days 31–365 of a year run skip openings for identity/perf; that is not a cognition proof. Do not fake a 365-day wall-clock or cognition proof.
+Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings (standing-plan HUD maps `WorkProject` and other step kinds to player-facing copy), live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; reconnect after a process tick shows the advanced day; process restart reloads the same persisted day; process-down Play uses IndexedDB and does not graft the process snapshot; catch-up if the process is down), shared writer fence (process-up does not write a browser fork; process-down keeps IndexedDB catch-up; divergent snapshots are not silently merged), citizen-originated water-reserve project from a standing transport plan and recorded water need (distinct from the seeded expedition; visible in Play HUD/projects), **30-day bulk Standard Brain** (`runCivilizationExperiment(30)` runs openings every day; citizen-06 originates `water-reserve` from those openings; 240 Standard Brain decisions; 30-day prefix matches 90 and 365), **90-day bulk Standard Brain** (`runCivilizationExperiment(90)` runs openings every day; 720 Standard Brain decisions; days 31–90 include a later opening that retrieves heard or water-reserve memory and a later message-claim; 90-day prefix matches 365; FAST cost is accepted), **thinking-day conversation** (paired talk/listen and listener message-claims occur on days where `skipOpeningDecisions` is false, not only on skipped odd days), **return catch-up thinking** (player-authorized 1–7 days set `skipOpeningDecisions` false and leave at least one real opening consequence; copy names **up to 7 days**; not a closed-tab clock unless `pnpm world:authority` was running). **365 cognition remains UNRESOLVED:** days 91–365 of a year run skip openings for identity/perf; that is not a 365-day thinking proof. Do not fake a 365-day wall-clock or cognition proof.
 
 ## Resulting implementation behavior
 
@@ -131,6 +131,7 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 
 ## Remaining work
 
-- 90/365 social-propagation as a product gate: prefix skip after day 30 is identity/perf, **not** a cognition proof; do not fake 365.
+- 365-day cognition as a product gate: prefix skip after day 90 is identity/perf, **not** a 365 thinking proof; do not fake 365.
 - Slice 6 remainder: GLB still unused (payload). Follow indoor is locked for Workshop envelopes (back out / roof peek); mill, hall, and other interiors are not exhaustively proven.
+- Completing the citizen water-reserve and originating other project kinds remain open.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

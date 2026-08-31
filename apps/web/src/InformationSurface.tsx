@@ -92,7 +92,7 @@ export function InformationSurface({
 							<code>pnpm world:authority</code> and this browser can reach it.
 							If both this browser and that process have a town, they are not
 							merged until you choose. If that process was not running, you
-							still choose whether waited days pass.
+							still choose whether up to 7 waited days pass.
 						</p>
 					</header>
 					<section className="v1-information-grid" aria-label="About EONFOLK">

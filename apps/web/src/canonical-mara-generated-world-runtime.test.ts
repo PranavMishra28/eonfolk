@@ -37,5 +37,10 @@ describe("canonical Mara generated-world runtime", () => {
 		expect(mara?.want).not.toMatch(/walking|walks to/iu);
 		expect(mara?.daysWork.length).toBeGreaterThan(0);
 		expect(mara?.standingPlan.length).toBeGreaterThan(0);
+		for (const life of experience.innerLives) {
+			expect(life.standingPlan).not.toMatch(
+				/WorkProject|TransportResource|FollowStandingPlan|ProposeProject|routine ·/u,
+			);
+		}
 	});
 });
