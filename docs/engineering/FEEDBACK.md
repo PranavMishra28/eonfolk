@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-V1 feedback is an explicit in-game drawer that saves sanitized reports only in the current browser. It has no network relay, provider adapter, deployment configuration, destination account, or automatic retry. The interface says this before and after saving. Feedback failure cannot pause or mutate the world.
+V1 feedback is an explicit in-game bug/report control that opens a bounded local form and saves sanitized reports only in the current browser. It is not a full-width bottom drawer over the world. It has no network relay, provider adapter, deployment configuration, destination account, or automatic retry. The interface says this before and after saving. Feedback failure cannot pause or mutate the world.
 
 Evidence that would reopen this decision is a separately approved public test requiring remote collection, with a current privacy, abuse, cost, credential, retention, and deletion design. A hypothetical future relay is not retained as dormant production code.
 

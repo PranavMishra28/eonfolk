@@ -39,6 +39,7 @@
 | R-015 | Medium | Major | Planner/search complexity can make eight citizens slower or less legible while appearing technically impressive. | Cognition owner: frozen 64-context benchmark, hard correctness/runtime gates, three-case improvement floor, deterministic fallback, and removal on failure. | D-005, D-013 |
 | R-016 | Low-medium | Major | Ontology or experiment metadata can leak hidden facts or quietly influence canonical behavior. | Observatory/security owner: viewer authorization before projection, closed offline validator, separate immutable storage, dependency-direction tests, and byte-equality hidden-fact checks. | D-007, D-014 |
 | R-017 | Medium | Major | Founder Alpha scope and evidence work can become a solo-maintainer observability platform instead of a better game. | Coordinator: diagnostics/relay/planner/ontology are bounded seams; product journey and Gate evidence outrank optional tooling; cut anything without direct release value. | D-002, D-011, D-015 |
+| R-018 | Medium | Fatal | Tab Worker and a local authority process can both believe they hold the writer fence and fork history. | Persistence owner: one fence, fail-closed stale writer, no closed-tab continuity claim until the process is the sole live writer. | D-006, D-018 |
 
 ## Cross-risk rules
 

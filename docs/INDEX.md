@@ -82,6 +82,7 @@ Public readers start at [README](../README.md). Maintainers reconstructing the V
 | Local feedback queue, consent, sanitization, retention, deletion, and explicit no-relay boundary | [FEEDBACK.md](engineering/FEEDBACK.md) |
 | Historical Founder Alpha local-preview/CI evidence (not current V1 operations) | [FOUNDER_ALPHA_RELEASE.md](engineering/FOUNDER_ALPHA_RELEASE.md) |
 | Measured IndexedDB, bounded TLA+, local-model, SQLite/OPFS, and provenance technology choices | [FRONTIER_TECH.md](engineering/FRONTIER_TECH.md) |
+| Frontier V1 capability matrix, local-process continuity, Play inner life, and remaining work | [FRONTIER_V1.md](engineering/FRONTIER_V1.md) |
 
 ## Quality authorities
 

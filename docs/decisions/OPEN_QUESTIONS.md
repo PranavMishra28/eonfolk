@@ -138,3 +138,11 @@
 - **Fastest falsification:** Ask an independent systems/research reader to reconstruct sampled authorized decision/event chains from the projection and compare it with the simpler native JSON evidence.
 - **Evidence required:** The standards-shaped projection improves or preserves reconstruction without leaking hidden facts or changing canonical bytes; otherwise keep only the native evidence form.
 - **Decision reopened:** D-014; remove or narrow the projection rather than add a graph stack.
+
+### Q-016 — Does a thin local process preserve attachment when the tab is closed?
+
+- **Why it matters:** The product sentence includes a town that continues; the Worker dies with the tab.
+- **Current default:** Do not claim closed-tab continuity. Optional local Node process is the only later path (D-018).
+- **Fastest falsification:** Run the process, close the browser, reopen, and check that accepted events continued without a dual-writer fork or silent catch-up.
+- **Evidence required:** One fence, replayable head, honest copy when the process was not running.
+- **Decision reopened:** D-018; if the process cannot share persistence safely, keep Worker-in-tab and never claim closed-tab life.
