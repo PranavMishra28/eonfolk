@@ -28,10 +28,7 @@ import {
 	type VersionedPersistencePort,
 } from "@eonfolk/persistence";
 import type { GeneratedWorldState } from "@eonfolk/protocol";
-import {
-	type V1PersistedCheckpoint,
-	validateV1PersistedCheckpoint,
-} from "../v1-indexeddb";
+import type { V1PersistedCheckpoint } from "../v1-indexeddb";
 
 export const GENERATED_CIVILIZATION_CATCH_UP_HORIZONS = Object.freeze([
 	1, 7, 30, 90, 365,
@@ -892,6 +889,7 @@ export async function migrateLegacyGeneratedCheckpoint(input: {
 	readonly port: VersionedPersistencePort;
 	readonly legacy: V1PersistedCheckpoint;
 }): Promise<LegacyCheckpointMigrationResult> {
+	const { validateV1PersistedCheckpoint } = await import("../v1-indexeddb");
 	const legacy = await validateV1PersistedCheckpoint(
 		input.legacy,
 		input.legacy.storageKey,

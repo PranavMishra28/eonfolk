@@ -1,0 +1,11 @@
+{
+	"extends": "../../../tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"../../../apps/world-authority/src/**/*.ts",
+		"../../../apps/web/src/persistence/generated-civilization.ts",
+		"./**/*.ts"
+	]
+}

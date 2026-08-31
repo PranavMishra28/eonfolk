@@ -463,6 +463,50 @@ export interface MemoryVersionedPersistenceOptions {
 	readonly crashInjector?: VersionedCrashInjector;
 }
 
+export const FILE_AUTHORITY_STORES_VERSION =
+	"eonfolk-file-authority-stores-v1" as const;
+
+export interface SerializedAuthorityStores {
+	readonly schemaVersion: typeof FILE_AUTHORITY_STORES_VERSION;
+	readonly heads: readonly (readonly [string, AuthorityHead])[];
+	readonly genesisFingerprints: readonly (readonly [string, string])[];
+	readonly events: readonly (readonly [string, AuthorityEventRecord])[];
+	readonly receipts: readonly (readonly [string, AuthorityAppendReceipt])[];
+	readonly requestFingerprints: readonly (readonly [string, string])[];
+	readonly snapshots: readonly (readonly [string, AuthoritySnapshotRecord])[];
+}
+
+function serializeStores(stores: AuthorityStores): SerializedAuthorityStores {
+	return {
+		schemaVersion: FILE_AUTHORITY_STORES_VERSION,
+		heads: [...stores.heads.entries()],
+		genesisFingerprints: [...stores.genesisFingerprints.entries()],
+		events: [...stores.events.entries()],
+		receipts: [...stores.receipts.entries()],
+		requestFingerprints: [...stores.requestFingerprints.entries()],
+		snapshots: [...stores.snapshots.entries()],
+	};
+}
+
+function deserializeStores(
+	serialized: SerializedAuthorityStores,
+): AuthorityStores {
+	if (serialized.schemaVersion !== FILE_AUTHORITY_STORES_VERSION) {
+		throw new PersistenceError(
+			"UNSUPPORTED_VERSION",
+			`file authority stores ${serialized.schemaVersion} are unsupported`,
+		);
+	}
+	return {
+		heads: new Map(serialized.heads),
+		genesisFingerprints: new Map(serialized.genesisFingerprints),
+		events: new Map(serialized.events),
+		receipts: new Map(serialized.receipts),
+		requestFingerprints: new Map(serialized.requestFingerprints),
+		snapshots: new Map(serialized.snapshots),
+	};
+}
+
 export class MemoryVersionedPersistence implements VersionedPersistencePort {
 	readonly portVersion = VERSIONED_PERSISTENCE_PORT_VERSION;
 	readonly #bounds: PersistenceBounds;
@@ -1113,6 +1157,14 @@ export class MemoryVersionedPersistence implements VersionedPersistencePort {
 				"authority snapshot was not found",
 			);
 		return await this.loadSnapshot(scope, snapshot.snapshotId);
+	}
+
+	exportStores(): SerializedAuthorityStores {
+		return serializeStores(cloneStores(this.#stores));
+	}
+
+	importStores(serialized: SerializedAuthorityStores): void {
+		this.#stores = cloneStores(deserializeStores(serialized));
 	}
 }
 

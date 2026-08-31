@@ -6,28 +6,29 @@
 
 **Authority boundary:** This file inventories paths; it does not decide product readiness. [GOAL.md](../exec-plans/completed/GOAL.md) owns required-state decisions as a historical V1 ledger.
 
-**File-set identity:** 553 files excluding this generated file; SHA-256 `54838acbf5ab10cb0ab576bd1ac3011e10874e3156aa6f3c11fe8c24f3d8a69c`.
+**File-set identity:** 567 files excluding this generated file; SHA-256 `f1630449139da810e26027ff0cbe7dc063b4004c8872449328ae119198f081fd`.
 
 ## Tracked topology
 
 | Area | Files |
 |---|---:|
-| Application code | 56 |
-| Documentation | 103 |
+| Application code | 65 |
+| Documentation | 104 |
 | Frozen execution evidence | 67 |
 | GitHub automation | 9 |
 | Other tracked assets | 9 |
 | Packages | 96 |
-| Repository tooling | 32 |
+| Repository tooling | 33 |
 | Research and reviews | 55 |
 | Root controls and configuration | 24 |
-| Tests and fixtures | 102 |
+| Tests and fixtures | 105 |
 
 ## Workspaces
 
 | Directory | Package | Source files |
 |---|---|---:|
 | `apps/web` | `@eonfolk/web` | 44 |
+| `apps/world-authority` | `@eonfolk/world-authority` | 5 |
 | `packages/civilization` | `@eonfolk/civilization` | 10 |
 | `packages/cognition` | `@eonfolk/cognition` | 15 |
 | `packages/diagnostics` | `@eonfolk/diagnostics` | 10 |
@@ -47,7 +48,7 @@
 | `tests/property` | 18 |
 | `tests/timing` | 1 |
 | `tests/tsconfig.json` | 1 |
-| `tests/unit` | 63 |
+| `tests/unit` | 66 |
 
 ## Root controls and configuration
 

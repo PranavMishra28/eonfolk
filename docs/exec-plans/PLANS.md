@@ -4,11 +4,13 @@
 
 **Status:** ACTIVE FOR V1 CIVILIZATION
 
-**Authority boundary:** This file owns ExecPlan format and maintenance. [003 V1 civilization](active/003-v1-civilization.md) is the sole living plan; [002 Founder Alpha](completed/002-founder-alpha.md) and [001 foundation](completed/001-foundation.md) own completed history.
+**Authority boundary:** This file owns ExecPlan format and maintenance. [004 frontier living civilization](active/004-frontier-living-civilization.md) is the sole living plan; [003 V1 civilization](active/003-v1-civilization.md) is a historical snapshot; [002 Founder Alpha](completed/002-founder-alpha.md) and [001 foundation](completed/001-foundation.md) own completed history.
 
 **Related documents:** [quality bar](../quality/QUALITY_BAR.md), [testing](../quality/TESTING.md), [visual QA](../quality/VISUAL_QA.md), [historical planning status](completed/PLAN.md).
 
 An ExecPlan is a living implementation contract. A developer with only the repository, the plan and ordinary local tools must be able to reproduce the work and understand why every material deviation occurred.
+
+[004 frontier living civilization](active/004-frontier-living-civilization.md) is the sole living plan. [003 V1 civilization](active/003-v1-civilization.md) is retained as a historical snapshot of the merged benchmark, not the current runbook.
 
 ## Required front matter
 

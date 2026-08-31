@@ -2,11 +2,11 @@
 
 **Purpose:** Provide the sole map from every planning concern and retained artifact to its canonical owner.
 
-**Status:** V1 MERGED TO MAIN — human product gates not run; historical ledgers retained under completed exec-plans
+**Status:** V1 MERGED TO MAIN — frontier living-civilization plan is now the living implementation track; historical ledgers retained under completed exec-plans
 
 **Authority boundary:** This file owns document authority, retention, and read order. It does not restate product or technical decisions.
 
-**Related documents:** [historical ledgers](exec-plans/completed/README.md), [V1 ExecPlan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
+**Related documents:** [historical ledgers](exec-plans/completed/README.md), [living V1 ExecPlan](exec-plans/active/004-frontier-living-civilization.md), [historical V1 civilization plan](exec-plans/active/003-v1-civilization.md), [decisions](decisions/DECISIONS.md), [source ledger](research/SOURCE_LEDGER.md), [completed Founder Alpha](exec-plans/completed/002-founder-alpha.md).
 
 Each concern has one authority. Research records evidence; reviews record objections; authority documents decide. If two files disagree, use this map and repair the non-authoritative file.
 
@@ -153,7 +153,8 @@ Public readers start at [README](../README.md). Maintainers reconstructing the V
 | Concern | Retained artifact |
 |---|---|
 | ExecPlan writing and maintenance contract | [PLANS.md](exec-plans/PLANS.md) |
-| Sole living V1 implementation plan | [003-v1-civilization.md](exec-plans/active/003-v1-civilization.md) |
+| Sole living V1 implementation plan | [004-frontier-living-civilization.md](exec-plans/active/004-frontier-living-civilization.md) |
+| Historical V1 civilization plan (snapshot) | [003-v1-civilization.md](exec-plans/active/003-v1-civilization.md) |
 | Completed Founder Alpha implementation and evidence log | [002-founder-alpha.md](exec-plans/completed/002-founder-alpha.md) |
 | Two-gate 52-hour vertical slice | [001-foundation.md](exec-plans/completed/001-foundation.md) |
 | Self-contained future Goal-mode orchestration | [IMPLEMENTATION_GOAL_PROMPT.md](exec-plans/IMPLEMENTATION_GOAL_PROMPT.md) |

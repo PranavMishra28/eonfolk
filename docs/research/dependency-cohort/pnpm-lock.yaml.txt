@@ -119,6 +119,21 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@22.20.1)(jiti@2.7.0))
 
+  apps/world-authority:
+    dependencies:
+      '@eonfolk/civilization':
+        specifier: workspace:*
+        version: link:../../packages/civilization
+      '@eonfolk/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@eonfolk/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      '@eonfolk/worldgen':
+        specifier: workspace:*
+        version: link:../../packages/worldgen
+
   packages/civilization:
     dependencies:
       '@eonfolk/cognition':

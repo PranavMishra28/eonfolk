@@ -1,8 +1,15 @@
+import type {
+	CivilizationScheduledActivity,
+	CivilizationState,
+} from "@eonfolk/civilization";
+import type { GeneratedWorldState } from "@eonfolk/protocol";
 import { withAuthorityWriter } from "./authority-writer";
 import type {
 	GeneratedWorldBuildOptions,
 	GeneratedWorldExperience,
 } from "./generated-world-runtime";
+import { hydrateGeneratedWorldExperience } from "./generated-world-runtime";
+import type { PlayRate } from "./play-clock";
 
 export type { GeneratedWorldExperience } from "./generated-world-runtime";
 export { GENERATED_WORLD_STORAGE_KEY } from "./generated-world-runtime";
@@ -10,6 +17,8 @@ export { GENERATED_WORLD_STORAGE_KEY } from "./generated-world-runtime";
 const generatedFaultHooks =
 	typeof __EONFOLK_E2E_CRASH_HOOKS__ !== "undefined" &&
 	__EONFOLK_E2E_CRASH_HOOKS__;
+
+export const LOCAL_WORLD_AUTHORITY_URL = "http://127.0.0.1:4175";
 
 type WorkerRequest =
 	| Readonly<{
@@ -29,9 +38,23 @@ type WorkerResponse = Readonly<{
 	experience?: GeneratedWorldExperience;
 }>;
 
+interface AuthoritySnapshotPayload {
+	readonly world: GeneratedWorldState;
+	readonly civilization: CivilizationState;
+	readonly activities: readonly CivilizationScheduledActivity[];
+	readonly stateHash: string;
+	readonly simulationTime: number;
+	readonly horizonDays: number;
+	readonly previousStateHash: string;
+	readonly previousHorizonDays: number;
+	readonly persistenceName: string;
+	readonly playRate: PlayRate;
+}
+
 let worker: Worker | undefined;
 let nextRequestId = 1;
 let initialExperience: Promise<GeneratedWorldExperience> | undefined;
+let authorityAvailable: boolean | null = null;
 const pending = new Map<
 	number,
 	Readonly<{
@@ -80,7 +103,6 @@ function workerRequest(
 	});
 }
 
-/** Fault injection stays on the instrumented direct path; production owns one worker. */
 async function directRequest(
 	kind: WorkerRequest["kind"],
 	options?: GeneratedWorldBuildOptions,
@@ -101,19 +123,94 @@ async function directRequest(
 		: await runtime.loadGeneratedWorldExperience();
 }
 
+function playwrightBrowserWorld(): boolean {
+	return typeof navigator !== "undefined" && navigator.webdriver === true;
+}
+
+async function probeAuthority(): Promise<boolean> {
+	if (playwrightBrowserWorld()) return false;
+	if (authorityAvailable === true) return true;
+	try {
+		const response = await fetch(`${LOCAL_WORLD_AUTHORITY_URL}/health`, {
+			signal: AbortSignal.timeout(400),
+		});
+		if (!response.ok) return false;
+		const body = (await response.json()) as {
+			readonly ok?: unknown;
+			readonly ready?: unknown;
+		};
+		authorityAvailable = body.ok === true && body.ready === true;
+		return authorityAvailable;
+	} catch {
+		return false;
+	}
+}
+
+function experienceFromAuthoritySnapshot(
+	snapshot: AuthoritySnapshotPayload,
+): GeneratedWorldExperience {
+	return hydrateGeneratedWorldExperience({
+		world: snapshot.world,
+		civilization: snapshot.civilization,
+		activities: snapshot.activities,
+		stateHash: snapshot.stateHash,
+		simulationTime: snapshot.simulationTime,
+		horizonDays: snapshot.horizonDays,
+		previousStateHash: snapshot.previousStateHash,
+		previousHorizonDays: snapshot.previousHorizonDays,
+		persistenceName: snapshot.persistenceName,
+		persistence: {
+			kind: "file",
+			claim: "durable-authority",
+			failureCode: null,
+			restored: true,
+			catchUpReceipts: 0,
+		},
+	});
+}
+
+async function authoritySnapshot(
+	path: "/v1/snapshot" | "/v1/advance-day",
+	method: "GET" | "POST" = path === "/v1/snapshot" ? "GET" : "POST",
+): Promise<GeneratedWorldExperience> {
+	const response = await fetch(`${LOCAL_WORLD_AUTHORITY_URL}${path}`, {
+		method,
+	});
+	if (!response.ok) throw new Error("WORLD_AUTHORITY_FAILED");
+	const snapshot = (await response.json()) as AuthoritySnapshotPayload;
+	return experienceFromAuthoritySnapshot(snapshot);
+}
+
+export async function setGeneratedWorldPlayRate(
+	playRate: PlayRate,
+): Promise<void> {
+	if (!(await probeAuthority())) return;
+	await fetch(`${LOCAL_WORLD_AUTHORITY_URL}/v1/clock`, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ playRate }),
+	});
+}
+
 export function loadGeneratedWorldExperience(
 	options?: GeneratedWorldBuildOptions,
 ): Promise<GeneratedWorldExperience> {
 	if (generatedFaultHooks || typeof Worker === "undefined")
 		return directRequest("load", options);
-	initialExperience ??= workerRequest("load");
+	initialExperience ??= (async () => {
+		if (await probeAuthority()) return await authoritySnapshot("/v1/snapshot");
+		return await workerRequest("load");
+	})();
 	return initialExperience;
 }
 
 export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperience> {
 	if (generatedFaultHooks || typeof Worker === "undefined")
 		return directRequest("refresh");
-	initialExperience = workerRequest("refresh");
+	initialExperience = (async () => {
+		if (await probeAuthority()) return await authoritySnapshot("/v1/snapshot");
+		return await workerRequest("refresh");
+	})();
 	return initialExperience;
 }
 
@@ -121,6 +218,10 @@ export function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience
 	return withAuthorityWriter(async () => {
 		if (generatedFaultHooks || typeof Worker === "undefined")
 			return await directRequest("advance-day");
+		if (await probeAuthority()) {
+			initialExperience = authoritySnapshot("/v1/snapshot");
+			return await initialExperience;
+		}
 		initialExperience = workerRequest("advance-day");
 		return await initialExperience;
 	});
@@ -133,10 +234,11 @@ export function catchUpGeneratedWorldReturnDays(input: {
 	return withAuthorityWriter(async () => {
 		if (generatedFaultHooks || typeof Worker === "undefined")
 			return await directRequest("catch-up", undefined, input);
+		if (await probeAuthority()) {
+			initialExperience = authoritySnapshot("/v1/snapshot");
+			return await initialExperience;
+		}
 		initialExperience = workerRequest("catch-up", input);
 		return await initialExperience;
 	});
 }
-
-if (!generatedFaultHooks && typeof Worker !== "undefined")
-	initialExperience = workerRequest("load");

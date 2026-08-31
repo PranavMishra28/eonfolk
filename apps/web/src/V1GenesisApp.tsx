@@ -38,6 +38,7 @@ import {
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
+	setGeneratedWorldPlayRate,
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import type {
@@ -1304,6 +1305,9 @@ function GeneratedWorld({
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
 	const [playRate, setPlayRate] = useState<PlayRate>(1);
+	useEffect(() => {
+		void setGeneratedWorldPlayRate(playRate);
+	}, [playRate]);
 	const [consideringCounsel, setConsideringCounsel] = useState(false);
 	const resumePlayRate = useRef<PlayRate>(1);
 	const pausedForCounsel = useRef(false);
@@ -1577,7 +1581,8 @@ function GeneratedWorld({
 			catchUpProposal > 0 ||
 			catchingUp.current ||
 			consideringCounsel ||
-			experience.persistence.kind !== "indexeddb"
+			(experience.persistence.kind !== "indexeddb" &&
+				experience.persistence.kind !== "file")
 		)
 			return;
 		const id = window.setInterval(() => {

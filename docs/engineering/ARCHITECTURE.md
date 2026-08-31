@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-The first slice is a strict TypeScript/pnpm workspace with a pure protocol package, pure deterministic simulation package, provider-neutral cognition package, React Router/Vite browser application, simulation Web Worker, and IndexedDB persistence adapter. There is no server, account, deployment, hosted inference, multiplayer, or cross-region implementation.
+The current local product is a strict TypeScript/pnpm workspace with a pure protocol package, deterministic simulation packages, provider-neutral cognition, a React Router/Vite browser client, and a loopback Node world-authority process that is the single writer while it is running. The in-tab Web Worker plus IndexedDB adapter remains the fallback when that process is not running. There is no hosted server, account, deployment, hosted inference, multiplayer, or cross-region implementation.
 
 The four hard layers are:
 
@@ -23,18 +23,21 @@ Only Reality may change canonical state. Application validates every command or 
 
 This supports the long-term World/Chronicle/Observatory identity without implementing a platform now. World owns persistent grounded behavior, Chronicle projects factual causal history, and Observatory may later inspect the same bounded provenance. The consumer loop remains primary.
 
-## First-slice topology
+## Local topology
 
 ```text
-React Router/Vite application
-  ├─ semantic DOM controls and Chronicle projections
-  ├─ exactly one world renderer
-  ├─ simulation Web Worker
-  │    ├─ packages/protocol: versioned types only
-  │    ├─ packages/sim: Reality, scheduler, reducer, hashes
-  │    └─ packages/cognition: Mind, Standard Brain, adapter interface
-  └─ IndexedDB PersistencePort adapter
+pnpm dev
+  ├─ apps/world-authority (loopback 127.0.0.1:4175)
+  │    ├─ file-backed VersionedPersistencePort (~/.eonfolk/worlds/)
+  │    ├─ civilization genesis + live day + honest catch-up
+  │    └─ event-driven day loop (sleeps; does not busy-wait)
+  └─ React Router/Vite application (client/projection)
+       ├─ semantic DOM controls and Chronicle projections
+       ├─ exactly one world renderer
+       └─ IndexedDB Web Worker fallback when the process is down
 ```
+
+The local world authority is the single writer while it is alive. Closing the browser does not stop the civilization. If the process is stopped, the machine sleeps, or the host reboots, restart requests deterministic catch-up for elapsed awake time (capped, never pretending the computer ran while it was off). The worker/IndexedDB path remains for browser-only fallback and Playwright isolation.
 
 The implementation plan may choose different directory names only if it records the mapping before code begins. The dependency direction remains fixed:
 
@@ -100,7 +103,8 @@ This is a migration option, not an approved deployment. Cloudflare pricing, acco
 
 ## Resulting implementation behavior
 
-- The world runs, saves, reloads, catches up, and replays with every external model and server adapter absent.
+- The world runs, saves, reloads, catches up, and replays with every external model and hosted server adapter absent. The local loopback authority is not a hosted server.
+- While the local world process is alive, simulation continues without a browser tab.
 - Canonical state changes enter through one typed validation/reducer path.
 - Presentation can be discarded and rebuilt from canonical data.
 - Pure domain logic can later be reused by a region adapter; authentication, outbox/alarm, backup, moderation, and history-import semantics must be designed separately.

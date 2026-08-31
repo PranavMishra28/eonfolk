@@ -13,6 +13,7 @@ const projects = [
 	"tests/unit/systems/tsconfig.json",
 	"tests/unit/civilization/tsconfig.json",
 	"tests/unit/persistence/tsconfig.json",
+	"tests/unit/world-authority/tsconfig.json",
 	"tests/unit/diagnostics/tsconfig.json",
 	"tests/unit/world-presentation/tsconfig.json",
 	"tests/unit/worldgen/tsconfig.json",
@@ -23,6 +24,7 @@ const projects = [
 	"tests/property/world-presentation/tsconfig.json",
 	"tests/manual/tsconfig.json",
 	"apps/web/tsconfig.json",
+	"apps/world-authority/tsconfig.json",
 	"tests/tsconfig.json",
 ];
 

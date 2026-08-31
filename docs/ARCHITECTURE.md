@@ -7,18 +7,22 @@ describe; none may directly change canonical state.
 ## Runtime
 
 ```text
-Browser application
-├── React semantic interface and Chronicle
-├── PlayCanvas world renderer
-├── Web Worker
-│   ├── deterministic civilization scheduler
-│   ├── authoritative reducer and invariants
+pnpm dev
+├── Local world authority (loopback process)
+│   ├── file-backed versioned persistence
+│   ├── civilization scheduler and reducer
 │   └── mandatory model-free Standard Brain
-└── IndexedDB persistence
-    ├── accepted event batches and receipts
-    ├── snapshots and writer fencing
-    └── replay and bounded catch-up
+└── Browser client
+    ├── React semantic interface and Chronicle
+    ├── PlayCanvas world renderer
+    └── IndexedDB Web Worker fallback when the process is down
 ```
+
+`pnpm dev` starts the local world authority and the web client together.
+Closing the browser does not stop the civilization while that process remains
+alive. Restarting the process requests deterministic catch-up for elapsed awake
+time; it does not pretend the machine ran while it was off. `pnpm dev:web` is
+the browser-only fallback.
 
 The application validates a typed command against an expected revision. The
 simulation prepares an immutable transition, checks invariants, emits ordered
@@ -54,19 +58,20 @@ and never infers causality from prose or timing alone.
 
 ## Persistence and replay
 
-The browser keeps versioned events, batch headers, state hashes, receipts,
-snapshots, and fencing tokens in IndexedDB. Canonical replay consumes a verified
-snapshot plus an exact ordered event interval. It does not call cognition or
-attempt to reproduce a model response.
+The browser fallback keeps versioned events, batch headers, state hashes, receipts,
+snapshots, and fencing tokens in IndexedDB. The local world authority keeps the
+same versioned stores in an atomic file under `~/.eonfolk/worlds/`. Canonical
+replay consumes a verified snapshot plus an exact ordered event interval. It does
+not call cognition or attempt to reproduce a model response.
 
 Catch-up advances through deterministic boundaries. Stable spans may be
 coalesced for presentation, but shocks, shortages, ownership changes, plan
 boundaries, and consequential decisions remain explicit.
 
-The current build has no backup/import interface, sync, server authority, or
-multi-device conflict resolution. A future region server can implement the
-existing persistence boundary, but it will require a separate authentication,
-moderation, backup, and operations design.
+The current build has no player-facing backup/import interface, sync, hosted
+server authority, or multi-device conflict resolution. A future region server can
+implement the existing persistence boundary, but it will require a separate
+authentication, moderation, backup, and operations design.
 
 ## Security properties
 

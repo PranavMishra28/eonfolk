@@ -1,0 +1,19 @@
+{
+	"name": "@eonfolk/world-authority",
+	"private": true,
+	"license": "Apache-2.0",
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"start": "node --experimental-strip-types --no-warnings --import ./register-ts.mjs ./src/main.ts"
+	},
+	"dependencies": {
+		"@eonfolk/civilization": "workspace:*",
+		"@eonfolk/persistence": "workspace:*",
+		"@eonfolk/protocol": "workspace:*",
+		"@eonfolk/worldgen": "workspace:*"
+	}
+}

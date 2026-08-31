@@ -52,7 +52,7 @@ export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v8";
 
 export interface GeneratedWorldPersistenceStatus {
-	readonly kind: "indexeddb" | "quarantined" | "unavailable";
+	readonly kind: "indexeddb" | "file" | "quarantined" | "unavailable";
 	readonly claim: "durable-authority" | "admitted-deterministic-view";
 	readonly failureCode: string | null;
 	readonly restored: boolean;
@@ -228,6 +228,107 @@ function happeningsFromCivilization(
 		);
 	}
 	return Object.freeze(happenings);
+}
+
+export function hydrateGeneratedWorldExperience(input: {
+	readonly world: GeneratedWorldState;
+	readonly civilization: CivilizationState;
+	readonly activities: readonly CivilizationScheduledActivity[];
+	readonly stateHash: string;
+	readonly simulationTime: number;
+	readonly horizonDays: number;
+	readonly previousStateHash: string;
+	readonly previousHorizonDays: number;
+	readonly persistence: GeneratedWorldPersistenceStatus;
+	readonly persistenceName: string;
+}): GeneratedWorldExperience {
+	const horizonDays = input.horizonDays;
+	const residentPopulation = Object.values(input.civilization.citizens).filter(
+		({ residenceState }) => residenceState === "resident",
+	).length;
+	const checkpoint = {
+		schemaVersion: "eonfolk-civilization-experiment-v9" as const,
+		runnerVersion: "eonfolk-civilization-runner-v9" as const,
+		worldIdentityHash: input.world.identity.identityHash,
+		horizonDays,
+		finalStateHash: input.stateHash,
+		events: [],
+		metrics: {
+			simulationTime: input.simulationTime,
+			modelInvocations: 0,
+		},
+	};
+	const projections = projectAuthorityView({
+		world: input.world,
+		civilization: input.civilization,
+		checkpoint,
+		activities: input.activities,
+		residentPopulation,
+	});
+	const worldEmbodiment = projectGeneratedWorldEmbodiment({
+		current: projections,
+		previous: projections,
+		activities: input.activities,
+	});
+	const embodimentBySettlement = new Map(
+		worldEmbodiment.settlements.map((embodiment) => [
+			embodiment.settlementId,
+			embodiment,
+		]),
+	);
+	const embodiments = Object.freeze(
+		projections.map((projection) => {
+			const embodiment = embodimentBySettlement.get(
+				projection.local.settlement.settlementId,
+			);
+			if (embodiment === undefined) throw new Error("Embodiment missing");
+			return embodiment;
+		}),
+	);
+	const sponsorCitizenId = RELEASE_GENESIS_MARA_CITIZEN_ID;
+	const activeCounsel = Object.values(input.civilization.counsels).find(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution === null,
+	);
+	const hasResolvedCounsel = Object.values(input.civilization.counsels).some(
+		(counsel) =>
+			counsel.citizenId === sponsorCitizenId && counsel.resolution !== null,
+	);
+	const hasSponsorship = Object.values(input.civilization.sponsorships).some(
+		(covenant) => covenant.beneficiaryCitizenId === sponsorCitizenId,
+	);
+	const hasAbstention = Object.values(
+		input.civilization.patronAbstentions,
+	).some((abstention) => abstention.citizenId === sponsorCitizenId);
+	return Object.freeze({
+		worldId: input.world.identity.worldId,
+		worldIdentityHash: input.world.identity.identityHash,
+		stateHash: input.stateHash,
+		simulationTime: input.simulationTime,
+		horizonDays,
+		population: Object.keys(input.civilization.citizens).length,
+		settlementCount: projections.length,
+		projections,
+		embodiments,
+		previousStateHash: input.previousStateHash,
+		previousHorizonDays: input.previousHorizonDays,
+		persistence: input.persistence,
+		authorityRegionId: input.world.identity.worldId,
+		authorityDatabaseName: input.persistenceName,
+		sponsorCitizenId,
+		sponsorPhase:
+			activeCounsel !== undefined
+				? "counseled"
+				: hasResolvedCounsel
+					? "resolved"
+					: hasAbstention
+						? "abstained"
+						: hasSponsorship
+							? "sponsored"
+							: "idle",
+		activeCounselIntent: activeCounsel?.intent ?? null,
+		happenings: happeningsFromCivilization(input.civilization),
+	});
 }
 
 function projectCheckpoint(

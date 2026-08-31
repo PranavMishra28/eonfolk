@@ -21,14 +21,27 @@ afterEach(() => {
 	FakeWorker.instances = [];
 });
 
+function withoutAuthority() {
+	vi.stubGlobal("Worker", FakeWorker);
+	vi.stubGlobal(
+		"fetch",
+		vi.fn(async () => {
+			throw new Error("no local world authority");
+		}),
+	);
+}
+
 describe("generated world worker client", () => {
-	it("starts one eager load and reuses it until an explicit refresh", async () => {
-		vi.stubGlobal("Worker", FakeWorker);
+	it("starts one load after the local authority probe fails and reuses it until an explicit refresh", async () => {
+		withoutAuthority();
 		const client = await import("./generated-world-client");
+		expect(FakeWorker.instances).toHaveLength(0);
+
+		const first = client.loadGeneratedWorldExperience();
+		await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(1));
 		const worker = FakeWorker.instances[0];
 		expect(worker?.requests).toEqual([{ id: 1, kind: "load" }]);
 
-		const first = client.loadGeneratedWorldExperience();
 		worker?.onmessage?.({
 			data: { id: 1, ok: true, experience: { worldId: "world" } },
 		} as MessageEvent);
@@ -36,7 +49,9 @@ describe("generated world worker client", () => {
 		expect(worker?.requests).toHaveLength(1);
 
 		const refreshed = client.refreshGeneratedWorldExperience();
-		expect(worker?.requests.at(-1)).toEqual({ id: 2, kind: "refresh" });
+		await vi.waitFor(() =>
+			expect(worker?.requests.at(-1)).toEqual({ id: 2, kind: "refresh" }),
+		);
 		worker?.onmessage?.({
 			data: { id: 2, ok: true, experience: { worldId: "world-refreshed" } },
 		} as MessageEvent);
@@ -46,17 +61,19 @@ describe("generated world worker client", () => {
 	});
 
 	it("rejects pending authority requests if the worker fails", async () => {
-		vi.stubGlobal("Worker", FakeWorker);
+		withoutAuthority();
 		const client = await import("./generated-world-client");
 		const pending = client.loadGeneratedWorldExperience();
+		await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(1));
 		FakeWorker.instances[0]?.onerror?.();
 		await expect(pending).rejects.toThrow("WORLD_WORKER_FAILED");
 	});
 
 	it("fails closed when the worker rejects authority construction", async () => {
-		vi.stubGlobal("Worker", FakeWorker);
+		withoutAuthority();
 		const client = await import("./generated-world-client");
 		const pending = client.loadGeneratedWorldExperience();
+		await vi.waitFor(() => expect(FakeWorker.instances).toHaveLength(1));
 		FakeWorker.instances[0]?.onmessage?.({
 			data: { id: 1, ok: false },
 		} as MessageEvent);

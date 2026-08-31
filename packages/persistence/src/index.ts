@@ -51,10 +51,12 @@ export {
 	createAuthorityEvent,
 	createAuthorityHead,
 	createAuthoritySnapshot,
+	FILE_AUTHORITY_STORES_VERSION,
 	hashAuthoritativeState,
 	MemoryVersionedPersistence,
 	type MemoryVersionedPersistenceOptions,
 	replayAuthoritativeEvents,
+	type SerializedAuthorityStores,
 	validateAuthorityEventRecord,
 } from "./versioned.js";
 export {

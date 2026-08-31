@@ -14,7 +14,7 @@ cannot write the world.
 
 > **Project status: pre-alpha.** The current build is a bounded product proof,
 > not a finished or hosted game. It runs locally, requires no account or model,
-> and stores its world in your browser.
+> and stores its world on this machine.
 
 ![A running EONFOLK first session: enter Dawnmere, follow Mara Vale, offer counsel she can refuse, and read the Chronicle](docs/media/eonfolk-sponsor-loop.gif)
 
@@ -55,6 +55,10 @@ corepack enable
 corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm dev
 ```
+
+`pnpm dev` starts the local world authority on loopback plus the web client.
+The civilization keeps running in that local process if you close the browser
+tab. `pnpm dev:web` is the browser-only fallback used by older flows.
 
 Open the loopback URL printed by Vite. `/` is the landing page; `/world` is the
 settlement. To complete the product loop locally: choose **Enter Dawnmere**,
@@ -127,11 +131,13 @@ Read [Architecture](docs/ARCHITECTURE.md) for boundaries and
 
 ## Privacy and data
 
-The current world, feedback drafts, and diagnostic captures stay in local
-browser storage. EONFOLK has no telemetry, account system, analytics relay, or
-server persistence. Clearing site data removes the local world. There is not yet
-a supported backup/import workflow, so do not treat a pre-alpha world as durable
-personal storage.
+The current world, feedback drafts, and diagnostic captures stay on this
+machine. `pnpm dev` writes the authoritative world under `~/.eonfolk/worlds/`
+and keeps it running in a loopback process; the browser-only fallback still uses
+IndexedDB. EONFOLK has no telemetry, account system, analytics relay, or remote
+server persistence. Clearing site data does not delete the local process world.
+There is not yet a supported backup/import workflow, so do not treat a pre-alpha
+world as durable personal storage.
 
 Optional model experiments are isolated from authoritative state and are not
 part of normal onboarding or required verification.
