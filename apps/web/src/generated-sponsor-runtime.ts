@@ -73,20 +73,19 @@ function sponsorFail(code: string): never {
 	throw new Error(`SP:${code}`);
 }
 
+export function isSponsorContextMismatch(reason: unknown): boolean {
+	const raw = reason instanceof Error ? reason.message : String(reason);
+	return (
+		raw.includes("SP:CURRENT_CONTEXT_MISMATCH") ||
+		raw.includes("STALE_REVISION") ||
+		raw.includes("authority changed during validated session")
+	);
+}
+
 /** Play-surface copy. Engine codes stay in thrown errors, never in the world UI. */
 export function playerFacingSponsorFailure(reason: unknown): string {
-	const raw = reason instanceof Error ? reason.message : String(reason);
-	const code = raw.startsWith("SP:")
-		? (raw.slice(3).split(/[;\s]/u)[0] ?? "")
-		: "";
-	if (code === "CURRENT_CONTEXT_MISMATCH")
-		return "The town moved while this choice was open. Your previous view is unchanged.";
-	if (code.length > 0)
-		return "That action could not be saved. Your previous view is unchanged.";
-	if (raw.length > 0 && !raw.includes("SP:"))
-		return raw.endsWith(".")
-			? `${raw} Your previous view is unchanged.`
-			: `${raw}. Your previous view is unchanged.`;
+	if (isSponsorContextMismatch(reason))
+		return "This choice is still open. Confirm it against the current town record.";
 	return "That action could not be saved. Your previous view is unchanged.";
 }
 

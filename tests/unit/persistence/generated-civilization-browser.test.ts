@@ -380,7 +380,7 @@ describe("generated sponsor Chronicle event range", () => {
 				new Error("SP:CURRENT_CONTEXT_MISMATCH; prior state preserved"),
 			),
 		).toBe(
-			"The town moved while this choice was open. Your previous view is unchanged.",
+			"This choice is still open. Confirm it against the current town record.",
 		);
 		expect(playerFacingSponsorFailure(new Error("SP:COVENANT_MISSING"))).toBe(
 			"That action could not be saved. Your previous view is unchanged.",
@@ -390,6 +390,16 @@ describe("generated sponsor Chronicle event range", () => {
 				new Error("SP:CURRENT_CONTEXT_MISMATCH; prior state preserved"),
 			),
 		).not.toMatch(/SP:/u);
+		expect(
+			playerFacingSponsorFailure(
+				new Error("authority changed during validated session"),
+			),
+		).toBe(
+			"This choice is still open. Confirm it against the current town record.",
+		);
+		expect(
+			playerFacingSponsorFailure(new Error("raw engine leak")),
+		).not.toMatch(/raw engine leak/u);
 	});
 
 	it("anchors an authority-extension snapshot to its retained immutable base", () => {

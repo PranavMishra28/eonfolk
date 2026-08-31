@@ -71,13 +71,24 @@ export function GeneratedEmbodimentControls({
 	const mara = model.actors.find((actor) => actor.name === "Mara Vale");
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
+			const target = event.target;
 			if (
-				event.target instanceof HTMLInputElement ||
-				event.target instanceof HTMLTextAreaElement ||
-				event.target instanceof HTMLSelectElement
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				target instanceof HTMLSelectElement ||
+				(target instanceof HTMLElement && target.isContentEditable)
 			) {
 				return;
 			}
+			const inScrollableChrome =
+				target instanceof HTMLElement &&
+				target.closest(
+					".v1-context-panel, .v1-chronicle-record, .v1-feedback-popover, .feedback-panel, .v1-inspector-sheet",
+				) !== null;
+			const characterKey =
+				event.key.length === 1 && /[a-z0-9=+\-_]/iu.test(event.key);
+			if (characterKey && !event.altKey && !event.metaKey && !event.ctrlKey)
+				return;
 			if (event.key === "f" || event.key === "F") {
 				if (mara === undefined) return;
 				event.preventDefault();
@@ -90,6 +101,7 @@ export function GeneratedEmbodimentControls({
 				dispatch({ type: "overview" });
 				return;
 			}
+			if (inScrollableChrome) return;
 			if (event.key === "ArrowLeft") {
 				event.preventDefault();
 				dispatch({ type: "pan", xDeltaMm: -8_000, zDeltaMm: 0 });

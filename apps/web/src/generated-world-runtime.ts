@@ -17,6 +17,7 @@ import { createReleaseGenesis } from "@eonfolk/protocol";
 import {
 	type GeneratedCivilizationSpatialProjection,
 	projectGeneratedCivilizationSpatial,
+	relationshipKindDisplayName,
 } from "@eonfolk/world-presentation";
 import { generateWorld } from "@eonfolk/worldgen";
 import {
@@ -83,14 +84,32 @@ export interface GeneratedWorldExperience {
 		| "resolved";
 	readonly activeCounselIntent: "verify-reserve" | "accuse-publicly" | null;
 	readonly happenings: readonly GeneratedWorldHappening[];
+	readonly innerLives: readonly GeneratedCitizenInnerLife[];
 }
+
+export type GeneratedChronicleRelation =
+	| "fact"
+	| "direct"
+	| "trigger"
+	| "contributing-condition"
+	| "temporal-predecessor"
+	| "allegation";
 
 export interface GeneratedWorldHappening {
 	readonly happeningId: string;
 	readonly title: string;
 	readonly summary: string;
+	readonly relation: GeneratedChronicleRelation;
 	readonly citizenId: string | null;
 	readonly citizenName: string | null;
+}
+
+export interface GeneratedCitizenInnerLife {
+	readonly citizenId: string;
+	readonly want: string;
+	readonly daysWork: string;
+	readonly standingTies: readonly string[];
+	readonly waterStores: string | null;
 }
 
 export interface GeneratedWorldBuildOptions {
@@ -149,6 +168,7 @@ function happeningsFromCivilization(
 					happeningId: counselOutcome.outcomeId,
 					title: `${mara.name} checked the stores`,
 					summary: `${mara.name} inspected the settlement reserve. That is a recorded observation, not a rumor.`,
+					relation: "direct",
 					citizenId: mara.citizenId,
 					citizenName: mara.name,
 				}),
@@ -164,6 +184,7 @@ function happeningsFromCivilization(
 						target === undefined
 							? `${mara.name} made a public allegation. That is recorded speech, not a proven fact.`
 							: `${mara.name} made a public allegation about ${target.name}. That is recorded speech, not a proven fact.`,
+					relation: "allegation",
 					citizenId: mara.citizenId,
 					citizenName: mara.name,
 				}),
@@ -174,6 +195,7 @@ function happeningsFromCivilization(
 					happeningId: counselOutcome.outcomeId,
 					title: `${mara.name} kept to her plan`,
 					summary: `${mara.name} continued her standing plan after the advice. That is a recorded choice.`,
+					relation: "contributing-condition",
 					citizenId: mara.citizenId,
 					citizenName: mara.name,
 				}),
@@ -189,6 +211,7 @@ function happeningsFromCivilization(
 					happeningId: "orin-prepares-to-leave",
 					title: `${traveller.name} is preparing to leave Dawnmere`,
 					summary: `${traveller.name} is gathering for a second founding. The expedition can still be watched from this settlement.`,
+					relation: "temporal-predecessor",
 					citizenId: traveller.citizenId,
 					citizenName: traveller.name,
 				}),
@@ -199,6 +222,7 @@ function happeningsFromCivilization(
 					happeningId: "orin-left-dawnmere",
 					title: `${traveller.name} left Dawnmere`,
 					summary: `${traveller.name} set out to found another settlement.`,
+					relation: "direct",
 					citizenId: traveller.citizenId,
 					citizenName: traveller.name,
 				}),
@@ -209,6 +233,7 @@ function happeningsFromCivilization(
 					happeningId: "orin-founded-settlement",
 					title: `${traveller.name} reached new ground`,
 					summary: `${traveller.name} arrived with the founding party.`,
+					relation: "trigger",
 					citizenId: traveller.citizenId,
 					citizenName: traveller.name,
 				}),
@@ -222,12 +247,104 @@ function happeningsFromCivilization(
 				happeningId: "orin-left-dawnmere",
 				title: `${traveller.name} left Dawnmere`,
 				summary: `${traveller.name} is no longer resident in the origin settlement.`,
+				relation: "fact",
 				citizenId: traveller.citizenId,
 				citizenName: traveller.name,
 			}),
 		);
 	}
 	return Object.freeze(happenings);
+}
+
+function settlementWaterCopy(civilization: CivilizationState): string {
+	const mara = civilization.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
+	const settlementId = mara?.settlementId;
+	const waterUnits = Object.values(civilization.stocks)
+		.filter(
+			(stock) =>
+				stock.owner.kind === "settlement" &&
+				stock.owner.settlementId === settlementId &&
+				(stock.resourceTypeId === "water" ||
+					stock.resourceTypeId === "spring-water"),
+		)
+		.reduce((total, stock) => total + stock.quantity, 0);
+	const residents = Object.values(civilization.citizens).filter(
+		(candidate) =>
+			candidate.residenceState === "resident" &&
+			candidate.settlementId === settlementId,
+	);
+	const dailyNeed = residents.reduce(
+		(total, candidate) => total + candidate.waterRequiredUnitsPerDay,
+		0,
+	);
+	const days = dailyNeed > 0 ? Math.floor(waterUnits / dailyNeed) : 0;
+	if (days >= 7)
+		return "Dawnmere's water stores are not in crisis. No theft is recorded.";
+	return `Dawnmere has about ${String(days)} day${days === 1 ? "" : "s"} of water at the current daily need. No theft is recorded.`;
+}
+
+function standingPlanWant(goalType: string): string {
+	if (goalType === "routine:transport")
+		return "Keep water and stores moving to where people need them.";
+	if (goalType === "routine:produce")
+		return "See today's work through at the workshop or field.";
+	if (goalType === "routine:construct")
+		return "Advance the settlement project she committed to.";
+	if (goalType === "routine:consume")
+		return "See that people are fed and watered.";
+	if (goalType === "routine:travel")
+		return "Reach the next place on the journey.";
+	if (goalType.startsWith("routine:"))
+		return `Continue ${goalType.slice("routine:".length).replaceAll("-", " ")} work.`;
+	return goalType.replaceAll("-", " ");
+}
+
+function standingPlanWork(goalType: string): string {
+	if (goalType === "routine:transport") return "Moving stores along her route.";
+	if (goalType === "routine:produce") return "Producing at her assigned site.";
+	if (goalType === "routine:construct")
+		return "Working the current settlement project.";
+	if (goalType === "routine:consume") return "Meeting a daily need.";
+	if (goalType === "routine:travel")
+		return "Travelling with the founding party.";
+	if (goalType.startsWith("routine:"))
+		return `Day's work: ${goalType.slice("routine:".length).replaceAll("-", " ")}.`;
+	return `Day's work: ${goalType.replaceAll("-", " ")}.`;
+}
+
+function innerLivesFromCivilization(
+	civilization: CivilizationState,
+): readonly GeneratedCitizenInnerLife[] {
+	const waterStores = settlementWaterCopy(civilization);
+	return Object.freeze(
+		Object.values(civilization.citizens)
+			.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
+			.map((citizen) => {
+				const mind = civilization.minds[citizen.citizenId];
+				const goalType = mind?.snapshot.standingPlan.goalType ?? "routine:wait";
+				const ties = Object.values(civilization.relationships)
+					.filter((relation) => relation.fromCitizenId === citizen.citizenId)
+					.map((relation) => {
+						const other = civilization.citizens[relation.toCitizenId];
+						if (other === undefined) return null;
+						return `${other.name} (${relationshipKindDisplayName(relation.kind)})`;
+					})
+					.filter((tie): tie is string => tie !== null);
+				return Object.freeze({
+					citizenId: citizen.citizenId,
+					want:
+						citizen.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID
+							? "Keep Dawnmere's water stores from failing, without straining her friendship."
+							: standingPlanWant(goalType),
+					daysWork: standingPlanWork(goalType),
+					standingTies: Object.freeze(ties),
+					waterStores:
+						citizen.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID
+							? waterStores
+							: null,
+				});
+			}),
+	);
 }
 
 function projectCheckpoint(
@@ -589,6 +706,7 @@ async function buildGeneratedWorldExperienceInternal(
 							: "idle",
 		activeCounselIntent: activeCounsel?.intent ?? null,
 		happenings: happeningsFromCivilization(sponsorCivilization),
+		innerLives: innerLivesFromCivilization(sponsorCivilization),
 	});
 }
 

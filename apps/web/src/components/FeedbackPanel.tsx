@@ -12,12 +12,15 @@ import {
 
 export function FeedbackPanel({
 	contextLabel = "EONFOLK FEEDBACK",
+	startOpen = false,
 }: {
 	readonly contextLabel?: string;
+	readonly startOpen?: boolean;
 } = {}) {
 	const queue = useMemo(() => new LocalFeedbackQueue(window.localStorage), []);
 	const attachmentInput = useRef<HTMLInputElement>(null);
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(startOpen);
+
 	const [category, setCategory] = useState<FeedbackCategory>("bug");
 	const [whatHappened, setWhatHappened] = useState("");
 	const [whatExpected, setWhatExpected] = useState("");

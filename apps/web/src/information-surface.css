@@ -384,7 +384,8 @@
 	text-underline-offset: 0.25rem;
 }
 
-.v1-information[data-information-route="research"] .v1-primary-link {
+.v1-information[data-information-route="research"] .v1-primary-link,
+.v1-information[data-information-route="developer"] .v1-primary-link {
 	color: #fff7df;
 	background: #7d321f;
 }

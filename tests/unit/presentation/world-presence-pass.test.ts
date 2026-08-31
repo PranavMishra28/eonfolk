@@ -73,7 +73,11 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("visualDayProgress01");
 		expect(app).toContain("conversationVisuallyActive");
 		expect(app).toContain("Start a fresh local town");
-		expect(app).toContain("Feedback form — not the Chronicle");
+		expect(app).toContain("skip-link");
+		expect(app).toContain("Skip to world");
+		expect(app).toContain("v1-feedback-bug");
+		expect(app).toContain("Report an issue — saved only in this browser");
+		expect(app).not.toContain("Feedback form — not the Chronicle");
 		expect(app).toContain("Fact, belief, and what happened");
 		expect(app).toContain("openChronicleRecord");
 		expect(app).toContain('data-testid="chronicle-record"');
@@ -121,5 +125,16 @@ describe("bounded world-presence pass", () => {
 			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);
 		expect(styles).toContain(".v1-world-tools .generated-camera-status");
+		expect(styles).toMatch(
+			/\.v1-entry-hero-world\s*\{[^}]*position:\s*relative/su,
+		);
+		expect(styles).toContain(".v1-information .v1-primary-link");
+		expect(entry).toContain("A TOWN THAT REMEMBERS YOU");
+		expect(entry).not.toContain("A TOWN THAT CONTINUES WITHOUT YOU");
+		expect(entry).toContain("Time in town");
+		expect(entry).toContain("moves while Play is on in an open tab");
+		expect(app).toContain("Standing ties");
+		expect(app).toContain("Water stores");
+		expect(app).toContain("CHRONICLE_RELATION_LABEL");
 	});
 });

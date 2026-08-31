@@ -303,6 +303,7 @@ async function nextLiveDayFromHead(input: {
 	readonly current: ReleaseGenesisCivilizationState;
 	readonly genesisWorld: GeneratedWorldState;
 	readonly authorityRunner: typeof runCivilizationExperiment;
+	readonly skipOpeningDecisions?: boolean;
 }): Promise<{
 	readonly nextState: ReleaseGenesisCivilizationState;
 	readonly stepHash: string;
@@ -322,7 +323,7 @@ async function nextLiveDayFromHead(input: {
 			completedDay: currentDay,
 			eventIndexBase: current.sourceHistory.eventHashes.length,
 			priorEventHash: current.sourceHistory.eventHashes.at(-1) ?? null,
-			skipOpeningDecisions: true,
+			skipOpeningDecisions: input.skipOpeningDecisions ?? false,
 		});
 		assertCivilizationInvariants(continued.state);
 		return {
@@ -696,6 +697,7 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 			current: cursor,
 			genesisWorld: input.genesisWorld,
 			authorityRunner: runner,
+			skipOpeningDecisions: true,
 		});
 		const nextState = advanced.nextState;
 		const appendId = `civilization-live-day-${String(nextDay)}`;

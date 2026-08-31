@@ -27,10 +27,11 @@ import {
 	reduceGeneratedNavigation,
 	verifyGeneratedFolkAsset,
 } from "./generated-presentation";
-import type {
-	GeneratedBranchNextAction,
-	GeneratedChronicleEventContext,
-	GeneratedCounselContext,
+import {
+	type GeneratedBranchNextAction,
+	type GeneratedChronicleEventContext,
+	type GeneratedCounselContext,
+	isSponsorContextMismatch,
 } from "./generated-sponsor-runtime";
 import {
 	advanceGeneratedWorldLiveDay,
@@ -41,6 +42,8 @@ import {
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
 import type {
+	GeneratedChronicleRelation,
+	GeneratedCitizenInnerLife,
 	GeneratedWorldExperience,
 	GeneratedWorldHappening,
 } from "./generated-world-runtime";
@@ -77,6 +80,17 @@ const generatedFaultHooks =
 const generatedWorldFaultModule = generatedFaultHooks
 	? import("./generated-world-faults")
 	: Promise.resolve(null);
+
+const CHRONICLE_RELATION_LABEL: Readonly<
+	Record<GeneratedChronicleRelation, string>
+> = Object.freeze({
+	fact: "Recorded",
+	direct: "Direct cause",
+	trigger: "Trigger",
+	"contributing-condition": "Contributing",
+	"temporal-predecessor": "Earlier",
+	allegation: "Allegation",
+});
 
 function loadGeneratedWorldCanvasModule() {
 	generatedWorldCanvasModule ??= import("./generated-world-canvas");
@@ -622,6 +636,7 @@ function GeneratedContextPanel({
 	persistenceAvailable,
 	onAuthorityCommitted,
 	happenings,
+	innerLives,
 	onCounselConsiderationChange,
 	visualProgress01,
 	onChronicleAvailable,
@@ -651,6 +666,7 @@ function GeneratedContextPanel({
 	readonly persistenceAvailable: boolean;
 	readonly onAuthorityCommitted: (expectedStateHash?: string) => Promise<void>;
 	readonly happenings: readonly GeneratedWorldHappening[];
+	readonly innerLives: readonly GeneratedCitizenInnerLife[];
 	readonly onCounselConsiderationChange: (open: boolean) => void;
 	readonly visualProgress01: number;
 	readonly onChronicleAvailable?: () => void;
@@ -681,13 +697,26 @@ function GeneratedContextPanel({
 	>("verify-reserve");
 	const [copyStatus, setCopyStatus] = useState("");
 	const [authorityRefreshing, setAuthorityRefreshing] = useState(false);
+	const counselRegionRef = useRef<HTMLElement>(null);
 	const authorityStateHashRef = useRef(authorityStateHash);
 	authorityStateHashRef.current = authorityStateHash;
 	useEffect(() => {
 		onCounselConsiderationChange(
-			sponsorStatus === "confirming" || sponsorStatus === "counseling",
+			sponsorStatus === "confirming" ||
+				sponsorStatus === "counseling" ||
+				sponsorStatus === "saving" ||
+				sponsorStatus === "returning",
 		);
 	}, [onCounselConsiderationChange, sponsorStatus]);
+	useEffect(() => {
+		if (
+			sponsorStatus !== "confirming" &&
+			sponsorStatus !== "counseled" &&
+			sponsorStatus !== "abstained"
+		)
+			return;
+		counselRegionRef.current?.focus();
+	}, [sponsorStatus]);
 	useEffect(() => {
 		if (chronicleBeats.length === 0) return;
 		onChronicleAvailable?.();
@@ -746,6 +775,10 @@ function GeneratedContextPanel({
 						status: selectedProject.semanticLabel,
 					};
 	const canSponsor = selectedActor?.citizenId === sponsorCitizenId;
+	const selectedInnerLife =
+		selectedActor === undefined
+			? undefined
+			: innerLives.find((life) => life.citizenId === selectedActor.citizenId);
 	const worldLink = (focus: WorldFocus, label: string) => {
 		const href = buildWorldFocusHref(focus);
 		return href === null ? null : (
@@ -833,10 +866,19 @@ function GeneratedContextPanel({
 					},
 					(reason: unknown) => {
 						setAuthorityRefreshing(false);
+						const mismatch = isSponsorContextMismatch(reason);
+						setChronicleTrace(playerFacingSponsorFailure(reason));
+						if (mismatch) {
+							setAuthorityRefreshing(true);
+							void onAuthorityCommitted().then(() => {
+								setExpectedAuthorityStateHash(authorityStateHashRef.current);
+								setAuthorityRefreshing(false);
+							});
+							return;
+						}
 						if (step !== "establish") {
 							setChronicleBeats([]);
 							setShareArtifact("");
-							setChronicleTrace(playerFacingSponsorFailure(reason));
 						}
 						setSponsorStatus(step === "establish" ? "failed" : sponsorPhase);
 					},
@@ -882,7 +924,7 @@ function GeneratedContextPanel({
 			aria-label="People and counsel"
 			data-focus-kind={navigation.focus.kind}
 		>
-			<section className="v1-presence-card" aria-live="polite">
+			<section className="v1-presence-card">
 				<p className="v1-kicker">
 					{selectedActor !== undefined
 						? "PERSON IN FOCUS"
@@ -955,15 +997,36 @@ function GeneratedContextPanel({
 						<p>
 							<strong>Want:</strong>{" "}
 							{playerFacingCopy(
-								happenings.find(
-									(happening) =>
-										happening.citizenId === selectedActor.citizenId,
-								)?.summary ??
+								selectedInnerLife?.want ??
+									happenings.find(
+										(happening) =>
+											happening.citizenId === selectedActor.citizenId,
+									)?.summary ??
+									"A standing plan for today's work.",
+							)}
+						</p>
+						{selectedInnerLife?.waterStores !== undefined &&
+						selectedInnerLife.waterStores !== null ? (
+							<p>
+								<strong>Water stores:</strong> {selectedInnerLife.waterStores}
+							</p>
+						) : null}
+						<p>
+							<strong>Day's work:</strong>{" "}
+							{playerFacingCopy(
+								selectedInnerLife?.daysWork ??
 									actorActivity(selectedActor, projection, visualProgress01),
 							)}
 						</p>
 						<p>
-							<strong>Immediate relationship:</strong>{" "}
+							<strong>Standing ties:</strong>{" "}
+							{selectedInnerLife !== undefined &&
+							selectedInnerLife.standingTies.length > 0
+								? selectedInnerLife.standingTies.join("; ")
+								: "No standing relationship is recorded."}
+						</p>
+						<p>
+							<strong>Immediate company:</strong>{" "}
 							{activeInteraction !== undefined &&
 							interactionParticipants.some(
 								(actor) => actor.citizenId === selectedActor.citizenId,
@@ -993,20 +1056,30 @@ function GeneratedContextPanel({
 							>
 								Back to settlement
 							</button>
-							{canSponsor ? (
+							{canSponsor &&
+							sponsorStatus !== "counseled" &&
+							sponsorStatus !== "confirming" ? (
 								<button
 									type="button"
+									className={
+										authorityRefreshing || sponsorStatus === "saving"
+											? "v1-commit-busy"
+											: undefined
+									}
+									aria-busy={
+										authorityRefreshing ||
+										sponsorStatus === "saving" ||
+										sponsorStatus === "counseling" ||
+										sponsorStatus === "returning"
+									}
 									disabled={
 										!persistenceAvailable ||
 										authorityRefreshing ||
 										sponsorStatus === "saving" ||
 										sponsorStatus === "counseling" ||
-										sponsorStatus === "returning" ||
-										sponsorStatus === "confirming" ||
-										sponsorStatus === "counseled"
+										sponsorStatus === "returning"
 									}
 									onClick={() => {
-										if (sponsorStatus === "confirming") return;
 										if (
 											sponsorStatus === "resolved" ||
 											sponsorStatus === "abstained"
@@ -1023,19 +1096,25 @@ function GeneratedContextPanel({
 										? "Establishing…"
 										: sponsorStatus === "counseling"
 											? "Considering…"
-											: sponsorStatus === "sponsored" ||
-													sponsorStatus === "confirming"
+											: sponsorStatus === "sponsored"
 												? "Consider an intervention"
 												: sponsorStatus === "abstained"
 													? "Review abstention Chronicle"
 													: sponsorStatus === "resolved"
 														? "Review Chronicle"
-														: "Sponsor Mara"}
+														: sponsorStatus === "returning"
+															? "Saving…"
+															: "Sponsor Mara"}
 								</button>
 							) : null}
 						</div>
 						{sponsorStatus === "confirming" ? (
-							<section aria-label="Counsel stakes">
+							<section
+								ref={counselRegionRef}
+								tabIndex={-1}
+								aria-label="Counsel stakes"
+								aria-live="assertive"
+							>
 								<h3>Choose at Mara's first boundary</h3>
 								<p>
 									Mara may accept, reject, delay, or reinterpret advice. This
@@ -1043,6 +1122,8 @@ function GeneratedContextPanel({
 								</p>
 								<button
 									type="button"
+									className={authorityRefreshing ? "v1-commit-busy" : undefined}
+									aria-busy={authorityRefreshing}
 									disabled={authorityRefreshing}
 									onClick={() => {
 										setActiveIntent("verify-reserve");
@@ -1059,6 +1140,10 @@ function GeneratedContextPanel({
 									<>
 										<button
 											type="button"
+											className={
+												authorityRefreshing ? "v1-commit-busy" : undefined
+											}
+											aria-busy={authorityRefreshing}
 											disabled={authorityRefreshing}
 											onClick={() => {
 												setActiveIntent("accuse-publicly");
@@ -1072,6 +1157,8 @@ function GeneratedContextPanel({
 								)}
 								<button
 									type="button"
+									className={authorityRefreshing ? "v1-commit-busy" : undefined}
+									aria-busy={authorityRefreshing}
 									disabled={authorityRefreshing}
 									onClick={() => {
 										commitSponsor("abstain");
@@ -1096,7 +1183,12 @@ function GeneratedContextPanel({
 						) : null}
 						{sponsorStatus === "counseled" ||
 						(sponsorStatus === "abstained" && journeyStage !== "advanced") ? (
-							<section aria-label="See Mara's next step">
+							<section
+								ref={counselRegionRef}
+								tabIndex={-1}
+								aria-label="See Mara's next step"
+								aria-live="assertive"
+							>
 								<p>
 									{sponsorStatus === "counseled"
 										? "The advice is recorded. Mara has not interpreted it yet."
@@ -1104,6 +1196,8 @@ function GeneratedContextPanel({
 								</p>
 								<button
 									type="button"
+									className={authorityRefreshing ? "v1-commit-busy" : undefined}
+									aria-busy={authorityRefreshing}
 									disabled={authorityRefreshing}
 									onClick={() => {
 										if (sponsorStatus === "counseled")
@@ -1724,6 +1818,12 @@ function GeneratedWorld({
 		}
 	}, [consideringCounsel]);
 
+	useEffect(() => {
+		if (!consideringCounsel) return;
+		if (window.matchMedia("(max-width: 720px)").matches)
+			setInspectorSheetOpen(true);
+	}, [consideringCounsel]);
+
 	if (projection === undefined || model === undefined)
 		return <WorldError error={new Error("No settlement projection exists")} />;
 	if (visualDayClock.current.hash !== experience.stateHash) {
@@ -1856,6 +1956,7 @@ function GeneratedWorld({
 			persistenceAvailable={experience.persistence.kind === "indexeddb"}
 			onAuthorityCommitted={onAuthorityRefresh}
 			happenings={experience.happenings}
+			innerLives={experience.innerLives}
 			onCounselConsiderationChange={setConsideringCounsel}
 			visualProgress01={visualProgress01}
 		/>
@@ -1911,6 +2012,9 @@ function GeneratedWorld({
 					}
 				: {})}
 		>
+			<a className="skip-link" href="#v1-world-stage">
+				Skip to world
+			</a>
 			<header className="v1-world-header">
 				<a className="v1-brand" href="/" aria-label="Eonfolk home">
 					<EonfolkMark label="" />
@@ -2222,8 +2326,10 @@ function GeneratedWorld({
 			) : null}
 			{embodiedAvailable ? (
 				<section
+					id="v1-world-stage"
 					className="v1-living-stage"
 					aria-label="Dawnmere"
+					tabIndex={-1}
 					aria-hidden={!embodiedVisible}
 					style={embodiedVisible ? undefined : { display: "none" }}
 				>
@@ -2263,6 +2369,9 @@ function GeneratedWorld({
 											data-happening-id={happening.happeningId}
 										>
 											{happening.title}
+											{happening.relation === "fact"
+												? ""
+												: ` · ${CHRONICLE_RELATION_LABEL[happening.relation]}`}
 										</li>
 									))}
 								</ul>
@@ -2294,7 +2403,11 @@ function GeneratedWorld({
 											key={happening.happeningId}
 											data-happening-id={happening.happeningId}
 										>
-											<strong>{happening.title}.</strong> {happening.summary}
+											<strong>{happening.title}.</strong>{" "}
+											<span className="v1-chronicle-relation">
+												{CHRONICLE_RELATION_LABEL[happening.relation]}
+											</span>
+											. {happening.summary}
 										</li>
 									))}
 								</ul>
@@ -2325,17 +2438,38 @@ function GeneratedWorld({
 					) : null}
 				</section>
 			) : null}
-			<details
-				className="v1-feedback-drawer"
-				onToggle={(event) => setFeedbackOpen(event.currentTarget.open)}
+			<button
+				type="button"
+				className="v1-feedback-bug"
+				aria-expanded={feedbackOpen}
+				aria-controls="v1-feedback-dialog"
+				title="Report an issue"
+				onClick={() => setFeedbackOpen((open) => !open)}
 			>
-				<summary>Feedback form — not the Chronicle</summary>
-				{feedbackOpen ? (
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M9 7V6a3 3 0 1 1 6 0v1h2.5a1 1 0 0 1 0 2H16v2h2.5a1 1 0 1 1 0 2H16v2h1.5a1 1 0 1 1 0 2H16v1a4 4 0 0 1-8 0v-1H6.5a1 1 0 1 1 0-2H8v-2H5.5a1 1 0 1 1 0-2H8V9H6.5a1 1 0 0 1 0-2zm2-.8V7h2V6.2A1.2 1.2 0 0 0 11 6.2"
+					/>
+				</svg>
+				<span className="sr-only">
+					{feedbackOpen
+						? "Close local issue report"
+						: "Report an issue — saved only in this browser"}
+				</span>
+			</button>
+			{feedbackOpen ? (
+				<div
+					id="v1-feedback-dialog"
+					className="v1-feedback-popover"
+					role="dialog"
+					aria-labelledby="feedback-title"
+				>
 					<Suspense fallback={<p>Opening the local feedback form…</p>}>
-						<FeedbackPanel />
+						<FeedbackPanel startOpen />
 					</Suspense>
-				) : null}
-			</details>
+				</div>
+			) : null}
 			<footer className="v1-world-footer">
 				<p>
 					Watch first. Select a person to learn more.{" "}

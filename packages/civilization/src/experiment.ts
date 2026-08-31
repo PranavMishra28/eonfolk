@@ -2258,18 +2258,17 @@ async function simulateCivilizationExperimentDay(input: {
 		events.push(event);
 		priorEventHash = event.eventHash;
 	};
-	const opening =
-		input.skipOpeningDecisions || input.day > 3
-			? null
-			: await decideOpeningRoutines({
-					state,
-					policy: schedulerPolicy,
-					runtime: cognitionRuntime,
-					worldIdentityHash: input.worldIdentityHash,
-					...(input.cognition === undefined
-						? {}
-						: { cognition: input.cognition }),
-				});
+	const opening = input.skipOpeningDecisions
+		? null
+		: await decideOpeningRoutines({
+				state,
+				policy: schedulerPolicy,
+				runtime: cognitionRuntime,
+				worldIdentityHash: input.worldIdentityHash,
+				...(input.cognition === undefined
+					? {}
+					: { cognition: input.cognition }),
+			});
 	if (opening !== null) {
 		cognitionRuntime = opening.runtime;
 		cognitionDecisions.push(...opening.evidence);
@@ -2723,7 +2722,7 @@ export async function runCivilizationExperiment(input: {
 				schedulerPolicy,
 				conditions,
 				worldIdentityHash: input.world.identity.identityHash,
-				skipOpeningDecisions: false,
+				skipOpeningDecisions: day > 3,
 				...(input.cognition === undefined
 					? {}
 					: { cognition: input.cognition }),
