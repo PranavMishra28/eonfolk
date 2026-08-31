@@ -133,6 +133,9 @@ describe("bounded world-presence pass", () => {
 		expect(styles).toContain(
 			'main.v1-world[data-view="embodied"] .v1-world-title',
 		);
+		expect(styles).toContain(
+			'main.v1-world[data-view="embodied"] .v1-event-focus',
+		);
 		expect(styles).toMatch(
 			/@media \(max-width: 480px\)[\s\S]*?\.v1-world-canvas-frame\s*\{[^}]*height:\s*100dvh/su,
 		);

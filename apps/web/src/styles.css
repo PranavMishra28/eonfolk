@@ -4301,6 +4301,24 @@ em {
 		padding: 0.32rem 0.48rem;
 	}
 
+	main.v1-world[data-view="embodied"] .v1-event-focus {
+		position: absolute;
+		left: 0.45rem;
+		right: 0.45rem;
+		top: 6.8rem;
+		z-index: 7;
+		width: auto;
+		max-height: min(36svh, 16rem);
+		overflow: auto;
+		scroll-margin-top: 7.2rem;
+		pointer-events: auto;
+	}
+
+	main.v1-world[data-view="embodied"] .v1-event-focus summary {
+		min-height: 2.75rem;
+		scroll-margin-top: 7.2rem;
+	}
+
 	.v1-world-chronicle li {
 		font-size: 0.78rem;
 		line-height: 1.25;
