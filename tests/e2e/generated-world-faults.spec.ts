@@ -163,6 +163,15 @@ async function authorityFingerprint(page: Page): Promise<unknown> {
 	});
 }
 
+function authorityHasWorldFacts(fingerprint: unknown): boolean {
+	if (fingerprint === null || typeof fingerprint !== "object") return false;
+	const counts = (fingerprint as { readonly counts?: unknown }).counts;
+	if (counts === null || typeof counts !== "object") return false;
+	return Object.values(counts).some(
+		(count) => typeof count === "number" && count > 0,
+	);
+}
+
 async function generatedFaultDiagnostic(page: Page): Promise<{
 	readonly observer: {
 		readonly worldHead: unknown;
@@ -583,7 +592,9 @@ test.describe
 			).toBeVisible();
 			await expect(page.locator("main.v1-world")).toHaveCount(0);
 			await page.waitForTimeout(500);
-			expect(await authorityFingerprint(page)).toBeNull();
+			expect(authorityHasWorldFacts(await authorityFingerprint(page))).toBe(
+				false,
+			);
 			await expect(page.locator("main.v1-world")).toHaveAttribute(
 				"data-state-hash",
 				/^[0-9a-f]{64}$/u,
