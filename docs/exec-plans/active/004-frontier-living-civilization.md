@@ -101,6 +101,7 @@ Observed by reading current code and playing production `http://127.0.0.1:4174`.
 
 - 2026-08-30 — Phase 0 audit from `main@4f03d71`. Branch `feat/frontier-living-civilization` opened.
 - 2026-08-30 — Slice 1 local world authority: loopback process, file persistence, browser client fallback, honest 7-day catch-up.
+- 2026-08-30 — Slice 2 started: persisted self-generated Goals from grounded pressures, used on live days.
 
 ## Limitations (ruthless)
 

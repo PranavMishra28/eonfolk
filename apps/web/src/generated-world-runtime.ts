@@ -137,6 +137,26 @@ function happeningsFromCivilization(
 	civilization: CivilizationState,
 ): readonly GeneratedWorldHappening[] {
 	const happenings: GeneratedWorldHappening[] = [];
+	for (const citizenId of Object.keys(civilization.minds).sort()) {
+		const mind = civilization.minds[citizenId];
+		const citizen = civilization.citizens[citizenId];
+		const goal = (mind?.goals ?? []).find(
+			(candidate) =>
+				candidate.goalId === mind?.activeGoalId &&
+				candidate.lifecycle === "active",
+		);
+		if (mind === undefined || citizen === undefined || goal === undefined)
+			continue;
+		happenings.push(
+			Object.freeze({
+				happeningId: goal.goalId,
+				title: `${citizen.name} is acting on their own aim`,
+				summary: goal.playerFacingIntent,
+				citizenId,
+				citizenName: citizen.name,
+			}),
+		);
+	}
 	const mara = civilization.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID];
 	const counselOutcome = Object.values(civilization.counselOutcomes)
 		.filter((outcome) => outcome.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID)

@@ -34,6 +34,7 @@ import {
 	assertCivilizationInvariants,
 	auditCivilizationState,
 } from "./audit.js";
+import { formLiveGoalDecisions } from "./goals.js";
 import {
 	advanceFounding,
 	advanceMigration,
@@ -2258,6 +2259,11 @@ async function simulateCivilizationExperimentDay(input: {
 		events.push(event);
 		priorEventHash = event.eventHash;
 	};
+	const goalPass = formLiveGoalDecisions(
+		state,
+		schedulerPolicy,
+		state.simulationTime,
+	);
 	const opening =
 		input.skipOpeningDecisions || input.day > 3
 			? null
@@ -2277,7 +2283,8 @@ async function simulateCivilizationExperimentDay(input: {
 	const scheduled = advanceGeneralizedScheduler(
 		state,
 		schedulerPolicy,
-		opening?.decisions ?? [],
+		opening?.decisions ??
+			(input.skipOpeningDecisions ? goalPass.decisions : []),
 	);
 	state = scheduled.state;
 	routines = scheduled.routines;
@@ -2292,12 +2299,32 @@ async function simulateCivilizationExperimentDay(input: {
 	for (const [citizenId, schedulerMind] of Object.entries(
 		cognitionRuntime.minds,
 	).sort(([left], [right]) => left.localeCompare(right))) {
+		const goalMind = goalPass.minds[citizenId];
+		const activeGoal = (goalMind?.goals ?? []).find(
+			(goal) => goal.goalId === goalMind?.activeGoalId,
+		);
+		const persistGoals = input.skipOpeningDecisions && goalMind !== undefined;
 		state = replaceCivilizationMind(state, {
 			schemaVersion: "eonfolk-civilization-mind-v1",
 			citizenId,
-			snapshot: schedulerMind.actorMind,
+			snapshot: {
+				...schedulerMind.actorMind,
+				standingPlan: {
+					...schedulerMind.actorMind.standingPlan,
+					goalType:
+						persistGoals && activeGoal !== undefined
+							? activeGoal.goalId
+							: schedulerMind.actorMind.standingPlan.goalType,
+				},
+			},
 			committedAtRevision: state.revision,
 			committedAtSimulationTime: state.simulationTime,
+			...(persistGoals
+				? {
+						goals: goalMind.goals,
+						activeGoalId: goalMind.activeGoalId,
+					}
+				: {}),
 		});
 	}
 	if (opening !== null) {

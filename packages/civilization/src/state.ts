@@ -305,6 +305,37 @@ export function registerCivilizationMind(
 			"INVALID_INPUT",
 			"mind standing plan is not canonical",
 		);
+	const goals = mind.goals ?? [];
+	if (
+		new Set(goals.map(({ goalId }) => goalId)).size !== goals.length ||
+		goals.some(
+			(goal) =>
+				goal.schemaVersion !== "eonfolk-civilization-goal-v1" ||
+				goal.citizenId !== mind.citizenId ||
+				!Number.isSafeInteger(goal.priorityBasisPoints) ||
+				goal.priorityBasisPoints < 0 ||
+				goal.priorityBasisPoints > 10_000 ||
+				!Number.isSafeInteger(goal.confidenceBasisPoints) ||
+				goal.confidenceBasisPoints < 0 ||
+				goal.confidenceBasisPoints > 10_000,
+		)
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind goals are not canonical",
+		);
+	if (
+		mind.activeGoalId !== undefined &&
+		mind.activeGoalId !== null &&
+		!goals.some(
+			(goal) =>
+				goal.goalId === mind.activeGoalId && goal.lifecycle === "active",
+		)
+	)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"mind active goal is not canonical",
+		);
 	return evolve(state, {
 		minds: { ...state.minds, [mind.citizenId]: clonePlain(mind) },
 	});

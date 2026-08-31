@@ -17,9 +17,9 @@ import type {
 
 import { assertCivilizationInvariants } from "./audit.js";
 import {
+	appendBuildingKindReference,
 	appendSettlementAndSiteReferences,
 	appendSettlementReference,
-	appendBuildingKindReference,
 	evolve,
 	identifier,
 	positiveQuantity,

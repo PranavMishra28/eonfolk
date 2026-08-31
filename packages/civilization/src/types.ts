@@ -82,6 +82,40 @@ export interface CivilizationPatronAbstentionState {
 	readonly sourceEventId: string;
 }
 
+export type GoalLifecycle =
+	| "candidate"
+	| "active"
+	| "suspended"
+	| "completed"
+	| "failed"
+	| "abandoned";
+
+export type CivilizationGoalSourceKind =
+	| "need-pressure"
+	| "scarcity"
+	| "danger"
+	| "commitment"
+	| "project";
+
+/** Self-generated, persisted Goal. Standing Plan remains the how; this is the why. */
+export interface CivilizationGoal {
+	readonly schemaVersion: "eonfolk-civilization-goal-v1";
+	readonly goalId: string;
+	readonly citizenId: CitizenId;
+	readonly lifecycle: GoalLifecycle;
+	readonly sourceKind: CivilizationGoalSourceKind;
+	readonly sourceIds: readonly string[];
+	readonly formedAtSimulationTime: number;
+	readonly formedAtRevision: number;
+	readonly desiredEffect: string;
+	readonly targetIds: readonly string[];
+	readonly priorityBasisPoints: number;
+	readonly confidenceBasisPoints: number;
+	readonly reviewBoundary: number;
+	readonly playerFacingIntent: string;
+	readonly standingPlanId: string | null;
+}
+
 /** Persisted typed Mind state. Reality may authorize against it but never invent it. */
 export interface CivilizationMindState {
 	readonly schemaVersion: "eonfolk-civilization-mind-v1";
@@ -89,6 +123,8 @@ export interface CivilizationMindState {
 	readonly snapshot: CitizenMindSnapshot;
 	readonly committedAtRevision: number;
 	readonly committedAtSimulationTime: number;
+	readonly goals?: readonly CivilizationGoal[];
+	readonly activeGoalId?: string | null;
 }
 
 export interface CivilizationCounselState {
