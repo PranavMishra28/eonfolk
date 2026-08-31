@@ -1681,6 +1681,12 @@ function GeneratedWorld({
 	}, [playRate, reduceMotion]);
 
 	useEffect(() => {
+		if (experience.persistence.kind === "local-process") {
+			const id = window.setInterval(() => {
+				void onAuthorityRefresh();
+			}, 2000);
+			return () => window.clearInterval(id);
+		}
 		const interval = authorityDayIntervalMs(playRate);
 		if (
 			interval === null ||
@@ -1726,10 +1732,15 @@ function GeneratedWorld({
 		consideringCounsel,
 		experience.persistence.kind,
 		onAdvanceDay,
+		onAuthorityRefresh,
 		playRate,
 	]);
 
 	useEffect(() => {
+		if (experience.persistence.kind === "local-process") {
+			setCatchUpProposal(0);
+			return;
+		}
 		setCatchUpProposal(
 			proposedReturnCatchUpDays(
 				Date.now(),
@@ -1737,7 +1748,7 @@ function GeneratedWorld({
 				experience.horizonDays,
 			),
 		);
-	}, [experience.horizonDays]);
+	}, [experience.horizonDays, experience.persistence.kind]);
 
 	useEffect(() => {
 		const persist = () => writeLastActiveWallMs();
@@ -2313,6 +2324,16 @@ function GeneratedWorld({
 				<p className="renderer-note" role="status">
 					This browser cannot save the town. You can still watch, but days will
 					not continue after you leave.
+				</p>
+			) : null}
+			{experience.persistence.kind === "local-process" ? (
+				<p
+					className="renderer-note"
+					role="status"
+					data-testid="local-process-authority"
+				>
+					A local process owns this town clock. Closing the tab does not stop
+					the days while that process is still running.
 				</p>
 			) : null}
 			{effectiveView === "overview" ? (

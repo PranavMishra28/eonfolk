@@ -61,20 +61,19 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 
 ### 1. Local world authority
 
-**VERIFIED FACT:** Today Reality lives in a Web Worker plus IndexedDB. Closing the tab stops the clock.
+**VERIFIED FACT:** Default Play writes Reality in a Web Worker plus IndexedDB. Closing the tab stops that clock unless `pnpm world:authority` is running and Play attaches as a read client.
 
-**Thinnest honest path (target; Play is not attached):**
+**Landed vertical (optional; not a shared PersistencePort):**
 
 ```text
 Node local-authority process  (optional, user-started, $0)
-  └─ PersistencePort on the same IndexedDB/file stream
-  └─ writer fence; live-day scheduler; Standard Brain
-Browser Play / Research
-  └─ client: projections, counsel commands, HUD
-  └─ if process absent: current Worker-in-tab (no closed-tab claim)
+  └─ file snapshot + loopback HTTP; ticks days while the process is running
+Browser Play
+  └─ read client when the process is reachable (kind: local-process)
+  └─ if process absent: current Worker-in-tab (catch-up required)
 ```
 
-The landed prototype is `tickLocalWorldAuthority` plus a process-presence script. It does not yet share a PersistencePort or writer fence with Play. No cloud. Catch-up remains player-accepted when no process was running.
+`pnpm world:authority` owns Reality + clock on `127.0.0.1`. Play probes only outside tests and WebDriver. Two stores remain (file vs IndexedDB); R-018 is still open. Landing copy does not claim default closed-tab continuity. About describes the optional process. Catch-up remains the honest path when the process was not running.
 
 ### 2. Recurring cognition
 
@@ -102,11 +101,11 @@ P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/Lice
 
 ### 8. Persistence honesty
 
-Export/import remain forbidden. Catch-up copy must not overclaim. Landing must not claim the town continues with the tab closed until §1 exists.
+Export/import remain forbidden. Catch-up copy must not overclaim. Landing still describes Worker-in-tab time. About describes the optional local process. Do not claim default closed-tab continuity.
 
 ### 9. Proofs
 
-Lock as we go: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition. 30/90/365, social propagation, local-process continuity, and model-failure remain planned.
+Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down). 90/365 social as a product gate, citizen-originated projects, shared writer fence, and model-failure remain planned. Do not fake a 365-day wall-clock proof.
 
 ## Resulting implementation behavior
 
@@ -130,9 +129,10 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 
 ## Remaining work
 
-- Slice 4 attach: Play still uses Worker-in-tab. `tickLocalWorldAuthority` is a tested one-day stepper; `pnpm world:authority` is a process-presence placeholder and does not tick Reality. Do not claim closed-tab continuity.
+- Slice 4 shared fence: file store and IndexedDB can still fork (R-018). Default Play is Worker-in-tab when the process is absent. Closed-tab continuity is true only while `pnpm world:authority` is running and Play attaches.
 - Citizen-originated projects beyond the seeded expedition.
-- 30/90/365 social-propagation and local-process continuity proofs as product gates.
+- 90/365 social-propagation as a product gate (do not fake 365).
 - Slice 6 remainder: GLB still unused (payload). Follow indoor clipping improved, not proven in every workshop.
 - Live-day Standard Brain: `skipOpeningDecisions` is false on live days; bulk genesis still skips after day 3.
+- Q-016 remains open until one fence, not two stores.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

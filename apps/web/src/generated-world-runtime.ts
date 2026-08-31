@@ -3,6 +3,9 @@ import {
 	type CivilizationExperimentRun,
 	type CivilizationScheduledActivity,
 	type CivilizationState,
+	decodeLocalWorldAuthoritySnapshot,
+	LOCAL_WORLD_AUTHORITY_DEFAULT_ORIGIN,
+	type LocalWorldAuthoritySnapshot,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
@@ -76,9 +79,119 @@ function liveDayCognition():
 	return { decisionGateway: standardFallbackModelGateway() };
 }
 
+function shouldProbeLocalAuthority(): boolean {
+	if (generatedFaultHooks) return false;
+	if (typeof fetch !== "function") return false;
+	if (typeof process !== "undefined" && process.env.VITEST !== undefined)
+		return false;
+	if (typeof navigator !== "undefined" && navigator.webdriver) return false;
+	return true;
+}
+
+export async function probeLocalWorldAuthority(
+	origin: string = LOCAL_WORLD_AUTHORITY_DEFAULT_ORIGIN,
+): Promise<LocalWorldAuthoritySnapshot | null> {
+	try {
+		const response = await fetch(`${origin.replace(/\/$/u, "")}/authority`, {
+			signal: AbortSignal.timeout(250),
+		});
+		if (!response.ok) return null;
+		return decodeLocalWorldAuthoritySnapshot(await response.text());
+	} catch {
+		return null;
+	}
+}
+
+async function resolveAttachedAuthority(
+	options: GeneratedWorldBuildOptions,
+): Promise<LocalWorldAuthoritySnapshot | null> {
+	if (options.localAuthority === false) return null;
+	if (options.localAuthority !== undefined) return options.localAuthority;
+	if (!shouldProbeLocalAuthority()) return null;
+	return probeLocalWorldAuthority(
+		options.localAuthorityOrigin ?? LOCAL_WORLD_AUTHORITY_DEFAULT_ORIGIN,
+	);
+}
+
+function experienceFromLocalProcess(
+	snapshot: LocalWorldAuthoritySnapshot,
+	options: GeneratedWorldBuildOptions,
+): GeneratedWorldExperience {
+	const checkpoint = {
+		schemaVersion: "eonfolk-civilization-experiment-v9" as const,
+		runnerVersion: "eonfolk-civilization-runner-v9" as const,
+		worldIdentityHash: snapshot.worldIdentityHash,
+		horizonDays: snapshot.completedDay,
+		finalStateHash: snapshot.stateHash,
+		events: [],
+		metrics: {
+			simulationTime: snapshot.state.simulationTime,
+			modelInvocations: 0,
+		},
+	};
+	const projections = projectAuthorityView({
+		world: snapshot.world,
+		civilization: snapshot.state,
+		checkpoint,
+		activities: snapshot.activities,
+		residentPopulation: Object.values(snapshot.state.citizens).filter(
+			({ residenceState }) => residenceState === "resident",
+		).length,
+	});
+	const worldEmbodiment = projectGeneratedWorldEmbodiment({
+		current: projections,
+		previous: projections,
+		activities: snapshot.activities,
+	});
+	const embodimentBySettlement = new Map(
+		worldEmbodiment.settlements.map((embodiment) => [
+			embodiment.settlementId,
+			embodiment,
+		]),
+	);
+	return Object.freeze({
+		worldId: snapshot.world.identity.worldId,
+		worldIdentityHash: snapshot.worldIdentityHash,
+		stateHash: snapshot.stateHash,
+		simulationTime: snapshot.state.simulationTime,
+		horizonDays: snapshot.completedDay,
+		population: Object.keys(snapshot.state.citizens).length,
+		settlementCount: projections.length,
+		projections,
+		embodiments: Object.freeze(
+			projections.map((projection) => {
+				const embodiment = embodimentBySettlement.get(
+					projection.local.settlement.settlementId,
+				);
+				if (embodiment === undefined) throw new Error("Embodiment missing");
+				return embodiment;
+			}),
+		),
+		previousStateHash: snapshot.stateHash,
+		previousHorizonDays: Math.max(1, snapshot.completedDay - 1),
+		persistence: Object.freeze({
+			kind: "local-process" as const,
+			claim: "local-process-client" as const,
+			failureCode: null,
+			restored: true,
+			catchUpReceipts: 0,
+		}),
+		authorityRegionId: snapshot.world.identity.worldId,
+		authorityDatabaseName: options.databaseName ?? GENERATED_WORLD_STORAGE_KEY,
+		sponsorCitizenId: RELEASE_GENESIS_MARA_CITIZEN_ID,
+		sponsorPhase: "idle",
+		activeCounselIntent: null,
+		happenings: happeningsFromCivilization(snapshot.state),
+		innerLives: innerLivesFromCivilization(snapshot.state),
+	});
+}
+
 export interface GeneratedWorldPersistenceStatus {
-	readonly kind: "indexeddb" | "quarantined" | "unavailable";
-	readonly claim: "durable-authority" | "admitted-deterministic-view";
+	readonly kind: "indexeddb" | "quarantined" | "unavailable" | "local-process";
+	readonly claim:
+		| "durable-authority"
+		| "admitted-deterministic-view"
+		| "local-process-client";
 	readonly failureCode: string | null;
 	readonly restored: boolean;
 	readonly catchUpReceipts: number;
@@ -148,6 +261,8 @@ export interface GeneratedWorldBuildOptions {
 		checkpoint: CivilizationExperimentRun,
 	) => CivilizationExperimentRun;
 	readonly checkpointRecovery?: "already-attempted";
+	readonly localAuthority?: LocalWorldAuthoritySnapshot | false;
+	readonly localAuthorityOrigin?: string;
 }
 
 const SILENT_CHECKPOINT_RECOVERY_CODES = new Set([
@@ -438,6 +553,14 @@ function projectAuthorityView(input: {
 	return Object.freeze(projections);
 }
 
+async function attachedLocalProcessExperience(
+	options: GeneratedWorldBuildOptions,
+): Promise<GeneratedWorldExperience | null> {
+	const attached = await resolveAttachedAuthority(options);
+	if (attached === null) return null;
+	return experienceFromLocalProcess(attached, options);
+}
+
 /**
  * Builds the browser's read-only V1 projection from the same generated world,
  * deterministic civilization run, and scheduler-owned activities used by the
@@ -447,6 +570,8 @@ function projectAuthorityView(input: {
 async function buildGeneratedWorldExperienceInternal(
 	options: GeneratedWorldBuildOptions,
 ): Promise<GeneratedWorldExperience> {
+	const attached = await attachedLocalProcessExperience(options);
+	if (attached !== null) return attached;
 	if (generatedFaultHooks) await options.beforeAuthorityAdvance?.();
 	const authorityRunner: typeof runCivilizationExperiment = async (input) => {
 		const run = await runCivilizationExperiment({
@@ -805,6 +930,8 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
  * Player-authorized scheduler step. Wall clock must not call this.
  */
 export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
+	const attached = await attachedLocalProcessExperience({});
+	if (attached !== null) return attached;
 	const indexedDbFactory = globalThis.indexedDB;
 	if (indexedDbFactory === undefined)
 		return await refreshGeneratedWorldExperience();
@@ -838,6 +965,8 @@ export async function catchUpGeneratedWorldReturnDays(input: {
 	readonly operationId: string;
 	readonly additionalDays: number;
 }): Promise<GeneratedWorldExperience> {
+	const attached = await attachedLocalProcessExperience({});
+	if (attached !== null) return attached;
 	const indexedDbFactory = globalThis.indexedDB;
 	if (indexedDbFactory === undefined)
 		return await refreshGeneratedWorldExperience();

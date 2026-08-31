@@ -1,4 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { tickLocalWorldAuthority } from "@eonfolk/civilization";
+import { createReleaseGenesis } from "@eonfolk/protocol";
+import { generateWorld } from "@eonfolk/worldgen";
 import { describe, expect, it } from "vitest";
 import {
 	buildGeneratedWorldExperience,
@@ -6,7 +9,11 @@ import {
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
 } from "./generated-world-runtime";
-import { V1_GENESIS_WORLD_ID } from "./v1-genesis-runtime";
+import {
+	V1_GENESIS_RELEASE_ID,
+	V1_GENESIS_SEED,
+	V1_GENESIS_WORLD_ID,
+} from "./v1-genesis-runtime";
 
 describe("canonical generated-world browser experience", () => {
 	it("memoizes one identity-bound first-day civilization", async () => {
@@ -121,6 +128,50 @@ describe("canonical generated-world browser experience", () => {
 				expect(projected?.action.actionId).toBe(actor.actionId);
 				expect(projected?.positionMm).toEqual(actor.positionMm);
 			}
+	});
+
+	it("projects a local-process snapshot as a client, not a Worker writer", async () => {
+		const genesisWorld = await generateWorld({
+			releaseGenesis: await createReleaseGenesis({
+				releaseId: V1_GENESIS_RELEASE_ID,
+				seedHex: V1_GENESIS_SEED,
+			}),
+			worldId: V1_GENESIS_WORLD_ID,
+			treatmentId: "standard-brain",
+		});
+		const first = await tickLocalWorldAuthority({
+			genesisWorld,
+			current: null,
+		});
+		const second = await tickLocalWorldAuthority({
+			genesisWorld,
+			current: first,
+		});
+		const experience = await buildGeneratedWorldExperience({
+			localAuthority: second,
+			indexedDbFactory: null,
+		});
+		expect(experience.persistence).toEqual({
+			kind: "local-process",
+			claim: "local-process-client",
+			failureCode: null,
+			restored: true,
+			catchUpReceipts: 0,
+		});
+		expect(experience.horizonDays).toBe(2);
+		expect(experience.stateHash).toBe(second.stateHash);
+		expect(experience.worldId).toBe(V1_GENESIS_WORLD_ID);
+	});
+
+	it("lets a Worker probe the local process without a window handle", async () => {
+		const runtime = await readFile(
+			new URL("./generated-world-runtime.ts", import.meta.url),
+			"utf8",
+		);
+		expect(runtime).toContain("shouldProbeLocalAuthority");
+		expect(runtime).not.toContain("typeof window ===");
+		expect(runtime).toContain("process.env.VITEST");
+		expect(runtime).toContain("navigator.webdriver");
 	});
 
 	it("surfaces counsel as a happening without reviewer-facing roster copy", async () => {
