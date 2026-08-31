@@ -53,7 +53,7 @@ describe("bounded world-presence pass", () => {
 	});
 
 	it("keeps human copy, world dominance, and mobile access explicit", async () => {
-		const [app, main, canvas, styles, vite, entry] = await Promise.all([
+		const [app, main, canvas, styles, vite, entry, about] = await Promise.all([
 			webSource("V1GenesisApp.tsx"),
 			webSource("main.tsx"),
 			webSource("generated-world-canvas.tsx"),
@@ -63,6 +63,7 @@ describe("bounded world-presence pass", () => {
 				"utf8",
 			),
 			webSource("GenesisEntryApp.tsx"),
+			webSource("InformationSurface.tsx"),
 		]);
 
 		expect(app).toContain("countNoun(");
@@ -138,6 +139,11 @@ describe("bounded world-presence pass", () => {
 		expect(entry).not.toContain("A TOWN THAT CONTINUES WITHOUT YOU");
 		expect(entry).toContain("Time in town");
 		expect(entry).toContain("moves while Play is on in an open tab");
+		expect(entry).toMatch(/you choose\s+whether waited days pass/u);
+		expect(app).toContain("can pass if you choose");
+		expect(about).toContain("Closing the tab stops");
+		expect(about).toContain("pnpm world:authority");
+		expect(about).toContain("still choose whether waited days pass");
 		expect(entry).toContain('href="/about"');
 		expect(entry).toContain('href="/license"');
 		expect(main).toContain('normalizedPath === "/about"');

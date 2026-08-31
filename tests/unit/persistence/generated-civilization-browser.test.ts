@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
 	assertGeneratedSponsorBoundaryAdmission,
@@ -26,6 +27,7 @@ import {
 import {
 	assertCivilizationInvariants,
 	type CivilizationState,
+	continueCivilizationExperimentDay,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "../../../packages/civilization/src/index.js";
@@ -834,6 +836,99 @@ describe("generated civilization versioned persistence", () => {
 		expect(
 			sponsoredCivilization(replayed.replay).patronAbstentions[abstentionId],
 		).toBeDefined();
+	}, 180_000);
+
+	it("runs Standard Brain openings on player-authorized return catch-up days", async () => {
+		const source = await readFile(
+			new URL(
+				"../../../apps/web/src/persistence/generated-civilization.ts",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		const catchUpFn = source.slice(
+			source.indexOf(
+				"export async function catchUpLiveGeneratedCivilizationDays",
+			),
+			source.indexOf(
+				"export async function persistPreparedGeneratedCivilization",
+			),
+		);
+		expect(catchUpFn).toContain("skipOpeningDecisions: false");
+		expect(catchUpFn).not.toContain("skipOpeningDecisions: true");
+
+		const port = await persistGeneratedOrigin();
+		await appendGeneratedSponsorCommand(port, { kind: "establish" });
+		const origin = await loadGeneratedAuthority(port);
+		expect(origin.replay.state.phase).toBe("active");
+		const originCivilization = structuredClone(
+			sponsoredCivilization(origin.replay),
+		);
+		const originWorld = structuredClone(
+			origin.replay.state.world as unknown as typeof world,
+		);
+		const completedDay = origin.replay.state.scheduler.completedDay;
+		const eventIndexBase = origin.replay.state.sourceHistory.eventHashes.length;
+		const priorEventHash =
+			origin.replay.state.sourceHistory.eventHashes.at(-1) ?? null;
+		const skipped = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: structuredClone(originWorld),
+			state: structuredClone(originCivilization),
+			completedDay,
+			eventIndexBase,
+			priorEventHash,
+			skipOpeningDecisions: true,
+		});
+		const thinking = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: structuredClone(originWorld),
+			state: structuredClone(originCivilization),
+			completedDay,
+			eventIndexBase,
+			priorEventHash,
+			skipOpeningDecisions: false,
+		});
+		expect(skipped.cognitionDecisions).toHaveLength(0);
+		expect(thinking.cognitionDecisions.length).toBeGreaterThan(0);
+		expect(thinking.finalStateHash).not.toBe(skipped.finalStateHash);
+
+		const caughtUp = await catchUpLiveGeneratedCivilizationDays({
+			port,
+			genesisWorld: world,
+			operationId: "rl-test-catch-up-thinking",
+			additionalDays: 1,
+		});
+		expect(caughtUp.advancedDays).toBe(1);
+		expect(caughtUp.horizonDays).toBe(2);
+
+		const after = await loadGeneratedAuthority(port);
+		const afterCivilization = sponsoredCivilization(after.replay);
+		expect(afterCivilization.minds).toEqual(thinking.state.minds);
+		expect(afterCivilization.minds).not.toEqual(skipped.state.minds);
+		const openingConsequence =
+			thinking.cognitionDecisions.some(
+				(decision) => decision.selectedActionId.length > 0,
+			) ||
+			Object.values(afterCivilization.minds).some((mind) =>
+				mind.snapshot.records.some((record) => record.kind === "message-claim"),
+			) ||
+			Object.values(afterCivilization.projects).some(
+				(project) => project.sponsor.kind === "citizen",
+			) ||
+			thinking.cognitionDecisions.some(
+				(decision) =>
+					decision.planTransition !== "continued" ||
+					decision.planVersionAfter !== decision.planVersionBefore,
+			);
+		expect(openingConsequence).toBe(true);
+		expect(
+			thinking.cognitionDecisions.some(
+				(decision) =>
+					afterCivilization.minds[decision.actorId]?.snapshot.standingPlan
+						.planId === decision.planId,
+			),
+		).toBe(true);
 	}, 180_000);
 
 	it("resumes return catch-up without double-advancing after a crash", async () => {

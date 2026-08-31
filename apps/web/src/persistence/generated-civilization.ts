@@ -702,9 +702,10 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 			current: cursor,
 			genesisWorld: input.genesisWorld,
 			authorityRunner: runner,
-			// Play return catch-up (1–7 days): separate cost switch, not the bulk
-			// thinking-day pairing path. Live days and 30-day genesis still open.
-			skipOpeningDecisions: true,
+			// Player-authorized return catch-up (1–7 days) is a thinking day: the
+			// same Standard Brain openings as live Play, not empty ticks. Reality
+			// remains the sole writer. 7×8 openings is an accepted FAST cost.
+			skipOpeningDecisions: false,
 		});
 		const nextState = advanced.nextState;
 		const appendId = `civilization-live-day-${String(nextDay)}`;
