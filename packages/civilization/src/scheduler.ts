@@ -507,26 +507,18 @@ function routineAssignments(
 			const decision = decisions.find(
 				(candidate) => candidate.citizenId === citizen.citizenId,
 			);
-			if (decision !== undefined) {
+			// Opening decisions permit work; they must not paint ghost standing-plan
+			// labor. Honor chosen presence (talk, travel, away). Executed work still
+			// assigns from actions, so idle related residents can pair the same way
+			// they do when openings are skipped.
+			if (
+				decision !== undefined &&
+				(decision.kind === "social-maintenance" ||
+					decision.kind === "travel" ||
+					decision.kind === "away")
+			) {
 				kind = decision.kind;
 				subjectId = decision.subjectId;
-				if (decision.kind === "transport") {
-					const lane = policy.transportLanes.find(
-						(candidate) => candidate.laneId === decision.subjectId,
-					);
-					const from = state.stocks[lane?.fromStockId ?? ""];
-					const to = state.stocks[lane?.toStockId ?? ""];
-					route =
-						lane === undefined
-							? null
-							: {
-									routeId: lane.routeId,
-									fromSiteId:
-										state.storages[from?.storageId ?? ""]?.siteId ?? "",
-									toSiteId: state.storages[to?.storageId ?? ""]?.siteId ?? "",
-									traversalUnits: lane.traversalUnits,
-								};
-				}
 			} else if (citizen.residenceState === "departed") kind = "away";
 			else if (citizen.residenceState === "travelling") {
 				kind = "travel";

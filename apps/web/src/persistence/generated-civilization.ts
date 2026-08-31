@@ -702,6 +702,8 @@ export async function catchUpLiveGeneratedCivilizationDays(input: {
 			current: cursor,
 			genesisWorld: input.genesisWorld,
 			authorityRunner: runner,
+			// Play return catch-up (1–7 days): separate cost switch, not the bulk
+			// thinking-day pairing path. Live days and 30-day genesis still open.
 			skipOpeningDecisions: true,
 		});
 		const nextState = advanced.nextState;

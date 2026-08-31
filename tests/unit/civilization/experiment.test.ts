@@ -31,10 +31,8 @@ const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 const STAGNATION_SEED = "0e".padStart(64, "0");
 const BULK_OPENING_DECISION_COUNT = BULK_OPENING_DECISION_HORIZON_DAYS * 8;
-const FIRST_SKIPPED_ODD_DAY =
-	BULK_OPENING_DECISION_HORIZON_DAYS % 2 === 0
-		? BULK_OPENING_DECISION_HORIZON_DAYS + 1
-		: BULK_OPENING_DECISION_HORIZON_DAYS + 2;
+/** Odd day inside the Standard Brain prefix where idle related residents pair. */
+const THINKING_CONVERSATION_DAY = 5;
 
 async function generatedWorld(seedHex: string, releaseId: string) {
 	return generateWorld({
@@ -474,15 +472,20 @@ describe("deterministic civilization experiment", () => {
 		expect(run.metrics.invariantIssues).toEqual([]);
 	});
 
-	it("schedules one relationship-grounded mutual conversation that presentation cannot invent", async () => {
+	it("schedules one relationship-grounded mutual conversation on a thinking day", async () => {
+		expect(THINKING_CONVERSATION_DAY).toBeLessThanOrEqual(
+			BULK_OPENING_DECISION_HORIZON_DAYS,
+		);
+		expect(THINKING_CONVERSATION_DAY % 2).toBe(1);
 		const world = await generatedWorld(
 			PROGRESSION_SEED,
 			"civilization-canonical-social-interaction",
 		);
 		const run = await runCivilizationExperiment({
 			world,
-			horizonDays: FIRST_SKIPPED_ODD_DAY,
+			horizonDays: THINKING_CONVERSATION_DAY,
 		});
+		expect(run.cognitionDecisions).toHaveLength(THINKING_CONVERSATION_DAY * 8);
 		const social = run.activities.filter((activity) =>
 			["talk", "listen", "exchange"].includes(activity.canonicalAction.kind),
 		);
@@ -627,8 +630,11 @@ describe("deterministic civilization experiment", () => {
 		);
 		const prelude = await runCivilizationExperiment({
 			world,
-			horizonDays: FIRST_SKIPPED_ODD_DAY,
+			horizonDays: THINKING_CONVERSATION_DAY,
 		});
+		expect(prelude.cognitionDecisions).toHaveLength(
+			THINKING_CONVERSATION_DAY * 8,
+		);
 		expect(
 			prelude.finalStandingPlans.every(
 				(plan) => plan.sourceId === "routine-planner-v1",
@@ -643,7 +649,7 @@ describe("deterministic civilization experiment", () => {
 			genesisWorld: world,
 			world: prelude.world,
 			state: prelude.state,
-			completedDay: FIRST_SKIPPED_ODD_DAY,
+			completedDay: THINKING_CONVERSATION_DAY,
 			skipOpeningDecisions: false,
 		});
 		const laterCitation = continued.cognitionDecisions.find(
@@ -762,6 +768,10 @@ describe("deterministic civilization experiment", () => {
 				(plan) => plan.sourceId === "routine-planner-v1",
 			),
 		).toBe(true);
+		const heard = Object.values(thirty.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter((record) => record.kind === "message-claim"),
+		);
+		expect(heard.length).toBeGreaterThan(0);
 		const originated = Object.values(thirty.state.projects).find(
 			(project) =>
 				project.projectId !== "project-expedition-kit" &&

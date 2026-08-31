@@ -18,10 +18,7 @@ function seedHex(bytes: Uint8Array): string {
 		.join("");
 }
 
-const FIRST_SKIPPED_ODD_DAY =
-	BULK_OPENING_DECISION_HORIZON_DAYS % 2 === 0
-		? BULK_OPENING_DECISION_HORIZON_DAYS + 1
-		: BULK_OPENING_DECISION_HORIZON_DAYS + 2;
+const SECONDS_PER_DAY = 86_400;
 
 describe("canonical social interaction properties", () => {
 	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
@@ -37,16 +34,35 @@ describe("canonical social interaction properties", () => {
 							seedHex: seedHex(seedBytes),
 						}),
 					});
+					const prefix = await runCivilizationExperiment({
+						world,
+						horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
+					});
+					expect(prefix.cognitionDecisions).toHaveLength(
+						BULK_OPENING_DECISION_HORIZON_DAYS * 8,
+					);
+					const talkDay =
+						Math.max(
+							...Object.values(prefix.state.citizens).map(
+								(citizen) => citizen.lastSocialSimulationTime,
+							),
+						) / SECONDS_PER_DAY;
+					expect(talkDay).toBeGreaterThan(0);
+					expect(Number.isSafeInteger(talkDay)).toBe(true);
+					expect(talkDay).toBeLessThanOrEqual(
+						BULK_OPENING_DECISION_HORIZON_DAYS,
+					);
 					const first = await runCivilizationExperiment({
 						world,
-						horizonDays: FIRST_SKIPPED_ODD_DAY,
+						horizonDays: talkDay,
 					});
 					const second = await runCivilizationExperiment({
 						world,
-						horizonDays: FIRST_SKIPPED_ODD_DAY,
+						horizonDays: talkDay,
 					});
 					expect(second.finalStateHash).toBe(first.finalStateHash);
 					expect(jcs(second.activities)).toBe(jcs(first.activities));
+					expect(first.cognitionDecisions).toHaveLength(talkDay * 8);
 
 					const social = first.activities.filter((activity) =>
 						["talk", "listen", "exchange"].includes(
@@ -109,7 +125,7 @@ describe("canonical social interaction properties", () => {
 						checkpoint: first,
 						settlementId,
 						activities: first.activities,
-						presentationTick: FIRST_SKIPPED_ODD_DAY,
+						presentationTick: talkDay,
 					});
 					expect(projected.spatial.interactions.length).toBeGreaterThanOrEqual(
 						1,
