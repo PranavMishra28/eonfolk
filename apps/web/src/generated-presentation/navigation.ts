@@ -154,7 +154,7 @@ export const FOLLOW_CAMERA_DISTANCE_MM = 6_200;
 export const FOLLOW_COMPACT_CAMERA_DISTANCE_MM = 13_600;
 const MIN_CAMERA_DISTANCE_MM = 4_500;
 const MAX_CAMERA_DISTANCE_MM = 180_000;
-const FOLLOW_MAX_BACKUP_MM = 28_000;
+const FOLLOW_MAX_BACKUP_MM = 36_000;
 const MAX_CAMERA_PAN_MM = 150_000;
 const CAMERA_BLEND_BASIS_POINTS = 2_600;
 /** Shallow enough that Follow is a person, not a ground/wall fill. */

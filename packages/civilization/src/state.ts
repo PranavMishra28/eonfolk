@@ -296,7 +296,8 @@ export function registerCivilizationMind(
 				targetId !== mind.citizenId &&
 				state.citizens[targetId] === undefined &&
 				!state.references.siteIds.includes(targetId) &&
-				(plan.sourceId !== "eonfolk-civilization-scheduler-brain-v1" ||
+				((plan.sourceId !== "eonfolk-civilization-scheduler-brain-v1" &&
+					plan.sourceId !== "routine-planner-v1") ||
 					identifier(targetId, "scheduler plan target") !== targetId),
 		) ||
 		plan.startBoundary > plan.expiryBoundary

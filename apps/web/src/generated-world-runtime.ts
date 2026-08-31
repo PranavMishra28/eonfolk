@@ -7,6 +7,7 @@ import {
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
+import { standardFallbackModelGateway } from "@eonfolk/cognition";
 import {
 	PersistenceError,
 	type ReleaseGenesisCivilizationState,
@@ -51,6 +52,29 @@ export const GENERATED_WORLD_INITIAL_HORIZON_DAYS = 1;
 export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
 /** Exact v8 namespace: first session starts at day 1; earlier 365-day v7 bytes stay unread. */
 export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v8";
+export const COGNITION_TREATMENT_STORAGE_KEY = "eonfolk-cognition-treatment";
+
+export type LocalCognitionTreatment = "standard-brain" | "model";
+
+export function readLocalCognitionTreatment(): LocalCognitionTreatment {
+	if (typeof localStorage === "undefined") return "standard-brain";
+	return localStorage.getItem(COGNITION_TREATMENT_STORAGE_KEY) === "model"
+		? "model"
+		: "standard-brain";
+}
+
+export function writeLocalCognitionTreatment(
+	treatment: LocalCognitionTreatment,
+): void {
+	localStorage.setItem(COGNITION_TREATMENT_STORAGE_KEY, treatment);
+}
+
+function liveDayCognition():
+	| CivilizationExperimentCognitionOptions
+	| undefined {
+	if (readLocalCognitionTreatment() !== "model") return undefined;
+	return { decisionGateway: standardFallbackModelGateway() };
+}
 
 export interface GeneratedWorldPersistenceStatus {
 	readonly kind: "indexeddb" | "quarantined" | "unavailable";
@@ -108,6 +132,7 @@ export interface GeneratedCitizenInnerLife {
 	readonly citizenId: string;
 	readonly want: string;
 	readonly daysWork: string;
+	readonly standingPlan: string;
 	readonly standingTies: readonly string[];
 	readonly waterStores: string | null;
 }
@@ -321,7 +346,15 @@ function innerLivesFromCivilization(
 			.sort((left, right) => left.citizenId.localeCompare(right.citizenId))
 			.map((citizen) => {
 				const mind = civilization.minds[citizen.citizenId];
-				const goalType = mind?.snapshot.standingPlan.goalType ?? "routine:wait";
+				const plan = mind?.snapshot.standingPlan;
+				const goalType = plan?.goalType ?? "routine:wait";
+				const currentStep = plan?.steps.find(
+					(step) => step.stepId === plan.currentStepId,
+				);
+				const standingPlan =
+					plan === undefined
+						? "No standing plan is recorded."
+						: `${goalType.replaceAll(":", " · ")} · ${currentStep?.kind ?? "waiting"}`;
 				const ties = Object.values(civilization.relationships)
 					.filter((relation) => relation.fromCitizenId === citizen.citizenId)
 					.map((relation) => {
@@ -337,6 +370,7 @@ function innerLivesFromCivilization(
 							? "Keep Dawnmere's water stores from failing, without straining her friendship."
 							: standingPlanWant(goalType),
 					daysWork: standingPlanWork(goalType),
+					standingPlan,
 					standingTies: Object.freeze(ties),
 					waterStores:
 						citizen.citizenId === RELEASE_GENESIS_MARA_CITIZEN_ID
@@ -788,9 +822,11 @@ export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExpe
 		databaseName: GENERATED_WORLD_STORAGE_KEY,
 	});
 	try {
+		const cognition = liveDayCognition();
 		await appendLiveGeneratedCivilizationDay({
 			port,
 			genesisWorld: generatedWorld,
+			...(cognition === undefined ? {} : { cognition }),
 		});
 	} finally {
 		port.close();

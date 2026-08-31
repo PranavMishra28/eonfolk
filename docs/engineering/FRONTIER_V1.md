@@ -43,12 +43,12 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 | Area | Phase 0 | Frontier target |
 |---|---|---|
 | Reality, worldgen, scheduler, needs, resources, production, transport, persistence, replay, catch-up | STRONG | Keep |
-| Cognition on live days | SHALLOW (days 1–3, then skip) | Recurring Standard Brain; optional Model Brain |
-| `planRoutine` | UNUSED IN PLAY | Wire as standing-plan path |
-| Memory / beliefs / relationships / skills | SHALLOW (seeded water replan) | Memory that changes a later choice |
+| Cognition on live days | SHALLOW (days 1–3, then skip) | Live days run Standard Brain; bulk genesis still skips after day 3 |
+| `planRoutine` | UNUSED IN PLAY | Wired as the standing-plan constructor; inspectable in Play |
+| Memory / beliefs / relationships / skills | SHALLOW (seeded water replan) | Heard testimony can change a later opening choice |
 | Projects / institutions / migration | SHALLOW (seeded expedition, fixed chain) | Citizen-originated projects |
-| Citizen-to-citizen information | SCAFFOLD | Conversations copy epistemic records |
-| Model Brain in product | Hardcoded `standard-brain` | Local treatment + fallback |
+| Citizen-to-citizen information | SCAFFOLD | Conversations write listener message-claims; later acts can cite them |
+| Model Brain in product | Hardcoded `standard-brain` | Local Settings treatment; Standard fallback; replay never re-infers |
 | Browser Worker as authority | Hosts Reality while tab is open | Client of local process when process is running |
 | Closed-tab continuity | FALSE | Only with local process |
 | Inner life in Play | FALSE (Want copies walk; Iven invisible) | TRUE in HUD |
@@ -63,7 +63,7 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 
 **VERIFIED FACT:** Today Reality lives in a Web Worker plus IndexedDB. Closing the tab stops the clock.
 
-**Thinnest honest path (not implemented until Slice 4):**
+**Thinnest honest path (target; Play is not attached):**
 
 ```text
 Node local-authority process  (optional, user-started, $0)
@@ -74,11 +74,11 @@ Browser Play / Research
   └─ if process absent: current Worker-in-tab (no closed-tab claim)
 ```
 
-No cloud. No OS-wide always-on unless the user starts the process. Catch-up remains player-accepted when the process was not running.
+The landed prototype is `tickLocalWorldAuthority` plus a process-presence script. It does not yet share a PersistencePort or writer fence with Play. No cloud. Catch-up remains player-accepted when no process was running.
 
 ### 2. Recurring cognition
 
-Stop `skipOpeningDecisions` on **live** days. Bulk catch-up may still skip opening decisions for horizon cost. Standing plans persist and are inspectable in Play. Wire `planRoutine` when it is the standing-plan path.
+Stop `skipOpeningDecisions` on **live** days. Bulk catch-up may still skip opening decisions for horizon cost. Standing plans persist and are inspectable in Play. `planRoutine` is the standing-plan constructor.
 
 ### 3. Inner life in Play
 
@@ -90,15 +90,15 @@ Not only the seeded expedition. Remaining this pass: see remaining work.
 
 ### 5. A→B information travel
 
-Conversations copy/update epistemic records under Reality rules. Remaining this pass unless Slice 3 lands a lock test.
+Conversations copy a typed message-claim onto the listener's Mind. A later opening decision can retrieve that heard record. Reality stays Application-written.
 
 ### 6. Optional Model Brain
 
-Local treatment select; Standard Brain fallback; `{ schemaVersion, actionId }` only; digest-pinned host; never writes Reality; replay never re-infers. Remaining this pass.
+Settings can select Standard Brain or optional local Model Brain. World identity stays `standard-brain`. Absent host → Standard fallback. Replay uses recorded decisions.
 
 ### 7. Presentation
 
-P0 UX first (Slice 1). Then Follow clipping, name overlay, GLB if payload-sane, About/License footer links. Feedback is a bug/report icon, still localStorage-only.
+P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/License footer routes exist. Follow backs out further indoors. GLB remains unused (payload). Feedback is a bug/report icon, still localStorage-only.
 
 ### 8. Persistence honesty
 
@@ -130,9 +130,9 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 
 ## Remaining work
 
-- Slice 4: local-authority process prototype (contract above; not production-complete).
-- Slice 3 remainder: `planRoutine` in play, memory lock test, A→B epistemic copy.
+- Slice 4 attach: Play still uses Worker-in-tab. `tickLocalWorldAuthority` is a tested one-day stepper; `pnpm world:authority` is a process-presence placeholder and does not tick Reality. Do not claim closed-tab continuity.
+- Citizen-originated projects beyond the seeded expedition.
+- 30/90/365 social-propagation and local-process continuity proofs as product gates.
+- Slice 6 remainder: GLB still unused (payload). Follow indoor clipping improved, not proven in every workshop.
 - Live-day Standard Brain: `skipOpeningDecisions` is false on live days; bulk genesis still skips after day 3.
-- Slice 5: Model Brain product-path treatment selector.
-- Slice 6: Follow camera clipping, name overlay, GLB if payload-sane, About/License footer.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

@@ -6,6 +6,7 @@ import {
 } from "../../../apps/web/src/v1-genesis-runtime.js";
 import {
 	assertCivilizationInvariants,
+	continueCivilizationExperimentDay,
 	deriveCivilizationSeedConditions,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
@@ -602,6 +603,41 @@ describe("deterministic civilization experiment", () => {
 			["talk", "listen"].includes(activity.canonicalAction.kind),
 		);
 		if (talking.length === 2) expect(thirdDayTalk).toEqual([]);
+	});
+
+	it("copies conversation testimony and lets a later opening decision cite it", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-conversation-epistemics",
+		);
+		const prelude = await runCivilizationExperiment({ world, horizonDays: 5 });
+		expect(
+			prelude.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		const heard = Object.values(prelude.state.minds).flatMap((mind) =>
+			mind.snapshot.records.filter((record) => record.kind === "message-claim"),
+		);
+		expect(heard.length).toBeGreaterThan(0);
+		expect(heard.some((record) => /told/u.test(record.proposition))).toBe(true);
+		const continued = await continueCivilizationExperimentDay({
+			genesisWorld: world,
+			world: prelude.world,
+			state: prelude.state,
+			completedDay: 5,
+			skipOpeningDecisions: false,
+		});
+		const laterCitation = continued.cognitionDecisions.find(
+			(decision) =>
+				decision.selectedActionId.startsWith("heed:") &&
+				decision.retrievedMemoryIds.some((id) => id.includes(":heard:")),
+		);
+		expect(laterCitation).toBeDefined();
+		expect(
+			laterCitation?.readVisibleRecordIds.some((id) => id.includes("heard")),
+		).toBe(true);
+		expect(laterCitation?.planTransition).toBe("choice-replanned");
 	});
 
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {

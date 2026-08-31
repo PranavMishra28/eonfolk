@@ -75,6 +75,11 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("Start a fresh local town");
 		expect(app).toContain("skip-link");
 		expect(app).toContain("Skip to world");
+		expect(app).toContain("Standing plan:");
+		expect(app).toContain("Standard Brain");
+		expect(app).toContain("Local model (optional)");
+		expect(app).toContain('href="/about"');
+		expect(app).toContain('href="/license"');
 		expect(app).toContain("v1-feedback-bug");
 		expect(app).toContain("Report an issue — saved only in this browser");
 		expect(app).not.toContain("Feedback form — not the Chronicle");
@@ -133,6 +138,11 @@ describe("bounded world-presence pass", () => {
 		expect(entry).not.toContain("A TOWN THAT CONTINUES WITHOUT YOU");
 		expect(entry).toContain("Time in town");
 		expect(entry).toContain("moves while Play is on in an open tab");
+		expect(entry).toContain('href="/about"');
+		expect(entry).toContain('href="/license"');
+		expect(main).toContain('normalizedPath === "/about"');
+		expect(styles).toContain(".generated-citizen-labels button strong");
+		expect(styles).toContain("white-space: nowrap");
 		expect(app).toContain("Standing ties");
 		expect(app).toContain("Water stores");
 		expect(app).toContain("CHRONICLE_RELATION_LABEL");

@@ -1,6 +1,7 @@
 export * from "./audit.js";
 export * from "./experiment.js";
 export * from "./kernel.js";
+export * from "./local-world-authority.js";
 export * from "./population.js";
 export * from "./pressures.js";
 export * from "./scheduler.js";

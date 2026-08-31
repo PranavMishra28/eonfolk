@@ -36,5 +36,6 @@ describe("canonical Mara generated-world runtime", () => {
 		expect(mara?.want).toMatch(/water|friend/iu);
 		expect(mara?.want).not.toMatch(/walking|walks to/iu);
 		expect(mara?.daysWork.length).toBeGreaterThan(0);
+		expect(mara?.standingPlan.length).toBeGreaterThan(0);
 	});
 });

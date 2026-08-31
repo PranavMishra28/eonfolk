@@ -9,6 +9,7 @@
 		"pnpm": "11.15.1"
 	},
 	"scripts": {
+		"world:authority": "node scripts/local-world-authority.mjs",
 		"dev": "pnpm dev:observe",
 		"dev:observe": "VITE_EONFOLK_DIAGNOSTICS_MODE=local pnpm --filter @eonfolk/web dev",
 		"prod": "pnpm build && pnpm --filter @eonfolk/web preview --host 127.0.0.1 --port 4174 --strictPort",

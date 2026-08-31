@@ -188,6 +188,8 @@ export function GenesisEntryApp() {
 			<footer className="v1-entry-footer">
 				<a href="/research">Research</a>
 				<a href="/developer">Developer</a>
+				<a href="/about">About</a>
+				<a href="/license">License</a>
 			</footer>
 		</main>
 	);

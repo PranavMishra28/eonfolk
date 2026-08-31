@@ -4,6 +4,7 @@ import {
 	evolve,
 	identifier,
 	quantity,
+	replaceCivilizationMind,
 	requireReference,
 	simulationTime,
 } from "./state.js";
@@ -428,4 +429,106 @@ export function recordSocialContact(
 			};
 	}
 	return evolve(state, { citizens, relationships });
+}
+
+function conversationProposition(
+	state: CivilizationState,
+	speakerCitizenId: string,
+	listenerCitizenId: string,
+): string {
+	const speaker = citizen(state, speakerCitizenId);
+	const listener = citizen(state, listenerCitizenId);
+	const speakerMind = state.minds[speakerCitizenId];
+	const goalType = speakerMind?.snapshot.standingPlan.goalType ?? "";
+	if (
+		goalType.includes("transport") ||
+		speaker.primaryRoleId === "water-keeper"
+	)
+		return `${speaker.name} told ${listener.name} that Dawnmere's water stores need watching.`;
+	return `${speaker.name} told ${listener.name} they were working the same place today.`;
+}
+
+/**
+ * Application-owned A→B copy: a finished conversation writes a typed
+ * message-claim onto the listener's Mind. Brain does not write Reality.
+ */
+export function recordConversationKnowledge(
+	state: CivilizationState,
+	input: {
+		readonly speakerCitizenId: string;
+		readonly listenerCitizenId: string;
+		readonly atSimulationTime: number;
+	},
+): CivilizationState {
+	simulationTime(input.atSimulationTime, "conversation knowledge time");
+	if (input.speakerCitizenId === input.listenerCitizenId)
+		throw new CivilizationError(
+			"INVALID_INPUT",
+			"conversation knowledge requires two citizens",
+		);
+	const speaker = citizen(state, input.speakerCitizenId);
+	const listener = citizen(state, input.listenerCitizenId);
+	const listenerMind = state.minds[listener.citizenId];
+	if (listenerMind === undefined) return state;
+	const eventId = identifier(
+		`conversation-${speaker.citizenId}-${listener.citizenId}-${String(input.atSimulationTime)}`,
+		"conversation event",
+	);
+	if (state.provenance.some((entry) => entry.eventId === eventId)) return state;
+	const proposition = conversationProposition(
+		state,
+		speaker.citizenId,
+		listener.citizenId,
+	);
+	const next = evolve(
+		state,
+		{
+			provenance: [
+				...state.provenance,
+				{
+					eventId,
+					mechanismId: "civilization.conversation.told.v1",
+					causeEventIds: [],
+					actorVisibleSourceEventIds: [eventId],
+					modelDecisionId: null,
+				},
+			],
+			citizens: {
+				...state.citizens,
+				[listener.citizenId]: {
+					...listener,
+					sourceEventIds: [...listener.sourceEventIds, eventId],
+				},
+				[speaker.citizenId]: {
+					...speaker,
+					sourceEventIds: [...speaker.sourceEventIds, eventId],
+				},
+			},
+		},
+		input.atSimulationTime,
+	);
+	const claim = {
+		recordId: `record:${eventId}:heard`,
+		kind: "message-claim" as const,
+		subjectCitizenId: listener.citizenId,
+		proposition,
+		confidence: 6_000,
+		sourceIds: [eventId],
+		visibility: {
+			kind: "citizen-private" as const,
+			subjectCitizenId: listener.citizenId,
+		},
+		createdRevision: next.revision,
+	};
+	const committed = next.minds[listener.citizenId];
+	if (committed === undefined) return next;
+	return replaceCivilizationMind(next, {
+		...committed,
+		snapshot: {
+			...committed.snapshot,
+			records: [...committed.snapshot.records, claim],
+		},
+		committedAtRevision: next.revision,
+		committedAtSimulationTime: next.simulationTime,
+	});
 }

@@ -41,11 +41,14 @@ import {
 	refreshGeneratedWorldExperience,
 } from "./generated-world-client";
 import type { GeneratedWorldFaultSpec } from "./generated-world-faults";
-import type {
-	GeneratedChronicleRelation,
-	GeneratedCitizenInnerLife,
-	GeneratedWorldExperience,
-	GeneratedWorldHappening,
+import {
+	type GeneratedChronicleRelation,
+	type GeneratedCitizenInnerLife,
+	type GeneratedWorldExperience,
+	type GeneratedWorldHappening,
+	type LocalCognitionTreatment,
+	readLocalCognitionTreatment,
+	writeLocalCognitionTreatment,
 } from "./generated-world-runtime";
 import {
 	authorityDayIntervalMs,
@@ -1019,6 +1022,13 @@ function GeneratedContextPanel({
 							)}
 						</p>
 						<p>
+							<strong>Standing plan:</strong>{" "}
+							{playerFacingCopy(
+								selectedInnerLife?.standingPlan ??
+									"No standing plan is recorded.",
+							)}
+						</p>
+						<p>
 							<strong>Standing ties:</strong>{" "}
 							{selectedInnerLife !== undefined &&
 							selectedInnerLife.standingTies.length > 0
@@ -1397,6 +1407,12 @@ function GeneratedWorld({
 	const [rendererFailed, setRendererFailed] = useState(false);
 	const asset = useGeneratedAsset(fault);
 	const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
+	const [cognitionTreatment, setCognitionTreatment] =
+		useState<LocalCognitionTreatment>(() =>
+			typeof window === "undefined"
+				? "standard-brain"
+				: readLocalCognitionTreatment(),
+		);
 	const [playRate, setPlayRate] = useState<PlayRate>(1);
 	const [consideringCounsel, setConsideringCounsel] = useState(false);
 	const resumePlayRate = useRef<PlayRate>(1);
@@ -2128,6 +2144,26 @@ function GeneratedWorld({
 						>
 							{reduceMotion ? "Motion reduced" : "Reduce motion"}
 						</button>
+						<button
+							type="button"
+							aria-pressed={cognitionTreatment === "standard-brain"}
+							onClick={() => {
+								writeLocalCognitionTreatment("standard-brain");
+								setCognitionTreatment("standard-brain");
+							}}
+						>
+							Standard Brain
+						</button>
+						<button
+							type="button"
+							aria-pressed={cognitionTreatment === "model"}
+							onClick={() => {
+								writeLocalCognitionTreatment("model");
+								setCognitionTreatment("model");
+							}}
+						>
+							Local model (optional)
+						</button>
 					</details>
 				</nav>
 				{experience.settlementCount < 2 ? null : (
@@ -2471,6 +2507,11 @@ function GeneratedWorld({
 				</div>
 			) : null}
 			<footer className="v1-world-footer">
+				<p>
+					<a href="/about">About</a>
+					{" · "}
+					<a href="/license">License</a>
+				</p>
 				<p>
 					Watch first. Select a person to learn more.{" "}
 					{consideringCounsel

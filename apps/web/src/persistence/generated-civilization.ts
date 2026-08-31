@@ -1,5 +1,6 @@
 import {
 	assertCivilizationInvariants,
+	type CivilizationExperimentCognitionOptions,
 	type CivilizationExperimentRun,
 	type CivilizationState,
 	continueCivilizationExperimentDay,
@@ -304,6 +305,7 @@ async function nextLiveDayFromHead(input: {
 	readonly genesisWorld: GeneratedWorldState;
 	readonly authorityRunner: typeof runCivilizationExperiment;
 	readonly skipOpeningDecisions?: boolean;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<{
 	readonly nextState: ReleaseGenesisCivilizationState;
 	readonly stepHash: string;
@@ -324,6 +326,7 @@ async function nextLiveDayFromHead(input: {
 			eventIndexBase: current.sourceHistory.eventHashes.length,
 			priorEventHash: current.sourceHistory.eventHashes.at(-1) ?? null,
 			skipOpeningDecisions: input.skipOpeningDecisions ?? false,
+			...(input.cognition === undefined ? {} : { cognition: input.cognition }),
 		});
 		assertCivilizationInvariants(continued.state);
 		return {
@@ -409,6 +412,7 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 	readonly port: VersionedPersistencePort;
 	readonly genesisWorld: GeneratedWorldState;
 	readonly authorityRunner?: typeof runCivilizationExperiment;
+	readonly cognition?: CivilizationExperimentCognitionOptions;
 }): Promise<{
 	readonly horizonDays: number;
 	readonly head: AuthorityHead;
@@ -445,6 +449,7 @@ export async function appendLiveGeneratedCivilizationDay(input: {
 		current,
 		genesisWorld: input.genesisWorld,
 		authorityRunner: runner,
+		...(input.cognition === undefined ? {} : { cognition: input.cognition }),
 	});
 	const nextState = advanced.nextState;
 	const parentEventId = await precedingAuthorityEventId(

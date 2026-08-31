@@ -4463,8 +4463,9 @@ em {
 .generated-citizen-labels button {
 	display: grid;
 	gap: 0.05rem;
-	min-width: 2.75rem;
-	max-width: 9.5rem;
+	min-width: 7rem;
+	max-width: 12rem;
+	width: max-content;
 	padding: 0.18rem 0.4rem;
 	border: 1px solid rgba(35, 38, 31, 0.35);
 	border-radius: 0.35rem;
@@ -4475,6 +4476,13 @@ em {
 	line-height: 1.2;
 	text-align: left;
 	cursor: pointer;
+}
+
+.generated-citizen-labels button strong,
+.generated-citizen-labels button span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .generated-citizen-labels button[aria-pressed="true"],
