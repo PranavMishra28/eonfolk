@@ -108,6 +108,8 @@ describe("bounded world-presence pass", () => {
 		expect(app).toContain("void loadGeneratedWorldCanvasModule()");
 		expect(app).toContain("WorldAuthorityShell");
 		expect(app).toContain('data-world-id="eonfolk-genesis-world-v1"');
+		expect(app).toContain("data-advancing-day");
+		expect(app).toContain("The day is turning. Dawnmere stays in view.");
 		expect(app).toContain('data-authority-pending="true"');
 		expect(vite).toContain("webglOnlyPlayCanvasReact()");
 		expect(vite).toContain("WebglGraphicsDevice");
@@ -117,6 +119,10 @@ describe("bounded world-presence pass", () => {
 		);
 		expect(canvas).toContain("followSubjectYRatio");
 		expect(canvas).toContain("followSubjectVisible");
+		expect(canvas).toContain("followOccluderIds");
+		expect(canvas).toContain("followPitchDegrees");
+		expect(canvas).toContain("followDesiredPitchDegrees");
+		expect(canvas).toContain("data-follow-volumes");
 		expect(canvas).toContain("resolveFollowCamera");
 		expect(canvas).toContain("generatedFollowViewportIsCompact");
 		expect(canvas).toContain("generatedFollowFovDegrees");

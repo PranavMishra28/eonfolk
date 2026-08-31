@@ -1471,6 +1471,7 @@ function GeneratedWorld({
 		held: 0,
 	});
 	const advancingDay = useRef(false);
+	const [dayTurning, setDayTurning] = useState(false);
 	const catchingUp = useRef(false);
 	const dayAnchor = useRef({
 		day: experience.horizonDays,
@@ -1754,6 +1755,7 @@ function GeneratedWorld({
 			)
 				return;
 			advancingDay.current = true;
+			setDayTurning(true);
 			void onAdvanceDay()
 				.then(() => {
 					writeLastActiveWallMs();
@@ -1770,6 +1772,7 @@ function GeneratedWorld({
 				})
 				.finally(() => {
 					advancingDay.current = false;
+					setDayTurning(false);
 				});
 		}, 250);
 		return () => window.clearInterval(id);
@@ -2058,6 +2061,7 @@ function GeneratedWorld({
 			data-presentation-playing={String(presentationPlaying)}
 			data-play-rate={String(playRate)}
 			data-day-interval-ms={String(authorityDayIntervalMs(playRate) ?? 0)}
+			data-advancing-day={String(dayTurning)}
 			data-visual-progress={visualProgress01.toFixed(3)}
 			data-view={effectiveView}
 			data-inspector-open={String(inspectorSheetOpen)}
@@ -2610,15 +2614,17 @@ function GeneratedWorld({
 					{" · "}
 					<a href="/license">License</a>
 				</p>
-				<p>
+				<p aria-live="polite">
 					Watch first. Select a person to learn more.{" "}
 					{consideringCounsel
 						? "Paused while you consider advice"
 						: catchUpProposal > 0
 							? "Days are waiting on your choice before time continues."
-							: playRate === 0
-								? "Time is paused. Play when you want another day to pass."
-								: "Time keeps moving until you pause it."}
+							: dayTurning
+								? "The day is turning. Dawnmere stays in view."
+								: playRate === 0
+									? "Time is paused. Play when you want another day to pass."
+									: "Time keeps moving until you pause it."}
 				</p>
 			</footer>
 		</main>

@@ -293,8 +293,10 @@ export function followOccluderVolumes(
 			continue;
 		}
 		const isMill = kind.includes("mill");
+		const isHall = kind.includes("meeting");
 		const isWorkshop = kind.includes("workshop");
-		const widthMm = isMill ? scale.mill.widthMm : scale.house.widthMm;
+		const widthMm =
+			(isMill ? scale.mill.widthMm : scale.house.widthMm) * (isHall ? 1.15 : 1);
 		const depthMm =
 			(isMill ? scale.mill.depthMm : scale.house.depthMm) *
 			(isWorkshop ? 1.2 : 1);

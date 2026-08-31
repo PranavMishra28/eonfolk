@@ -772,6 +772,21 @@ function GeneratedCamera({
 					pitchDegrees: framing.pitchDegrees,
 					distanceMm: framing.distanceMm,
 				});
+				if (host.current !== null) {
+					host.current.dataset.followOccluderIds = followOccluderIds(
+						cameraEyeMm(
+							framing.targetMm,
+							framing.yawDegrees,
+							framing.pitchDegrees,
+							framing.distanceMm,
+						),
+						framing.targetMm,
+						followVolumes(projection),
+					).join(",");
+					host.current.dataset.followDesiredPitchDegrees = String(
+						framing.pitchDegrees,
+					);
+				}
 			}
 		}
 		const intent = advanceGeneratedCameraIntent(
@@ -832,6 +847,9 @@ function GeneratedCamera({
 						: picks.find((pick) => pick.id === followedId);
 				const height = Math.max(1, host.current.clientHeight);
 				const width = Math.max(1, host.current.clientWidth);
+				host.current.dataset.followPitchDegrees = following
+					? String(intent.pitchDegrees)
+					: "";
 				host.current.dataset.followSubjectYRatio =
 					followedPick === undefined
 						? ""
@@ -1351,6 +1369,11 @@ function GroundedSettlement({
 			),
 		);
 	})();
+	if (host.current !== null) {
+		host.current.dataset.followOccluderIds = [...followGhostIds]
+			.sort()
+			.join(",");
+	}
 	const focusRevision =
 		navigation.focus.kind === "overview"
 			? "overview"
@@ -1684,6 +1707,14 @@ export function GeneratedWorldCanvas({
 		model,
 		navigation,
 	);
+	const followVolumeDump = followVolumes(projection)
+		.map((volume) => {
+			const building = projection.local.buildings.find(
+				(entry) => entry.buildingId === volume.occluderId,
+			);
+			return `${volume.occluderId}:${building?.buildingKind ?? "camp"}:${volume.minX}:${volume.maxX}:${volume.minY}:${volume.maxY}:${volume.minZ}:${volume.maxZ}`;
+		})
+		.join(";");
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
 	const effectiveDistanceMm =
 		navigation.focus.kind === "overview"
@@ -1809,6 +1840,7 @@ export function GeneratedWorldCanvas({
 					: ""
 			}
 			data-following={String(navigation.followCitizen)}
+			data-follow-volumes={followVolumeDump}
 			data-camera-target={cameraIntent.semanticLabel}
 			data-camera-distance-mm={effectiveDistanceMm}
 			data-camera-yaw-degrees={navigation.yawDegrees}
