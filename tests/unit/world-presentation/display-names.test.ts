@@ -18,6 +18,7 @@ describe("player-facing display names", () => {
 	it("maps roles, buildings, projects, and relationships without exposing slugs", () => {
 		expect(roleDisplayName("expedition-steward")).toBe("Expedition steward");
 		expect(buildingKindDisplayName("meeting-hall")).toBe("Meeting hall");
+		expect(buildingKindDisplayName("water-reserve")).toBe("Water reserve");
 		expect(projectDisplayName("expedition-kit")).toBe("Expedition kit");
 		expect(projectDisplayName("water-reserve")).toBe("Water reserve");
 		expect(standingPlanStepDisplayName("WorkProject")).toBe(

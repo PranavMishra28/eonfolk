@@ -26,7 +26,7 @@ describe("civilization long-horizon properties", () => {
 			await fc.assert(
 				fc.asyncProperty(
 					fc.uint8Array({ minLength: 32, maxLength: 32 }),
-					fc.constantFrom(30, 90, 365),
+					fc.constantFrom(30, 90, ...(deep ? [365] : [])),
 					async (seedBytes, horizonDays) => {
 						const release = await createReleaseGenesis({
 							releaseId: "civilization-horizon-property",

@@ -29,7 +29,7 @@ describe("civilization persistence properties", () => {
 			await fc.assert(
 				fc.asyncProperty(
 					fc.uint8Array({ minLength: 32, maxLength: 32 }),
-					fc.constantFrom(30, 90, 365),
+					fc.constantFrom(30, 90, ...(deep ? [365] : [])),
 					fc.integer({ min: 1, max: 4 }),
 					async (seedBytes, horizonDays, rangeSize) => {
 						const release = await createReleaseGenesis({

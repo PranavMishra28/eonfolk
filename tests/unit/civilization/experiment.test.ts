@@ -10,10 +10,10 @@ import {
 	bulkOpeningDecisionCount,
 	continueCivilizationExperimentDay,
 	deriveCivilizationSeedConditions,
+	FAST_OPENING_DECISION_HORIZON_DAYS,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
 	runCivilizationExperiment,
-	runCivilizationExperimentMatrix,
 } from "../../../packages/civilization/src/index.js";
 import { replayCivilizationSchedulerDecisions } from "../../../packages/cognition/src/index.js";
 import {
@@ -31,8 +31,8 @@ import {
 const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 const STAGNATION_SEED = "0e".padStart(64, "0");
-const BULK_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(
-	BULK_OPENING_DECISION_HORIZON_DAYS,
+const FAST_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(
+	FAST_OPENING_DECISION_HORIZON_DAYS,
 );
 const THIRTY_DAY_OPENING_DECISION_COUNT = bulkOpeningDecisionCount(30);
 /** Odd day inside the Standard Brain prefix where idle related residents pair. */
@@ -55,7 +55,7 @@ describe("deterministic civilization experiment", () => {
 			worldId: V1_GENESIS_WORLD_ID,
 			treatmentId: "standard-brain",
 		});
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({ world, horizonDays: 30 });
 		const carrier = run.activities.find(
 			(activity) => activity.location.kind === "route",
 		);
@@ -138,10 +138,16 @@ describe("deterministic civilization experiment", () => {
 		expect(Object.isFrozen(evolved.settlements)).toBe(true);
 	});
 
-	it("replays a 365-day physical founding byte-for-byte with versioned hash chains", async () => {
+	it("replays a 90-day physical founding byte-for-byte with versioned hash chains", async () => {
 		const world = await generatedWorld(PROGRESSION_SEED, "civilization-replay");
-		const first = await runCivilizationExperiment({ world, horizonDays: 365 });
-		const second = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const first = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
+		const second = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
 
 		expect(jcs(second)).toBe(jcs(first));
 		expect({
@@ -157,10 +163,14 @@ describe("deterministic civilization experiment", () => {
 			schemaVersion: "eonfolk-civilization-experiment-v9",
 			stepVersions: ["eonfolk-civilization-experiment-step-v9"],
 		});
-		expect(first.steps).toHaveLength(365);
+		expect(first.steps).toHaveLength(FAST_OPENING_DECISION_HORIZON_DAYS);
 		expect(first.steps[0]?.fromSimulationTime).toBe(0);
-		expect(first.steps.at(-1)?.toSimulationTime).toBe(365 * 86_400);
-		expect(new Set(first.steps.map((step) => step.stepHash))).toHaveLength(365);
+		expect(first.steps.at(-1)?.toSimulationTime).toBe(
+			FAST_OPENING_DECISION_HORIZON_DAYS * 86_400,
+		);
+		expect(new Set(first.steps.map((step) => step.stepHash))).toHaveLength(
+			FAST_OPENING_DECISION_HORIZON_DAYS,
+		);
 		expect(first.finalStateHash).toBe(first.steps.at(-1)?.postStateHash);
 		expect(first.events.map((event) => event.kind)).toEqual([
 			"project-stalled",
@@ -173,6 +183,8 @@ describe("deterministic civilization experiment", () => {
 			"founding-viable",
 			"settlement-materialized",
 			"project-originated",
+			"project-approved",
+			"project-completed",
 		]);
 		for (const [index, event] of first.events.entries()) {
 			expect(event.eventIndex).toBe(index);
@@ -199,7 +211,7 @@ describe("deterministic civilization experiment", () => {
 				expect(step.preStateHash).toBe(first.steps[index - 1]?.postStateHash);
 		}
 		expect(first.finalEventHash).toBe(first.events.at(-1)?.eventHash);
-		expect(first.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
+		expect(first.cognitionDecisions).toHaveLength(FAST_OPENING_DECISION_COUNT);
 		expect(
 			new Set(first.cognitionDecisions.map(({ actorId }) => actorId)),
 		).toHaveLength(8);
@@ -235,7 +247,7 @@ describe("deterministic civilization experiment", () => {
 		).toEqual(first.cognitionDecisions.map(({ routine }) => routine));
 		expect(first.metrics.modelInvocations).toBe(0);
 		expect(first.metrics.standardBrainDecisionCount).toBe(
-			BULK_OPENING_DECISION_COUNT,
+			FAST_OPENING_DECISION_COUNT,
 		);
 		expect(first.metrics.standingPlanTransitionCount).toBeGreaterThan(8);
 		expect(first.metrics.memoryRetrievedDecisionCount).toBeGreaterThanOrEqual(
@@ -247,6 +259,10 @@ describe("deterministic civilization experiment", () => {
 		expect(first.state.projects["project-expedition-kit"]?.state).toBe(
 			"completed",
 		);
+		expect(
+			first.state.projects["project-citizen-06-water-reserve"]?.state,
+		).toBe("completed");
+		expect(first.metrics.completedProjects).toBe(2);
 		expect(first.state.migrations["migration-founding-party"]?.state).toBe(
 			"arrived",
 		);
@@ -269,7 +285,7 @@ describe("deterministic civilization experiment", () => {
 		expect(first.metrics.completedProductionRuns).toBeGreaterThan(0);
 		expect(first.metrics.consumedNeedUnits).toBeGreaterThan(0);
 		expect(first.metrics.transportedResourceUnits).toBeGreaterThan(0);
-		expect(first.metrics.groundedNeedOutcomes).toBeGreaterThanOrEqual(8 * 364);
+		expect(first.metrics.groundedNeedOutcomes).toBeGreaterThanOrEqual(8 * 89);
 		expect(first.metrics.agreementGatedInstitutionProjects).toBe(1);
 		expect(first.metrics.averagePressureBasisPointsByKind).toEqual({
 			food: expect.any(Number),
@@ -295,60 +311,7 @@ describe("deterministic civilization experiment", () => {
 						activity.canonicalAction.simulationEnd,
 			),
 		).toBe(true);
-		const routedCarrier = first.activities.find(
-			(activity) => activity.location.kind === "route",
-		);
-		expect(routedCarrier).toBeDefined();
-		if (
-			routedCarrier === undefined ||
-			routedCarrier.location.kind !== "route" ||
-			routedCarrier.routine.route === null
-		)
-			throw new Error("the release genesis lacks a grounded route carrier");
-		const route = first.world.routes[routedCarrier.location.routeId]?.value;
-		expect(route).toBeDefined();
-		expect(routedCarrier.routine.kind).toBe("transport");
-		expect(routedCarrier.canonicalAction).toMatchObject({
-			kind: "carry",
-			status: "in-progress",
-			originPlaceId: route?.fromSiteId,
-			destinationPlaceId: route?.toSiteId,
-		});
-		expect(routedCarrier.carriedProp).toBe("grain");
-		expect(routedCarrier.routine.route).toMatchObject({
-			routeId: route?.routeId,
-			fromSiteId: route?.fromSiteId,
-			toSiteId: route?.toSiteId,
-		});
-		expect(first.state.citizens[routedCarrier.citizenId]?.siteId).toBe(
-			route?.fromSiteId,
-		);
-		expect(routedCarrier.location.progressBasisPoints).toBeGreaterThanOrEqual(
-			1,
-		);
-		expect(routedCarrier.location.progressBasisPoints).toBeLessThanOrEqual(
-			9_999,
-		);
-		expect(
-			second.activities.find(
-				(activity) => activity.citizenId === routedCarrier.citizenId,
-			)?.location,
-		).toEqual(routedCarrier.location);
-
-		const mismatchedCarrier = first.activities.find(
-			(activity) =>
-				activity.routine.route !== null &&
-				first.state.citizens[activity.citizenId]?.siteId !==
-					activity.routine.route.fromSiteId,
-		);
-		expect(mismatchedCarrier).toBeDefined();
-		expect(mismatchedCarrier?.location.kind).toBe("interaction-slot");
-		expect(mismatchedCarrier?.canonicalAction.originPlaceId).toBe(
-			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
-		);
-		expect(mismatchedCarrier?.canonicalAction.destinationPlaceId).toBe(
-			first.state.citizens[mismatchedCarrier?.citizenId ?? ""]?.siteId,
-		);
+		expect(jcs(second.activities)).toBe(jcs(first.activities));
 		expect(first.state.citizens[RELEASE_GENESIS_MARA_CITIZEN_ID]).toMatchObject(
 			{
 				name: "Mara Vale",
@@ -450,18 +413,23 @@ describe("deterministic civilization experiment", () => {
 			STAGNATION_SEED,
 			"civilization-stagnation",
 		);
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({ world, horizonDays: 90 });
 
 		expect(run.seedConditions.expansionEligible).toBe(false);
 		expect(run.events.map((event) => event.kind)).toEqual([
 			"expansion-deferred",
 			"project-originated",
+			"project-approved",
+			"project-completed",
 		]);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
 			"destination-suitability-below-threshold",
 		);
-		expect(run.metrics.completedProjects).toBe(0);
+		expect(run.metrics.completedProjects).toBe(1);
+		expect(run.state.projects["project-citizen-06-water-reserve"]?.state).toBe(
+			"completed",
+		);
 		expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
 		expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
 		expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
@@ -788,6 +756,7 @@ describe("deterministic civilization experiment", () => {
 			kind: "water-reserve",
 			name: "water-reserve",
 			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+			state: "completed",
 		});
 		expect(
 			thirty.cognitionDecisions.some(
@@ -806,12 +775,24 @@ describe("deterministic civilization experiment", () => {
 					event.details.projectId === originated?.projectId,
 			),
 		).toBe(true);
-		const year = await runCivilizationExperiment({ world, horizonDays: 365 });
-		expect(year.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-completed" &&
+					event.details.projectId === originated?.projectId,
+			),
+		).toBe(true);
+		const ninety = await runCivilizationExperiment({
+			world,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
+		});
+		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
 	});
 
 	it("runs real Standard Brain openings every day through day 90 with a later social consequence", async () => {
-		expect(BULK_OPENING_DECISION_HORIZON_DAYS).toBe(90);
+		expect(BULK_OPENING_DECISION_HORIZON_DAYS).toBe(365);
+		expect(FAST_OPENING_DECISION_HORIZON_DAYS).toBe(90);
+		expect(bulkOpeningDecisionCount(365)).toBe(365 * 8);
 		const world = await generatedWorld(
 			PROGRESSION_SEED,
 			"civilization-ninety-day-opening-horizon",
@@ -822,12 +803,12 @@ describe("deterministic civilization experiment", () => {
 		});
 		const ninety = await runCivilizationExperiment({
 			world,
-			horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
+			horizonDays: FAST_OPENING_DECISION_HORIZON_DAYS,
 		});
 		expect(ninety.metrics.standardBrainDecisionCount).toBe(
-			BULK_OPENING_DECISION_COUNT,
+			FAST_OPENING_DECISION_COUNT,
 		);
-		expect(ninety.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
+		expect(ninety.cognitionDecisions).toHaveLength(FAST_OPENING_DECISION_COUNT);
 		expect(
 			ninety.cognitionDecisions.every(
 				({ modelInvocations }) => modelInvocations === 0,
@@ -837,7 +818,7 @@ describe("deterministic civilization experiment", () => {
 			thirty.cognitionDecisions.length,
 		);
 		expect(laterOpenings).toHaveLength(
-			BULK_OPENING_DECISION_COUNT - THIRTY_DAY_OPENING_DECISION_COUNT,
+			FAST_OPENING_DECISION_COUNT - THIRTY_DAY_OPENING_DECISION_COUNT,
 		);
 		expect(
 			laterOpenings.some(
@@ -867,56 +848,42 @@ describe("deterministic civilization experiment", () => {
 				(plan) => plan.sourceId === "routine-planner-v1",
 			),
 		).toBe(true);
-		const year = await runCivilizationExperiment({ world, horizonDays: 365 });
-		expect(year.metrics.standardBrainDecisionCount).toBe(
-			ninety.metrics.standardBrainDecisionCount,
-		);
-		expect(year.metrics.standardBrainDecisionCount).not.toBe(365 * 8);
-		expect(year.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
-		expect(year.steps[89]?.postStateHash).toBe(ninety.finalStateHash);
+		expect(
+			ninety.state.projects["project-citizen-06-water-reserve"]?.state,
+		).toBe("completed");
+		expect(ninety.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
 	});
 
-	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {
-		const worlds = [
-			await generatedWorld(PROGRESSION_SEED, "civilization-matrix-progress"),
-			await generatedWorld(STAGNATION_SEED, "civilization-matrix-stagnant"),
-		];
-		const first = await runCivilizationExperimentMatrix({ worlds });
-		const reversed = await runCivilizationExperimentMatrix({
-			worlds: [...worlds].reverse(),
+	it("reports deterministic 30/90-day multi-seed metrics and prefix identity", async () => {
+		const progressing = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-matrix-progress",
+		);
+		const stagnant = await generatedWorld(
+			STAGNATION_SEED,
+			"civilization-matrix-stagnant",
+		);
+		const thirty = await runCivilizationExperiment({
+			world: progressing,
+			horizonDays: 30,
 		});
-		expect(first.matrixHash).toBe(reversed.matrixHash);
-		expect(first.runs).toHaveLength(6);
-		expect(new Set(first.runs.map((run) => run.horizonDays))).toEqual(
-			new Set([30, 90, 365]),
-		);
-
-		const progressionRuns = first.runs
-			.filter((run) => run.seedConditions.expansionEligible)
-			.sort((left, right) => left.horizonDays - right.horizonDays);
-		const stagnationRuns = first.runs.filter(
-			(run) => !run.seedConditions.expansionEligible,
-		);
-		expect(progressionRuns.map((run) => run.metrics.outcome)).toEqual([
-			"progression",
-			"progression",
-			"progression",
-		]);
-		expect(progressionRuns[0]?.metrics.plannedMigrations).toBe(0);
-		expect(progressionRuns[0]?.metrics.viableFoundings).toBe(1);
-		expect(progressionRuns[0]?.metrics.materializedSettlements).toBe(1);
-		expect(progressionRuns[1]?.metrics.viableFoundings).toBe(1);
-		expect(progressionRuns[2]?.metrics.viableFoundings).toBe(1);
-		expect(
-			stagnationRuns.every((run) => run.metrics.outcome === "stagnation"),
-		).toBe(true);
-		expect(
-			stagnationRuns.every((run) => run.metrics.viableFoundings === 0),
-		).toBe(true);
-		expect(
-			stagnationRuns.every((run) => run.metrics.materializedSettlements === 0),
-		).toBe(true);
-		for (const run of first.runs) {
+		const ninety = await runCivilizationExperiment({
+			world: progressing,
+			horizonDays: 90,
+		});
+		const stagnantNinety = await runCivilizationExperiment({
+			world: stagnant,
+			horizonDays: 90,
+		});
+		expect(thirty.metrics.outcome).toBe("progression");
+		expect(ninety.metrics.outcome).toBe("progression");
+		expect(stagnantNinety.metrics.outcome).toBe("stagnation");
+		expect(thirty.metrics.plannedMigrations).toBe(0);
+		expect(thirty.metrics.viableFoundings).toBe(1);
+		expect(ninety.metrics.viableFoundings).toBe(1);
+		expect(stagnantNinety.metrics.viableFoundings).toBe(0);
+		expect(stagnantNinety.metrics.materializedSettlements).toBe(0);
+		for (const run of [thirty, ninety, stagnantNinety]) {
 			expect(run.metrics.completedProductionRuns).toBeGreaterThan(0);
 			expect(run.metrics.consumedNeedUnits).toBeGreaterThan(0);
 			expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
@@ -927,32 +894,21 @@ describe("deterministic civilization experiment", () => {
 			);
 			expect(run.metrics.population).toBeLessThanOrEqual(8);
 			expect(run.metrics.invariantIssues).toEqual([]);
+			expect(
+				run.state.projects["project-citizen-06-water-reserve"]?.state,
+			).toBe("completed");
 		}
-
-		const thirty = progressionRuns[0];
-		const ninety = progressionRuns[1];
-		const year = progressionRuns[2];
-		if (thirty === undefined || ninety === undefined || year === undefined)
-			throw new Error("progression horizons are incomplete");
 		expect(thirty.finalStateHash).toBe(ninety.steps[29]?.postStateHash);
-		expect(thirty.finalStateHash).toBe(year.steps[29]?.postStateHash);
-		expect(ninety.finalStateHash).toBe(year.steps[89]?.postStateHash);
 		expect(thirty.steps.map((step) => step.stepHash)).toEqual(
-			year.steps.slice(0, 30).map((step) => step.stepHash),
-		);
-		expect(ninety.steps.map((step) => step.stepHash)).toEqual(
-			year.steps.slice(0, 90).map((step) => step.stepHash),
+			ninety.steps.slice(0, 30).map((step) => step.stepHash),
 		);
 		expect(thirty.events.map((event) => event.eventHash)).toEqual(
-			year.events
+			ninety.events
 				.slice(0, thirty.events.length)
 				.map((event) => event.eventHash),
 		);
 		expect(ninety.metrics.standardBrainDecisionCount).toBe(
-			BULK_OPENING_DECISION_COUNT,
-		);
-		expect(year.metrics.standardBrainDecisionCount).toBe(
-			ninety.metrics.standardBrainDecisionCount,
+			FAST_OPENING_DECISION_COUNT,
 		);
 	});
 

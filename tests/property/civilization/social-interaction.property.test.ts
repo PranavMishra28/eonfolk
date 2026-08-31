@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	BULK_OPENING_DECISION_HORIZON_DAYS,
+	FAST_OPENING_DECISION_HORIZON_DAYS,
 	runCivilizationExperiment,
 } from "../../../packages/civilization/src/index.js";
 import {
@@ -22,119 +23,125 @@ const SECONDS_PER_DAY = 86_400;
 
 describe("canonical social interaction properties", () => {
 	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
+	const thinkingHorizonDays = deep
+		? BULK_OPENING_DECISION_HORIZON_DAYS
+		: FAST_OPENING_DECISION_HORIZON_DAYS;
 
-	it("keeps every generated dyad mutual, known, local, related and capacity-grounded", async () => {
-		await fc.assert(
-			fc.asyncProperty(
-				fc.uint8Array({ minLength: 32, maxLength: 32 }),
-				async (seedBytes) => {
-					const world = await generateWorld({
-						releaseGenesis: await createReleaseGenesis({
-							releaseId: "canonical-social-property",
-							seedHex: seedHex(seedBytes),
-						}),
-					});
-					const prefix = await runCivilizationExperiment({
-						world,
-						horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
-					});
-					expect(prefix.cognitionDecisions).toHaveLength(
-						BULK_OPENING_DECISION_HORIZON_DAYS * 8,
-					);
-					const talkDay =
-						Math.max(
-							...Object.values(prefix.state.citizens).map(
-								(citizen) => citizen.lastSocialSimulationTime,
+	it(
+		"keeps every generated dyad mutual, known, local, related and capacity-grounded",
+		async () => {
+			await fc.assert(
+				fc.asyncProperty(
+					fc.uint8Array({ minLength: 32, maxLength: 32 }),
+					async (seedBytes) => {
+						const world = await generateWorld({
+							releaseGenesis: await createReleaseGenesis({
+								releaseId: "canonical-social-property",
+								seedHex: seedHex(seedBytes),
+							}),
+						});
+						const prefix = await runCivilizationExperiment({
+							world,
+							horizonDays: thinkingHorizonDays,
+						});
+						expect(prefix.cognitionDecisions).toHaveLength(
+							thinkingHorizonDays * 8,
+						);
+						const talkDay =
+							Math.max(
+								...Object.values(prefix.state.citizens).map(
+									(citizen) => citizen.lastSocialSimulationTime,
+								),
+							) / SECONDS_PER_DAY;
+						expect(talkDay).toBeGreaterThan(0);
+						expect(Number.isSafeInteger(talkDay)).toBe(true);
+						expect(talkDay).toBeLessThanOrEqual(thinkingHorizonDays);
+						const first = await runCivilizationExperiment({
+							world,
+							horizonDays: talkDay,
+						});
+						const second = await runCivilizationExperiment({
+							world,
+							horizonDays: talkDay,
+						});
+						expect(second.finalStateHash).toBe(first.finalStateHash);
+						expect(jcs(second.activities)).toBe(jcs(first.activities));
+						expect(first.cognitionDecisions).toHaveLength(talkDay * 8);
+
+						const social = first.activities.filter((activity) =>
+							["talk", "listen", "exchange"].includes(
+								activity.canonicalAction.kind,
 							),
-						) / SECONDS_PER_DAY;
-					expect(talkDay).toBeGreaterThan(0);
-					expect(Number.isSafeInteger(talkDay)).toBe(true);
-					expect(talkDay).toBeLessThanOrEqual(
-						BULK_OPENING_DECISION_HORIZON_DAYS,
-					);
-					const first = await runCivilizationExperiment({
-						world,
-						horizonDays: talkDay,
-					});
-					const second = await runCivilizationExperiment({
-						world,
-						horizonDays: talkDay,
-					});
-					expect(second.finalStateHash).toBe(first.finalStateHash);
-					expect(jcs(second.activities)).toBe(jcs(first.activities));
-					expect(first.cognitionDecisions).toHaveLength(talkDay * 8);
+						);
+						expect(social.length).toBeGreaterThanOrEqual(2);
+						for (const activity of social) {
+							const actor = first.state.citizens[activity.citizenId];
+							const targetId = activity.canonicalAction.targetId;
+							const target =
+								targetId === null ? undefined : first.state.citizens[targetId];
+							expect(targetId).not.toBe(activity.citizenId);
+							expect(actor).toBeDefined();
+							expect(target).toBeDefined();
+							expect(actor?.settlementId).toBe(target?.settlementId);
+							expect(actor?.siteId).toBe(target?.siteId);
+							expect(activity.routine).toMatchObject({
+								kind: "social-maintenance",
+								subjectId: targetId,
+								route: null,
+							});
+							expect(
+								first.activities.some(
+									(candidate) =>
+										candidate.citizenId === targetId &&
+										candidate.canonicalAction.targetId === activity.citizenId &&
+										candidate.canonicalAction.affordanceId ===
+											activity.canonicalAction.affordanceId,
+								),
+							).toBe(true);
+							expect(
+								Object.values(first.state.relationships).some(
+									(relationship) =>
+										(relationship.fromCitizenId === activity.citizenId &&
+											relationship.toCitizenId === targetId) ||
+										(relationship.fromCitizenId === targetId &&
+											relationship.toCitizenId === activity.citizenId),
+								),
+							).toBe(true);
+							if (activity.location.kind !== "interaction-slot")
+								throw new Error("social activity is not slot-grounded");
+							const slot =
+								first.world.interactionSlots[
+									activity.location.interactionSlotId
+								]?.value;
+							expect(slot?.siteId).toBe(actor?.siteId);
+							expect(slot?.capacity).toBeGreaterThan(
+								activity.canonicalAction.affordanceSlotIndex ?? -1,
+							);
+						}
 
-					const social = first.activities.filter((activity) =>
-						["talk", "listen", "exchange"].includes(
-							activity.canonicalAction.kind,
-						),
-					);
-					expect(social.length).toBeGreaterThanOrEqual(2);
-					for (const activity of social) {
-						const actor = first.state.citizens[activity.citizenId];
-						const targetId = activity.canonicalAction.targetId;
-						const target =
-							targetId === null ? undefined : first.state.citizens[targetId];
-						expect(targetId).not.toBe(activity.citizenId);
-						expect(actor).toBeDefined();
-						expect(target).toBeDefined();
-						expect(actor?.settlementId).toBe(target?.settlementId);
-						expect(actor?.siteId).toBe(target?.siteId);
-						expect(activity.routine).toMatchObject({
-							kind: "social-maintenance",
-							subjectId: targetId,
-							route: null,
+						const settlementId =
+							first.state.citizens[social[0]?.citizenId ?? ""]?.settlementId;
+						if (settlementId === undefined)
+							throw new Error("social dyad has no settlement");
+						const stateBefore = jcs(first.state);
+						const projected = projectGeneratedCivilizationSpatial({
+							world: first.world,
+							civilization: first.state,
+							checkpoint: first,
+							settlementId,
+							activities: first.activities,
+							presentationTick: talkDay,
 						});
 						expect(
-							first.activities.some(
-								(candidate) =>
-									candidate.citizenId === targetId &&
-									candidate.canonicalAction.targetId === activity.citizenId &&
-									candidate.canonicalAction.affordanceId ===
-										activity.canonicalAction.affordanceId,
-							),
-						).toBe(true);
-						expect(
-							Object.values(first.state.relationships).some(
-								(relationship) =>
-									(relationship.fromCitizenId === activity.citizenId &&
-										relationship.toCitizenId === targetId) ||
-									(relationship.fromCitizenId === targetId &&
-										relationship.toCitizenId === activity.citizenId),
-							),
-						).toBe(true);
-						if (activity.location.kind !== "interaction-slot")
-							throw new Error("social activity is not slot-grounded");
-						const slot =
-							first.world.interactionSlots[activity.location.interactionSlotId]
-								?.value;
-						expect(slot?.siteId).toBe(actor?.siteId);
-						expect(slot?.capacity).toBeGreaterThan(
-							activity.canonicalAction.affordanceSlotIndex ?? -1,
-						);
-					}
-
-					const settlementId =
-						first.state.citizens[social[0]?.citizenId ?? ""]?.settlementId;
-					if (settlementId === undefined)
-						throw new Error("social dyad has no settlement");
-					const stateBefore = jcs(first.state);
-					const projected = projectGeneratedCivilizationSpatial({
-						world: first.world,
-						civilization: first.state,
-						checkpoint: first,
-						settlementId,
-						activities: first.activities,
-						presentationTick: talkDay,
-					});
-					expect(projected.spatial.interactions.length).toBeGreaterThanOrEqual(
-						1,
-					);
-					expect(jcs(first.state)).toBe(stateBefore);
-					expect(first.metrics.population).toBe(8);
-				},
-			),
-			{ numRuns: deep ? 12 : 4 },
-		);
-	}, 30_000);
+							projected.spatial.interactions.length,
+						).toBeGreaterThanOrEqual(1);
+						expect(jcs(first.state)).toBe(stateBefore);
+						expect(first.metrics.population).toBe(8);
+					},
+				),
+				{ numRuns: deep ? 12 : 4 },
+			);
+		},
+		deep ? 120_000 : 30_000,
+	);
 });

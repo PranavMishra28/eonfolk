@@ -21,7 +21,8 @@
 		"docs:check": "node scripts/check-doc-links.mjs && node scripts/check-bibliography.mjs",
 		"markdown:lint": "markdownlint-cli2",
 		"diff:check": "node scripts/check-diff.mjs",
-		"test:unit": "vitest run --testTimeout 15000 tests/unit apps/web/src/*.test.ts",
+		"test:unit": "vitest run --testTimeout 15000 tests/unit apps/web/src/*.test.ts --exclude **/*.deep.test.ts",
+		"test:year-cognition": "vitest run --testTimeout 180000 tests/unit/civilization/year-horizon.deep.test.ts",
 		"test:property": "vitest run tests/property",
 		"test:property:focused": "vitest run tests/property/worldgen/generator.property.test.ts tests/property/civilization/economy.property.test.ts tests/property/cognition/planner.property.test.ts tests/property/persistence/generated-civilization.property.test.ts tests/property/world-presentation/generated-spatial.property.test.ts",
 		"test:property:deep": "EONFOLK_PROPERTY_PROFILE=deep vitest run tests/property --reporter=verbose",
@@ -48,8 +49,8 @@
 		"browser-cohort:check": "node scripts/validate-browser-cohort.mjs && ruby scripts/validate-browser-cohort.rb",
 		"verify:fast": "pnpm runtime:check && pnpm architecture:check && pnpm docs:check && pnpm markdown:lint && pnpm diff:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:property:focused && pnpm assets:validate && pnpm license:check && pnpm build",
 		"verify:pr": "pnpm verify:fast && pnpm test:cognition:portable && pnpm test:property && pnpm test:indexeddb && pnpm test:timing && pnpm test:e2e:fault && pnpm build && pnpm budget:check && pnpm test:e2e:production && pnpm security:audit && pnpm test:formal",
-		"verify:deep:ci:additional": "pnpm test:mutation && pnpm test:property:deep && node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json && pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json && pnpm benchmark:diagnostics:browser --output tmp/eonfolk-diagnostics-browser-comparison.json && pnpm benchmark:presentation-stress --output tmp/eonfolk-presentation-stress.json --require-clean && pnpm test:performance",
-		"verify:deep:additional": "pnpm test:mutation && pnpm test:property:deep && pnpm browser-cohort:check && node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json && pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json && pnpm benchmark:diagnostics:browser --output tmp/eonfolk-diagnostics-browser-comparison.json && pnpm benchmark:presentation-stress --output tmp/eonfolk-presentation-stress.json --require-clean && pnpm test:performance",
+		"verify:deep:ci:additional": "pnpm test:year-cognition && pnpm test:mutation && pnpm test:property:deep && node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json && pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json && pnpm benchmark:diagnostics:browser --output tmp/eonfolk-diagnostics-browser-comparison.json && pnpm benchmark:presentation-stress --output tmp/eonfolk-presentation-stress.json --require-clean && pnpm test:performance",
+		"verify:deep:additional": "pnpm test:year-cognition && pnpm test:mutation && pnpm test:property:deep && pnpm browser-cohort:check && node scripts/benchmark-persistence.mjs --output tmp/eonfolk-persistence-benchmark.json && pnpm benchmark:diagnostics --output tmp/eonfolk-diagnostics-overhead.json && pnpm benchmark:diagnostics:browser --output tmp/eonfolk-diagnostics-browser-comparison.json && pnpm benchmark:presentation-stress --output tmp/eonfolk-presentation-stress.json --require-clean && pnpm test:performance",
 		"verify:deep": "pnpm verify:pr && pnpm verify:deep:additional"
 	},
 	"dependencies": {

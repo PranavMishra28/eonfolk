@@ -21,6 +21,7 @@ const BUILDING_KIND_DISPLAY_NAMES = Object.freeze({
 	storehouse: "Storehouse",
 	"open-workshop": "Open workshop",
 	"expedition-cache": "Expedition cache",
+	"water-reserve": "Water reserve",
 });
 
 const PROJECT_DISPLAY_NAMES = Object.freeze({

@@ -68,6 +68,7 @@ import {
 	CIVILIZATION_SCHEDULER_SCHEMA_VERSION,
 	type GeneralizedSchedulerPolicy,
 	type SchedulerAction,
+	type SchedulerCollectiveProject,
 	type SchedulerRoutineAssignment,
 	type SchedulerRoutineDecision,
 } from "./scheduler.js";
@@ -97,11 +98,14 @@ const PROJECT_TIMBER = 6;
 const PROJECT_WATER = 8;
 const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
 /**
- * Bulk/prefix genesis runs real Standard Brain openings through this day.
- * Days 91–365 of a year run may skip for 365 identity and horizon cost; that
- * skip is not a 365-day cognition proof. Day 90 is the cognition gate.
+ * Bulk/prefix genesis and the product year run Standard Brain openings through
+ * this day. The generated year is 365 days, so this is 365 (365×8 = 2920
+ * openings). FAST tests prove day 90; DEEP locks the year. Do not skip later
+ * year days in the engine to keep FAST green.
  */
-export const BULK_OPENING_DECISION_HORIZON_DAYS = 90;
+export const BULK_OPENING_DECISION_HORIZON_DAYS = 365;
+/** FAST cognition gate: 90 thinking days (720 openings). */
+export const FAST_OPENING_DECISION_HORIZON_DAYS = 90;
 
 /** Standard Brain openings in a bulk run of `horizonDays` (8 citizens / thinking day). */
 export function bulkOpeningDecisionCount(horizonDays: number): number {
@@ -401,7 +405,7 @@ export const CIVILIZATION_EXPERIMENT_LIMITATIONS = Object.freeze([
 	"Migration physically advances and accounts for a deterministic cell route at a fixed experiment travel budget; weather, injury, vehicles, and individual position rendering are not modeled.",
 	"Terrain-derived source stocks feed audited daily transport, production, and consumption; birth, death, ecology, and replenishment beyond the bounded horizon remain excluded.",
 	"Scheduler-owned activities expose one deterministic in-progress sample for a physically grounded route routine; they do not mutate a citizen's canonical site or model a complete trip.",
-	"Three opening daily decision boundaries use deterministic Standard Brain, bounded Standing Plans, and actor-visible memory; later stable daily spans use the same resolved scheduler policy without a model.",
+	"Every generated day of the year runs deterministic Standard Brain openings, bounded Standing Plans, and actor-visible memory; FAST proves the 90-day prefix and DEEP locks the 365-day year.",
 	"The experiment invokes no model, cognition provider, training, or inference path; captured decision evidence replays without rerunning any Brain.",
 ]);
 
@@ -752,7 +756,9 @@ function registerCitizenOriginatedProject(
 					state: "ready",
 				},
 			],
-			participantCitizenIds: [citizenId],
+			participantCitizenIds: [
+				...new Set([citizenId, RELEASE_GENESIS_MARA_CITIZEN_ID]),
+			].sort(),
 			storageId,
 			startedAtSimulationTime: null,
 			endedAtSimulationTime: null,
@@ -1757,13 +1763,54 @@ interface CivilizationCognitionRuntime {
 	>;
 }
 
+function projectIsOpenCollectiveWork(
+	state: CivilizationState,
+	projectId: string,
+): boolean {
+	const project = state.projects[projectId];
+	return (
+		project !== undefined &&
+		!["completed", "failed", "abandoned"].includes(project.state)
+	);
+}
+
+function withCitizenOriginatedCollectiveProjects(
+	policy: GeneralizedSchedulerPolicy,
+	state: CivilizationState,
+): GeneralizedSchedulerPolicy {
+	const known = new Set(
+		policy.collectiveProjects.map(({ projectId }) => projectId),
+	);
+	const extra: SchedulerCollectiveProject[] = Object.values(state.projects)
+		.filter(
+			(project) =>
+				project.sponsor.kind === "citizen" &&
+				project.kind === "water-reserve" &&
+				projectIsOpenCollectiveWork(state, project.projectId) &&
+				!known.has(project.projectId),
+		)
+		.sort((left, right) => left.projectId.localeCompare(right.projectId))
+		.map((project) => ({
+			projectId: project.projectId,
+			actorCitizenId: RELEASE_GENESIS_MARA_CITIZEN_ID,
+			buildingKind: "water-reserve",
+		}));
+	if (extra.length === 0) return policy;
+	return {
+		...policy,
+		collectiveProjects: [...policy.collectiveProjects, ...extra],
+	};
+}
+
 function plannedRoutine(
 	state: CivilizationState,
 	policy: GeneralizedSchedulerPolicy,
 	citizenIdValue: string,
 ): CivilizationRoutineResolution {
 	const project = policy.collectiveProjects.find(
-		(candidate) => candidate.actorCitizenId === citizenIdValue,
+		(candidate) =>
+			candidate.actorCitizenId === citizenIdValue &&
+			projectIsOpenCollectiveWork(state, candidate.projectId),
 	);
 	if (project !== undefined)
 		return { kind: "construct", subjectId: project.projectId };
@@ -2532,6 +2579,7 @@ interface CivilizationExperimentDayWork {
 	routines: readonly SchedulerRoutineAssignment[];
 	activities: readonly CivilizationScheduledActivity[];
 	cognitionRuntime: CivilizationCognitionRuntime;
+	schedulerPolicy: GeneralizedSchedulerPolicy;
 	expansionDeferralRecorded: boolean;
 	projectStallRecorded: boolean;
 	events: CivilizationExperimentEvent[];
@@ -2567,8 +2615,11 @@ async function simulateCivilizationExperimentDay(input: {
 		work;
 	const events = work.events;
 	const cognitionDecisions = work.cognitionDecisions;
-	const schedulerPolicy = input.schedulerPolicy;
 	const conditions = input.conditions;
+	let schedulerPolicy = withCitizenOriginatedCollectiveProjects(
+		input.schedulerPolicy,
+		work.state,
+	);
 	const fromSimulationTime = state.simulationTime;
 	const preStateHash = work.priorStateHash;
 	const beforeEventIndex = events.length;
@@ -2630,6 +2681,10 @@ async function simulateCivilizationExperimentDay(input: {
 			});
 		}
 	}
+	schedulerPolicy = withCitizenOriginatedCollectiveProjects(
+		schedulerPolicy,
+		state,
+	);
 	const scheduled = advanceGeneralizedScheduler(
 		state,
 		schedulerPolicy,
@@ -2669,20 +2724,28 @@ async function simulateCivilizationExperimentDay(input: {
 			),
 		};
 	}
-	const schedulerAction = (
-		kind: SchedulerAction["kind"],
-	): SchedulerAction | undefined =>
-		scheduled.actions.find((action) => action.kind === kind);
-	if (schedulerAction("project-authorized") !== undefined)
+	for (const action of scheduled.actions.filter(
+		(candidate) => candidate.kind === "project-authorized",
+	)) {
+		const project = state.projects[action.subjectId];
 		await appendEvent("project-approved", {
-			projectId: "project-expedition-kit",
-			physicalTimberRequired: PROJECT_TIMBER,
+			projectId: action.subjectId,
+			...(project?.kind === "water-reserve"
+				? { physicalWaterRequired: PROJECT_WATER }
+				: { physicalTimberRequired: PROJECT_TIMBER }),
 		});
-	if (schedulerAction("project-completed") !== undefined)
+	}
+	for (const action of scheduled.actions.filter(
+		(candidate) => candidate.kind === "project-completed",
+	)) {
+		const project = state.projects[action.subjectId];
 		await appendEvent("project-completed", {
-			projectId: "project-expedition-kit",
-			consumedTimber: PROJECT_TIMBER,
+			projectId: action.subjectId,
+			...(project?.kind === "water-reserve"
+				? { consumedWater: PROJECT_WATER }
+				: { consumedTimber: PROJECT_TIMBER }),
 		});
+	}
 	if (
 		conditions.expansionEligible &&
 		!projectStallRecorded &&
@@ -2920,6 +2983,7 @@ async function simulateCivilizationExperimentDay(input: {
 	work.routines = routines;
 	work.activities = activities;
 	work.cognitionRuntime = cognitionRuntime;
+	work.schedulerPolicy = schedulerPolicy;
 	work.expansionDeferralRecorded = expansionDeferralRecorded;
 	work.projectStallRecorded = projectStallRecorded;
 	work.priorEventHash = priorEventHash;
@@ -2949,7 +3013,10 @@ export async function continueCivilizationExperimentDay(input: {
 	)
 		throw new RangeError("completedDay must be an integer from 0 through 364");
 	const conditions = deriveCivilizationSeedConditions(input.genesisWorld);
-	const schedulerPolicy = deriveCivilizationSchedulerPolicy(input.genesisWorld);
+	const schedulerPolicy = withCitizenOriginatedCollectiveProjects(
+		deriveCivilizationSchedulerPolicy(input.genesisWorld),
+		input.state,
+	);
 	const worldStateHash = await domainHash(
 		"EONFOLK:CIVILIZATION-EXPERIMENT-WORLD:v7",
 		input.world,
@@ -2985,6 +3052,7 @@ export async function continueCivilizationExperimentDay(input: {
 		routines,
 		activities,
 		cognitionRuntime,
+		schedulerPolicy,
 		expansionDeferralRecorded:
 			!conditions.expansionEligible && input.completedDay >= 1,
 		projectStallRecorded: input.completedDay >= 1,
@@ -3067,6 +3135,7 @@ export async function runCivilizationExperiment(input: {
 		routines,
 		activities,
 		cognitionRuntime,
+		schedulerPolicy,
 		expansionDeferralRecorded: false,
 		projectStallRecorded: false,
 		events,
@@ -3081,7 +3150,7 @@ export async function runCivilizationExperiment(input: {
 			await simulateCivilizationExperimentDay({
 				day,
 				work,
-				schedulerPolicy,
+				schedulerPolicy: work.schedulerPolicy,
 				conditions,
 				worldIdentityHash: input.world.identity.identityHash,
 				skipOpeningDecisions: day > BULK_OPENING_DECISION_HORIZON_DAYS,

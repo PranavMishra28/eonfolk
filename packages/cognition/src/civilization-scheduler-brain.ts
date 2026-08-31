@@ -21,8 +21,8 @@ import {
 
 export const CIVILIZATION_SCHEDULER_BRAIN_VERSION =
 	"eonfolk-civilization-scheduler-brain-v1" as const;
-/** Matches the 90-day bulk opening horizon so later thinking days can still retrieve prefix memories. */
-export const CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS = 90 * 86_400;
+/** Matches the year bulk opening horizon so later thinking days can still retrieve prefix memories. */
+export const CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS = 365 * 86_400;
 export const CIVILIZATION_SCHEDULER_DECISION_EVIDENCE_VERSION =
 	"eonfolk-civilization-scheduler-decision-evidence-v2" as const;
 

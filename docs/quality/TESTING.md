@@ -81,7 +81,7 @@ A failed target-Mac DEEP run or manually requested portable Linux extended run b
 
 - **FAST:** runtime/cohort/architecture/docs/format/lint/typecheck plus focused unit/contract tests for changed packages.
 - **PR:** FAST plus all unit/property tests, deterministic replay, fail-closed real IndexedDB evidence, timing, production build/budgets/audit, critical headed player journeys, zero-egress validation, diagnostic/feedback security tests, and the exact-digest bounded formal model.
-- **DEEP:** 500-run/320-command deterministic property/fuzz profile; 30/90/365-day horizons; fail-closed persistence evidence; repeated source and browser OFF/LOCAL/ALPHA comparisons; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes.
+- **DEEP:** 500-run/320-command deterministic property/fuzz profile; 30/90/365-day horizons; the 365-day Standard Brain year-cognition lock (`pnpm test:year-cognition`); fail-closed persistence evidence; repeated source and browser OFF/LOCAL/ALPHA comparisons; full browser/accessibility/failure matrix; targeted mutation of Reality validation/reducer/persistence/redaction/Sentinel/feedback authorization; and cognition/ontology experiments when their code changes. FAST unit tests prove 90-day openings; product genesis still thinks every day of the generated year.
 
 Each tier is a maintained command. A named but unimplemented or rejected check is removed from the promised surface. Results bind commit, environment, inputs, command, duration, pass/fail/not-run, and artifact hashes where material. A build or backend suite cannot substitute for a local game run and browser-visible evidence.
 

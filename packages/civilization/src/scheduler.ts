@@ -794,6 +794,33 @@ function sustainedSettlementSurplus(
 	return true;
 }
 
+function collectiveDeliverySource(
+	state: CivilizationState,
+	project: NonNullable<CivilizationState["projects"][string]>,
+	institutionId: string,
+	resourceTypeId: string,
+	remaining: number,
+) {
+	return Object.values(state.stocks)
+		.filter((stock) => {
+			if (
+				stock.resourceTypeId !== resourceTypeId ||
+				stock.quantity - stock.reservedQuantity < remaining
+			)
+				return false;
+			if (project.sponsor.kind === "citizen")
+				return (
+					stock.owner.kind === "settlement" &&
+					stock.owner.settlementId === project.settlementId
+				);
+			return (
+				stock.owner.kind === "institution" &&
+				stock.owner.institutionId === institutionId
+			);
+		})
+		.sort((left, right) => left.stockId.localeCompare(right.stockId))[0];
+}
+
 function executeCollectiveProject(
 	state: CivilizationState,
 	plan: SchedulerCollectiveProject,
@@ -827,15 +854,13 @@ function executeCollectiveProject(
 	for (const requirement of milestone.resources) {
 		const remaining = requirement.quantity - requirement.deliveredQuantity;
 		if (remaining <= 0) continue;
-		const source = Object.values(next.stocks)
-			.filter(
-				(stock) =>
-					stock.owner.kind === "institution" &&
-					stock.owner.institutionId === affordance.institutionId &&
-					stock.resourceTypeId === requirement.resourceTypeId &&
-					stock.quantity - stock.reservedQuantity >= remaining,
-			)
-			.sort((left, right) => left.stockId.localeCompare(right.stockId))[0];
+		const source = collectiveDeliverySource(
+			next,
+			project,
+			affordance.institutionId,
+			requirement.resourceTypeId,
+			remaining,
+		);
 		const destination = Object.values(next.stocks).find(
 			(stock) =>
 				stock.owner.kind === "project" &&

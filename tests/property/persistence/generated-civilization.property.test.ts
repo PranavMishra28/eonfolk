@@ -24,35 +24,44 @@ beforeAll(async () => {
 });
 
 describe("generated civilization persistence properties", () => {
-	it("replays every reviewed catch-up horizon and makes exact retry a no-op", async () => {
-		await fc.assert(
-			fc.asyncProperty(
-				fc.constantFrom(...GENERATED_CIVILIZATION_CATCH_UP_HORIZONS),
-				async (targetHorizonDays) => {
-					const port = new MemoryVersionedPersistence();
-					const first = await advanceGeneratedCivilization({
-						port,
-						genesisWorld: world,
-						targetHorizonDays,
-					});
-					const retry = await advanceGeneratedCivilization({
-						port,
-						genesisWorld: world,
-						targetHorizonDays,
-					});
-					const replay = await replayGeneratedCivilization({
-						port,
-						regionId: world.identity.worldId,
-					});
+	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
+	const horizons = deep
+		? GENERATED_CIVILIZATION_CATCH_UP_HORIZONS
+		: GENERATED_CIVILIZATION_CATCH_UP_HORIZONS.filter((days) => days <= 90);
 
-					expect(retry.idempotentAppends).toBe(retry.receipts.length);
-					expect(replay.state.scheduler.completedDay).toBe(targetHorizonDays);
-					expect(replay.stateHash).toBe(first.head.stateHash);
-					expect(replay.stateHash).toBe(retry.head.stateHash);
-					expect(replay.lastEventHash).toBe(first.head.lastEventHash);
-				},
-			),
-			{ numRuns: GENERATED_CIVILIZATION_CATCH_UP_HORIZONS.length },
-		);
-	}, 30_000);
+	it(
+		"replays every reviewed catch-up horizon and makes exact retry a no-op",
+		async () => {
+			await fc.assert(
+				fc.asyncProperty(
+					fc.constantFrom(...horizons),
+					async (targetHorizonDays) => {
+						const port = new MemoryVersionedPersistence();
+						const first = await advanceGeneratedCivilization({
+							port,
+							genesisWorld: world,
+							targetHorizonDays,
+						});
+						const retry = await advanceGeneratedCivilization({
+							port,
+							genesisWorld: world,
+							targetHorizonDays,
+						});
+						const replay = await replayGeneratedCivilization({
+							port,
+							regionId: world.identity.worldId,
+						});
+
+						expect(retry.idempotentAppends).toBe(retry.receipts.length);
+						expect(replay.state.scheduler.completedDay).toBe(targetHorizonDays);
+						expect(replay.stateHash).toBe(first.head.stateHash);
+						expect(replay.stateHash).toBe(retry.head.stateHash);
+						expect(replay.lastEventHash).toBe(first.head.lastEventHash);
+					},
+				),
+				{ numRuns: horizons.length },
+			);
+		},
+		deep ? 120_000 : 30_000,
+	);
 });

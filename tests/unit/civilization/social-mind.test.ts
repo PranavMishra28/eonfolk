@@ -321,4 +321,81 @@ describe("grounded population and social systems", () => {
 		]);
 		expect(legalCollectiveProjectAffordances(state, CITIZEN_B, 0)).toEqual([]);
 	});
+
+	it("exposes citizen-sponsored project work from settlement stores without institution policy", () => {
+		let state = socialState();
+		const settlementOwner = {
+			kind: "settlement" as const,
+			settlementId: SETTLEMENT,
+		};
+		state = registerStorage(
+			state,
+			storage("storage-settlement", settlementOwner),
+		);
+		state = registerStock(
+			state,
+			stock(
+				"timber-settlement",
+				settlementOwner,
+				"storage-settlement",
+				"timber",
+				20,
+			),
+		);
+		state = registerProject(
+			state,
+			{
+				projectId: "project-citizen-a-water-reserve",
+				kind: "water-reserve",
+				name: "water-reserve",
+				settlementId: SETTLEMENT,
+				siteId: SITE,
+				sponsor: { kind: "citizen", citizenId: CITIZEN_A },
+				state: "proposed",
+				dependencyProjectIds: [],
+				milestones: [
+					{
+						milestoneId: "assemble",
+						name: "assemble-water-reserve",
+						dependencyMilestoneIds: [],
+						resources: [
+							{
+								resourceTypeId: "timber",
+								quantity: 10,
+								deliveredQuantity: 0,
+								consumedQuantity: 0,
+							},
+						],
+						labor: [
+							{
+								capabilityId: "build",
+								requiredLaborSeconds: 100,
+								completedLaborSeconds: 0,
+							},
+						],
+						progressBasisPoints: 0,
+						state: "ready",
+					},
+				],
+				participantCitizenIds: [CITIZEN_A],
+				storageId: "storage-citizen-project",
+				startedAtSimulationTime: null,
+				endedAtSimulationTime: null,
+				failureReason: null,
+				sourceEventIds: ["event-originated"],
+			},
+			storage("storage-citizen-project", {
+				kind: "project",
+				projectId: "project-citizen-a-water-reserve",
+			}),
+		);
+		expect(legalCollectiveProjectAffordances(state, CITIZEN_A, 0)).toEqual([
+			expect.objectContaining({
+				projectId: "project-citizen-a-water-reserve",
+				authorityRoleId: "sponsor",
+				policyAgreementId: "project-citizen-a-water-reserve",
+			}),
+		]);
+		expect(legalCollectiveProjectAffordances(state, CITIZEN_B, 0)).toEqual([]);
+	});
 });

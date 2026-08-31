@@ -53,6 +53,7 @@ const PR_STEPS = Object.freeze([
 	step("formal", "pnpm", ["test:formal"]),
 ]);
 const DEEP_ONLY_STEPS = Object.freeze([
+	step("year-cognition", "pnpm", ["test:year-cognition"]),
 	step("targeted-mutation", "pnpm", ["test:mutation"]),
 	step("property-deep", "pnpm", ["test:property:deep"]),
 	step("browser-cohort", "pnpm", ["browser-cohort:check"]),

@@ -147,8 +147,8 @@ async function decide(
 }
 
 describe("civilization scheduler Standard Brain", () => {
-	it("keeps 90-day thinking-prefix memories inside retrieval recency", () => {
-		expect(CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS).toBe(90 * 86_400);
+	it("keeps year-horizon memories inside retrieval recency", () => {
+		expect(CIVILIZATION_SCHEDULER_MEMORY_RECENCY_SECONDS).toBe(365 * 86_400);
 	});
 
 	it("lets actor-visible retrieval change one legal routine and replans after validation", async () => {
