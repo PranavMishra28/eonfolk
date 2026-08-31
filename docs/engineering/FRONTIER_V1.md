@@ -43,7 +43,7 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 | Area | Phase 0 | Frontier target |
 |---|---|---|
 | Reality, worldgen, scheduler, needs, resources, production, transport, persistence, replay, catch-up | STRONG | Keep |
-| Cognition on live days | SHALLOW (days 1–3, then skip) | Live days run Standard Brain; bulk genesis still skips after day 3 |
+| Cognition on live days | SHALLOW (days 1–3, then skip) | Live days run Standard Brain; bulk/prefix openings through day 30; skip after day 30 for 365 identity/perf, not a cognition proof |
 | `planRoutine` | UNUSED IN PLAY | Wired as the standing-plan constructor; inspectable in Play |
 | Memory / beliefs / relationships / skills | SHALLOW (seeded water replan) | Heard testimony can change a later opening choice |
 | Projects / institutions / migration | SHALLOW (seeded expedition, fixed chain) | Citizen-originated water-reserve from standing plan + need; institutions/migration still the seeded chain |
@@ -79,7 +79,7 @@ Browser Play
 
 ### 2. Recurring cognition
 
-Stop `skipOpeningDecisions` on **live** days. Bulk catch-up may still skip opening decisions for horizon cost. Standing plans persist and are inspectable in Play. `planRoutine` is the standing-plan constructor.
+Stop `skipOpeningDecisions` on **live** days. Bulk/prefix genesis runs real Standard Brain openings through day 30 (`BULK_OPENING_DECISION_HORIZON_DAYS`). After that window, later prefix days may skip for 365 identity and horizon cost; that skip is **not** a 90/365 cognition proof. Return catch-up (1–7 days) still skips openings. Standing plans persist and are inspectable in Play. `planRoutine` is the standing-plan constructor.
 
 ### 3. Inner life in Play
 
@@ -87,7 +87,7 @@ Selecting Mara must show recorded water stores, friendship with Iven, and the da
 
 ### 4. Self-generated goals and citizen projects
 
-A later live day can contain a **citizen-sponsored** project distinct from the seeded Expedition Kit. Application offers `ProposeProject` only when a standing-plan goal (`routine:transport`) and a recorded water-reserve need are both visible; Standard Brain may select that catalog entry; Reality (`registerProject`) is the sole writer. The project name/kind is `water-reserve`, not an invented title. Play HUD lists works in progress and Chronicle happenings show the origination. Completing that project and originating other kinds remain open.
+A later live day **or a 30-day bulk genesis run** can contain a **citizen-sponsored** project distinct from the seeded Expedition Kit. Application offers `ProposeProject` only when a standing-plan goal (`routine:transport`) and a recorded water-reserve need are both visible; Standard Brain may select that catalog entry; Reality (`registerProject`) is the sole writer. The project name/kind is `water-reserve`, not an invented title. Play HUD lists works in progress and Chronicle happenings show the origination. Completing that project and originating other kinds remain open.
 
 ### 5. A→B information travel
 
@@ -107,7 +107,7 @@ Export/import remain forbidden. Catch-up copy must not overclaim. Landing still 
 
 ### 9. Proofs
 
-Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down), shared writer fence (process-up does not write a browser fork; process-down keeps IndexedDB catch-up; divergent snapshots are not silently merged), citizen-originated water-reserve project from a standing transport plan and recorded water need (distinct from the seeded expedition; visible in Play HUD/projects). 90/365 social as a product gate and model-failure remain planned. Do not fake a 365-day wall-clock proof.
+Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down), shared writer fence (process-up does not write a browser fork; process-down keeps IndexedDB catch-up; divergent snapshots are not silently merged), citizen-originated water-reserve project from a standing transport plan and recorded water need (distinct from the seeded expedition; visible in Play HUD/projects), **30-day bulk Standard Brain** (`runCivilizationExperiment(30)` runs openings every day; citizen-06 originates `water-reserve` from those openings; 240 Standard Brain decisions; 30-day prefix matches 365). **90/365 social remains UNRESOLVED:** days 31–365 of a year run skip openings for identity/perf; that is not a cognition proof. Do not fake a 365-day wall-clock or cognition proof.
 
 ## Resulting implementation behavior
 
@@ -131,7 +131,8 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 
 ## Remaining work
 
-- 90/365 social-propagation as a product gate (do not fake 365).
+- 90/365 social-propagation as a product gate: prefix skip after day 30 is identity/perf, **not** a cognition proof; do not fake 365.
 - Slice 6 remainder: GLB still unused (payload). Follow indoor clipping improved, not proven in every workshop.
-- Live-day Standard Brain: `skipOpeningDecisions` is false on live days; bulk genesis still skips after day 3.
+- Return catch-up (1–7 days) still sets `skipOpeningDecisions` true.
+- Bulk thinking days follow standing-plan work; scheduler-paired talk/listen appears on skipped odd days, so 30-day TRUE is the citizen project, not social propagation.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

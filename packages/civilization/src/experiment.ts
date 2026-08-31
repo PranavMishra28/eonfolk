@@ -96,6 +96,12 @@ export const RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID = "citizen-04" as const;
 const PROJECT_TIMBER = 6;
 const PROJECT_WATER = 8;
 const CITIZEN_PROJECT_ORIGIN_MIN_SIMULATION_TIME = 5 * SECONDS_PER_DAY;
+/**
+ * Bulk/prefix genesis runs real Standard Brain openings through this day.
+ * Later prefix days may skip for 365 identity and horizon cost; that skip is
+ * not a cognition proof.
+ */
+export const BULK_OPENING_DECISION_HORIZON_DAYS = 30;
 const MIGRATION_GRAIN = 18;
 const MIGRATION_WATER = 18;
 const MIGRATION_TIMBER = 8;
@@ -3069,7 +3075,7 @@ export async function runCivilizationExperiment(input: {
 				schedulerPolicy,
 				conditions,
 				worldIdentityHash: input.world.identity.identityHash,
-				skipOpeningDecisions: day > 3,
+				skipOpeningDecisions: day > BULK_OPENING_DECISION_HORIZON_DAYS,
 				...(input.cognition === undefined
 					? {}
 					: { cognition: input.cognition }),

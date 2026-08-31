@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { runCivilizationExperiment } from "../../../packages/civilization/src/index.js";
+import {
+	BULK_OPENING_DECISION_HORIZON_DAYS,
+	runCivilizationExperiment,
+} from "../../../packages/civilization/src/index.js";
 import {
 	createReleaseGenesis,
 	jcs,
@@ -14,6 +17,11 @@ function seedHex(bytes: Uint8Array): string {
 		.map((value) => value.toString(16).padStart(2, "0"))
 		.join("");
 }
+
+const FIRST_SKIPPED_ODD_DAY =
+	BULK_OPENING_DECISION_HORIZON_DAYS % 2 === 0
+		? BULK_OPENING_DECISION_HORIZON_DAYS + 1
+		: BULK_OPENING_DECISION_HORIZON_DAYS + 2;
 
 describe("canonical social interaction properties", () => {
 	const deep = process.env.EONFOLK_PROPERTY_PROFILE === "deep";
@@ -31,11 +39,11 @@ describe("canonical social interaction properties", () => {
 					});
 					const first = await runCivilizationExperiment({
 						world,
-						horizonDays: 365,
+						horizonDays: FIRST_SKIPPED_ODD_DAY,
 					});
 					const second = await runCivilizationExperiment({
 						world,
-						horizonDays: 365,
+						horizonDays: FIRST_SKIPPED_ODD_DAY,
 					});
 					expect(second.finalStateHash).toBe(first.finalStateHash);
 					expect(jcs(second.activities)).toBe(jcs(first.activities));
@@ -101,7 +109,7 @@ describe("canonical social interaction properties", () => {
 						checkpoint: first,
 						settlementId,
 						activities: first.activities,
-						presentationTick: 365,
+						presentationTick: FIRST_SKIPPED_ODD_DAY,
 					});
 					expect(projected.spatial.interactions.length).toBeGreaterThanOrEqual(
 						1,

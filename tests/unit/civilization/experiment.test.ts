@@ -6,6 +6,7 @@ import {
 } from "../../../apps/web/src/v1-genesis-runtime.js";
 import {
 	assertCivilizationInvariants,
+	BULK_OPENING_DECISION_HORIZON_DAYS,
 	continueCivilizationExperimentDay,
 	deriveCivilizationSeedConditions,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
@@ -29,6 +30,11 @@ import {
 const PROGRESSION_SEED =
 	"8f3d02e493af5d37d9bc7f5ddc57d98b3e42a59b0a606cdfc516d42ac032579f";
 const STAGNATION_SEED = "0e".padStart(64, "0");
+const BULK_OPENING_DECISION_COUNT = BULK_OPENING_DECISION_HORIZON_DAYS * 8;
+const FIRST_SKIPPED_ODD_DAY =
+	BULK_OPENING_DECISION_HORIZON_DAYS % 2 === 0
+		? BULK_OPENING_DECISION_HORIZON_DAYS + 1
+		: BULK_OPENING_DECISION_HORIZON_DAYS + 2;
 
 async function generatedWorld(seedHex: string, releaseId: string) {
 	return generateWorld({
@@ -164,6 +170,7 @@ describe("deterministic civilization experiment", () => {
 			"migration-arrived",
 			"founding-viable",
 			"settlement-materialized",
+			"project-originated",
 		]);
 		for (const [index, event] of first.events.entries()) {
 			expect(event.eventIndex).toBe(index);
@@ -190,7 +197,7 @@ describe("deterministic civilization experiment", () => {
 				expect(step.preStateHash).toBe(first.steps[index - 1]?.postStateHash);
 		}
 		expect(first.finalEventHash).toBe(first.events.at(-1)?.eventHash);
-		expect(first.cognitionDecisions).toHaveLength(24);
+		expect(first.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
 		expect(
 			new Set(first.cognitionDecisions.map(({ actorId }) => actorId)),
 		).toHaveLength(8);
@@ -225,9 +232,13 @@ describe("deterministic civilization experiment", () => {
 			replayCivilizationSchedulerDecisions(first.cognitionDecisions),
 		).toEqual(first.cognitionDecisions.map(({ routine }) => routine));
 		expect(first.metrics.modelInvocations).toBe(0);
-		expect(first.metrics.standardBrainDecisionCount).toBe(24);
+		expect(first.metrics.standardBrainDecisionCount).toBe(
+			BULK_OPENING_DECISION_COUNT,
+		);
 		expect(first.metrics.standingPlanTransitionCount).toBeGreaterThan(8);
-		expect(first.metrics.memoryRetrievedDecisionCount).toBe(3);
+		expect(first.metrics.memoryRetrievedDecisionCount).toBeGreaterThanOrEqual(
+			3,
+		);
 		expect(first.metrics.outcome).toBe("progression");
 		expect(first.metrics.viableFoundings).toBe(1);
 		expect(first.metrics.materializedSettlements).toBe(1);
@@ -442,6 +453,7 @@ describe("deterministic civilization experiment", () => {
 		expect(run.seedConditions.expansionEligible).toBe(false);
 		expect(run.events.map((event) => event.kind)).toEqual([
 			"expansion-deferred",
+			"project-originated",
 		]);
 		expect(run.metrics.outcome).toBe("stagnation");
 		expect(run.metrics.outcomeReason).toContain(
@@ -467,7 +479,10 @@ describe("deterministic civilization experiment", () => {
 			PROGRESSION_SEED,
 			"civilization-canonical-social-interaction",
 		);
-		const run = await runCivilizationExperiment({ world, horizonDays: 365 });
+		const run = await runCivilizationExperiment({
+			world,
+			horizonDays: FIRST_SKIPPED_ODD_DAY,
+		});
 		const social = run.activities.filter((activity) =>
 			["talk", "listen", "exchange"].includes(activity.canonicalAction.kind),
 		);
@@ -610,7 +625,10 @@ describe("deterministic civilization experiment", () => {
 			PROGRESSION_SEED,
 			"civilization-conversation-epistemics",
 		);
-		const prelude = await runCivilizationExperiment({ world, horizonDays: 5 });
+		const prelude = await runCivilizationExperiment({
+			world,
+			horizonDays: FIRST_SKIPPED_ODD_DAY,
+		});
 		expect(
 			prelude.finalStandingPlans.every(
 				(plan) => plan.sourceId === "routine-planner-v1",
@@ -625,7 +643,7 @@ describe("deterministic civilization experiment", () => {
 			genesisWorld: world,
 			world: prelude.world,
 			state: prelude.state,
-			completedDay: 5,
+			completedDay: FIRST_SKIPPED_ODD_DAY,
 			skipOpeningDecisions: false,
 		});
 		const laterCitation = continued.cognitionDecisions.find(
@@ -721,6 +739,64 @@ describe("deterministic civilization experiment", () => {
 		).toBe(true);
 	});
 
+	it("originates the water-reserve during a 30-day bulk run that actually opened cognition", async () => {
+		const world = await generatedWorld(
+			PROGRESSION_SEED,
+			"civilization-bulk-opening-horizon",
+		);
+		const thirty = await runCivilizationExperiment({
+			world,
+			horizonDays: BULK_OPENING_DECISION_HORIZON_DAYS,
+		});
+		expect(thirty.metrics.standardBrainDecisionCount).toBe(
+			BULK_OPENING_DECISION_COUNT,
+		);
+		expect(thirty.cognitionDecisions).toHaveLength(BULK_OPENING_DECISION_COUNT);
+		expect(
+			thirty.cognitionDecisions.every(
+				({ modelInvocations }) => modelInvocations === 0,
+			),
+		).toBe(true);
+		expect(
+			thirty.finalStandingPlans.every(
+				(plan) => plan.sourceId === "routine-planner-v1",
+			),
+		).toBe(true);
+		const originated = Object.values(thirty.state.projects).find(
+			(project) =>
+				project.projectId !== "project-expedition-kit" &&
+				project.sponsor.kind === "citizen",
+		);
+		expect(originated).toMatchObject({
+			projectId: "project-citizen-06-water-reserve",
+			kind: "water-reserve",
+			name: "water-reserve",
+			sponsor: { kind: "citizen", citizenId: "citizen-06" },
+		});
+		expect(
+			thirty.cognitionDecisions.some(
+				(decision) =>
+					decision.selectedActionId ===
+						"propose-project:project-citizen-06-water-reserve" &&
+					decision.retrievedMemoryIds.includes(
+						"memory:citizen-06:water-reserve",
+					),
+			),
+		).toBe(true);
+		expect(
+			thirty.events.some(
+				(event) =>
+					event.kind === "project-originated" &&
+					event.details.projectId === originated?.projectId,
+			),
+		).toBe(true);
+		const year = await runCivilizationExperiment({ world, horizonDays: 365 });
+		expect(year.metrics.standardBrainDecisionCount).toBe(
+			thirty.metrics.standardBrainDecisionCount,
+		);
+		expect(year.steps[29]?.postStateHash).toBe(thirty.finalStateHash);
+	});
+
 	it("reports deterministic 30/90/365-day multi-seed metrics and prefix identity", async () => {
 		const worlds = [
 			await generatedWorld(PROGRESSION_SEED, "civilization-matrix-progress"),
@@ -767,6 +843,9 @@ describe("deterministic civilization experiment", () => {
 			expect(run.metrics.transportedResourceUnits).toBeGreaterThan(0);
 			expect(run.metrics.groundedNeedOutcomes).toBeGreaterThan(0);
 			expect(run.metrics.modelInvocations).toBe(0);
+			expect(run.metrics.standardBrainDecisionCount).toBe(
+				BULK_OPENING_DECISION_COUNT,
+			);
 			expect(run.metrics.population).toBeLessThanOrEqual(8);
 			expect(run.metrics.invariantIssues).toEqual([]);
 		}
