@@ -1105,9 +1105,7 @@ function GeneratedContextPanel({
 							>
 								Back to settlement
 							</button>
-							{canSponsor &&
-							sponsorStatus !== "counseled" &&
-							sponsorStatus !== "confirming" ? (
+							{canSponsor && sponsorStatus !== "counseled" ? (
 								<button
 									type="button"
 									className={
@@ -1126,7 +1124,8 @@ function GeneratedContextPanel({
 										authorityRefreshing ||
 										sponsorStatus === "saving" ||
 										sponsorStatus === "counseling" ||
-										sponsorStatus === "returning"
+										sponsorStatus === "returning" ||
+										sponsorStatus === "confirming"
 									}
 									onClick={() => {
 										if (
@@ -1145,7 +1144,8 @@ function GeneratedContextPanel({
 										? "Establishing…"
 										: sponsorStatus === "counseling"
 											? "Considering…"
-											: sponsorStatus === "sponsored"
+											: sponsorStatus === "sponsored" ||
+													sponsorStatus === "confirming"
 												? "Consider an intervention"
 												: sponsorStatus === "abstained"
 													? "Review abstention Chronicle"

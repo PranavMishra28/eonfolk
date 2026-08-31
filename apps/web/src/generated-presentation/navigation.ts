@@ -174,6 +174,9 @@ export const FOLLOW_CAMERA_YAW_OFFSET_DEGREES = 154;
 export const FOLLOW_FOV_DEGREES = 40;
 export const FOLLOW_COMPACT_FOV_DEGREES = 58;
 export const OVERVIEW_FOV_DEGREES = 46;
+/** Portrait Watch has to see more than the settlement midpoint. */
+export const OVERVIEW_COMPACT_FOV_DEGREES = 58;
+export const OVERVIEW_COMPACT_DISTANCE_MM = 52_000;
 const MIN_CAMERA_PITCH_DEGREES = -75;
 const MAX_CAMERA_PITCH_DEGREES = -8;
 const COMPACT_FOLLOW_MAX_WIDTH_PX = 520;
@@ -381,7 +384,8 @@ export function generatedFollowFovDegrees(
 	following: boolean,
 	compact: boolean,
 ): number {
-	if (!following) return OVERVIEW_FOV_DEGREES;
+	if (!following)
+		return compact ? OVERVIEW_COMPACT_FOV_DEGREES : OVERVIEW_FOV_DEGREES;
 	return compact ? FOLLOW_COMPACT_FOV_DEGREES : FOLLOW_FOV_DEGREES;
 }
 

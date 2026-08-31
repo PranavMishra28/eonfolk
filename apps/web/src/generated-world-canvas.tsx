@@ -47,6 +47,7 @@ import {
 	generatedCameraFidelity,
 	generatedFollowFovDegrees,
 	generatedFollowViewportIsCompact,
+	OVERVIEW_COMPACT_DISTANCE_MM,
 	generatedTraversalPointAtTick,
 	planGeneratedActorTransition,
 	presentedActorCopy,
@@ -602,7 +603,7 @@ function GeneratedCamera({
 				: null;
 		const overviewMinimumMm = Math.round(
 			Math.max(frame.width, frame.depth) *
-				OVERVIEW_FRAME_DISTANCE_FACTOR *
+				(compact ? 0.4 : OVERVIEW_FRAME_DISTANCE_FACTOR) *
 				1_000,
 		);
 		return Object.freeze({
@@ -630,7 +631,11 @@ function GeneratedCamera({
 				followFraming !== null
 					? followFraming.distanceMm
 					: focus.kind === "overview"
-						? Math.max(requested.distanceMm, overviewMinimumMm)
+						? Math.max(
+								requested.distanceMm,
+								overviewMinimumMm,
+								compact ? OVERVIEW_COMPACT_DISTANCE_MM : 0,
+							)
 						: requested.distanceMm,
 		});
 	}, [
@@ -1716,15 +1721,20 @@ export function GeneratedWorldCanvas({
 		})
 		.join(";");
 	const frame = useMemo(() => sceneFrame(projection), [projection]);
+	const compactOverview = generatedFollowViewportIsCompact(
+		typeof window === "undefined" ? 1280 : window.innerWidth,
+		typeof window === "undefined" ? 720 : window.innerHeight,
+	);
 	const effectiveDistanceMm =
 		navigation.focus.kind === "overview"
 			? Math.max(
 					cameraIntent.distanceMm,
 					Math.round(
 						Math.max(frame.width, frame.depth) *
-							OVERVIEW_FRAME_DISTANCE_FACTOR *
+							(compactOverview ? 0.4 : OVERVIEW_FRAME_DISTANCE_FACTOR) *
 							1_000,
 					),
+					compactOverview ? OVERVIEW_COMPACT_DISTANCE_MM : 0,
 				)
 			: cameraIntent.distanceMm;
 	const fidelity = generatedCameraFidelity(effectiveDistanceMm);

@@ -291,12 +291,10 @@ for (const viewport of [
 				name: /Report an issue — saved only in this browser/iu,
 			})
 			.click();
-		const restoredPanel = page.getByRole("region", {
-			name: "What broke the spell?",
-		});
-		await restoredPanel
-			.getByRole("button", { name: "Report issue / Save feedback locally" })
-			.click();
+		const restoredPanel = page.getByRole("dialog");
+		await expect(
+			restoredPanel.getByRole("heading", { name: "What broke the spell?" }),
+		).toBeVisible();
 		await expect(
 			restoredPanel.getByRole("button", {
 				name: /Delete queued feedback \(1\)/iu,

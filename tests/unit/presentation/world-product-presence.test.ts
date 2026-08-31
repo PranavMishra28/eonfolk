@@ -2,8 +2,14 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 import {
+	FOLLOW_COMPACT_FOV_DEGREES,
+	FOLLOW_FOV_DEGREES,
 	generatedCameraFidelity,
+	generatedFollowFovDegrees,
 	INITIAL_GENERATED_NAVIGATION,
+	OVERVIEW_COMPACT_DISTANCE_MM,
+	OVERVIEW_COMPACT_FOV_DEGREES,
+	OVERVIEW_FOV_DEGREES,
 	reduceGeneratedNavigation,
 } from "../../../apps/web/src/generated-presentation/navigation.js";
 
@@ -38,6 +44,19 @@ describe("world-as-product presentation", () => {
 				{ type: "overview" },
 			).distanceMm,
 		).toBe(32_000);
+		expect(generatedFollowFovDegrees(false, false)).toBe(OVERVIEW_FOV_DEGREES);
+		expect(generatedFollowFovDegrees(false, true)).toBe(
+			OVERVIEW_COMPACT_FOV_DEGREES,
+		);
+		expect(generatedFollowFovDegrees(true, false)).toBe(FOLLOW_FOV_DEGREES);
+		expect(generatedFollowFovDegrees(true, true)).toBe(
+			FOLLOW_COMPACT_FOV_DEGREES,
+		);
+		expect(OVERVIEW_COMPACT_FOV_DEGREES).toBeGreaterThan(OVERVIEW_FOV_DEGREES);
+		expect(OVERVIEW_COMPACT_DISTANCE_MM).toBeGreaterThan(32_000);
+		expect(
+			generatedCameraFidelity(OVERVIEW_COMPACT_DISTANCE_MM).semanticScale,
+		).toBe("town");
 	});
 
 	it("keeps human and building dimensions on the authoritative metric scale", async () => {
@@ -61,6 +80,7 @@ describe("world-as-product presentation", () => {
 		])
 			expect(canvas).toContain(`kind === "${kind}"`);
 		expect(canvas).not.toContain("GeneratedProjectProxy");
+		expect(canvas).toContain("OVERVIEW_COMPACT_DISTANCE_MM");
 	});
 
 	it("labels cosmetic life while grounding consequential activity in projections", async () => {

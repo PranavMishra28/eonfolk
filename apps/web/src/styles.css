@@ -3778,6 +3778,8 @@ em {
 @media (min-width: 721px) {
 	main.v1-world[data-counsel-open="true"] .v1-context-panel {
 		width: min(24rem, 34vw);
+		overflow-x: clip;
+		scrollbar-gutter: auto;
 	}
 
 	main.v1-world[data-counsel-open="true"] .v1-context-panel h2 {
@@ -3785,6 +3787,10 @@ em {
 	}
 
 	main.v1-world[data-counsel-open="true"] .v1-presence-roster {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	main.v1-world[data-counsel-open="true"] .v1-people-list {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
