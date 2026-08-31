@@ -169,9 +169,22 @@ describe("canonical generated-world browser experience", () => {
 			"utf8",
 		);
 		expect(runtime).toContain("shouldProbeLocalAuthority");
+		expect(runtime).toContain("rememberSkipLocalAuthorityProbe");
 		expect(runtime).not.toContain("typeof window ===");
 		expect(runtime).toContain("process.env.VITEST");
 		expect(runtime).toContain("navigator.webdriver");
+		const worker = await readFile(
+			new URL("./generated-world-runtime.worker.ts", import.meta.url),
+			"utf8",
+		);
+		expect(worker).toContain("rememberSkipLocalAuthorityProbe");
+		expect(worker).toContain("skipAuthorityProbe");
+		const client = await readFile(
+			new URL("./generated-world-client.ts", import.meta.url),
+			"utf8",
+		);
+		expect(client).toContain("withWebdriverProbeSkip");
+		expect(client).toContain("navigator.webdriver");
 	});
 
 	it("attaches as a client when the process is up and does not write IndexedDB", async () => {

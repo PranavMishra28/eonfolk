@@ -8,6 +8,7 @@ import {
 	loadGeneratedWorldExperience,
 	refreshGeneratedWorldExperience,
 	rememberLocalWorldAuthorityFenceChoice,
+	rememberSkipLocalAuthorityProbe,
 } from "./generated-world-runtime";
 
 type Request =
@@ -15,6 +16,7 @@ type Request =
 			readonly id: number;
 			readonly kind: "load" | "refresh" | "advance-day";
 			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>
 	| Readonly<{
 			readonly id: number;
@@ -22,15 +24,18 @@ type Request =
 			readonly operationId: string;
 			readonly additionalDays: number;
 			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>
 	| Readonly<{
 			readonly id: number;
 			readonly kind: "choose-fence";
 			readonly choice: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>;
 
 self.addEventListener("message", (message: Event) => {
 	const data = (message as MessageEvent<Request>).data;
+	if (data.skipAuthorityProbe === true) rememberSkipLocalAuthorityProbe();
 	if (data.kind !== "choose-fence" && data.fenceChoice !== undefined)
 		rememberLocalWorldAuthorityFenceChoice(data.fenceChoice);
 	const run =

@@ -77,7 +77,7 @@ Browser Play
   └─ if both stores exist and diverge: explicit choice, never a silent merge
 ```
 
-`pnpm world:authority` owns Reality + clock on `127.0.0.1` when Play attaches. Play probes only outside tests and WebDriver. **R-018 is closed** for silent dual-write: the reachable process is the sole writer; the browser does not persist a competing Reality; reconnect with divergent snapshots stops until the player chooses fresh local town, adopt process world, or stay local. Remaining case: an explicit stay-local/fresh-local choice while the process is still running leaves two unmerged stores by player intent. Landing copy does not claim default closed-tab continuity. About describes the optional process and the no-merge fence. Catch-up remains the honest path when the process was not running.
+`pnpm world:authority` owns Reality + clock on `127.0.0.1` when Play attaches. Play probes only outside tests and WebDriver. The page Worker inherits that skip because `WorkerNavigator` has no `webdriver`; a WebDriver page sends `skipAuthorityProbe` with the first Worker message. **R-018 is closed** for silent dual-write: the reachable process is the sole writer; the browser does not persist a competing Reality; reconnect with divergent snapshots stops until the player chooses fresh local town, adopt process world, or stay local. Remaining case: an explicit stay-local/fresh-local choice while the process is still running leaves two unmerged stores by player intent. Landing copy does not claim default closed-tab continuity. About describes the optional process and the no-merge fence. Catch-up remains the honest path when the process was not running.
 
 ### 2. Recurring cognition
 

@@ -18,6 +18,7 @@ type WorkerRequest =
 			readonly id: number;
 			readonly kind: "load" | "refresh" | "advance-day";
 			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>
 	| Readonly<{
 			readonly id: number;
@@ -25,11 +26,13 @@ type WorkerRequest =
 			readonly operationId: string;
 			readonly additionalDays: number;
 			readonly fenceChoice?: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>
 	| Readonly<{
 			readonly id: number;
 			readonly kind: "choose-fence";
 			readonly choice: LocalWorldAuthorityFenceChoice;
+			readonly skipAuthorityProbe?: true;
 	  }>;
 
 type WorkerResponse = Readonly<{
@@ -62,6 +65,11 @@ function writeStoredFenceChoice(choice: LocalWorldAuthorityFenceChoice): void {
 function withStoredFenceChoice<T extends WorkerRequest>(payload: T): T {
 	const fenceChoice = readStoredFenceChoice();
 	return fenceChoice === null ? payload : { ...payload, fenceChoice };
+}
+
+function withWebdriverProbeSkip<T extends WorkerRequest>(payload: T): T {
+	if (typeof navigator === "undefined" || !navigator.webdriver) return payload;
+	return { ...payload, skipAuthorityProbe: true };
 }
 
 let worker: Worker | undefined;
@@ -101,7 +109,7 @@ function workerRequest(
 		pending.clear();
 	};
 	const id = nextRequestId++;
-	const payload: WorkerRequest =
+	const payload: WorkerRequest = withWebdriverProbeSkip(
 		kind === "choose-fence" && fenceChoice !== undefined
 			? { id, kind: "choose-fence", choice: fenceChoice }
 			: kind === "catch-up" && catchUp !== undefined
@@ -115,7 +123,8 @@ function workerRequest(
 						id,
 						kind:
 							kind === "catch-up" || kind === "choose-fence" ? "load" : kind,
-					});
+					}),
+	);
 	return new Promise<GeneratedWorldExperience>((resolve, reject) => {
 		pending.set(id, { resolve, reject });
 		worker!.postMessage(payload);

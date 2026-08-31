@@ -88,8 +88,15 @@ function liveDayCognition():
 	return { decisionGateway: standardFallbackModelGateway() };
 }
 
+let skipLocalAuthorityProbe = false;
+
+export function rememberSkipLocalAuthorityProbe(skip = true): void {
+	skipLocalAuthorityProbe = skip;
+}
+
 function shouldProbeLocalAuthority(): boolean {
 	if (generatedFaultHooks) return false;
+	if (skipLocalAuthorityProbe) return false;
 	if (typeof fetch !== "function") return false;
 	if (typeof process !== "undefined" && process.env.VITEST !== undefined)
 		return false;
