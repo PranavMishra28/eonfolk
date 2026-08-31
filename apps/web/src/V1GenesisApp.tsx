@@ -35,6 +35,7 @@ import {
 } from "./generated-sponsor-runtime";
 import {
 	advanceGeneratedWorldLiveDay,
+	applyLocalWorldAuthorityFenceChoice,
 	catchUpGeneratedWorldReturnDays,
 	GENERATED_WORLD_STORAGE_KEY,
 	loadGeneratedWorldExperience,
@@ -47,6 +48,7 @@ import {
 	type GeneratedWorldExperience,
 	type GeneratedWorldHappening,
 	type LocalCognitionTreatment,
+	type LocalWorldAuthorityFenceChoice,
 	readLocalCognitionTreatment,
 	writeLocalCognitionTreatment,
 } from "./generated-world-runtime";
@@ -157,6 +159,9 @@ function useGeneratedExperience(
 		readonly operationId: string;
 		readonly additionalDays: number;
 	}) => Promise<void>;
+	readonly chooseFence: (
+		choice: LocalWorldAuthorityFenceChoice,
+	) => Promise<void>;
 } {
 	const [experience, setExperience] = useState<GeneratedWorldExperience | null>(
 		null,
@@ -204,6 +209,12 @@ function useGeneratedExperience(
 		},
 		[],
 	);
+	const chooseFence = useCallback(
+		async (choice: LocalWorldAuthorityFenceChoice) => {
+			setExperience(await applyLocalWorldAuthorityFenceChoice(choice));
+		},
+		[],
+	);
 	return {
 		experience,
 		error,
@@ -224,6 +235,7 @@ function useGeneratedExperience(
 		},
 		advanceDay,
 		catchUpDays,
+		chooseFence,
 	};
 }
 
@@ -825,11 +837,12 @@ function GeneratedContextPanel({
 		openCounsel = false,
 	) => {
 		if (selectedActor === undefined) return;
+		if (step === "counsel") setAuthorityRefreshing(true);
 		setSponsorStatus(
 			step === "establish"
 				? "saving"
 				: step === "counsel"
-					? "counseling"
+					? "confirming"
 					: "returning",
 		);
 		void import("./generated-sponsor-runtime").then(
@@ -872,6 +885,7 @@ function GeneratedContextPanel({
 						const mismatch = isSponsorContextMismatch(reason);
 						setChronicleTrace(playerFacingSponsorFailure(reason));
 						if (mismatch) {
+							setSponsorStatus("confirming");
 							setAuthorityRefreshing(true);
 							void onAuthorityCommitted().then(() => {
 								setExpectedAuthorityStateHash(authorityStateHashRef.current);
@@ -1130,6 +1144,9 @@ function GeneratedContextPanel({
 									Mara may accept, reject, delay, or reinterpret advice. This
 									boundary closes after one choice.
 								</p>
+								{chronicleTrace === "" ? null : (
+									<p role="status">{chronicleTrace}</p>
+								)}
 								<button
 									type="button"
 									className={authorityRefreshing ? "v1-commit-busy" : undefined}
@@ -1393,6 +1410,7 @@ function GeneratedWorld({
 	onAuthorityRefresh,
 	onAdvanceDay,
 	onCatchUpDays,
+	onFenceChoice,
 }: {
 	readonly experience: GeneratedWorldExperience;
 	readonly fault: GeneratedWorldFaultSpec | null;
@@ -1402,6 +1420,9 @@ function GeneratedWorld({
 		readonly operationId: string;
 		readonly additionalDays: number;
 	}) => Promise<void>;
+	readonly onFenceChoice: (
+		choice: LocalWorldAuthorityFenceChoice,
+	) => Promise<void>;
 }) {
 	const [view, setView] = useState<WorldView>("embodied");
 	const [rendererFailed, setRendererFailed] = useState(false);
@@ -2270,7 +2291,10 @@ function GeneratedWorld({
 					Restoring this Chronicle event from the local world record…
 				</p>
 			) : (
-				<section className="renderer-note" aria-label="Chronicle event focus">
+				<section
+					className="renderer-note v1-event-focus"
+					aria-label="Chronicle event focus"
+				>
 					<h2>{focusedEventContext.title}</h2>
 					<p>
 						{focusedEventContext.citizenName}
@@ -2334,6 +2358,34 @@ function GeneratedWorld({
 				>
 					A local process owns this town clock. Closing the tab does not stop
 					the days while that process is still running.
+				</p>
+			) : null}
+			{experience.persistence.kind === "authority-conflict" ? (
+				<p
+					className="renderer-note"
+					role="status"
+					data-testid="authority-conflict"
+				>
+					This browser town and the local process town are not the same. They
+					will not be merged.{" "}
+					<button
+						type="button"
+						onClick={() => void onFenceChoice("fresh-local")}
+					>
+						Start a fresh local town
+					</button>{" "}
+					<button
+						type="button"
+						onClick={() => void onFenceChoice("adopt-process")}
+					>
+						Use the process town
+					</button>{" "}
+					<button
+						type="button"
+						onClick={() => void onFenceChoice("stay-local")}
+					>
+						Keep this browser town
+					</button>
 				</p>
 			) : null}
 			{effectiveView === "overview" ? (
@@ -2566,7 +2618,7 @@ export function V1GenesisApp() {
 	useEffect(() => {
 		document.title = "EONFOLK — Dawnmere";
 	}, []);
-	const { experience, error, refresh, advanceDay, catchUpDays } =
+	const { experience, error, refresh, advanceDay, catchUpDays, chooseFence } =
 		useGeneratedExperience(fault);
 	useEffect(() => {
 		void loadGeneratedWorldCanvasModule();
@@ -2586,6 +2638,7 @@ export function V1GenesisApp() {
 			onAuthorityRefresh={refresh}
 			onAdvanceDay={advanceDay}
 			onCatchUpDays={catchUpDays}
+			onFenceChoice={chooseFence}
 		/>
 	);
 }

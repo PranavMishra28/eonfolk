@@ -174,6 +174,111 @@ describe("canonical generated-world browser experience", () => {
 		expect(runtime).toContain("navigator.webdriver");
 	});
 
+	it("attaches as a client when the process is up and does not write IndexedDB", async () => {
+		const genesisWorld = await generateWorld({
+			releaseGenesis: await createReleaseGenesis({
+				releaseId: V1_GENESIS_RELEASE_ID,
+				seedHex: V1_GENESIS_SEED,
+			}),
+			worldId: V1_GENESIS_WORLD_ID,
+			treatmentId: "standard-brain",
+		});
+		const processWorld = await tickLocalWorldAuthority({
+			genesisWorld,
+			current: null,
+		});
+		let opened = 0;
+		const factory = {
+			open: () => {
+				opened += 1;
+				throw new Error(
+					"IndexedDB must not be opened while the process writes",
+				);
+			},
+		} as unknown as IDBFactory;
+		const experience = await buildGeneratedWorldExperience({
+			localAuthority: processWorld,
+			localDurableSnapshot: null,
+			indexedDbFactory: factory,
+		});
+		expect(opened).toBe(0);
+		expect(experience.persistence).toEqual({
+			kind: "local-process",
+			claim: "local-process-client",
+			failureCode: null,
+			restored: true,
+			catchUpReceipts: 0,
+		});
+		expect(experience.stateHash).toBe(processWorld.stateHash);
+	});
+
+	it("keeps the IndexedDB catch-up path when the process is down", async () => {
+		const experience = await buildGeneratedWorldExperience({
+			localAuthority: false,
+			indexedDbFactory: null,
+		});
+		expect(experience.persistence).toEqual({
+			kind: "unavailable",
+			claim: "admitted-deterministic-view",
+			failureCode: "INDEXEDDB_UNAVAILABLE",
+			restored: false,
+			catchUpReceipts: 0,
+		});
+		expect(experience.horizonDays).toBe(1);
+	});
+
+	it("does not silently merge a conflicting process snapshot with IndexedDB", async () => {
+		const genesisWorld = await generateWorld({
+			releaseGenesis: await createReleaseGenesis({
+				releaseId: V1_GENESIS_RELEASE_ID,
+				seedHex: V1_GENESIS_SEED,
+			}),
+			worldId: V1_GENESIS_WORLD_ID,
+			treatmentId: "standard-brain",
+		});
+		const first = await tickLocalWorldAuthority({
+			genesisWorld,
+			current: null,
+		});
+		const processWorld = await tickLocalWorldAuthority({
+			genesisWorld,
+			current: first,
+		});
+		const conflict = await buildGeneratedWorldExperience({
+			localAuthority: processWorld,
+			localDurableSnapshot: {
+				worldIdentityHash: first.worldIdentityHash,
+				stateHash: first.stateHash,
+			},
+			indexedDbFactory: null,
+		});
+		expect(conflict.persistence.kind).toBe("authority-conflict");
+		expect(conflict.persistence.claim).toBe("unmerged-authorities");
+		expect(conflict.stateHash).not.toBe(processWorld.stateHash);
+		const adopted = await buildGeneratedWorldExperience({
+			localAuthority: processWorld,
+			localDurableSnapshot: {
+				worldIdentityHash: first.worldIdentityHash,
+				stateHash: first.stateHash,
+			},
+			authorityFenceChoice: "adopt-process",
+			indexedDbFactory: null,
+		});
+		expect(adopted.persistence.kind).toBe("local-process");
+		expect(adopted.stateHash).toBe(processWorld.stateHash);
+		const stayed = await buildGeneratedWorldExperience({
+			localAuthority: processWorld,
+			localDurableSnapshot: {
+				worldIdentityHash: first.worldIdentityHash,
+				stateHash: first.stateHash,
+			},
+			authorityFenceChoice: "stay-local",
+			indexedDbFactory: null,
+		});
+		expect(stayed.persistence.kind).not.toBe("local-process");
+		expect(stayed.stateHash).not.toBe(processWorld.stateHash);
+	});
+
 	it("surfaces counsel as a happening without reviewer-facing roster copy", async () => {
 		const runtime = await readFile(
 			new URL("./generated-world-runtime.ts", import.meta.url),

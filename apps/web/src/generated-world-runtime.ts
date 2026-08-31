@@ -5,9 +5,12 @@ import {
 	type CivilizationState,
 	decodeLocalWorldAuthoritySnapshot,
 	LOCAL_WORLD_AUTHORITY_DEFAULT_ORIGIN,
+	type LocalWorldAuthorityFenceChoice,
+	type LocalWorldAuthorityFenceSnapshot,
 	type LocalWorldAuthoritySnapshot,
 	RELEASE_GENESIS_MARA_CITIZEN_ID,
 	RELEASE_GENESIS_SECOND_FOUNDING_CITIZEN_ID,
+	resolveLocalWorldAuthorityFence,
 	runCivilizationExperiment,
 } from "@eonfolk/civilization";
 import { standardFallbackModelGateway } from "@eonfolk/cognition";
@@ -56,6 +59,10 @@ export const GENERATED_WORLD_COMPARISON_HORIZON_DAYS = 1;
 /** Exact v8 namespace: first session starts at day 1; earlier 365-day v7 bytes stay unread. */
 export const GENERATED_WORLD_STORAGE_KEY = "eonfolk-generated-authority-v8";
 export const COGNITION_TREATMENT_STORAGE_KEY = "eonfolk-cognition-treatment";
+export const AUTHORITY_FENCE_CHOICE_STORAGE_KEY =
+	"eonfolk-authority-fence-choice-v1";
+
+export type { LocalWorldAuthorityFenceChoice };
 
 export type LocalCognitionTreatment = "standard-brain" | "model";
 
@@ -102,6 +109,22 @@ export async function probeLocalWorldAuthority(
 	}
 }
 
+let sessionFenceChoice: LocalWorldAuthorityFenceChoice | null = null;
+
+export function rememberLocalWorldAuthorityFenceChoice(
+	choice: LocalWorldAuthorityFenceChoice | null,
+): void {
+	sessionFenceChoice = choice;
+}
+
+function fenceChoiceFromOptions(
+	options: GeneratedWorldBuildOptions,
+): LocalWorldAuthorityFenceChoice | null {
+	if (options.authorityFenceChoice !== undefined)
+		return options.authorityFenceChoice;
+	return sessionFenceChoice;
+}
+
 async function resolveAttachedAuthority(
 	options: GeneratedWorldBuildOptions,
 ): Promise<LocalWorldAuthoritySnapshot | null> {
@@ -111,6 +134,66 @@ async function resolveAttachedAuthority(
 	return probeLocalWorldAuthority(
 		options.localAuthorityOrigin ?? LOCAL_WORLD_AUTHORITY_DEFAULT_ORIGIN,
 	);
+}
+
+async function peekLocalDurableSnapshot(
+	options: GeneratedWorldBuildOptions,
+): Promise<LocalWorldAuthorityFenceSnapshot | null> {
+	if (options.localDurableSnapshot !== undefined)
+		return options.localDurableSnapshot;
+	const indexedDbFactory =
+		options.indexedDbFactory === undefined
+			? globalThis.indexedDB
+			: options.indexedDbFactory;
+	if (indexedDbFactory === null || indexedDbFactory === undefined) return null;
+	let port: BrowserVersionedPersistence | null = null;
+	try {
+		port = await BrowserVersionedPersistence.open({
+			factory: indexedDbFactory,
+			databaseName: options.databaseName ?? GENERATED_WORLD_STORAGE_KEY,
+		});
+		const scope = {
+			runId: GENERATED_CIVILIZATION_RUN_ID,
+			regionId: V1_GENESIS_WORLD_ID,
+		};
+		const head = await port.loadHead(scope);
+		const latest = await port.loadLatestSnapshot(scope);
+		const recorded = latest.state;
+		if (recorded === null || typeof recorded !== "object") return null;
+		const world = (recorded as { readonly world?: unknown }).world as
+			| { readonly identity?: { readonly identityHash?: string } }
+			| undefined;
+		const worldIdentityHash = world?.identity?.identityHash;
+		if (typeof worldIdentityHash !== "string" || worldIdentityHash.length === 0)
+			return null;
+		return Object.freeze({
+			worldIdentityHash,
+			stateHash: head.stateHash,
+		});
+	} catch (error) {
+		if (error instanceof PersistenceError && error.code === "NOT_FOUND")
+			return null;
+		return null;
+	} finally {
+		port?.close();
+	}
+}
+
+async function resolveAuthorityFence(options: GeneratedWorldBuildOptions) {
+	const processSnapshot = await resolveAttachedAuthority(options);
+	const localSnapshot = await peekLocalDurableSnapshot(options);
+	const fence = resolveLocalWorldAuthorityFence({
+		processSnapshot:
+			processSnapshot === null
+				? null
+				: {
+						worldIdentityHash: processSnapshot.worldIdentityHash,
+						stateHash: processSnapshot.stateHash,
+					},
+		localSnapshot,
+		playerChoice: fenceChoiceFromOptions(options),
+	});
+	return Object.freeze({ processSnapshot, fence });
 }
 
 function experienceFromLocalProcess(
@@ -187,11 +270,17 @@ function experienceFromLocalProcess(
 }
 
 export interface GeneratedWorldPersistenceStatus {
-	readonly kind: "indexeddb" | "quarantined" | "unavailable" | "local-process";
+	readonly kind:
+		| "indexeddb"
+		| "quarantined"
+		| "unavailable"
+		| "local-process"
+		| "authority-conflict";
 	readonly claim:
 		| "durable-authority"
 		| "admitted-deterministic-view"
-		| "local-process-client";
+		| "local-process-client"
+		| "unmerged-authorities";
 	readonly failureCode: string | null;
 	readonly restored: boolean;
 	readonly catchUpReceipts: number;
@@ -263,6 +352,8 @@ export interface GeneratedWorldBuildOptions {
 	readonly checkpointRecovery?: "already-attempted";
 	readonly localAuthority?: LocalWorldAuthoritySnapshot | false;
 	readonly localAuthorityOrigin?: string;
+	readonly localDurableSnapshot?: LocalWorldAuthorityFenceSnapshot | null;
+	readonly authorityFenceChoice?: LocalWorldAuthorityFenceChoice | null;
 }
 
 const SILENT_CHECKPOINT_RECOVERY_CODES = new Set([
@@ -555,10 +646,16 @@ function projectAuthorityView(input: {
 
 async function attachedLocalProcessExperience(
 	options: GeneratedWorldBuildOptions,
+	resolved: Awaited<ReturnType<typeof resolveAuthorityFence>>,
+	usesDefaultAuthority = false,
 ): Promise<GeneratedWorldExperience | null> {
-	const attached = await resolveAttachedAuthority(options);
-	if (attached === null) return null;
-	return experienceFromLocalProcess(attached, options);
+	if (
+		resolved.fence.writer !== "local-process" ||
+		resolved.processSnapshot === null
+	)
+		return null;
+	if (usesDefaultAuthority) sessionFenceChoice = "adopt-process";
+	return experienceFromLocalProcess(resolved.processSnapshot, options);
 }
 
 /**
@@ -570,8 +667,19 @@ async function attachedLocalProcessExperience(
 async function buildGeneratedWorldExperienceInternal(
 	options: GeneratedWorldBuildOptions,
 ): Promise<GeneratedWorldExperience> {
-	const attached = await attachedLocalProcessExperience(options);
+	const usesDefaultAuthority =
+		!generatedFaultHooks &&
+		Object.keys(options).filter((key) => key !== "checkpointRecovery")
+			.length === 0;
+	const resolvedFence = await resolveAuthorityFence(options);
+	const attached = await attachedLocalProcessExperience(
+		options,
+		resolvedFence,
+		usesDefaultAuthority,
+	);
 	if (attached !== null) return attached;
+	const skipDurableWrite = resolvedFence.fence.browserMustNotWrite;
+	const conflictView = resolvedFence.fence.conflict;
 	if (generatedFaultHooks) await options.beforeAuthorityAdvance?.();
 	const authorityRunner: typeof runCivilizationExperiment = async (input) => {
 		const run = await runCivilizationExperiment({
@@ -617,10 +725,6 @@ async function buildGeneratedWorldExperienceInternal(
 		});
 		return Object.freeze({ generatedWorld, prepared });
 	};
-	const usesDefaultAuthority =
-		!generatedFaultHooks &&
-		Object.keys(options).filter((key) => key !== "checkpointRecovery")
-			.length === 0;
 	let preparedBase: Promise<PreparedGeneratedWorldBase>;
 	if (usesDefaultAuthority) {
 		pendingDefaultPreparedBase ??= prepareBase();
@@ -632,7 +736,7 @@ async function buildGeneratedWorldExperienceInternal(
 	if (admittedRun === undefined || admittedPreviousRun === undefined)
 		throw new Error("Checkpoint missing");
 	const selectAdmittedView = (
-		kind: "quarantined" | "unavailable",
+		kind: "quarantined" | "unavailable" | "authority-conflict",
 		failureCode: string,
 	): void => {
 		previousRun = admittedPreviousRun;
@@ -641,13 +745,21 @@ async function buildGeneratedWorldExperienceInternal(
 		authorityStateHash = prepared.plan.finalSnapshot.stateHash;
 		persistence = Object.freeze({
 			kind,
-			claim: "admitted-deterministic-view",
+			claim:
+				kind === "authority-conflict"
+					? ("unmerged-authorities" as const)
+					: ("admitted-deterministic-view" as const),
 			failureCode,
 			restored: false,
 			catchUpReceipts: 0,
 		});
 	};
-	if (indexedDbFactory === null || indexedDbFactory === undefined) {
+	if (
+		conflictView &&
+		(indexedDbFactory === null || indexedDbFactory === undefined)
+	) {
+		selectAdmittedView("authority-conflict", "AUTHORITY_FORK");
+	} else if (indexedDbFactory === null || indexedDbFactory === undefined) {
 		selectAdmittedView("unavailable", "INDEXEDDB_UNAVAILABLE");
 	} else {
 		let port: BrowserVersionedPersistence | null = null;
@@ -686,36 +798,56 @@ async function buildGeneratedWorldExperienceInternal(
 					stateHash: replay.stateHash,
 					events,
 					persistence: Object.freeze({
-						kind: "indexeddb" as const,
-						claim: "durable-authority" as const,
-						failureCode: null,
+						kind: conflictView
+							? ("authority-conflict" as const)
+							: ("indexeddb" as const),
+						claim: conflictView
+							? ("unmerged-authorities" as const)
+							: ("durable-authority" as const),
+						failureCode: conflictView ? "AUTHORITY_FORK" : null,
 						restored: input.restored,
 						catchUpReceipts: input.catchUpReceipts,
 					}),
 				});
 			};
-			const advanced = await persistPreparedGeneratedCivilization({
-				port: openedPort,
-				prepared,
-				confirmationId: `release-genesis-day-${targetHorizonDays}-confirmation`,
-			});
-			const durableAuthority = await readDurableAuthority({
-				head: advanced.head,
-				restored:
-					advanced.catchUpOperation.status === "complete" &&
-					advanced.idempotentAppends === advanced.receipts.length,
-				catchUpReceipts: advanced.catchUpOperation.nextChapter,
-			});
-			run = admittedRun;
-			previousRun = admittedPreviousRun;
-			authorityState = durableAuthority.state;
-			authorityStateHash = durableAuthority.stateHash;
-			authorityEvents = durableAuthority.events;
-			persistence = durableAuthority.persistence;
+			if (skipDurableWrite) {
+				const head = await openedPort.loadHead(scope);
+				const durableAuthority = await readDurableAuthority({
+					head,
+					restored: true,
+					catchUpReceipts: 0,
+				});
+				run = admittedRun;
+				previousRun = admittedPreviousRun;
+				authorityState = durableAuthority.state;
+				authorityStateHash = durableAuthority.stateHash;
+				authorityEvents = durableAuthority.events;
+				persistence = durableAuthority.persistence;
+			} else {
+				const advanced = await persistPreparedGeneratedCivilization({
+					port: openedPort,
+					prepared,
+					confirmationId: `release-genesis-day-${targetHorizonDays}-confirmation`,
+				});
+				const durableAuthority = await readDurableAuthority({
+					head: advanced.head,
+					restored:
+						advanced.catchUpOperation.status === "complete" &&
+						advanced.idempotentAppends === advanced.receipts.length,
+					catchUpReceipts: advanced.catchUpOperation.nextChapter,
+				});
+				run = admittedRun;
+				previousRun = admittedPreviousRun;
+				authorityState = durableAuthority.state;
+				authorityStateHash = durableAuthority.stateHash;
+				authorityEvents = durableAuthority.events;
+				persistence = durableAuthority.persistence;
+			}
 		} catch (error) {
 			const failure = classifyDurableFailure(error);
 			if (failure === null) throw error;
 			const silentRebuild =
+				!skipDurableWrite &&
 				failure.kind === "quarantined" &&
 				SILENT_CHECKPOINT_RECOVERY_CODES.has(failure.code) &&
 				options.checkpointRecovery !== "already-attempted" &&
@@ -734,7 +866,9 @@ async function buildGeneratedWorldExperienceInternal(
 				} catch {
 					selectAdmittedView(failure.kind, failure.code);
 				}
-			} else selectAdmittedView(failure.kind, failure.code);
+			} else if (conflictView)
+				selectAdmittedView("authority-conflict", "AUTHORITY_FORK");
+			else selectAdmittedView(failure.kind, failure.code);
 		} finally {
 			port?.close();
 		}
@@ -926,12 +1060,37 @@ export function refreshGeneratedWorldExperience(): Promise<GeneratedWorldExperie
 	return pendingExperience;
 }
 
+export async function applyLocalWorldAuthorityFenceChoice(
+	choice: LocalWorldAuthorityFenceChoice,
+	options: GeneratedWorldBuildOptions = {},
+): Promise<GeneratedWorldExperience> {
+	const remembered = choice === "fresh-local" ? "stay-local" : choice;
+	sessionFenceChoice = remembered;
+	if (choice === "fresh-local" || choice === "adopt-process") {
+		try {
+			await deleteGeneratedAuthorityDatabase(
+				options.databaseName ?? GENERATED_WORLD_STORAGE_KEY,
+			);
+		} catch {
+			/* Choice still applies; IndexedDB may already be absent. */
+		}
+	}
+	pendingExperience = buildGeneratedWorldExperienceInternal({
+		...options,
+		authorityFenceChoice: remembered,
+	});
+	return pendingExperience;
+}
+
 /**
  * Player-authorized scheduler step. Wall clock must not call this.
  */
 export async function advanceGeneratedWorldLiveDay(): Promise<GeneratedWorldExperience> {
-	const attached = await attachedLocalProcessExperience({});
+	const resolved = await resolveAuthorityFence({});
+	const attached = await attachedLocalProcessExperience({}, resolved, true);
 	if (attached !== null) return attached;
+	if (resolved.fence.browserMustNotWrite)
+		return await refreshGeneratedWorldExperience();
 	const indexedDbFactory = globalThis.indexedDB;
 	if (indexedDbFactory === undefined)
 		return await refreshGeneratedWorldExperience();
@@ -965,8 +1124,11 @@ export async function catchUpGeneratedWorldReturnDays(input: {
 	readonly operationId: string;
 	readonly additionalDays: number;
 }): Promise<GeneratedWorldExperience> {
-	const attached = await attachedLocalProcessExperience({});
+	const resolved = await resolveAuthorityFence({});
+	const attached = await attachedLocalProcessExperience({}, resolved, true);
 	if (attached !== null) return attached;
+	if (resolved.fence.browserMustNotWrite)
+		return await refreshGeneratedWorldExperience();
 	const indexedDbFactory = globalThis.indexedDB;
 	if (indexedDbFactory === undefined)
 		return await refreshGeneratedWorldExperience();

@@ -10,7 +10,7 @@
 
 ## Owned decision
 
-Frontier keeps typed Reality as the sole writer and the browser as a client. A **local Node process** is the only honest path for “the town continues after the tab closes.” Until that process exists and holds the writer fence, landing copy and catch-up must not claim closed-tab continuity.
+Frontier keeps typed Reality as the sole writer and the browser as a client. A **local Node process** is the only honest path for “the town continues after the tab closes.” The process holds the writer fence when it is reachable. Landing copy and catch-up still must not claim default closed-tab continuity.
 
 While a counsel/sponsor decision boundary is open, the **play clock pauses**. Influence is re-validated against the current head; it is never silently discarded. Play HUD must show recorded water, Iven as a standing friend, Want as a goal, and Chronicle causal labels. Standard Brain runs on live days. Optional Model Brain may be selected locally later; it never writes Reality; replay never re-infers.
 
@@ -35,7 +35,7 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 ## Unproven assumptions
 
 - **PRODUCT HYPOTHESIS:** Visible inner life plus paused counsel creates the first-session Iven/water contract.
-- **UNRESOLVED:** A thin file/IndexedDB-backed Node process can share one fence with the browser without a new persistence version.
+- **VERIFIED FACT:** The local process and IndexedDB do not silently share one Reality. When the process is reachable it is the sole writer unless the player explicitly keeps the browser town. Divergent snapshots require an explicit choice and are never merged.
 - **UNRESOLVED:** Recurring live-day Standard Brain stays inside Play timing budgets.
 
 ## Capability matrix (Phase 0 on `4f03d71`)
@@ -49,7 +49,7 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 | Projects / institutions / migration | SHALLOW (seeded expedition, fixed chain) | Citizen-originated projects |
 | Citizen-to-citizen information | SCAFFOLD | Conversations write listener message-claims; later acts can cite them |
 | Model Brain in product | Hardcoded `standard-brain` | Local Settings treatment; Standard fallback; replay never re-infers |
-| Browser Worker as authority | Hosts Reality while tab is open | Client of local process when process is running |
+| Browser Worker as authority | Hosts Reality while tab is open | Client of local process when process is running and the fence attaches; IndexedDB writer if the process is absent |
 | Closed-tab continuity | FALSE | Only with local process |
 | Inner life in Play | FALSE (Want copies walk; Iven invisible) | TRUE in HUD |
 | Chronicle causal grammar | Research only | Play + Research |
@@ -69,11 +69,13 @@ While a counsel/sponsor decision boundary is open, the **play clock pauses**. In
 Node local-authority process  (optional, user-started, $0)
   └─ file snapshot + loopback HTTP; ticks days while the process is running
 Browser Play
-  └─ read client when the process is reachable (kind: local-process)
+  └─ read client when the process is reachable and the fence attaches
+     (kind: local-process); IndexedDB does not write a competing Reality
   └─ if process absent: current Worker-in-tab (catch-up required)
+  └─ if both stores exist and diverge: explicit choice, never a silent merge
 ```
 
-`pnpm world:authority` owns Reality + clock on `127.0.0.1`. Play probes only outside tests and WebDriver. Two stores remain (file vs IndexedDB); R-018 is still open. Landing copy does not claim default closed-tab continuity. About describes the optional process. Catch-up remains the honest path when the process was not running.
+`pnpm world:authority` owns Reality + clock on `127.0.0.1` when Play attaches. Play probes only outside tests and WebDriver. **R-018 is closed** for silent dual-write: the reachable process is the sole writer; the browser does not persist a competing Reality; reconnect with divergent snapshots stops until the player chooses fresh local town, adopt process world, or stay local. Remaining case: an explicit stay-local/fresh-local choice while the process is still running leaves two unmerged stores by player intent. Landing copy does not claim default closed-tab continuity. About describes the optional process and the no-merge fence. Catch-up remains the honest path when the process was not running.
 
 ### 2. Recurring cognition
 
@@ -101,11 +103,11 @@ P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/Lice
 
 ### 8. Persistence honesty
 
-Export/import remain forbidden. Catch-up copy must not overclaim. Landing still describes Worker-in-tab time. About describes the optional local process. Do not claim default closed-tab continuity.
+Export/import remain forbidden. Catch-up copy must not overclaim. Landing still describes Worker-in-tab time. About describes the optional local process and that divergent stores are not merged. Do not claim default closed-tab continuity.
 
 ### 9. Proofs
 
-Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down). 90/365 social as a product gate, citizen-originated projects, shared writer fence, and model-failure remain planned. Do not fake a 365-day wall-clock proof.
+Locked: inner-life first-session, counsel-clock pause, anti-leak of engine strings, live-day cognition, conversation testimony → later choice, local-process attach (process ticks Reality without a browser; Play is a read client when reachable; catch-up if the process is down), shared writer fence (process-up does not write a browser fork; process-down keeps IndexedDB catch-up; divergent snapshots are not silently merged). 90/365 social as a product gate, citizen-originated projects, and model-failure remain planned. Do not fake a 365-day wall-clock proof.
 
 ## Resulting implementation behavior
 
@@ -124,15 +126,13 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 | D-017 | Pause play clock while a decision boundary is open; re-validate; never silent discard |
 | D-018 | Closed-tab continuity requires a local process; do not claim it before the process exists |
 | D-019 | Inner life and causal Chronicle must be true in Play, not only Research |
-| R-018 | Dual writer (tab Worker vs local process) can fork history |
-| Q-016 | Does a thin local process preserve attachment when the tab is closed? |
+| R-018 | Dual writer (tab Worker vs local process) can fork history — **closed** for silent merge; remaining: explicit stay-local while the process is running leaves two unmerged stores |
+| Q-016 | Does a thin local process preserve attachment when the tab is closed? — **yes** while the process runs and the fence attaches; catch-up when it does not |
 
 ## Remaining work
 
-- Slice 4 shared fence: file store and IndexedDB can still fork (R-018). Default Play is Worker-in-tab when the process is absent. Closed-tab continuity is true only while `pnpm world:authority` is running and Play attaches.
 - Citizen-originated projects beyond the seeded expedition.
 - 90/365 social-propagation as a product gate (do not fake 365).
 - Slice 6 remainder: GLB still unused (payload). Follow indoor clipping improved, not proven in every workshop.
 - Live-day Standard Brain: `skipOpeningDecisions` is false on live days; bulk genesis still skips after day 3.
-- Q-016 remains open until one fence, not two stores.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

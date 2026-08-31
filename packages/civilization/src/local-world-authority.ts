@@ -32,6 +32,98 @@ export interface LocalWorldAuthorityStatus {
 	readonly catchUpRequired: boolean;
 }
 
+export type LocalWorldAuthorityFenceChoice =
+	| "adopt-process"
+	| "stay-local"
+	| "fresh-local";
+
+export interface LocalWorldAuthorityFenceSnapshot {
+	readonly worldIdentityHash: string;
+	readonly stateHash: string;
+}
+
+export type LocalWorldAuthorityFence =
+	| {
+			readonly writer: "local-process";
+			readonly browserMustNotWrite: true;
+			readonly conflict: false;
+			readonly catchUpRequired: false;
+	  }
+	| {
+			readonly writer: "indexeddb";
+			readonly browserMustNotWrite: false;
+			readonly conflict: false;
+			readonly catchUpRequired: boolean;
+	  }
+	| {
+			readonly writer: "none";
+			readonly browserMustNotWrite: true;
+			readonly conflict: true;
+			readonly catchUpRequired: false;
+	  };
+
+function snapshotsDiverge(
+	left: LocalWorldAuthorityFenceSnapshot,
+	right: LocalWorldAuthorityFenceSnapshot,
+): boolean {
+	return (
+		left.worldIdentityHash !== right.worldIdentityHash ||
+		left.stateHash !== right.stateHash
+	);
+}
+
+/**
+ * One live writer at a time. Reachable process owns Reality; IndexedDB writes
+ * only when the process is down or the player explicitly keeps the browser
+ * town. Divergent snapshots are never merged.
+ */
+export function resolveLocalWorldAuthorityFence(input: {
+	readonly processSnapshot: LocalWorldAuthorityFenceSnapshot | null;
+	readonly localSnapshot: LocalWorldAuthorityFenceSnapshot | null;
+	readonly playerChoice?: LocalWorldAuthorityFenceChoice | null;
+}): LocalWorldAuthorityFence {
+	const processSnapshot = input.processSnapshot;
+	if (processSnapshot === null)
+		return Object.freeze({
+			writer: "indexeddb",
+			browserMustNotWrite: false,
+			conflict: false,
+			catchUpRequired: true,
+		});
+	const choice = input.playerChoice ?? null;
+	if (choice === "stay-local" || choice === "fresh-local")
+		return Object.freeze({
+			writer: "indexeddb",
+			browserMustNotWrite: false,
+			conflict: false,
+			catchUpRequired: false,
+		});
+	if (choice === "adopt-process")
+		return Object.freeze({
+			writer: "local-process",
+			browserMustNotWrite: true,
+			conflict: false,
+			catchUpRequired: false,
+		});
+	const localSnapshot = input.localSnapshot;
+	if (
+		localSnapshot === null ||
+		!snapshotsDiverge(localSnapshot, processSnapshot)
+	)
+		return Object.freeze({
+			writer: "local-process",
+			browserMustNotWrite: true,
+			conflict: false,
+			catchUpRequired: false,
+		});
+	return Object.freeze({
+		writer: "none",
+		browserMustNotWrite: true,
+		conflict: true,
+		catchUpRequired: false,
+	});
+}
+
 /**
  * One live day owned by the local process. The browser is a client of the
  * resulting snapshot. If this is not called, catch-up remains the honest path.

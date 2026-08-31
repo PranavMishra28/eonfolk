@@ -89,8 +89,9 @@ export function InformationSurface({
 							EONFOLK is a free, local-only settlement. Dawnmere lives in this
 							browser. There is no account and no cloud. Closing the tab stops
 							the clock unless you start a local world authority and this
-							browser can reach it. If that process was not running, you still
-							choose whether waited days pass.
+							browser can reach it. If both this browser and that process have a
+							town, they are not merged until you choose. If that process was
+							not running, you still choose whether waited days pass.
 						</p>
 					</header>
 					<section className="v1-information-grid" aria-label="About EONFOLK">
