@@ -161,6 +161,10 @@ const CAMERA_BLEND_BASIS_POINTS = 2_600;
 export const FOLLOW_CAMERA_PITCH_DEGREES = -12;
 /** Elevated three-quarter: camera is back and up, looking at the chest. */
 export const FOLLOW_COMPACT_CAMERA_PITCH_DEGREES = -18;
+/** Steep enough that indoor Follow looks over a workshop ridge instead of a wall fill. */
+export const FOLLOW_INDOOR_PEEK_PITCH_DEGREES = -36;
+const FOLLOW_INDOOR_DISTANCE_MM = 12_400;
+const FOLLOW_INDOOR_COMPACT_DISTANCE_MM = 16_200;
 export const FOLLOW_LOOK_HEIGHT_MM = 1_520;
 /** Chest. Looking at the head dumps the torso under the inspector. */
 export const FOLLOW_COMPACT_LOOK_HEIGHT_MM = 1_050;
@@ -387,6 +391,17 @@ export function generatedFollowViewportIsCompact(
 	);
 }
 
+function indoorRoofHeightMm(
+	target: SpatialPointMm,
+	volumes: readonly AxisAlignedVolumeMm[],
+): number {
+	let roofMm = 0;
+	for (const volume of volumes) {
+		if (volumeContains(volume, target)) roofMm = Math.max(roofMm, volume.maxY);
+	}
+	return roofMm;
+}
+
 function scoreFollowCandidate(
 	eye: SpatialPointMm,
 	target: SpatialPointMm,
@@ -397,9 +412,12 @@ function scoreFollowCandidate(
 	const occluded = volumes.some((volume) =>
 		followLookOccluded(volume, eye, target),
 	);
-	if (!inside && !occluded) return 1_000_000 + distanceMm;
-	if (!inside) return 100_000 + distanceMm;
-	return distanceMm;
+	const roofMm = indoorRoofHeightMm(target, volumes);
+	const highEnough = roofMm > 0 && eye.y > roofMm;
+	if (!inside && !occluded) return 2_000_000 - distanceMm;
+	if (!inside && highEnough) return 1_000_000 - distanceMm;
+	if (!inside) return 100_000 - distanceMm;
+	return -1_000_000 + distanceMm;
 }
 
 /** Shoulder/height framing that backs out of walls so the followed body stays readable. */
@@ -429,34 +447,45 @@ export function resolveFollowCamera(
 	const baseDistance = compact
 		? FOLLOW_COMPACT_CAMERA_DISTANCE_MM
 		: FOLLOW_CAMERA_DISTANCE_MM;
+	const indoors = volumes.some((volume) => volumeContains(volume, targetMm));
 	const yawOffsets =
 		volumes.length === 0
 			? [FOLLOW_CAMERA_YAW_OFFSET_DEGREES]
 			: FOLLOW_YAW_CANDIDATES_DEGREES;
+	const pitches = indoors
+		? [basePitch, FOLLOW_INDOOR_PEEK_PITCH_DEGREES]
+		: [basePitch];
 	let best: FollowCameraFraming | null = null;
 	let bestScore = Number.NEGATIVE_INFINITY;
 	for (const yawOffset of yawOffsets) {
 		const yawDegrees = sample.facingDegrees + yawOffset;
-		let distanceMm = baseDistance;
-		for (let step = 0; step < 10; step += 1) {
-			const eye = cameraEyeMm(targetMm, yawDegrees, basePitch, distanceMm);
-			const score = scoreFollowCandidate(eye, targetMm, volumes, distanceMm);
-			if (score > bestScore) {
-				bestScore = score;
-				best = Object.freeze({
-					targetMm,
-					yawDegrees,
-					pitchDegrees: basePitch,
-					distanceMm,
-				});
+		for (const pitchDegrees of pitches) {
+			let distanceMm =
+				pitchDegrees === FOLLOW_INDOOR_PEEK_PITCH_DEGREES
+					? compact
+						? FOLLOW_INDOOR_COMPACT_DISTANCE_MM
+						: FOLLOW_INDOOR_DISTANCE_MM
+					: baseDistance;
+			for (let step = 0; step < 12; step += 1) {
+				const eye = cameraEyeMm(targetMm, yawDegrees, pitchDegrees, distanceMm);
+				const score = scoreFollowCandidate(eye, targetMm, volumes, distanceMm);
+				if (score > bestScore) {
+					bestScore = score;
+					best = Object.freeze({
+						targetMm,
+						yawDegrees,
+						pitchDegrees,
+						distanceMm,
+					});
+				}
+				if (score >= 1_000_000 && best !== null) return best;
+				const inside = volumes.some((volume) => volumeContains(volume, eye));
+				if (!inside) break;
+				distanceMm = Math.min(
+					FOLLOW_MAX_BACKUP_MM,
+					distanceMm + (compact ? 2_400 : 1_600),
+				);
 			}
-			if (score >= 1_000_000 && best !== null) return best;
-			const inside = volumes.some((volume) => volumeContains(volume, eye));
-			if (!inside) break;
-			distanceMm = Math.min(
-				FOLLOW_MAX_BACKUP_MM,
-				distanceMm + (compact ? 2_400 : 1_600),
-			);
 		}
 	}
 	return (

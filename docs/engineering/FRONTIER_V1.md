@@ -99,7 +99,7 @@ Settings can select Standard Brain or optional local Model Brain. World identity
 
 ### 7. Presentation
 
-P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/License footer routes exist. Follow backs out further indoors. GLB remains unused (payload). Feedback is a bug/report icon, still localStorage-only.
+P0 UX first (Slice 1). Name overlays no longer stack letters at 44px. About/License footer routes exist. Follow backs out of indoor meshes and peeks over a Workshop ridge so the followed body stays in frame. GLB remains unused (payload). Feedback is a bug/report icon, still localStorage-only.
 
 ### 8. Persistence honesty
 
@@ -132,5 +132,5 @@ Local-only, ~$0, no deploy, no credentials, no Cloudflare/Vercel/backend. A Node
 ## Remaining work
 
 - 90/365 social-propagation as a product gate: prefix skip after day 30 is identity/perf, **not** a cognition proof; do not fake 365.
-- Slice 6 remainder: GLB still unused (payload). Follow indoor clipping improved, not proven in every workshop.
+- Slice 6 remainder: GLB still unused (payload). Follow indoor is locked for Workshop envelopes (back out / roof peek); mill, hall, and other interiors are not exhaustively proven.
 - Do **not** mark the Frontier goal complete while this section is non-empty.

@@ -8,7 +8,9 @@ import {
 	cameraEyeMm,
 	cameraIntentForGeneratedNavigation,
 	conversationVisuallyActive,
-	FOLLOW_COMPACT_CAMERA_PITCH_DEGREES,
+	FOLLOW_INDOOR_PEEK_PITCH_DEGREES,
+	followLookOccluded,
+	followOccluderIds,
 	GENERATED_FOLK_BINARY_ASSET,
 	generatedCameraFidelity,
 	generatedFollowViewportIsCompact,
@@ -556,7 +558,7 @@ describe("generated embodiment projection", () => {
 			}),
 		]);
 		expect(blocked.distanceMm).toBeGreaterThan(open.distanceMm);
-		expect(blocked.pitchDegrees).toBe(open.pitchDegrees);
+		expect(blocked.pitchDegrees).toBeLessThanOrEqual(open.pitchDegrees);
 	});
 
 	it("frames compact Follow on the chest, farther and higher than desktop", () => {
@@ -611,7 +613,44 @@ describe("generated embodiment projection", () => {
 				eye.z < workshop.minZ ||
 				eye.z > workshop.maxZ,
 		).toBe(true);
-		expect(phone.pitchDegrees).toBe(FOLLOW_COMPACT_CAMERA_PITCH_DEGREES);
+		expect(eye.y).toBeGreaterThan(2_400);
+	});
+
+	it("peeks over a workshop ridge so desktop Follow is not a wall clip", () => {
+		const person = Object.freeze({
+			positionMm: Object.freeze({ x: 0, y: 0, z: 0 }),
+			facingDegrees: 90,
+		});
+		const workshop = Object.freeze({
+			occluderId: "building-dawnmere-workshop",
+			minX: -4_100,
+			maxX: 4_100,
+			minY: 0,
+			maxY: 6_300,
+			minZ: -4_100,
+			maxZ: 4_100,
+		});
+		const framed = resolveFollowCamera(person, [workshop]);
+		const eye = cameraEyeMm(
+			framed.targetMm,
+			framed.yawDegrees,
+			framed.pitchDegrees,
+			framed.distanceMm,
+		);
+		expect(framed.targetMm.y).toBeGreaterThanOrEqual(1_200);
+		expect(
+			eye.x < workshop.minX ||
+				eye.x > workshop.maxX ||
+				eye.y > workshop.maxY ||
+				eye.z < workshop.minZ ||
+				eye.z > workshop.maxZ,
+		).toBe(true);
+		expect(eye.y).toBeGreaterThan(workshop.maxY);
+		expect(framed.pitchDegrees).toBe(FOLLOW_INDOOR_PEEK_PITCH_DEGREES);
+		expect(followLookOccluded(workshop, eye, framed.targetMm)).toBe(true);
+		expect(followOccluderIds(eye, framed.targetMm, [workshop])).toEqual([
+			"building-dawnmere-workshop",
+		]);
 	});
 
 	it("uses an explicit deterministic pose clock without moving canonical positions", () => {
