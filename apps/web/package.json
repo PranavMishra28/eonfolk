@@ -23,16 +23,16 @@
 		"@eonfolk/sim": "workspace:*",
 		"@eonfolk/world-presentation": "workspace:*",
 		"@eonfolk/worldgen": "workspace:*",
-		"@playcanvas/react": "0.11.5",
-		"playcanvas": "2.21.4",
-		"react": "19.2.8",
-		"react-dom": "19.2.8"
+		"@playcanvas/react": "0.11.7",
+		"playcanvas": "2.22.4",
+		"react": "19.3.0",
+		"react-dom": "19.3.0"
 	},
 	"devDependencies": {
 		"@playwright/test": "1.62.1",
 		"@types/node": "22.20.1",
-		"@types/react": "19.2.18",
-		"@types/react-dom": "19.2.4",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
 		"@vitejs/plugin-react": "6.1.0",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",
